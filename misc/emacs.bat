@@ -1,0 +1,1 @@
+start D:\emacs\bin\runemacs.exe -q -l .emacs

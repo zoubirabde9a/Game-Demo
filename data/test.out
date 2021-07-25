@@ -1,0 +1,380 @@
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: zoubir $
+   ======================================================================== */
+#include "game.h"
+
+internal void
+RenderBegin(thread_context* Thread, game_memory *Memory,
+            size_t AllocatedVertexCount, u32 Tag)
+{
+    render_context *RenderContext = &Thread->RenderContext;
+    RenderContext->VertexCount = 0;
+    RenderContext->AllocatedVertexCount = AllocatedVertexCount;
+    RenderContext->AllocatedVerticies =
+        (Vertex *)AllocateTransient(Thread, Memory,
+                          AllocatedVertexCount * sizeof(Vertex));
+    RenderContext->RenderOrderType = Tag;
+#if GAME_DEV
+    RenderContext->Began = true;
+#endif
+}
+
+internal void
+RenderFlush(thread_context* Thread)
+{
+    render_context *RenderContext = &Thread->RenderContext;
+#if GAME_DEV
+    Assert(RenderContext->Began);
+    RenderContext->Began = false;
+#endif
+    size_t VerticesMemoryBlockSize =
+        RenderContext->VertexCount * sizeof(Vertex); 
+    glBindBuffer(GL_ARRAY_BUFFER, RenderContext->VBO);
+    glBufferData(GL_ARRAY_BUFFER, VerticesMemoryBlockSize, nullptr, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, VerticesMemoryBlockSize, RenderContext->AllocatedVerticies);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    
+    glBindVertexArray(RenderContext->VAO);
+    glBindTexture(GL_TEXTURE_2D, RenderContext->Texture);
+    
+    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)RenderContext->VertexCount);
+    glBindVertexArray(0);    
+}
+
+inline void
+RenderVertex(thread_context *Thread, Vertex *Vertex)
+{
+    //NOTE(zoubir) to debug see assembly
+    render_context *RenderContext = &Thread->RenderContext;
+    RenderContext->AllocatedVerticies[RenderContext->AllocatedVertexCount++] =
+        *Vertex;
+}
+
+internal void *
+AllocateTransient(thread_context *Thread, game_memory *Memory, size_t Bytes)
+{
+    Assert(Bytes <= Memory->transientStorageSize);
+    if (Memory->transientStorageOffset + Bytes > Memory->transientStorageSize)
+    {
+        Memory->transientStorageOffset = 0;
+    }
+    void *result = (u8 *)Memory->transientStorage + Memory->transientStorageOffset;
+    Memory->transientStorageOffset += Bytes;
+    return result;
+}
+
+
+internal void
+GameOutputSound(game_state *gameState,
+                game_sound_output_buffer *soundBuffer,
+                int toneHz)
+{
+    i16 toneVolume = 3000;
+    int wavePeriod = soundBuffer->samplesPerSecond / toneHz;
+   
+    i16* sampleOut = soundBuffer->samples;
+    for(int sampleIndex = 0;
+        sampleIndex < soundBuffer->sampleCount;
+        sampleIndex++)
+    {
+        float sineValue = sinf(gameState->tSine);
+        i16 sampleValue = (i16)(sineValue * toneVolume);
+        *sampleOut++ = sampleValue;
+        *sampleOut++ = sampleValue;
+        gameState->tSine += 2.f * PI32 * 1.f / (float)wavePeriod;
+        if (gameState->tSine > 2.f * PI32)
+        {
+            gameState->tSine -= 2.f * PI32;
+        }
+    }
+
+}
+
+internal void
+RenderWeirdGradiant(game_offscreen_buffer *buffer, int xOffset, int yOffset)
+{
+    u8* row = (u8*)buffer->memory;
+    for(int y = 0; y < buffer->height; y++)
+    {
+        u32* pixel = (u32*)row;
+        for(int x = 0; x < buffer->width; x++)
+        {
+            // BGRX
+            u8 r = (u8)(x + xOffset);
+            u8 g = (u8)(y + yOffset);
+            u8 b = 0;
+            *pixel++ = b | (g << 8) | (r << 16);
+        }   
+        row += buffer->pitch; 
+    }
+}
+
+internal void
+RenderPlayer(game_offscreen_buffer *buffer, int playerX, int playerY)
+{
+    int top = playerY;
+    int bottom = playerY + 100;
+    if (top <= 0)
+    {
+        top = 0;
+    }
+    
+    if (bottom > buffer->height)
+    {
+        bottom = buffer->height;
+    }
+    for(int x = playerX;
+        x < playerX + 30;
+        x++)
+    {
+        u8 *pixel = (u8 *)buffer->memory +
+            x * buffer->bytesPerPixel +
+            top * buffer->pitch;
+        if (pixel >= buffer->memory &&
+            pixel + 4 < (u8 *)buffer->memory + buffer->pitch * buffer->height)
+        {
+            for(int y = top;
+                y < bottom;
+                y++)
+            {
+                *(u32*)pixel = 0xFFFFFFFF;
+
+                pixel += buffer->pitch;
+            }
+        }
+    }
+}
+internal bool32
+compileShader(thread_context *Thread, game_memory *Memory,
+              void* source, size_t size, char* name, u32 id) {
+
+    GLint sizeGL = (GLint)size;
+    GLchar *sourceGL = (GLchar *)source;
+    //tell opengl that we want to use fileContents as the contents of the shader file
+    glShaderSource(id, 1, &sourceGL, &sizeGL);
+    //compile the shader
+    glCompileShader(id);
+    //check for errors
+    i32 success = 0;
+    glGetShaderiv(id, GL_COMPILE_STATUS, &success);
+
+    if (success == GL_FALSE)
+    {
+        i32 maxLength = 0;
+        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &maxLength);
+
+        //The maxLength includes the NULL character
+        char* errorLog = (char*)AllocateTransient(Thread, Memory, maxLength);
+        glGetShaderInfoLog(id, maxLength, &maxLength, errorLog);
+
+        //TODO(zoubir): Add logging
+        Assert(0);
+
+        glDeleteShader(id); //Don't leak the shader.
+    }
+    return success == GL_FALSE;
+}
+internal void
+GameInitOpenGL(game_state *GameState, game_offscreen_buffer* buffer, void *windowDC)
+{
+}
+
+extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
+{
+    game_state *gameState = (game_state *)Memory->permanentStorage;
+
+    char *fileName = __FILE__;
+    debug_read_file_result fileResult = Memory->DEBUGPlatformReadEntireFile(Thread, fileName);
+    if (!Memory->isInitialized)
+    {        
+        gameState->toneHz = 256;
+        gameState->tSine = 0.f;
+        gameState->playerX = 100;
+        gameState->playerY = 100;
+
+        render_context* RenderContext = &Thread->RenderContext;
+        // generate and bind VBO & VAO
+        glGenVertexArrays(1, &RenderContext->VAO);    
+        glBindVertexArray(RenderContext->VAO);
+        glGenBuffers(1, &RenderContext->VBO);
+        // TODO(zoubir): maybe elliminate this
+        glBindBuffer(GL_ARRAY_BUFFER, RenderContext->VBO);
+
+        // enable 3 attributes
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+
+        //This is the position attribute pointer
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)OffsetOf(Vertex, x));
+        //This is the color attribute pointer
+        glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)OffsetOf(Vertex, r));
+        //This is the UV attribute pointer
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)OffsetOf(Vertex, u));
+
+        glBindVertexArray(0);
+            
+        RenderContext->ProgramID = glCreateProgram();
+        RenderContext->VertexShaderID =
+            glCreateShader(GL_VERTEX_SHADER);
+        if (RenderContext->VertexShaderID == 0) {
+            // Error Creating VertexShader
+            // TODO(zoubir): Add Logging
+        }
+
+        RenderContext->FragmentShaderID =
+            glCreateShader(GL_FRAGMENT_SHADER);
+        if (RenderContext->FragmentShaderID == 0) {
+            // Error Creating FragmentShader
+            // TODO(zoubir): Add Logging
+        }
+
+        // Read Shader Files
+        char *VertexShaderFileName = "texture_shading.vert";
+        char *FragmentShaderFileName = "texture_shading.frag";
+
+        debug_read_file_result VertexFileResult =
+            Memory->DEBUGPlatformReadEntireFile(Thread, VertexShaderFileName);
+        debug_read_file_result FragmentFileResult =
+            Memory->DEBUGPlatformReadEntireFile(Thread, FragmentShaderFileName);
+
+        // Compile Shaders
+        compileShader(Thread, Memory, VertexFileResult.Memory,
+                      VertexFileResult.Size, "Vertex Shader", RenderContext->VertexShaderID);
+        compileShader(Thread, Memory, FragmentFileResult.Memory,
+                      FragmentFileResult.Size, "Fragment Shader", RenderContext->FragmentShaderID);
+        
+        //Attach shaders to program
+        glAttachShader(RenderContext->ProgramID, RenderContext->VertexShaderID);
+        glAttachShader(RenderContext->ProgramID, RenderContext->FragmentShaderID);
+        
+        //Link program
+        glLinkProgram(RenderContext->ProgramID);
+        
+        //Note the different functions here: glGetProgram* instead of glGetShader*.
+        int isLinked = 0;
+        glGetProgramiv(RenderContext->ProgramID, GL_LINK_STATUS, (int *)&isLinked);
+        if (isLinked == GL_FALSE)
+        {
+            int32_t maxLength = 0;
+            glGetProgramiv(RenderContext->ProgramID, GL_INFO_LOG_LENGTH, &maxLength);
+
+            //The maxLength includes the NULL character
+            char* errorLog = (char*)AllocateTransient(Thread, Memory, maxLength);
+            glGetProgramInfoLog(RenderContext->ProgramID, maxLength, &maxLength, errorLog);
+
+            // TODO(zoubir): Add Logging
+            //We don't need the program anymore.
+            glDeleteProgram(RenderContext->ProgramID);
+            //Don't leak shaders either.
+            glDeleteShader(RenderContext->VertexShaderID);
+            glDeleteShader(RenderContext->FragmentShaderID);
+        }
+
+        //Always detach shaders after a successful link.
+        glDetachShader(RenderContext->ProgramID, RenderContext->VertexShaderID);
+        glDetachShader(RenderContext->ProgramID, RenderContext->FragmentShaderID);
+        glDeleteShader(RenderContext->VertexShaderID);
+        glDeleteShader(RenderContext->FragmentShaderID);
+
+
+        glUseProgram(RenderContext->ProgramID);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+
+        i32 ProjectionMatrixLocation = glGetUniformLocation(RenderContext->ProgramID, "P");
+
+        float top = 720;
+        float bottom = 0;
+        float right = 1280;
+        float left = 0;
+        float ProjectionMatrixData[] =
+        {
+            2.f / (right - left), 0.f, 0.f, -((right + left) / (right - left)), 
+            0.f, 2.f / (top - bottom), 0.f, -((top + bottom) / (top - bottom)), 
+            0.f, 0.f, 1.f, 1.f, 
+            0.f, 0.f, 0.f, 1.f
+        };
+        glUniformMatrix4fv(ProjectionMatrixLocation, 1, GL_FALSE, ProjectionMatrixData);
+                    
+        Memory->isInitialized = true;
+    }
+    
+    if (fileResult.Memory)
+    {
+        Memory->DEBUGPlatformWriteEntireFile(Thread, "test.out", fileResult.Size, fileResult.Memory);
+        Memory->DEBUGPlatformFreeFileMemory(Thread, fileResult.Memory);
+    }
+    ArrayCount(Input->controllers[0].buttons) * sizeof(game_button_state);
+    Assert(&Input->controllers[0].terminator - &Input->controllers[0].buttons[0] ==
+           ArrayCount(Input->controllers[0].buttons));
+    Assert(Memory->permanentStorageSize > sizeof(game_state));
+
+    for(int controllerIndex = 0;
+        controllerIndex < ArrayCount(Input->controllers);
+        controllerIndex++)
+    {
+        game_controller_input *thisController = GetController(Input, controllerIndex);
+
+        gameState->playerX += thisController->buttonRight.endedDown * 4 - 
+            thisController->buttonLeft.endedDown * 4;
+        gameState->playerY += thisController->buttonDown.endedDown * 4 -
+            thisController->buttonUp.endedDown * 4;
+
+#if 0        
+        gameState->xOffset += thisController->buttonLeft.endedDown * 4 - 
+            thisController->buttonRight.endedDown * 4;
+        gameState->yOffset += thisController->buttonDown.endedDown * 4 -
+            thisController->buttonUp.endedDown * 4;
+#endif
+    }
+#if 0
+    RenderWeirdGradiant(buffer, gameState->xOffset, gameState->yOffset);
+#endif
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+
+    RenderBegin(Thread, Memory, 3, 0);
+    Vertex vertex1 = {};
+    vertex1.x = 200;
+    vertex1.y = 200;
+    Vertex vertex2 = {};
+    vertex2.x = 400;
+    vertex2.y = 400;
+    Vertex vertex3 = {};
+    vertex3.x = 300;
+    vertex3.y = 300;
+
+    RenderVertex(Thread, &vertex1);
+    RenderVertex(Thread, &vertex2);
+    RenderVertex(Thread, &vertex3);
+    RenderFlush(Thread);
+    
+    glReadBuffer(GL_BACK);
+    glReadPixels(0, 0, Buffer->width, Buffer->height, GL_BGRA, GL_UNSIGNED_BYTE, Buffer->memory);
+
+//    RenderPlayer(Buffer, gameState->playerX, gameState->playerY);
+//    RenderPlayer(Buffer, Input->mouseX, Input->mouseY);
+    for(int buttonIndex = 0;
+        buttonIndex < ArrayCount(Input->mouseButtons);
+        buttonIndex++)
+    {
+        if (Input->mouseButtons[buttonIndex].endedDown)
+        {
+//            RenderPlayer(Buffer, 100 * buttonIndex, 100);
+        }
+    }
+}
+
+extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
+{
+#if 0
+    game_state *gameState = (game_state *)Memory->permanentStorage;
+    GameOutputSound(gameState, soundBuffer, gameState->toneHz);
+#endif
+}
