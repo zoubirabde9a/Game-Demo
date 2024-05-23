@@ -1,5 +1,5 @@
 # Game-Demo
-A Demo Game made in OpenGL from scratch based on the handmade hero platform layer.
+A Demo Game made in OpenGL from scratch using WIN32 api.
 
 controls:
 
