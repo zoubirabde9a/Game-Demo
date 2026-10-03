@@ -8,31 +8,9 @@
    fires once. */
 
 #include "../app.cpp"
+#include "event_relay.cpp"
 
 #define SIM_GAME_MEMORY Megabytes(64)
-// Sounds farther than this from a player are not sent to it (about a
-// screen and a half).
-#define SIM_GAME_HEARING_DISTANCE 900.0f
-// Recent sounds kept for the snapshots; at 20 snapshots a second this is
-// several snapshots' worth even in a busy fight.
-#define SIM_GAME_MAX_SOUNDS 64
-
-struct sim_game_sound
-{
-    u32 Tick;    // GameTick count when it played
-    u8 Sound;    // asset_type_id
-    v2 Position;
-};
-
-struct sim_game_kill
-{
-    u32 Tick;
-    net_kill Kill;
-};
-
-// Player deaths kept for the snapshots; every player gets every kill.
-#define SIM_GAME_MAX_KILLS 16
-
 struct server_game
 {
     app_state *AppState;
@@ -40,14 +18,8 @@ struct server_game
     u16 HeldButtons[NET_MAX_CLIENTS];
     u32 NameTurn; // which slot's name the next snapshots carry
     u32 LastInputTick[NET_MAX_CLIENTS]; // newest input applied per slot
-    // The sound events of the last ticks, a ring; each slot has heard
-    // everything up to SoundsSentTick.
-    u32 Tick;
-    sim_game_sound Sounds[SIM_GAME_MAX_SOUNDS];
-    u32 SoundCursor;
-    u32 SoundsSentTick[NET_MAX_CLIENTS];
-    sim_game_kill Kills[SIM_GAME_MAX_KILLS];
-    u32 KillCursor;
+    // Sounds and deaths on their way to the clients (event_relay.cpp).
+    event_relay Relay;
 };
 
 internal void
@@ -85,7 +57,7 @@ GameShutdown(server_game *Game)
 internal void
 GamePlayerJoined(server_game *Game, u32 Slot)
 {
-    Game->SoundsSentTick[Slot] = Game->Tick;
+    RelayJoined(&Game->Relay, Slot);
     app_state *AppState = Game->AppState;
     RemovePlayerFromSlot(AppState, &AppState->World, Slot);
     AddPlayerToSlot(AppState, &AppState->World, Game->Arena, Slot,
@@ -152,27 +124,8 @@ GameTick(server_game *Game, float Dt)
     {
         AppState->Players[Index].Input.Pressed = 0;
     }
-    // Sounds are for clients to play; the server has no speakers. Keep
-    // them for the next snapshots, which send each player the ones near it.
-    Game->Tick++;
-    for (u32 Index = 0; Index < AppState->Events.Count; ++Index)
-    {
-        sim_event *Event = &AppState->Events.Events[Index];
-        if (Event->Type == SimEvent_Kill)
-        {
-            sim_game_kill *Kept = &Game->Kills[Game->KillCursor++ % SIM_GAME_MAX_KILLS];
-            Kept->Tick = Game->Tick;
-            Kept->Kill.Killer = Event->Killer;
-            Kept->Kill.Victim = Event->Victim;
-            Kept->Kill.KillerMonster = Event->KillerMonster;
-            continue;
-        }
-        if (Event->Type != SimEvent_Sound || (u32)Event->Sound > 255) continue;
-        sim_game_sound *Kept = &Game->Sounds[Game->SoundCursor++ % SIM_GAME_MAX_SOUNDS];
-        Kept->Tick = Game->Tick;
-        Kept->Sound = (u8)Event->Sound;
-        Kept->Position = Event->Position.XY;
-    }
+    // Sounds and deaths are for clients; keep them for the snapshots.
+    RelayKeep(&Game->Relay, &AppState->Events);
     AppState->Events = {};
 }
 
@@ -398,28 +351,5 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
         Score->MonsterKills = (u16)Player->MonsterKills;
     }
 
-    // Sounds played near the viewer since its last snapshot, oldest first.
-    Out->SoundCount = 0;
-    for (u32 Age = SIM_GAME_MAX_SOUNDS; Age > 0; --Age)
-    {
-        sim_game_sound *Sound =
-            &Game->Sounds[(Game->SoundCursor + SIM_GAME_MAX_SOUNDS - Age) % SIM_GAME_MAX_SOUNDS];
-        if (Sound->Tick <= Game->SoundsSentTick[ViewerSlot] || Sound->Tick == 0) continue;
-        if (First && LengthSq(Sound->Position - Center) >
-            Square(SIM_GAME_HEARING_DISTANCE)) continue;
-        if (Out->SoundCount == NET_MAX_SNAPSHOT_SOUNDS) break;
-        Out->Sounds[Out->SoundCount++] = Sound->Sound;
-    }
-
-    // Every player death since the viewer's last snapshot, oldest first.
-    Out->KillCount = 0;
-    for (u32 Age = SIM_GAME_MAX_KILLS; Age > 0; --Age)
-    {
-        sim_game_kill *Kill =
-            &Game->Kills[(Game->KillCursor + SIM_GAME_MAX_KILLS - Age) % SIM_GAME_MAX_KILLS];
-        if (Kill->Tick <= Game->SoundsSentTick[ViewerSlot] || Kill->Tick == 0) continue;
-        if (Out->KillCount == NET_MAX_SNAPSHOT_KILLS) break;
-        Out->Kills[Out->KillCount++] = Kill->Kill;
-    }
-    Game->SoundsSentTick[ViewerSlot] = Game->Tick;
+    RelayWrite(&Game->Relay, ViewerSlot, First != 0, Center, Out);
 }

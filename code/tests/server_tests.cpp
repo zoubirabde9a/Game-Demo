@@ -549,7 +549,7 @@ TestSoundsReachPlayersNearby()
     Near->Position = Caster->Position + V3(60.f, 0.f, 0.f);
     CheckAndChangeEntityChunk(AppState, &AppState->World, Game.Arena, Before, Near);
     Before = Far->Position;
-    Far->Position = Caster->Position + V3(SIM_GAME_HEARING_DISTANCE + 400.f, 0.f, 0.f);
+    Far->Position = Caster->Position + V3(RELAY_HEARING_DISTANCE + 400.f, 0.f, 0.f);
     CheckAndChangeEntityChunk(AppState, &AppState->World, Game.Arena, Before, Far);
 
     static net_snapshot Out[3];
