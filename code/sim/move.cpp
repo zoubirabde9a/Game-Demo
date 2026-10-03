@@ -205,17 +205,26 @@ ResolveMoveHit(app_state *AppState, world *World, memory_arena *Arena,
 }
 
 // NOTE(zoubir): the height of the highest thing under the entity that it
-// could stand on (for its shadow), or the floor
+// could stand on (for its shadow), or the floor. Looks only at what shares
+// the entity's footprint: it used to scan every entity in the world after
+// every move, and missed terrain props on infinite maps, which are not in
+// the entity list.
 internal void
 UpdateGroundZ(app_state *AppState, world *World, world_entity *Entity)
 {
     float NearestDistance = 100000.f;
     entity_collision_volume *NearestVolume = 0;
     world_entity *NearestEntity = 0;
-    // TODO(zoubir): Spatial partition here!
-    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    entity_collision_volume *Total = &Entity->Collision->TotalVolume;
+    v3 Low = Entity->Position + Total->Offset - Total->HalfDims;
+    v3 High = Entity->Position + Total->Offset + Total->HalfDims;
+    Low.Z = Minimum(Low.Z, 0.f);
+    rectangle3 Footprint = RectMinMax(Low, High);
+    world_entity *Nearby[MOVE_MAX_NEARBY];
+    u32 NearbyCount = GatherEntitiesInBox(World, Footprint, Nearby, MOVE_MAX_NEARBY);
+    for(u32 NearbyIndex = 0; NearbyIndex < NearbyCount; NearbyIndex++)
     {
-        world_entity *Other = &World->Entities[EntityIndex];
+        world_entity *Other = Nearby[NearbyIndex];
         if (Other == Entity || !Other->IsPresent || IsDeadPlayer(Other) ||
             !CanCollide(AppState, Entity->Type, Other->Type) ||
             !CanCollide(AppState, Entity, Other))

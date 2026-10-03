@@ -191,6 +191,33 @@ TestUnitDoesNotSlipFromMiddleOfWall()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a unit in the air over a wall has its ground on the wall's
+// top, and back on the floor once past it
+internal void
+TestGroundUnderJumpingUnit()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Wall = AddTestEntity(&Test, EntityType_StaticObject,
+                                       {400, 300, 0}, Test.WallVolume);
+    AddTestEntity(&Test, EntityType_StaticObject, {900, 300, 0},
+                  Test.WallVolume);
+    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
+                                         {400, 300, 60}, Test.UnitVolume);
+    entity_collision_volume *Top = &Wall->Collision->TotalVolume;
+    float WallTop = Top->Offset.Z + Top->HalfDims.Z;
+    float MaxDistance = 1000.f;
+    MoveEntity(Player, Test.World, &Test.Arena, 1.f / 60.f, Test.AppState,
+               V3(0.f, 0.f, 0.f), &MaxDistance);
+    Check(Absolute(Player->GroundZ - WallTop) < 0.01f);
+
+    world_entity *Clear = AddTestEntity(&Test, EntityType_Player,
+                                        {600, 300, 60}, Test.UnitVolume);
+    MoveEntity(Clear, Test.World, &Test.Arena, 1.f / 60.f, Test.AppState,
+               V3(0.f, 0.f, 0.f), &MaxDistance);
+    Check(Clear->GroundZ == 0.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunCollisionTests()
 {
@@ -214,4 +241,6 @@ RunCollisionTests()
     TestUnitSlipsPastWallCorner();
     printf("TestUnitDoesNotSlipFromMiddleOfWall\n");
     TestUnitDoesNotSlipFromMiddleOfWall();
+    printf("TestGroundUnderJumpingUnit\n");
+    TestGroundUnderJumpingUnit();
 }
