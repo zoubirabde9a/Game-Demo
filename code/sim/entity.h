@@ -110,6 +110,13 @@ struct entity_collision_volume_group
 
 #define PLAYER_DASH_COOLDOWN 0.8f
 #define PLAYER_SHOCKWAVE_COOLDOWN 4.f
+// NOTE(zoubir): walking accelerations (PLAYER_ACCELERATION, a monster's
+// Acceleration) are tuned per 1/60 s step; the push is scaled by this, not
+// by the frame time. Scaling by the frame time made speed grow with it:
+// the 30 fps client walked twice as fast as the 60 Hz server, so online
+// prediction ran ahead and was pulled back at every snapshot
+#define ACCELERATION_STEP (1.f / 60.f)
+
 #define SWORD_DAMAGE 25.f
 // NOTE(zoubir): speed added to a sword's survivor, away from the swinger
 #define SWORD_KNOCKBACK 280.f

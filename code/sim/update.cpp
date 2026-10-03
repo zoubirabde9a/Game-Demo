@@ -186,7 +186,7 @@ UpdateMonster(world_entity *Entity, world *World,
             AnimationDirection_Right : AnimationDirection_Left;
     }
 
-    DDEntity *= Stats->Acceleration * GetMoveSpeedScale(Entity) * DeltaTime;
+    DDEntity *= Stats->Acceleration * GetMoveSpeedScale(Entity) * ACCELERATION_STEP;
     // Drag
     DDEntity -= (10.f * GetGroundFriction(Entity) * Entity->Velocity);
     if (Flies)
@@ -251,7 +251,7 @@ UpdateFamiliar(world_entity *Entity, world *World,
         DDEntity *= 1.f / DDEntityLength;
     }
 
-    DDEntity *= EntityAcceleration * DeltaTime;
+    DDEntity *= EntityAcceleration * ACCELERATION_STEP;
     DDEntity -= (10.f * Entity->Velocity);
 
     Entity->tFlying += DeltaTime * 5;

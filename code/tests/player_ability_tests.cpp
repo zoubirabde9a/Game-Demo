@@ -576,6 +576,42 @@ TestBlinkPreviewStopsAtWalls()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): walking for one second covers the same ground whatever
+// the frame time; the 30 fps client used to walk twice as far as the
+// 60 Hz server, so online prediction ran ahead and was pulled back
+internal void
+TestWalkSpeedDoesNotDependOnFrameRate()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Slow = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                         0, {300, 300, 0});
+    world_entity *Fast = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                         1, {300, 700, 0});
+    float Rates[2] = {30.f, 60.f};
+    for(u32 SlotIndex = 0; SlotIndex < 2; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        Slot->Input.Move = V2(1.f, 0.f);
+        for(u32 Frame = 0; Frame < (u32)Rates[SlotIndex]; Frame++)
+        {
+            float AnimationSpeed;
+            animation_type Type;
+            animation_direction Direction;
+            UpdatePlayer(Slot, Test.World, &Test.Arena, 1.f / Rates[SlotIndex],
+                         AppState, &AnimationSpeed, &Type, &Direction);
+        }
+    }
+    float SlowWalked = Slow->Position.X - 300.f;
+    float FastWalked = Fast->Position.X - 300.f;
+    printf("  walked in 1 s: %.1f at 30 fps, %.1f at 60 fps\n",
+           SlowWalked, FastWalked);
+    Check(FastWalked > 50.f);
+    Check(Absolute(SlowWalked - FastWalked) < 0.05f * FastWalked);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -615,4 +651,6 @@ RunPlayerAbilityTests()
     TestSwingsInTheAirArePaced();
     printf("TestBlinkPreviewStopsAtWalls\n");
     TestBlinkPreviewStopsAtWalls();
+    printf("TestWalkSpeedDoesNotDependOnFrameRate\n");
+    TestWalkSpeedDoesNotDependOnFrameRate();
 }

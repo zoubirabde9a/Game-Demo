@@ -50,7 +50,7 @@ MovePlayer(app_state *AppState, world *World, memory_arena *Arena,
     {
         DDPlayer *= 1.f / SquareRoot(LengthSquared);
     }
-    DDPlayer *= Tick->Acceleration * GetMoveSpeedScale(Player) * DeltaTime;
+    DDPlayer *= Tick->Acceleration * GetMoveSpeedScale(Player) * ACCELERATION_STEP;
     // Drag
     DDPlayer -= (10.f * GetGroundFriction(Player) * Player->Velocity);
     // Gravity
