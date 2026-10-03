@@ -15,27 +15,6 @@ DrawHudBar(render_context *RenderContext, float X, float Y,
                   UI_COLOR_BORDER, 0.f);
 }
 
-// NOTE(zoubir): expanding square outline around the player while the
-// shockwave flash lasts, drawn in screen space on top of the world
-internal void
-DrawShockwaveRing(render_context *RenderContext, world_entity *Player,
-                  v3 CameraOffset)
-{
-    if (Player->ShockwaveFlash <= 0.f)
-    {
-        return;
-    }
-    float Progress = 1.f - Player->ShockwaveFlash / SHOCKWAVE_FLASH_SECONDS;
-    float Radius = SHOCKWAVE_RADIUS * (0.4f + 0.6f * Progress);
-    v2 Center = Player->Position.XY - CameraOffset.XY;
-    for(u32 RingIndex = 0; RingIndex < 3; RingIndex++)
-    {
-        float R = Radius - 3.f * RingIndex;
-        DrawRectangle(RenderContext, Center.X - R, Center.Y - R,
-                      2.f * R, 2.f * R, UI_COLOR_ACCENT, 0.f);
-    }
-}
-
 // NOTE(zoubir): the name the player chose, or "Player N" without one
 internal void
 GetPlayerName(app_state *AppState, u32 SlotIndex, char *Out, u32 OutSize)
@@ -94,7 +73,6 @@ DrawHud(render_context *RenderContext, app_state *AppState,
     DrawHudBar(RenderContext, X, Y, 200.f, 14.f,
                Player->Hp / Player->MaxHp, UI_COLOR_HEALTH);
 
-    DrawShockwaveRing(RenderContext, Player, CameraOffset);
     DrawPlayerLabels(RenderContext, AppState, CameraOffset);
 
     // Ability bars, left to right: dash (Alt), shockwave (E). Each fills
