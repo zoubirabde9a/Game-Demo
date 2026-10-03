@@ -233,6 +233,133 @@ TestBuildKeepWorld()
     free(AppState);
 }
 
+// NOTE(zoubir): the center of a tile of Kind, preferring one whose 3 x 3
+// neighbourhood is all Kind so a moving unit stays on it
+internal v3
+FindTerrainSpot(map_def *Map, terrain_kind Kind)
+{
+    for(i32 Y = 1; Y < (i32)Map->Height - 1; Y++)
+    {
+        for(i32 X = 1; X < (i32)Map->Width - 1; X++)
+        {
+            bool32 Solid = true;
+            for(i32 DY = -1; DY <= 1 && Solid; DY++)
+            {
+                for(i32 DX = -1; DX <= 1 && Solid; DX++)
+                {
+                    Solid = TerrainAt(Map, X + DX, Y + DY) == Kind &&
+                        PropAt(Map, X + DX, Y + DY) == TerrainProp_None;
+                }
+            }
+            if (Solid)
+            {
+                return V3((X + 0.5f) * ARENA_TILE_SIZE, (Y + 0.5f) * ARENA_TILE_SIZE, 0.f);
+            }
+        }
+    }
+    // NOTE(zoubir): narrow terrain (a two-tile moat): any single tile
+    for(i32 Y = 0; Y < (i32)Map->Height; Y++)
+    {
+        for(i32 X = 0; X < (i32)Map->Width; X++)
+        {
+            if (TerrainAt(Map, X, Y) == Kind && PropAt(Map, X, Y) == TerrainProp_None)
+            {
+                return V3((X + 0.5f) * ARENA_TILE_SIZE, (Y + 0.5f) * ARENA_TILE_SIZE, 0.f);
+            }
+        }
+    }
+    return V3(-1.f, -1.f, 0.f);
+}
+
+internal void
+TestGroundRulesApplyToWhoStandsOnIt()
+{
+    test_world Test = CreateTestWorld();
+    Test.World->MapId = MapId_Keep;
+    map_def *Map = GetMapDef(MapId_Keep);
+    v3 Snow = FindTerrainSpot(Map, TerrainKind_Snow);
+    v3 Ice = FindTerrainSpot(Map, TerrainKind_Ice);
+    v3 Floor = FindTerrainSpot(Map, TerrainKind_StoneFloor);
+    Check(Snow.X > 0.f && Ice.X > 0.f && Floor.X > 0.f);
+
+    world_entity *OnSnow = AddTestPlayer(&Test, Snow);
+    world_entity *OnIce = AddTestPlayer(&Test, Ice);
+    world_entity *OnFloor = AddTestPlayer(&Test, Floor);
+    world_entity *Bat = AddTestMonster(&Test, MonsterKind_Bat, Snow + V3(0.f, 4.f, 0.f));
+    Bat->Position.Z = 0.f;
+    UpdateTerrainEffects(Test.World);
+
+    Check(GetMoveSpeedScale(OnSnow) == GetTerrainDef(TerrainKind_Snow)->SpeedScale);
+    Check(GetMoveSpeedScale(OnFloor) == 1.f);
+    Check(GetGroundFriction(OnIce) == GetTerrainDef(TerrainKind_Ice)->Friction);
+    Check(GetGroundFriction(OnFloor) == 1.f);
+    // NOTE(zoubir): flyers skim over everything
+    Check(Bat->GroundSpeedScale == 1.f);
+    // NOTE(zoubir): a player in the air ignores the ground under it
+    OnSnow->Position.Z = 20.f;
+    UpdateTerrainEffects(Test.World);
+    Check(GetMoveSpeedScale(OnSnow) == 1.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestLavaBurnsWhoStandsInIt()
+{
+    test_world Test = CreateTestWorld();
+    Test.World->MapId = MapId_Keep;
+    map_def *Map = GetMapDef(MapId_Keep);
+    // NOTE(zoubir): the keep's fire pits are single tiles; stand on one
+    v3 Pit = V3(-1.f, -1.f, 0.f);
+    for(i32 Y = 0; Y < (i32)Map->Height && Pit.X < 0.f; Y++)
+    {
+        for(i32 X = 0; X < (i32)Map->Width; X++)
+        {
+            if (TerrainAt(Map, X, Y) == TerrainKind_Lava)
+            {
+                Pit = V3((X + 0.5f) * ARENA_TILE_SIZE, (Y + 0.5f) * ARENA_TILE_SIZE, 0.f);
+                break;
+            }
+        }
+    }
+    Check(Pit.X > 0.f);
+    world_entity *Player = AddTestPlayer(&Test, Pit);
+    StepWorld(&Test, 1);
+    UpdateTerrainEffects(Test.World);
+    Check(HasStatus(Player, StatusEffect_Burning));
+    StepWorld(&Test, 60);
+    Check(Player->Hp < 100.f);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): two brutes chase two players across stone floor and snow;
+// the one in the snow covers less ground
+internal void
+TestSnowSlowsMonsters()
+{
+    test_world Test = CreateTestWorld();
+    Test.World->MapId = MapId_Keep;
+    map_def *Map = GetMapDef(MapId_Keep);
+    v3 Snow = FindTerrainSpot(Map, TerrainKind_Snow);
+    v3 Floor = FindTerrainSpot(Map, TerrainKind_StoneFloor);
+    world_entity *OnSnow = AddTestMonster(&Test, MonsterKind_Brute, Snow);
+    world_entity *OnFloor = AddTestMonster(&Test, MonsterKind_Brute, Floor);
+    AddPlayerToSlot(Test.AppState, Test.World, &Test.Arena, 0, Snow + V3(200.f, 0.f, 0.f));
+    AddPlayerToSlot(Test.AppState, Test.World, &Test.Arena, 1, Floor + V3(200.f, 0.f, 0.f));
+    v3 SnowStart = OnSnow->Position;
+    v3 FloorStart = OnFloor->Position;
+    for(u32 Frame = 0; Frame < 20; Frame++)
+    {
+        UpdateTerrainEffects(Test.World);
+        StepMonster(&Test, OnSnow, 1);
+        StepMonster(&Test, OnFloor, 1);
+    }
+    float SnowMoved = Length(OnSnow->Position.XY - SnowStart.XY);
+    float FloorMoved = Length(OnFloor->Position.XY - FloorStart.XY);
+    Check(FloorMoved > 3.f);
+    Check(SnowMoved < 0.9f * FloorMoved);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunTerrainTests()
 {
@@ -240,6 +367,12 @@ RunTerrainTests()
     TestFindMapByName();
     printf("TestBuildKeepWorld\n");
     TestBuildKeepWorld();
+    printf("TestGroundRulesApplyToWhoStandsOnIt\n");
+    TestGroundRulesApplyToWhoStandsOnIt();
+    printf("TestLavaBurnsWhoStandsInIt\n");
+    TestLavaBurnsWhoStandsInIt();
+    printf("TestSnowSlowsMonsters\n");
+    TestSnowSlowsMonsters();
     printf("TestFloorDivRoundsDown\n");
     TestFloorDivRoundsDown();
     printf("TestNoiseStaysInRangeAndIsSmooth\n");

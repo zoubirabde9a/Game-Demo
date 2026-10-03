@@ -50,7 +50,9 @@ global_variable terrain_def TerrainTable[TerrainKind_Count] =
     {"Basalt wall",    true,  1.f,   1.f,  StatusEffect_None,      0.f},
     {"Lava",           false, 0.8f,  1.f,  StatusEffect_Burning,   1.f},
     {"Snow",           false, 0.75f, 1.f,  StatusEffect_None,      0.f},
-    {"Ice",            false, 1.f,   0.25f, StatusEffect_None,     0.f},
+    // NOTE(zoubir): ice cuts grip both ways: same top speed, slow to start
+    // and slow to stop
+    {"Ice",            false, 0.25f, 0.25f, StatusEffect_None,     0.f},
     {"Stone floor",    false, 1.f,   1.f,  StatusEffect_None,      0.f},
     {"Stone wall",     true,  1.f,   1.f,  StatusEffect_None,      0.f},
 };

@@ -444,7 +444,7 @@ UpdatePlayer(player_slot *Slot, world *World,
 
     DDPlayer *= PlayerAcceleration * GetMoveSpeedScale(Player) * DeltaTime;
     // Drag
-    DDPlayer -= (10.f * Player->Velocity);
+    DDPlayer -= (10.f * GetGroundFriction(Player) * Player->Velocity);
     //Gravity
     DDPlayer.Z = -1000.f;
     
@@ -613,7 +613,7 @@ UpdateMonster(world_entity *Entity, world *World,
 
     DDEntity *= Stats->Acceleration * GetMoveSpeedScale(Entity) * DeltaTime;
     // Drag
-    DDEntity -= (10.f * Entity->Velocity);
+    DDEntity -= (10.f * GetGroundFriction(Entity) * Entity->Velocity);
     if (Flies)
     {
         // NOTE(zoubir): bob around the hover height, like the familiar

@@ -27,6 +27,7 @@
 #include "arena.cpp"
 #include "abilities.cpp"
 #include "monster_population.cpp"
+#include "terrain_effects.cpp"
 #include "update.cpp"
 #include "separation.cpp"
 #include "simulate.cpp"

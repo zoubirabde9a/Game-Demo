@@ -8,6 +8,7 @@ internal void
 SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
 {
     world *World = &AppState->World;
+    UpdateTerrainEffects(World);
 
     // NOTE(zoubir): entities added during the tick (fireballs, swords,
     // respawned monsters) wait for the next one

@@ -1036,7 +1036,7 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
     }
     else
     {
-        DDEntity -= 10.f * Entity->Velocity;
+        DDEntity -= 10.f * GetGroundFriction(Entity) * Entity->Velocity;
     }
     if (Flies)
     {

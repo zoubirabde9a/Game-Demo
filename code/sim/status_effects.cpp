@@ -41,8 +41,21 @@ GetMoveSpeedScale(world_entity *Entity)
     {
         Result *= Entity->PhaseSpeedScale;
     }
+    if (Entity->GroundSpeedScale > 0.f)
+    {
+        Result *= Entity->GroundSpeedScale;
+    }
     return Result;
 }
+
+// NOTE(zoubir): multiplies the drag that slows a unit down; under 1 on ice
+inline float
+GetGroundFriction(world_entity *Entity)
+{
+    float Result = Entity->GroundFriction > 0.f ? Entity->GroundFriction : 1.f;
+    return Result;
+}
+
 
 inline float
 StatusDamagePerSecond(world_entity *Entity)

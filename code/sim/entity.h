@@ -156,6 +156,10 @@ struct world_entity
     // their damage ticks
     float StatusTimers[StatusEffect_Count];
     float StatusTickTimer;
+    // NOTE(zoubir): set each tick from the ground underfoot
+    // (sim/terrain_effects.cpp); 0 means 1
+    float GroundSpeedScale;
+    float GroundFriction;
     // NOTE(zoubir): monster-only state (kind, abilities, elites, summons)
     // lives in its own file so new monster features do not edit this one
 #include "monster_fields.inc"
