@@ -91,17 +91,10 @@ struct app_state
     u32 LocalPlayerIndex;
     // NOTE(zoubir): filled by SimulateTick, drained by whoever runs it
     sim_events Events;
-    // NOTE(zoubir): connection to a dedicated server, see client/online.cpp
-    struct online_session *Online;
-    // NOTE(zoubir): recent player deaths for the UI, client/kill_feed.cpp
-    struct kill_feed *KillFeed;
-    // NOTE(zoubir): address and name form, see ui/connect_screen.cpp
-    struct connect_screen *ConnectScreen;
-    // NOTE(zoubir): see ui/minimap.cpp; made on first draw
-    struct minimap *Minimap;
     struct monster_population *Monsters;
-    // NOTE(zoubir): ability effects drawn over the world, client/player_fx.cpp
-    struct player_fx *PlayerFx;
+    // NOTE(zoubir): one pointer per client feature (online session, kill
+    // feed, screens, effects); add a new one there, not here
+#include "client/client_fields.inc"
 
     v3 TargetCamera;
     v3 CameraOffset;
