@@ -1,11 +1,13 @@
 /* Entry point of the dedicated server. Usage: server [port]
-   Runs ServerTick SERVER_TICK_RATE times a second until killed.
+   Runs ServerTick SERVER_TICK_RATE times a second until Ctrl+C or a
+   service stop, then tells every player it is closing and exits 0.
    Build with build_server.bat (Windows) or build_server.sh (Linux). */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "server.cpp"
 #include "platform/clock.cpp"
+#include "platform/stop_signal.cpp"
 
 int
 main(int ArgCount, char **Args)
@@ -34,12 +36,14 @@ main(int ArgCount, char **Args)
         fprintf(stderr, "could not open UDP port %u\n", Port);
         return 1;
     }
+    Server.Logging = true;
+    StopSignalInstall();
     printf("server listening on UDP port %u at %d ticks/s\n", Port, SERVER_TICK_RATE);
     fflush(stdout);
 
     double TickSeconds = 1.0 / SERVER_TICK_RATE;
     double NextTick = ClockSeconds();
-    for (;;)
+    while (!StopSignalReceived())
     {
         ServerTick(&Server);
 
@@ -50,4 +54,9 @@ main(int ArgCount, char **Args)
         if (Now - NextTick > 1.0) NextTick = Now;
         if (NextTick > Now) ClockSleep(NextTick - Now);
     }
+
+    ServerLog(&Server, "shutting down, %u players disconnected", ServerPlayerCount(&Server));
+    ServerStop(&Server);
+    NetSocketsShutdown();
+    return 0;
 }

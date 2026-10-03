@@ -26,6 +26,7 @@ struct server
     net_server_clients Clients;
     server_game Game;
     u32 Tick;
+    bool32 Logging; // print joins, leaves and timeouts to stdout
 };
 
 // Opens the socket. Port 0 picks a free one (tests use this).
