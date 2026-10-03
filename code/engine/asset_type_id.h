@@ -30,6 +30,7 @@ enum asset_type_id
     AssetType_Monster = AssetType_PackCount,
     AssetType_MonsterShot,
     AssetType_MonsterHazard,
+    AssetType_TerrainAtlas,
     AssetType_Count
 };
 

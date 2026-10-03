@@ -12,4 +12,5 @@
 #include "sprite_canvas.cpp"
 #include "monster_art.cpp"
 #include "monster_fx.cpp"
+#include "terrain_art.cpp"
 #include "monster_render.cpp"

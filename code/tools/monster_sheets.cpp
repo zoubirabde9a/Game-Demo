@@ -152,6 +152,35 @@ int main()
         free(Out);
         free(Sheet);
     }
+    {
+        u32 Width = TERRAIN_ATLAS_COLUMNS * TERRAIN_TILE_PIXELS;
+        u32 Height = TerrainKind_Count * TERRAIN_TILE_PIXELS;
+        u32 *Atlas = (u32 *)calloc(Width * Height, sizeof(u32));
+        BuildTerrainAtlas(Atlas);
+        // NOTE(zoubir): each tile repeated 2 x 2 so seams would show
+        u32 Scale = 3;
+        u32 OutWidth = 2 * Width * Scale;
+        u32 OutHeight = Height * 2 * Scale;
+        u32 *Out = (u32 *)calloc(OutWidth * OutHeight, sizeof(u32));
+        for(u32 Y = 0; Y < OutHeight; Y++)
+        {
+            for(u32 X = 0; X < OutWidth; X++)
+            {
+                u32 Tile = TERRAIN_TILE_PIXELS;
+                u32 PX = X / Scale;
+                u32 PY = Y / Scale;
+                u32 Column = PX / (2 * Tile);
+                u32 Row = PY / (2 * Tile);
+                u32 SX = Column * Tile + (PX % Tile);
+                u32 SY = Row * Tile + (PY % Tile);
+                Out[Y * OutWidth + X] = Atlas[SY * Width + SX];
+            }
+        }
+        stbi_write_png("monster_art/terrain_atlas.png", OutWidth, OutHeight, 4, Out, OutWidth * 4);
+        printf("monster_art/terrain_atlas.png\n");
+        free(Out);
+        free(Atlas);
+    }
     for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
     {
         map_def *Map = GetMapDef((map_id)MapIndex);

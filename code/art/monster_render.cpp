@@ -93,6 +93,20 @@ AddMonsterTextures(assets *Assets, open_gl *OpenGL, memory_arena *TempArena)
         EndTemporaryMemory(Temp);
     }
 
+    // NOTE(zoubir): the ground tiles, one row per terrain kind
+    {
+        ReserveGeneratedAssets(Assets, AssetType_TerrainAtlas, 1);
+        u32 Width = TERRAIN_ATLAS_COLUMNS * TERRAIN_TILE_PIXELS;
+        u32 Height = TerrainKind_Count * TERRAIN_TILE_PIXELS;
+        temporary_memory Temp = BeginTemporaryMemory(TempArena);
+        u32 *Pixels = AllocateArray(TempArena, Width * Height, u32);
+        BuildTerrainAtlas(Pixels);
+        AddGeneratedTexture(Assets, OpenGL, {AssetType_TerrainAtlas, 0},
+                            Pixels, Width, Height, TERRAIN_ATLAS_COLUMNS,
+                            TerrainKind_Count, V2(0.f, 0.f));
+        EndTemporaryMemory(Temp);
+    }
+
     ReserveGeneratedAssets(Assets, AssetType_MonsterHazard, HazardStyle_Count);
     for(u32 Style = 0; Style < HazardStyle_Count; Style++)
     {
