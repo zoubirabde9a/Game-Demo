@@ -12,37 +12,25 @@
 // NOTE(zoubir): Compilers
 //
 
+// Exactly one of these is 1. Emscripten is checked before GCC because it
+// also defines __GNUC__; clang uses the GCC intrinsics.
+#if defined(_MSC_VER)
+#define COMPILER_MSVC 1
+#elif defined(__EMSCRIPTEN__)
+#define COMPILER_EMSCRIPTEN 1
+#elif defined(__GNUC__)
+#define COMPILER_GCC 1
+#endif
 #if !defined(COMPILER_MSVC)
 #define COMPILER_MSVC 0
 #endif
-
-#if !defined(COMPILER_LLVM)
-#define COMPILER_LLVM 0
+#if !defined(COMPILER_EMSCRIPTEN)
+#define COMPILER_EMSCRIPTEN 0
 #endif
-
 #if !defined(COMPILER_GCC)
 #define COMPILER_GCC 0
 #endif
-
-#if !defined(__EMSCRIPTEN__)
-#define COMPILER_EMSCRIPTEN 0
-#endif
-
-#if !COMPILLER_MSVC && !COMPILLER_LLVM && !COMPILER_GCC
-#if _MSC_VER
-#undef COMPILER_MSVC
-#define COMPILER_MSVC 1
-#elif __GNUC__
-#undef COMPILER_GCC
-#define COMPILER_GCC 0
-#elif __EMSCRIPTEN__
-#undef COMPILER_EMSCRIPTEN
-#define COMPILER_EMSCRIPTEN
-#else
-#undef COMPILER_LLVM
 #define COMPILER_LLVM 0
-#endif
-#endif
 
 #if COMPILER_MSVC
 #include <intrin.h>

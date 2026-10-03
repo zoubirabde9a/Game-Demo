@@ -1,7 +1,7 @@
 /* Arena: the one fixed map every match is played on. Sets the world
-   dimensions, tile map, wall border, trees, rock platforms, and places the
-   local player and familiar. Monsters are added by monster_population.
-   Called once when the game state is first initialized. */
+   dimensions, tile map, wall border, trees and rock platforms. Players
+   join through AddPlayerToSlot and monsters through monster_population.
+   Called once, from InitSimulation. */
 
 internal void
 BuildArena(app_state *AppState, memory_arena *MemoryArena)
@@ -126,17 +126,6 @@ BuildArena(app_state *AppState, memory_arena *MemoryArena)
 
 
     TileMap->Tiles = Tiles;
-
-    AppState->LocalPlayerIndex = 0;
-    world_entity *Player = AddPlayerToSlot(AppState, World, MemoryArena,
-                                           AppState->LocalPlayerIndex,
-                                           {350, 300, 0});
-    
-    #if 1
-    world_entity *Familiar =
-        AddFamiliar(AppState, World, MemoryArena, Player);
-    #endif
-    
 
     random_series Series = Seed(67);
     u32 PosX = 12;

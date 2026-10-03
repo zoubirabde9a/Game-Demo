@@ -15,6 +15,33 @@ AddPlayerToSlot(app_state *AppState, world *World, memory_arena *Arena,
     return Slot->Entity;
 }
 
+// NOTE(zoubir): the slot is free again; the entity leaves the world
+internal void
+RemovePlayerFromSlot(app_state *AppState, world *World, u32 SlotIndex)
+{
+    Assert(SlotIndex < MAX_PLAYERS);
+    player_slot *Slot = &AppState->Players[SlotIndex];
+    if (Slot->Active && Slot->Entity)
+    {
+        RemoveEntity(World, Slot->Entity);
+    }
+    *Slot = {};
+}
+
+// NOTE(zoubir): where each slot appears and respawns, spread over the
+// open floor of the arena
+internal v3
+PlayerSpawnPosition(u32 SlotIndex)
+{
+    v3 Spots[MAX_PLAYERS] =
+    {
+        {350, 300, 0}, {2200, 300, 0}, {350, 1000, 0}, {2200, 1000, 0},
+        {1280, 300, 0}, {1280, 1000, 0}, {800, 640, 0}, {1760, 640, 0},
+    };
+    Assert(SlotIndex < MAX_PLAYERS);
+    return Spots[SlotIndex];
+}
+
 inline player_slot *
 GetPlayerSlot(app_state *AppState, world_entity *PlayerEntity)
 {

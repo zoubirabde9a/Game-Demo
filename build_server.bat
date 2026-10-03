@@ -4,7 +4,7 @@ REM Run it with: build\server.exe [port]   (default port 27015)
 set ServerFlags=-MTd -nologo -Gm- -EHsc- -GR- -Od -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DAPP_SLOW=1 -DAPP_DEV=1 /FC /Z7
 if not exist build mkdir build
 pushd build
-cl %ServerFlags% ..\code\server\server_main.cpp -Feserver.exe /link -incremental:no
+cl %ServerFlags% ..\code\server\server_main.cpp -Feserver.exe /link -incremental:no user32.lib Gdi32.lib Winmm.lib OpenGL32.lib
 set Result=%errorlevel%
 popd
 exit /b %Result%

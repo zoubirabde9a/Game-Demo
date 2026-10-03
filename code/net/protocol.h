@@ -17,10 +17,10 @@
 
 #include "../app_defs.h"
 
-#define NET_PROTOCOL_ID 0x47444d31u // "GDM1", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d32u // "GDM2", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
-#define NET_MAX_SNAPSHOT_ENTITIES 48
+#define NET_MAX_SNAPSHOT_ENTITIES 40 // moving things only; walls and trees are never sent
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
 
 enum net_packet_type
@@ -76,7 +76,7 @@ struct net_entity_state
     u8 Facing;
     u8 Animation;
     i16 Health;
-    float X, Y;
+    float X, Y, Z; // Z is height above the floor (jumps)
     float VelX, VelY;
 };
 

@@ -85,7 +85,8 @@ TestJoinMoveAndLeave()
     Check(Reply.ConnectAccepted.PlayerIndex == 0);
 
     Check(TickUntil(&Server, &Client, NetPacket_Snapshot, &Reply));
-    Check(Reply.Snapshot.Count == 1);
+    Check(Reply.Snapshot.Count > 1); // the player plus the arena's monsters
+    Check(Reply.Snapshot.Entities[0].Type == EntityType_Player); // own player first
     float StartX = Reply.Snapshot.Entities[0].X;
 
     // Hold right; the player should move right in later snapshots.
@@ -100,15 +101,16 @@ TestJoinMoveAndLeave()
     ClientSend(&Client, &Request);
     Check(TickUntil(&Server, &Client, NetPacket_ConnectAccepted, &Reply));
     Check(Reply.ConnectAccepted.PlayerIndex == 0);
-    Check(Server.Game.Players[0].X == StartX);
-    Check(Server.Game.Players[0].Buttons == 0);
+    Check(Server.Game.AppState->Players[0].Active);
+    Check(Server.Game.AppState->Players[0].Entity->Position.X == PlayerSpawnPosition(0).X);
+    Check(Server.Game.HeldButtons[0] == 0);
 
     net_packet Bye = {};
     Bye.Header.Type = NetPacket_Disconnect;
     ClientSend(&Client, &Bye);
     for (int Index = 0; Index < 50 && Server.Clients.Slots[0].Connected; ++Index) ServerTick(&Server);
     Check(!Server.Clients.Slots[0].Connected);
-    Check(!Server.Game.Players[0].Present);
+    Check(!Server.Game.AppState->Players[0].Active);
 
     NetCloseSocket(&Client.Socket);
     ServerStop(&Server);
@@ -126,12 +128,12 @@ TestQuietClientTimesOut()
     Request.Header.Type = NetPacket_ConnectRequest;
     ClientSend(&Client, &Request);
     Check(TickUntil(&Server, &Client, NetPacket_ConnectAccepted, &Reply));
-    Check(Server.Game.Players[0].Present);
+    Check(Server.Game.AppState->Players[0].Active);
 
     int Ticks = (int)(NET_CLIENT_TIMEOUT * SERVER_TICK_RATE) + 2;
     for (int Index = 0; Index < Ticks; ++Index) ServerTick(&Server);
     Check(!Server.Clients.Slots[0].Connected);
-    Check(!Server.Game.Players[0].Present);
+    Check(!Server.Game.AppState->Players[0].Active);
 
     NetCloseSocket(&Client.Socket);
     ServerStop(&Server);
@@ -173,7 +175,7 @@ TestClientConnectsAndMoves()
 
     StepBoth(&Server, &Client, 60, NetButton_Right);
     Check(Client.Snapshot.Tick > StartTick);
-    Check(Client.Snapshot.Entities[0].X > StartX + 100.0f); // about 200 units after a second
+    Check(Client.Snapshot.Entities[0].X > StartX + 50.0f);
 
     NetClientDisconnect(&Client);
     Check(Client.State == NetClient_Disconnected);

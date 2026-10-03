@@ -21,6 +21,7 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     NetI16(S, &E->Health);
     NetF32(S, &E->X);
     NetF32(S, &E->Y);
+    NetF32(S, &E->Z);
     NetF32(S, &E->VelX);
     NetF32(S, &E->VelY);
 }

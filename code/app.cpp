@@ -30,6 +30,7 @@
 #include "sim/monster_population.cpp"
 #include "sim/update.cpp"
 #include "sim/simulate.cpp"
+#include "sim/setup.cpp"
 #include "client/draw_entities.cpp"
 #include "client/play_events.cpp"
 #include "ui/hud.cpp"
@@ -143,16 +144,13 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
 
         AppState->UIContext =
             UIContextCreate(MemoryArena, UI_COUNT);
-        SetupCollisionVolumes(AppState, ConstantsArena);
-        SetupAnimationSets(AppState, ConstantsArena);
-        
-        BuildArena(AppState, MemoryArena);
-        SetupCollisionTable(AppState);
-
-        AppState->Monsters =
-            CreateMonsterPopulation(MemoryArena, MONSTER_POPULATION, 1337);
-        FillMonsterPopulation(AppState, &AppState->World, MemoryArena,
-                              AppState->Monsters);
+        InitSimulation(AppState, MemoryArena, ConstantsArena);
+        AppState->LocalPlayerIndex = 0;
+        world_entity *Player =
+            AddPlayerToSlot(AppState, &AppState->World, MemoryArena,
+                            AppState->LocalPlayerIndex,
+                            PlayerSpawnPosition(AppState->LocalPlayerIndex));
+        AddFamiliar(AppState, &AppState->World, MemoryArena, Player);
         EndTemporaryMemory(TempMem);
         AppState->IsInitialized = true;
         
