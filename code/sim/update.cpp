@@ -556,6 +556,13 @@ UpdateMonster(world_entity *Entity, world *World,
         *AnimationDirection = AnimationDirection_Right;
     }
 
+    if (UpdateMonsterAbilities(Entity, World, Arena, DeltaTime, AppState,
+                               AnimationSpeed, AnimationType,
+                               AnimationDirection))
+    {
+        return;
+    }
+
     v3 DDEntity = {};
     float DistanceToTarget;
     world_entity *Target = FindNearestPlayer(AppState, Entity->Position.XY,

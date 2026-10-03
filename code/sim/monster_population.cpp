@@ -8,12 +8,9 @@
 #define MONSTER_SPAWN_MIN_PLAYER_DISTANCE 350.f
 #define MONSTER_SPAWN_TRIES 16
 
-struct monster_population
-{
-    u32 Target;
-    float RespawnTimer;
-    random_series Series;
-};
+// NOTE(zoubir): in monster_abilities.cpp, included at the bottom
+internal void
+StaggerMonsterCooldowns(app_state *AppState, world_entity *Entity);
 
 inline u32
 CountLiveMonsters(world *World)
@@ -84,8 +81,7 @@ SpawnRoamingMonster(app_state *AppState, world *World, memory_arena *Arena,
     float Margin = 64.f;
     float MapWidth = (float)(World->NumTilesX * World->TileWidth);
     float MapHeight = (float)(World->NumTilesY * World->TileHeight);
-    monster_kind Kind = RandomChoice(&Population->Series, 3) == 0 ?
-        MonsterKind_Bat : MonsterKind_Brute;
+    monster_kind Kind = PickMonsterKind(&Population->Series);
     entity_collision_volume_group *Volume =
         GetMonsterStats(Kind)->FlyHeight > 0.f ?
         AppState->BatCollision : AppState->PlayerCollision;
@@ -99,7 +95,10 @@ SpawnRoamingMonster(app_state *AppState, world *World, memory_arena *Arena,
                              MONSTER_SPAWN_MIN_PLAYER_DISTANCE) &&
             IsSpawnSpotFree(AppState, World, Position, Volume))
         {
-            return AddMonster(AppState, World, Arena, Position, Kind);
+            world_entity *Monster =
+                AddMonster(AppState, World, Arena, Position, Kind);
+            StaggerMonsterCooldowns(AppState, Monster);
+            return Monster;
         }
     }
     return 0;
@@ -113,6 +112,11 @@ CreateMonsterPopulation(memory_arena *Arena, u32 Target, u32 SeedValue)
     Result->Target = Target;
     Result->RespawnTimer = MONSTER_RESPAWN_SECONDS;
     Result->Series = Seed(SeedValue);
+    for(u32 KindIndex = 0; KindIndex < MonsterKind_Count; KindIndex++)
+    {
+        SetupMonsterAnimationSet(&Result->AnimationSets[KindIndex], Arena,
+                                 GetMonsterDef((monster_kind)KindIndex));
+    }
     return Result;
 }
 
@@ -148,3 +152,5 @@ UpdateMonsterPopulation(app_state *AppState, world *World,
         SpawnRoamingMonster(AppState, World, Arena, Population);
     }
 }
+
+#include "monster_abilities.cpp"

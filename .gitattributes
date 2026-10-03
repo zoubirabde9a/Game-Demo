@@ -1,2 +1,4 @@
 # Shell scripts run on Linux and break with Windows line endings.
 *.sh text eol=lf
+# One line per monster; both sides of a merge keep their lines.
+code/sim/monsters/monster_list.inc merge=union

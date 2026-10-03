@@ -34,6 +34,7 @@
 #include "client/play_events.cpp"
 #include "ui/hud.cpp"
 #include "client/keyboard_input.cpp"
+#include "art/monster_render.cpp"
 
 #include "app_ui.h"
 
@@ -128,6 +129,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
         
 #endif
         InitializeAssets(Assets, OpenGL, AppState, MemoryArena);
+        AddMonsterTextures(Assets, OpenGL, TransientArena);
                                
         temporary_memory TempMem = BeginTemporaryMemory(TransientArena);
         // Texture Loading        
@@ -353,6 +355,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     u32 NumberOfElements = 200;
     UIBegin(RenderContext, TransientArena, Input, AppState,
             UIContext, NumberOfElements, 4);
+    DrawMonsterTelegraphs(RenderContext, World, CameraOffset);
     DrawHud(RenderContext, AppState, CameraOffset);
     if (AppState->TileEditing)
     {

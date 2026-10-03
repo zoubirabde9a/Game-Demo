@@ -1,0 +1,491 @@
+/* Monster abilities: the state machine that runs a monster_ability.
+
+   Ready    the monster walks and bites as usual (UpdateMonster). Each
+            frame it picks the first ability that is off cooldown and whose
+            range fits the distance to the nearest player.
+   Windup   rooted in place, playing its windup row. The danger zone is
+            drawn on the ground (art/monster_render.cpp), so players can
+            read it and step out.
+   Active   the hit lands, or the monster moves (charges).
+   Recover  rooted again, playing its recover row: the window to punish.
+
+   UpdateMonsterAbilities returns true while an ability owns the monster,
+   in which case it has already moved it this frame. */
+
+#define MONSTER_ABILITY_RETRY_SECONDS 0.5f
+// NOTE(zoubir): a charge that covers less than this share of its speed in a
+// frame has hit a wall and stuns the monster for longer
+#define CHARGE_BLOCKED_SHARE 0.35f
+#define CHARGE_WALL_STUN_SCALE 1.75f
+
+internal world_entity *
+FindMonsterTarget(world *World, v2 From, float *DistanceOut)
+{
+    world_entity *Result = 0;
+    float BestDistance = 0.f;
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (Entity->IsPresent && Entity->Type == EntityType_Player &&
+            Entity->Hp > 0.f)
+        {
+            float Distance = Length(Entity->Position.XY - From);
+            if (!Result || Distance < BestDistance)
+            {
+                Result = Entity;
+                BestDistance = Distance;
+            }
+        }
+    }
+    if (DistanceOut)
+    {
+        *DistanceOut = BestDistance;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): damages every player within Radius of Center and pushes
+// them away from it. Returns how many were hit
+internal u32
+HurtPlayersInRadius(world *World, v2 Center, float Radius, float Damage,
+                    float Knockback)
+{
+    u32 HitCount = 0;
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Player = &World->Entities[EntityIndex];
+        if (!Player->IsPresent || Player->Type != EntityType_Player)
+        {
+            continue;
+        }
+        v2 Away = Player->Position.XY - Center;
+        float Distance = Length(Away);
+        if (Distance > Radius)
+        {
+            continue;
+        }
+        HitCount++;
+        Player->Hp -= Damage;
+        if (Distance > 0.f)
+        {
+            Player->Velocity.XY += (Knockback / Distance) * Away;
+        }
+    }
+    return HitCount;
+}
+
+inline random_series *
+GetMonsterSeries(app_state *AppState)
+{
+    random_series *Result = 0;
+    if (AppState->Monsters)
+    {
+        Result = &AppState->Monsters->Series;
+    }
+    return Result;
+}
+
+inline float
+MonsterRandomBetween(app_state *AppState, float Min, float Max)
+{
+    random_series *Series = GetMonsterSeries(AppState);
+    float Result = Series ? RandomBetween(Series, Min, Max) : 0.5f * (Min + Max);
+    return Result;
+}
+
+inline bool32
+IsInsideArena(world *World, v2 Position, float Margin)
+{
+    float MapWidth = (float)(World->NumTilesX * World->TileWidth);
+    float MapHeight = (float)(World->NumTilesY * World->TileHeight);
+    bool32 Result = Position.X > Margin && Position.Y > Margin &&
+        Position.X < MapWidth - Margin && Position.Y < MapHeight - Margin;
+    return Result;
+}
+
+// NOTE(zoubir): a monster that just spawned does not fire everything at
+// once; each ability starts part way through its cooldown
+internal void
+StaggerMonsterCooldowns(app_state *AppState, world_entity *Entity)
+{
+    monster_def *Def = GetMonsterDef(Entity->MonsterKind);
+    for(u32 AbilityIndex = 0;
+        AbilityIndex < Def->AbilityCount;
+        AbilityIndex++)
+    {
+        float Cooldown = Def->Abilities[AbilityIndex].Cooldown;
+        Entity->AbilityCooldowns[AbilityIndex] =
+            MonsterRandomBetween(AppState, 0.3f * Cooldown, Cooldown);
+    }
+}
+
+inline void
+RestartMonsterAnimation(world_entity *Entity)
+{
+    Entity->AnimationState.SlotIndex = 0;
+    Entity->AnimationState.DeltaTime = 0.f;
+}
+
+inline void
+SetMonsterPhase(world_entity *Entity, ability_phase Phase, float Seconds)
+{
+    Entity->AbilityPhase = Phase;
+    Entity->AbilityTimer = Seconds;
+    RestartMonsterAnimation(Entity);
+}
+
+// NOTE(zoubir): the spot a blink lands on: Distance past the target on the
+// far side from the monster, or to its sides if that is blocked
+internal bool32
+FindBlinkSpot(app_state *AppState, world *World, world_entity *Entity,
+              world_entity *Target, float Distance, v2 *Spot)
+{
+    v2 Through = Target->Position.XY - Entity->Position.XY;
+    float Length0 = Length(Through);
+    Through = Length0 > 0.f ? (1.f / Length0) * Through : V2(1.f, 0.f);
+    v2 Side = V2(-Through.Y, Through.X);
+    v2 Candidates[] =
+        {
+            Through,
+            Side,
+            -Side,
+        };
+    for(u32 CandidateIndex = 0;
+        CandidateIndex < ArrayCount(Candidates);
+        CandidateIndex++)
+    {
+        v2 Position = Target->Position.XY + Distance * Candidates[CandidateIndex];
+        v3 Position3 = V3(Position.X, Position.Y, Entity->Position.Z);
+        if (IsInsideArena(World, Position, 40.f) &&
+            IsSpawnSpotFree(AppState, World, Position3, Entity->Collision))
+        {
+            *Spot = Position;
+            return true;
+        }
+    }
+    return false;
+}
+
+// NOTE(zoubir): locks in what the ability needs to know at windup start.
+// Returns false when it cannot be used right now (blink with no room)
+internal bool32
+StartMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
+                    u32 AbilityIndex, world_entity *Target)
+{
+    monster_def *Def = GetMonsterDef(Entity->MonsterKind);
+    monster_ability *Ability = &Def->Abilities[AbilityIndex];
+    v2 ToTarget = Target->Position.XY - Entity->Position.XY;
+    float Distance = Length(ToTarget);
+
+    Entity->AbilityIndex = AbilityIndex;
+    Entity->AbilityHasHit = false;
+    Entity->AbilityPointCount = 0;
+    Entity->AbilityAim = Distance > 0.f ? (1.f / Distance) * ToTarget :
+        V2(1.f, 0.f);
+
+    switch(Ability->Kind)
+    {
+        case MonsterAbility_Mortar:
+        {
+            // NOTE(zoubir): the first shell leads a moving target, the rest
+            // scatter around it to cut off the escape
+            v2 Lead = Target->Position.XY +
+                (0.5f * Ability->Windup) * Target->Velocity.XY;
+            u32 Count = Minimum(Ability->Count, (u32)MAX_ABILITY_POINTS);
+            for(u32 PointIndex = 0; PointIndex < Count; PointIndex++)
+            {
+                v2 Point = Lead;
+                if (PointIndex > 0)
+                {
+                    float Angle = MonsterRandomBetween(AppState, 0.f, 2.f * Pi32);
+                    float Reach = MonsterRandomBetween(AppState, 0.5f, 1.f) *
+                        Ability->Spread;
+                    Point += Reach * V2(Cos(Angle), Sin(Angle));
+                }
+                Entity->AbilityPoints[Entity->AbilityPointCount++] = Point;
+            }
+        } break;
+
+        case MonsterAbility_Blink:
+        {
+            v2 Spot;
+            if (!FindBlinkSpot(AppState, World, Entity, Target,
+                               Ability->Spread, &Spot))
+            {
+                return false;
+            }
+            Entity->AbilityPoints[Entity->AbilityPointCount++] = Spot;
+        } break;
+
+        default:
+        {
+        } break;
+    }
+
+    SetMonsterPhase(Entity, AbilityPhase_Windup, Ability->Windup);
+    return true;
+}
+
+// NOTE(zoubir): the moment the windup ends
+internal void
+TriggerMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
+                      monster_ability *Ability)
+{
+    switch(Ability->Kind)
+    {
+        case MonsterAbility_Slam:
+        {
+            HurtPlayersInRadius(World, Entity->Position.XY, Ability->Radius,
+                                Ability->Damage, Ability->Knockback);
+        } break;
+
+        case MonsterAbility_Mortar:
+        {
+            for(u32 PointIndex = 0;
+                PointIndex < Entity->AbilityPointCount;
+                PointIndex++)
+            {
+                HurtPlayersInRadius(World, Entity->AbilityPoints[PointIndex],
+                                    Ability->Radius, Ability->Damage,
+                                    Ability->Knockback);
+            }
+        } break;
+
+        case MonsterAbility_Blink:
+        {
+            v2 Spot = Entity->AbilityPoints[0];
+            v3 Spot3 = V3(Spot.X, Spot.Y, Entity->Position.Z);
+            // NOTE(zoubir): someone may have walked onto the spot during the
+            // windup; then the monster strikes from where it stands
+            if (IsSpawnSpotFree(AppState, World, Spot3, Entity->Collision))
+            {
+                v2 Facing = Entity->Position.XY - Spot;
+                Entity->Position = Spot3;
+                Entity->Velocity = {};
+                float FacingLength = Length(Facing);
+                if (FacingLength > 0.f)
+                {
+                    Entity->AbilityAim = (1.f / FacingLength) * Facing;
+                }
+            }
+            HurtPlayersInRadius(World, Entity->Position.XY, Ability->Radius,
+                                Ability->Damage, Ability->Knockback);
+        } break;
+
+        default:
+        {
+        } break;
+    }
+}
+
+// NOTE(zoubir): charges move the monster and hit whoever they reach
+internal void
+UpdateCharge(world *World, world_entity *Entity, monster_def *Def,
+             monster_ability *Ability)
+{
+    if (Entity->AbilityHasHit)
+    {
+        return;
+    }
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Player = &World->Entities[EntityIndex];
+        if (Player->IsPresent && Player->Type == EntityType_Player &&
+            Length(Player->Position.XY - Entity->Position.XY) <=
+            Ability->Radius)
+        {
+            Player->Hp -= Ability->Damage;
+            Player->Velocity.XY += Ability->Knockback * Entity->AbilityAim;
+            Entity->AbilityHasHit = true;
+        }
+    }
+}
+
+inline animation_direction
+FacingFromAim(v2 Aim, animation_direction Current)
+{
+    animation_direction Result = Current;
+    if (Aim.X > 0.05f)
+    {
+        Result = AnimationDirection_Right;
+    }
+    else if (Aim.X < -0.05f)
+    {
+        Result = AnimationDirection_Left;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): plays a sheet row so that it lasts exactly Seconds
+inline float
+AnimationSpeedToFit(monster_def *Def, monster_sheet_row Row, float Seconds)
+{
+    float RowSeconds = Def->FrameCounts[Row] * Def->SecondsPerFrame[Row];
+    float Result = RowSeconds > 0.f ? Seconds / RowSeconds : 1.f;
+    return Result;
+}
+
+internal bool32
+UpdateMonsterAbilities(world_entity *Entity, world *World,
+                       memory_arena *Arena,
+                       float DeltaTime, app_state *AppState,
+                       float *AnimationSpeed,
+                       animation_type *AnimationType,
+                       animation_direction *AnimationDirection)
+{
+    monster_def *Def = GetMonsterDef(Entity->MonsterKind);
+    for(u32 AbilityIndex = 0;
+        AbilityIndex < Def->AbilityCount;
+        AbilityIndex++)
+    {
+        float *Cooldown = &Entity->AbilityCooldowns[AbilityIndex];
+        *Cooldown = Maximum(0.f, *Cooldown - DeltaTime);
+    }
+
+    if (Entity->AbilityPhase == AbilityPhase_Ready)
+    {
+        float Distance;
+        world_entity *Target = FindMonsterTarget(World, Entity->Position.XY,
+                                                 &Distance);
+        if (!Target || Distance > Def->AggroRange)
+        {
+            return false;
+        }
+        // NOTE(zoubir): a bite that is ready lands first; the ability can
+        // start next frame, once the bite is on cooldown
+        if (Distance < Def->AttackRange && Entity->AttackCooldown <= 0.f)
+        {
+            return false;
+        }
+        for(u32 AbilityIndex = 0;
+            AbilityIndex < Def->AbilityCount;
+            AbilityIndex++)
+        {
+            monster_ability *Ability = &Def->Abilities[AbilityIndex];
+            if (Entity->AbilityCooldowns[AbilityIndex] <= 0.f &&
+                Distance >= Ability->MinRange &&
+                Distance <= Ability->MaxRange)
+            {
+                if (StartMonsterAbility(AppState, World, Entity,
+                                        AbilityIndex, Target))
+                {
+                    break;
+                }
+                Entity->AbilityCooldowns[AbilityIndex] =
+                    MONSTER_ABILITY_RETRY_SECONDS;
+            }
+        }
+        if (Entity->AbilityPhase == AbilityPhase_Ready)
+        {
+            return false;
+        }
+    }
+
+    monster_ability *Ability = &Def->Abilities[Entity->AbilityIndex];
+    Entity->AbilityTimer -= DeltaTime;
+    v3 DDEntity = {};
+    v3 StartPosition = Entity->Position;
+    bool32 Charging = false;
+
+    switch(Entity->AbilityPhase)
+    {
+        case AbilityPhase_Windup:
+        {
+            *AnimationType = AnimationType_Cast;
+            *AnimationSpeed = AnimationSpeedToFit(Def, MonsterRow_Windup,
+                                                  Ability->Windup);
+            if (Entity->AbilityTimer <= 0.f)
+            {
+                TriggerMonsterAbility(AppState, World, Entity, Ability);
+                SetMonsterPhase(Entity, AbilityPhase_Active, Ability->Active);
+            }
+        } break;
+
+        case AbilityPhase_Active:
+        {
+            *AnimationType = AnimationType_Attack;
+            *AnimationSpeed = AnimationSpeedToFit(Def, MonsterRow_Attack,
+                                                  Ability->Active);
+            if (Ability->Kind == MonsterAbility_Charge)
+            {
+                *AnimationSpeed = 1.f;
+                Charging = true;
+                UpdateCharge(World, Entity, Def, Ability);
+                if (Entity->AbilityHasHit)
+                {
+                    Entity->AbilityTimer = 0.f;
+                }
+            }
+            if (Entity->AbilityTimer <= 0.f)
+            {
+                SetMonsterPhase(Entity, AbilityPhase_Recover, Ability->Recover);
+                Charging = false;
+            }
+        } break;
+
+        case AbilityPhase_Recover:
+        {
+            *AnimationType = AnimationType_Stop;
+            if (Entity->AbilityTimer <= 0.f)
+            {
+                Entity->AbilityCooldowns[Entity->AbilityIndex] = Ability->Cooldown;
+                SetMonsterPhase(Entity, AbilityPhase_Ready, 0.f);
+                *AnimationType = AnimationType_Stand;
+            }
+        } break;
+
+        default:
+        {
+            InvalidCodePath;
+        } break;
+    }
+
+    *AnimationDirection = FacingFromAim(Entity->AbilityAim,
+                                        Entity->AnimationState.LastAnimationDirection);
+
+    bool32 Flies = Def->FlyHeight > 0.f;
+    if (Charging)
+    {
+        // NOTE(zoubir): a charge ignores drag and runs at full speed
+        Entity->Velocity.XY = Ability->Speed * Entity->AbilityAim;
+    }
+    else
+    {
+        DDEntity -= 10.f * Entity->Velocity;
+    }
+    if (Flies)
+    {
+        Entity->tFlying += DeltaTime * 6.f;
+        if (Entity->tFlying > 2.f * Pi32)
+        {
+            Entity->tFlying -= 2.f * Pi32;
+        }
+        Entity->Position.Z = Def->FlyHeight + 4.f * Sin(Entity->tFlying);
+        DDEntity.Z = 0.f;
+        Entity->Velocity.Z = 0.f;
+    }
+    else
+    {
+        DDEntity.Z = -1000.f;
+    }
+
+    float MaxDistance = 10000.f;
+    MoveEntity(Entity, World, Arena, DeltaTime, AppState, DDEntity, &MaxDistance);
+
+    if (Charging && Entity->IsPresent)
+    {
+        float Moved = Length(Entity->Position.XY - StartPosition.XY);
+        if (Moved < CHARGE_BLOCKED_SHARE * Ability->Speed * DeltaTime)
+        {
+            SetMonsterPhase(Entity, AbilityPhase_Recover,
+                            CHARGE_WALL_STUN_SCALE * Ability->Recover);
+        }
+    }
+    return true;
+}

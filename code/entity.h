@@ -109,11 +109,30 @@ struct entity_collision_volume_group
 #define SWORD_DAMAGE 25.f
 #define FIREBALL_DAMAGE 25.f
 
+// NOTE(zoubir): one MonsterKind_<Name> per line of monster_list.inc, see
+// code/sim/monsters/README.md
 enum monster_kind
 {
-    MonsterKind_Brute,
-    MonsterKind_Bat,
+#define MONSTER(Name) MonsterKind_##Name,
+#define MONSTER_NAME_PASS
+#include "sim/monsters/monster_list.inc"
+#undef MONSTER_NAME_PASS
+#undef MONSTER
     MonsterKind_Count
+};
+
+#define MAX_MONSTER_ABILITIES 3
+#define MAX_ABILITY_POINTS 4
+
+// NOTE(zoubir): every monster ability runs Windup (rooted, telegraphed,
+// can be dodged) -> Active (the hit or the movement) -> Recover (open to
+// punishment), then goes back to Ready. See sim/monster_abilities.cpp
+enum ability_phase
+{
+    AbilityPhase_Ready,
+    AbilityPhase_Windup,
+    AbilityPhase_Active,
+    AbilityPhase_Recover,
 };
 
 struct world_entity
@@ -167,6 +186,17 @@ struct world_entity
     // until WanderTimer runs out, then pick a new direction (or rest)
     v2 WanderDirection;
     float WanderTimer;
+    // NOTE(zoubir): the monster ability in progress, if any
+    ability_phase AbilityPhase;
+    u32 AbilityIndex;
+    float AbilityTimer;
+    float AbilityCooldowns[MAX_MONSTER_ABILITIES];
+    // NOTE(zoubir): locked direction for charges, landing spots for
+    // mortars and blinks
+    v2 AbilityAim;
+    v2 AbilityPoints[MAX_ABILITY_POINTS];
+    u32 AbilityPointCount;
+    bool32 AbilityHasHit;
     // NOTE(zoubir): seconds until the player can dash / shockwave again
     float DashCooldown;
     float ShockwaveCooldown;

@@ -10,3 +10,5 @@ build/*.dll
 build/server
 # Runtime copy the exe makes so app.dll can be hot-reloaded
 app_temp.dll
+# art.bat previews
+build/monster_art/

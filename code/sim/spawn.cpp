@@ -254,17 +254,13 @@ AddMonster(app_state *AppState,
     Entity->MaxHp = Stats->MaxHp;
     Entity->Hp = Entity->MaxHp;
 
-    if (Flies)
+    // NOTE(zoubir): sprites are drawn by code at startup, one sheet per
+    // kind (art/monster_render.cpp)
+    Entity->Dimensions = V2((float)Stats->FrameSize, (float)Stats->FrameSize);
+    Entity->Texture = {AssetType_Monster, (u32)Kind};
+    if (AppState->Monsters)
     {
-        Entity->Dimensions = {45 * 0.7f, 25 * 0.7f};
-        Entity->Texture = {AssetType_Familiar};
-        Entity->AnimationSet = &AppState->FamiliarAnimationSet;
-    }
-    else
-    {
-        Entity->Dimensions = {48, 48};
-        Entity->Texture = {AssetType_Zoubir};
-        Entity->AnimationSet = &AppState->ZoubirAnimationSet;
+        Entity->AnimationSet = &AppState->Monsters->AnimationSets[Kind];
     }
 
     return Entity;

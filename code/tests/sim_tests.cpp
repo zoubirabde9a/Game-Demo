@@ -591,6 +591,8 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
     DestroyTestWorld(&Test);
 }
 
+#include "monster_tests.cpp"
+
 #define RUN(Test) printf("%s\n", #Test); Test()
 
 int
@@ -620,6 +622,8 @@ main()
     RUN(TestEmptyAnimationSlotDoesNotCrash);
     RUN(TestAnimationAdvancesWithoutTexture);
     RUN(TestSimulateTickQueuesSoundsInsteadOfPlaying);
+
+    RunMonsterTests();
 
     printf("%d of %d checks passed\n", TestChecks - TestFailures, TestChecks);
     return TestFailures ? 1 : 0;
