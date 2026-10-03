@@ -16,6 +16,7 @@
 #include "../art/art_module.cpp"
 #include "draw_entities.cpp"
 #include "play_events.cpp"
+#include "replica_smoothing.cpp"
 #include "replicas.cpp"
 #include "prediction.cpp"
 #include "online.cpp"

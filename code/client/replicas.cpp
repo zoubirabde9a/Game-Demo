@@ -5,11 +5,12 @@
    matched by the server's entity Id. Replicas are created when an Id
    appears, moved every snapshot, and removed when the Id disappears.
 
+   Between snapshots replicas glide rather than jump
+   (replica_smoothing.cpp).
+
    RunWorldTick is the one call the frame makes: online it syncs replicas,
    offline it runs SimulateTick, and it switches the world between the two
    when the connection comes or goes. */
-
-#define MAX_REPLICAS ArrayCount(((world *)0)->Entities)
 
 struct replica_table
 {
@@ -20,6 +21,8 @@ struct replica_table
     u8 Type[MAX_REPLICAS];
     u16 Look[MAX_REPLICAS]; // see ReplicaLook
     u32 SeenTick[MAX_REPLICAS];
+    // NOTE(zoubir): gliding between snapshots, client/replica_smoothing.cpp
+    replica_smoothing Smoothing;
 };
 
 inline bool32
@@ -300,6 +303,7 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
     {
         Table->LastAppliedTick = Snapshot->Tick;
         AppState->LocalPlayerIndex = LocalSlot;
+        BeginSmoothedSnapshot(&Table->Smoothing);
         for(u32 Index = 0; Index < Snapshot->Count; Index++)
         {
             net_entity_state *State = &Snapshot->Entities[Index];
@@ -307,11 +311,21 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
             {
                 continue;
             }
+            u32 LocalBefore = Table->LocalIndexPlusOne[State->Id];
             world_entity *Replica =
                 GetOrSpawnReplica(AppState, Arena, Table, State);
             if (Replica)
             {
+                // NOTE(zoubir): a reused replica glides from where it is
+                // drawn; the local player is left to prediction
+                v3 Drawn = Replica->Position;
+                bool32 Reused = (LocalBefore == Replica->ID + 1);
+                bool32 IsLocalPlayer = (State->Type == EntityType_Player &&
+                                        State->Variant == LocalSlot);
                 ApplyStateToReplica(AppState, Arena, Replica, State);
+                SetSmoothingTarget(AppState, Arena, &Table->Smoothing,
+                                   State->Id, Replica, Drawn,
+                                   Reused && !IsLocalPlayer);
                 Table->SeenTick[State->Id] = Snapshot->Tick;
                 // NOTE(zoubir): a player's Variant is its slot on the server
                 if (State->Type == EntityType_Player &&
@@ -350,12 +364,17 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
         }
     }
 
+    AdvanceSmoothing(&Table->Smoothing, DeltaTime);
     for(u32 Id = 0; Id < MAX_REPLICAS; Id++)
     {
         if (Table->LocalIndexPlusOne[Id])
         {
             world_entity *Replica =
                 &World->Entities[Table->LocalIndexPlusOne[Id] - 1];
+            if (Replica->IsPresent)
+            {
+                SmoothReplica(AppState, Arena, &Table->Smoothing, Id, Replica);
+            }
             if (Replica->IsPresent && Replica->AnimationSet)
             {
                 AdvanceAnimation(&Replica->AnimationState,

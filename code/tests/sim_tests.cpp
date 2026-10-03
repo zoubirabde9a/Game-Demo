@@ -668,6 +668,58 @@ SnapshotEntity(u16 Id, entity_type Type, float X, float Y, u8 Variant = 0)
     return Result;
 }
 
+// NOTE(zoubir): other units glide to each snapshot over one interval
+// instead of jumping; the local player and long jumps do not glide
+internal void
+TestReplicasGlideBetweenSnapshots()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+    float Dt = 1.f / 60.f;
+
+    Snapshot->Tick = 1;
+    Snapshot->Count = 2;
+    Snapshot->Entities[0] = SnapshotEntity(5, EntityType_Player, 500, 500, 0);
+    Snapshot->Entities[1] = SnapshotEntity(6, EntityType_Player, 800, 500, 1);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    world_entity *Other =
+        &Test.World->Entities[Table->LocalIndexPlusOne[6] - 1];
+    Check(Other->Position.X == 800.f);
+
+    // NOTE(zoubir): 3 frames between snapshots, as at 20 Hz and 60 fps
+    for(u32 Tick = 2; Tick <= 4; Tick++)
+    {
+        Snapshot->Tick = Tick;
+        SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+        SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+        SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    }
+    Snapshot->Tick = 5;
+    Snapshot->Entities[0].X = 530.f;
+    Snapshot->Entities[1].X = 830.f;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    Check(GetLocalPlayer(AppState)->Position.X == 530.f);
+    Check(Other->Position.X > 805.f && Other->Position.X < 815.f);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    Check(Other->Position.X > 815.f && Other->Position.X < 825.f);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    Check(Other->Position.X > 829.f && Other->Position.X <= 830.f);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    Check(Other->Position.X == 830.f);
+
+    // NOTE(zoubir): a respawn across the arena snaps
+    Snapshot->Tick = 6;
+    Snapshot->Entities[1].X = 830.f + 2.f * REPLICA_SNAP_DISTANCE;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    Check(Other->Position.X == 830.f + 2.f * REPLICA_SNAP_DISTANCE);
+
+    free(Snapshot);
+    free(Table);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 TestReplicasFollowSnapshots()
 {
@@ -1228,6 +1280,7 @@ main()
     RUN(TestPredictionHistory);
     RUN(TestPredictionMovesNowAndReplaysAfterSnapshot);
     RUN(TestPredictionBlendsCorrections);
+    RUN(TestReplicasGlideBetweenSnapshots);
     RUN(TestReplicaFacingFromSnapshot);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
