@@ -20,6 +20,10 @@
 #define SERVER_TICK_RATE 60
 #define SERVER_SNAPSHOT_INTERVAL 3 // 20 snapshots a second
 #define SERVER_STATS_SECONDS 60    // how often server_main logs a stats line
+// Packets read per tick at most. Eight players send a few each; a flood
+// beyond this waits in the socket buffer (or is dropped by the system)
+// instead of keeping the tick from running.
+#define SERVER_MAX_PACKETS_PER_TICK 256
 
 // Counters since the last stats line. A tick is "late" when the loop could
 // not sleep before the next one: the machine is not keeping up.
@@ -31,6 +35,7 @@ struct server_stats
     double TickSecondsMax;
     u32 PacketsIn, PacketsOut, BadPacketsIn;
     u32 TrimmedSnapshots; // snapshots that left far entities out to fit
+    u32 FullReceiveTicks; // ticks that stopped reading at SERVER_MAX_PACKETS_PER_TICK
     u64 BytesIn, BytesOut;
 };
 

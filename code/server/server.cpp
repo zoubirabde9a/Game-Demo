@@ -65,10 +65,10 @@ ServerFormatStats(server *Server, double IntervalSeconds, char *Out, u32 OutSize
     double AverageMs = S->Ticks ? 1000.0 * S->TickSecondsTotal / S->Ticks : 0;
     snprintf(Out, OutSize,
              "stats over %.0f s: %u/%u players, tick avg %.2f ms max %.2f ms of %.1f, %u late, "
-             "in %u pkt %.1f KB (%u bad), out %u pkt %.1f KB (%.1f KB/s), %u trimmed",
+             "in %u pkt %.1f KB (%u bad, %u full ticks), out %u pkt %.1f KB (%.1f KB/s), %u trimmed",
              IntervalSeconds, ServerPlayerCount(Server), NET_MAX_CLIENTS,
              AverageMs, 1000.0 * S->TickSecondsMax, 1000.0 / SERVER_TICK_RATE, S->LateTicks,
-             S->PacketsIn, S->BytesIn / 1024.0, S->BadPacketsIn,
+             S->PacketsIn, S->BytesIn / 1024.0, S->BadPacketsIn, S->FullReceiveTicks,
              S->PacketsOut, S->BytesOut / 1024.0, S->BytesOut * PerSecond / 1024.0,
              S->TrimmedSnapshots);
     *S = {};
@@ -99,8 +99,11 @@ ServerReceiveAll(server *Server)
     u8 Buffer[NET_MAX_PACKET_SIZE];
     net_address From;
     u32 Size;
-    while ((Size = NetReceiveFrom(&Server->Socket, &From, Buffer, sizeof(Buffer))) != 0)
+    u32 Read = 0;
+    while (Read < SERVER_MAX_PACKETS_PER_TICK &&
+           (Size = NetReceiveFrom(&Server->Socket, &From, Buffer, sizeof(Buffer))) != 0)
     {
+        if (++Read == SERVER_MAX_PACKETS_PER_TICK) Server->Stats.FullReceiveTicks++;
         Server->Stats.PacketsIn++;
         Server->Stats.BytesIn += Size;
         net_packet Packet;

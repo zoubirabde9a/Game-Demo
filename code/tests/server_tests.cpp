@@ -258,6 +258,40 @@ TestPlayerNamesReachEveryone()
     ServerStop(&Server);
 }
 
+// A flood of junk does not stall the server: one tick reads at most
+// SERVER_MAX_PACKETS_PER_TICK packets, counts the junk as bad, and a real
+// player still joins afterwards.
+internal void
+TestFloodDoesNotStallTheServer()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0));
+    net_socket Flood = NetOpenSocket(0);
+    net_address To = {0x7f000001, NetSocketPort(&Server.Socket)};
+    u8 Junk[64] = {1, 2, 3};
+    for (u32 Index = 0; Index < 3 * SERVER_MAX_PACKETS_PER_TICK; ++Index)
+    {
+        NetSendTo(&Flood, To, Junk, sizeof(Junk));
+    }
+    ServerTick(&Server);
+    Check(Server.Stats.PacketsIn <= SERVER_MAX_PACKETS_PER_TICK);
+    Check(Server.Stats.BadPacketsIn == Server.Stats.PacketsIn);
+    Check(Server.Stats.FullReceiveTicks == 1);
+    for (u32 Tick = 0; Tick < 4; ++Tick) ServerTick(&Server);
+
+    static net_client Player;
+    Check(NetClientConnect(&Player, To, 515, SimContentId(), "Late"));
+    for (int Frame = 0; Frame < 120 && Player.State != NetClient_Connected; ++Frame)
+    {
+        NetClientUpdate(&Player, 1.0f / SERVER_TICK_RATE, 0, 0, 0);
+        ServerTick(&Server);
+    }
+    Check(Player.State == NetClient_Connected);
+    NetClientDisconnect(&Player);
+    NetCloseSocket(&Flood);
+    ServerStop(&Server);
+}
+
 internal void
 TestSnapshotsAcknowledgeInputs()
 {
@@ -504,6 +538,7 @@ main()
     TestSnapshotsAcknowledgeInputs();
     TestPlayerNamesReachEveryone();
     TestNinthClientIsTurnedAway();
+    TestFloodDoesNotStallTheServer();
     TestStatsCountTrafficAndTicks();
     TestDifferentBuildIsRefused();
     printf("  content id %08x\n", SimContentId());
