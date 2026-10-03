@@ -54,6 +54,8 @@ struct ui_state
         {
             char ButtonText[64];
             bool32 IsPressed;
+            // NOTE(zoubir): drawn as the current choice in a group
+            bool32 IsSelected;
         };
         
         // TilePickerWidget

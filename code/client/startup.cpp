@@ -3,6 +3,33 @@
    with the local player and familiar, and the online session if a server
    address is configured. */
 
+// NOTE(zoubir): the local player at its map spawn, with its familiar
+internal void
+AddLocalPlayer(app_state *AppState, memory_arena *Arena)
+{
+    AppState->LocalPlayerIndex = 0;
+    world_entity *Player =
+        AddPlayerToSlot(AppState, &AppState->World, Arena,
+                        AppState->LocalPlayerIndex,
+                        PlayerSpawnPosition(&AppState->World,
+                                            AppState->LocalPlayerIndex));
+    AddFamiliar(AppState, &AppState->World, Arena, Player);
+}
+
+// NOTE(zoubir): offline only. Throws the world away and starts MapId
+// fresh, monsters and all, as the map picker on the connect screen does.
+// TODO(zoubir): RebuildWorldForMap takes up to ~300 KB of the permanent
+// arena each time and never gives it back
+internal void
+StartOfflineMap(app_state *AppState, u32 MapId)
+{
+    memory_arena *Arena = &AppState->MemoryArena;
+    RebuildWorldForMap(AppState, Arena, MapId);
+    FillMonsterPopulation(AppState, &AppState->World, Arena,
+                          AppState->Monsters);
+    AddLocalPlayer(AppState, Arena);
+}
+
 internal void
 StartClient(app_state *AppState, transient_state *TransientState,
             app_memory *Memory, thread_context *Thread)
@@ -55,13 +82,7 @@ StartClient(app_state *AppState, transient_state *TransientState,
 #pragma warning(pop)
 #endif
     InitSimulation(AppState, MemoryArena, ConstantsArena);
-    AppState->LocalPlayerIndex = 0;
-    world_entity *Player =
-        AddPlayerToSlot(AppState, &AppState->World, MemoryArena,
-                        AppState->LocalPlayerIndex,
-                        PlayerSpawnPosition(&AppState->World,
-                                            AppState->LocalPlayerIndex));
-    AddFamiliar(AppState, &AppState->World, MemoryArena, Player);
+    AddLocalPlayer(AppState, MemoryArena);
     AppState->Online = StartOnlineSession(MemoryArena);
     EndTemporaryMemory(TempMem);
     AppState->IsInitialized = true;
