@@ -11,15 +11,10 @@
    NET_CLIENT_TIMEOUT seconds without any packet. */
 
 #include "protocol.h"
+#include "address.h"
 
 #define NET_MAX_CLIENTS 8
 #define NET_CLIENT_TIMEOUT 5.0f
-
-struct net_address
-{
-    u32 Ip;   // IPv4, host byte order
-    u16 Port;
-};
 
 struct net_client_slot
 {

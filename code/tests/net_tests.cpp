@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "../net/protocol.cpp"
 #include "../net/connections.cpp"
+#include "../net/socket.cpp"
 
 global_variable int TestFailures;
 global_variable int TestChecks;
@@ -13,7 +14,7 @@ global_variable int TestChecks;
 #define Check(Expression) CheckImpl((Expression) != 0, #Expression, __LINE__)
 
 internal void
-CheckImpl(bool Passed, char *Expression, int Line)
+CheckImpl(bool Passed, const char *Expression, int Line)
 {
     TestChecks++;
     if (!Passed)
@@ -290,6 +291,63 @@ TestClientsLeaveAndTimeOut()
     Check(!Clients.Slots[1].Connected);
 }
 
+internal void
+TestParseAddress()
+{
+    net_address A = {};
+    Check(NetParseAddress("127.0.0.1:27015", &A));
+    Check(A.Ip == 0x7f000001 && A.Port == 27015);
+    Check(NetParseAddress("255.255.255.255:65535", &A));
+    Check(A.Ip == 0xffffffff && A.Port == 65535);
+    Check(!NetParseAddress("127.0.0.1", &A));
+    Check(!NetParseAddress("127.0.0:80", &A));
+    Check(!NetParseAddress("256.0.0.1:80", &A));
+    Check(!NetParseAddress("1.2.3.4:65536", &A));
+    Check(!NetParseAddress("1..3.4:80", &A));
+    Check(!NetParseAddress("1.2.3.4:", &A));
+    Check(!NetParseAddress("1.2.3.4:80x", &A));
+    Check(!NetParseAddress("", &A));
+}
+
+// Sends a real packet between two sockets over the loopback interface.
+internal void
+TestLoopbackPacket()
+{
+    Check(NetSocketsStartup());
+    net_socket Server = NetOpenSocket(0);
+    net_socket Client = NetOpenSocket(0);
+    Check(Server.Open && Client.Open);
+    u16 ServerPort = NetSocketPort(&Server);
+    Check(ServerPort != 0);
+
+    u8 Buffer[NET_MAX_PACKET_SIZE];
+    net_address From = {};
+    Check(NetReceiveFrom(&Server, &From, Buffer, sizeof(Buffer)) == 0); // nothing yet, and no blocking
+
+    net_packet Request = {};
+    Request.Header.Type = NetPacket_ConnectRequest;
+    Request.ConnectRequest.ClientSalt = 4242;
+    u32 Size = NetWritePacket(&Request, Buffer, sizeof(Buffer));
+    Check(NetSendTo(&Client, {0x7f000001, ServerPort}, Buffer, Size));
+
+    // Loopback delivery is not instant; poll briefly.
+    u32 Received = 0;
+    for (int Try = 0; Try < 1000000 && !Received; ++Try)
+    {
+        Received = NetReceiveFrom(&Server, &From, Buffer, sizeof(Buffer));
+    }
+    net_packet Got = {};
+    Check(Received == Size);
+    Check(NetReadPacket(Buffer, Received, &Got));
+    Check(Got.ConnectRequest.ClientSalt == 4242);
+    Check(From.Ip == 0x7f000001 && From.Port == NetSocketPort(&Client));
+
+    NetCloseSocket(&Client);
+    NetCloseSocket(&Server);
+    Check(!Server.Open);
+    NetSocketsShutdown();
+}
+
 int
 main()
 {
@@ -302,6 +360,8 @@ main()
     TestServerFullDenies();
     TestInputsAppliedOnceInOrder();
     TestClientsLeaveAndTimeOut();
+    TestParseAddress();
+    TestLoopbackPacket();
 
     printf("net tests: %d checks, %d failed\n", TestChecks, TestFailures);
     return TestFailures ? 1 : 0;

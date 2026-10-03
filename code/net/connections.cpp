@@ -2,12 +2,6 @@
 
 #include "connections.h"
 
-internal bool32
-NetAddressEqual(net_address A, net_address B)
-{
-    return A.Ip == B.Ip && A.Port == B.Port;
-}
-
 internal net_client_slot *
 NetFindClient(net_server_clients *Clients, net_address Address, u32 *IndexOut)
 {
