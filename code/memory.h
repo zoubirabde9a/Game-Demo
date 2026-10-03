@@ -110,18 +110,20 @@ ZeroSize(void *Ptr, memory_index Size)
 }
 #define ZeroArray(Array, Count, Type) ZeroSize(Array, (Count) * sizeof(Type))
 
+// NOTE(zoubir): copies at most DestSize - 1 chars and always terminates
 inline void
 CopyString(char *Dest, memory_index DestSize, char *Src)
 {
-    while(*Src)
-    {        
-        *Dest = *Src++;
-        DestSize--;
-        if (DestSize == 0)
-        {
-            break;
-        }
+    if (DestSize == 0)
+    {
+        return;
     }
+    while(*Src && DestSize > 1)
+    {
+        *Dest++ = *Src++;
+        DestSize--;
+    }
+    *Dest = 0;
 }
 
 inline void

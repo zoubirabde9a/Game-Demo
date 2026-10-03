@@ -39,4 +39,16 @@ DrawHud(render_context *RenderContext, app_state *AppState)
     DrawHudBar(RenderContext, X, Y + 20.f, 60.f, 6.f, DashCharge,
                DashCharge >= 1.f ?
                RGBA8_HUD_ABILITY_READY : RGBA8_HUD_ABILITY_CHARGING);
+
+    font *Font = AppState->DefaultFont;
+    if (Font)
+    {
+        char Text[32];
+        snprintf(Text, sizeof(Text), "Kills: %u", AppState->KillCount);
+        v4 NoClip = {0.f, 0.f, 100000.f, 100000.f};
+        // NOTE(zoubir): Y is the baseline, so drop it by the font ascent
+        RenderText(RenderContext, X, Y + 32.f + Font->UpperLimit, Font,
+                   RenderContext->TextureProgram, Text, RGBA8_WHITE,
+                   1.f, 1.f, NoClip, 0.f);
+    }
 }

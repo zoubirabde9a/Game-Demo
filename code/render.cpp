@@ -42,8 +42,9 @@ CreateFont(open_gl *OpenGL,
                          (stbtt_bakedchar *)Font->Glyphs); // no guarantee this fits!
     float MinY = 0.f;
     float MaxY = 0.f;
-    for(u32 GlyphIndex = Font->FirstGlyph;
-        GlyphIndex < Font->FirstGlyph + Font->GlyphsSize;
+    // NOTE(zoubir): Glyphs holds GlyphsSize entries starting at FirstGlyph
+    for(u32 GlyphIndex = 0;
+        GlyphIndex < Font->GlyphsSize;
         GlyphIndex++)
     {
         int opengl_fillrule = 1;
@@ -63,9 +64,21 @@ CreateFont(open_gl *OpenGL,
     Platform.FreeFileMemory(ReadResult.Memory);
     OpenGL->glGenTextures(1, &Font->Texture);
     OpenGL->glBindTexture(GL_TEXTURE_2D, Font->Texture);
-    OpenGL->glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, Font->BitmapWidth,
-                 Font->BitmapHeight, 0, GL_ALPHA, GL_UNSIGNED_BYTE,
-                 BitmapMemory);
+    // NOTE(zoubir): GL_ALPHA textures read as opaque black in the core
+    // shaders, so glyphs go up as white RGBA with coverage in alpha
+    u8 *Coverage = (u8 *)BitmapMemory;
+    // NOTE(zoubir): 1MB scratch, too big for what is left of the arena
+    u32 *Pixels = (u32 *)malloc(BitmapSize * sizeof(u32));
+    for(int PixelIndex = 0;
+        PixelIndex < BitmapSize;
+        PixelIndex++)
+    {
+        Pixels[PixelIndex] = ((u32)Coverage[PixelIndex] << 24) | 0x00FFFFFF;
+    }
+    OpenGL->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Font->BitmapWidth,
+                 Font->BitmapHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 Pixels);
+    free(Pixels);
     OpenGL->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     EndTemporaryMemory(TemporaryMemory);
     
@@ -796,7 +809,7 @@ RenderText(render_context *RenderContext, float X, float Y,
                 {
                     RenderGlyph(RenderContext, DrawRect.X, DrawRect.Y,
                                 DrawRect.Z, DrawRect.W,
-                                UX, UY, TW, TH, RGBA8_WHITE, 1.f);
+                                UX, UY, TW, TH, Color, 1.f);
                 }
                 #if 0
                 if (DrawRect.Z > 0 && DrawRect.W > 0)

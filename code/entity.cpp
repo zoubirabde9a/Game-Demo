@@ -269,33 +269,45 @@ MakeGroundedTreeCollisionVolume(memory_arena *Arena)
     return Group;
 }
 
+// NOTE(zoubir): every hit goes through here so deaths are counted once
 internal bool32
-HandleCollision(world *World,
+DamageEntity(app_state *AppState, world *World,
+             world_entity *Target, float Damage)
+{
+    bool32 Killed = false;
+    if (Target->IsPresent)
+    {
+        Target->Hp -= Damage;
+        if (Target->Hp <= 0.f &&
+            Target->Type == EntityType_Monster)
+        {
+            RemoveEntity(World, Target);
+            AppState->KillCount++;
+            Killed = true;
+        }
+    }
+    return Killed;
+}
+
+internal bool32
+HandleCollision(app_state *AppState, world *World,
                 world_entity *A,
                 world_entity *B)
 {
     bool32 Result = true;
 
+    if (B->Type == EntityType_FireBall)
+    {
+        world_entity *Tmp = A;
+        A = B;
+        B = Tmp;
+    }
+
     if (A->Type == EntityType_FireBall &&
         B->Type == EntityType_Monster)
     {
-        B->Hp -= 25;
-        if (B->Hp <= 0.f)
-        {
-            RemoveEntity(World, B);
-        }
+        DamageEntity(AppState, World, B, FIREBALL_DAMAGE);
         Result = false;
-    }
-    
-    if (B->Type == EntityType_FireBall &&
-        A->Type == EntityType_Monster)
-    {
-        A->Hp -= 25;
-        if (A->Hp <= 0.f)
-        {
-            RemoveEntity(World, A);            
-        }
-        Result = false;        
     }
     return Result;
 }
@@ -400,12 +412,7 @@ HandleOverlap(app_state *AppState, world *World, memory_arena *Arena,
         
     if (Entity->Type == EntityType_Sword)
     {
-        Region->Hp -= 25;
-        if (Region->Hp <= 0.f)
-        {
-            RemoveEntity(World, Region);
-        }
-        else
+        if (!DamageEntity(AppState, World, Region, SWORD_DAMAGE))
         {
             AddCollisionRule(AppState, Arena,
                              Entity->ID, Region->ID,
@@ -670,7 +677,7 @@ MoveEntity(world_entity *Entity, world *World,
         if (CollidedEntity)
         {
             bool32 StopsOnCollision =
-                HandleCollision(World, Entity,
+                HandleCollision(AppState, World, Entity,
                                 CollidedEntity);
             // NOTE(zoubir): a monster that walks into a fireball dies
             // here, and must not be put back into the chunks

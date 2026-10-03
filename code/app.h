@@ -98,6 +98,7 @@ struct app_state
     
     world_entity *Player;
     v3 PlayerSpawnPosition;
+    u32 KillCount;
 
     v3 TargetCamera;
     v3 CameraOffset;

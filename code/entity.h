@@ -103,6 +103,8 @@ struct entity_collision_volume_group
 };
 
 #define PLAYER_DASH_COOLDOWN 0.8f
+#define SWORD_DAMAGE 25.f
+#define FIREBALL_DAMAGE 25.f
 
 enum monster_kind
 {
