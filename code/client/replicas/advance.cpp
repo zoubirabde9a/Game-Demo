@@ -38,17 +38,9 @@ AdvanceReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
                 {
                     Replica->PhaseFlash = Maximum(0.f, Replica->PhaseFlash - DeltaTime);
                 }
-                // NOTE(zoubir): cooldown bars run down between snapshots
-                if (Replica->Type == EntityType_Player &&
-                    Replica == AppState->Players[LocalSlot].Entity)
-                {
-                    for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
-                    {
-                        float Full;
-                        float *Seconds = PlayerCooldown(Replica, Index, &Full);
-                        if (Seconds) *Seconds = Maximum(0.f, *Seconds - DeltaTime);
-                    }
-                }
+                // NOTE(zoubir): the local player's cooldown bars run down
+                // between snapshots in prediction (UpdatePlayer counts them
+                // as it steps); counting here as well ran them twice as fast
             }
             if (Replica->IsPresent && Replica->AnimationSet)
             {

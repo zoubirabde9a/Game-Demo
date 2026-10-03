@@ -379,6 +379,7 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     u32 ServerElites = 0, ClientElites = 0, ServerFlashes = 0, ClientFlashes = 0;
     u32 LastTick = 0;
     u32 CooldownsCompared = 0, CooldownsOff = 0, ServerCooling = 0, ClientCooling = 0;
+    u32 DashPresses = 0, DashesSeenAtOnce = 0;
     app_input Input = {};
     Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
     for (int Frame = 0; Frame < Seconds * SERVER_TICK_RATE; ++Frame)
@@ -389,6 +390,16 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
         Input.ButtonE.EndedDown = (Frame % 300) < 2;
         UpdateOnlineSession(Online, &Input);
         RunWorldTick(Client, &Arena, Input.DeltaTime);
+        // NOTE(zoubir): dash is predicted, so the client's player has already
+        // dashed on the frame the key goes down (its cooldown has started;
+        // its speed may not show it, pressed against a wall)
+        world_entity *Own = Client->Players[Client->LocalPlayerIndex].Entity;
+        if ((Frame % 90) == 0 && IsOnline(Online) && Online->Replicas.Active &&
+            Own && Own->IsPresent && !IsDeadPlayer(Own))
+        {
+            ++DashPresses;
+            DashesSeenAtOnce += Own->DashCooldown > 0.9f * PLAYER_DASH_COOLDOWN ? 1 : 0;
+        }
         if (IsOnline(Online) && Online->Replicas.Active &&
             Online->Replicas.LastAppliedTick != LastTick)
         {
@@ -397,7 +408,16 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
             // server's (the server has ticked once more since it wrote).
             world_entity *OwnTheirs = Server.Game.AppState->Players[Online->Client.PlayerIndex].Entity;
             world_entity *OwnOurs = Client->Players[Client->LocalPlayerIndex].Entity;
-            if (OwnTheirs && OwnOurs)
+            // NOTE(zoubir): a predicted dash or blink the server has not had
+            // yet starts its cooldown on the client first; skip those frames
+            bool32 PressInFlight = false;
+            for (u32 Index = 0; Index < Online->Prediction.Count; ++Index)
+            {
+                PressInFlight = PressInFlight ||
+                    (GetPredictedInput(&Online->Prediction, Index)->Pressed &
+                     (NetButton_Dash | NetButton_Blink));
+            }
+            if (OwnTheirs && OwnOurs && !PressInFlight)
             {
                 for (u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; ++Index)
                 {
@@ -463,6 +483,8 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     printf("  parity: own cooldowns %u compared, %u off by over 0.1 s, cooling on server/client %u/%u\n",
            CooldownsCompared, CooldownsOff, ServerCooling, ClientCooling);
     Check(CooldownsCompared > 100 && CooldownsOff == 0);
+    printf("  dash presses %u, dashing on the press frame %u\n", DashPresses, DashesSeenAtOnce);
+    Check(DashPresses > 5 && DashesSeenAtOnce >= DashPresses - 1);
     Check(ServerCooling > 0 && ClientCooling > 0);
 
     NetClientDisconnect(&Online->Client);

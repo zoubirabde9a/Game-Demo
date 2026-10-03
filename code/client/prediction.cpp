@@ -7,9 +7,13 @@
    has not applied yet are replayed on top, so the replica lands where the
    server will have it once those inputs arrive.
 
-   Only movement and facing (the aim toward the cursor) are predicted.
-   Attacks, dashes and jumps change what other players see, so they wait
-   for the server.
+   Movement, facing (the aim toward the cursor), dash and blink are
+   predicted: they move only the player, so they happen the frame they
+   are pressed. Each recorded input keeps which buttons went down on it,
+   worked out the same way the server does, and the cooldowns the server
+   sends say whether dash and blink are ready; UpdatePlayer counts them
+   down as it steps, replays included. Attacks, shockwaves and jumps
+   change what other players see, so they wait for the server.
 
    When the replay lands somewhere other than where the player was drawn a
    frame ago, the difference is kept as DrawError and the player is drawn
@@ -30,6 +34,9 @@ struct predicted_input
 {
     u32 Tick;
     u16 Buttons;
+    // NOTE(zoubir): buttons that went down on this input (were not held on
+    // the one before), as the server works them out
+    u16 Pressed;
     v2 Aim;
     float DeltaTime;
 };
@@ -46,6 +53,7 @@ struct prediction_history
     bool32 HasShown;
     v2 Predicted;
     v2 DrawError;
+    u16 LastButtons;
 };
 
 // NOTE(zoubir): the server turns held net buttons into a move direction
@@ -83,6 +91,8 @@ RecordPredictedInput(prediction_history *History, u32 Tick, u16 Buttons,
     predicted_input *Input = GetPredictedInput(History, History->Count++);
     Input->Tick = Tick;
     Input->Buttons = Buttons;
+    Input->Pressed = Buttons & ~History->LastButtons;
+    History->LastButtons = Buttons;
     Input->Aim = Aim;
     Input->DeltaTime = DeltaTime;
 }
@@ -102,8 +112,8 @@ DropAcknowledgedInputs(prediction_history *History, u32 InputTick)
 // UpdatePlayer the server runs; returns false when there is no live
 // local player to move
 internal bool32
-PredictLocalStep(app_state *AppState, memory_arena *Arena, u16 Buttons,
-                 v2 Aim, float DeltaTime)
+PredictLocalStep(app_state *AppState, memory_arena *Arena,
+                 predicted_input *Input)
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     world_entity *Player = Slot->Entity;
@@ -114,12 +124,14 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena, u16 Buttons,
     }
 
     Slot->Input = {};
-    Slot->Input.Move = MoveFromNetButtons(Buttons);
-    Slot->Input.Aim = Aim;
+    Slot->Input.Move = MoveFromNetButtons(Input->Buttons);
+    Slot->Input.Aim = Input->Aim;
+    if (Input->Pressed & NetButton_Dash) Slot->Input.Pressed |= PlayerButton_Dash;
+    if (Input->Pressed & NetButton_Blink) Slot->Input.Pressed |= PlayerButton_Blink;
     float AnimationSpeed;
     animation_type AnimationType;
     animation_direction AnimationDirection;
-    UpdatePlayer(Slot, &AppState->World, Arena, DeltaTime, AppState,
+    UpdatePlayer(Slot, &AppState->World, Arena, Input->DeltaTime, AppState,
                  &AnimationSpeed, &AnimationType, &AnimationDirection);
     Player->AnimationType = AnimationType;
     Player->AnimationDirection = AnimationDirection;
@@ -154,9 +166,8 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
         DropAcknowledgedInputs(History, InputTick);
         for(u32 Index = 0; Index < History->Count && Moved; Index++)
         {
-            predicted_input *Input = GetPredictedInput(History, Index);
-            Moved = PredictLocalStep(AppState, Arena, Input->Buttons,
-                                     Input->Aim, Input->DeltaTime);
+            Moved = PredictLocalStep(AppState, Arena,
+                                     GetPredictedInput(History, Index));
         }
     }
     else
@@ -169,10 +180,8 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
         }
         if (History->Count > 0)
         {
-            predicted_input *Newest =
-                GetPredictedInput(History, History->Count - 1);
-            Moved = PredictLocalStep(AppState, Arena, Newest->Buttons,
-                                     Newest->Aim, Newest->DeltaTime);
+            Moved = PredictLocalStep(AppState, Arena,
+                                     GetPredictedInput(History, History->Count - 1));
         }
     }
 
