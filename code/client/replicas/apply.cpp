@@ -157,3 +157,39 @@ ApplyOwnCooldowns(world_entity *Local, net_snapshot *Snapshot)
         if (Seconds) *Seconds = CooldownFromByte(Snapshot->Cooldowns[Index], Full);
     }
 }
+
+// NOTE(zoubir): a player replica's slot on the server is its Variant; the
+// slot shows it. The server does not send respawn timers: it starts its
+// own at the death tick, so the client starts the same one when it sees
+// the death, at most a snapshot late.
+internal void
+BindPlayerSlot(app_state *AppState, world_entity *Replica,
+               net_entity_state *State, bool32 WasDead)
+{
+    if (State->Type != EntityType_Player || State->Variant >= MAX_PLAYERS)
+    {
+        return;
+    }
+    player_slot *Slot = &AppState->Players[State->Variant];
+    Slot->Active = true;
+    Slot->Entity = Replica;
+    Replica->PlayerIndex = State->Variant;
+    if (!WasDead && IsDeadPlayer(Replica))
+    {
+        Slot->RespawnTimer = PLAYER_RESPAWN_SECONDS;
+    }
+}
+
+// NOTE(zoubir): a boss's enrage burst: start it when the snapshot's bit
+// comes on; it then plays out on its own (advance.cpp)
+internal void
+StartEnrageBurst(replica_table *Table, world_entity *Replica,
+                 net_entity_state *State)
+{
+    if (State->Flash && !Table->Flashing[State->Id] &&
+        Replica->Type == EntityType_Monster)
+    {
+        Replica->PhaseFlash = ENRAGE_FLASH_SECONDS;
+    }
+    Table->Flashing[State->Id] = State->Flash;
+}
