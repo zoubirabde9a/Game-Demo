@@ -299,6 +299,39 @@ TestPredictionAgreesWithServer()
     free(Client);
 }
 
+// Front-armoured monsters send their facing, a whole turn in 256 steps.
+internal void
+TestArmoredMonstersSendFacing()
+{
+    u32 Kind = 0;
+    while (Kind < MonsterKind_Count && GetMonsterDef((monster_kind)Kind)->FrontArmor <= 0.f) ++Kind;
+    if (Kind == MonsterKind_Count) return; // no armoured kind in this build
+    u32 Plain = 0;
+    while (Plain < MonsterKind_Count && GetMonsterDef((monster_kind)Plain)->FrontArmor > 0.f) ++Plain;
+
+    static net_snapshot Out;
+    Out = {};
+    world_entity Monster = {};
+    Monster.Type = EntityType_Monster;
+    Monster.MonsterKind = (monster_kind)Kind;
+    Monster.Direction = V2(0.f, -1.f);
+    SimGameWriteFacing(&Monster, 5, &Out);
+    Check(Out.FacingCount == 1);
+    Check(Out.Facings[0].EntityIndex == 5);
+    Check(Out.Facings[0].Angle == 192); // -90 degrees
+
+    Monster.Direction = V2(-1.f, 0.f);
+    SimGameWriteFacing(&Monster, 6, &Out);
+    Check(Out.Facings[1].Angle == 128);
+
+    // Unarmoured monsters and players send nothing.
+    Monster.MonsterKind = (monster_kind)Plain;
+    SimGameWriteFacing(&Monster, 7, &Out);
+    Monster.Type = EntityType_Player;
+    SimGameWriteFacing(&Monster, 8, &Out);
+    Check(Out.FacingCount == 2);
+}
+
 internal void
 TestClientConnectsAndMoves()
 {
@@ -635,6 +668,7 @@ main()
     TestJoinMoveAndLeave();
     TestQuietClientTimesOut();
     TestClientConnectsAndMoves();
+    TestArmoredMonstersSendFacing();
     TestPredictionAgreesWithServer();
     TestSnapshotsAcknowledgeInputs();
     TestPlayerNamesReachEveryone();

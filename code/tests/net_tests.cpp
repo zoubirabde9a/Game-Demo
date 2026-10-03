@@ -93,6 +93,14 @@ FullSnapshot()
         Score->MonsterKills = (u16)(1000 + Index);
     }
 
+    // ...and every facing slot...
+    P.Snapshot.FacingCount = NET_MAX_SNAPSHOT_FACINGS;
+    for (u8 Index = 0; Index < NET_MAX_SNAPSHOT_FACINGS; ++Index)
+    {
+        P.Snapshot.Facings[Index].EntityIndex = Index;
+        P.Snapshot.Facings[Index].Angle = (u8)(Index * 32 + 1);
+    }
+
     // ...and the longest name.
     P.Snapshot.NameSlot = NET_MAX_SNAPSHOT_SCORES - 1;
     snprintf(P.Snapshot.Name, NET_NAME_SIZE, "%s", "ABCDEFGHIJKLMNO");
@@ -219,6 +227,9 @@ TestFullSnapshotFits()
     Check(LastScore->Deaths == 65535);
     Check(LastScore->MonsterKills == 1000 + NET_MAX_SNAPSHOT_SCORES - 1);
     Check(Out.Snapshot.NameSlot == NET_MAX_SNAPSHOT_SCORES - 1);
+    Check(Out.Snapshot.FacingCount == NET_MAX_SNAPSHOT_FACINGS);
+    Check(Out.Snapshot.Facings[NET_MAX_SNAPSHOT_FACINGS - 1].Angle ==
+          (NET_MAX_SNAPSHOT_FACINGS - 1) * 32 + 1);
     Check(strcmp(Out.Snapshot.Name, "ABCDEFGHIJKLMNO") == 0);
     net_ability_state *A = &Out.Snapshot.Abilities[2];
     Check(A->EntityIndex == NET_MAX_SNAPSHOT_ENTITIES - 3);
@@ -272,6 +283,16 @@ TestRejectsAbilityForMissingEntity()
     Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) > 0);
 
     P.Snapshot.AbilityCount = NET_MAX_SNAPSHOT_ABILITIES + 1;
+    Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
+
+    // Facings must point at an entity that is in the snapshot too.
+    P.Snapshot.AbilityCount = 0;
+    P.Snapshot.FacingCount = 1;
+    P.Snapshot.Facings[0].EntityIndex = 2;
+    Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
+    P.Snapshot.Facings[0].EntityIndex = 1;
+    Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) > 0);
+    P.Snapshot.FacingCount = NET_MAX_SNAPSHOT_FACINGS + 1;
     Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
 }
 

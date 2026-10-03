@@ -148,6 +148,15 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 if (P->Snapshot.NameSlot >= NET_MAX_SNAPSHOT_SCORES) return false;
                 NetName(S, P->Snapshot.Name, NET_NAME_SIZE);
             }
+            NetU8(S, &P->Snapshot.FacingCount);
+            if (P->Snapshot.FacingCount > NET_MAX_SNAPSHOT_FACINGS) return false;
+            for (u32 Index = 0; Index < P->Snapshot.FacingCount; ++Index)
+            {
+                net_facing *Facing = &P->Snapshot.Facings[Index];
+                NetU8(S, &Facing->EntityIndex);
+                NetU8(S, &Facing->Angle);
+                if (Facing->EntityIndex >= P->Snapshot.Count) return false;
+            }
         } break;
 
         default: return false;

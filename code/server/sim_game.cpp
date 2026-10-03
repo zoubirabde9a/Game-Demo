@@ -170,6 +170,24 @@ SimGameStatusBits(world_entity *Entity)
     return Result;
 }
 
+// NOTE(zoubir): front-armoured monsters send which way they face, as a
+// whole turn in 256 steps, so clients draw the shell on the right side
+internal void
+SimGameWriteFacing(world_entity *Entity, u8 EntityIndex, net_snapshot *Out)
+{
+    if (Entity->Type != EntityType_Monster ||
+        Out->FacingCount >= NET_MAX_SNAPSHOT_FACINGS ||
+        GetMonsterDef(Entity->MonsterKind)->FrontArmor <= 0.f ||
+        LengthSq(Entity->Direction) < 0.0001f)
+    {
+        return;
+    }
+    float Turns = ATan2(Entity->Direction.Y, Entity->Direction.X) / (2.f * Pi32);
+    net_facing *Facing = &Out->Facings[Out->FacingCount++];
+    Facing->EntityIndex = EntityIndex;
+    Facing->Angle = (u8)(RoundFloatToI32(Turns * 256.f) & 255);
+}
+
 internal bool32
 SimGameIsSent(world_entity *Entity)
 {
@@ -219,6 +237,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
 {
     world *World = &Game->AppState->World;
     Out->Count = 0;
+    Out->FacingCount = 0;
     Out->InputTick = Game->LastInputTick[ViewerSlot];
     Out->AbilityCount = 0;
 
@@ -252,6 +271,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
             E->VelY = Entity->Velocity.Y;
 
             SimGameWriteAbility(Entity, (u8)(Out->Count - 1), Out);
+            SimGameWriteFacing(Entity, (u8)(Out->Count - 1), Out);
         }
     }
 

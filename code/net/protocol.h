@@ -17,13 +17,14 @@
 
 #include "../app_defs.h"
 
-#define NET_PROTOCOL_ID 0x47444d37u // "GDM7", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d38u // "GDM8", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
 #define NET_MAX_SNAPSHOT_ABILITIES 8 // monsters winding up or striking at once
 #define NET_MAX_ABILITY_POINTS 4    // matches MAX_ABILITY_POINTS in entity.h
 #define NET_MAX_SNAPSHOT_SCORES 8   // one per player slot (MAX_PLAYERS)
+#define NET_MAX_SNAPSHOT_FACINGS 8  // front-armoured monsters per snapshot
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
@@ -122,6 +123,14 @@ struct net_input_batch
     net_input Inputs[NET_MAX_INPUTS_PER_PACKET]; // newest first
 };
 
+// Which way a front-armoured monster faces, so the client draws its shell
+// on the right side. Angle is a whole turn in 256 steps, 0 = +X, 64 = +Y.
+struct net_facing
+{
+    u8 EntityIndex; // index into net_snapshot.Entities
+    u8 Angle;
+};
+
 // One connected player's score, so every client can show the scoreboard.
 struct net_score
 {
@@ -148,6 +157,8 @@ struct net_snapshot
     // NameSlot is NET_NO_NAME_SLOT when there is none.
     u8 NameSlot;
     char Name[NET_NAME_SIZE];
+    u8 FacingCount;
+    net_facing Facings[NET_MAX_SNAPSHOT_FACINGS];
 };
 
 struct net_packet

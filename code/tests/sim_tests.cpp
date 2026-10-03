@@ -1026,6 +1026,32 @@ TestPredictionMovesNowAndReplaysAfterSnapshot()
 }
 
 internal void
+TestReplicaFacingFromSnapshot()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+    Snapshot->Tick = 1;
+    Snapshot->Count = 2;
+    Snapshot->NameSlot = NET_NO_NAME_SLOT;
+    Snapshot->Entities[0] = SnapshotEntity(4, EntityType_Monster, 500, 500, 0);
+    Snapshot->Entities[1] = SnapshotEntity(9, EntityType_Monster, 700, 500, 0);
+    Snapshot->FacingCount = 2;
+    Snapshot->Facings[0] = {0, 64};  // +Y
+    Snapshot->Facings[1] = {1, 128}; // -X
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
+
+    world_entity *A = &Test.World->Entities[Table->LocalIndexPlusOne[4] - 1];
+    world_entity *B = &Test.World->Entities[Table->LocalIndexPlusOne[9] - 1];
+    Check(Absolute(A->Direction.X) < 0.001f && Absolute(A->Direction.Y - 1.f) < 0.001f);
+    Check(Absolute(B->Direction.X + 1.f) < 0.001f && Absolute(B->Direction.Y) < 0.001f);
+    free(Snapshot);
+    free(Table);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 TestCopyString()
 {
     char Buffer[4];
@@ -1131,6 +1157,7 @@ main()
     RUN(TestReplicasCarryMonsterDetails);
     RUN(TestPredictionHistory);
     RUN(TestPredictionMovesNowAndReplaysAfterSnapshot);
+    RUN(TestReplicaFacingFromSnapshot);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
     RUN(TestAnimationAdvancesWithoutTexture);

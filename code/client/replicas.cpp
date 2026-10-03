@@ -232,6 +232,25 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
                               OldPosition, Replica);
 }
 
+// NOTE(zoubir): front-armoured monsters' facing, a whole turn in 256
+// steps, back into the unit Direction their shell is drawn from
+internal void
+ApplySnapshotFacings(world *World, replica_table *Table, net_snapshot *Snapshot)
+{
+    for(u32 Index = 0; Index < Snapshot->FacingCount; Index++)
+    {
+        net_facing *Facing = &Snapshot->Facings[Index];
+        u16 Id = Snapshot->Entities[Facing->EntityIndex].Id;
+        if (Id < MAX_REPLICAS && Table->LocalIndexPlusOne[Id])
+        {
+            world_entity *Replica =
+                &World->Entities[Table->LocalIndexPlusOne[Id] - 1];
+            float Angle = (float)Facing->Angle * (2.f * Pi32 / 256.f);
+            Replica->Direction = V2(Cos(Angle), Sin(Angle));
+        }
+    }
+}
+
 // NOTE(zoubir): player slots mirror the server's: a slot is active while
 // the server lists its score, and points at that player's replica. The
 // local slot stays active so the camera always has someone to follow.
@@ -306,6 +325,7 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
             }
         }
 
+        ApplySnapshotFacings(World, Table, Snapshot);
         ApplySnapshotScores(AppState, Snapshot);
         if (Snapshot->NameSlot < MAX_PLAYERS)
         {
