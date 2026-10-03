@@ -168,6 +168,7 @@ UpdateOnlineSession(online_session *Online, app_input *Input,
         {
             Online->Reconnects = 0;
             Online->ReconnectIn = 0.f;
+            NoteOnlineFrame(&Online->Quality, Input->DeltaTime);
             RecordPredictedInput(&Online->Prediction, Online->Client.InputTick,
                                  Buttons, Input->DeltaTime, Aim);
         }

@@ -7,7 +7,6 @@
 // NOTE(zoubir): the server sends a snapshot every this many ticks
 // (SERVER_SNAPSHOT_INTERVAL in server/server.h, not in the client build)
 #define ONLINE_SNAPSHOT_TICKS 3
-#define ONLINE_INPUT_HZ 60.f
 // NOTE(zoubir): loss is counted over this many server ticks, then restarts
 #define ONLINE_LOSS_WINDOW_TICKS 120
 
@@ -18,6 +17,11 @@ struct online_quality
     float RoundTripMs;
     // NOTE(zoubir): 0..1, over the last full window
     float Loss;
+    // NOTE(zoubir): average seconds between the inputs we send. One goes
+    // out per frame, so input frames are not 1/60 s each: at 144 fps they
+    // are 7 ms, and counting them as 16.7 ms made the round trip 2.4 times
+    // too long
+    float FrameSeconds;
 
     u32 LastSnapshotTick;
     u32 WindowStartTick;
@@ -30,13 +34,23 @@ ResetOnlineQuality(online_quality *Quality)
     *Quality = {};
 }
 
+// NOTE(zoubir): every frame an input is sent, with that frame's length
+internal void
+NoteOnlineFrame(online_quality *Quality, float DeltaTime)
+{
+    if (DeltaTime <= 0.f) return;
+    Quality->FrameSeconds = (Quality->FrameSeconds == 0.f) ? DeltaTime :
+        Quality->FrameSeconds + 0.05f * (DeltaTime - Quality->FrameSeconds);
+}
+
 internal void
 RecordSnapshotQuality(online_quality *Quality, u32 SnapshotTick,
                       u32 InputTickNow, u32 InputTickApplied)
 {
     float Frames = (InputTickNow > InputTickApplied) ?
         (float)(InputTickNow - InputTickApplied) : 0.f;
-    float RoundTripMs = Frames * 1000.f / ONLINE_INPUT_HZ;
+    float FrameSeconds = (Quality->FrameSeconds > 0.f) ? Quality->FrameSeconds : 1.f / 60.f;
+    float RoundTripMs = Frames * FrameSeconds * 1000.f;
     if (!Quality->HasSample)
     {
         Quality->HasSample = true;

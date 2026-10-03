@@ -590,6 +590,33 @@ TestKillsReachTheKillFeed()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): the round trip counts the client's own frames, whatever
+// its frame rate: 14 inputs behind at 144 fps is about 97 ms, not 233
+internal void
+TestRoundTripFollowsTheFrameRate()
+{
+    online_quality Quality = {};
+    for(u32 Frame = 0; Frame < 200; Frame++)
+    {
+        NoteOnlineFrame(&Quality, 1.f / 144.f);
+    }
+    RecordSnapshotQuality(&Quality, 300, 1014, 1000);
+    Check(Quality.RoundTripMs > 90.f && Quality.RoundTripMs < 104.f);
+
+    online_quality Slow = {};
+    for(u32 Frame = 0; Frame < 200; Frame++)
+    {
+        NoteOnlineFrame(&Slow, 1.f / 30.f);
+    }
+    RecordSnapshotQuality(&Slow, 300, 1003, 1000);
+    Check(Slow.RoundTripMs > 95.f && Slow.RoundTripMs < 105.f);
+
+    // NOTE(zoubir): no frame seen yet counts 60 fps
+    online_quality Fresh = {};
+    RecordSnapshotQuality(&Fresh, 300, 1006, 1000);
+    Check(Fresh.RoundTripMs > 99.f && Fresh.RoundTripMs < 101.f);
+}
+
 internal void
 RunOnlineTests()
 {
@@ -619,4 +646,6 @@ RunOnlineTests()
     TestRespawnCountdownOnline();
     printf("TestKillsReachTheKillFeed\n");
     TestKillsReachTheKillFeed();
+    printf("TestRoundTripFollowsTheFrameRate\n");
+    TestRoundTripFollowsTheFrameRate();
 }
