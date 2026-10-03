@@ -26,5 +26,5 @@ Each step leaves the game building, the tests passing and the game playable.
     - [ ] 7b. While connected, draw the world from `Online->Client.Snapshot` instead of the local simulation (replica entities keyed by snapshot Id; the snapshot needs each monster's kind to pick its sprite).
     - [ ] 7c. Names and health above other players.
 - [x] 8. Scoreboard and match flow in the HUD: player list, kills, deaths, respawn timer. Done: hold Tab for `ui/scoreboard.cpp`; dead players wait `PLAYER_RESPAWN_SECONDS` (3 s) as inert bodies (`IsDeadPlayer`) with a countdown on screen. Names are "Player N" until the protocol carries names.
-- [ ] 9. Deploy the server to the VPS (needs the VPS address and login from the user) as a service that restarts on failure.
+- [~] 9. Deploy the server to the VPS (needs the VPS address and login from the user) as a service that restarts on failure. Ready to run: `deploy/deploy.sh user@host` builds on the machine, installs the `game-demo` systemd service, and rolls back if `build/probe` cannot join. Tested against systemd in WSL (good install, broken install rolled back). Waiting on the VPS address and an ssh login with sudo.
 - [ ] 10. Client-side prediction for the local player, so movement feels instant despite latency.

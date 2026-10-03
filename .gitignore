@@ -12,3 +12,4 @@ build/server
 app_temp.dll
 # art.bat previews
 build/monster_art/
+build/probe
