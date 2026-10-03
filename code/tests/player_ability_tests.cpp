@@ -1,8 +1,8 @@
 /* Player ability tests: the sword and fireball go toward the aim (the
    cursor) at any angle, the body faces the aim whichever way the player
    walks, a swing roots the player only for a moment, and each shockwave
-   draws one ring. Included by sim_tests.cpp, which calls
-   RunPlayerAbilityTests. */
+   and sword swing draws one ring or arc. Included by sim_tests.cpp,
+   which calls RunPlayerAbilityTests. */
 
 inline v2
 UnitOf(v2 V)
@@ -144,24 +144,52 @@ TestShockwaveStartsOneRing()
                                           0, {300, 300, 0});
     world_entity *Replica = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
                                             1, {600, 300, 0});
-    player_fx Fx = {};
+    shockwave_rings Fx = {};
     float Dt = 1.f / 60.f;
     Local->ShockwaveFlash = SHOCKWAVE_FLASH_SECONDS;
     UpdateShockwaveRings(&Fx, AppState, Dt);
     UpdateShockwaveRings(&Fx, AppState, Dt);
-    Check(Fx.RingCount == 1);
+    Check(Fx.Count == 1);
 
     // NOTE(zoubir): a server's replica carries the flag in AbilityIndex
     Replica->AbilityIndex = PLAYER_FLASH_SHOCKWAVE;
     UpdateShockwaveRings(&Fx, AppState, Dt);
-    Check(Fx.RingCount == 2);
+    Check(Fx.Count == 2);
     Check(Fx.Rings[1].Center.X == 600.f);
 
     for(u32 Frame = 0; Frame < 60; Frame++)
     {
         UpdateShockwaveRings(&Fx, AppState, Dt);
     }
-    Check(Fx.RingCount == 0);
+    Check(Fx.Count == 0);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestSwordSwingStartsOneArc()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    AppState->Players[0].Input.Aim = V2(0.f, -1.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Attack;
+    RunPlayerFrames(&Test, 0, 1);
+
+    sword_arcs Fx = {};
+    float Dt = 1.f / 60.f;
+    UpdateSwordArcs(&Fx, AppState, Dt);
+    UpdateSwordArcs(&Fx, AppState, Dt);
+    Check(Fx.Count == 1);
+    // NOTE(zoubir): aimed up, so the arc is centred on -90 degrees
+    Check(Absolute(Fx.Arcs[0].Angle + 0.5f * Pi32) < 0.01f);
+
+    for(u32 Frame = 0; Frame < 30; Frame++)
+    {
+        SimulateTick(AppState, &Test.Arena, Dt);
+        UpdateSwordArcs(&Fx, AppState, Dt);
+    }
+    Check(Fx.Count == 0);
     DestroyTestWorld(&Test);
 }
 
@@ -178,4 +206,6 @@ RunPlayerAbilityTests()
     TestPlayerWalksDuringSwing();
     printf("TestShockwaveStartsOneRing\n");
     TestShockwaveStartsOneRing();
+    printf("TestSwordSwingStartsOneArc\n");
+    TestSwordSwingStartsOneArc();
 }
