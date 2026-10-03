@@ -21,6 +21,7 @@
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48
+#define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
 
 enum net_packet_type
 {

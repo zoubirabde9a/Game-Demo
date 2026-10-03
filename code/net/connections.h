@@ -8,13 +8,12 @@
    A client joins by sending ConnectRequest with a random salt. Requests
    are resent until answered, so a repeat from the same address and salt
    gets the same slot again. A slot is freed by a Disconnect packet or after
-   NET_CLIENT_TIMEOUT seconds without any packet. */
+   NET_CLIENT_TIMEOUT seconds (protocol.h) without any packet. */
 
 #include "protocol.h"
 #include "address.h"
 
 #define NET_MAX_CLIENTS 8
-#define NET_CLIENT_TIMEOUT 5.0f
 
 struct net_client_slot
 {

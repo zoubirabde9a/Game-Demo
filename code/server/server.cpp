@@ -4,6 +4,7 @@
 #include "../net/protocol.cpp"
 #include "../net/connections.cpp"
 #include "../net/socket.cpp"
+#include "../net/client.cpp" // not used by the server itself; compiled here so tests can drive both ends
 #include "game_api.h"
 #include "placeholder_game.cpp" // the game implementation; must come before server.h
 #include "server.h"
