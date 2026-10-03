@@ -183,3 +183,27 @@ SetupCollisionTable(app_state *AppState)
     SetCollision(AppState, EntityType_Sword,
                  EntityType_Monster, true);
 }
+
+// NOTE(zoubir): collision shapes, shared by every entity of a kind;
+// half sizes in world units, sitting on the ground
+internal void
+SetupCollisionVolumes(app_state *AppState, memory_arena *ConstantsArena)
+{
+    AppState->TileObjectCollision =
+        MakeSimpleGroundedCollisionVolume(ConstantsArena, {96.f*0.5f, 76.f*0.5f, 24.f});
+    AppState->TreeCollision =
+        MakeGroundedTreeCollisionVolume(ConstantsArena);
+    AppState->WallCollision = 
+        MakeSimpleGroundedCollisionVolume(ConstantsArena, {LEVEL_TILE_SIZE*.5f, LEVEL_TILE_SIZE*.5f, LEVEL_TILE_SIZE*.5f});
+    AppState->PlayerCollision = 
+        MakeSimpleGroundedCollisionVolume(ConstantsArena, {15, 4, 19.f});
+    AppState->FamiliarCollision = 
+        MakeSimpleGroundedCollisionVolume(ConstantsArena, {11, 6, 3.f});        
+    // NOTE(zoubir): tall enough that fireballs cast at hand height hit
+    AppState->BatCollision = 
+        MakeSimpleGroundedCollisionVolume(ConstantsArena, {11, 6, 10.f});
+    AppState->FireBallCollision = 
+        MakeSimpleGroundedCollisionVolume(ConstantsArena, {9, 9, 0.f});        
+    AppState->SwordCollision = 
+        MakeSimpleGroundedCollisionVolume(ConstantsArena, {31, 31, 31.f});
+}
