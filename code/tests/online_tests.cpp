@@ -617,6 +617,28 @@ TestRoundTripFollowsTheFrameRate()
     Check(Fresh.RoundTripMs > 99.f && Fresh.RoundTripMs < 101.f);
 }
 
+// NOTE(zoubir): snapshot loss without knowing the server's send rate: the
+// step is learned from the tick gaps, every 3rd or every 5th tick alike
+internal void
+TestLossLearnsTheSnapshotStep()
+{
+    u32 Steps[] = {3, 5};
+    for(u32 Case = 0; Case < 2; Case++)
+    {
+        u32 Step = Steps[Case];
+        online_quality Quality = {};
+        // NOTE(zoubir): one snapshot in four is lost
+        u32 Sent = 0;
+        for(u32 Tick = 0; Tick <= 2400; Tick += Step, Sent++)
+        {
+            if (Sent % 4 == 3) continue;
+            RecordSnapshotQuality(&Quality, Tick, 0, 0);
+        }
+        Check(Quality.SnapshotStep == Step);
+        Check(Quality.Loss > 0.2f && Quality.Loss < 0.3f);
+    }
+}
+
 internal void
 RunOnlineTests()
 {
@@ -648,4 +670,6 @@ RunOnlineTests()
     TestKillsReachTheKillFeed();
     printf("TestRoundTripFollowsTheFrameRate\n");
     TestRoundTripFollowsTheFrameRate();
+    printf("TestLossLearnsTheSnapshotStep\n");
+    TestLossLearnsTheSnapshotStep();
 }

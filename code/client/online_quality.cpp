@@ -4,9 +4,6 @@
    arrived, from the gaps in their ticks). online.cpp feeds it every new
    snapshot; the HUD's connection indicator reads it. */
 
-// NOTE(zoubir): the server sends a snapshot every this many ticks
-// (SERVER_SNAPSHOT_INTERVAL in server/server.h, not in the client build)
-#define ONLINE_SNAPSHOT_TICKS 3
 // NOTE(zoubir): loss is counted over this many server ticks, then restarts
 #define ONLINE_LOSS_WINDOW_TICKS 120
 
@@ -24,6 +21,10 @@ struct online_quality
     float FrameSeconds;
 
     u32 LastSnapshotTick;
+    // NOTE(zoubir): server ticks between snapshots, learned as the smallest
+    // gap seen (a lost snapshot only makes a gap bigger), so the client
+    // needs no copy of the server's SERVER_SNAPSHOT_INTERVAL; 0 = not yet
+    u32 SnapshotStep;
     u32 WindowStartTick;
     u32 WindowSnapshots;
 };
@@ -51,6 +52,14 @@ RecordSnapshotQuality(online_quality *Quality, u32 SnapshotTick,
         (float)(InputTickNow - InputTickApplied) : 0.f;
     float FrameSeconds = (Quality->FrameSeconds > 0.f) ? Quality->FrameSeconds : 1.f / 60.f;
     float RoundTripMs = Frames * FrameSeconds * 1000.f;
+    if (Quality->HasSample && SnapshotTick > Quality->LastSnapshotTick)
+    {
+        u32 Gap = SnapshotTick - Quality->LastSnapshotTick;
+        if (Quality->SnapshotStep == 0 || Gap < Quality->SnapshotStep)
+        {
+            Quality->SnapshotStep = Gap;
+        }
+    }
     if (!Quality->HasSample)
     {
         Quality->HasSample = true;
@@ -65,9 +74,9 @@ RecordSnapshotQuality(online_quality *Quality, u32 SnapshotTick,
     Quality->LastSnapshotTick = SnapshotTick;
     Quality->WindowSnapshots++;
     u32 Span = SnapshotTick - Quality->WindowStartTick;
-    if (Span >= ONLINE_LOSS_WINDOW_TICKS)
+    if (Span >= ONLINE_LOSS_WINDOW_TICKS && Quality->SnapshotStep)
     {
-        float Expected = (float)Span / (float)ONLINE_SNAPSHOT_TICKS;
+        float Expected = (float)Span / (float)Quality->SnapshotStep;
         float Received = (float)(Quality->WindowSnapshots - 1);
         Quality->Loss = Maximum(0.f, 1.f - Received / Expected);
         Quality->WindowStartTick = SnapshotTick;
