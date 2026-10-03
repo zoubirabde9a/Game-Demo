@@ -41,22 +41,22 @@ InitSimulation(app_state *AppState, memory_arena *MemoryArena,
 
 // NOTE(zoubir): throws the world away and builds it again for MapId, with
 // no players and no monsters in it. The client calls it when it joins a
-// server playing another map; the replicas then fill the world from the
-// server's snapshots. Entity slots start again from 0, so every pairwise
-// collision rule (keyed by slot) goes too
+// server playing another map (the replicas then fill the world from the
+// server's snapshots) and when the map picker starts one offline.
+// Arena must hold this world and nothing else: it is emptied first, so
+// switching maps any number of times uses no more memory than one map.
+// Entity slots start again from 0, so every pairwise collision rule
+// (keyed by slot, and living in Arena) goes too
 internal void
 RebuildWorldForMap(app_state *AppState, memory_arena *Arena, u32 MapId)
 {
+    Assert(Arena->TempCount == 0);
+    Arena->Used = 0;
     for(u32 Bucket = 0; Bucket < ArrayCount(AppState->CollisionRuleHash); Bucket++)
     {
-        while (AppState->CollisionRuleHash[Bucket])
-        {
-            pairwise_collision_rule *Rule = AppState->CollisionRuleHash[Bucket];
-            AppState->CollisionRuleHash[Bucket] = Rule->Next;
-            Rule->Next = AppState->FirstFreeCollisionRule;
-            AppState->FirstFreeCollisionRule = Rule;
-        }
+        AppState->CollisionRuleHash[Bucket] = 0;
     }
+    AppState->FirstFreeCollisionRule = 0;
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         AppState->Players[SlotIndex].Entity = 0;

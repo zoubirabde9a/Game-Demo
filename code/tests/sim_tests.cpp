@@ -627,6 +627,53 @@ TestRandomPlaySoak()
     free(AppState);
 }
 
+// NOTE(zoubir): switching maps (the offline map picker, joining a server
+// on another map) empties the world arena first, so going round every map
+// twice, playing each, ends using what one visit to the map used
+internal void
+TestSwitchingMapsReusesWorldMemory()
+{
+    app_state *AppState = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(16);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)),
+                    Megabytes(1));
+    InitSimulation(AppState, &Arena, &Constants);
+    memory_index FirstVisit[MapId_Count] = {};
+    for(u32 Round = 0; Round < 2; Round++)
+    {
+        for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
+        {
+            RebuildWorldForMap(AppState, &Arena, MapIndex);
+            FillMonsterPopulation(AppState, &AppState->World, &Arena,
+                                  AppState->Monsters);
+            world_entity *Player =
+                AddPlayerToSlot(AppState, &AppState->World, &Arena, 0,
+                                PlayerSpawnPosition(&AppState->World, 0));
+            AddFamiliar(AppState, &AppState->World, &Arena, Player);
+            for(u32 Tick = 0; Tick < 120; Tick++)
+            {
+                SimulateTick(AppState, &Arena, 1.f / 60.f);
+                AppState->Events.Count = 0;
+            }
+            Check(AppState->World.MapId == MapIndex);
+            Check(AppState->Players[0].Entity != 0);
+            if (Round == 0)
+            {
+                FirstVisit[MapIndex] = Arena.Used;
+            }
+            else
+            {
+                Check(Arena.Used <= FirstVisit[MapIndex] + Kilobytes(64));
+            }
+        }
+    }
+    free(Arena.Base);
+    free(Constants.Base);
+    free(AppState);
+}
+
 internal void
 TestCopyString()
 {
@@ -730,6 +777,7 @@ main()
     RUN(TestEmptyAnimationSlotDoesNotCrash);
     RUN(TestAnimationAdvancesWithoutTexture);
     RUN(TestSimulateTickQueuesSoundsInsteadOfPlaying);
+    RUN(TestSwitchingMapsReusesWorldMemory);
 
     RunMonsterTests();
     RunTerrainTests();

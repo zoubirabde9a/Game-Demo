@@ -17,13 +17,11 @@ AddLocalPlayer(app_state *AppState, memory_arena *Arena)
 }
 
 // NOTE(zoubir): offline only. Throws the world away and starts MapId
-// fresh, monsters and all, as the map picker on the connect screen does.
-// TODO(zoubir): RebuildWorldForMap takes up to ~300 KB of the permanent
-// arena each time and never gives it back
+// fresh, monsters and all, as the map picker on the connect screen does
 internal void
 StartOfflineMap(app_state *AppState, u32 MapId)
 {
-    memory_arena *Arena = &AppState->MemoryArena;
+    memory_arena *Arena = &AppState->WorldArena;
     RebuildWorldForMap(AppState, Arena, MapId);
     FillMonsterPopulation(AppState, &AppState->World, Arena,
                           AppState->Monsters);
@@ -48,6 +46,9 @@ StartClient(app_state *AppState, transient_state *TransientState,
     InitializeArena(TransientArena, (memory_index *)(TransientState + 1),
                     Memory->TransientStorageSize - sizeof(transient_state));
     SubArena(ConstantsArena, MemoryArena, Kilobytes(64));
+    // NOTE(zoubir): a world uses well under 1 MB (300 KB for an infinite map);
+    // the assets take 32 MB of the 64 after this
+    SubArena(&AppState->WorldArena, MemoryArena, Megabytes(16));
     AppState->WorkQueue = Memory->WorkQueue;
     InitializeAudio(&AppState->AudioState);
     AppInitOpenGL(TransientArena, AppState, Thread, Memory);
@@ -81,8 +82,8 @@ StartClient(app_state *AppState, transient_state *TransientState,
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
-    InitSimulation(AppState, MemoryArena, ConstantsArena);
-    AddLocalPlayer(AppState, MemoryArena);
+    InitSimulation(AppState, &AppState->WorldArena, ConstantsArena);
+    AddLocalPlayer(AppState, &AppState->WorldArena);
     AppState->Online = StartOnlineSession(MemoryArena);
     EndTemporaryMemory(TempMem);
     AppState->IsInitialized = true;

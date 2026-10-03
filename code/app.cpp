@@ -75,7 +75,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     BeginWorldPass(RenderContext, TransientArena, &AppState->World, Window);
     DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset, Window);
     UpdateOnlineSession(AppState->Online, Input, KeysToUi, LocalInput->Aim);
-    RunWorldTick(AppState, &AppState->MemoryArena, Input->DeltaTime);
+    RunWorldTick(AppState, &AppState->WorldArena, Input->DeltaTime);
     PlaySimEvents(AppState);
     DrawWorldEntities(RenderContext, AppState, &AppState->Assets,
                       TextureProgram, CameraOffset);

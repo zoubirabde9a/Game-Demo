@@ -72,8 +72,11 @@ struct app_state
     bool32 IsInitialized;
     memory_arena MemoryArena;
     memory_arena ConstantsArena;
+    // NOTE(zoubir): everything that belongs to the current world (chunks,
+    // entities, monsters, collision rules) and nothing else, because
+    // RebuildWorldForMap empties it. Carved from MemoryArena at startup
+    memory_arena WorldArena;
 
-    
     // NOTE(zoubir): DefaultFont is Fonts.Body
     font_set Fonts;
     font *DefaultFont;    
