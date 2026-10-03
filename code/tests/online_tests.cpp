@@ -649,6 +649,53 @@ TestLossLearnsTheSnapshotStep()
     }
 }
 
+// NOTE(zoubir): a monster's wind-up from the snapshot reaches its replica,
+// so its warning is drawn online; it counts down between snapshots and is
+// gone once the snapshot no longer lists it
+internal void
+TestReplicasShowMonsterWindups()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+    u32 Kind = 0;
+    while (Kind < MonsterKind_Count && GetMonsterDef((monster_kind)Kind)->AbilityCount == 0) Kind++;
+    Check(Kind < MonsterKind_Count);
+
+    Snapshot->Tick = 1;
+    Snapshot->Count = 1;
+    Snapshot->NameSlot = NET_NO_NAME_SLOT;
+    Snapshot->Entities[0] = SnapshotEntity(4, EntityType_Monster, 500, 500, (u8)Kind);
+    Snapshot->AbilityCount = 1;
+    net_ability_state *A = &Snapshot->Abilities[0];
+    A->EntityIndex = 0;
+    A->Phase = AbilityPhase_Windup;
+    A->Ability = 0;
+    A->TimeLeft = 0.5f;
+    A->AimX = 1.f;
+    A->PointCount = 2;
+    A->PointX[1] = 620.f;
+    A->PointY[1] = 480.f;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
+    world_entity *Monster = &Test.World->Entities[Table->LocalIndexPlusOne[4] - 1];
+    Check(Monster->AbilityPhase == AbilityPhase_Windup);
+    Check(Monster->AbilityAim.X == 1.f && Monster->AbilityPointCount == 2);
+    Check(Monster->AbilityPoints[1].X == 620.f && Monster->AbilityPoints[1].Y == 480.f);
+    float Before = Monster->AbilityTimer;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
+    Check(Monster->AbilityTimer < Before);
+
+    Snapshot->Tick = 2;
+    Snapshot->AbilityCount = 0;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
+    Check(Monster->AbilityPhase == AbilityPhase_Ready);
+
+    free(Snapshot);
+    free(Table);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunOnlineTests()
 {
@@ -682,4 +729,6 @@ RunOnlineTests()
     TestRoundTripFollowsTheFrameRate();
     printf("TestLossLearnsTheSnapshotStep\n");
     TestLossLearnsTheSnapshotStep();
+    printf("TestReplicasShowMonsterWindups\n");
+    TestReplicasShowMonsterWindups();
 }

@@ -1,6 +1,7 @@
 /* Applying a snapshot: one entity's state (position, velocity, health,
    facing, animation, elite affix, status pips, ability) onto its replica,
-   front-armoured monsters' facings, and every player's score. Included
+   front-armoured monsters' facings, monsters' wind-ups (for their
+   warnings), and every player's score. Included
    by replicas.cpp, whose SyncReplicas calls these on each new snapshot. */
 
 internal void
@@ -89,5 +90,57 @@ ApplySnapshotScores(app_state *AppState, net_snapshot *Snapshot)
             AppState->Players[SlotIndex].Active = false;
             AppState->Players[SlotIndex].Entity = 0;
         }
+    }
+}
+
+// NOTE(zoubir): monsters winding up or using an ability, so their warnings
+// (aim lines, target circles, where a burrower comes up) are drawn online
+// as offline. Every monster in the snapshot starts as not using one; the
+// listed ones get the phase, ability, time left, aim and target points.
+// Burrowed is not sent: a burrow ability being used means burrowed.
+internal void
+ApplySnapshotAbilities(world *World, replica_table *Table, net_snapshot *Snapshot)
+{
+    for(u32 Index = 0; Index < Snapshot->Count; Index++)
+    {
+        u16 Id = Snapshot->Entities[Index].Id;
+        if (Id < MAX_REPLICAS && Table->LocalIndexPlusOne[Id])
+        {
+            world_entity *Replica = &World->Entities[Table->LocalIndexPlusOne[Id] - 1];
+            if (Replica->Type == EntityType_Monster)
+            {
+                Replica->AbilityPhase = AbilityPhase_Ready;
+                Replica->AbilityPointCount = 0;
+                Replica->Burrowed = false;
+            }
+        }
+    }
+    for(u32 Index = 0; Index < Snapshot->AbilityCount; Index++)
+    {
+        net_ability_state *State = &Snapshot->Abilities[Index];
+        u16 Id = Snapshot->Entities[State->EntityIndex].Id;
+        if (Id >= MAX_REPLICAS || !Table->LocalIndexPlusOne[Id])
+        {
+            continue;
+        }
+        world_entity *Replica = &World->Entities[Table->LocalIndexPlusOne[Id] - 1];
+        monster_def *Def = (Replica->Type == EntityType_Monster) ?
+            GetMonsterDef(Replica->MonsterKind) : 0;
+        if (!Def || State->Ability >= Def->AbilityCount ||
+            (State->Phase != AbilityPhase_Windup && State->Phase != AbilityPhase_Active))
+        {
+            continue;
+        }
+        Replica->AbilityPhase = (ability_phase)State->Phase;
+        Replica->AbilityIndex = State->Ability;
+        Replica->AbilityTimer = State->TimeLeft;
+        Replica->AbilityAim = V2(State->AimX, State->AimY);
+        Replica->AbilityPointCount = Minimum((u32)State->PointCount, (u32)MAX_ABILITY_POINTS);
+        for(u32 Point = 0; Point < Replica->AbilityPointCount; Point++)
+        {
+            Replica->AbilityPoints[Point] = V2(State->PointX[Point], State->PointY[Point]);
+        }
+        Replica->Burrowed = (State->Phase == AbilityPhase_Active &&
+                             Def->Abilities[State->Ability].Kind == MonsterAbility_Burrow);
     }
 }

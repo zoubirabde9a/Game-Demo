@@ -180,6 +180,7 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
         }
 
         ApplySnapshotFacings(World, Table, Snapshot);
+        ApplySnapshotAbilities(World, Table, Snapshot);
         ApplySnapshotScores(AppState, Snapshot);
         if (Snapshot->NameSlot < MAX_PLAYERS)
         {
@@ -222,6 +223,12 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
             if (Replica->IsPresent)
             {
                 SmoothReplica(AppState, Arena, &Table->Smoothing, Id, Replica);
+                // NOTE(zoubir): a warning fills in smoothly between snapshots
+                if (Replica->Type == EntityType_Monster &&
+                    Replica->AbilityPhase != AbilityPhase_Ready)
+                {
+                    Replica->AbilityTimer = Maximum(0.f, Replica->AbilityTimer - DeltaTime);
+                }
             }
             if (Replica->IsPresent && Replica->AnimationSet)
             {
