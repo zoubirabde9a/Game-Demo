@@ -1,4 +1,4 @@
-who: claude-loop
-task: plan step 4 remainder: the real simulation behind code/server/game_api.h (code/sim/server_game.cpp + a headless include list), split BuildArena so the server builds the map without a local player; server.cpp include swap left to the server-ops owner or done after that claim lands
-files: code/sim/server_game.cpp, code/sim/headless.cpp, code/sim/arena.cpp, code/tests/server_game_tests.cpp, test.bat
+who: claude-systems
+task: run the real simulation on the server: headless build of code/sim, a game_api.h implementation around SimulateTick, snapshots from real entities
+files: code/server/*, code/sim/ (only to cut rendering includes, coordinate first), code/tests/server_tests.cpp, build_server.*
 since: 2026-10-03
