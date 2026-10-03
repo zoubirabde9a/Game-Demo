@@ -23,12 +23,14 @@ if %errorlevel% neq 0 goto failed
 cl %TestFlags% ..\code\tests\soak_tests.cpp /link -incremental:no %GameLibs%
 if %errorlevel% neq 0 goto failed
 
-REM The slow ones at once. Short soak here; run soak_tests.exe 10 8 by
-REM hand for a long one.
-del /q sim_tests.code server_tests.code soak_tests.code 2>nul
+REM The slow ones at once. The short soak is split in four parts that
+REM together play exactly what "soak_tests.exe 1 2" plays; run
+REM soak_tests.exe 10 8 by hand for a long one.
+set Slow=sim_tests server_tests soak_tests_0 soak_tests_1 soak_tests_2 soak_tests_3
+for %%t in (%Slow%) do del /q %%t.code 2>nul
 start "" /b cmd /v:on /c ".\sim_tests.exe > sim_tests.log 2>&1 & echo ^!errorlevel^! > sim_tests.code"
 start "" /b cmd /v:on /c ".\server_tests.exe > server_tests.log 2>&1 & echo ^!errorlevel^! > server_tests.code"
-start "" /b cmd /v:on /c ".\soak_tests.exe 1 2 > soak_tests.log 2>&1 & echo ^!errorlevel^! > soak_tests.code"
+for /l %%k in (0,1,3) do start "" /b cmd /v:on /c ".\soak_tests.exe 1 2 %%k/4 > soak_tests_%%k.log 2>&1 & echo ^!errorlevel^! > soak_tests_%%k.code"
 
 REM The quick ones meanwhile.
 .\net_tests.exe
@@ -37,9 +39,7 @@ if %errorlevel% neq 0 set Result=1
 if %errorlevel% neq 0 set Result=1
 
 :wait
-if not exist sim_tests.code goto sleep
-if not exist server_tests.code goto sleep
-if not exist soak_tests.code goto sleep
+for %%t in (%Slow%) do if not exist %%t.code goto sleep
 goto collect
 :sleep
 ping -n 2 127.0.0.1 >nul
@@ -48,7 +48,7 @@ goto wait
 :collect
 REM A .code file can exist a moment before its number is written.
 ping -n 2 127.0.0.1 >nul
-for %%t in (sim_tests server_tests soak_tests) do (
+for %%t in (%Slow%) do (
     type %%t.log
     set Code=
     set /p Code=<%%t.code

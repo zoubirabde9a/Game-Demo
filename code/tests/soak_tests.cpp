@@ -5,7 +5,11 @@
    projectile never removed, a player slot pointing at a dead entity) is
    caught on the tick it happens instead of as a crash minutes later.
 
-   Usage: soak_tests [minutes-per-seed] [seed-count]   (default 3 and 4)
+   Usage: soak_tests [minutes-per-seed] [seed-count] [map | K/N]
+   (default 3 and 4). A map name runs every seed on that map only. K/N
+   runs only every Nth of the default runs, starting at the Kth (0-based),
+   so N programs given 0/N .. N-1/N cover exactly the default runs, with
+   the same seeds, at the same time; test.bat does that.
    Run by test.bat. On Linux, build with -fsanitize=address for memory errors. */
 
 #include <stdio.h>
@@ -451,21 +455,55 @@ main(int ArgCount, char **Args)
 {
     u32 Minutes = ArgCount > 1 ? (u32)atoi(Args[1]) : 3;
     u32 Seeds = ArgCount > 2 ? (u32)atoi(Args[2]) : 4;
-    map_id OnlyMap = ArgCount > 3 ? FindMapByName(Args[3], MapId_Count) : MapId_Count;
-    TestFireballBurstsOnWall();
-    TestOverlapsAreSeparated();
-    printf("soak: %u seeds x %u simulated minutes, 8 players\n", Seeds, Minutes);
-    for (u32 Seed = 1; Seed <= Seeds; ++Seed)
+    map_id OnlyMap = MapId_Count;
+    u32 Part = 0, Parts = 1;
+    if (ArgCount > 3)
     {
-        SoakOneSeed(Seed, Minutes, OnlyMap == MapId_Count ? MapId_Arena : OnlyMap);
+        if (sscanf(Args[3], "%u/%u", &Part, &Parts) != 2 || Parts == 0 || Part >= Parts)
+        {
+            Part = 0;
+            Parts = 1;
+            OnlyMap = FindMapByName(Args[3], MapId_Count);
+        }
+    }
+
+    // The default runs: every seed on the arena, then one more seed on
+    // each other map. A part runs every Parts-th of them.
+    u32 RunSeed[64];
+    u32 RunMap[64];
+    u32 RunCount = 0;
+    for (u32 Seed = 1; Seed <= Seeds && RunCount < 64; ++Seed)
+    {
+        RunSeed[RunCount] = Seed;
+        RunMap[RunCount++] = (OnlyMap == MapId_Count) ? MapId_Arena : OnlyMap;
     }
     if (OnlyMap == MapId_Count)
     {
-        for (u32 MapIndex = 0; MapIndex < MapId_Count; ++MapIndex)
+        for (u32 MapIndex = 0; MapIndex < MapId_Count && RunCount < 64; ++MapIndex)
         {
             if (MapIndex == MapId_Arena) continue;
-            SoakOneSeed(Seeds + 1, Minutes, MapIndex);
+            RunSeed[RunCount] = Seeds + 1;
+            RunMap[RunCount++] = MapIndex;
         }
+    }
+
+    if (Part == 0)
+    {
+        TestFireballBurstsOnWall();
+        TestOverlapsAreSeparated();
+    }
+    if (Parts > 1)
+    {
+        printf("soak part %u/%u: %u seeds x %u simulated minutes, 8 players\n",
+               Part, Parts, Seeds, Minutes);
+    }
+    else
+    {
+        printf("soak: %u seeds x %u simulated minutes, 8 players\n", Seeds, Minutes);
+    }
+    for (u32 Run = Part; Run < RunCount; Run += Parts)
+    {
+        SoakOneSeed(RunSeed[Run], Minutes, RunMap[Run]);
     }
     printf("soak tests: %s\n", TestFailures ? "FAILED" : "all seeds passed");
     return TestFailures ? 1 : 0;

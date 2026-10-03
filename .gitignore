@@ -21,5 +21,5 @@ build/bots
 # misc\land.bat logs
 build/land_*.log
 # test.bat output of the programs it runs at once
-build/*_tests.log
-build/*_tests.code
+build/*_tests*.log
+build/*_tests*.code
