@@ -10,10 +10,115 @@ internal void
 BeginWorldPass(render_context *RenderContext, memory_arena *TransientArena,
                world *World)
 {
-    u32 BatchesCount = World->NumTilesX * World->NumTilesY +
+    // NOTE(zoubir): a ground tile can carry up to 8 spill overlays from
+    // its neighbours; leave room for 3 quads a tile on average
+    u32 BatchesCount = 3 * World->NumTilesX * World->NumTilesY +
         World->EntityCount * 2;
     SetupBatchRenderer(RenderContext, TransientArena, BatchesCount);
     RenderBegin(RenderContext, 6 * BatchesCount, RENDER_ORDER_BACK_TO_FRONT);
+}
+
+// NOTE(zoubir): UVs of one cell of the terrain atlas. The tile pass counts
+// atlas rows from the bottom of the texture, unlike sprites, so the row
+// index runs in reverse; each cell's own pixels are already upright
+inline v4
+TerrainAtlasUvs(loaded_texture *Texture, u32 Kind, u32 Column)
+{
+    u32 Row = TerrainKind_Count - 1 - Kind;
+    v4 Result = GetTextureUvsFromIndex(Texture->Width, Texture->Height,
+                                       TERRAIN_ATLAS_COLUMNS, TerrainKind_Count,
+                                       Row * TERRAIN_ATLAS_COLUMNS + Column);
+    return Result;
+}
+
+inline void
+DrawGroundCell(render_context *RenderContext, world *World, loaded_texture *Texture,
+               i32 TileX, i32 TileY, u32 Kind, u32 Column, v3 CameraOffset)
+{
+    RenderQuadTexture(RenderContext,
+                      (float)TileX * World->TileWidth - CameraOffset.X,
+                      (float)TileY * World->TileHeight - CameraOffset.Y,
+                      (float)World->TileWidth, (float)World->TileHeight,
+                      TerrainAtlasUvs(Texture, Kind, Column), RGBA8_WHITE, 0.f);
+}
+
+// NOTE(zoubir): the ground of one tile: its own kind, then every
+// neighbouring kind on a higher layer spilling over the shared edges and
+// corners, lowest layer first so the highest ends on top
+internal void
+DrawTerrainTile(render_context *RenderContext, world *World, map_def *Map,
+                loaded_texture *Texture, i32 TileX, i32 TileY,
+                u32 AnimationFrame, v3 CameraOffset)
+{
+    u32 Kind = (u32)TerrainAt(Map, TileX, TileY);
+    u32 Column = IsTerrainAnimated((terrain_kind)Kind) ?
+        (AnimationFrame + (u32)(TileX + TileY)) % TERRAIN_VARIANTS :
+        HashLattice(0x7E44u, TileX, TileY) % TERRAIN_VARIANTS;
+    DrawGroundCell(RenderContext, World, Texture, TileX, TileY, Kind, Column,
+                   CameraOffset);
+
+    // NOTE(zoubir): neighbours in the atlas's side order (N, E, S, W) and
+    // corner order (NW, NE, SE, SW); Y grows downward
+    i32 SideX[4] = {0, 1, 0, -1};
+    i32 SideY[4] = {-1, 0, 1, 0};
+    i32 CornerX[4] = {-1, 1, 1, -1};
+    i32 CornerY[4] = {-1, -1, 1, 1};
+    u32 Sides[4];
+    u32 Corners[4];
+    for(u32 Index = 0; Index < 4; Index++)
+    {
+        Sides[Index] = (u32)TerrainAt(Map, TileX + SideX[Index], TileY + SideY[Index]);
+        Corners[Index] = (u32)TerrainAt(Map, TileX + CornerX[Index], TileY + CornerY[Index]);
+    }
+
+    u32 Layer = TerrainLayer[Kind];
+    u32 Drawn = 0;
+    for(;;)
+    {
+        // NOTE(zoubir): the next higher layer present around this tile
+        u32 Next = TerrainKind_Count;
+        for(u32 Index = 0; Index < 4; Index++)
+        {
+            u32 Candidates[2] = {Sides[Index], Corners[Index]};
+            for(u32 C = 0; C < 2; C++)
+            {
+                u32 Other = Candidates[C];
+                if (TerrainLayer[Other] > Layer &&
+                    (Next == TerrainKind_Count ||
+                     TerrainLayer[Other] < TerrainLayer[Next] ||
+                     (TerrainLayer[Other] == TerrainLayer[Next] && Other < Next)) &&
+                    !(Drawn & (1u << Other)))
+                {
+                    Next = Other;
+                }
+            }
+        }
+        if (Next == TerrainKind_Count)
+        {
+            break;
+        }
+        Drawn |= 1u << Next;
+        for(u32 Side = 0; Side < 4; Side++)
+        {
+            if (Sides[Side] == Next)
+            {
+                DrawGroundCell(RenderContext, World, Texture, TileX, TileY, Next,
+                               TERRAIN_EDGE_COLUMN + Side, CameraOffset);
+            }
+        }
+        for(u32 Corner = 0; Corner < 4; Corner++)
+        {
+            // NOTE(zoubir): a corner only where neither side next to it
+            // already spills the same kind
+            u32 SideA = Corner;
+            u32 SideB = (Corner + 3) % 4;
+            if (Corners[Corner] == Next && Sides[SideA] != Next && Sides[SideB] != Next)
+            {
+                DrawGroundCell(RenderContext, World, Texture, TileX, TileY, Next,
+                               TERRAIN_CORNER_COLUMN + Corner, CameraOffset);
+            }
+        }
+    }
 }
 
 internal void
@@ -30,44 +135,39 @@ DrawTileMap(render_context *RenderContext, app_state *AppState,
     }
 
     BeginBatch(RenderContext, Texture->ID, 0.f, TextureProgram);
-    bool32 Terrain = TileMap->Texture.Type == AssetType_TerrainAtlas;
-    u32 TextureTilesX = Terrain ? TERRAIN_ATLAS_COLUMNS : Texture->Width / 32;
-    u32 TextureTilesY = Terrain ? TerrainKind_Count : Texture->Height / 32;
-    // NOTE(zoubir): water and lava frames advance about 6 times a second
-    u32 AnimationFrame = (AppState->UpdateID / 10) % TERRAIN_ATLAS_COLUMNS;
-    for(u32 TileY = 0; TileY < World->NumTilesY; TileY++)
+    if (TileMap->Texture.Type == AssetType_TerrainAtlas)
     {
-        for(u32 TileX = 0; TileX < World->NumTilesX; TileX++)
+        map_def *Map = GetMapDef((map_id)World->MapId);
+        // NOTE(zoubir): water and lava frames advance about 6 times a second
+        u32 AnimationFrame = (AppState->UpdateID / 10) % TERRAIN_VARIANTS;
+        for(i32 TileY = 0; TileY < (i32)World->NumTilesY; TileY++)
         {
-            tile *Tile = &TileMap->Tiles[TileX + TileY * World->NumTilesX];
-            u32 AtlasIndex = Tile->Index;
-            if (Terrain)
+            for(i32 TileX = 0; TileX < (i32)World->NumTilesX; TileX++)
             {
-                u32 Kind = Tile->Index < TerrainKind_Count ? Tile->Index : 0;
-                u32 Column = IsTerrainAnimated((terrain_kind)Kind) ?
-                    (AnimationFrame + TileX + TileY) % TERRAIN_ATLAS_COLUMNS :
-                    HashLattice(0x7E44u, (i32)TileX, (i32)TileY) % TERRAIN_ATLAS_COLUMNS;
-                // NOTE(zoubir): the tile pass samples the texture bottom row
-                // first, unlike sprites, so the atlas rows run in reverse
-                u32 Row = TerrainKind_Count - 1 - Kind;
-                AtlasIndex = Row * TERRAIN_ATLAS_COLUMNS + Column;
+                DrawTerrainTile(RenderContext, World, Map, Texture, TileX, TileY,
+                                AnimationFrame, CameraOffset);
             }
-            v4 Uvs = GetTextureUvsFromIndex(Texture->Width, Texture->Height,
-                                            TextureTilesX, TextureTilesY,
-                                            AtlasIndex);
-            if (Terrain)
+        }
+    }
+    else
+    {
+        u32 TextureTilesX = Texture->Width / 32;
+        u32 TextureTilesY = Texture->Height / 32;
+        for(u32 TileY = 0; TileY < World->NumTilesY; TileY++)
+        {
+            for(u32 TileX = 0; TileX < World->NumTilesX; TileX++)
             {
-                // NOTE(zoubir): and each tile the right way up again
-                float Swap = Uvs.Y;
-                Uvs.Y = Uvs.W;
-                Uvs.W = Swap;
+                tile *Tile = &TileMap->Tiles[TileX + TileY * World->NumTilesX];
+                v4 Uvs = GetTextureUvsFromIndex(Texture->Width, Texture->Height,
+                                                TextureTilesX, TextureTilesY,
+                                                Tile->Index);
+                RenderQuadTexture(RenderContext,
+                                  (float)TileX * World->TileWidth - CameraOffset.X,
+                                  (float)TileY * World->TileHeight - CameraOffset.Y,
+                                  (float)World->TileWidth,
+                                  (float)World->TileHeight,
+                                  Uvs, RGBA8_WHITE, 0.f);
             }
-            RenderQuadTexture(RenderContext,
-                              (float)TileX * World->TileWidth - CameraOffset.X,
-                              (float)TileY * World->TileHeight - CameraOffset.Y,
-                              (float)World->TileWidth,
-                              (float)World->TileHeight,
-                              Uvs, RGBA8_WHITE, 0.f);
         }
     }
     EndBatch(RenderContext);

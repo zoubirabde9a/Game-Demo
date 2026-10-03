@@ -173,7 +173,11 @@ int main()
                 u32 Row = PY / (2 * Tile);
                 u32 SX = Column * Tile + (PX % Tile);
                 u32 SY = Row * Tile + (PY % Tile);
-                Out[Y * OutWidth + X] = Atlas[SY * Width + SX];
+                u32 Pixel = Atlas[SY * Width + SX];
+                // NOTE(zoubir): edges and corners on a checkerboard so
+                // their transparent parts show
+                u32 Checker = ((PX / 4 + PY / 4) % 2) ? ART_RGB(200, 0, 200) : ART_RGB(120, 0, 120);
+                Out[Y * OutWidth + X] = Pixel ? Pixel : Checker;
             }
         }
         stbi_write_png("monster_art/terrain_atlas.png", OutWidth, OutHeight, 4, Out, OutWidth * 4);

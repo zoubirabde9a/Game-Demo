@@ -1,12 +1,44 @@
 /* Terrain art: the ground tiles, drawn by code into one atlas texture at
-   startup. One row per terrain kind, TERRAIN_ATLAS_COLUMNS tiles per row.
-   Solid ground uses the columns as variants (picked per tile by a hash,
-   so a field does not repeat); water and lava use them as animation
-   frames. Every tile wraps: its left edge continues its right edge and
-   its top continues its bottom, so neighbours join without seams. */
+   startup. One row per terrain kind:
+
+   columns 0-3   full tiles. Solid ground uses them as variants (picked
+                 per tile by a hash, so a field does not repeat); water
+                 and lava as animation frames.
+   columns 4-7   edges: the kind spilling over one side of a neighbouring
+                 tile (north, east, south, west), ragged and transparent
+                 elsewhere.
+   columns 8-11  corners: the kind rounding into one corner of a
+                 neighbour (north-west, north-east, south-east, south-west).
+
+   Every full tile wraps: its left edge continues its right edge and its
+   top its bottom, so neighbours join without seams. Which kind spills
+   over which is TerrainLayer: higher layers spill onto lower ones. */
 
 #define TERRAIN_TILE_PIXELS 32
-#define TERRAIN_ATLAS_COLUMNS 4
+#define TERRAIN_VARIANTS 4
+#define TERRAIN_EDGE_COLUMN 4
+#define TERRAIN_CORNER_COLUMN 8
+#define TERRAIN_ATLAS_COLUMNS 12
+
+// NOTE(zoubir): higher spills over lower at a border; liquids sit lowest
+// so banks and shores cover their edges, walls highest
+global_variable u32 TerrainLayer[TerrainKind_Count] =
+{
+    6, // grass
+    4, // dirt
+    3, // mud
+    1, // shallow water
+    0, // deep water
+    8, // rock
+    4, // ash
+    5, // basalt
+    8, // basalt wall
+    1, // lava
+    7, // snow
+    2, // ice
+    5, // stone floor
+    9, // stone wall
+};
 
 // NOTE(zoubir): noise that repeats every TERRAIN_TILE_PIXELS, so a tile's
 // edges match the next tile's. 0..255
@@ -72,6 +104,10 @@ FillTileGround(sprite_canvas *Canvas, color_ramp Ramp, u32 Seed, float Bias,
 internal void
 DrawTerrainTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Column)
 {
+    if (Column >= TERRAIN_VARIANTS)
+    {
+        return;
+    }
     u32 Seed = 1000u * (u32)Kind + 31u * Column;
     // NOTE(zoubir): animated kinds keep the same pattern across frames
     // and move it instead
@@ -339,6 +375,64 @@ DrawTerrainTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Column)
     }
 }
 
+// NOTE(zoubir): how deep (in pixels) the spill reaches at position Along
+// on the border, 0..TERRAIN_TILE_PIXELS - 1; ragged but continuous
+inline i32
+EdgeReach(u32 Seed, i32 Along)
+{
+    i32 Result = 4 + (i32)((WrappedTileNoise(Seed, Along, 0, 8) * 6) >> 8) +
+        (i32)((WrappedTileNoise(Seed + 5, Along, 3, 4) * 3) >> 8);
+    return Result;
+}
+
+// NOTE(zoubir): copies the kind's first variant into the edge and corner
+// columns, keeping only pixels inside the spill shape. Side 0..3 is north,
+// east, south, west; corner 0..3 is north-west, north-east, south-east,
+// south-west
+internal void
+BuildTerrainTransitions(u32 *Pixels, u32 Width, terrain_kind Kind)
+{
+    u32 Tile = TERRAIN_TILE_PIXELS;
+    u32 *Source = Pixels + Kind * Tile * Width;
+    for(u32 Shape = 0; Shape < 8; Shape++)
+    {
+        u32 Column = Shape < 4 ? TERRAIN_EDGE_COLUMN + Shape :
+            TERRAIN_CORNER_COLUMN + (Shape - 4);
+        u32 *Target = Pixels + Kind * Tile * Width + Column * Tile;
+        for(i32 Y = 0; Y < (i32)Tile; Y++)
+        {
+            for(i32 X = 0; X < (i32)Tile; X++)
+            {
+                bool32 Inside = false;
+                i32 Last = (i32)Tile - 1;
+                if (Shape < 4)
+                {
+                    // NOTE(zoubir): distance in from the side, and the
+                    // position along it
+                    i32 Depth = Shape == 0 ? Y : Shape == 1 ? Last - X :
+                        Shape == 2 ? Last - Y : X;
+                    i32 Along = (Shape == 0 || Shape == 2) ? X : Y;
+                    Inside = Depth < EdgeReach(311u + Kind * 7u + Shape, Along);
+                }
+                else
+                {
+                    u32 Corner = Shape - 4;
+                    i32 CX = (Corner == 0 || Corner == 3) ? X : Last - X;
+                    i32 CY = (Corner == 0 || Corner == 1) ? Y : Last - Y;
+                    i32 Reach = EdgeReach(613u + Kind * 7u + Corner, CX + CY);
+                    Inside = CX * CX + CY * CY < Reach * Reach;
+                }
+                if (Inside)
+                {
+                    // NOTE(zoubir): a dithered fringe on the last pixel so
+                    // the spill feathers into the ground below
+                    Target[Y * Width + X] = Source[Y * Width + X];
+                }
+            }
+        }
+    }
+}
+
 // NOTE(zoubir): Pixels holds (TERRAIN_ATLAS_COLUMNS * TERRAIN_TILE_PIXELS) x
 // (TerrainKind_Count * TERRAIN_TILE_PIXELS) u32s
 internal void
@@ -349,12 +443,13 @@ BuildTerrainAtlas(u32 *Pixels)
     ZeroSize(Pixels, Width * Height * sizeof(u32));
     for(u32 Kind = 0; Kind < TerrainKind_Count; Kind++)
     {
-        for(u32 Column = 0; Column < TERRAIN_ATLAS_COLUMNS; Column++)
+        for(u32 Column = 0; Column < TERRAIN_VARIANTS; Column++)
         {
             sprite_canvas Canvas = CanvasFrame(Pixels, Width, TERRAIN_TILE_PIXELS,
                                                Column, Kind);
             DrawTerrainTile(&Canvas, (terrain_kind)Kind, Column);
         }
+        BuildTerrainTransitions(Pixels, Width, (terrain_kind)Kind);
     }
 }
 
