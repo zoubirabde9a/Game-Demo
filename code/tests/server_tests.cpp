@@ -332,6 +332,22 @@ CountNewFireballs(world *World, bool32 *WasFireball)
     return New;
 }
 
+// Network tests measure the network, not the fight: an empty arena keeps a
+// monster that happens to spawn nearby from killing the player or eating
+// fireballs, which made the count depend on which monster kinds exist.
+internal void
+ClearMonsters(server *Server)
+{
+    app_state *AppState = Server->Game.AppState;
+    if (AppState->Monsters) AppState->Monsters->Target = 0;
+    world *World = &AppState->World;
+    for (u32 Index = 0; Index < World->EntityCount; ++Index)
+    {
+        world_entity *Entity = &World->Entities[Index];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster) RemoveEntity(World, Entity);
+    }
+}
+
 struct link_result
 {
     bool32 Connected;
@@ -354,6 +370,7 @@ PlayThroughLink(u32 DropPercent, u32 DuplicatePercent, u32 MaxDelayFrames, u32 T
     memset(WasFireball, 0, sizeof(WasFireball));
 
     Check(ServerStart(&Server, 0));
+    ClearMonsters(&Server);
     Check(LossyOpen(&Link, LocalServer(&Server), DropPercent, DuplicatePercent, MaxDelayFrames, 7));
     Check(NetClientConnect(&Client, LossyAddress(&Link), 99, SimContentId()));
 
