@@ -1,6 +1,7 @@
 /* Camera: the screen follows the local player, centred on them but never
-   showing past the edge of the arena. The result is the top-left corner
-   of the screen in world units, snapped to whole pixels. */
+   showing past the edge of a bounded map (infinite maps have no edge). The
+   result is the top-left corner of the screen in world units, snapped to
+   whole pixels. */
 
 inline v3
 CenterCamera(v3 Position, float MinX, float MinY,
@@ -27,7 +28,13 @@ UpdateCamera(app_state *AppState, app_window *Window)
 {
     world *World = &AppState->World;
     world_entity *Player = GetLocalPlayer(AppState);
-    if (Player)
+    if (Player && World->Unbounded)
+    {
+        AppState->TargetCamera = Player->Position;
+        AppState->TargetCamera.X -= (float)(Window->Width / 2);
+        AppState->TargetCamera.Y -= (float)(Window->Height / 2);
+    }
+    else if (Player)
     {
         float ArenaWidth = (float)(World->NumTilesX * World->TileWidth);
         float ArenaHeight = (float)(World->NumTilesY * World->TileHeight);
@@ -36,7 +43,9 @@ UpdateCamera(app_state *AppState, app_window *Window)
                                               Window->Width, Window->Height);
     }
     v3 CameraOffset = AppState->CameraOffset = AppState->TargetCamera;
-    CameraOffset.X = (float)((u32)CameraOffset.X);
-    CameraOffset.Y = (float)((u32)CameraOffset.Y);
+    // NOTE(zoubir): floor, not a cast, so negative positions snap the
+    // same way as positive ones
+    CameraOffset.X = floorf(CameraOffset.X);
+    CameraOffset.Y = floorf(CameraOffset.Y);
     return CameraOffset;
 }

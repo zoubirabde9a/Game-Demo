@@ -84,6 +84,22 @@ IsSpawnSpotFree(app_state *AppState, world *World, v3 Position,
             return false;
         }
     }
+    if (World->Unbounded)
+    {
+        // NOTE(zoubir): infinite maps keep walls and props as terrain, not
+        // entities; ask for stand-ins around the probe
+        entity_collision_volume *Total = &Volume->TotalVolume;
+        rectangle3 Box = RectCenterHalfDims(Position + Total->Offset, Total->HalfDims);
+        world_entity *Nearby[64];
+        u32 Count = GatherTerrainColliders(World, Box, Nearby, 0, ArrayCount(Nearby));
+        for(u32 Index = 0; Index < Count; Index++)
+        {
+            if (EntityOverlap(&Probe, Nearby[Index]))
+            {
+                return false;
+            }
+        }
+    }
     return true;
 }
 
@@ -116,6 +132,61 @@ IsFarFromPlayers(world *World, v2 Position, float MinDistance)
     return true;
 }
 
+// NOTE(zoubir): on infinite maps monsters appear between these distances
+// from a player, and leave once they are further than DESPAWN from all
+#define MONSTER_RING_MIN 450.f
+#define MONSTER_RING_MAX 900.f
+#define MONSTER_DESPAWN_DISTANCE 1600.f
+
+internal world_entity *
+PickRandomPlayer(world *World, random_series *Series)
+{
+    world_entity *Players[64];
+    u32 Count = 0;
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount && Count < ArrayCount(Players);
+        EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (Entity->IsPresent && Entity->Type == EntityType_Player && Entity->Hp > 0.f)
+        {
+            Players[Count++] = Entity;
+        }
+    }
+    world_entity *Result = Count ? Players[RandomChoice(Series, Count)] : 0;
+    return Result;
+}
+
+// NOTE(zoubir): on an infinite map the population follows the players:
+// monsters left far behind everyone are taken away (no death, no credit)
+// so the refill can put them where someone is
+internal void
+DespawnFarMonsters(world *World)
+{
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Monster = &World->Entities[EntityIndex];
+        if (!Monster->IsPresent || Monster->Type != EntityType_Monster)
+        {
+            continue;
+        }
+        bool32 Near = false;
+        for(u32 Other = 0; Other < World->EntityCount && !Near; Other++)
+        {
+            world_entity *Player = &World->Entities[Other];
+            Near = Player->IsPresent && Player->Type == EntityType_Player &&
+                LengthSq(Player->Position.XY - Monster->Position.XY) <
+                MONSTER_DESPAWN_DISTANCE * MONSTER_DESPAWN_DISTANCE;
+        }
+        if (!Near)
+        {
+            RemoveEntity(World, Monster);
+        }
+    }
+}
+
 // NOTE(zoubir): picks a random free spot anywhere in the arena; returns 0
 // when every try was blocked
 internal world_entity *
@@ -125,6 +196,17 @@ SpawnRoamingMonster(app_state *AppState, world *World, memory_arena *Arena,
     float Margin = 64.f;
     float MapWidth = (float)(World->NumTilesX * World->TileWidth);
     float MapHeight = (float)(World->NumTilesY * World->TileHeight);
+    // NOTE(zoubir): infinite maps have no edges to pick inside; monsters
+    // appear in a ring around a random player instead
+    world_entity *Around = 0;
+    if (World->Unbounded)
+    {
+        Around = PickRandomPlayer(World, &Population->Series);
+        if (!Around)
+        {
+            return 0;
+        }
+    }
     monster_kind Kind = PickMonsterKind(&Population->Series, World);
     entity_collision_volume_group *Volume =
         GetMonsterStats(Kind)->FlyHeight > 0.f ?
@@ -133,8 +215,18 @@ SpawnRoamingMonster(app_state *AppState, world *World, memory_arena *Arena,
     for(u32 Try = 0; Try < MONSTER_SPAWN_TRIES; Try++)
     {
         v3 Position = {};
-        Position.X = RandomBetween(&Population->Series, Margin, MapWidth - Margin);
-        Position.Y = RandomBetween(&Population->Series, Margin, MapHeight - Margin);
+        if (Around)
+        {
+            float Angle = RandomBetween(&Population->Series, 0.f, 2.f * Pi32);
+            float Distance = RandomBetween(&Population->Series,
+                                           MONSTER_RING_MIN, MONSTER_RING_MAX);
+            Position.XY = Around->Position.XY + Distance * V2(Cos(Angle), Sin(Angle));
+        }
+        else
+        {
+            Position.X = RandomBetween(&Population->Series, Margin, MapWidth - Margin);
+            Position.Y = RandomBetween(&Population->Series, Margin, MapHeight - Margin);
+        }
         if (IsFarFromPlayers(World, Position.XY,
                              MONSTER_SPAWN_MIN_PLAYER_DISTANCE) &&
             IsSpawnSpotFree(AppState, World, Position, Volume))
@@ -287,6 +379,10 @@ UpdateMonsterPopulation(app_state *AppState, world *World,
 {
     RunPendingMonsterDeaths(AppState, World, Arena, Population);
     CrumbleOrphanedSummons(World);
+    if (World->Unbounded)
+    {
+        DespawnFarMonsters(World);
+    }
     if (CountLiveMonsters(World) >= Population->Target)
     {
         Population->RespawnTimer = MONSTER_RESPAWN_SECONDS;

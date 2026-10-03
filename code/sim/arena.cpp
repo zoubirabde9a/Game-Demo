@@ -4,9 +4,20 @@
    client draws it from TerrainAt. Called once, from InitSimulation, for
    World->MapId.
 
-   Bounded maps only for now: infinite maps need chunk storage that grows
-   with the players (docs/terrain-plan.md step 3), so until then an
-   infinite map id builds the Old Arena. */
+   Bounded maps become entities: walls along blocking terrain that borders
+   open ground, and props. Infinite maps make no entities for terrain at
+   all: GatherTerrainColliders hands movement short-lived stand-ins for the
+   blocking tiles and props near a moving unit, and the client draws ground
+   and props for the visible area straight from the map, so an endless map
+   costs nothing until someone walks there. */
+
+// NOTE(zoubir): stand-ins get IDs no real entity has, so pairwise
+// collision rules never match them
+#define TERRAIN_COLLIDER_ID_BASE 0x7FFF0000u
+#define TERRAIN_COLLIDER_CAPACITY 512
+// NOTE(zoubir): props reach past their own tile (a tree's canopy and
+// trunk volume), so gather this many extra tiles around a box
+#define TERRAIN_COLLIDER_MARGIN 2
 
 inline v3
 TileCenter(world *World, i32 TileX, i32 TileY)
@@ -68,16 +79,85 @@ AddTerrainProp(app_state *AppState, world *World, memory_arena *Arena,
     return Entity;
 }
 
+inline entity_collision_volume_group *
+GetPropCollision(world *World, terrain_prop Prop)
+{
+    entity_collision_volume_group *Result = 0;
+    switch(Prop)
+    {
+        case TerrainProp_Tree: Result = World->TreeCollision; break;
+        case TerrainProp_Boulder: Result = World->BoulderCollision; break;
+        case TerrainProp_DeadTree: Result = World->DeadTreeCollision; break;
+        default: break;
+    }
+    return Result;
+}
+
+internal u32
+GatherTerrainColliders(world *World, rectangle3 Box, world_entity **Out,
+                       u32 Count, u32 MaxCount)
+{
+    map_def *Map = GetMapDef((map_id)World->MapId);
+    i32 Tile = (i32)World->TileWidth;
+    i32 MinX = FloorDiv((i32)floorf(Box.Min.X), Tile) - TERRAIN_COLLIDER_MARGIN;
+    i32 MinY = FloorDiv((i32)floorf(Box.Min.Y), Tile) - TERRAIN_COLLIDER_MARGIN;
+    i32 MaxX = FloorDiv((i32)floorf(Box.Max.X), Tile) + TERRAIN_COLLIDER_MARGIN;
+    i32 MaxY = FloorDiv((i32)floorf(Box.Max.Y), Tile) + TERRAIN_COLLIDER_MARGIN;
+    u32 Used = 0;
+    for(i32 Y = MinY; Y <= MaxY; Y++)
+    {
+        for(i32 X = MinX; X <= MaxX; X++)
+        {
+            entity_collision_volume_group *Volume = 0;
+            if (GetTerrainDef(TerrainAt(Map, X, Y))->Blocks)
+            {
+                Volume = World->TerrainWallCollision;
+            }
+            else
+            {
+                Volume = GetPropCollision(World, PropAt(Map, X, Y));
+            }
+            if (!Volume || Count >= MaxCount ||
+                Used >= World->TerrainColliderCapacity)
+            {
+                continue;
+            }
+            world_entity *Stand = &World->TerrainColliders[Used];
+            ZeroSize(Stand, sizeof(*Stand));
+            Stand->ID = TERRAIN_COLLIDER_ID_BASE + Used;
+            Stand->Type = EntityType_StaticObject;
+            Stand->IsPresent = true;
+            Stand->Collision = Volume;
+            Stand->Position = V3((X + 0.5f) * Tile, (Y + 0.5f) * Tile, 0.f);
+            Out[Count++] = Stand;
+            Used++;
+        }
+    }
+    return Count;
+}
+
+// NOTE(zoubir): infinite maps: open-ended chunk storage, no stored tiles,
+// no terrain entities
+internal void
+BuildInfiniteMap(app_state *AppState, memory_arena *MemoryArena)
+{
+    world *World = &AppState->World;
+    World->Unbounded = true;
+    World->NumTilesX = 0;
+    World->NumTilesY = 0;
+    World->NumTilesZ = ARENA_TILES_Z;
+    World->TileMap.Texture = {AssetType_TerrainAtlas};
+    World->TileMap.Tiles = 0;
+    World->TerrainColliderCapacity = TERRAIN_COLLIDER_CAPACITY;
+    World->TerrainColliders = AllocateArray(MemoryArena, TERRAIN_COLLIDER_CAPACITY,
+                                            world_entity);
+}
+
 internal void
 BuildArena(app_state *AppState, memory_arena *MemoryArena)
 {
     world *World = &AppState->World;
     map_def *Map = GetMapDef((map_id)World->MapId);
-    if (Map->Kind != MapKind_Bounded)
-    {
-        World->MapId = MapId_Arena;
-        Map = GetMapDef(MapId_Arena);
-    }
 
     World->TileWidth = ARENA_TILE_SIZE;
     World->TileHeight = ARENA_TILE_SIZE;
@@ -98,6 +178,13 @@ BuildArena(app_state *AppState, memory_arena *MemoryArena)
         MakeSimpleGroundedCollisionVolume(MemoryArena, {13.f, 8.f, 14.f});
     World->DeadTreeCollision =
         MakeSimpleGroundedCollisionVolume(MemoryArena, {7.f, 5.f, 30.f});
+    World->TerrainWallCollision = AppState->WallCollision;
+    World->TreeCollision = AppState->TreeCollision;
+    if (Map->Kind == MapKind_Infinite)
+    {
+        BuildInfiniteMap(AppState, MemoryArena);
+        return;
+    }
 
     u32 TileCount = World->NumTilesX * World->NumTilesY;
     World->NumCollisionX = World->NumTilesX;

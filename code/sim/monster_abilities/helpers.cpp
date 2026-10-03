@@ -23,6 +23,10 @@ MonsterRandomBetween(app_state *AppState, float Min, float Max)
 inline bool32
 IsInsideArena(world *World, v2 Position, float Margin)
 {
+    if (World->Unbounded)
+    {
+        return true;
+    }
     float MapWidth = (float)(World->NumTilesX * World->TileWidth);
     float MapHeight = (float)(World->NumTilesY * World->TileHeight);
     bool32 Result = Position.X > Margin && Position.Y > Margin &&

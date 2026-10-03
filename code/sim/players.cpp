@@ -22,8 +22,9 @@ FindFreeSpotAround(app_state *AppState, world *World, v3 Desired,
         {
             float Angle = 2.f * Pi32 * (float)Step / (float)Steps;
             v3 Spot = Desired + V3(Radius * Cos(Angle), Radius * Sin(Angle), 0.f);
-            if (Spot.X < Margin || Spot.X > Width - Margin ||
-                Spot.Y < Margin || Spot.Y > Height - Margin)
+            if (!World->Unbounded &&
+                (Spot.X < Margin || Spot.X > Width - Margin ||
+                 Spot.Y < Margin || Spot.Y > Height - Margin))
             {
                 continue;
             }
@@ -103,7 +104,14 @@ PlayerSpawnPosition(world *World, u32 SlotIndex)
     map_def *Map = GetMapDef((map_id)World->MapId);
     float TileSize = World->TileWidth ? (float)World->TileWidth : (float)ARENA_TILE_SIZE;
     v3 Result = V3(0.5f * TileSize, 0.5f * TileSize, 0.f);
-    if (Map->SpawnCount > 0)
+    if (Map->Kind == MapKind_Infinite)
+    {
+        // NOTE(zoubir): a ring inside the clearing kept open at the origin
+        float Angle = 2.f * Pi32 * (float)SlotIndex / (float)MAX_PLAYERS;
+        Result.X += 72.f * Cos(Angle);
+        Result.Y += 72.f * Sin(Angle);
+    }
+    else if (Map->SpawnCount > 0)
     {
         u32 Spawn = SlotIndex % Map->SpawnCount;
         u32 Lap = SlotIndex / Map->SpawnCount;

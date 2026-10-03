@@ -69,6 +69,14 @@ struct world
     u32 MapId;
     struct entity_collision_volume_group *BoulderCollision;
     struct entity_collision_volume_group *DeadTreeCollision;
+    struct entity_collision_volume_group *TerrainWallCollision;
+    struct entity_collision_volume_group *TreeCollision;
+    // NOTE(zoubir): infinite maps keep no wall or prop entities. Movement
+    // asks GatherEntitiesInBox for what is nearby, and that fills this
+    // scratch pool with stand-ins for the blocking tiles and props in the
+    // box; they live until the next gather (sim/arena.cpp)
+    world_entity *TerrainColliders;
+    u32 TerrainColliderCapacity;
     tile_map TileMap;
     u32 NumTilesX;
     u32 NumTilesY;

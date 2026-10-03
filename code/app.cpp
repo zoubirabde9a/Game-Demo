@@ -72,8 +72,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
 
     // World: run it (locally, or from the server's snapshot), then draw it.
     render_program TextureProgram = RenderContext->TextureProgram;
-    BeginWorldPass(RenderContext, TransientArena, &AppState->World);
-    DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset);
+    BeginWorldPass(RenderContext, TransientArena, &AppState->World, Window);
+    DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset, Window);
     UpdateOnlineSession(AppState->Online, Input, KeysToUi);
     RunWorldTick(AppState, &AppState->MemoryArena, Input->DeltaTime);
     PlaySimEvents(AppState);

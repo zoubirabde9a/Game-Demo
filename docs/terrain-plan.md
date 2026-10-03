@@ -22,11 +22,15 @@ Goal: four maps. Two are procedural and infinite: the ground is generated around
 - [x] 2. Code-drawn terrain tiles: an atlas with one row per terrain kind and variants per tile, plus edge blending between kinds. Previewed by `art.bat`. (Atlas done; edge blending moves to step 4, where tiles are drawn.)
 - [x] 2b. Hand-made maps playable now, ahead of the infinite ones: `sim/arena.cpp` builds the world from `World->MapId` (walls along blocking terrain, props as obstacles), the client draws ground from the terrain atlas, spawn points and monster mix come from the map. `GAME_MAP=keep` picks the map for offline play until the server chooses it (step 7).
 - [x] 3. World storage for unbounded maps: chunks in a hash table keyed by signed chunk coordinates instead of the fixed 12 x 12 grid; positions may go negative. Bounded maps use the same storage.
-- [ ] 4. Terrain drives collision and drawing: blocking terrain stops units (replacing the wall entities around the border); the client draws ground tiles from `TerrainAt` for the visible area, so infinite maps draw without a stored tile array.
-- [ ] 5. Streaming: as players move, chunks around them generate their props (trees, rocks, ruins) deterministically and far chunks unload theirs. The monster population spawns in a ring around players on infinite maps instead of anywhere on the map.
+- [x] 4. Terrain drives collision and drawing: blocking terrain stops units (replacing the wall entities around the border); the client draws ground tiles from `TerrainAt` for the visible area, so infinite maps draw without a stored tile array.
+- [x] 5. Streaming (done without streaming entities): as players move, chunks around them generate their props (trees, rocks, ruins) deterministically and far chunks unload theirs. The monster population spawns in a ring around players on infinite maps instead of anywhere on the map.
 - [x] 6. Terrain rules on units: mud and snow slow, ice slides, lava burns, shallow water slows, deep water and rock walls block.
 - [ ] 7. The four maps playable, chosen at server start (`--map`), sent in the handshake, with per-map monster spawn weights.
 - [ ] 8. Soak on an infinite map with players walking far apart, checking chunk counts stay bounded and nobody ends inside blocking terrain.
+
+## How infinite maps stay cheap
+
+Infinite maps never turn terrain into entities. When something moves, `GatherEntitiesInBox` adds short-lived stand-ins for the blocking tiles and props around it (`GatherTerrainColliders`, `sim/arena.cpp`); the client draws ground and props for the screen only, straight from `TerrainAt` and `PropAt`. Nothing is stored or streamed per area, and nothing about terrain crosses the network. Monsters appear in a ring around a random player and leave once they are far from everyone.
 
 ## Limits
 

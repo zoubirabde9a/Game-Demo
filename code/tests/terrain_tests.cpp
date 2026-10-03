@@ -439,6 +439,98 @@ TestUnboundedWorldTracksNegativePositions()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): true when Entity overlaps any terrain stand-in around it
+internal bool32
+OverlapsTerrain(world *World, world_entity *Entity)
+{
+    entity_collision_volume *Total = &Entity->Collision->TotalVolume;
+    rectangle3 Box = RectCenterHalfDims(Entity->Position + Total->Offset, Total->HalfDims);
+    world_entity *Nearby[128];
+    u32 Count = GatherTerrainColliders(World, Box, Nearby, 0, ArrayCount(Nearby));
+    for(u32 Index = 0; Index < Count; Index++)
+    {
+        if (EntityOverlap(Entity, Nearby[Index]))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// NOTE(zoubir): a real game on an infinite map: the player is carried to
+// far spots in every direction; at each, the population follows, nothing
+// stands in blocking terrain, and the world stays small
+internal void
+PlayInfiniteMapFarAway(map_id MapId)
+{
+    app_state *AppState = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(128);
+    memory_arena Arena;
+    memory_arena Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    AppState->World.MapId = MapId;
+    InitSimulation(AppState, &Arena, &Constants);
+    world *World = &AppState->World;
+    Check(World->Unbounded);
+    world_entity *Player = AddPlayerToSlot(AppState, World, &Arena, 0,
+                                           PlayerSpawnPosition(World, 0));
+    Check(!OverlapsTerrain(World, Player));
+
+    v3 Spots[] =
+    {
+        {0.f, 0.f, 0.f}, {12000.f, 300.f, 0.f}, {-15000.f, -9000.f, 0.f},
+        {800.f, -20000.f, 0.f}, {-30000.f, 25000.f, 0.f},
+    };
+    for(u32 SpotIndex = 0; SpotIndex < ArrayCount(Spots); SpotIndex++)
+    {
+        v3 Old = Player->Position;
+        Player->Position = FindFreePlayerSpot(AppState, World, Spots[SpotIndex], Player);
+        CheckAndChangeEntityChunk(AppState, World, &Arena, Old, Player);
+        Check(!OverlapsTerrain(World, Player));
+        // NOTE(zoubir): 20 seconds of play; the player wanders in a circle
+        for(u32 Frame = 0; Frame < 20 * 60; Frame++)
+        {
+            float Angle = 2.f * Pi32 * (float)Frame / 600.f;
+            AppState->Players[0].Input.Move = V2(Cos(Angle) > 0.f ? 1.f : -1.f,
+                                                 Sin(Angle) > 0.f ? 1.f : -1.f);
+            AppState->Players[0].Input.Pressed = 0;
+            Player->Hp = Player->MaxHp;
+            SimulateTick(AppState, &Arena, 1.f / 60.f);
+        }
+        u32 Near = 0;
+        u32 Live = 0;
+        for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+        {
+            world_entity *Entity = &World->Entities[EntityIndex];
+            if (!Entity->IsPresent || Entity->Type != EntityType_Monster)
+            {
+                continue;
+            }
+            Live++;
+            Near += Length(Entity->Position.XY - Player->Position.XY) < MONSTER_DESPAWN_DISTANCE;
+            if (GetMonsterDef(Entity->MonsterKind)->FlyHeight <= 0.f && !Entity->Burrowed)
+            {
+                Check(!OverlapsTerrain(World, Entity));
+            }
+        }
+        Check(Near >= 3);
+        Check(Near == Live);
+        Check(!OverlapsTerrain(World, Player));
+        Check(World->EntityCount < 600);
+    }
+    free(Arena.Base);
+    free(Constants.Base);
+    free(AppState);
+}
+
+internal void
+TestInfiniteMapsPlayFarFromOrigin()
+{
+    PlayInfiniteMapFarAway(MapId_Wilds);
+    PlayInfiniteMapFarAway(MapId_Wastes);
+}
+
 internal void
 RunTerrainTests()
 {
@@ -454,6 +546,8 @@ RunTerrainTests()
     TestSnowSlowsMonsters();
     printf("TestUnboundedWorldTracksNegativePositions\n");
     TestUnboundedWorldTracksNegativePositions();
+    printf("TestInfiniteMapsPlayFarFromOrigin\n");
+    TestInfiniteMapsPlayFarFromOrigin();
     printf("TestFloorDivRoundsDown\n");
     TestFloorDivRoundsDown();
     printf("TestNoiseStaysInRangeAndIsSmooth\n");
