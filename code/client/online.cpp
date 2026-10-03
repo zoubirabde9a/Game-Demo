@@ -45,6 +45,8 @@ struct online_session
     replica_table Replicas;
     // NOTE(zoubir): inputs the server has not applied yet, client/prediction.cpp
     prediction_history Prediction;
+    // NOTE(zoubir): round trip and loss, client/online_quality.cpp
+    online_quality Quality;
 #if !COMPILER_EMSCRIPTEN
     net_client Client;
 #endif
@@ -92,6 +94,7 @@ OnlineConnect(online_session *Online, char *Address, char *Name)
     OnlineDisconnect(Online);
     Online->Reconnects = 0;
     Online->KeepTrying = true;
+    ResetOnlineQuality(&Online->Quality);
     if (Address != Online->AddressText)
     {
         CopyString(Online->AddressText, sizeof(Online->AddressText), Address);
@@ -197,6 +200,23 @@ IsOnline(online_session *Online)
     return Result;
 }
 
+// NOTE(zoubir): 0 unless joined and measured
+internal online_quality *
+GetOnlineQuality(online_session *Online)
+{
+    online_quality *Result = (IsOnline(Online) && Online->Quality.HasSample) ?
+        &Online->Quality : 0;
+    return Result;
+}
+
+// NOTE(zoubir): seconds since the server was last heard from, while joined
+inline float
+GetOnlineSilence(online_session *Online)
+{
+    float Result = IsOnline(Online) ? Online->Client.SecondsSinceHeard : 0.f;
+    return Result;
+}
+
 internal online_phase
 GetOnlinePhase(online_session *Online)
 {
@@ -289,6 +309,11 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
         }
         bool32 NewSnapshot = !Online->Replicas.Active ||
             Snapshot->Tick != Online->Replicas.LastAppliedTick;
+        if (NewSnapshot)
+        {
+            RecordSnapshotQuality(&Online->Quality, Snapshot->Tick,
+                                  Online->Client.InputTick, Snapshot->InputTick);
+        }
         SyncReplicas(AppState, Arena, &Online->Replicas, Snapshot, DeltaTime,
                      Online->Client.PlayerIndex);
         // NOTE(zoubir): the server's sounds go where the local game's go;
@@ -345,6 +370,8 @@ OnlineConnect(online_session *Online, char *Address, char *Name)
     return false;
 }
 inline bool32 IsOnline(online_session *Online) { return false; }
+internal online_quality *GetOnlineQuality(online_session *Online) { return 0; }
+inline float GetOnlineSilence(online_session *Online) { return 0.f; }
 internal online_phase
 GetOnlinePhase(online_session *Online)
 {

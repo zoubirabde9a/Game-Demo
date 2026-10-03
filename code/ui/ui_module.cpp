@@ -7,6 +7,7 @@
    Depends on sim and client (included before this).
    A new screen goes on its own line below. */
 
+#include "connection_indicator.cpp"
 #include "hud.cpp"
 #include "scoreboard.cpp"
 #include "tile_editor.cpp"

@@ -100,10 +100,6 @@ DrawHud(render_context *RenderContext, app_state *AppState,
              Slot->Kills, Slot->Deaths, Slot->MonsterKills);
     UIText(RenderContext, Font, X, Y + 32.f, Text, UI_COLOR_TEXT);
 
-    GetOnlineStatusText(AppState->Online, Text, sizeof(Text));
-    if (Text[0])
-    {
-        UIText(RenderContext, Font, X, Y + 32.f + UILineHeight(Font) + 4.f,
-               Text, UI_COLOR_TEXT_MUTED);
-    }
+    DrawConnectionIndicator(RenderContext, AppState, X,
+                            Y + 32.f + UILineHeight(Font) + 4.f);
 }
