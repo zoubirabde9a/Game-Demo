@@ -22,19 +22,6 @@ struct win32_window_dimensions
     int Height;
 };
 
-struct win32_debug_time_marker
-{
-    DWORD outputPlayCursor;
-    DWORD outputWriteCursor;
-    DWORD outputLocation;
-    DWORD outputByteCount;
-    
-    DWORD expectedFlipPlayCursor;
-    DWORD flipPlayCursor;
-    DWORD flipWriteCursor;
-    
-};
-
 struct win32_app_code
 {
     HMODULE DLL;
