@@ -36,6 +36,21 @@ A claim older than a day with no commits behind it is stale. You may delete it.
 
 `misc\claims.ps1` lists the open claims with their age and warns when your branch changes a file someone else claimed (`misc\land.bat` runs it before testing). A claim counts as yours when its `who:` contains your branch name after `agent/`.
 
+### Reporting a bug in someone else's code
+
+When you find a bug in files another agent has claimed and cannot fix it there, add one file to `.agents/issues/` (one file per bug, so reports never conflict):
+
+```
+found-by: <your-name>
+files: code/sim/monsters/toad.cpp
+since: 2026-10-03
+what: one or two sentences on what goes wrong
+reproduce: the command or test that shows it
+fix: what you think the fix is, if you know
+```
+
+Commit it straight to `main` like a claim. `misc\claims.ps1` (and so `misc\land.bat`) lists open issues and flags the ones in files you claimed. Whoever fixes it deletes the file in the same commit.
+
 ## 3. Land small and often
 
 - Rebase on `main` before you start and again before you merge: `git fetch; git rebase main`.

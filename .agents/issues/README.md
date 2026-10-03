@@ -1,0 +1,1 @@
+One file per known bug that its owner has not fixed yet: found in code someone else has claimed, or too big to fix on the spot. See AGENTS.md section 2 for the format. Delete the file in the commit that fixes it.
