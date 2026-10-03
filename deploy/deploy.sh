@@ -22,20 +22,28 @@ git archive --format=tar HEAD | ssh "$TARGET" "mkdir -p '$DIR' && tar -x -C '$DI
 
 echo "[deploy] installing"
 STATUS=0
-ssh -t "$TARGET" "sudo bash '$DIR/deploy/install.sh' '$NAME'" || STATUS=$?
+# A terminal only when a person is watching (sudo may ask a password then);
+# root logins skip sudo, which minimal images may not have.
+TTY=""
+[ -t 0 ] && TTY="-t"
+ssh $TTY "$TARGET" "if [ \$(id -u) = 0 ]; then bash '$DIR/deploy/install.sh' '$NAME'; else sudo bash '$DIR/deploy/install.sh' '$NAME'; fi" || STATUS=$?
 ssh "$TARGET" "rm -rf '$DIR'" || true
 [ "$STATUS" = 0 ] || { echo "[deploy] install failed; the previous release is still live"; exit "$STATUS"; }
 
 # The server passed its check from inside the machine. This one goes over
 # the internet, which also catches a cloud firewall blocking the port.
-HOST="${TARGET#*@}"
+# ssh -G resolves an alias from ~/.ssh/config to the real address.
+HOST="$(ssh -G "$TARGET" | sed -n 's/^hostname //p')"
 PORT="$(ssh "$TARGET" "sed -n 's/^PORT=//p' /etc/game-demo/server.env")"
+CHECKED=0
 for PROBE in build/probe build/probe.exe; do
     if [ -x "$PROBE" ]; then
         if [[ "$HOST" =~ ^[0-9.]+$ ]]; then
-            "$PROBE" "$HOST:$PORT" || echo "[deploy] the server runs but is not reachable from here: open UDP $PORT in the provider's firewall"
+            "$PROBE" "$HOST:$PORT" || { echo "[deploy] the server runs but is not reachable from here: open UDP $PORT in the provider's firewall"; exit 1; }
+            CHECKED=1
         fi
         break
     fi
 done
+[ "$CHECKED" = 1 ] || echo "[deploy] note: no outside check (build the probe with build_server, or the host is not an IPv4 address)"
 echo "[deploy] done: $NAME"
