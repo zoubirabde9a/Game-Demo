@@ -56,6 +56,25 @@ FullSnapshot()
         E->VelX = 0.1f;
         E->VelY = -900.0f;
     }
+
+    // Worst case: every ability slot used, every one with all its points.
+    P.Snapshot.AbilityCount = NET_MAX_SNAPSHOT_ABILITIES;
+    for (u8 Index = 0; Index < NET_MAX_SNAPSHOT_ABILITIES; ++Index)
+    {
+        net_ability_state *A = &P.Snapshot.Abilities[Index];
+        A->EntityIndex = (u8)(NET_MAX_SNAPSHOT_ENTITIES - 1 - Index);
+        A->Phase = 1;
+        A->Ability = Index;
+        A->TimeLeft = 0.75f;
+        A->AimX = 0.6f;
+        A->AimY = -0.8f;
+        A->PointCount = NET_MAX_ABILITY_POINTS;
+        for (u32 Point = 0; Point < NET_MAX_ABILITY_POINTS; ++Point)
+        {
+            A->PointX[Point] = 100.0f * Point + 0.125f;
+            A->PointY[Point] = 2000.0f;
+        }
+    }
     return P;
 }
 
@@ -105,6 +124,63 @@ TestFullSnapshotFits()
     Check(Last->Id == 1000 + NET_MAX_SNAPSHOT_ENTITIES - 1);
     Check(Out.Snapshot.Entities[0].Health == -10);
     Check(Last->VelY == -900.0f);
+    Check(Last->X == 12.5f * (NET_MAX_SNAPSHOT_ENTITIES - 1)); // multiples of 1/8 are exact
+    Check(Out.Snapshot.Entities[3].Y == -3.25f);
+
+    Check(Out.Snapshot.AbilityCount == NET_MAX_SNAPSHOT_ABILITIES);
+    net_ability_state *A = &Out.Snapshot.Abilities[2];
+    Check(A->EntityIndex == NET_MAX_SNAPSHOT_ENTITIES - 3);
+    Check(A->Phase == 1 && A->Ability == 2);
+    Check(A->TimeLeft == 0.75f);
+    Check(A->AimX > 0.5999f && A->AimX < 0.6001f);
+    Check(A->PointCount == NET_MAX_ABILITY_POINTS);
+    Check(A->PointX[3] == 300.125f && A->PointY[3] == 2000.0f);
+}
+
+internal void
+TestFixedPointPrecisionAndClamping()
+{
+    net_packet In = {};
+    In.Header.Type = NetPacket_Snapshot;
+    In.Snapshot.Count = 3;
+    In.Snapshot.Entities[0].X = 1234.56f;      // rounds to the nearest 1/8
+    In.Snapshot.Entities[0].VelX = -77.3f;     // rounds to the nearest 1/4
+    In.Snapshot.Entities[1].X = 99999.0f;      // beyond +-4096: clamped
+    In.Snapshot.Entities[1].VelY = -99999.0f;  // beyond +-8192: clamped
+    float NotANumber = 0.0f;
+    NotANumber = NotANumber / NotANumber;
+    In.Snapshot.Entities[2].Z = NotANumber;    // NaN is sent as 0
+    net_packet Out = RoundTrip(&In, 0);
+
+    float X = Out.Snapshot.Entities[0].X;
+    Check(X > 1234.56f - 0.0626f && X < 1234.56f + 0.0626f);
+    float VelX = Out.Snapshot.Entities[0].VelX;
+    Check(VelX > -77.3f - 0.126f && VelX < -77.3f + 0.126f);
+    Check(Out.Snapshot.Entities[1].X > 4095.0f && Out.Snapshot.Entities[1].X < 4096.0f);
+    Check(Out.Snapshot.Entities[1].VelY < -8191.0f && Out.Snapshot.Entities[1].VelY > -8192.0f);
+    Check(Out.Snapshot.Entities[2].Z == 0.0f);
+}
+
+internal void
+TestRejectsAbilityForMissingEntity()
+{
+    u8 Buffer[NET_MAX_PACKET_SIZE];
+    net_packet P = {};
+    P.Header.Type = NetPacket_Snapshot;
+    P.Snapshot.Count = 2;
+    P.Snapshot.AbilityCount = 1;
+    P.Snapshot.Abilities[0].EntityIndex = 2; // only 0 and 1 exist
+    Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
+
+    P.Snapshot.Abilities[0].EntityIndex = 1;
+    P.Snapshot.Abilities[0].PointCount = NET_MAX_ABILITY_POINTS + 1;
+    Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
+
+    P.Snapshot.Abilities[0].PointCount = 1;
+    Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) > 0);
+
+    P.Snapshot.AbilityCount = NET_MAX_SNAPSHOT_ABILITIES + 1;
+    Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
 }
 
 internal void
@@ -354,6 +430,8 @@ main()
     TestConnectRoundTrip();
     TestInputRoundTrip();
     TestFullSnapshotFits();
+    TestFixedPointPrecisionAndClamping();
+    TestRejectsAbilityForMissingEntity();
     TestRejectsBadPackets();
     TestSequenceWraparound();
     TestClientsJoinAndRejoin();

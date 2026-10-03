@@ -4,6 +4,9 @@
 #include "protocol.h"
 #include "serialize.cpp"
 
+#define NET_POSITION_STEPS 8.0f // 1/8 unit
+#define NET_VELOCITY_STEPS 4.0f // 1/4 unit per second
+
 internal bool32
 NetSequenceNewer(u16 A, u16 B)
 {
@@ -19,11 +22,31 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     NetU8(S, &E->Facing);
     NetU8(S, &E->Animation);
     NetI16(S, &E->Health);
-    NetF32(S, &E->X);
-    NetF32(S, &E->Y);
-    NetF32(S, &E->Z);
-    NetF32(S, &E->VelX);
-    NetF32(S, &E->VelY);
+    NetFixed16(S, &E->X, NET_POSITION_STEPS);
+    NetFixed16(S, &E->Y, NET_POSITION_STEPS);
+    NetFixed16(S, &E->Z, NET_POSITION_STEPS);
+    NetFixed16(S, &E->VelX, NET_VELOCITY_STEPS);
+    NetFixed16(S, &E->VelY, NET_VELOCITY_STEPS);
+}
+
+// Returns false if the ability points at an entity the snapshot does not hold.
+internal bool32
+NetSerializeAbility(net_stream *S, net_ability_state *A, u16 EntityCount)
+{
+    NetU8(S, &A->EntityIndex);
+    NetU8(S, &A->Phase);
+    NetU8(S, &A->Ability);
+    NetFixed16(S, &A->TimeLeft, 1000.0f); // milliseconds, up to 32 s
+    NetUnitFloat(S, &A->AimX);
+    NetUnitFloat(S, &A->AimY);
+    NetU8(S, &A->PointCount);
+    if (A->EntityIndex >= EntityCount || A->PointCount > NET_MAX_ABILITY_POINTS) return false;
+    for (u32 Index = 0; Index < A->PointCount; ++Index)
+    {
+        NetFixed16(S, &A->PointX[Index], NET_POSITION_STEPS);
+        NetFixed16(S, &A->PointY[Index], NET_POSITION_STEPS);
+    }
+    return true;
 }
 
 internal void
@@ -89,6 +112,12 @@ NetSerializePacket(net_stream *S, net_packet *P)
             for (u32 Index = 0; Index < P->Snapshot.Count; ++Index)
             {
                 NetSerializeEntity(S, &P->Snapshot.Entities[Index]);
+            }
+            NetU8(S, &P->Snapshot.AbilityCount);
+            if (P->Snapshot.AbilityCount > NET_MAX_SNAPSHOT_ABILITIES) return false;
+            for (u32 Index = 0; Index < P->Snapshot.AbilityCount; ++Index)
+            {
+                if (!NetSerializeAbility(S, &P->Snapshot.Abilities[Index], P->Snapshot.Count)) return false;
             }
         } break;
 

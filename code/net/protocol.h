@@ -17,10 +17,12 @@
 
 #include "../app_defs.h"
 
-#define NET_PROTOCOL_ID 0x47444d32u // "GDM2", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d33u // "GDM3", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
-#define NET_MAX_SNAPSHOT_ENTITIES 40 // moving things only; walls and trees are never sent
+#define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
+#define NET_MAX_SNAPSHOT_ABILITIES 8 // monsters winding up or striking at once
+#define NET_MAX_ABILITY_POINTS 4    // matches MAX_ABILITY_POINTS in entity.h
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
 
 enum net_packet_type
@@ -76,8 +78,24 @@ struct net_entity_state
     u8 Facing;
     u8 Animation;
     i16 Health;
+    // Sent as 16-bit fixed point: positions to 1/8 unit within +-4096,
+    // velocities to 1/4 unit per second within +-8192. Values outside are clamped.
     float X, Y, Z; // Z is height above the floor (jumps)
     float VelX, VelY;
+};
+
+// A monster ability being telegraphed or carried out, so clients can draw
+// the warning (aim line, target circles) before the hit lands.
+struct net_ability_state
+{
+    u8 EntityIndex;    // index into net_snapshot.Entities of the monster using it
+    u8 Phase;          // ability_phase: windup or active
+    u8 Ability;        // which of the monster kind's abilities
+    float TimeLeft;    // seconds left in this phase, sent in milliseconds
+    float AimX, AimY;  // unit direction
+    u8 PointCount;
+    float PointX[NET_MAX_ABILITY_POINTS]; // target spots on the ground
+    float PointY[NET_MAX_ABILITY_POINTS];
 };
 
 // The salt is a random number the client picks; the server echoes it so a
@@ -97,6 +115,8 @@ struct net_snapshot
     u32 Tick;
     u16 Count;
     net_entity_state Entities[NET_MAX_SNAPSHOT_ENTITIES];
+    u8 AbilityCount;
+    net_ability_state Abilities[NET_MAX_SNAPSHOT_ABILITIES];
 };
 
 struct net_packet

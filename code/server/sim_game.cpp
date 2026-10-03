@@ -116,11 +116,38 @@ SimGameIsSent(world_entity *Entity)
     }
 }
 
+// Monsters winding up or striking get an ability entry, so clients can
+// draw the warning. Ready and recovering monsters have nothing to show.
+internal void
+SimGameWriteAbility(world_entity *Entity, u8 EntityIndex, net_snapshot *Out)
+{
+    if (Entity->Type != EntityType_Monster) return;
+    if (Entity->AbilityPhase != AbilityPhase_Windup &&
+        Entity->AbilityPhase != AbilityPhase_Active) return;
+    if (Out->AbilityCount >= NET_MAX_SNAPSHOT_ABILITIES) return;
+
+    net_ability_state *A = &Out->Abilities[Out->AbilityCount++];
+    *A = {};
+    A->EntityIndex = EntityIndex;
+    A->Phase = (u8)Entity->AbilityPhase;
+    A->Ability = (u8)Entity->AbilityIndex;
+    A->TimeLeft = Entity->AbilityTimer;
+    A->AimX = Entity->AbilityAim.X;
+    A->AimY = Entity->AbilityAim.Y;
+    A->PointCount = (u8)Minimum(Entity->AbilityPointCount, (u32)NET_MAX_ABILITY_POINTS);
+    for (u32 Index = 0; Index < A->PointCount; ++Index)
+    {
+        A->PointX[Index] = Entity->AbilityPoints[Index].X;
+        A->PointY[Index] = Entity->AbilityPoints[Index].Y;
+    }
+}
+
 internal void
 GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
 {
     world *World = &Game->AppState->World;
     Out->Count = 0;
+    Out->AbilityCount = 0;
 
     // The viewer's own player goes first so it is never cut off by the
     // entity limit. TODO: when the limit is hit, prefer what is near the viewer.
@@ -146,6 +173,8 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
             E->Z = Entity->Position.Z;
             E->VelX = Entity->Velocity.X;
             E->VelY = Entity->Velocity.Y;
+
+            SimGameWriteAbility(Entity, (u8)(Out->Count - 1), Out);
         }
     }
 }

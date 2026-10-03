@@ -62,6 +62,20 @@ NetF32(net_stream *S, float *Value)
     *Value = Bits.F;
 }
 
+// A float sent as an i16 count of 1/UnitsPerStep steps, rounded to nearest.
+// Values beyond what fits are clamped; NaN becomes 0.
+internal void
+NetFixed16(net_stream *S, float *Value, float StepsPerUnit)
+{
+    float Steps = *Value * StepsPerUnit;
+    if (!(Steps == Steps)) Steps = 0;
+    if (Steps > 32767.0f) Steps = 32767.0f;
+    if (Steps < -32767.0f) Steps = -32767.0f;
+    i16 Quantized = (i16)(Steps + (Steps < 0 ? -0.5f : 0.5f));
+    NetI16(S, &Quantized);
+    *Value = (float)Quantized / StepsPerUnit;
+}
+
 // A float in -1..1 sent as an i16. Out-of-range values are clamped first.
 internal void
 NetUnitFloat(net_stream *S, float *Value)

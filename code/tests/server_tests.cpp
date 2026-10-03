@@ -262,6 +262,51 @@ TestClientNoticesSilentServer()
     ServerStop(&Server);
 }
 
+internal void
+TestSnapshotCarriesMonsterWindup()
+{
+    static server_game Game;
+    GameInit(&Game);
+    GamePlayerJoined(&Game, 0);
+
+    world *World = &Game.AppState->World;
+    world_entity *Monster = 0;
+    for (u32 Index = 0; Index < World->EntityCount && !Monster; ++Index)
+    {
+        world_entity *Entity = &World->Entities[Index];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster) Monster = Entity;
+    }
+    Check(Monster != 0);
+    if (!Monster) { GameShutdown(&Game); return; }
+
+    static net_snapshot Snapshot;
+    GameWriteSnapshot(&Game, 0, &Snapshot);
+    Check(Snapshot.AbilityCount == 0); // monsters start ready, nothing to warn about
+
+    Monster->AbilityPhase = AbilityPhase_Windup;
+    Monster->AbilityIndex = 1;
+    Monster->AbilityTimer = 0.4f;
+    Monster->AbilityAim = {0, 1};
+    Monster->AbilityPointCount = 2;
+    Monster->AbilityPoints[0] = {500, 600};
+    Monster->AbilityPoints[1] = {700, 800};
+    GameWriteSnapshot(&Game, 0, &Snapshot);
+
+    Check(Snapshot.AbilityCount == 1);
+    net_ability_state *A = &Snapshot.Abilities[0];
+    net_entity_state *Owner = &Snapshot.Entities[A->EntityIndex];
+    Check(Owner->Type == EntityType_Monster);
+    Check(Owner->X == Monster->Position.X && Owner->Y == Monster->Position.Y);
+    Check(A->Phase == AbilityPhase_Windup && A->Ability == 1);
+    Check(A->TimeLeft == 0.4f);
+    Check(A->PointCount == 2 && A->PointX[1] == 700.0f && A->PointY[1] == 800.0f);
+
+    Monster->AbilityPhase = AbilityPhase_Recover;
+    GameWriteSnapshot(&Game, 0, &Snapshot);
+    Check(Snapshot.AbilityCount == 0);
+    GameShutdown(&Game);
+}
+
 int
 main()
 {
@@ -276,6 +321,7 @@ main()
     TestNinthClientIsTurnedAway();
     TestClientGivesUpWithoutServer();
     TestClientNoticesSilentServer();
+    TestSnapshotCarriesMonsterWindup();
     NetSocketsShutdown();
 
     printf("server tests: %d checks, %d failed\n", TestChecks, TestFailures);
