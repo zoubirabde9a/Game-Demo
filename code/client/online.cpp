@@ -1,0 +1,185 @@
+/* Online session: when a server address is configured, the client
+   connects to the dedicated server, sends the keys held each frame, and
+   keeps the newest snapshot in Online->Client.Snapshot. With no address it
+   stays offline and the game runs its own simulation, as before.
+
+   The address comes from the GAME_SERVER environment variable, or else
+   the first line of server.txt in the folder the game runs from, written
+   as "a.b.c.d:port". The browser build has no UDP and is always offline. */
+
+#define ONLINE_ADDRESS_FILE "server.txt"
+#define ONLINE_ADDRESS_ENV "GAME_SERVER"
+
+struct online_session
+{
+    bool32 Enabled;
+    char AddressText[64];
+#if !COMPILER_EMSCRIPTEN
+    net_client Client;
+#endif
+};
+
+// NOTE(zoubir): copies the first line of Text, trimmed of spaces
+internal void
+CopyFirstLine(char *Out, u32 OutSize, char *Text)
+{
+    while (*Text == ' ' || *Text == '\t')
+    {
+        Text++;
+    }
+    u32 Length = 0;
+    while (Text[Length] && Text[Length] != '\r' && Text[Length] != '\n' &&
+           Length + 1 < OutSize)
+    {
+        Out[Length] = Text[Length];
+        Length++;
+    }
+    while (Length > 0 && (Out[Length - 1] == ' ' || Out[Length - 1] == '\t'))
+    {
+        Length--;
+    }
+    Out[Length] = 0;
+}
+
+// NOTE(zoubir): environment first, then the file; false when neither is set.
+// getenv and fopen are standard and portable; MSVC's "unsafe" warning on
+// them does not apply to reading one short line.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#endif
+internal bool32
+ReadServerAddressText(char *Out, u32 OutSize)
+{
+    Out[0] = 0;
+    char *FromEnv = getenv(ONLINE_ADDRESS_ENV);
+    if (FromEnv && FromEnv[0])
+    {
+        CopyFirstLine(Out, OutSize, FromEnv);
+    }
+    else
+    {
+        FILE *File = fopen(ONLINE_ADDRESS_FILE, "rb");
+        if (File)
+        {
+            char Line[128] = {};
+            fread(Line, 1, sizeof(Line) - 1, File);
+            fclose(File);
+            CopyFirstLine(Out, OutSize, Line);
+        }
+    }
+    return Out[0] != 0;
+}
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+#if !COMPILER_EMSCRIPTEN
+
+// NOTE(zoubir): the held keys, in the network's button bits. The server
+// turns new presses into actions itself.
+internal u16
+NetButtonsFromKeyboard(app_input *Input)
+{
+    u16 Result = 0;
+    if (Input->ButtonQ.EndedDown) Result |= NetButton_Left;
+    if (Input->ButtonD.EndedDown) Result |= NetButton_Right;
+    if (Input->ButtonZ.EndedDown) Result |= NetButton_Up;
+    if (Input->ButtonS.EndedDown) Result |= NetButton_Down;
+    if (Input->SpaceButton.EndedDown) Result |= NetButton_Jump;
+    if (Input->AltButton.EndedDown) Result |= NetButton_Dash;
+    if (Input->LeftButton.EndedDown) Result |= NetButton_Fireball;
+    if (Input->RightButton.EndedDown) Result |= NetButton_Sword;
+    if (Input->ButtonE.EndedDown) Result |= NetButton_Shockwave;
+    return Result;
+}
+
+internal online_session *
+StartOnlineSession(memory_arena *Arena)
+{
+    online_session *Online = AllocateStruct(Arena, online_session);
+    *Online = {};
+    net_address Server;
+    if (ReadServerAddressText(Online->AddressText,
+                              sizeof(Online->AddressText)) &&
+        NetParseAddress(Online->AddressText, &Server) &&
+        NetSocketsStartup())
+    {
+        u32 Salt = (u32)time(0) ^ (u32)(size_t)Online;
+        Online->Enabled = NetClientConnect(&Online->Client, Server, Salt);
+    }
+    return Online;
+}
+
+internal void
+UpdateOnlineSession(online_session *Online, app_input *Input)
+{
+    if (Online && Online->Enabled)
+    {
+        NetClientUpdate(&Online->Client, Input->DeltaTime,
+                        NetButtonsFromKeyboard(Input), 0.f, 0.f);
+    }
+}
+
+// NOTE(zoubir): true while the server, not the local simulation, owns the
+// world; drawing the snapshot comes in plan step 7b
+inline bool32
+IsOnline(online_session *Online)
+{
+    bool32 Result = Online && Online->Enabled &&
+        Online->Client.State == NetClient_Connected;
+    return Result;
+}
+
+internal void
+GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
+{
+    Out[0] = 0;
+    if (!Online || !Online->Enabled)
+    {
+        return;
+    }
+    net_client *Client = &Online->Client;
+    switch (Client->State)
+    {
+        case NetClient_Connecting:
+        {
+            snprintf(Out, OutSize, "Connecting to %s", Online->AddressText);
+        } break;
+        case NetClient_Connected:
+        {
+            snprintf(Out, OutSize, "Online at %s as Player %u",
+                     Online->AddressText, Client->PlayerIndex + 1);
+        } break;
+        case NetClient_Disconnected:
+        {
+            char *Reasons[] = {"disconnected", "no answer from server",
+                               "server full", "server closed",
+                               "lost connection", "left"};
+            u32 Reason = (u32)Client->EndReason;
+            snprintf(Out, OutSize, "Offline: %s",
+                     Reason < ArrayCount(Reasons) ? Reasons[Reason] :
+                     "disconnected");
+        } break;
+    }
+}
+
+#else
+
+internal online_session *
+StartOnlineSession(memory_arena *Arena)
+{
+    online_session *Online = AllocateStruct(Arena, online_session);
+    *Online = {};
+    return Online;
+}
+
+internal void UpdateOnlineSession(online_session *Online, app_input *Input) {}
+inline bool32 IsOnline(online_session *Online) { return false; }
+internal void
+GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
+{
+    Out[0] = 0;
+}
+
+#endif

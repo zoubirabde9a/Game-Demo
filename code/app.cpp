@@ -6,9 +6,19 @@
    ======================================================================== */
 
 
+// NOTE(zoubir): network code for the online session. The dedicated server
+// includes it itself before this file; the browser build has no UDP.
+#if !defined(NET_CLIENT_H) && !defined(COMPILER_EMSCRIPTEN)
+#include "net/protocol.cpp"
+#include "net/socket.cpp"
+#include "net/client.cpp"
+#endif
+
 #include "app.h"
 #include "stdio.h"
 #include "string.h"
+#include "stdlib.h"
+#include "time.h"
 
 #include "random.cpp"
 #include "utility.cpp"
@@ -33,6 +43,7 @@
 #include "sim/setup.cpp"
 #include "client/draw_entities.cpp"
 #include "client/play_events.cpp"
+#include "client/online.cpp"
 #include "ui/hud.cpp"
 #include "ui/scoreboard.cpp"
 #include "client/keyboard_input.cpp"
@@ -151,6 +162,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
                             AppState->LocalPlayerIndex,
                             PlayerSpawnPosition(AppState->LocalPlayerIndex));
         AddFamiliar(AppState, &AppState->World, MemoryArena, Player);
+        AppState->Online = StartOnlineSession(MemoryArena);
         EndTemporaryMemory(TempMem);
         AppState->IsInitialized = true;
         
@@ -332,6 +344,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     #endif
     
 #if 1
+    UpdateOnlineSession(AppState->Online, Input);
     SimulateTick(AppState, MemoryArena, Input->DeltaTime);
     PlaySimEvents(AppState);
     DrawWorldEntities(RenderContext, AppState, Assets, *TextureProgram,

@@ -86,6 +86,8 @@ struct app_state
     u32 LocalPlayerIndex;
     // NOTE(zoubir): filled by SimulateTick, drained by whoever runs it
     sim_events Events;
+    // NOTE(zoubir): connection to a dedicated server, see client/online.cpp
+    struct online_session *Online;
     struct monster_population *Monsters;
 
     v3 TargetCamera;

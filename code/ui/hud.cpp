@@ -88,5 +88,13 @@ DrawHud(render_context *RenderContext, app_state *AppState,
         RenderText(RenderContext, X, Y + 32.f + Font->UpperLimit, Font,
                    RenderContext->TextureProgram, Text, RGBA8_WHITE,
                    1.f, 1.f, NoClip, 0.f);
+
+        GetOnlineStatusText(AppState->Online, Text, sizeof(Text));
+        if (Text[0])
+        {
+            RenderText(RenderContext, X, Y + 60.f + Font->UpperLimit, Font,
+                       RenderContext->TextureProgram, Text, RGBA8_WHITE,
+                       1.f, 1.f, NoClip, 0.f);
+        }
     }
 }

@@ -587,6 +587,48 @@ TestScoreboardRanksByKillsThenDeaths()
 }
 
 internal void
+TestOnlineAddressAndButtons()
+{
+    char Line[64];
+    CopyFirstLine(Line, sizeof(Line), (char *)"  10.0.0.5:27015 \r\nignored");
+    Check(strcmp(Line, "10.0.0.5:27015") == 0);
+    CopyFirstLine(Line, 6, (char *)"123456789");
+    Check(strcmp(Line, "12345") == 0);
+
+    app_input Input = {};
+    Input.ButtonD.EndedDown = true;
+    Input.ButtonZ.EndedDown = true;
+    Input.RightButton.EndedDown = true;
+    u16 Buttons = NetButtonsFromKeyboard(&Input);
+    Check(Buttons == (NetButton_Right | NetButton_Up | NetButton_Sword));
+}
+
+internal void
+TestOnlineSessionStartsOnlyWithAnAddress()
+{
+    memory_index Size = Megabytes(1);
+    memory_arena Arena;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+
+    _putenv_s(ONLINE_ADDRESS_ENV, "");
+    online_session *Offline = StartOnlineSession(&Arena);
+    Check(!Offline->Enabled);
+    Check(!IsOnline(Offline));
+
+    // NOTE(zoubir): nothing listens on port 9, so it stays connecting
+    _putenv_s(ONLINE_ADDRESS_ENV, "127.0.0.1:9");
+    online_session *Online = StartOnlineSession(&Arena);
+    Check(Online->Enabled);
+    Check(Online->Client.State == NetClient_Connecting);
+    char Status[64];
+    GetOnlineStatusText(Online, Status, sizeof(Status));
+    Check(strcmp(Status, "Connecting to 127.0.0.1:9") == 0);
+    NetClientDisconnect(&Online->Client);
+    _putenv_s(ONLINE_ADDRESS_ENV, "");
+    free(Arena.Base);
+}
+
+internal void
 TestCopyString()
 {
     char Buffer[4];
@@ -682,6 +724,8 @@ main()
     RUN(TestMonsterBiteCreditsNobody);
     RUN(TestDeadPlayerIsInertUntilRespawn);
     RUN(TestScoreboardRanksByKillsThenDeaths);
+    RUN(TestOnlineAddressAndButtons);
+    RUN(TestOnlineSessionStartsOnlyWithAnAddress);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
     RUN(TestAnimationAdvancesWithoutTexture);
