@@ -40,6 +40,10 @@ REM g++ syntax checks, if g++ is here: the server as the live build makes
 REM it, the rest with the test flags.
 where g++ >nul 2>nul
 if %errorlevel% neq 0 goto no_gcc
+REM g++ loads its libraries from PATH; Git for Windows' mingw64 folder has
+REM older copies that make it exit 1 with no message, so its own folder goes first
+for /f "delims=" %%g in ('where g++') do if not defined GccDir set "GccDir=%%~dpg"
+set "PATH=%GccDir%;%PATH%"
 set GccRelease=-std=c++11 -w -fsyntax-only -DAPP_SLOW=0 -DAPP_DEV=0
 set GccDebug=-std=c++11 -w -fsyntax-only -DAPP_SLOW=1 -DAPP_DEV=1
 set Slow=%Slow% gcc_server gcc_probe gcc_bots gcc_net_tests gcc_sim_tests gcc_server_tests gcc_soak_tests
