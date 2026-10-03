@@ -6,7 +6,9 @@
    appears, moved every snapshot, and removed when the Id disappears.
 
    Between snapshots replicas glide rather than jump
-   (replica_smoothing.cpp).
+   (replica_smoothing.cpp). How a replica is built for each entity type
+   is replicas/spawn.cpp; how a snapshot's fields land on it is
+   replicas/apply.cpp. This file is the table and the flow.
 
    RunWorldTick is the one call the frame makes: online it syncs replicas,
    offline it runs SimulateTick, and it switches the world between the two
@@ -69,103 +71,8 @@ ClearMovingEntities(app_state *AppState)
     }
 }
 
-// NOTE(zoubir): a monster shot as AddMonsterShot dresses it, without the
-// owner and ability the server used to fire it
-internal world_entity *
-AddShotReplica(app_state *AppState, world *World, memory_arena *Arena,
-               v3 Position, u32 ShotStyle)
-{
-    world_entity *Shot = AddEntity(AppState, World, Arena,
-                                   EntityType_MonsterShot, Position,
-                                   AppState->FireBallCollision);
-    Shot->Dimensions = V2((float)SHOT_FRAME_SIZE, (float)SHOT_FRAME_SIZE);
-    Shot->Texture = {AssetType_MonsterShot, ShotStyle};
-    Shot->ShadowTexture = {AssetType_Shadow};
-    if (AppState->Monsters && ShotStyle < ArrayCount(AppState->Monsters->ShotAnimationSets))
-    {
-        Shot->AnimationSet = &AppState->Monsters->ShotAnimationSets[ShotStyle];
-    }
-    return Shot;
-}
-
-// NOTE(zoubir): a hazard as AddMonsterHazard dresses it: its look and
-// size come from that monster kind's ability. 0 if the server named an
-// ability this build does not have.
-internal world_entity *
-AddHazardReplica(app_state *AppState, world *World, memory_arena *Arena,
-                 v3 Position, u32 Kind, u32 AbilityIndex)
-{
-    if (Kind >= MonsterKind_Count)
-    {
-        return 0;
-    }
-    monster_def *Def = GetMonsterDef((monster_kind)Kind);
-    if (AbilityIndex >= Def->AbilityCount)
-    {
-        return 0;
-    }
-    monster_ability *Ability = &Def->Abilities[AbilityIndex];
-    world_entity *Hazard = AddEntity(AppState, World, Arena,
-                                     EntityType_MonsterHazard, Position,
-                                     AppState->FireBallCollision);
-    Hazard->MonsterKind = (monster_kind)Kind;
-    Hazard->AbilityIndex = AbilityIndex;
-    float Size = 2.f * Ability->Radius;
-    Hazard->Dimensions = V2(Size, Size);
-    Hazard->Texture = {AssetType_MonsterHazard, (u32)Ability->HazardStyle};
-    if (AppState->Monsters)
-    {
-        Hazard->AnimationSet =
-            &AppState->Monsters->HazardAnimationSets[Ability->HazardStyle];
-    }
-    return Hazard;
-}
-
-// NOTE(zoubir): 0 for types the client has no look for
-internal world_entity *
-SpawnReplica(app_state *AppState, world *World, memory_arena *Arena,
-             net_entity_state *State)
-{
-    v3 Position = V3(State->X, State->Y, State->Z);
-    world_entity *Result = 0;
-    switch ((entity_type)State->Type)
-    {
-        case EntityType_Player:
-        {
-            Result = AddPlayer(AppState, World, Arena, Position);
-        } break;
-        case EntityType_Monster:
-        {
-            if (State->Variant < MonsterKind_Count)
-            {
-                Result = AddMonster(AppState, World, Arena, Position,
-                                    (monster_kind)State->Variant);
-            }
-        } break;
-        case EntityType_FireBall:
-        {
-            Result = AddFireBall(AppState, World, Arena, 0, Position,
-                                 V3(State->VelX, State->VelY, 0.f));
-        } break;
-        case EntityType_Sword:
-        {
-            Result = AddSword(AppState, World, Arena, Position, 0,
-                              (animation_direction)State->Facing);
-        } break;
-        case EntityType_MonsterShot:
-        {
-            Result = AddShotReplica(AppState, World, Arena, Position,
-                                    State->Variant);
-        } break;
-        case EntityType_MonsterHazard:
-        {
-            Result = AddHazardReplica(AppState, World, Arena, Position,
-                                      State->Variant, State->Ability);
-        } break;
-        default: break;
-    }
-    return Result;
-}
+// NOTE(zoubir): building a local entity for a server entity, by type
+#include "replicas/spawn.cpp"
 
 // NOTE(zoubir): the replica for State, reused while the server keeps the
 // same type and look under that Id, recreated when it changes
@@ -205,84 +112,8 @@ GetOrSpawnReplica(app_state *AppState, memory_arena *Arena,
     return Existing;
 }
 
-internal void
-ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
-                    world_entity *Replica, net_entity_state *State)
-{
-    v3 OldPosition = Replica->Position;
-    Replica->Position = V3(State->X, State->Y, State->Z);
-    Replica->Velocity = V3(State->VelX, State->VelY, 0.f);
-    Replica->Hp = (float)State->Health;
-    if (State->Facing < AnimationDirection_Count)
-    {
-        Replica->AnimationDirection = (animation_direction)State->Facing;
-    }
-    if (State->Animation < AnimationType_Count)
-    {
-        Replica->AnimationType = (animation_type)State->Animation;
-    }
-    Replica->EliteAffix = State->Affix;
-    Replica->AbilityIndex = State->Ability;
-    // NOTE(zoubir): status pips blink under 1 s left; the client does not
-    // know the real time left, so active effects read as 1.5 s
-    for(u32 Effect = 1; Effect < StatusEffect_Count; Effect++)
-    {
-        Replica->StatusTimers[Effect] =
-            (State->Status & (1 << (Effect - 1))) ? 1.5f : 0.f;
-    }
-    // NOTE(zoubir): keeps the chunk lists right so RemoveEntity finds it
-    CheckAndChangeEntityChunk(AppState, &AppState->World, Arena,
-                              OldPosition, Replica);
-}
-
-// NOTE(zoubir): front-armoured monsters' facing, a whole turn in 256
-// steps, back into the unit Direction their shell is drawn from
-internal void
-ApplySnapshotFacings(world *World, replica_table *Table, net_snapshot *Snapshot)
-{
-    for(u32 Index = 0; Index < Snapshot->FacingCount; Index++)
-    {
-        net_facing *Facing = &Snapshot->Facings[Index];
-        u16 Id = Snapshot->Entities[Facing->EntityIndex].Id;
-        if (Id < MAX_REPLICAS && Table->LocalIndexPlusOne[Id])
-        {
-            world_entity *Replica =
-                &World->Entities[Table->LocalIndexPlusOne[Id] - 1];
-            float Angle = (float)Facing->Angle * (2.f * Pi32 / 256.f);
-            Replica->Direction = V2(Cos(Angle), Sin(Angle));
-        }
-    }
-}
-
-// NOTE(zoubir): player slots mirror the server's: a slot is active while
-// the server lists its score, and points at that player's replica. The
-// local slot stays active so the camera always has someone to follow.
-internal void
-ApplySnapshotScores(app_state *AppState, net_snapshot *Snapshot)
-{
-    bool32 Listed[MAX_PLAYERS] = {};
-    for(u32 Index = 0; Index < Snapshot->ScoreCount; Index++)
-    {
-        net_score *Score = &Snapshot->Scores[Index];
-        if (Score->Slot < MAX_PLAYERS)
-        {
-            player_slot *Slot = &AppState->Players[Score->Slot];
-            Listed[Score->Slot] = true;
-            Slot->Active = true;
-            Slot->Kills = Score->Kills;
-            Slot->Deaths = Score->Deaths;
-            Slot->MonsterKills = Score->MonsterKills;
-        }
-    }
-    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
-    {
-        if (!Listed[SlotIndex] && SlotIndex != AppState->LocalPlayerIndex)
-        {
-            AppState->Players[SlotIndex].Active = false;
-            AppState->Players[SlotIndex].Entity = 0;
-        }
-    }
-}
+// NOTE(zoubir): copying a snapshot's fields onto the replicas
+#include "replicas/apply.cpp"
 
 // NOTE(zoubir): moves every replica to the newest snapshot (once per new
 // server tick) and plays their animations locally every frame. LocalSlot
