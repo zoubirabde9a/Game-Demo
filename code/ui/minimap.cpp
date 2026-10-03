@@ -1,6 +1,7 @@
 /* Minimap: the ground around the local player in the top-right corner,
-   one texel per tile, with every player as a dot and the map's name
-   under it. The texture is repainted from TerrainAt and PropAt only when
+   one texel per tile, with every player as a dot, landmarks as rings
+   (client/landmark_pointer.cpp knows which are reached) and the map's
+   name under it. The texture is repainted from TerrainAt and PropAt only when
    the player steps onto another tile or the map changes, and drawn as one
    quad, so it costs the UI pass a handful of batches. */
 
@@ -151,6 +152,36 @@ DrawMinimap(render_context *RenderContext, app_state *AppState,
                                 Top + DotY - 2.f, 4.f, 4.f, UI_COLOR_TEXT, 0.f);
         }
     }
+    // NOTE(zoubir): landmarks on infinite maps, as rings: the pointer's
+    // colour until this player has reached one, grey after
+    if (Map->Kind == MapKind_Infinite)
+    {
+        i32 HomeX = FloorDiv(PlayerX, LANDMARK_REGION_TILES);
+        i32 HomeY = FloorDiv(PlayerY, LANDMARK_REGION_TILES);
+        for(i32 DY = -1; DY <= 1; DY++)
+        {
+            for(i32 DX = -1; DX <= 1; DX++)
+            {
+                landmark_spot Spot = GetRegionLandmark(Map, HomeX + DX, HomeY + DY);
+                if (!Spot.Present)
+                {
+                    continue;
+                }
+                v3 Middle = GetLandmarkCenter(&Spot, Tile);
+                float RingX = (Middle.X / TileSize - (float)OriginX) * Scale;
+                float RingY = (Middle.Y / TileSize - (float)OriginY) * Scale;
+                if (RingX >= 4.f && RingY >= 4.f &&
+                    RingX < Size - 4.f && RingY < Size - 4.f)
+                {
+                    u32 Color = HasReachedLandmark(&LandmarkMemory, &Spot) ?
+                        UI_COLOR_TEXT_MUTED : LANDMARK_POINTER_COLOR;
+                    DrawRectangle(RenderContext, Left + RingX - 4.f,
+                                  Top + RingY - 4.f, 8.f, 8.f, Color, 0.f);
+                }
+            }
+        }
+    }
+
     float Center = 0.5f * Size;
     DrawFilledRectangle(RenderContext, Left + Center - 3.f, Top + Center - 3.f,
                         6.f, 6.f, UI_COLOR_ACCENT, 0.f);
