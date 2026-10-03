@@ -17,3 +17,5 @@
     // NOTE(zoubir): seconds left on the dash streak clients draw
     float DashFlash;
     float BlinkCooldown;
+    // NOTE(zoubir): seconds until the next fireball may leave the hand
+    float FireBallCooldown;

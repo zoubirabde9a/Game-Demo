@@ -3,9 +3,9 @@
 
    1. QueuePlayerActions: held directions set this tick's move; pressed
       buttons become queued actions (sword, fireball). Each waits a
-      moment for the current animation, so a press during a swing is not
-      lost. Sword and fireball take the aim (toward the cursor) at the
-      moment of the press.
+      moment for the current animation or the fireball interval, so a
+      press during a swing is not lost. Sword and fireball take the aim
+      (toward the cursor) at the moment they start, not of the press.
    2. FinishPlayerActions: a swing or cast whose animation ended frees
       the player.
    3. RunPlayerActionQueue: the first action that can run now does
@@ -116,7 +116,6 @@ QueuePlayerActions(player_slot *Slot, player_tick *Tick)
         Player->Aim = Input->Aim * (1.f / AimLength);
         Player->AimReach = Minimum(1.f, AimLength);
     }
-    v2 Aim = GetPlayerAim(Player);
 
     Tick->Jumping = Player->Velocity.Z != 0.f;
     if (Tick->Jumping)
@@ -125,11 +124,14 @@ QueuePlayerActions(player_slot *Slot, player_tick *Tick)
     }
     if (WasPressed(Input, PlayerButton_Attack))
     {
-        AddPlayerDelayedInput(Slot, PDI_Attack, PLAYER_ACTION_LINGER, Aim);
+        AddPlayerDelayedInput(Slot, PDI_Attack, PLAYER_ACTION_LINGER);
     }
     if (WasPressed(Input, PlayerButton_Cast))
     {
-        AddPlayerDelayedInput(Slot, PDI_Cast, PLAYER_ACTION_LINGER, Aim);
+        // NOTE(zoubir): a click during the fireball interval waits it out
+        AddPlayerDelayedInput(Slot, PDI_Cast,
+                              Maximum(PLAYER_ACTION_LINGER,
+                                      PLAYER_FIREBALL_INTERVAL));
     }
 }
 
@@ -180,13 +182,17 @@ RunPlayerActionQueue(app_state *AppState, world *World, memory_arena *Arena,
                         if (Consumed)
                         {
                             StartSwordSwing(AppState, World, Arena, Player,
-                                            Action->Dir, Tick);
+                                            GetPlayerAim(Player), Tick);
                         }
                     } break;
                     case PDI_Cast:
                     {
-                        CastFireBall(AppState, World, Arena, Player,
-                                     Action->Dir, Tick);
+                        Consumed = CanCastFireBall(Player);
+                        if (Consumed)
+                        {
+                            CastFireBall(AppState, World, Arena, Player,
+                                         GetPlayerAim(Player), Tick);
+                        }
                     } break;
                     default:
                     {
@@ -345,6 +351,7 @@ UpdatePlayer(player_slot *Slot, world *World,
     *AnimationSpeedRate = 1.f;
 
     Player->ActionLock = Maximum(0.f, Player->ActionLock - DeltaTime);
+    Player->FireBallCooldown = Maximum(0.f, Player->FireBallCooldown - DeltaTime);
     player_tick Tick = {};
     Tick.Acceleration = PLAYER_ACCELERATION;
     Tick.AnimationSpeedRate = AnimationSpeedRate;

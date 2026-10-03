@@ -50,7 +50,6 @@ struct player_delayed_input
 {
     player_delayed_input_type Type;
     float TimeRemaining;
-    v2 Dir;
 };
 
 struct player_slot
@@ -81,7 +80,7 @@ WasPressed(player_input *Input, u32 Button)
 
 inline void
 AddPlayerDelayedInput(player_slot *Slot, player_delayed_input_type Type,
-                      float TimeRemaining, v2 Dir)
+                      float TimeRemaining)
 {
     if (Slot->DelayedInputCount < ArrayCount(Slot->DelayedInput))
     {
@@ -89,7 +88,6 @@ AddPlayerDelayedInput(player_slot *Slot, player_delayed_input_type Type,
             &Slot->DelayedInput[Slot->DelayedInputCount++];
         NewInput->Type = Type;
         NewInput->TimeRemaining = TimeRemaining;
-        NewInput->Dir = Dir;
     }
 }
 

@@ -335,6 +335,38 @@ TestClickDuringSwingQueuesNextSwing()
     DestroyTestWorld(&Test);
 }
 
+internal u32
+CountPresent(world *World, entity_type Type)
+{
+    u32 Result = 0;
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        world_entity *Entity = &World->Entities[Index];
+        Result += (Entity->IsPresent && Entity->Type == Type) ? 1 : 0;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): two clicks a frame apart give one fireball now and the
+// second once the interval has passed, not two at once
+internal void
+TestFastClicksFireAtSteadyRate()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Cast;
+    RunPlayerFrames(&Test, 0, 1);
+    AppState->Players[0].Input.Pressed = PlayerButton_Cast;
+    RunPlayerFrames(&Test, 0, 5);
+    Check(CountPresent(Test.World, EntityType_FireBall) == 1);
+    RunPlayerFrames(&Test, 0, 20);
+    Check(CountPresent(Test.World, EntityType_FireBall) == 2);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -358,4 +390,6 @@ RunPlayerAbilityTests()
     TestHitsShowOneNumberEach();
     printf("TestClickDuringSwingQueuesNextSwing\n");
     TestClickDuringSwingQueuesNextSwing();
+    printf("TestFastClicksFireAtSteadyRate\n");
+    TestFastClicksFireAtSteadyRate();
 }

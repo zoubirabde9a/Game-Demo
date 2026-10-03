@@ -1,10 +1,22 @@
 /* Fireball (left click): a piercing shot along the aim at any angle,
    hitting each target once (HandleCollision, collision.cpp). Roots the
-   player for PLAYER_CAST_LOCK. */
+   player for PLAYER_CAST_LOCK. One every PLAYER_FIREBALL_INTERVAL: a
+   click sooner waits in the action queue and fires when it may, so fast
+   clicking gives a steady stream rather than a spray. */
 
 #define FIREBALL_SPEED 450.f
 #define FIREBALL_HAND_HEIGHT 30.f
 #define PLAYER_CAST_LOCK 0.05f
+// NOTE(zoubir): about three a second; there was no limit, and each click
+// restarted the cast animation
+#define PLAYER_FIREBALL_INTERVAL 0.35f
+
+inline bool32
+CanCastFireBall(world_entity *Player)
+{
+    bool32 Result = Player->FireBallCooldown <= 0.f;
+    return Result;
+}
 
 internal void
 CastFireBall(app_state *AppState, world *World, memory_arena *Arena,
@@ -24,6 +36,7 @@ CastFireBall(app_state *AppState, world *World, memory_arena *Arena,
     EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
     Player->State = EntityState_Casting;
     Player->ActionLock = PLAYER_CAST_LOCK;
+    Player->FireBallCooldown = PLAYER_FIREBALL_INTERVAL;
     Player->CastingDirection = Dir;
     Player->AnimationState.SlotIndex = 0;
 }
