@@ -384,7 +384,7 @@ LeaveReplicaWorld(app_state *AppState, memory_arena *Arena,
     AppState->LocalPlayerIndex = 0;
     u32 Slot = AppState->LocalPlayerIndex;
     world_entity *Player = AddPlayerToSlot(AppState, World, Arena, Slot,
-                                           PlayerSpawnPosition(Slot));
+                                           PlayerSpawnPosition(World, Slot));
     AddFamiliar(AppState, World, Arena, Player);
     if (AppState->Monsters)
     {

@@ -722,7 +722,7 @@ TestReplicasFollowSnapshots()
     LeaveReplicaWorld(AppState, &Test.Arena, Table);
     Check(!Table->Active);
     Check(GetLocalPlayer(AppState)->Position.X ==
-          PlayerSpawnPosition(0).X);
+          PlayerSpawnPosition(&AppState->World, 0).X);
     free(Snapshot);
     free(Table);
     DestroyTestWorld(&Test);
@@ -776,7 +776,7 @@ TestRandomPlaySoak()
     for(u32 Slot = 0; Slot < 4; Slot++)
     {
         AddPlayerToSlot(AppState, &AppState->World, &Arena, Slot,
-                        PlayerSpawnPosition(Slot));
+                        PlayerSpawnPosition(&AppState->World, Slot));
     }
     random_series Series = Seed(5);
     u32 Ticks = 60 * 180;

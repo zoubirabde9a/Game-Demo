@@ -93,18 +93,24 @@ RemovePlayerFromSlot(app_state *AppState, world *World, u32 SlotIndex)
     *Slot = {};
 }
 
-// NOTE(zoubir): where each slot appears and respawns, spread over the
-// open floor of the arena
+// NOTE(zoubir): where each slot appears and respawns: the map's spawn
+// tiles in turn, players beyond the map's count stepping round the same
+// tiles a little further out
 internal v3
-PlayerSpawnPosition(u32 SlotIndex)
+PlayerSpawnPosition(world *World, u32 SlotIndex)
 {
-    v3 Spots[MAX_PLAYERS] =
-    {
-        {350, 300, 0}, {2200, 300, 0}, {350, 1000, 0}, {2200, 1000, 0},
-        {1280, 300, 0}, {1280, 1000, 0}, {800, 640, 0}, {1760, 640, 0},
-    };
     Assert(SlotIndex < MAX_PLAYERS);
-    return Spots[SlotIndex];
+    map_def *Map = GetMapDef((map_id)World->MapId);
+    float TileSize = World->TileWidth ? (float)World->TileWidth : (float)ARENA_TILE_SIZE;
+    v3 Result = V3(0.5f * TileSize, 0.5f * TileSize, 0.f);
+    if (Map->SpawnCount > 0)
+    {
+        u32 Spawn = SlotIndex % Map->SpawnCount;
+        u32 Lap = SlotIndex / Map->SpawnCount;
+        Result.X = ((float)Map->SpawnX[Spawn] + 0.5f) * TileSize + 48.f * (float)Lap;
+        Result.Y = ((float)Map->SpawnY[Spawn] + 0.5f) * TileSize;
+    }
+    return Result;
 }
 
 inline player_slot *

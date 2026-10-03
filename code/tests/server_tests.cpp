@@ -105,7 +105,7 @@ TestJoinMoveAndLeave()
     Check(TickUntil(&Server, &Client, NetPacket_ConnectAccepted, &Reply));
     Check(Reply.ConnectAccepted.PlayerIndex == 0);
     Check(Server.Game.AppState->Players[0].Active);
-    Check(Server.Game.AppState->Players[0].Entity->Position.X == PlayerSpawnPosition(0).X);
+    Check(Server.Game.AppState->Players[0].Entity->Position.X == PlayerSpawnPosition(&Server.Game.AppState->World, 0).X);
     Check(Server.Game.HeldButtons[0] == 0);
 
     net_packet Bye = {};
@@ -236,7 +236,8 @@ TestPredictionAgreesWithServer()
     InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
     InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
     InitSimulation(Client, &Arena, &Constants);
-    AddPlayerToSlot(Client, &Client->World, &Arena, 0, PlayerSpawnPosition(0));
+    AddPlayerToSlot(Client, &Client->World, &Arena, 0,
+                    PlayerSpawnPosition(&Client->World, 0));
 
     char Address[32];
     snprintf(Address, sizeof(Address), "127.0.0.1:%u", NetSocketPort(&Server.Socket));

@@ -248,6 +248,51 @@ GetMapDef(map_id Id)
     return Result;
 }
 
+// NOTE(zoubir): the map whose name starts with Name, ignoring case and
+// spaces ("keep", "frostbite", "ashen wastes"); Fallback when none does
+internal map_id
+FindMapByName(char *Name, map_id Fallback)
+{
+    if (!Name || !*Name)
+    {
+        return Fallback;
+    }
+    for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
+    {
+        map_def *Map = GetMapDef((map_id)MapIndex);
+        char *A = Name;
+        char *B = Map->Name;
+        // NOTE(zoubir): match against the full name, or the word after the
+        // first space ("Frostbite Keep" answers to "keep")
+        for(u32 Try = 0; Try < 2 && B; Try++)
+        {
+            char *P = A;
+            char *Q = B;
+            while (*P && *Q)
+            {
+                char CP = (*P >= 'A' && *P <= 'Z') ? (char)(*P + 32) : *P;
+                char CQ = (*Q >= 'A' && *Q <= 'Z') ? (char)(*Q + 32) : *Q;
+                if (CP != CQ)
+                {
+                    break;
+                }
+                P++;
+                Q++;
+            }
+            if (!*P)
+            {
+                return (map_id)MapIndex;
+            }
+            while (*B && *B != ' ')
+            {
+                B++;
+            }
+            B = *B ? B + 1 : 0;
+        }
+    }
+    return Fallback;
+}
+
 // NOTE(zoubir): a fingerprint of the ground over a square of tiles; the
 // tests pin it so a compiler or code change that moves terrain is caught
 internal u32

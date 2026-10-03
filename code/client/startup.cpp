@@ -44,12 +44,23 @@ StartClient(app_state *AppState, transient_state *TransientState,
                                        "c:/windows/fonts/times.ttf");
     AppState->UIContext = UIContextCreate(MemoryArena, UI_COUNT);
 
+    // NOTE(zoubir): developer switch until the server picks the map:
+    // GAME_MAP=keep (or any map name) chooses what offline play builds
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4996) // getenv: read once at startup, never kept
+#endif
+    AppState->World.MapId = FindMapByName(getenv("GAME_MAP"), MapId_Arena);
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
     InitSimulation(AppState, MemoryArena, ConstantsArena);
     AppState->LocalPlayerIndex = 0;
     world_entity *Player =
         AddPlayerToSlot(AppState, &AppState->World, MemoryArena,
                         AppState->LocalPlayerIndex,
-                        PlayerSpawnPosition(AppState->LocalPlayerIndex));
+                        PlayerSpawnPosition(&AppState->World,
+                                            AppState->LocalPlayerIndex));
     AddFamiliar(AppState, &AppState->World, MemoryArena, Player);
     AppState->Online = StartOnlineSession(MemoryArena);
     EndTemporaryMemory(TempMem);

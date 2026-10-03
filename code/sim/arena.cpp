@@ -1,143 +1,133 @@
-/* Arena: the one fixed map every match is played on. Sets the world
-   dimensions, tile map, wall border, trees and rock platforms. Players
-   join through AddPlayerToSlot and monsters through monster_population.
-   Called once, from InitSimulation. */
+/* Map building: turns a map from sim/maps/ into the world: its size,
+   collision walls along blocking terrain, and the props standing on it
+   (trees, boulders, dead trees). Ground itself is not stored here; the
+   client draws it from TerrainAt. Called once, from InitSimulation, for
+   World->MapId.
+
+   Bounded maps only for now: infinite maps need chunk storage that grows
+   with the players (docs/terrain-plan.md step 3), so until then an
+   infinite map id builds the Old Arena. */
+
+inline v3
+TileCenter(world *World, i32 TileX, i32 TileY)
+{
+    v3 Result = V3((float)TileX * World->TileWidth + 0.5f * World->TileWidth,
+                   (float)TileY * World->TileHeight + 0.5f * World->TileHeight,
+                   0.f);
+    return Result;
+}
+
+// NOTE(zoubir): a blocking tile needs a wall entity only where something
+// could walk into it, i.e. next to open ground; walls buried inside rock
+// would only cost entity slots
+internal bool32
+IsBlockingEdge(map_def *Map, i32 X, i32 Y)
+{
+    for(i32 DY = -1; DY <= 1; DY++)
+    {
+        for(i32 DX = -1; DX <= 1; DX++)
+        {
+            if (!GetTerrainDef(TerrainAt(Map, X + DX, Y + DY))->Blocks)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+internal world_entity *
+AddTerrainProp(app_state *AppState, world *World, memory_arena *Arena,
+               v3 Position, terrain_prop Prop)
+{
+    world_entity *Entity = 0;
+    switch(Prop)
+    {
+        case TerrainProp_Tree:
+        {
+            Entity = AddTree(AppState, World, Arena, Position);
+        } break;
+
+        case TerrainProp_Boulder:
+        case TerrainProp_DeadTree:
+        {
+            bool32 IsBoulder = Prop == TerrainProp_Boulder;
+            Entity = AddEntity(AppState, World, Arena, EntityType_StaticObject,
+                               Position, IsBoulder ? World->BoulderCollision :
+                               World->DeadTreeCollision);
+            Entity->Dimensions = V2((float)TERRAIN_PROP_PIXELS,
+                                    (float)TERRAIN_PROP_PIXELS);
+            Entity->Texture = {AssetType_TerrainProp, (u32)Prop};
+            Entity->Uvs = {0.f, 0.f, 1.f, 1.f};
+        } break;
+
+        default:
+        {
+        } break;
+    }
+    return Entity;
+}
 
 internal void
 BuildArena(app_state *AppState, memory_arena *MemoryArena)
 {
-    u32 const TileWidth = ARENA_TILE_SIZE;
-    u32 const TileHeight = ARENA_TILE_SIZE;
-    u32 const TileDepth = ARENA_TILE_SIZE;
-    u32 const DesiredTilesX = ARENA_TILES_X;
-    u32 const DesiredTilesY = ARENA_TILES_Y;
-    u32 const DesiredTilesZ = ARENA_TILES_Z;
-    // NOTE(zoubir): one collision cell per tile
-    u32 const CollisionToTilesX = 1;
-    u32 const CollisionToTilesY = 1;
-
     world *World = &AppState->World;
-    World->TileWidth = TileWidth;
-    World->TileHeight = TileHeight;
-    World->TileDepth = TileDepth;
-    
+    map_def *Map = GetMapDef((map_id)World->MapId);
+    if (Map->Kind != MapKind_Bounded)
+    {
+        World->MapId = MapId_Arena;
+        Map = GetMapDef(MapId_Arena);
+    }
+
+    World->TileWidth = ARENA_TILE_SIZE;
+    World->TileHeight = ARENA_TILE_SIZE;
+    World->TileDepth = ARENA_TILE_SIZE;
     World->CollisionWidth = World->TileWidth;
     World->CollisionHeight = World->TileHeight;
     World->CollisionDepth = World->TileDepth;
-    
     World->TilesPerChunkX = 16;
     World->TilesPerChunkY = 16;
     World->TilesPerChunkZ = 4;
-
     World->MaxEntityVelocity = {1.f, 1.f, 1.f};
-    
-    
-    Assert(World->CollisionWidth <= World->TileWidth);
-    Assert(World->CollisionHeight <= World->TileHeight);
-    
-    u32 const CollisionNumX = DesiredTilesX * CollisionToTilesX;
-    u32 const CollisionNumY = DesiredTilesY * CollisionToTilesY;
-    bool32 *CollisionTiles =
-        AllocateArray(MemoryArena,
-                      CollisionNumX * CollisionNumY,
-                      bool32);
-    World->CollisionMap = CollisionTiles;
-    World->NumCollisionX = CollisionNumX;
-    World->NumCollisionY = CollisionNumY;
 
-    u32 const TileNumX = DesiredTilesX;
-    u32 const TileNumY = DesiredTilesY;
-    u32 const TileNumZ = DesiredTilesZ;
-    
-    asset_id TMT = {AssetType_TileMap};
-    tile_map *TileMap = &World->TileMap;
-    TileMap->Texture = TMT;
-    World->NumTilesX = TileNumX;
-    World->NumTilesY = TileNumY;
-    World->NumTilesZ = TileNumZ;
-    tile *Tiles = AllocateArray(MemoryArena,
-                                TileNumX * TileNumY,
-                                tile);
+    World->NumTilesX = Map->Width;
+    World->NumTilesY = Map->Height;
+    World->NumTilesZ = ARENA_TILES_Z;
+    Assert(World->NumTilesX <= CHUNK_MAX_X * World->TilesPerChunkX);
+    Assert(World->NumTilesY <= CHUNK_MAX_Y * World->TilesPerChunkY);
 
-    for(u32 CurrentTile = 0;
-        CurrentTile < (World->NumCollisionX *
-                       World->NumCollisionY);
-        CurrentTile++)
+    World->BoulderCollision =
+        MakeSimpleGroundedCollisionVolume(MemoryArena, {13.f, 8.f, 14.f});
+    World->DeadTreeCollision =
+        MakeSimpleGroundedCollisionVolume(MemoryArena, {7.f, 5.f, 30.f});
+
+    u32 TileCount = World->NumTilesX * World->NumTilesY;
+    World->NumCollisionX = World->NumTilesX;
+    World->NumCollisionY = World->NumTilesY;
+    World->CollisionMap = AllocateArray(MemoryArena, TileCount, bool32);
+    tile *Tiles = AllocateArray(MemoryArena, TileCount, tile);
+    World->TileMap.Texture = {AssetType_TerrainAtlas};
+    World->TileMap.Tiles = Tiles;
+
+    for(i32 Y = 0; Y < (i32)World->NumTilesY; Y++)
     {
-        CollisionTiles[CurrentTile] = CurrentTile % (17) == 2;
-        if ((CurrentTile < World->NumCollisionX) ||
-            (CurrentTile > (World->NumCollisionX *
-                             World->NumCollisionY) - World->NumCollisionX) ||
-            (CurrentTile % World->NumCollisionX) == 0 ||
-            ((CurrentTile + 1) % World->NumCollisionX) == 0)
+        for(i32 X = 0; X < (i32)World->NumTilesX; X++)
         {
-            CollisionTiles[CurrentTile] = true;
-            #if 1
-            u32 X = CurrentTile % World->NumCollisionX;
-            u32 Y = CurrentTile / World->NumCollisionX;
-            v3 Pos;
-            Pos.X = X * (float)World->TileWidth +
-                (float)World->TileWidth / 2.f;
-            Pos.Y = Y * (float)World->TileHeight +
-                (float)World->TileHeight / 2.f;
-            Pos.Z = 0.f;
-            AddWall(AppState, World, MemoryArena, Pos);
-            #endif
-        }            
-    }
-
-    u32 TileIndex = 1592;
-    //u32 TileIndex = 10;
-    for(u32 CurrentTile = 0;
-        CurrentTile < (World->NumTilesX * World->NumTilesY);
-        CurrentTile++)
-    {
-        if (CollisionTiles[CurrentTile])
-        {
-//                Tiles[CurrentTile].Index = 4;
-            Tiles[CurrentTile].Index = TileIndex;
-        }
-        else
-        {            
-            Tiles[CurrentTile].Index = TileIndex;
-            u32 CurrentTileY = CurrentTile / World->NumTilesX;
-            u32 CurrentTileX = CurrentTile % World->NumTilesX;
-            if (CurrentTileX % World->TilesPerChunkX == 0 ||
-                CurrentTileY % World->TilesPerChunkY == 0)
+            u32 Index = (u32)X + (u32)Y * World->NumTilesX;
+            terrain_kind Ground = TerrainAt(Map, X, Y);
+            bool32 Blocks = GetTerrainDef(Ground)->Blocks;
+            Tiles[Index].Index = (u32)Ground;
+            World->CollisionMap[Index] = Blocks;
+            if (Blocks && IsBlockingEdge(Map, X, Y))
             {
-                Tiles[CurrentTile].Index = 1567;
-                //Tiles[CurrentTile].Index = 6;
+                AddWall(AppState, World, MemoryArena, TileCenter(World, X, Y));
             }
-            if (CurrentTile % 70 == 0)
+            terrain_prop Prop = PropAt(Map, X, Y);
+            if (Prop != TerrainProp_None)
             {
-                u32 X = CurrentTile % World->NumTilesX;
-                u32 Y = CurrentTile / World->NumTilesX;
-                v3 Pos;
-                Pos.X = X * (float)World->TileWidth +
-                    (float)World->TileWidth / 2.f;
-                Pos.Y = Y * (float)World->TileHeight +
-                    (float)World->TileHeight / 2.f;
-                Pos.Z = 0.f;
-                AddTree(AppState, World, MemoryArena, Pos);
+                AddTerrainProp(AppState, World, MemoryArena,
+                               TileCenter(World, X, Y), Prop);
             }
         }
-    }
-
-
-
-    TileMap->Tiles = Tiles;
-
-    random_series Series = Seed(67);
-    u32 PosX = 12;
-    u32 PosY = 6;
-    for(u32 EntityIndex = 0;
-        EntityIndex < 10;
-        EntityIndex++)
-    {
-        u32 DirX = RandomChoice(&Series, 2);
-        u32 DirY = RandomChoice(&Series, 2);
-        PosX += DirX * 5;
-        PosY += DirY * 5;
-        AddTileEntity(AppState, World, MemoryArena, PosX, PosY, 0);
     }
 }

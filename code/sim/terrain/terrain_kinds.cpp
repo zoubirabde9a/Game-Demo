@@ -73,3 +73,6 @@ enum terrain_prop
     TerrainProp_DeadTree,
     TerrainProp_Count
 };
+// NOTE(zoubir): drawn size of boulders and dead trees, in world units;
+// trees use the packed tree sprite
+#define TERRAIN_PROP_PIXELS 48

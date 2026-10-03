@@ -107,6 +107,22 @@ AddMonsterTextures(assets *Assets, open_gl *OpenGL, memory_arena *TempArena)
         EndTemporaryMemory(Temp);
     }
 
+    // NOTE(zoubir): boulders and dead trees; slot 0 (no prop) and the tree
+    // slot stay empty, trees use the packed tree texture
+    ReserveGeneratedAssets(Assets, AssetType_TerrainProp, TerrainProp_Count);
+    for(u32 Prop = 0; Prop < TerrainProp_Count; Prop++)
+    {
+        u32 Size = TERRAIN_PROP_PIXELS;
+        temporary_memory Temp = BeginTemporaryMemory(TempArena);
+        u32 *Pixels = AllocateArray(TempArena, Size * Size, u32);
+        ZeroSize(Pixels, Size * Size * sizeof(u32));
+        sprite_canvas Canvas = CanvasFrame(Pixels, Size, Size, 0, 0);
+        DrawTerrainProp(&Canvas, (terrain_prop)Prop);
+        AddGeneratedTexture(Assets, OpenGL, {AssetType_TerrainProp, Prop},
+                            Pixels, Size, Size, 1, 1, V2(0.5f, 0.875f));
+        EndTemporaryMemory(Temp);
+    }
+
     ReserveGeneratedAssets(Assets, AssetType_MonsterHazard, HazardStyle_Count);
     for(u32 Style = 0; Style < HazardStyle_Count; Style++)
     {

@@ -45,6 +45,11 @@ struct world_chunk
 
 struct world
 {
+    // NOTE(zoubir): the map_id this world was built from (sim/maps/);
+    // set before InitSimulation, 0 is the Old Arena
+    u32 MapId;
+    struct entity_collision_volume_group *BoulderCollision;
+    struct entity_collision_volume_group *DeadTreeCollision;
     tile_map TileMap;
     u32 NumTilesX;
     u32 NumTilesY;

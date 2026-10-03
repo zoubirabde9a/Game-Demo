@@ -358,6 +358,51 @@ BuildTerrainAtlas(u32 *Pixels)
     }
 }
 
+// NOTE(zoubir): props that are not the packed tree: one 48-pixel frame
+// each, feet on the 7/8 line like monsters
+internal void
+DrawTerrainProp(sprite_canvas *Canvas, terrain_prop Prop)
+{
+    switch(Prop)
+    {
+        case TerrainProp_Boulder:
+        {
+            color_ramp Stone = Ramp(ART_RGB(70, 68, 66), ART_RGB(108, 104, 98),
+                                    ART_RGB(146, 140, 130), ART_RGB(188, 182, 170));
+            color_ramp Moss = Ramp(ART_RGB(40, 70, 30), ART_RGB(60, 100, 40),
+                                   ART_RGB(84, 130, 50), ART_RGB(120, 160, 70));
+            FillBlob(Canvas, 24.f, 34.f, 13.f, 9.f, Stone);
+            FillBlob(Canvas, 18.f, 37.f, 7.f, 5.f, Stone, -0.1f);
+            FillBlob(Canvas, 31.f, 36.f, 6.f, 5.f, Stone, 0.05f);
+            FillBlob(Canvas, 21.f, 27.f, 6.f, 2.5f, Moss, 0.1f);
+            FillLimb(Canvas, V2(26.f, 30.f), V2(30.f, 36.f), 0.5f, 0.4f,
+                     Ramp(Stone.C[0], Stone.C[0], Stone.C[0], Stone.C[0]));
+            OutlineFrame(Canvas, ART_RGB(26, 24, 22));
+        } break;
+
+        case TerrainProp_DeadTree:
+        {
+            color_ramp Bark = Ramp(ART_RGB(40, 32, 28), ART_RGB(66, 54, 46),
+                                   ART_RGB(94, 80, 68), ART_RGB(126, 110, 94));
+            v2 Root = V2(24.f, 42.f);
+            v2 Fork = V2(23.f, 22.f);
+            FillLimb(Canvas, Root, Fork, 3.f, 2.f, Bark);
+            FillLimb(Canvas, Root, Root + V2(-6.f, 1.f), 1.5f, 0.6f, Bark, -0.1f);
+            FillLimb(Canvas, Root, Root + V2(6.f, 1.f), 1.5f, 0.6f, Bark, -0.1f);
+            FillLimb(Canvas, Fork, V2(14.f, 10.f), 1.8f, 0.6f, Bark);
+            FillLimb(Canvas, Fork, V2(32.f, 8.f), 1.8f, 0.6f, Bark);
+            FillLimb(Canvas, V2(27.f, 15.f), V2(35.f, 16.f), 1.f, 0.4f, Bark);
+            FillLimb(Canvas, V2(18.f, 15.f), V2(12.f, 18.f), 1.f, 0.4f, Bark);
+            FillLimb(Canvas, V2(23.f, 22.f), V2(24.f, 6.f), 1.4f, 0.5f, Bark, 0.05f);
+            OutlineFrame(Canvas, ART_RGB(16, 12, 10));
+        } break;
+
+        default:
+        {
+        } break;
+    }
+}
+
 // NOTE(zoubir): animated kinds play their row as frames; the rest pick a
 // variant per tile
 inline bool32

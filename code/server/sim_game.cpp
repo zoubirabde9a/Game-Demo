@@ -57,7 +57,7 @@ GamePlayerJoined(server_game *Game, u32 Slot)
     app_state *AppState = Game->AppState;
     RemovePlayerFromSlot(AppState, &AppState->World, Slot);
     AddPlayerToSlot(AppState, &AppState->World, Game->Arena, Slot,
-                    PlayerSpawnPosition(Slot));
+                    PlayerSpawnPosition(&AppState->World, Slot));
     Game->HeldButtons[Slot] = 0;
     Game->LastInputTick[Slot] = 0;
 }

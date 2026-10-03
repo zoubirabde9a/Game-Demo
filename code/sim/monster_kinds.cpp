@@ -305,7 +305,10 @@ inline u32
 GetSpawnWeightNow(world *World, monster_kind Kind)
 {
     monster_def *Def = GetMonsterDef(Kind);
-    u32 Result = Def->SpawnWeight;
+    // NOTE(zoubir): the map scales each kind; four steps per unit of
+    // SpawnWeight keep fractional map weights meaningful
+    float MapWeight = GetMapDef((map_id)World->MapId)->MonsterWeight[Kind];
+    u32 Result = (u32)(4.f * (float)Def->SpawnWeight * MapWeight + 0.5f);
     if (Def->MaxAlive && CountAliveOfKind(World, Kind) >= Def->MaxAlive)
     {
         Result = 0;

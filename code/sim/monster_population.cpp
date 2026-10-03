@@ -96,7 +96,7 @@ IsFarFromPlayers(world *World, v2 Position, float MinDistance)
         SlotIndex < MAX_PLAYERS;
         SlotIndex++)
     {
-        if (Length(PlayerSpawnPosition(SlotIndex).XY - Position) < MinDistance)
+        if (Length(PlayerSpawnPosition(World, SlotIndex).XY - Position) < MinDistance)
         {
             return false;
         }

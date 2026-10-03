@@ -31,6 +31,7 @@ enum asset_type_id
     AssetType_MonsterShot,
     AssetType_MonsterHazard,
     AssetType_TerrainAtlas,
+    AssetType_TerrainProp,
     AssetType_Count
 };
 

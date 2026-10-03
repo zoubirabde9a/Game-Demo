@@ -185,8 +185,61 @@ TestProceduralTerrainMatchesGoldenHashes()
 }
 
 internal void
+TestFindMapByName()
+{
+    Check(FindMapByName("keep", MapId_Arena) == MapId_Keep);
+    Check(FindMapByName("Frostbite", MapId_Arena) == MapId_Keep);
+    Check(FindMapByName("ASHEN WASTES", MapId_Arena) == MapId_Wastes);
+    Check(FindMapByName("wilds", MapId_Arena) == MapId_Wilds);
+    Check(FindMapByName("nowhere", MapId_Arena) == MapId_Arena);
+    Check(FindMapByName(0, MapId_Keep) == MapId_Keep);
+}
+
+// NOTE(zoubir): building a hand-made map puts walls only along open
+// ground, and its spawns are free
+internal void
+TestBuildKeepWorld()
+{
+    app_state *AppState = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(64);
+    memory_arena Arena;
+    memory_arena Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    AppState->World.MapId = MapId_Keep;
+    InitSimulation(AppState, &Arena, &Constants);
+    world *World = &AppState->World;
+    map_def *Map = GetMapDef(MapId_Keep);
+    Check(World->MapId == MapId_Keep);
+    Check(World->NumTilesX == Map->Width && World->NumTilesY == Map->Height);
+    for(u32 Slot = 0; Slot < MAX_PLAYERS; Slot++)
+    {
+        v3 Spawn = PlayerSpawnPosition(World, Slot);
+        i32 TileX = (i32)(Spawn.X / World->TileWidth);
+        i32 TileY = (i32)(Spawn.Y / World->TileHeight);
+        Check(!GetTerrainDef(TerrainAt(Map, TileX, TileY))->Blocks);
+    }
+    u32 Walls = 0;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        Walls += Entity->IsPresent && Entity->Type == EntityType_StaticObject &&
+            Entity->Collision == AppState->WallCollision;
+    }
+    Check(Walls > 100);
+    Check(World->EntityCount < 4096 / 2);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(AppState);
+}
+
+internal void
 RunTerrainTests()
 {
+    printf("TestFindMapByName\n");
+    TestFindMapByName();
+    printf("TestBuildKeepWorld\n");
+    TestBuildKeepWorld();
     printf("TestFloorDivRoundsDown\n");
     TestFloorDivRoundsDown();
     printf("TestNoiseStaysInRangeAndIsSmooth\n");
