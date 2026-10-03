@@ -239,7 +239,7 @@ TestShockwaveHitsOnlyNearbyMonsters()
 }
 
 internal void
-TestClearedWaveSpawnsNextOnFreeGround()
+TestMonsterPopulationRefillsAwayFromPlayers()
 {
     test_world Test = CreateTestWorld();
     app_state *AppState = Test.AppState;
@@ -248,34 +248,51 @@ TestClearedWaveSpawnsNextOnFreeGround()
     world_entity *Player = AddTestEntity(&Test, EntityType_Player,
                                          {1000, 1000, 0}, Test.UnitVolume);
     AppState->Player = Player;
-    // NOTE(zoubir): a ring of walls where spawns are likely to land
-    for(u32 WallIndex = 0; WallIndex < 16; WallIndex++)
+    // NOTE(zoubir): scatter walls so some random spots are blocked
+    for(u32 WallIndex = 0; WallIndex < 40; WallIndex++)
     {
-        float Angle = WallIndex * (2.f * Pi32 / 16.f);
         AddTestEntity(&Test, EntityType_StaticObject,
-                      {1000 + 430.f * Cos(Angle), 1000 + 430.f * Sin(Angle), 0},
+                      {100.f + 48.f * WallIndex, 200.f + 37.f * (WallIndex % 7), 0},
                       Test.WallVolume);
     }
 
-    wave_state Wave = {};
-    Wave.Number = 1;
-    Wave.Series = Seed(7);
-    float DeltaTime = 1.f / 60.f;
+    monster_population *Population =
+        CreateMonsterPopulation(&Test.Arena, 6, 7);
+    AppState->Monsters = Population;
+    FillMonsterPopulation(AppState, Test.World, &Test.Arena, Population);
+    Check(CountLiveMonsters(Test.World) == 6);
 
-    UpdateWaves(AppState, Test.World, &Test.Arena, &Wave, DeltaTime);
-    Check(Wave.Countdown > 0.f);
-    Check(CountLiveMonsters(Test.World) == 0);
-
-    for(u32 Frame = 0;
-        Frame < (u32)(WAVE_COUNTDOWN_SECONDS * 60.f) + 2;
-        Frame++)
+    // NOTE(zoubir): kill two, they come back one per respawn delay
+    u32 Killed = 0;
+    for(u32 EntityIndex = 0;
+        EntityIndex < Test.World->EntityCount && Killed < 2;
+        EntityIndex++)
     {
-        UpdateWaves(AppState, Test.World, &Test.Arena, &Wave, DeltaTime);
+        world_entity *Entity = &Test.World->Entities[EntityIndex];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster)
+        {
+            DamageEntity(AppState, Test.World, Entity, 1000.f);
+            Killed++;
+        }
     }
-    Check(Wave.Number == 2);
-    Check(CountLiveMonsters(Test.World) == 4 + 2 * 2);
+    Check(CountLiveMonsters(Test.World) == 4);
 
-    // NOTE(zoubir): no monster may start inside a wall or another unit
+    float DeltaTime = 1.f / 60.f;
+    u32 RespawnFrames = (u32)(MONSTER_RESPAWN_SECONDS * 60.f) + 2;
+    for(u32 Frame = 0; Frame < RespawnFrames; Frame++)
+    {
+        UpdateMonsterPopulation(AppState, Test.World, &Test.Arena,
+                                Population, DeltaTime);
+    }
+    Check(CountLiveMonsters(Test.World) == 5);
+    for(u32 Frame = 0; Frame < 10 * RespawnFrames; Frame++)
+    {
+        UpdateMonsterPopulation(AppState, Test.World, &Test.Arena,
+                                Population, DeltaTime);
+    }
+    Check(CountLiveMonsters(Test.World) == 6);
+
+    // NOTE(zoubir): nobody starts inside a wall, a unit, or next to a player
     for(u32 EntityIndex = 0;
         EntityIndex < Test.World->EntityCount;
         EntityIndex++)
@@ -283,6 +300,8 @@ TestClearedWaveSpawnsNextOnFreeGround()
         world_entity *Monster = &Test.World->Entities[EntityIndex];
         if (Monster->IsPresent && Monster->Type == EntityType_Monster)
         {
+            Check(Length(Monster->Position.XY - Player->Position.XY) >=
+                  MONSTER_SPAWN_MIN_PLAYER_DISTANCE);
             for(u32 OtherIndex = 0;
                 OtherIndex < Test.World->EntityCount;
                 OtherIndex++)
@@ -296,6 +315,30 @@ TestClearedWaveSpawnsNextOnFreeGround()
             }
         }
     }
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestIdleMonsterWanders()
+{
+    test_world Test = CreateTestWorld();
+    Test.AppState->Monsters = CreateMonsterPopulation(&Test.Arena, 0, 3);
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {1000, 1000, 0}, Test.UnitVolume);
+    Monster->MonsterKind = MonsterKind_Brute;
+    v3 Start = Monster->Position;
+    float AnimationSpeed;
+    animation_type AnimationType;
+    animation_direction AnimationDirection;
+    // NOTE(zoubir): no player at all, ten seconds is enough to pick a
+    // walking direction at least once
+    for(u32 Frame = 0; Frame < 600; Frame++)
+    {
+        UpdateMonster(Monster, Test.World, &Test.Arena, &Test.Input,
+                      Test.AppState, &AnimationSpeed, &AnimationType,
+                      &AnimationDirection);
+    }
+    Check(Length(Monster->Position.XY - Start.XY) > 10.f);
     DestroyTestWorld(&Test);
 }
 
@@ -334,7 +377,8 @@ main()
     RUN(TestMonsterDyingMidMoveLeavesNoGhost);
     RUN(TestRemovedSlotIsReused);
     RUN(TestShockwaveHitsOnlyNearbyMonsters);
-    RUN(TestClearedWaveSpawnsNextOnFreeGround);
+    RUN(TestMonsterPopulationRefillsAwayFromPlayers);
+    RUN(TestIdleMonsterWanders);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
 

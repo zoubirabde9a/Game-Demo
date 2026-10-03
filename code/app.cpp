@@ -24,9 +24,9 @@
 #include "sim/animations.cpp"
 #include "sim/monster_kinds.cpp"
 #include "sim/spawn.cpp"
-#include "sim/level.cpp"
+#include "sim/arena.cpp"
 #include "sim/abilities.cpp"
-#include "sim/waves.cpp"
+#include "sim/monster_population.cpp"
 #include "sim/update.cpp"
 #include "sim/draw.cpp"
 #include "ui/hud.cpp"
@@ -139,13 +139,13 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
         SetupCollisionVolumes(AppState, ConstantsArena);
         SetupAnimationSets(AppState, ConstantsArena);
         
-        BuildStartingLevel(AppState, MemoryArena);
-
+        BuildArena(AppState, MemoryArena);
         SetupCollisionTable(AppState);
 
-        AppState->Wave = AllocateStruct(MemoryArena, wave_state);
-        AppState->Wave->Number = 1;
-        AppState->Wave->Series = Seed(1337);
+        AppState->Monsters =
+            CreateMonsterPopulation(MemoryArena, MONSTER_POPULATION, 1337);
+        FillMonsterPopulation(AppState, &AppState->World, MemoryArena,
+                              AppState->Monsters);
         EndTemporaryMemory(TempMem);
         AppState->IsInitialized = true;
         
@@ -497,8 +497,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
 //    EndTemporaryMemory(FrameTemporaryMemory);
 //    FrameTemporaryMemory = BeginTemporaryMemory(TransientArena);
     
-    UpdateWaves(AppState, World, MemoryArena, AppState->Wave,
-                Input->DeltaTime);
+    UpdateMonsterPopulation(AppState, World, MemoryArena,
+                            AppState->Monsters, Input->DeltaTime);
 
     if (Input->ButtonF3.Pressed)
     {

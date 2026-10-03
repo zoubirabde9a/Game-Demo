@@ -194,7 +194,7 @@ SetupCollisionVolumes(app_state *AppState, memory_arena *ConstantsArena)
     AppState->TreeCollision =
         MakeGroundedTreeCollisionVolume(ConstantsArena);
     AppState->WallCollision = 
-        MakeSimpleGroundedCollisionVolume(ConstantsArena, {LEVEL_TILE_SIZE*.5f, LEVEL_TILE_SIZE*.5f, LEVEL_TILE_SIZE*.5f});
+        MakeSimpleGroundedCollisionVolume(ConstantsArena, {ARENA_TILE_SIZE*.5f, ARENA_TILE_SIZE*.5f, ARENA_TILE_SIZE*.5f});
     AppState->PlayerCollision = 
         MakeSimpleGroundedCollisionVolume(ConstantsArena, {15, 4, 19.f});
     AppState->FamiliarCollision = 

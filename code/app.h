@@ -99,7 +99,7 @@ struct app_state
     world_entity *Player;
     v3 PlayerSpawnPosition;
     u32 KillCount;
-    struct wave_state *Wave;
+    struct monster_population *Monsters;
 
     v3 TargetCamera;
     v3 CameraOffset;

@@ -155,6 +155,10 @@ struct world_entity
     float MaxHp;
     // NOTE(zoubir): seconds until a monster can hit again
     float AttackCooldown;
+    // NOTE(zoubir): monsters with no player in range stroll this way
+    // until WanderTimer runs out, then pick a new direction (or rest)
+    v2 WanderDirection;
+    float WanderTimer;
     // NOTE(zoubir): seconds until the player can dash / shockwave again
     float DashCooldown;
     float ShockwaveCooldown;

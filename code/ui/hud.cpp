@@ -80,18 +80,7 @@ DrawHud(render_context *RenderContext, app_state *AppState,
     if (Font)
     {
         char Text[64];
-        wave_state *Wave = AppState->Wave;
-        if (Wave && Wave->Countdown > 0.f)
-        {
-            snprintf(Text, sizeof(Text), "Wave %u in %.0f   Kills: %u",
-                     Wave->Number + 1, Wave->Countdown + 0.5f,
-                     AppState->KillCount);
-        }
-        else
-        {
-            snprintf(Text, sizeof(Text), "Wave %u   Kills: %u",
-                     Wave ? Wave->Number : 1, AppState->KillCount);
-        }
+        snprintf(Text, sizeof(Text), "Kills: %u", AppState->KillCount);
         v4 NoClip = {0.f, 0.f, 100000.f, 100000.f};
         // NOTE(zoubir): Y is the baseline, so drop it by the font ascent
         RenderText(RenderContext, X, Y + 32.f + Font->UpperLimit, Font,

@@ -33,11 +33,11 @@ struct world_chunk
     world_entity_chunk FirstEntityChunk;
 };
 
-// NOTE(zoubir): size of the starting level, in tiles of LEVEL_TILE_SIZE
-#define LEVEL_TILE_SIZE 32
-#define LEVEL_TILES_X 80
-#define LEVEL_TILES_Y 40
-#define LEVEL_TILES_Z 12
+// NOTE(zoubir): size of the arena, in tiles of ARENA_TILE_SIZE
+#define ARENA_TILE_SIZE 32
+#define ARENA_TILES_X 80
+#define ARENA_TILES_Y 40
+#define ARENA_TILES_Z 12
 
 #define CHUNK_MAX_X 12
 #define CHUNK_MAX_Y 12

@@ -1,16 +1,17 @@
-/* Starting level: world dimensions, the tile map, the wall border,
-   trees, rock platforms, and the player, familiar and wave-1 monsters.
+/* Arena: the one fixed map every match is played on. Sets the world
+   dimensions, tile map, wall border, trees, rock platforms, and places the
+   local player and familiar. Monsters are added by monster_population.
    Called once when the game state is first initialized. */
 
 internal void
-BuildStartingLevel(app_state *AppState, memory_arena *MemoryArena)
+BuildArena(app_state *AppState, memory_arena *MemoryArena)
 {
-    u32 const TileWidth = LEVEL_TILE_SIZE;
-    u32 const TileHeight = LEVEL_TILE_SIZE;
-    u32 const TileDepth = LEVEL_TILE_SIZE;
-    u32 const DesiredTilesX = LEVEL_TILES_X;
-    u32 const DesiredTilesY = LEVEL_TILES_Y;
-    u32 const DesiredTilesZ = LEVEL_TILES_Z;
+    u32 const TileWidth = ARENA_TILE_SIZE;
+    u32 const TileHeight = ARENA_TILE_SIZE;
+    u32 const TileDepth = ARENA_TILE_SIZE;
+    u32 const DesiredTilesX = ARENA_TILES_X;
+    u32 const DesiredTilesY = ARENA_TILES_Y;
+    u32 const DesiredTilesZ = ARENA_TILES_Z;
     // NOTE(zoubir): one collision cell per tile
     u32 const CollisionToTilesX = 1;
     u32 const CollisionToTilesY = 1;
@@ -136,19 +137,6 @@ BuildStartingLevel(app_state *AppState, memory_arena *MemoryArena)
         AddFamiliar(AppState, World, MemoryArena, Player);
     #endif
     
-    for(u32 MonsterIndex = 0;
-        MonsterIndex < 10;
-        MonsterIndex++)
-    {
-        AddMonster(AppState, World,
-                   MemoryArena,
-                   {((MonsterIndex % 3) * 32.f + MonsterIndex) * 32.f,
-                           600 +
-                           (float)((MonsterIndex % 2) * 5 + MonsterIndex) * 4,
-                           0.f},
-                   (MonsterIndex % 3 == 2) ?
-                   MonsterKind_Bat : MonsterKind_Brute);
-    }
 
     random_series Series = Seed(67);
     u32 PosX = 12;

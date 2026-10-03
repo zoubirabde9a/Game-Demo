@@ -479,6 +479,29 @@ UpdatePlayer(world_entity *Player, world *World,
 
 }
 
+#define MONSTER_WANDER_SPEED_SCALE 0.35f
+
+// NOTE(zoubir): returns the scaled push for an idle monster; half of the
+// time it picks a direction, the other half it stands still for a while
+internal v2
+MonsterWander(world_entity *Entity, app_state *AppState, float DeltaTime)
+{
+    Entity->WanderTimer -= DeltaTime;
+    if (Entity->WanderTimer <= 0.f && AppState->Monsters)
+    {
+        random_series *Series = &AppState->Monsters->Series;
+        Entity->WanderTimer = RandomBetween(Series, 1.f, 3.f);
+        Entity->WanderDirection = V2(0.f);
+        if (RandomChoice(Series, 2))
+        {
+            float Angle = RandomBetween(Series, 0.f, 2.f * Pi32);
+            Entity->WanderDirection = V2(Cos(Angle), Sin(Angle));
+        }
+    }
+    v2 Result = MONSTER_WANDER_SPEED_SCALE * Entity->WanderDirection;
+    return Result;
+}
+
 // NOTE(zoubir): monsters walk toward the player once it comes within
 // AggroRange, and stop at arm's length so they do not shove it around
 internal void
@@ -537,6 +560,20 @@ UpdateMonster(world_entity *Entity, world *World,
                     AnimationDirection_Up : AnimationDirection_Down;
             }
         }
+        else if (DistanceToTarget >= Stats->AggroRange)
+        {
+            DDEntity.XY = MonsterWander(Entity, AppState, DeltaTime);
+        }
+    }
+    else
+    {
+        DDEntity.XY = MonsterWander(Entity, AppState, DeltaTime);
+    }
+    if (LengthSq(DDEntity.XY) > 0.f && *AnimationType != AnimationType_Move)
+    {
+        *AnimationType = AnimationType_Move;
+        *AnimationDirection = DDEntity.X >= 0.f ?
+            AnimationDirection_Right : AnimationDirection_Left;
     }
 
     DDEntity *= Stats->Acceleration * DeltaTime;
