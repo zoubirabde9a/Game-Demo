@@ -13,6 +13,7 @@
 
 #include "ui/context.cpp"
 #include "ui/fonts.cpp"
+#include "ui/text.cpp"
 
 internal void
 UIBegin(render_context *RenderContext,

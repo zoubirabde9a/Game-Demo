@@ -114,17 +114,17 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
                         UI_COLOR_PANEL, 0.f);
     DrawRectangle(RenderContext, Left, Top, Width, Height, UI_COLOR_BORDER, 0.f);
 
-    DrawScreenText(RenderContext, Font, Left + Pad, Top + 14.f,
-                   "Play online (F4 to close)", UI_COLOR_TEXT);
-    DrawScreenText(RenderContext, Font, Left + Pad, Top + 46.f,
-                   "Server address, a.b.c.d:port", UI_COLOR_TEXT_MUTED);
-    DrawScreenText(RenderContext, Font, Left + Pad, Top + 118.f,
-                   "Your name", UI_COLOR_TEXT_MUTED);
+    UIText(RenderContext, Font, Left + Pad, Top + 14.f,
+           "Play online (F4 to close)", UI_COLOR_TEXT);
+    UIText(RenderContext, Font, Left + Pad, Top + 46.f,
+           "Server address, a.b.c.d:port", UI_COLOR_TEXT_MUTED);
+    UIText(RenderContext, Font, Left + Pad, Top + 118.f,
+           "Your name", UI_COLOR_TEXT_MUTED);
 
     char Status[128];
     GetOnlineStatusText(Online, Status, sizeof(Status));
-    DrawScreenText(RenderContext, Font, Left + Pad, Top + 190.f,
-                   Status[0] ? Status : (char *)"Playing offline", UI_COLOR_TEXT);
+    UIText(RenderContext, Font, Left + Pad, Top + 190.f,
+           Status[0] ? Status : (char *)"Playing offline", UI_COLOR_TEXT);
 
     BeginContainer(UIContext, Left, Top, Width, Height);
     DoEditBox(&Screen->Address, AppState, UIContext, Pad, 66.f,

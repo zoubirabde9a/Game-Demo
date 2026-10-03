@@ -39,12 +39,7 @@ internal void
 DrawScoreboard(render_context *RenderContext, app_state *AppState,
                u32 WindowWidth, u32 WindowHeight)
 {
-    font *Font = AppState->DefaultFont;
-    if (!Font)
-    {
-        return;
-    }
-
+    font *Font = AppState->Fonts.Body;
     u32 Order[MAX_PLAYERS];
     u32 Count = RankPlayers(AppState, Order);
 
@@ -53,7 +48,10 @@ DrawScoreboard(render_context *RenderContext, app_state *AppState,
     float Height = RowHeight * (Count + 1) + 24.f;
     float Left = 0.5f * ((float)WindowWidth - Width);
     float Top = 0.5f * ((float)WindowHeight - Height);
-    float Columns[] = {Left + 20.f, Left + 230.f, Left + 310.f, Left + 390.f};
+    // NOTE(zoubir): the name is left-aligned, the numbers right-aligned
+    // on these edges so digits line up
+    float Columns[] = {Left + UI_GAP_LARGE, Left + 280.f, Left + 360.f,
+                       Left + Width - UI_GAP_LARGE};
 
     DrawFilledRectangle(RenderContext, Left, Top, Width, Height,
                         UI_COLOR_PANEL, 0.f);
@@ -63,8 +61,8 @@ DrawScoreboard(render_context *RenderContext, app_state *AppState,
     float Y = Top + 12.f;
     for(u32 Column = 0; Column < ArrayCount(Headers); Column++)
     {
-        DrawScreenText(RenderContext, Font, Columns[Column], Y,
-                       Headers[Column], UI_COLOR_TEXT_MUTED);
+        UIText(RenderContext, Font, Columns[Column], Y, Headers[Column],
+               UI_COLOR_TEXT_MUTED, Column ? UIAlign_Right : UIAlign_Left);
     }
 
     for(u32 Rank = 0; Rank < Count; Rank++)
@@ -84,13 +82,13 @@ DrawScoreboard(render_context *RenderContext, app_state *AppState,
         {
             GetPlayerName(AppState, SlotIndex, Text, sizeof(Text));
         }
-        DrawScreenText(RenderContext, Font, Columns[0], Y, Text, Color);
+        UIText(RenderContext, Font, Columns[0], Y, Text, Color);
         u32 Values[] = {Slot->Kills, Slot->Deaths, Slot->MonsterKills};
         for(u32 Column = 0; Column < ArrayCount(Values); Column++)
         {
             snprintf(Text, sizeof(Text), "%u", Values[Column]);
-            DrawScreenText(RenderContext, Font, Columns[Column + 1], Y,
-                           Text, Color);
+            UIText(RenderContext, Font, Columns[Column + 1], Y, Text, Color,
+                   UIAlign_Right);
         }
     }
 }
@@ -100,8 +98,7 @@ DrawRespawnCountdown(render_context *RenderContext, app_state *AppState,
                      u32 WindowWidth, u32 WindowHeight)
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
-    font *Font = AppState->DefaultFont;
-    if (!Font || !Slot->Active || !IsDeadPlayer(Slot->Entity))
+    if (!Slot->Active || !IsDeadPlayer(Slot->Entity))
     {
         return;
     }
@@ -109,8 +106,6 @@ DrawRespawnCountdown(render_context *RenderContext, app_state *AppState,
     char Text[48];
     snprintf(Text, sizeof(Text), "Respawning in %.0f",
              Maximum(1.f, Slot->RespawnTimer + 0.5f));
-    float TextWidth = GetTextWidth(Font, Text);
-    DrawScreenText(RenderContext, Font,
-                   0.5f * ((float)WindowWidth - TextWidth),
-                   0.4f * (float)WindowHeight, Text, UI_COLOR_TEXT);
+    UIText(RenderContext, AppState->Fonts.Title, 0.5f * (float)WindowWidth,
+           0.4f * (float)WindowHeight, Text, UI_COLOR_TEXT, UIAlign_Center);
 }

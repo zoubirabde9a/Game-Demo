@@ -36,17 +36,6 @@ DrawShockwaveRing(render_context *RenderContext, world_entity *Player,
     }
 }
 
-// NOTE(zoubir): RenderText places the baseline at Y; this takes the top
-internal void
-DrawScreenText(render_context *RenderContext, font *Font, float X,
-               float TopY, char *Text, u32 Color)
-{
-    v4 NoClip = {0.f, 0.f, 100000.f, 100000.f};
-    RenderText(RenderContext, X, TopY + Font->UpperLimit, Font,
-               RenderContext->TextureProgram, Text, Color,
-               1.f, 1.f, NoClip, 0.f);
-}
-
 // NOTE(zoubir): the name the player chose, or "Player N" without one
 internal void
 GetPlayerName(app_state *AppState, u32 SlotIndex, char *Out, u32 OutSize)
@@ -68,11 +57,7 @@ internal void
 DrawPlayerLabels(render_context *RenderContext, app_state *AppState,
                  v3 CameraOffset)
 {
-    font *Font = AppState->DefaultFont;
-    if (!Font)
-    {
-        return;
-    }
+    font *Font = AppState->Fonts.Small;
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];
@@ -88,11 +73,9 @@ DrawPlayerLabels(render_context *RenderContext, app_state *AppState,
             Player->Position.Z - Info->Origin.Y * Player->Dimensions.Y;
         char Text[24];
         GetPlayerName(AppState, SlotIndex, Text, sizeof(Text));
-        float Width = GetTextWidth(Font, Text);
-        float Height = Font->UpperLimit + Font->LowerLimit;
-        DrawScreenText(RenderContext, Font,
-                       Player->Position.X - CameraOffset.X - 0.5f * Width,
-                       SpriteTop - 14.f - Height, Text, UI_COLOR_TEXT);
+        UIText(RenderContext, Font, Player->Position.X - CameraOffset.X,
+               SpriteTop - 14.f - UILineHeight(Font), Text, UI_COLOR_TEXT,
+               UIAlign_Center);
     }
 }
 
@@ -132,25 +115,17 @@ DrawHud(render_context *RenderContext, app_state *AppState,
                    UI_COLOR_ACCENT : UI_COLOR_DIM);
     }
 
-    font *Font = AppState->DefaultFont;
-    if (Font)
-    {
-        char Text[64];
-        player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
-        snprintf(Text, sizeof(Text), "Kills %u   Deaths %u   Monsters %u",
-                 Slot->Kills, Slot->Deaths, Slot->MonsterKills);
-        v4 NoClip = {0.f, 0.f, 100000.f, 100000.f};
-        // NOTE(zoubir): Y is the baseline, so drop it by the font ascent
-        RenderText(RenderContext, X, Y + 32.f + Font->UpperLimit, Font,
-                   RenderContext->TextureProgram, Text, UI_COLOR_TEXT,
-                   1.f, 1.f, NoClip, 0.f);
+    font *Font = AppState->Fonts.Body;
+    char Text[64];
+    player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
+    snprintf(Text, sizeof(Text), "Kills %u   Deaths %u   Monsters %u",
+             Slot->Kills, Slot->Deaths, Slot->MonsterKills);
+    UIText(RenderContext, Font, X, Y + 32.f, Text, UI_COLOR_TEXT);
 
-        GetOnlineStatusText(AppState->Online, Text, sizeof(Text));
-        if (Text[0])
-        {
-            RenderText(RenderContext, X, Y + 60.f + Font->UpperLimit, Font,
-                       RenderContext->TextureProgram, Text, UI_COLOR_TEXT,
-                       1.f, 1.f, NoClip, 0.f);
-        }
+    GetOnlineStatusText(AppState->Online, Text, sizeof(Text));
+    if (Text[0])
+    {
+        UIText(RenderContext, Font, X, Y + 32.f + UILineHeight(Font) + 4.f,
+               Text, UI_COLOR_TEXT_MUTED);
     }
 }
