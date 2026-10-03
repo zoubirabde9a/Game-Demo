@@ -19,6 +19,19 @@
 #define SERVER_DEFAULT_PORT 27015
 #define SERVER_TICK_RATE 60
 #define SERVER_SNAPSHOT_INTERVAL 3 // 20 snapshots a second
+#define SERVER_STATS_SECONDS 60    // how often server_main logs a stats line
+
+// Counters since the last stats line. A tick is "late" when the loop could
+// not sleep before the next one: the machine is not keeping up.
+struct server_stats
+{
+    u32 Ticks;
+    u32 LateTicks;
+    double TickSecondsTotal;
+    double TickSecondsMax;
+    u32 PacketsIn, PacketsOut, BadPacketsIn;
+    u64 BytesIn, BytesOut;
+};
 
 struct server
 {
@@ -26,12 +39,17 @@ struct server
     net_server_clients Clients;
     server_game Game;
     u32 Tick;
-    bool32 Logging; // print joins, leaves and timeouts to stdout
+    bool32 Logging; // print joins, leaves, timeouts and stats to stdout
+    server_stats Stats;
 };
 
 // Opens the socket. Port 0 picks a free one (tests use this).
 internal bool32 ServerStart(server *Server, u16 Port);
 internal void ServerTick(server *Server);
+// The caller times each ServerTick and reports it here.
+internal void ServerRecordTick(server *Server, double Seconds, bool32 Late);
+// Writes one stats line covering the last IntervalSeconds, then resets the counters.
+internal void ServerFormatStats(server *Server, double IntervalSeconds, char *Out, u32 OutSize);
 // Tells every client the server is going away, then closes the socket.
 internal void ServerStop(server *Server);
 

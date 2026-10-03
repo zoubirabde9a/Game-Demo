@@ -43,15 +43,27 @@ main(int ArgCount, char **Args)
 
     double TickSeconds = 1.0 / SERVER_TICK_RATE;
     double NextTick = ClockSeconds();
+    double LastStats = NextTick;
     while (!StopSignalReceived())
     {
+        double TickStart = ClockSeconds();
         ServerTick(&Server);
 
         // Schedule from the ideal time, not from now, so ticks do not drift.
         // If the server fell more than a second behind, stop trying to catch up.
         NextTick += TickSeconds;
         double Now = ClockSeconds();
+        ServerRecordTick(&Server, Now - TickStart, Now > NextTick);
         if (Now - NextTick > 1.0) NextTick = Now;
+
+        if (Now - LastStats >= SERVER_STATS_SECONDS)
+        {
+            char Line[256];
+            ServerFormatStats(&Server, Now - LastStats, Line, sizeof(Line));
+            ServerLog(&Server, "%s", Line);
+            LastStats = Now;
+        }
+
         if (NextTick > Now) ClockSleep(NextTick - Now);
     }
 

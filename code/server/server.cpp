@@ -16,7 +16,11 @@ ServerSend(server *Server, net_address To, net_packet *Packet)
 {
     u8 Buffer[NET_MAX_PACKET_SIZE];
     u32 Size = NetWritePacket(Packet, Buffer, sizeof(Buffer));
-    if (Size) NetSendTo(&Server->Socket, To, Buffer, Size);
+    if (Size && NetSendTo(&Server->Socket, To, Buffer, Size))
+    {
+        Server->Stats.PacketsOut++;
+        Server->Stats.BytesOut += Size;
+    }
 }
 
 // One line per event on stdout; a service manager (systemd) adds the timestamps.
@@ -43,6 +47,32 @@ ServerPlayerCount(server *Server)
     return Count;
 }
 
+internal void
+ServerRecordTick(server *Server, double Seconds, bool32 Late)
+{
+    server_stats *Stats = &Server->Stats;
+    Stats->Ticks++;
+    Stats->TickSecondsTotal += Seconds;
+    if (Seconds > Stats->TickSecondsMax) Stats->TickSecondsMax = Seconds;
+    if (Late) Stats->LateTicks++;
+}
+
+internal void
+ServerFormatStats(server *Server, double IntervalSeconds, char *Out, u32 OutSize)
+{
+    server_stats *S = &Server->Stats;
+    double PerSecond = IntervalSeconds > 0 ? 1.0 / IntervalSeconds : 0;
+    double AverageMs = S->Ticks ? 1000.0 * S->TickSecondsTotal / S->Ticks : 0;
+    snprintf(Out, OutSize,
+             "stats over %.0f s: %u/%u players, tick avg %.2f ms max %.2f ms of %.1f, %u late, "
+             "in %u pkt %.1f KB (%u bad), out %u pkt %.1f KB (%.1f KB/s)",
+             IntervalSeconds, ServerPlayerCount(Server), NET_MAX_CLIENTS,
+             AverageMs, 1000.0 * S->TickSecondsMax, 1000.0 / SERVER_TICK_RATE, S->LateTicks,
+             S->PacketsIn, S->BytesIn / 1024.0, S->BadPacketsIn,
+             S->PacketsOut, S->BytesOut / 1024.0, S->BytesOut * PerSecond / 1024.0);
+    *S = {};
+}
+
 #define ADDRESS_FORMAT "%u.%u.%u.%u:%u"
 #define ADDRESS_ARGS(A) (A).Ip >> 24, ((A).Ip >> 16) & 255, ((A).Ip >> 8) & 255, (A).Ip & 255, (A).Port
 
@@ -63,8 +93,14 @@ ServerReceiveAll(server *Server)
     u32 Size;
     while ((Size = NetReceiveFrom(&Server->Socket, &From, Buffer, sizeof(Buffer))) != 0)
     {
+        Server->Stats.PacketsIn++;
+        Server->Stats.BytesIn += Size;
         net_packet Packet;
-        if (!NetReadPacket(Buffer, Size, &Packet)) continue;
+        if (!NetReadPacket(Buffer, Size, &Packet))
+        {
+            Server->Stats.BadPacketsIn++;
+            continue;
+        }
 
         net_receive_result Result = NetServerReceive(&Server->Clients, From, &Packet, Server->Tick);
         switch (Result.Event)

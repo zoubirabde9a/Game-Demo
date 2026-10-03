@@ -263,6 +263,40 @@ TestClientNoticesSilentServer()
 }
 
 internal void
+TestStatsCountTrafficAndTicks()
+{
+    static server Server;
+    static net_client Client;
+    Check(ServerStart(&Server, 0));
+    Check(NetClientConnect(&Client, LocalServer(&Server), 55));
+    for (int Frame = 0; Frame < 120 && !Client.HasSnapshot; ++Frame) StepBoth(&Server, &Client, 1, 0);
+    Check(Client.HasSnapshot);
+
+    // Junk from the internet is counted, not crashed on.
+    u8 Junk[16] = {1, 2, 3};
+    NetSendTo(&Client.Socket, LocalServer(&Server), Junk, sizeof(Junk));
+    for (int Index = 0; Index < 20; ++Index) ServerTick(&Server);
+
+    server_stats *S = &Server.Stats;
+    Check(S->PacketsIn > 2 && S->BytesIn > 0);
+    Check(S->PacketsOut > 2 && S->BytesOut > S->PacketsOut * 10);
+    Check(S->BadPacketsIn == 1);
+
+    ServerRecordTick(&Server, 0.002, false);
+    ServerRecordTick(&Server, 0.010, true);
+    char Line[256];
+    ServerFormatStats(&Server, 2.0, Line, sizeof(Line));
+    Check(strstr(Line, "1/8 players") != 0);
+    Check(strstr(Line, "tick avg 6.00 ms max 10.00 ms") != 0);
+    Check(strstr(Line, "1 late") != 0);
+    Check(strstr(Line, "1 bad") != 0);
+    Check(Server.Stats.PacketsIn == 0 && Server.Stats.Ticks == 0); // reset after the line
+
+    NetClientDisconnect(&Client);
+    ServerStop(&Server);
+}
+
+internal void
 TestSnapshotCarriesMonsterWindup()
 {
     static server_game Game;
@@ -322,6 +356,7 @@ main()
     TestClientGivesUpWithoutServer();
     TestClientNoticesSilentServer();
     TestSnapshotCarriesMonsterWindup();
+    TestStatsCountTrafficAndTicks();
     NetSocketsShutdown();
 
     printf("server tests: %d checks, %d failed\n", TestChecks, TestFailures);
