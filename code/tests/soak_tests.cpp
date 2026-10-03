@@ -87,6 +87,15 @@ CheckChunks(world *World)
         chunk_range Range = GetChunkRange(World, Box);
         u32 Expected = (u32)((Range.MaxX - Range.MinX + 1) * (Range.MaxY - Range.MinY + 1) *
                              (Range.MaxZ - Range.MinZ + 1));
+        // NOTE(zoubir): wholly off a bounded map, an entity is in no chunk:
+        // nothing can hit it or see it, and it would never be cleaned up
+        if (Expected == 0)
+        {
+            printf("  entity %u (type %d, kind %d, ability %u) at (%.1f, %.1f) is off the map, in no chunk\n",
+                   Index, (int)Entity->Type, (int)Entity->MonsterKind, Entity->AbilityIndex,
+                   Entity->Position.X, Entity->Position.Y);
+        }
+        Require(Expected > 0);
         if (Listed[Index] != Expected)
         {
             printf("  entity %u (type %d) at (%.1f, %.1f, %.1f) is in %u chunks, its box covers %u\n",
