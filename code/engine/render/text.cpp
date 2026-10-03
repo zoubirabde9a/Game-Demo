@@ -1,5 +1,6 @@
-/* Fonts and text: baking a TrueType font into a texture, measuring text,
-   and drawing a line of it clipped to a box (left or centred). */
+/* Fonts and text: baking a TrueType font into a texture (0 when the
+   file is missing), measuring text, and drawing a line of it clipped to
+   a box (left or centred). */
 
 internal font *
 CreateFont(open_gl *OpenGL,
@@ -8,6 +9,14 @@ CreateFont(open_gl *OpenGL,
               int BitmapWidth, int BitmapHeight,
               char *FilePath)
 {
+    //TODO(zoubir): make this arena readfile
+    debug_read_file_result ReadResult =
+        Platform.ReadEntireFile(FilePath);
+    if (!ReadResult.Memory)
+    {
+        return 0;
+    }
+
     // TODO(zoubir): check if the memory is zeroed
     font *Font = AllocateStruct(Arena, font);
 
@@ -22,9 +31,6 @@ CreateFont(open_gl *OpenGL,
     Font->BitmapHeight = BitmapHeight;
     int BitmapSize = BitmapWidth * BitmapHeight;
 
-    //TODO(zoubir): make this arena readfile
-    debug_read_file_result ReadResult =
-        Platform.ReadEntireFile(FilePath);
     temporary_memory TemporaryMemory = BeginTemporaryMemory(Arena);
     void *BitmapMemory = AllocateSize(Arena, BitmapSize);
     
@@ -76,6 +82,20 @@ CreateFont(open_gl *OpenGL,
     EndTemporaryMemory(TemporaryMemory);
     
     return Font;
+}
+
+// NOTE(zoubir): the first path that loads wins; 0 when none does
+internal font *
+CreateFirstFont(open_gl *OpenGL, memory_arena *Arena, float FontSize,
+                char **Paths, u32 PathCount)
+{
+    font *Result = 0;
+    for(u32 PathIndex = 0; !Result && PathIndex < PathCount; PathIndex++)
+    {
+        Result = CreateFont(OpenGL, Arena, FontSize, 512, 512,
+                            Paths[PathIndex]);
+    }
+    return Result;
 }
 
 inline v4

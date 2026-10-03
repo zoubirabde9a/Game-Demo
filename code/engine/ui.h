@@ -11,6 +11,15 @@
 struct app_state;
 struct font;
 
+// NOTE(zoubir): one font per job, loaded by LoadUIFonts. Any of them is
+// 0 when no font file was found, so check before drawing text
+struct font_set
+{
+    font *Small;   // hints, labels over players, small print
+    font *Body;    // HUD text, buttons, edit boxes
+    font *Title;   // screen headings, the respawn countdown
+};
+
 enum ui_element_type
 {
     UIE_Invalid,

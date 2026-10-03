@@ -74,6 +74,8 @@ struct app_state
     memory_arena ConstantsArena;
 
     
+    // NOTE(zoubir): DefaultFont is Fonts.Body
+    font_set Fonts;
     font *DefaultFont;    
     texture_cache *TextureCache;
     ui_context *UIContext;

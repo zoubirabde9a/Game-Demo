@@ -12,6 +12,7 @@
    flushes the pass. */
 
 #include "ui/context.cpp"
+#include "ui/fonts.cpp"
 
 internal void
 UIBegin(render_context *RenderContext,

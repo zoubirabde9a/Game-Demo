@@ -10,6 +10,8 @@ build/*.dll
 build/server
 # Runtime copy the exe makes so app.dll can be hot-reloaded
 app_temp.dll
+# build.bat copies these from web/fonts
+build/fonts/
 # art.bat previews
 build/monster_art/
 build/probe

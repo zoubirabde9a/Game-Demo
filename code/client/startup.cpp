@@ -1,5 +1,5 @@
 /* Client startup: everything the first frame sets up before the game can
-   run. Memory arenas, audio, OpenGL, assets and the font, the simulation
+   run. Memory arenas, audio, OpenGL, assets and the fonts, the simulation
    with the local player and familiar, and the online session if a server
    address is configured. */
 
@@ -40,8 +40,8 @@ StartClient(app_state *AppState, transient_state *TransientState,
 
     temporary_memory TempMem = BeginTemporaryMemory(TransientArena);
     AppState->TextureCache = TextureCacheCreate(MemoryArena, 8, 20 * 8);
-    AppState->DefaultFont = CreateFont(OpenGL, MemoryArena, 24.f, 512, 512,
-                                       "c:/windows/fonts/times.ttf");
+    LoadUIFonts(&AppState->Fonts, OpenGL, MemoryArena);
+    AppState->DefaultFont = AppState->Fonts.Body;
     AppState->UIContext = UIContextCreate(MemoryArena, UI_COUNT);
 
     // NOTE(zoubir): developer switch until the server picks the map:

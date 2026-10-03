@@ -109,9 +109,8 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile)
                                     OPEN_EXISTING, 0, 0);
     if (fileHandle == INVALID_HANDLE_VALUE)
     {
-        DWORD error = GetLastError();
-        // TODO(zoubir): Logging
-        Assert(0);
+        // NOTE(zoubir): a missing file is a normal answer (the font
+        // loader tries several paths); callers check result.Memory
         return result;
     }
 
