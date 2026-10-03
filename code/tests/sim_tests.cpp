@@ -585,48 +585,6 @@ TestCrowdedChunkRemovalKeepsEveryone()
     DestroyTestWorld(&Test);
 }
 
-// NOTE(zoubir): the full simulation under random play. Seed 5 used to
-// crash after about 8000 ticks on the chunk bug above.
-internal void
-TestRandomPlaySoak()
-{
-    app_state *AppState = (app_state *)calloc(1, sizeof(app_state));
-    memory_index Size = Megabytes(48);
-    memory_arena Arena, Constants;
-    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
-    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)),
-                    Megabytes(1));
-    InitSimulation(AppState, &Arena, &Constants);
-    for(u32 Slot = 0; Slot < 4; Slot++)
-    {
-        AddPlayerToSlot(AppState, &AppState->World, &Arena, Slot,
-                        PlayerSpawnPosition(&AppState->World, Slot));
-    }
-    random_series Series = Seed(5);
-    u32 Ticks = 60 * 180;
-    for(u32 Tick = 0; Tick < Ticks; Tick++)
-    {
-        for(u32 Slot = 0; Slot < 4; Slot++)
-        {
-            player_input *Input = &AppState->Players[Slot].Input;
-            if (RandomChoice(&Series, 20) == 0)
-            {
-                Input->Move.X = (float)RandomChoice(&Series, 3) - 1.f;
-                Input->Move.Y = (float)RandomChoice(&Series, 3) - 1.f;
-            }
-            Input->Pressed = RandomChoice(&Series, 10) == 0 ?
-                (1u << RandomChoice(&Series, 5)) : 0;
-        }
-        SimulateTick(AppState, &Arena,
-                     RandomBetween(&Series, 0.005f, 0.05f));
-        AppState->Events.Count = 0;
-    }
-    Check(CountLiveMonsters(&AppState->World) > 0);
-    free(Arena.Base);
-    free(Constants.Base);
-    free(AppState);
-}
-
 // NOTE(zoubir): switching maps (the offline map picker, joining a server
 // on another map) empties the world arena first, so going round every map
 // twice, playing each, ends using what one visit to the map used
@@ -772,7 +730,6 @@ main()
     RUN(TestDeadPlayerIsInertUntilRespawn);
     RUN(TestScoreboardRanksByKillsThenDeaths);
     RUN(TestCrowdedChunkRemovalKeepsEveryone);
-    RUN(TestRandomPlaySoak);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
     RUN(TestAnimationAdvancesWithoutTexture);

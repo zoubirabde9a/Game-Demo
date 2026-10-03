@@ -450,6 +450,50 @@ TestOverlapsAreSeparated()
 // Usage: soak_tests [minutes] [seeds] [map]. With no map, the seeds play
 // the Old Arena and one more seed plays each other map, so a hand-made map
 // is soaked as well as the infinite ones.
+// NOTE(zoubir): the bare simulation (no server) under random play with a
+// random frame time, 4 players for 3 minutes. Seed 5 used to crash after
+// about 8000 ticks on a chunk bug. Moved here from sim_tests.cpp, where
+// it took 18 of its 24 seconds; here it runs as one more soak part.
+internal void
+TestRandomPlaySoak()
+{
+    app_state *AppState = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(48);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)),
+                    Megabytes(1));
+    InitSimulation(AppState, &Arena, &Constants);
+    for(u32 Slot = 0; Slot < 4; Slot++)
+    {
+        AddPlayerToSlot(AppState, &AppState->World, &Arena, Slot,
+                        PlayerSpawnPosition(&AppState->World, Slot));
+    }
+    random_series Series = Seed(5);
+    u32 Ticks = 60 * 180;
+    for(u32 Tick = 0; Tick < Ticks; Tick++)
+    {
+        for(u32 Slot = 0; Slot < 4; Slot++)
+        {
+            player_input *Input = &AppState->Players[Slot].Input;
+            if (RandomChoice(&Series, 20) == 0)
+            {
+                Input->Move.X = (float)RandomChoice(&Series, 3) - 1.f;
+                Input->Move.Y = (float)RandomChoice(&Series, 3) - 1.f;
+            }
+            Input->Pressed = RandomChoice(&Series, 10) == 0 ?
+                (1u << RandomChoice(&Series, 5)) : 0;
+        }
+        SimulateTick(AppState, &Arena,
+                     RandomBetween(&Series, 0.005f, 0.05f));
+        AppState->Events.Count = 0;
+    }
+    if (CountLiveMonsters(&AppState->World) == 0) Fail("monsters still alive", __LINE__);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(AppState);
+}
+
 int
 main(int ArgCount, char **Args)
 {
@@ -504,6 +548,12 @@ main(int ArgCount, char **Args)
     for (u32 Run = Part; Run < RunCount; Run += Parts)
     {
         SoakOneSeed(RunSeed[Run], Minutes, RunMap[Run]);
+    }
+    // The random-frame-time regression is one more run after the others.
+    if (OnlyMap == MapId_Count && RunCount % Parts == Part)
+    {
+        printf("  random play, 4 players, 3 min of random frame times\n");
+        TestRandomPlaySoak();
     }
     printf("soak tests: %s\n", TestFailures ? "FAILED" : "all seeds passed");
     return TestFailures ? 1 : 0;
