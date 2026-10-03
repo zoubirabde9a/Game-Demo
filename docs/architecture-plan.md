@@ -11,7 +11,7 @@ Rules for every step:
 
 ## Steps
 
-- [ ] 1. `app.cpp` frame becomes an outline. `AppUpdateAndRender` reads as: first-frame setup, read input, run the world, draw the world, draw the screens. The tile editor moves to `ui/tile_editor.cpp`, tile-map drawing and the camera to `client/`, startup to one setup call.
+- [x] 1. `app.cpp` frame becomes an outline (546 to 111 lines). `AppUpdateAndRender` reads: first-frame `StartClient` (client/startup.cpp), screen projection, input, `UpdateCamera` (client/camera.cpp), world pass (`BeginWorldPass`, `DrawTileMap` in client/draw_tilemap.cpp, `RunWorldTick`, `DrawWorldEntities`), screens (HUD, scoreboard, `DoTileEditor` in ui/tile_editor.cpp). Dead code removed: an unused visible-chunk box, empty controller and mouse loops, a disabled widget demo, `VertexC`, unused statics.
 - [ ] 2. `entity.cpp`, `entity.h`, `world.cpp`, `world.h` move from the top of `code/` into `sim/` (they are the game rules' movement, collision and map bookkeeping), with `sim_module.cpp` updated.
 - [ ] 3. `MoveEntity` (about 400 lines) splits into named steps: gather nearby colliders, sweep against them, resolve the hit, refresh the ground height.
 - [ ] 4. `UpdatePlayer` (about 300 lines) splits into: read input into actions, run the action queue (attack, cast), abilities (dash, jump, shockwave), movement and animation.
