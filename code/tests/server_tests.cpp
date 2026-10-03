@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include "../server/server.cpp"
+#include "lossy_link.h"
 
 global_variable int TestFailures;
 global_variable int TestChecks;
@@ -262,6 +263,101 @@ TestClientNoticesSilentServer()
     ServerStop(&Server);
 }
 
+// Counts fireballs that appeared this tick: an entity slot that holds a
+// present fireball now and did not on the previous call.
+internal u32
+CountNewFireballs(world *World, bool32 *WasFireball)
+{
+    u32 New = 0;
+    for (u32 Index = 0; Index < World->EntityCount; ++Index)
+    {
+        world_entity *Entity = &World->Entities[Index];
+        bool32 IsFireball = Entity->IsPresent && Entity->Type == EntityType_FireBall;
+        if (IsFireball && !WasFireball[Index]) ++New;
+        WasFireball[Index] = IsFireball;
+    }
+    return New;
+}
+
+struct link_result
+{
+    bool32 Connected;
+    bool32 StayedConnected;
+    float MovedRight;
+    u32 Fireballs;
+    u32 Dropped, Duplicated;
+};
+
+// One player joins through a link with the given faults, walks right for
+// two seconds, then taps fireball Taps times, half a second apart.
+internal link_result
+PlayThroughLink(u32 DropPercent, u32 DuplicatePercent, u32 MaxDelayFrames, u32 Taps)
+{
+    link_result Result = {};
+    static server Server;
+    static net_client Client;
+    static lossy_link Link;
+    static bool32 WasFireball[4096];
+    memset(WasFireball, 0, sizeof(WasFireball));
+
+    Check(ServerStart(&Server, 0));
+    Check(LossyOpen(&Link, LocalServer(&Server), DropPercent, DuplicatePercent, MaxDelayFrames, 7));
+    Check(NetClientConnect(&Client, LossyAddress(&Link), 99));
+
+    // One frame: client sends, the relay carries it, the server ticks, the relay carries replies.
+    #define FRAME(Buttons) do { NetClientUpdate(&Client, 1.0f / SERVER_TICK_RATE, (Buttons), 0, 0); \
+                                LossyPump(&Link); ServerTick(&Server); LossyPump(&Link); \
+                                Result.Fireballs += CountNewFireballs(&Server.Game.AppState->World, WasFireball); } while (0)
+
+    for (int Frame = 0; Frame < 5 * SERVER_TICK_RATE && Client.State != NetClient_Connected; ++Frame) FRAME(0);
+    Result.Connected = Client.State == NetClient_Connected;
+    if (!Result.Connected) { ServerStop(&Server); return Result; }
+
+    world_entity *Player = Server.Game.AppState->Players[Client.PlayerIndex].Entity;
+    float StartX = Player->Position.X;
+    for (int Frame = 0; Frame < 2 * SERVER_TICK_RATE; ++Frame) FRAME(NetButton_Right);
+    for (int Frame = 0; Frame < SERVER_TICK_RATE / 2; ++Frame) FRAME(0);
+    Result.MovedRight = Player->Position.X - StartX;
+
+    Result.Fireballs = 0;
+    for (u32 Tap = 0; Tap < Taps; ++Tap)
+    {
+        FRAME(NetButton_Fireball); // held for a single frame
+        for (int Frame = 0; Frame < SERVER_TICK_RATE / 2; ++Frame) FRAME(0);
+    }
+    #undef FRAME
+
+    Result.StayedConnected = Client.State == NetClient_Connected;
+    Result.Dropped = Link.Dropped;
+    Result.Duplicated = Link.Duplicated;
+    NetClientDisconnect(&Client);
+    NetCloseSocket(&Link.Socket);
+    ServerStop(&Server);
+    return Result;
+}
+
+internal void
+TestPlayOverBadConnection()
+{
+    // Baseline over a clean link, so the bad-link numbers have something to match.
+    link_result Clean = PlayThroughLink(0, 0, 0, 10);
+    Check(Clean.Connected && Clean.StayedConnected);
+    Check(Clean.MovedRight > 50.0f);
+    Check(Clean.Fireballs == 10);
+
+    // A quarter of packets lost each way, some doubled, delays up to 100 ms
+    // that reorder packets. Every tap must still cast exactly one fireball:
+    // each input packet repeats the last 8 inputs, and the server applies
+    // each input tick once.
+    link_result Bad = PlayThroughLink(25, 10, 6, 10);
+    printf("  bad link: %u dropped, %u duplicated; moved %.0f (clean %.0f), %u of 10 fireballs\n",
+           Bad.Dropped, Bad.Duplicated, Bad.MovedRight, Clean.MovedRight, Bad.Fireballs);
+    Check(Bad.Dropped > 50 && Bad.Duplicated > 10);
+    Check(Bad.Connected && Bad.StayedConnected);
+    Check(Bad.MovedRight > 0.8f * Clean.MovedRight);
+    Check(Bad.Fireballs == 10);
+}
+
 internal void
 TestStatsCountTrafficAndTicks()
 {
@@ -357,6 +453,7 @@ main()
     TestClientNoticesSilentServer();
     TestSnapshotCarriesMonsterWindup();
     TestStatsCountTrafficAndTicks();
+    TestPlayOverBadConnection();
     NetSocketsShutdown();
 
     printf("server tests: %d checks, %d failed\n", TestChecks, TestFailures);
