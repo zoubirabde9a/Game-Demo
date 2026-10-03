@@ -153,6 +153,44 @@ TestFastUnitDoesNotTunnel()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a unit whose edge clips a wall's corner by a few units
+// slips past it instead of stopping dead, both across and along its width
+internal void
+TestUnitSlipsPastWallCorner()
+{
+    test_world Test = CreateTestWorld();
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0},
+                  Test.WallVolume);
+    // NOTE(zoubir): Y overlap with the wall is 16 + 4 - 17 = 3 units
+    world_entity *Across = AddTestEntity(&Test, EntityType_Player,
+                                         {330, 283, 0}, Test.UnitVolume);
+    Walk(&Test, Across, {1, 0}, 120);
+    Check(Across->Position.X > 450.f);
+    Check(Across->Position.Y < 281.f);
+
+    // NOTE(zoubir): X overlap is 15 + 16 - 27 = 4 units
+    world_entity *Down = AddTestEntity(&Test, EntityType_Player,
+                                       {373, 230, 0}, Test.UnitVolume);
+    Walk(&Test, Down, {0, 1}, 120);
+    Check(Down->Position.Y > 330.f);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): square on to a wall, or half across it, still stops
+internal void
+TestUnitDoesNotSlipFromMiddleOfWall()
+{
+    test_world Test = CreateTestWorld();
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0},
+                  Test.WallVolume);
+    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
+                                         {300, 292, 0}, Test.UnitVolume);
+    Walk(&Test, Player, {1, 0}, 120);
+    Check(Player->Position.X + 15.f <= 384.01f);
+    Check(Player->Position.Y == 292.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunCollisionTests()
 {
@@ -172,4 +210,8 @@ RunCollisionTests()
     TestOverlappingUnitsCanSeparate();
     printf("TestFastUnitDoesNotTunnel\n");
     TestFastUnitDoesNotTunnel();
+    printf("TestUnitSlipsPastWallCorner\n");
+    TestUnitSlipsPastWallCorner();
+    printf("TestUnitDoesNotSlipFromMiddleOfWall\n");
+    TestUnitDoesNotSlipFromMiddleOfWall();
 }

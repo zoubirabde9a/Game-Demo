@@ -38,15 +38,6 @@ CanSweepAgainst(app_state *AppState, world_entity *Entity, world_entity *Other)
 // as already inside each other; resting contact is closer than this
 #define MOVE_OVERLAP_EPSILON 0.01f
 
-inline bool32
-IsWalkingUnit(world_entity *Entity)
-{
-    bool32 Result = (Entity->Type == EntityType_Player ||
-                     Entity->Type == EntityType_Monster ||
-                     Entity->Type == EntityType_Familiar);
-    return Result;
-}
-
 // NOTE(zoubir): per axis, how far a point Rel lies inside a box of half
 // size Diameter centred on 0 (negative outside)
 inline v3
@@ -136,8 +127,8 @@ SweepAgainstEntity(world_entity *Entity, v3 From, v3 Delta,
                 {
                     {MinCorner.X, Rel.X, Rel.Y, Rel.Z, Delta.X, Delta.Y, Delta.Z, MinCorner.Y, MaxCorner.Y, MinCorner.Z, MaxCorner.Z, {-1, 0, 0}},
                     {MaxCorner.X, Rel.X, Rel.Y, Rel.Z, Delta.X, Delta.Y, Delta.Z, MinCorner.Y, MaxCorner.Y, MinCorner.Z, MaxCorner.Z, {1, 0, 0}},
-                    {MinCorner.Y, Rel.Y, Rel.X, Rel.Z, Delta.Y, Delta.X, Delta.Z, MinCorner.X, MaxCorner.X, MinCorner.Z, MaxCorner.Z, {0, 1, 0}},
-                    {MaxCorner.Y, Rel.Y, Rel.X, Rel.Z, Delta.Y, Delta.X, Delta.Z, MinCorner.X, MaxCorner.X, MinCorner.Z, MaxCorner.Z, {0, -1, 0}},
+                    {MinCorner.Y, Rel.Y, Rel.X, Rel.Z, Delta.Y, Delta.X, Delta.Z, MinCorner.X, MaxCorner.X, MinCorner.Z, MaxCorner.Z, {0, -1, 0}},
+                    {MaxCorner.Y, Rel.Y, Rel.X, Rel.Z, Delta.Y, Delta.X, Delta.Z, MinCorner.X, MaxCorner.X, MinCorner.Z, MaxCorner.Z, {0, 1, 0}},
                     {MinCorner.Z, Rel.Z, Rel.Y, Rel.X, Delta.Z, Delta.Y, Delta.X, MinCorner.Y, MaxCorner.Y, MinCorner.X, MaxCorner.X, {0, 0, -1}},
                     {MaxCorner.Z, Rel.Z, Rel.Y, Rel.X, Delta.Z, Delta.Y, Delta.X, MinCorner.Y, MaxCorner.Y, MinCorner.X, MaxCorner.X, {0, 0, 1}}
                 };
@@ -181,7 +172,8 @@ CheckOverlapsWith(app_state *AppState, world *World, memory_arena *Arena,
 
 // NOTE(zoubir): what a hit does to the rest of the move. Blocking hits
 // slide along the wall (the part of the move and velocity into it is
-// removed); pass-through hits (fireball into monster) get a rule so the
+// removed), and a unit that only clipped an edge slips past it
+// (corner_slip.cpp); pass-through hits (fireball into monster) get a rule so the
 // pair stops colliding, and the rest of the move carries on. Returns false
 // when the hit removed Entity itself.
 internal bool32
@@ -202,6 +194,7 @@ ResolveMoveHit(app_state *AppState, world *World, memory_arena *Arena,
             1.f * DotProduct(Entity->Velocity, Normal) * Normal;
         v3 DeltaLeft = *Delta - AllowedDelta;
         *Delta = DeltaLeft - 1.f * DotProduct(DeltaLeft, Normal) * Normal;
+        SlipPastCorner(Entity, Other, Normal, DeltaLeft, Delta);
     }
     else
     {
