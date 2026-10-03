@@ -194,6 +194,33 @@ TestSwordSwingStartsOneArc()
 }
 
 internal void
+TestDashGoesWhereKeysPointElseTowardAim()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Still = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                          0, {300, 300, 0});
+    world_entity *Runner = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           1, {300, 700, 0});
+    // NOTE(zoubir): standing still, the dash used to go nowhere
+    AppState->Players[0].Input.Aim = V2(0.f, 1.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Dash;
+    RunPlayerFrames(&Test, 0, 20);
+    Check(Still->Position.Y > 340.f);
+    Check(Absolute(Still->Position.X - 300.f) < 1.f);
+    Check(Still->DashCooldown > 0.f);
+
+    // NOTE(zoubir): moving, the keys win over the aim
+    AppState->Players[1].Input.Move = V2(-1.f, 0.f);
+    AppState->Players[1].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[1].Input.Pressed = PlayerButton_Dash;
+    RunPlayerFrames(&Test, 1, 20);
+    Check(Runner->Position.X < 300.f - 60.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 RunPlayerAbilityTests()
 {
     printf("TestFireBallFliesTowardAim\n");
@@ -208,4 +235,6 @@ RunPlayerAbilityTests()
     TestShockwaveStartsOneRing();
     printf("TestSwordSwingStartsOneArc\n");
     TestSwordSwingStartsOneArc();
+    printf("TestDashGoesWhereKeysPointElseTowardAim\n");
+    TestDashGoesWhereKeysPointElseTowardAim();
 }

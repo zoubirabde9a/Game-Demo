@@ -12,3 +12,5 @@
     // NOTE(zoubir): seconds left in which the player cannot walk, set when
     // a swing or cast starts; the rest of the animation can be walked out of
     float ActionLock;
+    // NOTE(zoubir): seconds left on the dash streak clients draw
+    float DashFlash;

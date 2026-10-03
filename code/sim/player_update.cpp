@@ -14,6 +14,8 @@
       swing or cast roots the player only for its short ActionLock, then
       the player walks (slower) while the animation finishes.
    5. UsePlayerAbilities: jump, shockwave and dash, with their cooldowns.
+      Dash bursts the way the keys point, or toward the aim when standing,
+      and cancels a swing's or cast's root.
    6. PickPlayerAnimation: which animation to play; the body faces the
       aim, not the way it walks.
    7. MovePlayer: acceleration, ground friction and gravity into
@@ -29,6 +31,10 @@
 #define PLAYER_SWING_LOCK 0.08f
 #define PLAYER_CAST_LOCK 0.05f
 #define PLAYER_ACTION_MOVE_SCALE 0.7f
+// NOTE(zoubir): dash speed; ground drag brings it back to a walk in about
+// a quarter second, about 65 units travelled
+#define PLAYER_DASH_SPEED 650.f
+#define PLAYER_DASH_FLASH_SECONDS 0.15f
 
 // NOTE(zoubir): what one tick of the player decides, handed between steps
 struct player_tick
@@ -296,11 +302,22 @@ UsePlayerAbilities(app_state *AppState, world *World, player_slot *Slot,
     }
 
     Player->DashCooldown = Maximum(0.f, Player->DashCooldown - DeltaTime);
+    Player->DashFlash = Maximum(0.f, Player->DashFlash - DeltaTime);
     if (WasPressed(Input, PlayerButton_Dash) &&
         Player->DashCooldown <= 0.f)
     {
+        // NOTE(zoubir): used to scale one tick's push, so standing still
+        // spent the cooldown and went nowhere
+        v2 Dir = GetPlayerAim(Player);
+        float HeldSquared = LengthSq(Input->Move);
+        if (HeldSquared > 0.0001f)
+        {
+            Dir = Input->Move * (1.f / SquareRoot(HeldSquared));
+        }
+        Player->Velocity.XY = PLAYER_DASH_SPEED * Dir;
+        Player->ActionLock = 0.f;
         Player->DashCooldown = PLAYER_DASH_COOLDOWN;
-        Tick->Acceleration *= 10;
+        Player->DashFlash = PLAYER_DASH_FLASH_SECONDS;
         EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
     }
 }

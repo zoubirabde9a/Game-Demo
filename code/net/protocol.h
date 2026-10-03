@@ -92,7 +92,7 @@ struct net_entity_state
     u8 Affix;      // 3 bits: elite affix of a monster, shot or hazard
     u8 Status;     // 3 bits: bit N set while status effect N + 1 is active
     u8 Ability;    // 2 bits: AbilityIndex of a monster shot or hazard;
-                   // for a player, PLAYER_FLASH_SHOCKWAVE (sim/player.h)
+                   // for a player, PLAYER_FLASH_* bits (sim/player.h)
     i16 Health;
     // Sent as 16-bit fixed point: positions to 1/8 unit within +-4096,
     // velocities to 1/4 unit per second within +-8192. Values outside are clamped.

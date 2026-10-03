@@ -10,6 +10,7 @@
 // NOTE(zoubir): bit the server sets in a player's snapshot Ability (the
 // replica's AbilityIndex) while its shockwave ring shows
 #define PLAYER_FLASH_SHOCKWAVE 1
+#define PLAYER_FLASH_DASH 2
 
 // NOTE(zoubir): buttons pressed this tick (edge, not held)
 enum player_button
