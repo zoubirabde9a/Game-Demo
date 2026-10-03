@@ -3,9 +3,12 @@ A Demo Game made in OpenGL from scratch using WIN32 api.
 
 controls:
 
-Z, S, Q, D for movement
-Space for jump
-Alt for sprint
+- Z, Q, S, D: move
+- Space: jump (from the ground)
+- Alt: dash (recharges in 0.8 s, shown by the small bar under health)
+- Left click: fireball
+- Right click: sword
+- F3: tile editor
 
 ![alt text](https://i.ibb.co/VwQYmWv/1.jpg)
 ![alt text](https://i.ibb.co/Vvz0MMw/2.jpg)

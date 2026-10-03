@@ -287,15 +287,19 @@ UpdatePlayer(world_entity *Player, world *World,
 
     }
     
-    if (Input->SpaceButton.Pressed)
+    // NOTE(zoubir): only from the ground, pressing again mid-air used
+    // to restart the jump and let the player fly
+    if (Input->SpaceButton.Pressed && !Jumping)
     {
         Player->State = EntityState_Jumping;
         Player->Velocity.Z = 230.f;
         PlaySound(AppState, {AssetType_ZoubirAudio});
     }
     
-    if (Input->AltButton.Pressed)
+    Player->DashCooldown = Maximum(0.f, Player->DashCooldown - DeltaTime);
+    if (Input->AltButton.Pressed && Player->DashCooldown <= 0.f)
     {
+        Player->DashCooldown = PLAYER_DASH_COOLDOWN;
         PlayerAcceleration *= 10;
         PlaySound(AppState, {AssetType_Dash});
     }

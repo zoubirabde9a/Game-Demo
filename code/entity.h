@@ -102,6 +102,8 @@ struct entity_collision_volume_group
     entity_collision_volume *Volumes;
 };
 
+#define PLAYER_DASH_COOLDOWN 0.8f
+
 struct world_entity
 {
     u32 ID;
@@ -140,6 +142,8 @@ struct world_entity
     float MaxHp;
     // NOTE(zoubir): seconds until a monster can hit again
     float AttackCooldown;
+    // NOTE(zoubir): seconds until the player can dash again
+    float DashCooldown;
     
     u32 UpdateID;
     
