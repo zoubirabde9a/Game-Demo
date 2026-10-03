@@ -1,6 +1,7 @@
 @echo off
 REM Lands this worktree's branch on main, the way AGENTS.md section 5 asks:
-REM rebase on main, run test.bat, build.bat and build.bat release, then
+REM rebase on main, run test.bat, build.bat, build.bat release and
+REM build_server.bat, then
 REM fast-forward main to the branch from the main checkout. If main moved
 REM while the tests ran, it rebases and tests again (up to 3 times), so two
 REM changes that pass alone are never merged untested together.
@@ -77,6 +78,13 @@ if errorlevel 1 (
 call "%Root%\build.bat" release >build\land_release.log 2>&1
 if errorlevel 1 (
     echo land: build.bat release failed, see build\land_release.log
+    exit /b 1
+)
+REM The dedicated server, probe and bots: built with warnings as errors,
+REM which the test and game builds above do not catch for server code.
+call "%Root%\build_server.bat" >build\land_server.log 2>&1
+if errorlevel 1 (
+    echo land: build_server.bat failed, see build\land_server.log
     exit /b 1
 )
 

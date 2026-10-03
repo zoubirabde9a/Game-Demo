@@ -184,7 +184,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     world_entity *Own = Game->AppState->Players[ViewerSlot].Entity;
     for (u32 Index = 0; Index < NET_COOLDOWN_COUNT; ++Index)
     {
-        float Full;
+        float Full = 0.f;
         float *Seconds = Own ? PlayerCooldown(Own, Index, &Full) : 0;
         Out->Cooldowns[Index] = Seconds ? CooldownToByte(*Seconds, Full) : 0;
     }
