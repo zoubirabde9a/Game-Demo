@@ -2,11 +2,11 @@
 #include <malloc.h>
 #include <windows.h>
 #include <winbase.h>
-#include "third_party/directx/dsound.h"
+#include "../third_party/directx/dsound.h"
 #include <stdio.h>
-#include "third_party/directx/xinput.h"
+#include "../third_party/directx/xinput.h"
 
-#include "app_platform.h"
+#include "../app_platform.h"
 #include "win32_app.h"
 #include "win32_opengl.cpp"
 

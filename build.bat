@@ -27,7 +27,7 @@ cl %CommonCompilerFlags% ..\code\app.cpp -Fmapp.map -LD /link -incremental:no -P
 if %errorlevel% neq 0 set Result=1
 
 REM The Windows platform layer
-cl %CommonCompilerFlags% ..\code\win32_app.cpp -Fmwin32_app.map /link -subsystem:windows,5.02 %CommonLinkerFlags%
+cl %CommonCompilerFlags% ..\code\platform\win32_app.cpp -Fmwin32_app.map /link -subsystem:windows,5.02 %CommonLinkerFlags%
 if %errorlevel% neq 0 set Result=1
 
 popd

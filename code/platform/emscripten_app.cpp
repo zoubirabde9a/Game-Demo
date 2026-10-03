@@ -4,13 +4,13 @@
    $Revision: $
    $Creator: zoubir $
    ======================================================================== */
-#include "third_party/SDL/SDL.h"
+#include "../third_party/SDL/SDL.h"
 //#undef main
 #include <emscripten\emscripten.h>
 #include <GLES3/gl3.h>
-#include "app_platform.h"
+#include "../app_platform.h"
 
-#include "app.cpp"
+#include "../app.cpp"
 
 
 DEBUG_PLATFORM_READ_ENTIRE_FILE(WebReadEntireFile)

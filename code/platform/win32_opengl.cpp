@@ -6,7 +6,7 @@
    ======================================================================== */
 
 #include "windows.h"
-#include "opengl.h"
+#include "../opengl.h"
 
 internal void *
 Win32GetGLFuncAddress(HMODULE OpenglDLL, char *name)
