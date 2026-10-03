@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "../net/protocol.cpp"
 #include "../net/connections.cpp"
 #include "../net/socket.cpp"
@@ -730,6 +731,93 @@ TestStillEntitiesAreSmaller()
     Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
 }
 
+// Fuzz: the server reads datagrams from the whole internet. Random bytes,
+// and real packets of every type with bytes flipped, cut or extended, must
+// be rejected or decode to a packet that writes back out; never crash,
+// never read past the datagram. linux_check.ps1 runs this under
+// AddressSanitizer, which turns any stray read into a failure.
+internal u32
+FuzzRandom(u32 *State)
+{
+    u32 X = *State;
+    X ^= X << 13; X ^= X >> 17; X ^= X << 5;
+    *State = X;
+    return X;
+}
+
+internal void
+TestFuzzedPacketsAreSafe()
+{
+    static net_packet Seeds[5];
+    for (u32 Index = 0; Index < 5; ++Index) Seeds[Index] = {};
+    Seeds[0] = FullSnapshot();
+    Seeds[1].Header.Type = NetPacket_ConnectRequest;
+    Seeds[1].ConnectRequest.ClientSalt = 77;
+    snprintf(Seeds[1].ConnectRequest.Name, NET_NAME_SIZE, "%s", "Fuzzy");
+    Seeds[2].Header.Type = NetPacket_Input;
+    Seeds[2].Input.Count = NET_MAX_INPUTS_PER_PACKET;
+    Seeds[3].Header.Type = NetPacket_InfoReply;
+    Seeds[3].InfoReply.NameCount = 3;
+    Seeds[4].Header.Type = NetPacket_ConnectChallenge;
+
+    static u8 Valid[5][NET_MAX_PACKET_SIZE];
+    u32 ValidSize[5];
+    for (u32 Index = 0; Index < 5; ++Index)
+    {
+        ValidSize[Index] = NetWritePacket(&Seeds[Index], Valid[Index], NET_MAX_PACKET_SIZE);
+        Check(ValidSize[Index] > 0);
+    }
+
+    // NOTE: the datagram lives in a buffer of exactly its size, so a read
+    // past its end is a read past the buffer (caught by AddressSanitizer)
+    static net_packet Out;
+    static u8 Rewritten[NET_MAX_PACKET_SIZE];
+    u32 State = 0x2545f491u;
+    u32 Accepted = 0, WritesBack = 0;
+    for (u32 Round = 0; Round < 300000; ++Round)
+    {
+        u8 *Datagram;
+        u32 Size;
+        u32 Kind = FuzzRandom(&State) % 4;
+        u32 Seed = FuzzRandom(&State) % 5;
+        if (Kind == 0)
+        {
+            Size = FuzzRandom(&State) % 64;
+        }
+        else
+        {
+            Size = ValidSize[Seed];
+            if (Kind == 2) Size = FuzzRandom(&State) % (Size + 1);
+            if (Kind == 3 && Size < NET_MAX_PACKET_SIZE) Size += 1 + FuzzRandom(&State) % 8;
+            if (Size > NET_MAX_PACKET_SIZE) Size = NET_MAX_PACKET_SIZE;
+        }
+        Datagram = (u8 *)malloc(Size ? Size : 1);
+        for (u32 Byte = 0; Byte < Size; ++Byte)
+        {
+            Datagram[Byte] = (Kind == 0 || Byte >= ValidSize[Seed]) ?
+                (u8)FuzzRandom(&State) : Valid[Seed][Byte];
+        }
+        // Keep the protocol id most of the time so the body gets read.
+        if (Kind != 0 && Size >= 4 && FuzzRandom(&State) % 8)
+        {
+            for (u32 Flip = 1 + FuzzRandom(&State) % 4; Flip > 0; --Flip)
+            {
+                u32 At = 4 + FuzzRandom(&State) % (Size > 4 ? Size - 4 : 1);
+                if (At < Size) Datagram[At] ^= (u8)(1u << (FuzzRandom(&State) % 8));
+            }
+        }
+        if (NetReadPacket(Datagram, Size, &Out))
+        {
+            ++Accepted;
+            if (NetWritePacket(&Out, Rewritten, sizeof(Rewritten)) > 0) ++WritesBack;
+        }
+        free(Datagram);
+    }
+    Check(Accepted > 0);
+    Check(WritesBack == Accepted);
+    printf("  fuzz: 300000 datagrams, %u accepted, all of them write back\n", Accepted);
+}
+
 // The wire layout is pinned: one packet of every type, with every field
 // set, is written and its bytes hashed. A change to what goes on the wire
 // must come with a new NET_PROTOCOL_ID, or old and new builds would
@@ -841,6 +929,7 @@ main()
     TestJoiningNeedsTheCookie();
     TestInfoQueryRoundTripsAndIsNotAnAmplifier();
     TestStillEntitiesAreSmaller();
+    TestFuzzedPacketsAreSafe();
     TestWireLayoutIsPinned();
 
     printf("net tests: %d checks, %d failed\n", TestChecks, TestFailures);
