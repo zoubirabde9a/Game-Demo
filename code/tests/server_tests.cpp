@@ -191,6 +191,27 @@ TestPlayerNamesReachEveryone()
 }
 
 internal void
+TestSnapshotsAcknowledgeInputs()
+{
+    static server Server;
+    static net_client Client;
+    Check(ServerStart(&Server, 0));
+    Check(NetClientConnect(&Client, LocalServer(&Server), 77, SimContentId()));
+    for (int Frame = 0; Frame < 120 && !Client.HasSnapshot; ++Frame) StepBoth(&Server, &Client, 1, 0);
+    Check(Client.State == NetClient_Connected);
+
+    // After a few frames the server has applied the client's recent inputs,
+    // and never claims one the client has not sent.
+    StepBoth(&Server, &Client, 30, NetButton_Left);
+    Check(Client.Snapshot.InputTick > 0);
+    Check(Client.Snapshot.InputTick <= Client.InputTick);
+    Check(Client.InputTick - Client.Snapshot.InputTick <= 3);
+
+    NetClientDisconnect(&Client);
+    ServerStop(&Server);
+}
+
+internal void
 TestClientConnectsAndMoves()
 {
     static server Server;
@@ -509,6 +530,7 @@ main()
     TestJoinMoveAndLeave();
     TestQuietClientTimesOut();
     TestClientConnectsAndMoves();
+    TestSnapshotsAcknowledgeInputs();
     TestPlayerNamesReachEveryone();
     TestNinthClientIsTurnedAway();
     TestClientGivesUpWithoutServer();

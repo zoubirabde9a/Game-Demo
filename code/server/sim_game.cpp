@@ -17,6 +17,7 @@ struct server_game
     memory_arena *Arena;
     u16 HeldButtons[NET_MAX_CLIENTS];
     u32 NameTurn; // which slot's name the next snapshots carry
+    u32 LastInputTick[NET_MAX_CLIENTS]; // newest input applied per slot
 };
 
 internal void
@@ -58,6 +59,7 @@ GamePlayerJoined(server_game *Game, u32 Slot)
     AddPlayerToSlot(AppState, &AppState->World, Game->Arena, Slot,
                     PlayerSpawnPosition(Slot));
     Game->HeldButtons[Slot] = 0;
+    Game->LastInputTick[Slot] = 0;
 }
 
 internal void
@@ -65,6 +67,7 @@ GamePlayerLeft(server_game *Game, u32 Slot)
 {
     RemovePlayerFromSlot(Game->AppState, &Game->AppState->World, Slot);
     Game->HeldButtons[Slot] = 0;
+    Game->LastInputTick[Slot] = 0;
 }
 
 internal void
@@ -77,6 +80,7 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     u16 Pressed = Held & ~Game->HeldButtons[Slot];
     Game->HeldButtons[Slot] = Held;
 
+    Game->LastInputTick[Slot] = Input->Tick;
     player_input *Out = &Player->Input;
     Out->Move = {};
     if (Held & NetButton_Left) Out->Move.X -= 1.f;
@@ -215,6 +219,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
 {
     world *World = &Game->AppState->World;
     Out->Count = 0;
+    Out->InputTick = Game->LastInputTick[ViewerSlot];
     Out->AbilityCount = 0;
 
     // The viewer's own player goes first so it is never cut off by the

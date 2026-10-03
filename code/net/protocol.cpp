@@ -118,6 +118,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
         case NetPacket_Snapshot:
         {
             NetU32(S, &P->Snapshot.Tick);
+            NetU32(S, &P->Snapshot.InputTick);
             NetU16(S, &P->Snapshot.Count);
             if (P->Snapshot.Count > NET_MAX_SNAPSHOT_ENTITIES) return false;
             for (u32 Index = 0; Index < P->Snapshot.Count; ++Index)

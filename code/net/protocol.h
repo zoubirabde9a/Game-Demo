@@ -17,7 +17,7 @@
 
 #include "../app_defs.h"
 
-#define NET_PROTOCOL_ID 0x47444d36u // "GDM6", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d37u // "GDM7", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -134,6 +134,9 @@ struct net_score
 struct net_snapshot
 {
     u32 Tick;
+    // Newest net_input.Tick from this client that the server had applied
+    // when it wrote the snapshot; the client replays its inputs after it.
+    u32 InputTick;
     u16 Count;
     net_entity_state Entities[NET_MAX_SNAPSHOT_ENTITIES];
     u8 AbilityCount;

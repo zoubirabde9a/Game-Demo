@@ -43,6 +43,7 @@ FullSnapshot()
     net_packet P = {};
     P.Header = {NetPacket_Snapshot, 7, 3};
     P.Snapshot.Tick = 123456;
+    P.Snapshot.InputTick = 0xfedcba98;
     P.Snapshot.Count = NET_MAX_SNAPSHOT_ENTITIES;
     for (u16 Index = 0; Index < NET_MAX_SNAPSHOT_ENTITIES; ++Index)
     {
@@ -197,6 +198,7 @@ TestFullSnapshotFits()
     net_packet Out = RoundTrip(&In, &Size);
     Check(Size <= NET_MAX_PACKET_SIZE);
     Check(Out.Snapshot.Tick == 123456);
+    Check(Out.Snapshot.InputTick == 0xfedcba98);
     Check(Out.Snapshot.Count == NET_MAX_SNAPSHOT_ENTITIES);
     net_entity_state *Last = &Out.Snapshot.Entities[NET_MAX_SNAPSHOT_ENTITIES - 1];
     Check(Last->Id == 1000 + NET_MAX_SNAPSHOT_ENTITIES - 1);
@@ -309,8 +311,9 @@ TestRejectsBadPackets()
     Check(!NetReadPacket(Buffer, Size, &Out));
     Buffer[4] = NetPacket_Snapshot;
 
-    // Entity count above the limit. Count sits after the 9-byte header and 4-byte tick.
-    Buffer[13] = (u8)(NET_MAX_SNAPSHOT_ENTITIES + 1);
+    // Entity count above the limit. Count sits after the 9-byte header,
+    // the 4-byte tick and the 4-byte input tick.
+    Buffer[17] = (u8)(NET_MAX_SNAPSHOT_ENTITIES + 1);
     Check(!NetReadPacket(Buffer, Size, &Out));
 
     // Input batches must hold 1..NET_MAX_INPUTS_PER_PACKET inputs.
