@@ -1,0 +1,329 @@
+/* Client against server: the game's own client code (net/client.cpp and
+   client/online.cpp) against a real server in the same process, over
+   loopback: joining, prediction agreeing with the server, leaving and
+   rejoining a restarted server, giving up on a silent one, and playing
+   over a lossy link. Included by server_tests.cpp, which calls
+   RunServerClientTests. */
+
+// What the connect screen does: a bad address is refused without a
+// socket, a good one joins, and leaving goes back to the local game.
+internal void
+TestConnectAndLeaveFromTheGame()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0));
+
+    app_state *Client = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(48);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    InitSimulation(Client, &Arena, &Constants);
+    AddPlayerToSlot(Client, &Client->World, &Arena, 0,
+                    PlayerSpawnPosition(&Client->World, 0));
+
+    SetEnvironment(ONLINE_ADDRESS_ENV, "");
+    Client->Online = StartOnlineSession(&Arena);
+    online_session *Online = Client->Online;
+    Check(GetOnlinePhase(Online) == OnlinePhase_Offline);
+
+    Check(!OnlineConnect(Online, "not an address", "Gary"));
+    Check(Online->BadAddress);
+    Check(GetOnlinePhase(Online) == OnlinePhase_Offline);
+
+    char Address[32];
+    snprintf(Address, sizeof(Address), "127.0.0.1:%u", NetSocketPort(&Server.Socket));
+    Check(OnlineConnect(Online, Address, "Gary"));
+    Check(!Online->BadAddress);
+    Check(GetOnlinePhase(Online) == OnlinePhase_Joining);
+
+    app_input Input = {};
+    Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
+    for (int Frame = 0; Frame < 120 && !IsOnline(Online); ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Check(GetOnlinePhase(Online) == OnlinePhase_Joined);
+    for (int Frame = 0; Frame < 10; ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Check(Online->Replicas.Active);
+
+    // Keys held while a screen is open do not move the player.
+    world_entity *Player = GetLocalPlayer(Client);
+    float StartX = Player->Position.X;
+    Input.ButtonQ.EndedDown = true;
+    for (int Frame = 0; Frame < 30; ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input, true);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Player = GetLocalPlayer(Client);
+    Check(Player->Position.X - StartX < 1.0f && Player->Position.X - StartX > -1.0f);
+    Input.ButtonQ.EndedDown = false;
+
+    OnlineDisconnect(Online);
+    Check(GetOnlinePhase(Online) == OnlinePhase_Offline);
+    RunWorldTick(Client, &Arena, Input.DeltaTime);
+    Check(!Online->Replicas.Active);
+    ServerTick(&Server);
+
+    ServerStop(&Server);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(Client);
+}
+
+// A server restart (a deploy) does not need the player: the client sees
+// the server close, waits, and joins the new one by itself. Leaving by
+// choice does not reconnect.
+internal void
+TestClientRejoinsRestartedServer()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0));
+    u16 Port = NetSocketPort(&Server.Socket);
+
+    app_state *Client = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(48);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    InitSimulation(Client, &Arena, &Constants);
+    AddPlayerToSlot(Client, &Client->World, &Arena, 0,
+                    PlayerSpawnPosition(&Client->World, 0));
+    SetEnvironment(ONLINE_ADDRESS_ENV, "");
+    Client->Online = StartOnlineSession(&Arena);
+    online_session *Online = Client->Online;
+
+    char Address[32];
+    snprintf(Address, sizeof(Address), "127.0.0.1:%u", Port);
+    Check(OnlineConnect(Online, Address, "Gary"));
+    app_input Input = {};
+    Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
+    for (int Frame = 0; Frame < 120 && !IsOnline(Online); ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Check(IsOnline(Online));
+
+    // The server goes down and comes back on the same port.
+    ServerStop(&Server);
+    for (int Frame = 0; Frame < 10; ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+    }
+    Check(!IsOnline(Online));
+    Check(WillReconnect(Online));
+    char Status[128];
+    GetOnlineStatusText(Online, Status, sizeof(Status));
+    Check(strstr(Status, "reconnecting") != 0);
+    Check(ServerStart(&Server, Port));
+
+    // First retry after ONLINE_RECONNECT_STEP seconds.
+    int Frames = (int)((ONLINE_RECONNECT_STEP + 2.f) * SERVER_TICK_RATE);
+    for (int Frame = 0; Frame < Frames && !IsOnline(Online); ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Check(IsOnline(Online));
+    Check(Online->Reconnects == 0);
+
+    // Leaving by choice stays left.
+    OnlineDisconnect(Online);
+    Check(!WillReconnect(Online));
+
+    ServerStop(&Server);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(Client);
+}
+
+// The real client loop (online session, replicas, prediction) against a
+// real server in one process: what the client predicts for its own player
+// must end up where the server puts it.
+internal void
+TestPredictionAgreesWithServer()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0));
+
+    app_state *Client = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(48);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    InitSimulation(Client, &Arena, &Constants);
+    AddPlayerToSlot(Client, &Client->World, &Arena, 0,
+                    PlayerSpawnPosition(&Client->World, 0));
+
+    char Address[32];
+    snprintf(Address, sizeof(Address), "127.0.0.1:%u", NetSocketPort(&Server.Socket));
+    SetEnvironment(ONLINE_ADDRESS_ENV, Address);
+    Client->Online = StartOnlineSession(&Arena);
+    SetEnvironment(ONLINE_ADDRESS_ENV, "");
+    Check(Client->Online->Enabled);
+
+    app_input Input = {};
+    Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
+    for (int Frame = 0; Frame < 120 && !IsOnline(Client->Online); ++Frame)
+    {
+        UpdateOnlineSession(Client->Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Check(IsOnline(Client->Online));
+    for (int Frame = 0; Frame < 10; ++Frame)
+    {
+        UpdateOnlineSession(Client->Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+
+    // Hold left (open ground from slot 0's spawn) for a second.
+    world_entity *Predicted = GetLocalPlayer(Client);
+    float StartX = Predicted->Position.X;
+    Input.ButtonQ.EndedDown = true;
+    for (int Frame = 0; Frame < 60; ++Frame)
+    {
+        UpdateOnlineSession(Client->Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Predicted = GetLocalPlayer(Client);
+    world_entity *Authority = Server.Game.AppState->Players[0].Entity;
+    Check(Predicted->Position.X < StartX - 50.0f);
+    // Moving, the client is ahead of the server by the inputs in flight.
+    // It is drawn DrawError off that while a correction blends in.
+    v2 DrawError = Client->Online->Prediction.DrawError;
+    Check(Predicted->Position.X - DrawError.X <= Authority->Position.X + 0.01f);
+    Check(LengthSq(DrawError) < Square(4.0f));
+
+    // Released, both come to rest at the same spot.
+    Input.ButtonQ.EndedDown = false;
+    for (int Frame = 0; Frame < 60; ++Frame)
+    {
+        UpdateOnlineSession(Client->Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Predicted = GetLocalPlayer(Client);
+    Authority = Server.Game.AppState->Players[0].Entity;
+    float Error = Predicted->Position.X - Authority->Position.X;
+    Check(Error < 1.0f && Error > -1.0f);
+    Check(Predicted->Position.Y - Authority->Position.Y < 1.0f &&
+          Predicted->Position.Y - Authority->Position.Y > -1.0f);
+
+    NetClientDisconnect(&Client->Online->Client);
+    ServerStop(&Server);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(Client);
+}
+
+internal void
+TestClientConnectsAndMoves()
+{
+    static server Server;
+    static net_client Client;
+    Check(ServerStart(&Server, 0));
+    Check(NetClientConnect(&Client, LocalServer(&Server), 1234, SimContentId()));
+    Check(Client.State == NetClient_Connecting);
+
+    for (int Frame = 0; Frame < 120 && !Client.HasSnapshot; ++Frame) StepBoth(&Server, &Client, 1, 0);
+    Check(Client.State == NetClient_Connected);
+    Check(Client.PlayerIndex == 0);
+    Check(Client.HasSnapshot);
+    float StartX = Client.Snapshot.Entities[0].X;
+    u32 StartTick = Client.Snapshot.Tick;
+
+    StepBoth(&Server, &Client, 60, NetButton_Left);
+    Check(Client.Snapshot.Tick > StartTick);
+    Check(Client.Snapshot.Entities[0].X < StartX - 50.0f);
+
+    NetClientDisconnect(&Client);
+    Check(Client.State == NetClient_Disconnected);
+    Check(Client.EndReason == NetEnd_LeftByChoice);
+    for (int Index = 0; Index < 30 && Server.Clients.Slots[0].Connected; ++Index) ServerTick(&Server);
+    Check(!Server.Clients.Slots[0].Connected);
+    ServerStop(&Server);
+}
+
+internal void
+TestClientGivesUpWithoutServer()
+{
+    // Open and close a socket to get a port nobody is listening on.
+    net_socket Probe = NetOpenSocket(0);
+    net_address Nowhere = {0x7f000001, NetSocketPort(&Probe)};
+    NetCloseSocket(&Probe);
+
+    static net_client Client;
+    Check(NetClientConnect(&Client, Nowhere, 5, SimContentId()));
+    int Frames = (int)(NET_CONNECT_GIVE_UP * 60) + 2;
+    for (int Frame = 0; Frame < Frames; ++Frame) NetClientUpdate(&Client, 1.0f / 60, 0, 0, 0);
+    Check(Client.State == NetClient_Disconnected);
+    Check(Client.EndReason == NetEnd_NoAnswer);
+}
+
+internal void
+TestClientNoticesSilentServer()
+{
+    static server Server;
+    static net_client Client;
+    Check(ServerStart(&Server, 0));
+    Check(NetClientConnect(&Client, LocalServer(&Server), 9, SimContentId()));
+    for (int Frame = 0; Frame < 120 && Client.State != NetClient_Connected; ++Frame) StepBoth(&Server, &Client, 1, 0);
+    Check(Client.State == NetClient_Connected);
+
+    // The server stops ticking without saying goodbye, as if it crashed.
+    int Frames = (int)(NET_CLIENT_TIMEOUT * 60) + 2;
+    for (int Frame = 0; Frame < Frames; ++Frame) NetClientUpdate(&Client, 1.0f / 60, 0, 0, 0);
+    Check(Client.State == NetClient_Disconnected);
+    Check(Client.EndReason == NetEnd_LostConnection);
+    ServerStop(&Server);
+}
+
+internal void
+TestPlayOverBadConnection()
+{
+    // Baseline over a clean link, so the bad-link numbers have something to match.
+    link_result Clean = PlayThroughLink(0, 0, 0, 10);
+    Check(Clean.Connected && Clean.StayedConnected);
+    Check(Clean.MovedRight > 50.0f);
+    Check(Clean.Fireballs == 10);
+
+    // A quarter of packets lost each way, some doubled, delays up to 100 ms
+    // that reorder packets. Every tap must still cast exactly one fireball:
+    // each input packet repeats the last 8 inputs, and the server applies
+    // each input tick once.
+    link_result Bad = PlayThroughLink(25, 10, 6, 10);
+    printf("  bad link: %u dropped, %u duplicated; moved %.0f (clean %.0f), %u of 10 fireballs\n",
+           Bad.Dropped, Bad.Duplicated, Bad.MovedRight, Clean.MovedRight, Bad.Fireballs);
+    Check(Bad.Dropped > 50 && Bad.Duplicated > 10);
+    Check(Bad.Connected && Bad.StayedConnected);
+    Check(Bad.MovedRight > 0.8f * Clean.MovedRight);
+    Check(Bad.Fireballs == 10);
+}
+
+internal void
+RunServerClientTests()
+{
+    TestClientConnectsAndMoves();
+    TestPredictionAgreesWithServer();
+    TestConnectAndLeaveFromTheGame();
+    TestClientRejoinsRestartedServer();
+    TestClientGivesUpWithoutServer();
+    TestClientNoticesSilentServer();
+    TestPlayOverBadConnection();
+}
