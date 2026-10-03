@@ -6,9 +6,10 @@
 
 #define MAX_SWORD_ARCS 16
 #define SWORD_ARC_SECONDS 0.2f
-#define SWORD_ARC_RADIUS 30.f
-// NOTE(zoubir): half the swept angle, about 70 degrees
-#define SWORD_ARC_HALF_ANGLE 1.22f
+// NOTE(zoubir): the hit slice's own numbers (entity.h); the arc runs a
+// little inside the reach so it sits over what gets hit
+#define SWORD_ARC_RADIUS (0.75f * SWORD_REACH)
+#define SWORD_ARC_HALF_ANGLE SWORD_HALF_ANGLE
 #define SWORD_ARC_DOTS 14
 // NOTE(zoubir): a sword this far or farther from every player has no
 // known swinger and is skipped

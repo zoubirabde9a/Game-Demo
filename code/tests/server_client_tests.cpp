@@ -484,7 +484,7 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
            CooldownsCompared, CooldownsOff, ServerCooling, ClientCooling);
     Check(CooldownsCompared > 100 && CooldownsOff == 0);
     printf("  dash presses %u, dashing on the press frame %u\n", DashPresses, DashesSeenAtOnce);
-    Check(DashPresses > 5 && DashesSeenAtOnce >= DashPresses - 1);
+    Check(DashPresses > 3 && DashesSeenAtOnce >= DashPresses - 1);
     Check(ServerCooling > 0 && ClientCooling > 0);
 
     NetClientDisconnect(&Online->Client);

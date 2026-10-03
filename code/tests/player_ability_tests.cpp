@@ -430,6 +430,37 @@ TestSwordShovesSurvivorAway()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a diagonal swing hits along the diagonal, and nothing
+// behind the swinger is hit (the old box reached 15 units behind)
+internal void
+TestSwordHitsItsSliceAtAnyAngle()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    world_entity *Diagonal = AddTestEntity(&Test, EntityType_Monster,
+                                           {326, 274, 0}, Test.UnitVolume);
+    world_entity *Behind = AddTestEntity(&Test, EntityType_Monster,
+                                         {272, 300, 0}, Test.UnitVolume);
+    world_entity *Far = AddTestEntity(&Test, EntityType_Monster,
+                                      {370, 230, 0}, Test.UnitVolume);
+    Diagonal->MaxHp = Diagonal->Hp = 100.f;
+    Behind->MaxHp = Behind->Hp = 100.f;
+    Far->MaxHp = Far->Hp = 100.f;
+    AppState->Players[0].Input.Aim = V2(0.7071f, -0.7071f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Attack;
+    for(u32 Frame = 0; Frame < 20; Frame++)
+    {
+        SimulateTick(AppState, &Test.Arena, 1.f / 60.f);
+        AppState->Players[0].Input.Pressed = 0;
+    }
+    Check(Diagonal->Hp == 100.f - SWORD_DAMAGE);
+    Check(Behind->Hp == 100.f);
+    Check(Far->Hp == 100.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -459,4 +490,6 @@ RunPlayerAbilityTests()
     TestWalkingCutsCastAnimation();
     printf("TestSwordShovesSurvivorAway\n");
     TestSwordShovesSurvivorAway();
+    printf("TestSwordHitsItsSliceAtAnyAngle\n");
+    TestSwordHitsItsSliceAtAnyAngle();
 }

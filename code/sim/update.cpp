@@ -1,9 +1,56 @@
 /* Per-frame behaviour for the units that are not players: swords,
    monsters, the familiar and fireballs. Players are player_update.cpp. */
 
-// NOTE(zoubir): a sword is a short-lived hitbox that never moves, so
-// MoveEntity never checks it; test its overlaps every frame instead.
-// Returns false once the swing is over and the sword is removed.
+// NOTE(zoubir): the way a sword swings: CastingDirection, set by the
+// swing; a sword made without it (tests) swings the way it faces
+inline v2
+GetSwordDirection(world_entity *Sword)
+{
+    v2 Result = Sword->CastingDirection;
+    if (LengthSq(Result) < 0.0001f)
+    {
+        switch (Sword->AnimationDirection)
+        {
+            case AnimationDirection_Up: Result = V2(0.f, -1.f); break;
+            case AnimationDirection_Down: Result = V2(0.f, 1.f); break;
+            case AnimationDirection_Left: Result = V2(-1.f, 0.f); break;
+            default: Result = V2(1.f, 0.f); break;
+        }
+    }
+    return Result;
+}
+
+// NOTE(zoubir): whether any of Other's body is inside the swing's slice:
+// within SWORD_REACH of the swinger and SWORD_HALF_ANGLE of the swing,
+// counting its width (its half size along X) on both
+internal bool32
+IsInSwordSlice(world_entity *Sword, world_entity *Other)
+{
+    v2 Dir = GetSwordDirection(Sword);
+    v2 Origin = Sword->Position.XY - SWORD_OFFSET * Dir;
+    v2 To = Other->Position.XY - Origin;
+    float Radius = Other->Collision ? Other->Collision->TotalVolume.HalfDims.X : 0.f;
+    float Distance = Length(To);
+    if (Distance - Radius > SWORD_REACH)
+    {
+        return false;
+    }
+    if (Distance <= Radius)
+    {
+        return true;
+    }
+    float Cross = To.X * Dir.Y - To.Y * Dir.X;
+    float Angle = ATan2(Absolute(Cross), DotProduct(To, Dir));
+    float Widen = ATan2(Radius, SquareRoot(Distance * Distance - Radius * Radius));
+    return Angle <= SWORD_HALF_ANGLE + Widen;
+}
+
+// NOTE(zoubir): a sword is a short-lived swing that never moves, so
+// MoveEntity never checks it; each frame it hits what is in its slice
+// (IsInSwordSlice), at whatever angle it was swung. It used to hit an
+// axis-aligned box, which did not turn with the aim and reached behind
+// the swinger. Returns false once the swing is over and the sword is
+// removed.
 internal bool32
 UpdateSword(world_entity *Sword, world *World, memory_arena *Arena,
             app_state *AppState, float DeltaTime)
@@ -15,12 +62,23 @@ UpdateSword(world_entity *Sword, world *World, memory_arena *Arena,
         return false;
     }
 
-    entity_collision_volume *Total = &Sword->Collision->TotalVolume;
-    rectangle3 Box = RectCenterHalfDims(Sword->Position + Total->Offset,
-                                        Total->HalfDims);
+    v2 Origin = Sword->Position.XY - SWORD_OFFSET * GetSwordDirection(Sword);
+    float Reach = SWORD_REACH + 32.f;
+    rectangle3 Box = RectMinMax(V3(Origin.X - Reach, Origin.Y - Reach, 0.f),
+                                V3(Origin.X + Reach, Origin.Y + Reach,
+                                   Sword->Position.Z + 64.f));
     world_entity *Nearby[MOVE_MAX_NEARBY];
     u32 NearbyCount = GatherEntitiesInBox(World, Box, Nearby, MOVE_MAX_NEARBY);
-    CheckOverlapsWith(AppState, World, Arena, Sword, Nearby, NearbyCount);
+    for(u32 Index = 0; Index < NearbyCount && Sword->IsPresent; Index++)
+    {
+        world_entity *Other = Nearby[Index];
+        if (Other != Sword && Other->IsPresent && !IsDeadPlayer(Other) &&
+            CanOverlap(Sword, Other) && CanCollide(AppState, Sword, Other) &&
+            IsInSwordSlice(Sword, Other))
+        {
+            HandleOverlap(AppState, World, Arena, Sword, Other);
+        }
+    }
     return true;
 }
 

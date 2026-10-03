@@ -1,5 +1,5 @@
-/* Sword (right click): a short-lived hitbox toward the aim, hitting each
-   thing once (UpdateSword, update.cpp). Roots the player for
+/* Sword (right click): a swing toward the aim that hits each thing in its
+   slice once (UpdateSword, update.cpp; reach and width in entity.h). Roots the player for
    PLAYER_SWING_LOCK, then they can walk out of the swing. */
 
 #define PLAYER_SWING_LOCK 0.08f
@@ -17,9 +17,11 @@ StartSwordSwing(app_state *AppState, world *World, memory_arena *Arena,
     Tick->Acceleration *= 0.6f;
     Tick->DDPlayer.XY = Dir;
 
-    v3 SwordPosition = Player->Position + V3(16.f * Dir.X, 16.f * Dir.Y, 0.f);
-    AddSword(AppState, World, Arena, SwordPosition, Player,
-             DominantFacing(Dir));
+    v3 SwordPosition = Player->Position +
+        V3(SWORD_OFFSET * Dir.X, SWORD_OFFSET * Dir.Y, 0.f);
+    world_entity *Sword = AddSword(AppState, World, Arena, SwordPosition,
+                                   Player, DominantFacing(Dir));
+    Sword->CastingDirection = Dir;
     EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
 }
 

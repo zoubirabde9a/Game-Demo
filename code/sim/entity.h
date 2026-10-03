@@ -113,6 +113,13 @@ struct entity_collision_volume_group
 #define SWORD_DAMAGE 25.f
 // NOTE(zoubir): speed added to a sword's survivor, away from the swinger
 #define SWORD_KNOCKBACK 280.f
+// NOTE(zoubir): a swing hits what is within SWORD_REACH of the swinger and
+// within SWORD_HALF_ANGLE (about 70 degrees) of the aim, at any angle; the
+// sword entity sits SWORD_OFFSET toward the aim. The client's swing arc is
+// drawn from the same numbers
+#define SWORD_REACH 46.f
+#define SWORD_HALF_ANGLE 1.22f
+#define SWORD_OFFSET 16.f
 #define FIREBALL_DAMAGE 25.f
 
 // NOTE(zoubir): monster kinds, abilities and status effects
