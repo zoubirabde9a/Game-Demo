@@ -279,6 +279,10 @@ SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
     E->Affix = (u8)Entity->EliteAffix;
     E->Status = SimGameStatusBits(Entity);
     E->Ability = (u8)Entity->AbilityIndex;
+    if (Entity->Type == EntityType_Player)
+    {
+        E->Ability = Entity->ShockwaveFlash > 0.f ? PLAYER_FLASH_SHOCKWAVE : 0;
+    }
     E->Health = (i16)Entity->Hp;
     E->X = Entity->Position.X;
     E->Y = Entity->Position.Y;

@@ -309,7 +309,7 @@ StartOnlineSession(memory_arena *Arena)
 
 internal void
 UpdateOnlineSession(online_session *Online, app_input *Input,
-                    bool32 KeysToUi = false) {}
+                    bool32 KeysToUi = false, v2 Aim = {}) {}
 internal void OnlineDisconnect(online_session *Online) {}
 internal bool32
 OnlineConnect(online_session *Online, char *Address, char *Name)

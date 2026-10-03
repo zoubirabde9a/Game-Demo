@@ -1,6 +1,7 @@
 /* Player ability tests: the sword and fireball go toward the aim (the
    cursor) at any angle, the body faces the aim whichever way the player
-   walks, and a swing roots the player only for a moment. Included by sim_tests.cpp, which calls
+   walks, a swing roots the player only for a moment, and each shockwave
+   draws one ring. Included by sim_tests.cpp, which calls
    RunPlayerAbilityTests. */
 
 inline v2
@@ -135,6 +136,36 @@ TestPlayerWalksDuringSwing()
 }
 
 internal void
+TestShockwaveStartsOneRing()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Local = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                          0, {300, 300, 0});
+    world_entity *Replica = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                            1, {600, 300, 0});
+    player_fx Fx = {};
+    float Dt = 1.f / 60.f;
+    Local->ShockwaveFlash = SHOCKWAVE_FLASH_SECONDS;
+    UpdateShockwaveRings(&Fx, AppState, Dt);
+    UpdateShockwaveRings(&Fx, AppState, Dt);
+    Check(Fx.RingCount == 1);
+
+    // NOTE(zoubir): a server's replica carries the flag in AbilityIndex
+    Replica->AbilityIndex = PLAYER_FLASH_SHOCKWAVE;
+    UpdateShockwaveRings(&Fx, AppState, Dt);
+    Check(Fx.RingCount == 2);
+    Check(Fx.Rings[1].Center.X == 600.f);
+
+    for(u32 Frame = 0; Frame < 60; Frame++)
+    {
+        UpdateShockwaveRings(&Fx, AppState, Dt);
+    }
+    Check(Fx.RingCount == 0);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 RunPlayerAbilityTests()
 {
     printf("TestFireBallFliesTowardAim\n");
@@ -145,4 +176,6 @@ RunPlayerAbilityTests()
     TestBodyFacesAimWhileWalkingAway();
     printf("TestPlayerWalksDuringSwing\n");
     TestPlayerWalksDuringSwing();
+    printf("TestShockwaveStartsOneRing\n");
+    TestShockwaveStartsOneRing();
 }

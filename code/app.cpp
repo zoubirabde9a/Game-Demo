@@ -89,7 +89,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     UIBegin(RenderContext, TransientArena, Input, AppState, UIContext,
             UI_PASS_MAX_BATCHES, 4);
     DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
-    DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset);
+    DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
     DrawLandmarkPointer(RenderContext, AppState, CameraOffset, Window);
     DrawHud(RenderContext, AppState, CameraOffset);
     DrawMinimap(RenderContext, AppState, Window->Width);

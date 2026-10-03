@@ -98,6 +98,8 @@ struct app_state
     // NOTE(zoubir): see ui/minimap.cpp; made on first draw
     struct minimap *Minimap;
     struct monster_population *Monsters;
+    // NOTE(zoubir): ability effects drawn over the world, client/player_fx.cpp
+    struct player_fx *PlayerFx;
 
     v3 TargetCamera;
     v3 CameraOffset;

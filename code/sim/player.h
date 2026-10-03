@@ -7,6 +7,9 @@
 #define MAX_PLAYERS 8
 // NOTE(zoubir): how long a dead player stays out before coming back
 #define PLAYER_RESPAWN_SECONDS 3.f
+// NOTE(zoubir): bit the server sets in a player's snapshot Ability (the
+// replica's AbilityIndex) while its shockwave ring shows
+#define PLAYER_FLASH_SHOCKWAVE 1
 
 // NOTE(zoubir): buttons pressed this tick (edge, not held)
 enum player_button
