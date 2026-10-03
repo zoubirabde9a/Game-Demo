@@ -430,82 +430,229 @@ HandleOverlap(app_state *AppState, world *World, memory_arena *Arena,
     }
 }
 
+// NOTE(zoubir): how many entities a move can have nearby; crowded map
+// corners hold a few dozen walls per chunk
+#define MOVE_MAX_NEARBY 1024
+
+// NOTE(zoubir): the box a move from From by Delta sweeps through, grown
+// by the mover's collision volume. The destination's Z is clamped to the
+// floor, as the mover never goes below it.
+internal rectangle3
+GetMoveBox(world_entity *Entity, v3 From, v3 Delta)
+{
+    v3 To = From + Delta;
+    To.Z = Maximum(0.f, To.Z);
+    entity_collision_volume *Total = &Entity->Collision->TotalVolume;
+    v3 MinPos = Minimum3(From, To) + Total->Offset - Total->HalfDims;
+    v3 MaxPos = Maximum3(From, To) + Total->Offset + Total->HalfDims;
+    rectangle3 Result = RectMinMax(MinPos, MaxPos);
+    return Result;
+}
+
+// NOTE(zoubir): whether Entity's sweep can hit Other at all: not itself,
+// not a dead player's body, and both the type table and any pairwise rule
+// allow it
+inline bool32
+CanSweepAgainst(app_state *AppState, world_entity *Entity, world_entity *Other)
+{
+    bool32 Result = (Other != Entity &&
+                     !IsDeadPlayer(Other) &&
+                     CanCollide(AppState, Entity, Other) &&
+                     CanCollide(AppState, Entity->Type, Other->Type));
+    return Result;
+}
+
+// NOTE(zoubir): sweeps every volume of Entity, moving from From by Delta,
+// against every volume of Other (Minkowski boxes, one wall per face).
+// Lowers *tMin to the earliest hit and sets *Normal; true if Other was hit
+// earlier than anything tested before it.
+internal bool32
+SweepAgainstEntity(world_entity *Entity, v3 From, v3 Delta,
+                   world_entity *Other, float *tMin, v3 *Normal)
+{
+    bool32 Hit = false;
+    for(u32 VolumeIndex = 0;
+        VolumeIndex < Entity->Collision->VolumesCount;
+        VolumeIndex++)
+    {
+        entity_collision_volume *Volume = Entity->Collision->Volumes + VolumeIndex;
+        for(u32 OtherIndex = 0;
+            OtherIndex < Other->Collision->VolumesCount;
+            OtherIndex++)
+        {
+            entity_collision_volume *OtherVolume =
+                Other->Collision->Volumes + OtherIndex;
+            v3 MinkowskiDiameter = Volume->HalfDims + OtherVolume->HalfDims;
+            v3 MinCorner = -MinkowskiDiameter;
+            v3 MaxCorner = MinkowskiDiameter;
+            v3 Rel = (From + Volume->Offset) -
+                (Other->Position + OtherVolume->Offset);
+
+            test_wall Walls[] =
+                {
+                    {MinCorner.X, Rel.X, Rel.Y, Rel.Z, Delta.X, Delta.Y, Delta.Z, MinCorner.Y, MaxCorner.Y, MinCorner.Z, MaxCorner.Z, {-1, 0, 0}},
+                    {MaxCorner.X, Rel.X, Rel.Y, Rel.Z, Delta.X, Delta.Y, Delta.Z, MinCorner.Y, MaxCorner.Y, MinCorner.Z, MaxCorner.Z, {1, 0, 0}},
+                    {MinCorner.Y, Rel.Y, Rel.X, Rel.Z, Delta.Y, Delta.X, Delta.Z, MinCorner.X, MaxCorner.X, MinCorner.Z, MaxCorner.Z, {0, 1, 0}},
+                    {MaxCorner.Y, Rel.Y, Rel.X, Rel.Z, Delta.Y, Delta.X, Delta.Z, MinCorner.X, MaxCorner.X, MinCorner.Z, MaxCorner.Z, {0, -1, 0}},
+                    {MinCorner.Z, Rel.Z, Rel.Y, Rel.X, Delta.Z, Delta.Y, Delta.X, MinCorner.Y, MaxCorner.Y, MinCorner.X, MaxCorner.X, {0, 0, -1}},
+                    {MaxCorner.Z, Rel.Z, Rel.Y, Rel.X, Delta.Z, Delta.Y, Delta.X, MinCorner.Y, MaxCorner.Y, MinCorner.X, MaxCorner.X, {0, 0, 1}}
+                };
+            for(u32 WallIndex = 0; WallIndex < ArrayCount(Walls); WallIndex++)
+            {
+                test_wall *Wall = &Walls[WallIndex];
+                if (TestWall(Wall->X, Wall->Rel.X, Wall->Rel.Y, Wall->Rel.Z,
+                             Wall->Delta.X, Wall->Delta.Y, Wall->Delta.Z,
+                             tMin, Wall->MinY, Wall->MaxY,
+                             Wall->MinZ, Wall->MaxZ))
+                {
+                    *Normal = Wall->Normal;
+                    Hit = true;
+                }
+            }
+        }
+    }
+    return Hit;
+}
+
+// NOTE(zoubir): overlap effects (sword hits) between Entity and each of
+// Nearby. Entities removed earlier in the same move are skipped.
+internal void
+CheckOverlapsWith(app_state *AppState, world *World, memory_arena *Arena,
+                  world_entity *Entity, world_entity **Nearby, u32 NearbyCount)
+{
+    for(u32 Index = 0; Index < NearbyCount; Index++)
+    {
+        world_entity *Other = Nearby[Index];
+        if (Other != Entity &&
+            Other->IsPresent &&
+            !IsDeadPlayer(Other) &&
+            CanOverlap(Entity, Other) &&
+            CanCollide(AppState, Entity, Other) &&
+            EntityOverlap(Entity, Other))
+        {
+            HandleOverlap(AppState, World, Arena, Entity, Other);
+        }
+    }
+}
+
+// NOTE(zoubir): what a hit does to the rest of the move. Blocking hits
+// slide along the wall (the part of the move and velocity into it is
+// removed); pass-through hits (fireball into monster) get a rule so the
+// pair stops colliding, and the rest of the move carries on. Returns false
+// when the hit removed Entity itself.
+internal bool32
+ResolveMoveHit(app_state *AppState, world *World, memory_arena *Arena,
+               world_entity *Entity, world_entity *Other, v3 Normal,
+               v3 AllowedDelta, v3 *Delta)
+{
+    bool32 StopsOnCollision = HandleCollision(AppState, World, Entity, Other);
+    // NOTE(zoubir): a monster that walks into a fireball dies here, and
+    // must not be put back into the chunks
+    if (!Entity->IsPresent)
+    {
+        return false;
+    }
+    if (StopsOnCollision)
+    {
+        Entity->Velocity = Entity->Velocity -
+            1.f * DotProduct(Entity->Velocity, Normal) * Normal;
+        v3 DeltaLeft = *Delta - AllowedDelta;
+        *Delta = DeltaLeft - 1.f * DotProduct(DeltaLeft, Normal) * Normal;
+    }
+    else
+    {
+        AddCollisionRule(AppState, Arena, Entity->ID, Other->ID, false);
+        *Delta = *Delta - AllowedDelta;
+    }
+    return true;
+}
+
+// NOTE(zoubir): the height of the highest thing under the entity that it
+// could stand on (for its shadow), or the floor
+internal void
+UpdateGroundZ(app_state *AppState, world *World, world_entity *Entity)
+{
+    float NearestDistance = 100000.f;
+    entity_collision_volume *NearestVolume = 0;
+    world_entity *NearestEntity = 0;
+    // TODO(zoubir): Spatial partition here!
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Other = &World->Entities[EntityIndex];
+        if (Other == Entity || !Other->IsPresent || IsDeadPlayer(Other) ||
+            !CanCollide(AppState, Entity->Type, Other->Type) ||
+            !CanCollide(AppState, Entity, Other))
+        {
+            continue;
+        }
+        for(u32 VolumeIndex = 0;
+            VolumeIndex < Entity->Collision->VolumesCount;
+            VolumeIndex++)
+        {
+            entity_collision_volume *Volume = &Entity->Collision->Volumes[VolumeIndex];
+            rectangle2 EntityRect =
+                RectCenterHalfDims(Entity->Position.XY + Volume->Offset.XY,
+                                   Volume->HalfDims.XY);
+            for(u32 OtherIndex = 0;
+                OtherIndex < Other->Collision->VolumesCount;
+                OtherIndex++)
+            {
+                entity_collision_volume *OtherVolume =
+                    &Other->Collision->Volumes[OtherIndex];
+                rectangle2 OtherRect =
+                    RectCenterHalfDims(Other->Position.XY + OtherVolume->Offset.XY,
+                                       OtherVolume->HalfDims.XY);
+                if (RectanglesIntersect(EntityRect, OtherRect))
+                {
+                    float Distance = Entity->Position.Z -
+                        (Other->Position.Z + OtherVolume->Offset.Z +
+                         OtherVolume->HalfDims.Z);
+                    Assert(Distance < 100000.f);
+                    if (Distance > 0.f && Distance < NearestDistance)
+                    {
+                        NearestDistance = Distance;
+                        NearestVolume = OtherVolume;
+                        NearestEntity = Other;
+                    }
+                }
+            }
+        }
+    }
+
+    Entity->GroundZ = NearestVolume ?
+        NearestEntity->Position.Z + NearestVolume->Offset.Z +
+        NearestVolume->HalfDims.Z : 0.f;
+}
+
+// NOTE(zoubir): moves Entity under acceleration DDEntity for DeltaTime, at
+// most *MaxDistance (which it uses up). Up to four sweeps: each gathers
+// what is near the step, moves to the earliest hit, resolves it and
+// carries the rest of the step on, then applies overlap effects. Last, the
+// ground height under the entity is refreshed.
 internal void
 MoveEntity(world_entity *Entity, world *World,
            memory_arena *Arena,
            float DeltaTime, app_state *AppState,
            v3 DDEntity, float *MaxDistance)
 {
-    // NOTE(zoubir): jumping code
-    
-//    DDEntityZ -= (10.f * Entity->VelocityZ);
-    
-    // NOTE(zoubir): New Position
-    v3 EntityDelta = 0.5f * DDEntity * Square(DeltaTime) +
-        Entity->Velocity * DeltaTime;
+    v3 Delta = 0.5f * DDEntity * Square(DeltaTime) + Entity->Velocity * DeltaTime;
+    Entity->Velocity = DDEntity * DeltaTime + Entity->Velocity;
 
-    float SmallNumber = 0.01f;
-
-
-    #if 0
-    for(u32 CoordIndex = 0;
-        CoordIndex < ArrayCount(EntityDelta.Data);
-        CoordIndex++)
+    world_entity *Nearby[MOVE_MAX_NEARBY];
+    for(u32 Iteration = 0; Iteration < 4; Iteration++)
     {
-        float *Coord = &EntityDelta.Data[CoordIndex];
-        if (*Coord > 0)
+        v3 From = Entity->Position;
+        float Distance = Length(Delta);
+        if (Distance <= 0.000001f)
         {
-            if (*Coord < SmallNumber)
-            {
-                *Coord = 0.f;
-            }
-        }
-        else
-        {
-            if (*Coord > -SmallNumber)
-            {
-                *Coord = 0.f;
-            }
-        }
-    }
-    #endif
-
-
-    Entity->Velocity = DDEntity * DeltaTime +
-        Entity->Velocity;
-
-    int NumIterations = 4;
-    Assert(NumIterations > 0);
-    u32 MinChunkX;
-    u32 MinChunkY;
-    u32 MinChunkZ;
-    u32 MaxChunkX;
-    u32 MaxChunkY;
-    u32 MaxChunkZ;        
-        
-    for(int Iteration = 0;
-        Iteration < NumIterations;
-        Iteration++)
-    {
-        //TODO(zoubir): optimise this shit show
-        
-        v3 EntityOldPosition = Entity->Position;
-        v3 EntityNewPosition = EntityOldPosition + EntityDelta;
-        EntityNewPosition.Z = Maximum(0.f, EntityNewPosition.Z);
-
-        float Distance = Length(EntityDelta);
-        float EpsilonDistance = 0.000001f;
-        if (Distance <= EpsilonDistance)
-        {
-            // Nothing to do here
             break;
         }
-
+        // NOTE(zoubir): the box is taken before the step is shortened to
+        // MaxDistance, so it covers the full step
+        rectangle3 Box = GetMoveBox(Entity, From, Delta);
         if (Distance > *MaxDistance)
         {
-            
-            float Ratio = *MaxDistance / Distance;
-            EntityDelta = Ratio * EntityDelta;
+            Delta = (*MaxDistance / Distance) * Delta;
             *MaxDistance = 0.f;
         }
         else
@@ -513,343 +660,42 @@ MoveEntity(world_entity *Entity, world *World,
             *MaxDistance -= Distance;
         }
 
-        u32 CollisionTileWidth = World->CollisionWidth;
-        u32 CollisionTileHeight = World->CollisionHeight;
-        u32 CollisionTileDepth = World->CollisionDepth;
-    
-        cannonical_position NewCollisionP =
-            CannonicalizePosition(EntityNewPosition,
-                                  World->CollisionWidth,
-                                  World->CollisionHeight,
-                                  World->CollisionDepth);
-        cannonical_position OldCollisionP =
-            CannonicalizePosition(EntityOldPosition,
-                                  World->CollisionWidth,
-                                  World->CollisionHeight,
-                                  World->CollisionDepth);
-    
-    
-        entity_collision_volume *EntityCollisionTotal =
-            &Entity->Collision->TotalVolume;
-        
-        v3 MinPos = Minimum3(EntityOldPosition, EntityNewPosition);
-        v3 MaxPos = Maximum3(EntityOldPosition, EntityNewPosition);
-        MinPos += EntityCollisionTotal->Offset;
-        MaxPos += EntityCollisionTotal->Offset;
-        
-        MinPos -= EntityCollisionTotal->HalfDims;
-        MaxPos += EntityCollisionTotal->HalfDims;        
-        rectangle3 Box = RectMinMax(MinPos,
-                                    MaxPos);
-        GetChunksFromBox(World, Box,
-                         &MinChunkX, &MinChunkY, &MinChunkZ,
-                         &MaxChunkX, &MaxChunkY, &MaxChunkZ);
-
-#if 0
-        u32 MinTileX = Minimum(OldCollisionP.TileX,
-                               NewCollisionP.TileX);
-        u32 MinTileY = Minimum(OldCollisionP.TileY,
-                               NewCollisionP.TileY);
-        u32 MinTileZ = Minimum(OldCollisionP.TileZ,
-                               NewCollisionP.TileZ);
-        
-        u32 MaxTileX = Maximum(OldCollisionP.TileX,
-                               NewCollisionP.TileX);
-        u32 MaxTileY = Maximum(OldCollisionP.TileY,
-                               NewCollisionP.TileY);
-        u32 MaxTileZ = Maximum(OldCollisionP.TileZ,
-                               NewCollisionP.TileZ);
-        
-        u32 EntityTileWidth = CeilFloatToUInt32(Entity->CollisionHalfDims.X /
-                                                CollisionTileWidth);
-        u32 EntityTileHeight = CeilFloatToUInt32(Entity->CollisionHalfDims.Y /
-                                                 CollisionTileHeight);    
-        u32 EntityTileDepth = CeilFloatToUInt32(Entity->CollisionHalfDims.Z /
-                                                CollisionTileDepth);
-        MinTileX -= EntityTileWidth;
-        MinTileY -= EntityTileHeight;
-        MinTileZ -= EntityTileDepth;
-        
-        MaxTileX += EntityTileWidth;
-        MaxTileY += EntityTileHeight;
-        MaxTileZ += EntityTileDepth;
-#endif
-        world_entity *CollidedEntity = 0;
-        v3 WallNormal = {};
+        u32 NearbyCount = GatherEntitiesInBox(World, Box, Nearby, MOVE_MAX_NEARBY);
+        world_entity *Hit = 0;
+        v3 Normal = {};
         float tMin = 1.f;
-
-        //TODO(zoubir): make this spot collision
-        // with different objects
-        // and do something about it
-        for(u32 ChunkY = MinChunkY;
-            ChunkY <= MaxChunkY;
-            ChunkY++)
+        for(u32 Index = 0; Index < NearbyCount; Index++)
         {
-            for(u32 ChunkX = MinChunkX;
-                ChunkX <= MaxChunkX;
-                ChunkX++)
+            world_entity *Other = Nearby[Index];
+            if (CanSweepAgainst(AppState, Entity, Other) &&
+                SweepAgainstEntity(Entity, From, Delta, Other, &tMin, &Normal))
             {
-                for(u32 ChunkZ = MinChunkZ;
-                    ChunkZ <= MaxChunkZ;
-                    ChunkZ++)
-                {
-                    world_chunk *ThisChunk = GetChunk(World, ChunkX,
-                                                      ChunkY, ChunkZ);
-                    for (world_entity_chunk *EntityChunk = &ThisChunk->FirstEntityChunk;
-                         EntityChunk;
-                         EntityChunk = EntityChunk->Next)
-                    {
-                        for(u32 EntityIndex = 0;
-                            EntityIndex < EntityChunk->EntityCount;
-                            EntityIndex++)
-                        {
-                            world_entity *ThisEntity = EntityChunk->Entities[EntityIndex];
-                            if ((ThisEntity != Entity) &&
-                                !IsDeadPlayer(ThisEntity) &&
-                                CanCollide(AppState, Entity, ThisEntity) &&
-                                CanCollide(AppState, Entity->Type,
-                                           ThisEntity->Type))
-                            {
-                                
-                                for(u32 VolumeIndex = 0;
-                                    VolumeIndex < Entity->Collision->VolumesCount;
-                                    VolumeIndex++)
-                                {
-                                    entity_collision_volume *Volume =
-                                        Entity->Collision->Volumes +
-                                        VolumeIndex;
-                                    for(u32 TestVolumeIndex = 0;
-                                        TestVolumeIndex < ThisEntity->Collision->VolumesCount;
-                                        TestVolumeIndex++)
-                                    {
-                                        entity_collision_volume *TestVolume =
-                                            ThisEntity->Collision->Volumes +
-                                            TestVolumeIndex;
-                                        v3 MinkowskiDiameter = Volume->HalfDims
-                                            + TestVolume->HalfDims;
-                                        v3 MinCorner = -MinkowskiDiameter;
-                                        v3 MaxCorner = MinkowskiDiameter;
-                                        
-                                        v3 Rel = (EntityOldPosition + Volume->Offset) -
-                                            (ThisEntity->Position + TestVolume->Offset);
-
-                                        test_wall Walls[] =
-                                            {
-                                                {MinCorner.X, Rel.X, Rel.Y, Rel.Z, EntityDelta.X, EntityDelta.Y, EntityDelta.Z, MinCorner.Y, MaxCorner.Y, MinCorner.Z, MaxCorner.Z, {-1, 0, 0}},
-                                                {MaxCorner.X, Rel.X, Rel.Y, Rel.Z, EntityDelta.X, EntityDelta.Y, EntityDelta.Z, MinCorner.Y, MaxCorner.Y, MinCorner.Z, MaxCorner.Z, {1, 0, 0}},
-                                                {MinCorner.Y, Rel.Y, Rel.X, Rel.Z, EntityDelta.Y, EntityDelta.X, EntityDelta.Z, MinCorner.X, MaxCorner.X, MinCorner.Z, MaxCorner.Z, {0, 1, 0}},
-                                                {MaxCorner.Y, Rel.Y, Rel.X, Rel.Z, EntityDelta.Y, EntityDelta.X, EntityDelta.Z, MinCorner.X, MaxCorner.X, MinCorner.Z, MaxCorner.Z, {0, -1, 0}},
-                                                {MinCorner.Z, Rel.Z, Rel.Y, Rel.X, EntityDelta.Z, EntityDelta.Y, EntityDelta.X, MinCorner.Y, MaxCorner.Y, MinCorner.X, MaxCorner.X, {0, 0, -1}},
-                                                {MaxCorner.Z, Rel.Z, Rel.Y, Rel.X, EntityDelta.Z, EntityDelta.Y, EntityDelta.X, MinCorner.Y, MaxCorner.Y, MinCorner.X, MaxCorner.X, {0, 0, 1}}
-                                            };
-                                        
-                                        for(u32 WallIndex = 0;
-                                            WallIndex < ArrayCount(Walls);
-                                            WallIndex++)
-                                        {
-                                            test_wall *Wall = &Walls[WallIndex];
-                                            if (TestWall(Wall->X,
-                                                         Wall->Rel.X, Wall->Rel.Y, Wall->Rel.Z,
-                                                         Wall->Delta.X, Wall->Delta.Y, Wall->Delta.Z,
-                                                         &tMin,
-                                                         Wall->MinY, Wall->MaxY,
-                                                         Wall->MinZ, Wall->MaxZ))
-                                            {
-                                                WallNormal = Wall->Normal;
-                                                CollidedEntity = ThisEntity;                                                
-                                            }
-                                        }
-                                    }                    
-                                }                    
-                            }
-                        }
-                    }
-                }
+                Hit = Other;
             }
         }
 
-        v3 AllowedDelta = tMin * EntityDelta;
-        Entity->Position = EntityOldPosition + AllowedDelta;
-        
-        // NOTE(zoubir): Cannot Go Lower Than The Ground Level
+        v3 AllowedDelta = tMin * Delta;
+        Entity->Position = From + AllowedDelta;
+        // NOTE(zoubir): cannot go lower than the ground level
         if (Entity->Position.Z < 0.f)
         {
             Entity->Position.Z = 0.f;
             Entity->Velocity.Z = 0.f;
         }
+        // TODO(zoubir): once per MoveEntity call rather than every sweep
+        CheckAndChangeEntityChunk(AppState, World, Arena, From, Entity);
 
-        // TODO(zoubir): Do This Once Per MoveEntityCall RatherThan
-        // Every Iteration        
-        CheckAndChangeEntityChunk(AppState,
-                                  World, Arena,
-                                  EntityOldPosition, Entity);
-
-        if (CollidedEntity)
+        if (Hit && !ResolveMoveHit(AppState, World, Arena, Entity, Hit, Normal,
+                                   AllowedDelta, &Delta))
         {
-            bool32 StopsOnCollision =
-                HandleCollision(AppState, World, Entity,
-                                CollidedEntity);
-            // NOTE(zoubir): a monster that walks into a fireball dies
-            // here, and must not be put back into the chunks
-            if (!Entity->IsPresent)
-            {
-                return;
-            }
-            if (StopsOnCollision)
-            {
-                Entity->Velocity = Entity->Velocity - 1.f * DotProduct(Entity->Velocity, WallNormal) * WallNormal;
-                v3 DeltaLeft = EntityDelta - AllowedDelta;
-                EntityDelta = DeltaLeft - 1.f * DotProduct(DeltaLeft, WallNormal) * WallNormal;
-            }
-            else
-            {
-                // NOTE(zoubir): passes through, so only the remaining
-                // part of the move is left for the next iteration
-                AddCollisionRule(AppState, Arena,
-                                 Entity->ID, CollidedEntity->ID,
-                                 false);
-                EntityDelta = EntityDelta - AllowedDelta;
-            }
+            return;
         }
-
-        for(u32 ChunkZ = MinChunkZ;
-            ChunkZ <= MaxChunkZ;
-            ChunkZ++)
-        {        
-            for(u32 ChunkY = MinChunkY;
-                ChunkY <= MaxChunkY;
-                ChunkY++)
-            {        
-                for(u32 ChunkX = MinChunkX;
-                    ChunkX <= MaxChunkX;
-                    ChunkX++)
-                {        
-                    world_chunk *CurrentChunk = GetChunk(World, ChunkX, ChunkY, ChunkZ);
-                    CheckEntityOverlapInChunk(AppState, World, Arena,
-                                              Entity, &CurrentChunk->FirstEntityChunk);
-                }
-            }
-        }
-
-        if (!CollidedEntity)
+        CheckOverlapsWith(AppState, World, Arena, Entity, Nearby, NearbyCount);
+        if (!Hit)
         {
             break;
         }
-        
     }
 
-    // NOTE(zoubir): New Velocity
-
-    
-    // Gravity / friction
-//    AppState->DEntity *= 1.f;
-    //TODO(zoubir): fix this false velocity
-#if 0
-    v2 MaxVelocity = {300, 300};
-    if (AppState->DEntity.X > MaxVelocity.X)
-    {
-        AppState->DEntity.X = MaxVelocity.X;
-    }
-    if (AppState->DEntity.X < -MaxVelocity.X)
-    {
-        AppState->DEntity.X = -MaxVelocity.X;
-    }
-    if (AppState->DEntity.Y > MaxVelocity.Y)
-    {
-        AppState->DEntity.Y = MaxVelocity.Y;
-    }
-    if (AppState->DEntity.Y < -MaxVelocity.Y)
-    {
-        AppState->DEntity.Y = -MaxVelocity.Y;
-    }
-#endif
-
-    
-#if 0
-// TODO(zoubir): Spatial partition here!
-for(u32 EntityIndex = 0;
-    EntityIndex < World->EntityCount;
-    EntityIndex++)
-{        
-    world_entity *TestEntity = &World->Entities[EntityIndex];
-    if (Entity != TestEntity &&
-        CanOverlap(Entity, TestEntity) &&
-        EntityOverlap(Entity, TestEntity))
-    {
-        HandleOverlap(AppState, World, Arena,
-                      Entity, TestEntity);
-    }                    
+    UpdateGroundZ(AppState, World, Entity);
 }
-#endif
-float NearestDistance = 100000.f;
-entity_collision_volume *NearestVolume = 0;
-world_entity *NearestEntity = 0;
-// NOTE(zoubir): For Shadow And Ground Position
-// TODO(zoubir): Spatial partition here!
-for(u32 EntityIndex = 0;
-    EntityIndex < World->EntityCount;
-    EntityIndex++)
-{
-    world_entity *TestEntity = &World->Entities[EntityIndex];
-    if (TestEntity != Entity &&
-        TestEntity->IsPresent &&
-        !IsDeadPlayer(TestEntity) &&
-        CanCollide(AppState, Entity->Type, TestEntity->Type) &&
-        CanCollide(AppState, Entity, TestEntity))
-    {
-            
-        for(u32 VolumeIndex = 0;
-            VolumeIndex < Entity->Collision->VolumesCount;
-            VolumeIndex++)
-        {                
-            entity_collision_volume *Volume =
-                &Entity->Collision->Volumes[VolumeIndex];
-                
-            rectangle2 EntityRect =
-                RectCenterHalfDims(Entity->Position.XY + Volume->Offset.XY,
-                                   Volume->HalfDims.XY);
-            for(u32 TestVolumeIndex = 0;
-                TestVolumeIndex < TestEntity->Collision->VolumesCount;
-                TestVolumeIndex++)
-            {                    
-                entity_collision_volume *TestVolume =
-                    &TestEntity->Collision->Volumes[TestVolumeIndex];
-                    
-                rectangle2 TestEntityRect =
-                    RectCenterHalfDims(TestEntity->Position.XY +
-                                       TestVolume->Offset.XY,
-                                       TestVolume->HalfDims.XY);
-                if (RectanglesIntersect(EntityRect, TestEntityRect))
-                {
-                    float Distance =
-                        (Entity->Position.Z -
-                         (TestEntity->Position.Z +
-                          TestVolume->Offset.Z +
-                          TestVolume->HalfDims.Z));
-                    Assert(Distance < 100000.f);
-                    if (Distance > 0.f &&
-                        Distance < NearestDistance)
-                    {
-                        NearestDistance = Distance;
-                        NearestVolume = TestVolume;
-                        NearestEntity = TestEntity;
-                    }
-                }
-            }
-        }
-    }
-}
-
-if (NearestVolume)
-{
-    Entity->GroundZ = NearestEntity->Position.Z +
-        NearestVolume->Offset.Z + NearestVolume->HalfDims.Z;        
-}
-else
-{
-    Entity->GroundZ = 0.f;
-}
-}
-    
-
-

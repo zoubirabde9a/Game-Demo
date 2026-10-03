@@ -47,35 +47,6 @@ GetChunk(world *World, v3 Position)
     return Chunk;
 }
 
-internal void
-CheckEntityOverlapInChunk(app_state *AppState,
-                          world *World, memory_arena *Arena,
-                          world_entity *Entity,
-                          world_entity_chunk *FirstEntityChunk)
-{
-    
-    for(world_entity_chunk *EntityChunk = FirstEntityChunk;
-        EntityChunk;
-        EntityChunk = EntityChunk->Next)
-    {                    
-        for(u32 EntityIndex = 0;
-            EntityIndex < EntityChunk->EntityCount;
-            EntityIndex++)
-        {
-            world_entity *TestEntity = EntityChunk->Entities[EntityIndex];
-        
-            if (Entity != TestEntity &&
-                !IsDeadPlayer(TestEntity) &&
-                CanOverlap(Entity, TestEntity) &&
-                CanCollide(AppState, Entity, TestEntity) &&
-                EntityOverlap(Entity, TestEntity))
-            {
-                HandleOverlap(AppState, World, Arena,
-                              Entity, TestEntity);
-            }                    
-        }
-    }    
-}
 
 internal void
 InsertEntity(app_state *AppState,
@@ -211,6 +182,47 @@ GetChunksFromBox(world *World,
     *MaxChunkX = (u32)(Rect.Max.X / ChunkWidth);
     *MaxChunkY = (u32)(Rect.Max.Y / ChunkHeight);
     *MaxChunkZ = (u32)(Rect.Max.Z / ChunkDepth);
+}
+
+// NOTE(zoubir): every entity listed in the chunks Box touches, in chunk
+// order (Y, then X, then Z), once per chunk it is listed in. This is the
+// one place outside world bookkeeping that walks chunk storage; movement,
+// collision and overlap checks work on the list it returns. Stops at
+// MaxCount (asserts in debug builds).
+internal u32
+GatherEntitiesInBox(world *World, rectangle3 Box, world_entity **Out,
+                    u32 MaxCount)
+{
+    u32 Count = 0;
+    u32 MinChunkX, MinChunkY, MinChunkZ;
+    u32 MaxChunkX, MaxChunkY, MaxChunkZ;
+    GetChunksFromBox(World, Box,
+                     &MinChunkX, &MinChunkY, &MinChunkZ,
+                     &MaxChunkX, &MaxChunkY, &MaxChunkZ);
+    for(u32 ChunkY = MinChunkY; ChunkY <= MaxChunkY; ChunkY++)
+    {
+        for(u32 ChunkX = MinChunkX; ChunkX <= MaxChunkX; ChunkX++)
+        {
+            for(u32 ChunkZ = MinChunkZ; ChunkZ <= MaxChunkZ; ChunkZ++)
+            {
+                world_chunk *Chunk = GetChunk(World, ChunkX, ChunkY, ChunkZ);
+                for(world_entity_chunk *Block = &Chunk->FirstEntityChunk;
+                    Block;
+                    Block = Block->Next)
+                {
+                    for(u32 Index = 0; Index < Block->EntityCount; Index++)
+                    {
+                        Assert(Count < MaxCount);
+                        if (Count < MaxCount)
+                        {
+                            Out[Count++] = Block->Entities[Index];
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return Count;
 }
 
 

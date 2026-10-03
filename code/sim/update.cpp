@@ -487,23 +487,12 @@ UpdateSword(world_entity *Sword, world *World, memory_arena *Arena,
         return false;
     }
 
-    u32 MinChunkX, MinChunkY, MinChunkZ;
-    u32 MaxChunkX, MaxChunkY, MaxChunkZ;
-    GetChunksFromEntity(World, Sword,
-                        &MinChunkX, &MinChunkY, &MinChunkZ,
-                        &MaxChunkX, &MaxChunkY, &MaxChunkZ);
-    for(u32 ChunkZ = MinChunkZ; ChunkZ <= MaxChunkZ; ChunkZ++)
-    {
-        for(u32 ChunkY = MinChunkY; ChunkY <= MaxChunkY; ChunkY++)
-        {
-            for(u32 ChunkX = MinChunkX; ChunkX <= MaxChunkX; ChunkX++)
-            {
-                world_chunk *Chunk = GetChunk(World, ChunkX, ChunkY, ChunkZ);
-                CheckEntityOverlapInChunk(AppState, World, Arena, Sword,
-                                          &Chunk->FirstEntityChunk);
-            }
-        }
-    }
+    entity_collision_volume *Total = &Sword->Collision->TotalVolume;
+    rectangle3 Box = RectCenterHalfDims(Sword->Position + Total->Offset,
+                                        Total->HalfDims);
+    world_entity *Nearby[MOVE_MAX_NEARBY];
+    u32 NearbyCount = GatherEntitiesInBox(World, Box, Nearby, MOVE_MAX_NEARBY);
+    CheckOverlapsWith(AppState, World, Arena, Sword, Nearby, NearbyCount);
     return true;
 }
 
