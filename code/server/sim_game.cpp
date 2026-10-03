@@ -134,9 +134,34 @@ SimGameVariant(world_entity *Entity)
     {
         Result = (u8)Entity->PlayerIndex;
     }
+    else if (Entity->Type == EntityType_MonsterHazard)
+    {
+        // NOTE(zoubir): with Ability, the client finds the hazard's look
+        // and size in that monster kind's ability table
+        Result = (u8)Entity->MonsterKind;
+    }
     else if (Entity->Type == EntityType_MonsterShot)
     {
         Result = (u8)Entity->Texture.Index;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): the protocol packs these into a few bits each
+static_assert(AnimationDirection_Count <= 4, "Facing is 2 bits on the wire");
+static_assert(AnimationType_Count <= 16, "Animation is 4 bits on the wire");
+static_assert(MonsterAffix_Count <= 8, "Affix is 3 bits on the wire");
+static_assert(StatusEffect_Count - 1 <= 3, "Status is 3 bits on the wire");
+static_assert(MAX_MONSTER_ABILITIES <= 4, "Ability is 2 bits on the wire");
+
+// NOTE(zoubir): bit N set while status effect N + 1 is running
+inline u8
+SimGameStatusBits(world_entity *Entity)
+{
+    u8 Result = 0;
+    for (u32 Effect = 1; Effect < StatusEffect_Count; ++Effect)
+    {
+        if (Entity->StatusTimers[Effect] > 0.f) Result |= (u8)(1 << (Effect - 1));
     }
     return Result;
 }
@@ -211,6 +236,9 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
             E->Facing = (u8)Entity->AnimationState.LastAnimationDirection;
             E->Animation = (u8)Entity->AnimationState.CurrentType;
             E->Variant = SimGameVariant(Entity);
+            E->Affix = (u8)Entity->EliteAffix;
+            E->Status = SimGameStatusBits(Entity);
+            E->Ability = (u8)Entity->AbilityIndex;
             E->Health = (i16)Entity->Hp;
             E->X = Entity->Position.X;
             E->Y = Entity->Position.Y;

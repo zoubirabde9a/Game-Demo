@@ -17,7 +17,7 @@
 
 #include "../app_defs.h"
 
-#define NET_PROTOCOL_ID 0x47444d35u // "GDM5", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d36u // "GDM6", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -78,9 +78,15 @@ struct net_entity_state
 {
     u16 Id;
     u8 Type;
-    u8 Facing;
-    u8 Animation;
-    u8 Variant;    // which look within the type: monster kind, shot style, player slot
+    // Facing and Animation share one byte on the wire, as do Affix,
+    // Status and Ability, so each must stay within its bit count.
+    u8 Facing;     // 2 bits: animation_direction
+    u8 Animation;  // 4 bits: animation_type
+    u8 Variant;    // which look within the type: monster kind (also for
+                   // hazards), shot style, player slot
+    u8 Affix;      // 3 bits: elite affix of a monster, shot or hazard
+    u8 Status;     // 3 bits: bit N set while status effect N + 1 is active
+    u8 Ability;    // 2 bits: AbilityIndex of a monster shot or hazard
     i16 Health;
     // Sent as 16-bit fixed point: positions to 1/8 unit within +-4096,
     // velocities to 1/4 unit per second within +-8192. Values outside are clamped.

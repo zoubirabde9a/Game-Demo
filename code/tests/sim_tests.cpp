@@ -884,6 +884,61 @@ TestPlayerNamesFromSnapshotsAndConfig()
 }
 
 internal void
+TestReplicasCarryMonsterDetails()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+
+    // NOTE(zoubir): any kind that has an ability, for the hazard
+    u32 Kind = 0;
+    while (Kind < MonsterKind_Count && GetMonsterDef((monster_kind)Kind)->AbilityCount == 0)
+    {
+        Kind++;
+    }
+    Check(Kind < MonsterKind_Count);
+
+    Snapshot->Tick = 1;
+    Snapshot->Count = 2;
+    Snapshot->NameSlot = NET_NO_NAME_SLOT;
+    Snapshot->Entities[0] = SnapshotEntity(4, EntityType_Monster, 500, 500, (u8)Kind);
+    Snapshot->Entities[0].Affix = 3;
+    Snapshot->Entities[0].Status = 5; // effects 1 and 3
+    Snapshot->Entities[1] = SnapshotEntity(6, EntityType_MonsterHazard, 700, 500, (u8)Kind);
+    Snapshot->Entities[1].Ability = 0;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
+
+    world_entity *Monster = &Test.World->Entities[Table->LocalIndexPlusOne[4] - 1];
+    Check(Monster->EliteAffix == 3);
+    Check(Monster->StatusTimers[1] == 1.5f);
+    Check(Monster->StatusTimers[2] == 0.f);
+    Check(Monster->StatusTimers[3] == 1.5f);
+
+    Check(Table->LocalIndexPlusOne[6] != 0);
+    world_entity *Hazard = &Test.World->Entities[Table->LocalIndexPlusOne[6] - 1];
+    Check(Hazard->Type == EntityType_MonsterHazard);
+    float Radius = GetMonsterDef((monster_kind)Kind)->Abilities[0].Radius;
+    Check(Hazard->Dimensions.X == 2.f * Radius);
+
+    // NOTE(zoubir): an effect wearing off clears its timer
+    Snapshot->Tick = 2;
+    Snapshot->Entities[0].Status = 1;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
+    Check(Monster->StatusTimers[1] == 1.5f && Monster->StatusTimers[3] == 0.f);
+
+    // NOTE(zoubir): a hazard naming an ability this build lacks is skipped
+    Snapshot->Tick = 3;
+    Snapshot->Entities[1].Ability = 3;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
+    Check(Table->LocalIndexPlusOne[6] == 0);
+
+    free(Snapshot);
+    free(Table);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 TestCopyString()
 {
     char Buffer[4];
@@ -986,6 +1041,7 @@ main()
     RUN(TestRandomPlaySoak);
     RUN(TestReplicaPlayersAndScoresFillSlots);
     RUN(TestPlayerNamesFromSnapshotsAndConfig);
+    RUN(TestReplicasCarryMonsterDetails);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
     RUN(TestAnimationAdvancesWithoutTexture);

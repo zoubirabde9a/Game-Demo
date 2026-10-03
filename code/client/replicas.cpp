@@ -18,7 +18,7 @@ struct replica_table
     // NOTE(zoubir): indexed by server Id; local entity index + 1, 0 = none
     u32 LocalIndexPlusOne[MAX_REPLICAS];
     u8 Type[MAX_REPLICAS];
-    u8 Variant[MAX_REPLICAS];
+    u16 Look[MAX_REPLICAS]; // see ReplicaLook
     u32 SeenTick[MAX_REPLICAS];
 };
 
@@ -30,7 +30,23 @@ IsMovingEntityType(entity_type Type)
                      Type == EntityType_FireBall ||
                      Type == EntityType_Sword ||
                      Type == EntityType_Familiar ||
-                     Type == EntityType_MonsterShot);
+                     Type == EntityType_MonsterShot ||
+                     Type == EntityType_MonsterHazard);
+    return Result;
+}
+
+// NOTE(zoubir): what must match for a replica to be reused under the same
+// Id. Shots and hazards are drawn from their ability, so it counts for
+// them; a monster's current ability changes while it fights, so not there.
+inline u16
+ReplicaLook(net_entity_state *State)
+{
+    u16 Result = State->Variant;
+    if (State->Type == EntityType_MonsterShot ||
+        State->Type == EntityType_MonsterHazard)
+    {
+        Result |= (u16)(State->Ability << 8);
+    }
     return Result;
 }
 
@@ -69,6 +85,39 @@ AddShotReplica(app_state *AppState, world *World, memory_arena *Arena,
     return Shot;
 }
 
+// NOTE(zoubir): a hazard as AddMonsterHazard dresses it: its look and
+// size come from that monster kind's ability. 0 if the server named an
+// ability this build does not have.
+internal world_entity *
+AddHazardReplica(app_state *AppState, world *World, memory_arena *Arena,
+                 v3 Position, u32 Kind, u32 AbilityIndex)
+{
+    if (Kind >= MonsterKind_Count)
+    {
+        return 0;
+    }
+    monster_def *Def = GetMonsterDef((monster_kind)Kind);
+    if (AbilityIndex >= Def->AbilityCount)
+    {
+        return 0;
+    }
+    monster_ability *Ability = &Def->Abilities[AbilityIndex];
+    world_entity *Hazard = AddEntity(AppState, World, Arena,
+                                     EntityType_MonsterHazard, Position,
+                                     AppState->FireBallCollision);
+    Hazard->MonsterKind = (monster_kind)Kind;
+    Hazard->AbilityIndex = AbilityIndex;
+    float Size = 2.f * Ability->Radius;
+    Hazard->Dimensions = V2(Size, Size);
+    Hazard->Texture = {AssetType_MonsterHazard, (u32)Ability->HazardStyle};
+    if (AppState->Monsters)
+    {
+        Hazard->AnimationSet =
+            &AppState->Monsters->HazardAnimationSets[Ability->HazardStyle];
+    }
+    return Hazard;
+}
+
 // NOTE(zoubir): 0 for types the client has no look for
 internal world_entity *
 SpawnReplica(app_state *AppState, world *World, memory_arena *Arena,
@@ -105,6 +154,11 @@ SpawnReplica(app_state *AppState, world *World, memory_arena *Arena,
             Result = AddShotReplica(AppState, World, Arena, Position,
                                     State->Variant);
         } break;
+        case EntityType_MonsterHazard:
+        {
+            Result = AddHazardReplica(AppState, World, Arena, Position,
+                                      State->Variant, State->Ability);
+        } break;
         default: break;
     }
     return Result;
@@ -124,7 +178,7 @@ GetOrSpawnReplica(app_state *AppState, memory_arena *Arena,
         Existing = &World->Entities[Table->LocalIndexPlusOne[Id] - 1];
         if (!Existing->IsPresent ||
             Table->Type[Id] != State->Type ||
-            Table->Variant[Id] != State->Variant)
+            Table->Look[Id] != ReplicaLook(State))
         {
             if (Existing->IsPresent)
             {
@@ -142,7 +196,7 @@ GetOrSpawnReplica(app_state *AppState, memory_arena *Arena,
         {
             Table->LocalIndexPlusOne[Id] = Existing->ID + 1;
             Table->Type[Id] = State->Type;
-            Table->Variant[Id] = State->Variant;
+            Table->Look[Id] = ReplicaLook(State);
         }
     }
     return Existing;
@@ -163,6 +217,15 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
     if (State->Animation < AnimationType_Count)
     {
         Replica->AnimationType = (animation_type)State->Animation;
+    }
+    Replica->EliteAffix = State->Affix;
+    Replica->AbilityIndex = State->Ability;
+    // NOTE(zoubir): status pips blink under 1 s left; the client does not
+    // know the real time left, so active effects read as 1.5 s
+    for(u32 Effect = 1; Effect < StatusEffect_Count; Effect++)
+    {
+        Replica->StatusTimers[Effect] =
+            (State->Status & (1 << (Effect - 1))) ? 1.5f : 0.f;
     }
     // NOTE(zoubir): keeps the chunk lists right so RemoveEntity finds it
     CheckAndChangeEntityChunk(AppState, &AppState->World, Arena,

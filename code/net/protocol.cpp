@@ -19,9 +19,17 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
 {
     NetU16(S, &E->Id);
     NetU8(S, &E->Type);
-    NetU8(S, &E->Facing);
-    NetU8(S, &E->Animation);
+    // Small fields are packed; out-of-range values are cut to their bits.
+    u8 Look = (u8)((E->Facing & 3) | ((E->Animation & 15) << 2));
+    NetU8(S, &Look);
+    E->Facing = Look & 3;
+    E->Animation = (Look >> 2) & 15;
     NetU8(S, &E->Variant);
+    u8 Extra = (u8)((E->Affix & 7) | ((E->Status & 7) << 3) | ((E->Ability & 3) << 6));
+    NetU8(S, &Extra);
+    E->Affix = Extra & 7;
+    E->Status = (Extra >> 3) & 7;
+    E->Ability = (Extra >> 6) & 3;
     NetI16(S, &E->Health);
     NetFixed16(S, &E->X, NET_POSITION_STEPS);
     NetFixed16(S, &E->Y, NET_POSITION_STEPS);
