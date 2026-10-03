@@ -21,6 +21,8 @@ struct loaded_audio
 
 #define TEXTURE_NO_FILTER 0
 #define TEXTURE_SOFT_FILTER 1
+// NOTE(zoubir): room for textures drawn at startup, see AddGeneratedTexture
+#define MAX_GENERATED_ASSETS 64
 
 struct loaded_texture
 {

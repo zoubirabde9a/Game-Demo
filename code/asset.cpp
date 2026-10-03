@@ -443,24 +443,30 @@ InitializeAssets(assets *Assets, open_gl *OpenGL, app_state *AppState,
             u64 AssetTypesOffset = ZASHeader.AssetTypesOffset;
             u64 AssetsInfosOffset = ZASHeader.AssetsInfosOffset;
         
+            // NOTE(zoubir): the pack only stores the slots below
+            // AssetType_PackCount; generated types start out empty
             zas_asset_type_slot *FileAssetTypes =
                 AllocateArray(AssetArena, AssetType_Count, zas_asset_type_slot);
+            ZeroSize(FileAssetTypes, AssetType_Count * sizeof(zas_asset_type_slot));
         
             Platform.ReadDataFromFile(FileHandle, AssetTypesOffset,
-                                      AssetType_Count * sizeof(zas_asset_type_slot),
+                                      AssetType_PackCount * sizeof(zas_asset_type_slot),
                                       FileAssetTypes);
             
             Assets->AssetTypes = FileAssetTypes;
             
             zas_asset_info *FileAssetInfos =
-                AllocateArray(AssetArena, AssetCount + 1, zas_asset_info);
+                AllocateArray(AssetArena, AssetCount + 1 + MAX_GENERATED_ASSETS,
+                              zas_asset_info);
             Platform.ReadDataFromFile(FileHandle, AssetsInfosOffset,
                                       (AssetCount + 1) * sizeof(zas_asset_info),
                                       FileAssetInfos);
             Assets->Infos = FileAssetInfos;
         
             Assets->Assets =
-                AllocateArray(AssetArena, AssetCount, asset);
+                AllocateArray(AssetArena, AssetCount + MAX_GENERATED_ASSETS, asset);
+            ZeroSize(Assets->Assets,
+                     (AssetCount + MAX_GENERATED_ASSETS) * sizeof(asset));
             Assets->AssetCount = AssetCount;
         }
     }
@@ -468,7 +474,7 @@ InitializeAssets(assets *Assets, open_gl *OpenGL, app_state *AppState,
 
     #if 1
     for(u32 AssetTypeIndex = 1;
-        AssetTypeIndex < AssetType_Count;
+        AssetTypeIndex < AssetType_PackCount;
         AssetTypeIndex++)
     {
         if (AssetTypeIndex != AssetType_BattleTheme)
@@ -524,4 +530,48 @@ internal void EvictAssetsAsNecessary(open_gl *OpenGL, assets *Assets)
         }
     }
     #endif
+}
+
+// NOTE(zoubir): textures drawn by code (code/art) instead of read from the
+// pack. Reserve a type's slots once, then fill each slot; the pixels are
+// RGBA rows from top to bottom, like stb_image gives them
+internal void
+ReserveGeneratedAssets(assets *Assets, asset_type_id Type, u32 Count)
+{
+    Assert(Type >= AssetType_PackCount && Type < AssetType_Count);
+    zas_asset_type_slot *Slot = &Assets->AssetTypes[Type];
+    Assert(Slot->FirstIndex == Slot->OnePastLastIndex);
+    u32 FirstFree = Assets->AssetCount + 1;
+    for(u32 TypeIndex = AssetType_PackCount;
+        TypeIndex < AssetType_Count;
+        TypeIndex++)
+    {
+        FirstFree = Maximum(FirstFree,
+                            Assets->AssetTypes[TypeIndex].OnePastLastIndex);
+    }
+    Assert(FirstFree + Count <= Assets->AssetCount + 1 + MAX_GENERATED_ASSETS);
+    Slot->FirstIndex = FirstFree;
+    Slot->OnePastLastIndex = FirstFree + Count;
+}
+
+internal void
+AddGeneratedTexture(assets *Assets, open_gl *OpenGL, asset_id ID,
+                    u32 *Pixels, u32 Width, u32 Height,
+                    u32 NumTilesX, u32 NumTilesY, v2 Origin)
+{
+    zas_asset_info *Info = GetAssetInfo(Assets, ID);
+    *Info = {};
+    Info->Family = AssetFamily_Texture;
+    Info->Texture.Channels = 4;
+    Info->Texture.Width = Width;
+    Info->Texture.Height = Height;
+    Info->Texture.Tags = TEXTURE_NO_FILTER;
+    Info->Texture.Origin = Origin;
+    Info->Texture.NumTilesX = NumTilesX;
+    Info->Texture.NumTilesY = NumTilesY;
+
+    loaded_texture Texture =
+        LoadOpenglTexture(Assets, OpenGL, Width, Height, GL_RGBA,
+                          Width * Height * 4, Pixels, TEXTURE_NO_FILTER);
+    UploadTexture(Assets, Texture, ID);
 }

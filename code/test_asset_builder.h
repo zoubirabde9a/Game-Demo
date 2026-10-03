@@ -25,7 +25,7 @@ struct assets_builder
 {
     memory_arena Arena;
     
-    zas_asset_type_slot AssetTypes[AssetType_Count];
+    zas_asset_type_slot AssetTypes[AssetType_PackCount];
 
     u32 AllocatedAssetCount;
     u32 AssetCount;
