@@ -23,4 +23,5 @@
 #include "keyboard_input.cpp"
 #include "camera.cpp"
 #include "draw_tilemap.cpp"
+#include "landmark_pointer.cpp"
 #include "startup.cpp"

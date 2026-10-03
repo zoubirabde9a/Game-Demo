@@ -653,6 +653,44 @@ TestLandmarkGuardsWakeOnce()
     free(AppState);
 }
 
+// NOTE(zoubir): the pointer aims at the nearest landmark not yet reached,
+// and stops aiming at one once the player has stood at it
+internal void
+TestLandmarkPointerTargetsNearestUnreached()
+{
+    test_world Test = CreateTestWorld();
+    world *World = Test.World;
+    World->MapId = MapId_Wilds;
+    World->Unbounded = true;
+    map_def *Map = GetMapDef(MapId_Wilds);
+    landmark_memory Memory = {};
+
+    landmark_spot First;
+    v3 FirstCenter;
+    Check(FindLandmarkToPoint(World, V3(0.f, 0.f, 0.f), &Memory, &First, &FirstCenter));
+    // NOTE(zoubir): no landmark in range of the search is any closer
+    float Best = Length(FirstCenter.XY);
+    for(i32 RY = -LANDMARK_SEARCH_REGIONS; RY <= LANDMARK_SEARCH_REGIONS; RY++)
+    {
+        for(i32 RX = -LANDMARK_SEARCH_REGIONS; RX <= LANDMARK_SEARCH_REGIONS; RX++)
+        {
+            landmark_spot Spot = GetRegionLandmark(Map, RX, RY);
+            if (Spot.Present)
+            {
+                Check(Length(GetLandmarkCenter(&Spot, (i32)World->TileWidth).XY) >= Best - 0.01f);
+            }
+        }
+    }
+
+    // NOTE(zoubir): standing at it marks it reached; the pointer moves on
+    landmark_spot Next;
+    v3 NextCenter;
+    Check(FindLandmarkToPoint(World, FirstCenter, &Memory, &Next, &NextCenter));
+    Check(!(Next.RegionX == First.RegionX && Next.RegionY == First.RegionY));
+    Check(HasReachedLandmark(&Memory, &First));
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunTerrainTests()
 {
@@ -676,6 +714,7 @@ RunTerrainTests()
     TestLandmarksStayAwayFromSpawnAndExist();
     printf("TestLandmarkGuardsWakeOnce\n");
     TestLandmarkGuardsWakeOnce();
+    TestLandmarkPointerTargetsNearestUnreached();
     printf("TestFloorDivRoundsDown\n");
     TestFloorDivRoundsDown();
     printf("TestNoiseStaysInRangeAndIsSmooth\n");

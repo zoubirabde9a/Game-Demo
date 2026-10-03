@@ -89,6 +89,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     UIBegin(RenderContext, TransientArena, Input, AppState, UIContext,
             UI_PASS_MAX_BATCHES, 4);
     DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
+    DrawLandmarkPointer(RenderContext, AppState, CameraOffset, Window);
     DrawHud(RenderContext, AppState, CameraOffset);
     DrawRespawnCountdown(RenderContext, AppState, Window->Width, Window->Height);
     if (Input->TabButton.EndedDown)
