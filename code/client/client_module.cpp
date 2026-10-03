@@ -8,7 +8,8 @@
    frame UpdateCamera (camera.cpp), BeginWorldPass and DrawTileMap
    (draw_tilemap.cpp), RunWorldTick (online.cpp) picks local simulation or
    the server's snapshot, DrawWorldEntities (draw_entities.cpp),
-   PlaySimEvents (play_events.cpp), ReadKeyboardPlayerInput.
+   PlaySimEvents (play_events.cpp), ReadKeyboardPlayerInput, and
+   DrawPlayerAbilityFx (player_fx.cpp) over the world.
 
    Depends on sim (included before this). Screen widgets live in ui/.
    A new client file goes on its own line below, after the files it uses. */
@@ -25,4 +26,5 @@
 #include "camera.cpp"
 #include "draw_tilemap.cpp"
 #include "landmark_pointer.cpp"
+#include "player_fx.cpp"
 #include "startup.cpp"
