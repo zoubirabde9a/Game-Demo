@@ -92,7 +92,12 @@ struct monster_ability
     monster_kind SummonKind;
     u32 MaxActive;
     float Heal;
+    // NOTE(zoubir): which phases may use it; bit 0 = before enrage,
+    // bit 1 = after. 0 means every phase
+    u32 PhaseMask;
 };
+#define PHASE_CALM (1 << 0)
+#define PHASE_ENRAGED (1 << 1)
 
 #define MONSTER_SHEET_COLUMNS 6
 // NOTE(zoubir): sheet rows, top to bottom
@@ -152,6 +157,19 @@ struct monster_def
     // NOTE(zoubir): radians per second the facing turns toward the target;
     // 0 turns instantly
     float TurnRate;
+
+    // NOTE(zoubir): below this share of health the monster enrages once:
+    // moves EnrageSpeedScale faster, recharges in EnrageCooldownScale of
+    // the time, takes EnrageTint and unlocks PHASE_ENRAGED abilities.
+    // 0 never enrages
+    float EnrageHpShare;
+    float EnrageSpeedScale;
+    float EnrageCooldownScale;
+    u32 EnrageTint;
+
+    // NOTE(zoubir): at most this many alive at once when the arena refills;
+    // 0 means no limit
+    u32 MaxAlive;
 };
 // NOTE(zoubir): older code calls the def "stats"
 typedef monster_def monster_stats;
@@ -256,14 +274,43 @@ GetMonsterStats(monster_kind Kind)
     return GetMonsterDef(Kind);
 }
 
-// NOTE(zoubir): weighted by SpawnWeight
-internal monster_kind
-PickMonsterKind(random_series *Series)
+inline u32
+CountAliveOfKind(world *World, monster_kind Kind)
 {
+    u32 Result = 0;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        Result += Entity->IsPresent && Entity->Type == EntityType_Monster &&
+            Entity->MonsterKind == Kind;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): how much a kind weighs in the next refill: its SpawnWeight,
+// or 0 once MaxAlive of it are already in the arena
+inline u32
+GetSpawnWeightNow(world *World, monster_kind Kind)
+{
+    monster_def *Def = GetMonsterDef(Kind);
+    u32 Result = Def->SpawnWeight;
+    if (Def->MaxAlive && CountAliveOfKind(World, Kind) >= Def->MaxAlive)
+    {
+        Result = 0;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): weighted by SpawnWeight, skipping kinds at their MaxAlive
+internal monster_kind
+PickMonsterKind(random_series *Series, world *World)
+{
+    u32 Weights[MonsterKind_Count];
     u32 TotalWeight = 0;
     for(u32 KindIndex = 0; KindIndex < MonsterKind_Count; KindIndex++)
     {
-        TotalWeight += GetMonsterDef((monster_kind)KindIndex)->SpawnWeight;
+        Weights[KindIndex] = GetSpawnWeightNow(World, (monster_kind)KindIndex);
+        TotalWeight += Weights[KindIndex];
     }
     monster_kind Result = (monster_kind)0;
     if (TotalWeight > 0)
@@ -271,7 +318,7 @@ PickMonsterKind(random_series *Series)
         u32 Roll = RandomChoice(Series, TotalWeight);
         for(u32 KindIndex = 0; KindIndex < MonsterKind_Count; KindIndex++)
         {
-            u32 Weight = GetMonsterDef((monster_kind)KindIndex)->SpawnWeight;
+            u32 Weight = Weights[KindIndex];
             if (Roll < Weight)
             {
                 Result = (monster_kind)KindIndex;

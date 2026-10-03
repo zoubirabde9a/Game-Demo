@@ -84,6 +84,22 @@ TestMonsterDefsAreValid()
             Check(Def->FrontArcDegrees > 0.f && Def->FrontArcDegrees < 360.f);
         }
         Check(Def->TurnRate >= 0.f);
+        Check(Def->EnrageHpShare >= 0.f && Def->EnrageHpShare < 1.f);
+        if (Def->EnrageHpShare > 0.f)
+        {
+            Check(Def->EnrageSpeedScale > 0.f && Def->EnrageCooldownScale > 0.f);
+        }
+        // NOTE(zoubir): every phase the kind can be in has an ability or
+        // none of them are phase-limited
+        for(u32 AbilityIndex = 0; AbilityIndex < Def->AbilityCount; AbilityIndex++)
+        {
+            u32 Mask = Def->Abilities[AbilityIndex].PhaseMask;
+            Check((Mask & ~(PHASE_CALM | PHASE_ENRAGED)) == 0);
+            if (Mask == PHASE_ENRAGED)
+            {
+                Check(Def->EnrageHpShare > 0.f);
+            }
+        }
         if (Def->DeathEffect == DeathEffect_Split)
         {
             Check(Def->SplitCount >= 1 && Def->SplitCount <= 4);
@@ -119,7 +135,13 @@ TestMonsterDefsAreValid()
             }
             Check(Ability->Damage > 0.f);
             Check(Ability->Radius > 0.f);
-            Check(Ability->Count <= MAX_ABILITY_POINTS);
+            // NOTE(zoubir): mortars and summons keep one target spot per
+            // count; volleys have their own MAX_VOLLEY_SHOTS
+            if (Ability->Kind == MonsterAbility_Mortar ||
+                Ability->Kind == MonsterAbility_Summon)
+            {
+                Check(Ability->Count <= MAX_ABILITY_POINTS);
+            }
             if (Ability->Status != StatusEffect_None)
             {
                 Check(Ability->Status < StatusEffect_Count);
@@ -909,6 +931,67 @@ TestWardenTurnsSlowlyTowardTarget()
 }
 
 internal void
+TestWarlordEnragesOnceBelowHalf()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Boss = AddRegisteredMonster(&Test, MonsterKind_Warlord, {1000, 1000, 0});
+    monster_def *Def = GetMonsterDef(MonsterKind_Warlord);
+    float CalmScale = GetMoveSpeedScale(Boss);
+    Boss->AbilityCooldowns[0] = Boss->AbilityCooldowns[1] = 10.f;
+
+    StepMonster(&Test, Boss, 1);
+    Check(Boss->Phase == 0);
+    Boss->Hp = Def->EnrageHpShare * Boss->MaxHp - 1.f;
+    StepMonster(&Test, Boss, 1);
+    Check(Boss->Phase == 1);
+    Check(Boss->PhaseFlash > 0.f);
+    Check(Boss->Tint == Def->EnrageTint);
+    Check(GetMoveSpeedScale(Boss) > CalmScale);
+    // NOTE(zoubir): enraging pulls every recharge in close
+    Check(Boss->AbilityCooldowns[0] <= ENRAGE_COOLDOWN_CAP);
+
+    // NOTE(zoubir): healing back up does not calm it down
+    Boss->Hp = Boss->MaxHp;
+    StepMonster(&Test, Boss, 1);
+    Check(Boss->Phase == 1);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestBroodOnlyCalledWhenEnraged()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Boss = AddRegisteredMonster(&Test, MonsterKind_Warlord, {1000, 1000, 0});
+    AddTestPlayer(&Test, {1300, 1000, 0});
+    monster_def *Def = GetMonsterDef(MonsterKind_Warlord);
+    // NOTE(zoubir): only the brood is off cooldown; calm, nothing starts
+    Boss->AbilityCooldowns[0] = Boss->AbilityCooldowns[1] = 100.f;
+    StepMonster(&Test, Boss, 1);
+    Check(Boss->AbilityPhase == AbilityPhase_Ready);
+
+    Boss->Hp = 0.4f * Boss->MaxHp;
+    Boss->AbilityCooldowns[0] = Boss->AbilityCooldowns[1] = 100.f;
+    StepMonster(&Test, Boss, 1);
+    StepMonster(&Test, Boss, 1);
+    Check(Boss->AbilityPhase == AbilityPhase_Windup);
+    Check(Def->Abilities[Boss->AbilityIndex].Kind == MonsterAbility_Summon);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestOnlyOneWarlordAtATime()
+{
+    test_world Test = CreateTestWorld();
+    AddTestMonster(&Test, MonsterKind_Warlord, {1000, 1000, 0});
+    random_series Series = Seed(5);
+    for(u32 Pick = 0; Pick < 2000; Pick++)
+    {
+        Check(PickMonsterKind(&Series, Test.World) != MonsterKind_Warlord);
+    }
+    DestroyTestWorld(&Test);
+}
+
+internal void
 RunMonsterTests()
 {
     printf("TestMonsterDefsAreValid\n");
@@ -983,4 +1066,10 @@ RunMonsterTests()
     TestShellBlocksHitsFromTheFront();
     printf("TestWardenTurnsSlowlyTowardTarget\n");
     TestWardenTurnsSlowlyTowardTarget();
+    printf("TestWarlordEnragesOnceBelowHalf\n");
+    TestWarlordEnragesOnceBelowHalf();
+    printf("TestBroodOnlyCalledWhenEnraged\n");
+    TestBroodOnlyCalledWhenEnraged();
+    printf("TestOnlyOneWarlordAtATime\n");
+    TestOnlyOneWarlordAtATime();
 }

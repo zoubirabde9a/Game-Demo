@@ -37,6 +37,10 @@ GetMoveSpeedScale(world_entity *Entity)
     float Result = HasStatus(Entity, StatusEffect_Slowed) ?
         STATUS_SLOW_SCALE : 1.f;
     Result *= GetAffixSpeedScale(Entity);
+    if (Entity->Type == EntityType_Monster && Entity->PhaseSpeedScale > 0.f)
+    {
+        Result *= Entity->PhaseSpeedScale;
+    }
     return Result;
 }
 

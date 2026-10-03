@@ -125,7 +125,7 @@ SpawnRoamingMonster(app_state *AppState, world *World, memory_arena *Arena,
     float Margin = 64.f;
     float MapWidth = (float)(World->NumTilesX * World->TileWidth);
     float MapHeight = (float)(World->NumTilesY * World->TileHeight);
-    monster_kind Kind = PickMonsterKind(&Population->Series);
+    monster_kind Kind = PickMonsterKind(&Population->Series, World);
     entity_collision_volume_group *Volume =
         GetMonsterStats(Kind)->FlyHeight > 0.f ?
         AppState->BatCollision : AppState->PlayerCollision;

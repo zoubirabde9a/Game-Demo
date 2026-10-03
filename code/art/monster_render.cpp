@@ -223,6 +223,30 @@ DrawEliteAuras(render_context *RenderContext, world *World, v3 CameraOffset)
     }
 }
 
+#define ENRAGE_BURST_COLOR 0xFF2050FF
+
+// NOTE(zoubir): a ring blowing outward the moment a monster enrages
+internal void
+DrawEnrageBursts(render_context *RenderContext, world *World, v3 CameraOffset)
+{
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (!Entity->IsPresent || Entity->Type != EntityType_Monster ||
+            Entity->PhaseFlash <= 0.f)
+        {
+            continue;
+        }
+        float Progress = 1.f - Entity->PhaseFlash / ENRAGE_FLASH_SECONDS;
+        v2 Feet = Entity->Position.XY - CameraOffset.XY;
+        float Radius = Entity->Dimensions.X * (0.4f + 1.2f * Progress);
+        DrawDottedCircle(RenderContext, Feet, Radius, ENRAGE_BURST_COLOR, 3.f);
+        DrawDottedCircle(RenderContext, Feet, 0.7f * Radius, ENRAGE_BURST_COLOR, 2.f);
+    }
+}
+
 #define SHELL_ARC_COLOR 0xFFB0E0F0
 #define SHELL_BLOCK_COLOR 0xFFFFFFFF
 
@@ -269,6 +293,7 @@ DrawMonsterTelegraphs(render_context *RenderContext, world *World,
 {
     DrawEliteAuras(RenderContext, World, CameraOffset);
     DrawShellArcs(RenderContext, World, CameraOffset);
+    DrawEnrageBursts(RenderContext, World, CameraOffset);
     DrawStatusPips(RenderContext, World, CameraOffset);
     for(u32 EntityIndex = 0;
         EntityIndex < World->EntityCount;

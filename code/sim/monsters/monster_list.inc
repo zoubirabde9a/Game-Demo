@@ -14,3 +14,4 @@
 #include "slime.cpp"
 #include "necromancy.cpp"
 #include "warden.cpp"
+#include "warlord.cpp"

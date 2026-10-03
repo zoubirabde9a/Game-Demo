@@ -56,6 +56,14 @@ Any ability can also set:
 
 `FrontArmor` (0..1) cuts every hit whose source stands inside the monster's front arc (`FrontArcDegrees`, centered on its `Direction`). `TurnRate` (radians per second) limits how fast that facing follows the nearest player, so a slow turner can be flanked. The arc is drawn on the ground in front of the monster and flashes white on a block. New monster state goes in `code/sim/monster_fields.inc`.
 
+## Bosses: enrage phases and population caps
+
+`EnrageHpShare` makes a kind enrage once, the first time its health drops below that share: it moves `EnrageSpeedScale` faster, recharges in `EnrageCooldownScale` of the time, takes `EnrageTint`, every recharge is pulled in to half a second, and a red ring bursts from it. An ability with `PhaseMask = PHASE_ENRAGED` is only used after that (`PHASE_CALM` for before; 0 for always).
+
+`MaxAlive` caps how many of a kind the refill keeps in the arena at once (the boss is 1).
+
+Network limits (snapshot packing): at most 8 affixes, 4 status effects counting None (all used today), and 4 abilities per kind. Ask the snapshot owner before going past them.
+
 ## Elites
 
 `code/sim/monster_affixes.cpp` holds a table of affixes. When the arena refills a monster, there is a 15% chance (`ELITE_CHANCE`) it rolls one. Any kind can roll any affix.
@@ -98,7 +106,8 @@ A monster uses the first ability in its list that is off cooldown and whose `Min
 | Slime | Gloomslime | Belly Flop: slam that leaves slowing goo. Splits into two Slimelets on death |
 | Shaman | Bone Shaman | Mend: heals the most hurt ally. Raise Dead: two Skeletal Thralls, at most four |
 | Thrall | Skeletal Thrall | none; quick and brittle, only appears from a shaman, crumbles when it dies |
-| Warden | Carapace Warden | Shell Bash: short shoulder charge. Front shell blocks 80% of hits; turns slowly. Not spawning yet (SpawnWeight 0, see its file) |
+| Warden | Carapace Warden | Shell Bash: short shoulder charge. Front shell blocks 80% of hits; turns slowly. |
+| Warlord | Ashen Warlord | Boss, one at a time. Cinder Cleave: slam that burns and leaves embers. Ember Storm: five-ember fan. Below half health enrages and adds Call the Brood: two Cinder Imps |
 | Slimelet | Slimelet | none; small and quick, only appears from a split |
 
 The toad's shells now leave bile puddles that poison.

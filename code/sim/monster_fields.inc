@@ -36,3 +36,10 @@
     // NOTE(zoubir): seconds left on the shell glint after a blocked hit;
     // facing for armored monsters lives in the shared Direction field
     float BlockFlash;
+    // NOTE(zoubir): 0 until the kind's EnrageHpShare is crossed, then 1
+    // for good. PhaseSpeedScale is the movement scale that phase adds
+    // (0 means 1)
+    u32 Phase;
+    float PhaseSpeedScale;
+    // NOTE(zoubir): seconds left on the enrage burst effect
+    float PhaseFlash;

@@ -18,10 +18,7 @@ DefineMonster_Warden(monster_def *Def)
     Def->AttackRange = 48.f;
     Def->AttackDamage = 9.f;
     Def->AttackInterval = 1.1f;
-    // NOTE(zoubir): 0 until TestPlayOverBadConnection (server_tests.cpp)
-    // runs in an empty arena; it counts fireballs and changes result with
-    // the random monster mix. Then 2
-    Def->SpawnWeight = 0;
+    Def->SpawnWeight = 2;
     Def->FrameSize = 48;
     Def->FrontArmor = 0.8f;
     Def->FrontArcDegrees = 120.f;
