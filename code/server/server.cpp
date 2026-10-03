@@ -86,6 +86,10 @@ ServerStart(server *Server, u16 Port, u32 MapId)
     GameInit(&Server->Game, MapId);
     Server->Clients.ContentId = GameContentId(&Server->Game);
     Server->Clients.MapId = (u8)Server->Game.AppState->World.MapId;
+    // Joining takes the cookie handshake (net/connections.h); the secret
+    // only has to be unguessable from outside, not strong.
+    Server->Clients.RequireCookie = true;
+    Server->Clients.Secret = (u32)time(0) ^ (u32)(size_t)Server ^ ((u32)clock() << 16) ^ 0x5bd1e995u;
     return Server->Socket.Open;
 }
 

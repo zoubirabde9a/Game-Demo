@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d42u // "GDMB", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d43u // "GDMC", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -42,6 +42,10 @@ enum net_packet_type
     NetPacket_Disconnect,
     NetPacket_Input,
     NetPacket_Snapshot,
+    // Server to a would-be client: send your request again with this
+    // cookie. Proves the sender receives at its address before it gets a
+    // slot (see connections.h).
+    NetPacket_ConnectChallenge,
     NetPacket_Count,
 };
 
@@ -118,7 +122,9 @@ struct net_ability_state
 // client can tell its own reply from a stale or spoofed one.
 // ContentId: the client build's SimContentId(); 0 for tools such as the
 // health probe, which never read snapshot contents.
-struct net_connect_request { u32 ClientSalt; u32 ContentId; char Name[NET_NAME_SIZE]; };
+// Cookie is 0 until the server's ConnectChallenge supplies one.
+struct net_connect_request { u32 ClientSalt; u32 ContentId; u32 Cookie; char Name[NET_NAME_SIZE]; };
+struct net_connect_challenge { u32 ClientSalt; u32 Cookie; };
 // NOTE(zoubir): MapId is the server's map_id; the client builds the same
 // ground from it (terrain never crosses the wire)
 struct net_connect_accepted { u32 ClientSalt; u8 PlayerIndex; u32 ServerTick; u8 MapId; };
@@ -192,6 +198,7 @@ struct net_packet
         net_connect_request ConnectRequest;
         net_connect_accepted ConnectAccepted;
         net_connect_denied ConnectDenied;
+        net_connect_challenge ConnectChallenge;
         net_input_batch Input;
         net_snapshot Snapshot;
     };

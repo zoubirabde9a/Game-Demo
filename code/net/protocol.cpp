@@ -85,7 +85,14 @@ NetSerializePacket(net_stream *S, net_packet *P)
         {
             NetU32(S, &P->ConnectRequest.ClientSalt);
             NetU32(S, &P->ConnectRequest.ContentId);
+            NetU32(S, &P->ConnectRequest.Cookie);
             NetName(S, P->ConnectRequest.Name, NET_NAME_SIZE);
+        } break;
+
+        case NetPacket_ConnectChallenge:
+        {
+            NetU32(S, &P->ConnectChallenge.ClientSalt);
+            NetU32(S, &P->ConnectChallenge.Cookie);
         } break;
 
         case NetPacket_ConnectAccepted:

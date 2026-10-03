@@ -62,6 +62,16 @@ NetClientHandle(net_client *Client, net_packet *Packet)
             }
         } break;
 
+        case NetPacket_ConnectChallenge:
+        {
+            if (Client->State == NetClient_Connecting &&
+                Packet->ConnectChallenge.ClientSalt == Client->Salt)
+            {
+                Client->Cookie = Packet->ConnectChallenge.Cookie;
+                Client->RetryTimer = 0; // answer on this update
+            }
+        } break;
+
         case NetPacket_ConnectDenied:
         {
             if (Client->State == NetClient_Connecting && Packet->ConnectDenied.ClientSalt == Client->Salt)
@@ -120,6 +130,7 @@ NetClientUpdate(net_client *Client, float Dt, u16 Buttons, float AimX, float Aim
             Client->RetryTimer = NET_CONNECT_RETRY;
             Out.ConnectRequest.ClientSalt = Client->Salt;
             Out.ConnectRequest.ContentId = Client->ContentId;
+            Out.ConnectRequest.Cookie = Client->Cookie;
             for (u32 Index = 0; Index < NET_NAME_SIZE; ++Index)
             {
                 Out.ConnectRequest.Name[Index] = Client->Name[Index];

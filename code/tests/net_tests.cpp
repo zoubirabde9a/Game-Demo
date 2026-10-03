@@ -588,6 +588,57 @@ TestLoopbackPacket()
     NetSocketsShutdown();
 }
 
+// With RequireCookie, a join request only takes a slot (or restarts one)
+// with the cookie the server sent to that address; strangers get a
+// challenge and cost no slot, and a forged restart of a connected player
+// from its address does nothing.
+internal void
+TestJoiningNeedsTheCookie()
+{
+    static net_server_clients Clients;
+    Clients = {};
+    Clients.RequireCookie = true;
+    Clients.Secret = 0x1234567;
+    net_address A = {0x7f000001, 4000};
+    net_address B = {0x7f000001, 4001};
+
+    net_packet Request = {};
+    Request.Header.Type = NetPacket_ConnectRequest;
+    Request.ConnectRequest.ClientSalt = 77;
+    net_receive_result R = NetServerReceive(&Clients, A, &Request, 100);
+    Check(R.Event == NetReceive_Ignored);
+    Check(R.HasReply && R.Reply.Header.Type == NetPacket_ConnectChallenge);
+    Check(R.Reply.ConnectChallenge.ClientSalt == 77);
+    u32 Cookie = R.Reply.ConnectChallenge.Cookie;
+    Check(Cookie != 0);
+    for (u32 Index = 0; Index < NET_MAX_CLIENTS; ++Index) Check(!Clients.Slots[Index].Connected);
+
+    // A wrong cookie, or A's cookie used from B, is challenged again.
+    Request.ConnectRequest.Cookie = Cookie ^ 4;
+    Check(NetServerReceive(&Clients, A, &Request, 101).Event == NetReceive_Ignored);
+    Request.ConnectRequest.Cookie = Cookie;
+    Check(NetServerReceive(&Clients, B, &Request, 101).Event == NetReceive_Ignored);
+
+    // The right one joins, also a window later.
+    R = NetServerReceive(&Clients, A, &Request, 100 + 512);
+    Check(R.Event == NetReceive_Joined);
+    Check(R.Reply.Header.Type == NetPacket_ConnectAccepted);
+    u32 Slot = R.SlotIndex;
+
+    // A forged restart from A (new salt, no cookie) leaves the slot alone.
+    net_packet Forged = {};
+    Forged.Header.Type = NetPacket_ConnectRequest;
+    Forged.ConnectRequest.ClientSalt = 99;
+    R = NetServerReceive(&Clients, A, &Forged, 700);
+    Check(R.Event == NetReceive_Ignored);
+    Check(Clients.Slots[Slot].Connected && Clients.Slots[Slot].Salt == 77);
+
+    // Two windows on, the old cookie no longer works.
+    Request.ConnectRequest.ClientSalt = 78;
+    Request.ConnectRequest.Cookie = Cookie;
+    Check(NetServerReceive(&Clients, B, &Request, 100 + 3 * 512).Event == NetReceive_Ignored);
+}
+
 // The wire layout is pinned: one packet of every type, with every field
 // set, is written and its bytes hashed. A change to what goes on the wire
 // must come with a new NET_PROTOCOL_ID, or old and new builds would
@@ -597,8 +648,8 @@ TestLoopbackPacket()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d42u
-#define NET_GOLDEN_LAYOUT 0xb020a76bu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d43u
+#define NET_GOLDEN_LAYOUT 0x6274569cu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -613,11 +664,12 @@ HashBytes(u32 Hash, u8 *Bytes, u32 Count)
 internal void
 TestWireLayoutIsPinned()
 {
-    static net_packet Packets[6];
-    for (u32 Index = 0; Index < 6; ++Index) Packets[Index] = {};
+    static net_packet Packets[7];
+    for (u32 Index = 0; Index < 7; ++Index) Packets[Index] = {};
     Packets[0].Header = {NetPacket_ConnectRequest, 1, 2};
     Packets[0].ConnectRequest.ClientSalt = 0x12345678;
     Packets[0].ConnectRequest.ContentId = 0x9abcdef0;
+    Packets[0].ConnectRequest.Cookie = 0x2468ace1;
     snprintf(Packets[0].ConnectRequest.Name, NET_NAME_SIZE, "%s", "Layout");
     Packets[1].Header = {NetPacket_ConnectAccepted, 3, 4};
     Packets[1].ConnectAccepted.ClientSalt = 0x12345678;
@@ -638,9 +690,12 @@ TestWireLayoutIsPinned()
         Packets[4].Input.Inputs[Index].AimY = -0.5f;
     }
     Packets[5] = FullSnapshot();
+    Packets[6].Header = {NetPacket_ConnectChallenge, 11, 12};
+    Packets[6].ConnectChallenge.ClientSalt = 0x12345678;
+    Packets[6].ConnectChallenge.Cookie = 0x13579bdf;
 
     u32 Hash = 2166136261u;
-    for (u32 Index = 0; Index < 6; ++Index)
+    for (u32 Index = 0; Index < 7; ++Index)
     {
         static u8 Buffer[NET_MAX_PACKET_SIZE];
         u32 Size = NetWritePacket(&Packets[Index], Buffer, sizeof(Buffer));
@@ -681,6 +736,7 @@ main()
     TestClientsLeaveAndTimeOut();
     TestParseAddress();
     TestLoopbackPacket();
+    TestJoiningNeedsTheCookie();
     TestWireLayoutIsPinned();
 
     printf("net tests: %d checks, %d failed\n", TestChecks, TestFailures);

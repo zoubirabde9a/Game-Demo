@@ -37,12 +37,21 @@ struct test_client
     net_socket Socket;
     net_address Server;
     u16 Sequence;
+    // NOTE: the newest connect request, sent again with the cookie when the
+    // server answers it with a challenge (TickUntil)
+    bool32 HasRequest;
+    net_packet Request;
 };
 
 internal void
 ClientSend(test_client *Client, net_packet *Packet)
 {
     u8 Buffer[NET_MAX_PACKET_SIZE];
+    if (Packet->Header.Type == NetPacket_ConnectRequest)
+    {
+        Client->HasRequest = true;
+        Client->Request = *Packet;
+    }
     Packet->Header.Sequence = ++Client->Sequence;
     u32 Size = NetWritePacket(Packet, Buffer, sizeof(Buffer));
     NetSendTo(&Client->Socket, Client->Server, Buffer, Size);
@@ -50,6 +59,7 @@ ClientSend(test_client *Client, net_packet *Packet)
 
 // Ticks the server until the client receives a packet of the wanted type.
 // Gives up after a few hundred ticks, which is several simulated seconds.
+// A connect challenge on the way is answered, as the real client does.
 internal bool32
 TickUntil(server *Server, test_client *Client, u8 Type, net_packet *Out)
 {
@@ -61,7 +71,14 @@ TickUntil(server *Server, test_client *Client, u8 Type, net_packet *Out)
         u32 Size;
         while ((Size = NetReceiveFrom(&Client->Socket, &From, Buffer, sizeof(Buffer))) != 0)
         {
-            if (NetReadPacket(Buffer, Size, Out) && Out->Header.Type == Type) return true;
+            if (!NetReadPacket(Buffer, Size, Out)) continue;
+            if (Out->Header.Type == Type) return true;
+            if (Out->Header.Type == NetPacket_ConnectChallenge && Client->HasRequest)
+            {
+                net_packet Again = Client->Request;
+                Again.ConnectRequest.Cookie = Out->ConnectChallenge.Cookie;
+                ClientSend(Client, &Again);
+            }
         }
     }
     return false;

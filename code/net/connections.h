@@ -7,7 +7,14 @@
 
    A client joins by sending ConnectRequest with a random salt. Requests
    are resent until answered, so a repeat from the same address and salt
-   gets the same slot again. A slot is freed by a Disconnect packet or after
+   gets the same slot again.
+
+   With RequireCookie set (the server sets it), a request only takes a
+   slot, or restarts one, when it carries the cookie the server sent that
+   address in a ConnectChallenge. The cookie is a hash of a secret, the
+   address, the salt and a time window, so the server keeps no state for
+   strangers, and a sender that does not receive at the address it claims
+   cannot fill the server or reset a real player's slot. A slot is freed by a Disconnect packet or after
    NET_CLIENT_TIMEOUT seconds (protocol.h) without any packet. */
 
 #include "protocol.h"
@@ -29,6 +36,8 @@ struct net_client_slot
 
 struct net_server_clients
 {
+    bool32 RequireCookie;
+    u32 Secret;    // random per server start; cookies are made from it
     u32 ContentId; // the server build's SimContentId(); clients must match or send 0
     u8 MapId;      // the map the server plays, told to every client it accepts
     net_client_slot Slots[NET_MAX_CLIENTS];

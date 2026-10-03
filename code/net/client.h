@@ -51,6 +51,7 @@ struct net_client
     net_address Server;
     u32 Salt;
     u32 ContentId;
+    u32 Cookie; // from the server's ConnectChallenge, sent back in requests
     char Name[NET_NAME_SIZE];
     float SecondsSinceHeard;
     float SecondsConnecting;

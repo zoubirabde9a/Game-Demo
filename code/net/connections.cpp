@@ -37,6 +37,36 @@ NetFillAccepted(net_client_slot *Slot, u32 SlotIndex, u32 ServerTick, u8 MapId,
     Result->Reply.ConnectAccepted.MapId = MapId;
 }
 
+// Cookies change every 512 ticks (about 8.5 s at 60 Hz); the previous
+// window still counts, so a handshake never straddles a change and fails.
+#define NET_COOKIE_WINDOW_SHIFT 9
+
+internal u32
+NetCookie(u32 Secret, net_address Address, u32 Salt, u32 Window)
+{
+    u32 Hash = Secret ^ 0x9e3779b9u;
+    u32 Parts[4] = {Address.Ip, Address.Port, Salt, Window};
+    for (u32 Index = 0; Index < 4; ++Index)
+    {
+        Hash ^= Parts[Index];
+        Hash *= 0x85ebca6bu;
+        Hash ^= Hash >> 13;
+        Hash *= 0xc2b2ae35u;
+        Hash ^= Hash >> 16;
+    }
+    return Hash | 1; // never 0, which means "no cookie"
+}
+
+internal bool32
+NetCookieValid(net_server_clients *Clients, net_address From, u32 Salt, u32 Cookie, u32 ServerTick)
+{
+    u32 Window = ServerTick >> NET_COOKIE_WINDOW_SHIFT;
+    bool32 Result = Cookie != 0 &&
+        (Cookie == NetCookie(Clients->Secret, From, Salt, Window) ||
+         (Window > 0 && Cookie == NetCookie(Clients->Secret, From, Salt, Window - 1)));
+    return Result;
+}
+
 internal net_receive_result
 NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Packet, u32 ServerTick)
 {
@@ -57,6 +87,20 @@ NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Pack
             Result.Reply.Header.Type = NetPacket_ConnectDenied;
             Result.Reply.ConnectDenied.ClientSalt = Salt;
             Result.Reply.ConnectDenied.Reason = NetDeny_WrongVersion;
+            return Result;
+        }
+
+        // A stranger, or a known address with a new salt, must first show
+        // it receives at From.
+        if (Clients->RequireCookie && !(Slot && Slot->Salt == Salt) &&
+            !NetCookieValid(Clients, From, Salt, Packet->ConnectRequest.Cookie, ServerTick))
+        {
+            Result.Event = NetReceive_Ignored;
+            Result.HasReply = true;
+            Result.Reply.Header.Type = NetPacket_ConnectChallenge;
+            Result.Reply.ConnectChallenge.ClientSalt = Salt;
+            Result.Reply.ConnectChallenge.Cookie =
+                NetCookie(Clients->Secret, From, Salt, ServerTick >> NET_COOKIE_WINDOW_SHIFT);
             return Result;
         }
 
