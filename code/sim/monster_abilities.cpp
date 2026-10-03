@@ -264,8 +264,14 @@ TriggerMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
             if (IsSpawnSpotFree(AppState, World, Spot3, Entity->Collision))
             {
                 v2 Facing = Entity->Position.XY - Spot;
+                v3 OldPosition = Entity->Position;
                 Entity->Position = Spot3;
                 Entity->Velocity = {};
+                // NOTE(zoubir): a teleport skips MoveEntity, so the chunk
+                // lists must be told; otherwise the next move asserts
+                CheckAndChangeEntityChunk(AppState, World,
+                                          &AppState->MemoryArena,
+                                          OldPosition, Entity);
                 float FacingLength = Length(Facing);
                 if (FacingLength > 0.f)
                 {

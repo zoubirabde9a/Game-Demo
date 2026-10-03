@@ -55,9 +55,21 @@ IsSpawnSpotFree(app_state *AppState, world *World, v3 Position,
     return true;
 }
 
+// NOTE(zoubir): also keeps clear of every slot's spawn point, so a player
+// joining or respawning never lands inside or next to a monster
 inline bool32
 IsFarFromPlayers(world *World, v2 Position, float MinDistance)
 {
+    for(u32 SlotIndex = 0;
+        SlotIndex < MAX_PLAYERS;
+        SlotIndex++)
+    {
+        if (Length(PlayerSpawnPosition(SlotIndex).XY - Position) < MinDistance)
+        {
+            return false;
+        }
+    }
+
     for(u32 EntityIndex = 0;
         EntityIndex < World->EntityCount;
         EntityIndex++)
