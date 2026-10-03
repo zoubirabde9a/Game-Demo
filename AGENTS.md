@@ -43,7 +43,7 @@ A claim older than a day with no commits behind it is stale. You may delete it.
 
 ## 4. Where conflicts come from, and how the layout avoids them
 
-- **Shared include lists.** The game is a unity build: `code/app.cpp` includes every `.cpp`, so it is the most edited file in the repo. Put a new include on its own line next to its module's other includes, never reorder the list, and keep everything else out of `app.cpp`. (Per-module include files are planned.)
+- **Shared include lists.** The game is a unity build. `code/app.cpp` includes the engine files and one file per module: `sim/sim_module.cpp`, `client/client_module.cpp`, `ui/ui_module.cpp`. Add a new file to its module's list, on its own line, never reordering; do not touch `app.cpp` for it. The top of each module file says what the module does and what it may depend on, so read that before opening the rest of the folder.
 - **Big files.** If you need to change a file that is already claimed, split the part you need into its own file first, in a separate small commit, and land that before anything else.
 - **Registries.** When many people add entries of the same kind (monsters today), give each entry its own file and list the files in one `.inc` file with one line per entry. Mark that list `merge=union` in `.gitattributes` so two additions at once both survive the merge. `code/sim/monsters/` is the example to copy.
 - **README.md.** Keep module detail in a short note at the top of the module's main file or in `docs/`, not in the README. The README covers building, controls and the top-level layout only.

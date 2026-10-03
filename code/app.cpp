@@ -8,7 +8,9 @@
 
 // NOTE(zoubir): network code for the online session. The dedicated server
 // includes it itself before this file; the browser build has no UDP.
-#if !defined(NET_CLIENT_H) && !defined(COMPILER_EMSCRIPTEN)
+// (__EMSCRIPTEN__ comes from the compiler; COMPILER_EMSCRIPTEN is not
+// defined yet at this point.)
+#if !defined(NET_CLIENT_H) && !defined(__EMSCRIPTEN__)
 #include "net/protocol.cpp"
 #include "net/socket.cpp"
 #include "net/client.cpp"
@@ -20,9 +22,9 @@
 #include "stdlib.h"
 #include "time.h"
 
+// NOTE(zoubir): the engine: memory, rendering, assets, sound, world storage
 #include "random.cpp"
 #include "utility.cpp"
-
 #include "asset.cpp"
 #include "render.cpp"
 #include "ui.cpp"
@@ -30,24 +32,12 @@
 #include "entity.cpp"
 #include "opengl.cpp"
 #include "audio.cpp"
-#include "sim/collision_rules.cpp"
-#include "sim/animations.cpp"
-#include "sim/monster_kinds.cpp"
-#include "sim/spawn.cpp"
-#include "sim/players.cpp"
-#include "sim/arena.cpp"
-#include "sim/abilities.cpp"
-#include "sim/monster_population.cpp"
-#include "sim/update.cpp"
-#include "sim/simulate.cpp"
-#include "sim/setup.cpp"
-#include "client/draw_entities.cpp"
-#include "client/play_events.cpp"
-#include "client/replicas.cpp"
-#include "client/online.cpp"
-#include "ui/hud.cpp"
-#include "ui/scoreboard.cpp"
-#include "client/keyboard_input.cpp"
+
+// NOTE(zoubir): one line per module; a module lists its own files, so a new
+// file is added there, not here. Read the top of each for what it does.
+#include "sim/sim_module.cpp"
+#include "client/client_module.cpp"
+#include "ui/ui_module.cpp"
 #include "art/monster_render.cpp"
 
 #include "app_ui.h"
