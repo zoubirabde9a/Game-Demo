@@ -239,6 +239,67 @@ TestShockwaveHitsOnlyNearbyMonsters()
 }
 
 internal void
+TestClearedWaveSpawnsNextOnFreeGround()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AppState->BatCollision = Test.UnitVolume;
+    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
+                                         {1000, 1000, 0}, Test.UnitVolume);
+    AppState->Player = Player;
+    // NOTE(zoubir): a ring of walls where spawns are likely to land
+    for(u32 WallIndex = 0; WallIndex < 16; WallIndex++)
+    {
+        float Angle = WallIndex * (2.f * Pi32 / 16.f);
+        AddTestEntity(&Test, EntityType_StaticObject,
+                      {1000 + 430.f * Cos(Angle), 1000 + 430.f * Sin(Angle), 0},
+                      Test.WallVolume);
+    }
+
+    wave_state Wave = {};
+    Wave.Number = 1;
+    Wave.Series = Seed(7);
+    float DeltaTime = 1.f / 60.f;
+
+    UpdateWaves(AppState, Test.World, &Test.Arena, &Wave, DeltaTime);
+    Check(Wave.Countdown > 0.f);
+    Check(CountLiveMonsters(Test.World) == 0);
+
+    for(u32 Frame = 0;
+        Frame < (u32)(WAVE_COUNTDOWN_SECONDS * 60.f) + 2;
+        Frame++)
+    {
+        UpdateWaves(AppState, Test.World, &Test.Arena, &Wave, DeltaTime);
+    }
+    Check(Wave.Number == 2);
+    Check(CountLiveMonsters(Test.World) == 4 + 2 * 2);
+
+    // NOTE(zoubir): no monster may start inside a wall or another unit
+    for(u32 EntityIndex = 0;
+        EntityIndex < Test.World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Monster = &Test.World->Entities[EntityIndex];
+        if (Monster->IsPresent && Monster->Type == EntityType_Monster)
+        {
+            for(u32 OtherIndex = 0;
+                OtherIndex < Test.World->EntityCount;
+                OtherIndex++)
+            {
+                world_entity *Other = &Test.World->Entities[OtherIndex];
+                if (Other != Monster && Other->IsPresent &&
+                    CanCollide(AppState, Monster->Type, Other->Type))
+                {
+                    Check(!EntityOverlap(Monster, Other));
+                }
+            }
+        }
+    }
+    DestroyTestWorld(&Test);
+}
+
+internal void
 TestCopyString()
 {
     char Buffer[4];
@@ -273,6 +334,7 @@ main()
     RUN(TestMonsterDyingMidMoveLeavesNoGhost);
     RUN(TestRemovedSlotIsReused);
     RUN(TestShockwaveHitsOnlyNearbyMonsters);
+    RUN(TestClearedWaveSpawnsNextOnFreeGround);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
 

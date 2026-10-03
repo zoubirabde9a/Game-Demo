@@ -24,6 +24,7 @@
 #include "sim/monster_kinds.cpp"
 #include "sim/spawn.cpp"
 #include "sim/abilities.cpp"
+#include "sim/waves.cpp"
 #include "sim/update.cpp"
 #include "sim/draw.cpp"
 #include "ui/hud.cpp"
@@ -534,6 +535,10 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
         
         
         SetupCollisionTable(AppState);
+
+        AppState->Wave = AllocateStruct(MemoryArena, wave_state);
+        AppState->Wave->Number = 1;
+        AppState->Wave->Series = Seed(1337);
         EndTemporaryMemory(TempMem);
         AppState->IsInitialized = true;
         
@@ -885,6 +890,9 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
 //    EndTemporaryMemory(FrameTemporaryMemory);
 //    FrameTemporaryMemory = BeginTemporaryMemory(TransientArena);
     
+    UpdateWaves(AppState, World, MemoryArena, AppState->Wave,
+                Input->DeltaTime);
+
     if (Input->ButtonF3.Pressed)
     {
         AppState->TileEditing = !AppState->TileEditing;
