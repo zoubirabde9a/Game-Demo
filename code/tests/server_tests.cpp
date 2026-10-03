@@ -89,12 +89,12 @@ TestJoinMoveAndLeave()
     Check(Reply.Snapshot.Entities[0].Type == EntityType_Player); // own player first
     float StartX = Reply.Snapshot.Entities[0].X;
 
-    // Hold right; the player should move right in later snapshots.
-    SendInput(&Client, 1, NetButton_Right);
+    // Hold left; the player should move left in later snapshots.
+    SendInput(&Client, 1, NetButton_Left);
     for (int Index = 0; Index < 30; ++Index) ServerTick(&Server);
     Check(TickUntil(&Server, &Client, NetPacket_Snapshot, &Reply));
-    Check(Reply.Snapshot.Entities[0].X > StartX);
-    Check(Reply.Snapshot.Entities[0].VelX > 0);
+    Check(Reply.Snapshot.Entities[0].X < StartX);
+    Check(Reply.Snapshot.Entities[0].VelX < 0);
 
     // A restart from the same address gets the same slot, reset to the start.
     Request.ConnectRequest.ClientSalt = 78;
@@ -173,9 +173,9 @@ TestClientConnectsAndMoves()
     float StartX = Client.Snapshot.Entities[0].X;
     u32 StartTick = Client.Snapshot.Tick;
 
-    StepBoth(&Server, &Client, 60, NetButton_Right);
+    StepBoth(&Server, &Client, 60, NetButton_Left);
     Check(Client.Snapshot.Tick > StartTick);
-    Check(Client.Snapshot.Entities[0].X > StartX + 50.0f);
+    Check(Client.Snapshot.Entities[0].X < StartX - 50.0f);
 
     NetClientDisconnect(&Client);
     Check(Client.State == NetClient_Disconnected);
