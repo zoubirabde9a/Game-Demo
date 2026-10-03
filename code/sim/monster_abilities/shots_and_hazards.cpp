@@ -54,11 +54,21 @@ GetVolleyDirections(monster_ability *Ability, v2 Aim, v2 *Directions,
 #define MAX_VOLLEY_SHOTS 7
 
 // NOTE(zoubir): a patch of ground left behind by an ability (bile, webs,
-// embers). Anyone standing in it keeps getting the ability's status
+// embers). Anyone standing in it keeps getting the ability's status. On a
+// bounded map the centre is kept on the map: a patch wholly past the edge
+// was in no chunk, so nothing could touch, see or remove it (the toad's
+// bile barrage aimed there, .agents/issues/toad-hazard-off-map.md)
 internal world_entity *
 AddMonsterHazard(app_state *AppState, world *World, memory_arena *Arena,
                  world_entity *Owner, monster_ability *Ability, v2 Center)
 {
+    if (!World->Unbounded)
+    {
+        float Width = (float)(World->NumTilesX * World->TileWidth);
+        float Height = (float)(World->NumTilesY * World->TileHeight);
+        Center.X = Minimum(Width, Maximum(0.f, Center.X));
+        Center.Y = Minimum(Height, Maximum(0.f, Center.Y));
+    }
     world_entity *Hazard = AddEntity(AppState, World, Arena,
                                      EntityType_MonsterHazard,
                                      V3(Center.X, Center.Y, 0.f),

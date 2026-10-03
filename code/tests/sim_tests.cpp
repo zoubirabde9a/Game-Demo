@@ -196,6 +196,23 @@ TestRemovingEntityPastMapEdgeFreesItOnce()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a hazard aimed past a bounded map's edge lands on it
+internal void
+TestHazardAimedOffMapLandsOnIt()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Owner = AddTestEntity(&Test, EntityType_Monster,
+                                        {20, 300, 0}, Test.UnitVolume);
+    monster_ability Ability = {};
+    Ability.Radius = 24.f;
+    Ability.HazardSeconds = 3.f;
+    world_entity *Hazard = AddMonsterHazard(Test.AppState, Test.World,
+                                            &Test.Arena, Owner, &Ability,
+                                            V2(-40.f, -10.f));
+    Check(Hazard->Position.X >= 0.f && Hazard->Position.Y >= 0.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 TestShockwaveHitsOnlyNearbyMonsters()
 {
@@ -734,6 +751,7 @@ main()
     RUN(TestMonsterDyingMidMoveLeavesNoGhost);
     RUN(TestRemovedSlotIsReused);
     RUN(TestRemovingEntityPastMapEdgeFreesItOnce);
+    RUN(TestHazardAimedOffMapLandsOnIt);
     RUN(TestShockwaveHitsOnlyNearbyMonsters);
     RUN(TestMonsterPopulationRefillsAwayFromPlayers);
     RUN(TestIdleMonsterWanders);
