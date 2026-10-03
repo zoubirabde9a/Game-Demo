@@ -232,6 +232,54 @@ SimGameWriteAbility(world_entity *Entity, u8 EntityIndex, net_snapshot *Out)
     }
 }
 
+// NOTE(zoubir): one entity's record, plus its ability windup and facing
+// entries, which point back at it by its index in the snapshot
+internal void
+SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
+{
+    net_entity_state *E = &Out->Entities[Out->Count++];
+    E->Id = Id;
+    E->Type = (u8)Entity->Type;
+    E->Facing = (u8)Entity->AnimationState.LastAnimationDirection;
+    E->Animation = (u8)Entity->AnimationState.CurrentType;
+    E->Variant = SimGameVariant(Entity);
+    E->Affix = (u8)Entity->EliteAffix;
+    E->Status = SimGameStatusBits(Entity);
+    E->Ability = (u8)Entity->AbilityIndex;
+    E->Health = (i16)Entity->Hp;
+    E->X = Entity->Position.X;
+    E->Y = Entity->Position.Y;
+    E->Z = Entity->Position.Z;
+    E->VelX = Entity->Velocity.X;
+    E->VelY = Entity->Velocity.Y;
+
+    SimGameWriteAbility(Entity, (u8)(Out->Count - 1), Out);
+    SimGameWriteFacing(Entity, (u8)(Out->Count - 1), Out);
+}
+
+struct sim_game_candidate
+{
+    u32 Index;
+    float DistanceSq;
+};
+
+// NOTE(zoubir): keeps the Room nearest candidates in List, nearest first
+// (insertion, so ties keep entity order)
+internal void
+SimGameKeepNearest(sim_game_candidate *List, u32 *Count, u32 Room,
+                   sim_game_candidate Candidate)
+{
+    if (Room == 0) return;
+    if (*Count == Room && Candidate.DistanceSq >= List[*Count - 1].DistanceSq) return;
+    u32 At = (*Count < Room) ? (*Count)++ : *Count - 1;
+    while (At > 0 && List[At - 1].DistanceSq > Candidate.DistanceSq)
+    {
+        List[At] = List[At - 1];
+        --At;
+    }
+    List[At] = Candidate;
+}
+
 internal void
 GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
 {
@@ -242,37 +290,30 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     Out->AbilityCount = 0;
 
     // The viewer's own player goes first so it is never cut off by the
-    // entity limit. TODO: when the limit is hit, prefer what is near the viewer.
+    // entity limit; the rest follow nearest first, so when more is going on
+    // than fits, what gets left out is what is farthest away.
     player_slot *Viewer = &Game->AppState->Players[ViewerSlot];
     world_entity *First = Viewer->Active ? Viewer->Entity : 0;
-
-    for (u32 Pass = 0; Pass < 2; ++Pass)
+    v2 Center = First ? First->Position.XY : V2(0.f);
+    if (First && SimGameIsSent(First))
     {
-        for (u32 Index = 0; Index < World->EntityCount && Out->Count < NET_MAX_SNAPSHOT_ENTITIES; ++Index)
-        {
-            world_entity *Entity = &World->Entities[Index];
-            if (!SimGameIsSent(Entity)) continue;
-            if ((Pass == 0) != (Entity == First)) continue;
+        SimGameWriteEntity(First, (u16)First->ID, Out);
+    }
 
-            net_entity_state *E = &Out->Entities[Out->Count++];
-            E->Id = (u16)Index;
-            E->Type = (u8)Entity->Type;
-            E->Facing = (u8)Entity->AnimationState.LastAnimationDirection;
-            E->Animation = (u8)Entity->AnimationState.CurrentType;
-            E->Variant = SimGameVariant(Entity);
-            E->Affix = (u8)Entity->EliteAffix;
-            E->Status = SimGameStatusBits(Entity);
-            E->Ability = (u8)Entity->AbilityIndex;
-            E->Health = (i16)Entity->Hp;
-            E->X = Entity->Position.X;
-            E->Y = Entity->Position.Y;
-            E->Z = Entity->Position.Z;
-            E->VelX = Entity->Velocity.X;
-            E->VelY = Entity->Velocity.Y;
-
-            SimGameWriteAbility(Entity, (u8)(Out->Count - 1), Out);
-            SimGameWriteFacing(Entity, (u8)(Out->Count - 1), Out);
-        }
+    u32 Room = NET_MAX_SNAPSHOT_ENTITIES - Out->Count;
+    sim_game_candidate Nearest[NET_MAX_SNAPSHOT_ENTITIES];
+    u32 NearestCount = 0;
+    for (u32 Index = 0; Index < World->EntityCount; ++Index)
+    {
+        world_entity *Entity = &World->Entities[Index];
+        if (Entity == First || !SimGameIsSent(Entity)) continue;
+        sim_game_candidate Candidate = {Index, LengthSq(Entity->Position.XY - Center)};
+        SimGameKeepNearest(Nearest, &NearestCount, Room, Candidate);
+    }
+    for (u32 Rank = 0; Rank < NearestCount; ++Rank)
+    {
+        u32 Index = Nearest[Rank].Index;
+        SimGameWriteEntity(&World->Entities[Index], (u16)Index, Out);
     }
 
     // One connected player's name, the next one each tick.

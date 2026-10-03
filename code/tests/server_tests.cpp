@@ -332,6 +332,60 @@ TestArmoredMonstersSendFacing()
     Check(Out.FacingCount == 2);
 }
 
+// More moving things than fit in a snapshot: the viewer still gets its own
+// player first and everything near it, and the rest nearest first.
+internal void
+TestSnapshotPrefersWhatIsNear()
+{
+    static server_game Game;
+    GameInit(&Game);
+    app_state *AppState = Game.AppState;
+    world *World = &AppState->World;
+    GamePlayerJoined(&Game, 0);
+    v3 Center = AppState->Players[0].Entity->Position;
+
+    // Far ones first, so sending in entity order would cut the near ones.
+    for (u32 Index = 0; Index < 70; ++Index)
+    {
+        v3 Spot = V3(2400.f, 100.f + 15.f * Index, 0.f);
+        AddMonster(AppState, World, Game.Arena, Spot, (monster_kind)0);
+    }
+    u32 NearIds[4];
+    for (u32 Index = 0; Index < 4; ++Index)
+    {
+        v3 Spot = Center + V3(40.f + 25.f * Index, 30.f, 0.f);
+        NearIds[Index] = AddMonster(AppState, World, Game.Arena, Spot, (monster_kind)0)->ID;
+    }
+
+    static net_snapshot Out;
+    Out = {};
+    GameWriteSnapshot(&Game, 0, &Out);
+    Check(Out.Count == NET_MAX_SNAPSHOT_ENTITIES);
+    Check(Out.Entities[0].Id == AppState->Players[0].Entity->ID);
+    for (u32 Near = 0; Near < 4; ++Near)
+    {
+        bool32 Found = false;
+        for (u32 Index = 0; Index < Out.Count; ++Index)
+        {
+            if (Out.Entities[Index].Id == NearIds[Near]) Found = true;
+        }
+        Check(Found);
+    }
+    bool32 Ordered = true;
+    float Previous = 0.f;
+    for (u32 Index = 1; Index < Out.Count; ++Index)
+    {
+        float Dx = Out.Entities[Index].X - Center.X;
+        float Dy = Out.Entities[Index].Y - Center.Y;
+        float DistanceSq = Dx * Dx + Dy * Dy;
+        // positions are sent to 1/8 unit, so allow a little slack
+        if (DistanceSq + 1.0f < Previous) Ordered = false;
+        Previous = DistanceSq;
+    }
+    Check(Ordered);
+    GameShutdown(&Game);
+}
+
 internal void
 TestClientConnectsAndMoves()
 {
@@ -668,6 +722,7 @@ main()
     TestJoinMoveAndLeave();
     TestQuietClientTimesOut();
     TestClientConnectsAndMoves();
+    TestSnapshotPrefersWhatIsNear();
     TestArmoredMonstersSendFacing();
     TestPredictionAgreesWithServer();
     TestSnapshotsAcknowledgeInputs();
