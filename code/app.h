@@ -88,6 +88,8 @@ struct app_state
     sim_events Events;
     // NOTE(zoubir): connection to a dedicated server, see client/online.cpp
     struct online_session *Online;
+    // NOTE(zoubir): address and name form, see ui/connect_screen.cpp
+    struct connect_screen *ConnectScreen;
     struct monster_population *Monsters;
 
     v3 TargetCamera;

@@ -7,16 +7,31 @@
    the first line of server.txt in the folder the game runs from, written
    as "a.b.c.d:port". The name other players see comes from GAME_NAME, or
    else the second line of server.txt; empty shows as "Player N". The
-   browser build has no UDP and is always offline. */
+   connect screen (ui/connect_screen.cpp) calls OnlineConnect and
+   OnlineDisconnect, and a connect from it rewrites server.txt so the next
+   launch reuses the address. The browser build has no UDP and is always
+   offline. */
 
 #define ONLINE_ADDRESS_FILE "server.txt"
 #define ONLINE_ADDRESS_ENV "GAME_SERVER"
 #define ONLINE_NAME_ENV "GAME_NAME"
 
+// NOTE(zoubir): what the connect screen shows and offers
+enum online_phase
+{
+    OnlinePhase_Offline,  // never tried, or left by choice
+    OnlinePhase_Joining,
+    OnlinePhase_Joined,
+    OnlinePhase_Ended,    // the connection failed or dropped; can retry
+};
+
 struct online_session
 {
     bool32 Enabled;
+    // NOTE(zoubir): the last address typed could not be read as a.b.c.d:port
+    bool32 BadAddress;
     char AddressText[64];
+    char NameText[NET_NAME_SIZE];
     // NOTE(zoubir): local copies of the server's entities, client/replicas.cpp
     replica_table Replicas;
     // NOTE(zoubir): inputs the server has not applied yet, client/prediction.cpp
@@ -114,31 +129,83 @@ NetButtonsFromKeyboard(app_input *Input)
     return Result;
 }
 
+// NOTE(zoubir): fopen and fprintf are portable; see the warning note above
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#endif
+internal void
+SaveOnlineConfig(char *Address, char *Name)
+{
+    FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "wb");
+    if (Handle)
+    {
+        fprintf(Handle, "%s\n%s\n", Address, Name);
+        fclose(Handle);
+    }
+}
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+// NOTE(zoubir): leaves the server (if any) and goes back to the local game
+internal void
+OnlineDisconnect(online_session *Online)
+{
+    if (Online->Enabled)
+    {
+        NetClientDisconnect(&Online->Client);
+    }
+    Online->Enabled = false;
+}
+
+// NOTE(zoubir): drops any current connection and starts connecting to
+// Address as Name; false, with BadAddress set, when Address does not parse
+internal bool32
+OnlineConnect(online_session *Online, char *Address, char *Name)
+{
+    OnlineDisconnect(Online);
+    if (Address != Online->AddressText)
+    {
+        CopyString(Online->AddressText, sizeof(Online->AddressText), Address);
+    }
+    if (Name != Online->NameText)
+    {
+        CopyString(Online->NameText, sizeof(Online->NameText), Name);
+    }
+    net_address Server;
+    Online->BadAddress = !NetParseAddress(Online->AddressText, &Server);
+    if (!Online->BadAddress && NetSocketsStartup())
+    {
+        u32 Salt = (u32)time(0) ^ (u32)(size_t)Online ^ Online->Client.Salt;
+        Online->Enabled = NetClientConnect(&Online->Client, Server, Salt,
+                                           SimContentId(), Online->NameText);
+    }
+    return Online->Enabled;
+}
+
 internal online_session *
 StartOnlineSession(memory_arena *Arena)
 {
     online_session *Online = AllocateStruct(Arena, online_session);
     *Online = {};
-    net_address Server;
-    char Name[NET_NAME_SIZE];
     if (ReadOnlineConfig(Online->AddressText, sizeof(Online->AddressText),
-                         Name, sizeof(Name)) &&
-        NetParseAddress(Online->AddressText, &Server) &&
-        NetSocketsStartup())
+                         Online->NameText, sizeof(Online->NameText)))
     {
-        u32 Salt = (u32)time(0) ^ (u32)(size_t)Online;
-        Online->Enabled = NetClientConnect(&Online->Client, Server, Salt,
-                                           SimContentId(), Name);
+        OnlineConnect(Online, Online->AddressText, Online->NameText);
     }
     return Online;
 }
 
+// NOTE(zoubir): KeysToUi while a screen takes the keyboard: the player
+// holds nothing
 internal void
-UpdateOnlineSession(online_session *Online, app_input *Input)
+UpdateOnlineSession(online_session *Online, app_input *Input,
+                    bool32 KeysToUi = false)
 {
     if (Online && Online->Enabled)
     {
-        u16 Buttons = NetButtonsFromKeyboard(Input);
+        u16 Buttons = KeysToUi ? 0 : NetButtonsFromKeyboard(Input);
         NetClientUpdate(&Online->Client, Input->DeltaTime, Buttons, 0.f, 0.f);
         if (Online->Client.State == NetClient_Connected)
         {
@@ -149,7 +216,7 @@ UpdateOnlineSession(online_session *Online, app_input *Input)
 }
 
 // NOTE(zoubir): true while the server, not the local simulation, owns the
-// world; drawing the snapshot comes in plan step 7b
+// world
 inline bool32
 IsOnline(online_session *Online)
 {
@@ -158,10 +225,31 @@ IsOnline(online_session *Online)
     return Result;
 }
 
+internal online_phase
+GetOnlinePhase(online_session *Online)
+{
+    online_phase Result = OnlinePhase_Offline;
+    if (Online && Online->Enabled)
+    {
+        switch (Online->Client.State)
+        {
+            case NetClient_Connecting: Result = OnlinePhase_Joining; break;
+            case NetClient_Connected: Result = OnlinePhase_Joined; break;
+            case NetClient_Disconnected: Result = OnlinePhase_Ended; break;
+        }
+    }
+    return Result;
+}
+
 internal void
 GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
 {
     Out[0] = 0;
+    if (Online && Online->BadAddress)
+    {
+        snprintf(Out, OutSize, "Offline: write the address as a.b.c.d:port");
+        return;
+    }
     if (!Online || !Online->Enabled)
     {
         return;
@@ -175,8 +263,16 @@ GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
         } break;
         case NetClient_Connected:
         {
-            snprintf(Out, OutSize, "Online at %s as Player %u",
-                     Online->AddressText, Client->PlayerIndex + 1);
+            if (Online->NameText[0])
+            {
+                snprintf(Out, OutSize, "Online at %s as %s",
+                         Online->AddressText, Online->NameText);
+            }
+            else
+            {
+                snprintf(Out, OutSize, "Online at %s as Player %u",
+                         Online->AddressText, Client->PlayerIndex + 1);
+            }
         } break;
         case NetClient_Disconnected:
         {
@@ -234,8 +330,22 @@ StartOnlineSession(memory_arena *Arena)
     return Online;
 }
 
-internal void UpdateOnlineSession(online_session *Online, app_input *Input) {}
+internal void
+UpdateOnlineSession(online_session *Online, app_input *Input,
+                    bool32 KeysToUi = false) {}
+internal void OnlineDisconnect(online_session *Online) {}
+internal bool32
+OnlineConnect(online_session *Online, char *Address, char *Name)
+{
+    return false;
+}
 inline bool32 IsOnline(online_session *Online) { return false; }
+internal online_phase
+GetOnlinePhase(online_session *Online)
+{
+    return OnlinePhase_Offline;
+}
+internal void SaveOnlineConfig(char *Address, char *Name) {}
 internal void
 GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
 {

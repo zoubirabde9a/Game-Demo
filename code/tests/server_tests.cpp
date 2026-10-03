@@ -221,6 +221,81 @@ SetEnvironment(const char *Name, const char *Value)
 #endif
 }
 
+// What the connect screen does: a bad address is refused without a
+// socket, a good one joins, and leaving goes back to the local game.
+internal void
+TestConnectAndLeaveFromTheGame()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0));
+
+    app_state *Client = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(48);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    InitSimulation(Client, &Arena, &Constants);
+    AddPlayerToSlot(Client, &Client->World, &Arena, 0,
+                    PlayerSpawnPosition(&Client->World, 0));
+
+    SetEnvironment(ONLINE_ADDRESS_ENV, "");
+    Client->Online = StartOnlineSession(&Arena);
+    online_session *Online = Client->Online;
+    Check(GetOnlinePhase(Online) == OnlinePhase_Offline);
+
+    Check(!OnlineConnect(Online, "not an address", "Gary"));
+    Check(Online->BadAddress);
+    Check(GetOnlinePhase(Online) == OnlinePhase_Offline);
+
+    char Address[32];
+    snprintf(Address, sizeof(Address), "127.0.0.1:%u", NetSocketPort(&Server.Socket));
+    Check(OnlineConnect(Online, Address, "Gary"));
+    Check(!Online->BadAddress);
+    Check(GetOnlinePhase(Online) == OnlinePhase_Joining);
+
+    app_input Input = {};
+    Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
+    for (int Frame = 0; Frame < 120 && !IsOnline(Online); ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Check(GetOnlinePhase(Online) == OnlinePhase_Joined);
+    for (int Frame = 0; Frame < 10; ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Check(Online->Replicas.Active);
+
+    // Keys held while a screen is open do not move the player.
+    world_entity *Player = GetLocalPlayer(Client);
+    float StartX = Player->Position.X;
+    Input.ButtonQ.EndedDown = true;
+    for (int Frame = 0; Frame < 30; ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input, true);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Player = GetLocalPlayer(Client);
+    Check(Player->Position.X - StartX < 1.0f && Player->Position.X - StartX > -1.0f);
+    Input.ButtonQ.EndedDown = false;
+
+    OnlineDisconnect(Online);
+    Check(GetOnlinePhase(Online) == OnlinePhase_Offline);
+    RunWorldTick(Client, &Arena, Input.DeltaTime);
+    Check(!Online->Replicas.Active);
+    ServerTick(&Server);
+
+    ServerStop(&Server);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(Client);
+}
+
 // The real client loop (online session, replicas, prediction) against a
 // real server in one process: what the client predicts for its own player
 // must end up where the server puts it.
@@ -729,6 +804,7 @@ main()
     TestSnapshotPrefersWhatIsNear();
     TestArmoredMonstersSendFacing();
     TestPredictionAgreesWithServer();
+    TestConnectAndLeaveFromTheGame();
     TestSnapshotsAcknowledgeInputs();
     TestPlayerNamesReachEveryone();
     TestNinthClientIsTurnedAway();

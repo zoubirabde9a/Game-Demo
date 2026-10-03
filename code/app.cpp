@@ -60,9 +60,11 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     OpenGL->glClearColor(1.0f, 0.5f, 0.5f, 1.0f);
 
     // Input, and the camera on the local player before it moves.
+    // While a screen such as the connect screen is open, keys type into it.
+    bool32 KeysToUi = ConnectScreenTakesInput(AppState);
     AppState->Players[AppState->LocalPlayerIndex].Input =
-        ReadKeyboardPlayerInput(Input);
-    if (Input->ButtonJ.Pressed)
+        KeysToUi ? player_input{} : ReadKeyboardPlayerInput(Input);
+    if (!KeysToUi && Input->ButtonJ.Pressed)
     {
         PlaySound(AppState, {AssetType_BattleTheme});
     }
@@ -72,7 +74,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     render_program TextureProgram = RenderContext->TextureProgram;
     BeginWorldPass(RenderContext, TransientArena, &AppState->World);
     DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset);
-    UpdateOnlineSession(AppState->Online, Input);
+    UpdateOnlineSession(AppState->Online, Input, KeysToUi);
     RunWorldTick(AppState, &AppState->MemoryArena, Input->DeltaTime);
     PlaySimEvents(AppState);
     DrawWorldEntities(RenderContext, AppState, &AppState->Assets,
@@ -95,6 +97,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     }
     DoTileEditor(RenderContext, AppState, UIContext, Input, Window,
                  TextureProgram, CameraOffset);
+    DoConnectScreen(RenderContext, AppState, UIContext, Input,
+                    Window->Width, Window->Height);
     UIEnd(UIContext);
 
     EndTemporaryMemory(FrameMemory);
