@@ -939,6 +939,93 @@ TestReplicasCarryMonsterDetails()
 }
 
 internal void
+TestPredictionHistory()
+{
+    prediction_history *History =
+        (prediction_history *)calloc(1, sizeof(prediction_history));
+    for(u32 Tick = 1; Tick <= 5; Tick++)
+    {
+        RecordPredictedInput(History, Tick, NetButton_Right, 1.f / 60.f);
+    }
+    DropAcknowledgedInputs(History, 3);
+    Check(History->Count == 2);
+    Check(GetPredictedInput(History, 0)->Tick == 4);
+
+    // NOTE(zoubir): a full ring forgets its oldest input
+    for(u32 Tick = 6; Tick < 6 + MAX_PREDICTED_INPUTS; Tick++)
+    {
+        RecordPredictedInput(History, Tick, 0, 1.f / 60.f);
+    }
+    Check(History->Count == MAX_PREDICTED_INPUTS);
+    Check(GetPredictedInput(History, History->Count - 1)->Tick ==
+          5 + MAX_PREDICTED_INPUTS);
+    Check(GetPredictedInput(History, 0)->Tick == 6);
+    free(History);
+}
+
+internal void
+TestPredictionMovesNowAndReplaysAfterSnapshot()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    prediction_history *History =
+        (prediction_history *)calloc(1, sizeof(prediction_history));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+    float Dt = 1.f / 60.f;
+
+    Snapshot->Tick = 1;
+    Snapshot->Count = 1;
+    Snapshot->NameSlot = NET_NO_NAME_SLOT;
+    Snapshot->Entities[0] = SnapshotEntity(3, EntityType_Player, 500, 500, 0);
+    Snapshot->Entities[0].Health = 100;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    world_entity *Player = GetLocalPlayer(AppState);
+
+    // NOTE(zoubir): holding right moves the player on the very first frame
+    RecordPredictedInput(History, 1, NetButton_Right, Dt);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0);
+    float AfterOne = Player->Position.X;
+    Check(AfterOne > 500.f);
+    for(u32 Tick = 2; Tick <= 10; Tick++)
+    {
+        RecordPredictedInput(History, Tick, NetButton_Right, Dt);
+        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0);
+    }
+    Check(Player->Position.X > AfterOne);
+    Check(Player->Position.Y == 500.f);
+
+    // NOTE(zoubir): the server applied every input: the player is exactly
+    // where it says
+    Snapshot->Tick = 2;
+    Snapshot->InputTick = 10;
+    Snapshot->Entities[0].X = 530.f;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 10);
+    Check(History->Count == 0);
+    Check(Player->Position.X == 530.f);
+
+    // NOTE(zoubir): five newer inputs it has not applied: the player is
+    // ahead of the server's position, as far as five frames carry it
+    for(u32 Tick = 11; Tick <= 15; Tick++)
+    {
+        RecordPredictedInput(History, Tick, NetButton_Right, Dt);
+    }
+    Snapshot->Tick = 3;
+    Snapshot->Entities[0].X = 540.f;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 10);
+    Check(History->Count == 5);
+    Check(Player->Position.X > 540.f);
+    Check(Player->Position.X < 540.f + 5.f * 30.f);
+
+    free(Snapshot);
+    free(History);
+    free(Table);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 TestCopyString()
 {
     char Buffer[4];
@@ -1042,6 +1129,8 @@ main()
     RUN(TestReplicaPlayersAndScoresFillSlots);
     RUN(TestPlayerNamesFromSnapshotsAndConfig);
     RUN(TestReplicasCarryMonsterDetails);
+    RUN(TestPredictionHistory);
+    RUN(TestPredictionMovesNowAndReplaysAfterSnapshot);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
     RUN(TestAnimationAdvancesWithoutTexture);

@@ -15,5 +15,6 @@
 #include "draw_entities.cpp"
 #include "play_events.cpp"
 #include "replicas.cpp"
+#include "prediction.cpp"
 #include "online.cpp"
 #include "keyboard_input.cpp"

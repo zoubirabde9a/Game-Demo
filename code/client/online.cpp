@@ -19,6 +19,8 @@ struct online_session
     char AddressText[64];
     // NOTE(zoubir): local copies of the server's entities, client/replicas.cpp
     replica_table Replicas;
+    // NOTE(zoubir): inputs the server has not applied yet, client/prediction.cpp
+    prediction_history Prediction;
 #if !COMPILER_EMSCRIPTEN
     net_client Client;
 #endif
@@ -136,8 +138,13 @@ UpdateOnlineSession(online_session *Online, app_input *Input)
 {
     if (Online && Online->Enabled)
     {
-        NetClientUpdate(&Online->Client, Input->DeltaTime,
-                        NetButtonsFromKeyboard(Input), 0.f, 0.f);
+        u16 Buttons = NetButtonsFromKeyboard(Input);
+        NetClientUpdate(&Online->Client, Input->DeltaTime, Buttons, 0.f, 0.f);
+        if (Online->Client.State == NetClient_Connected)
+        {
+            RecordPredictedInput(&Online->Prediction, Online->Client.InputTick,
+                                 Buttons, Input->DeltaTime);
+        }
     }
 }
 
@@ -194,14 +201,19 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
     online_session *Online = AppState->Online;
     if (IsOnline(Online) && Online->Client.HasSnapshot)
     {
-        SyncReplicas(AppState, Arena, &Online->Replicas,
-                     &Online->Client.Snapshot, DeltaTime,
+        net_snapshot *Snapshot = &Online->Client.Snapshot;
+        bool32 NewSnapshot = !Online->Replicas.Active ||
+            Snapshot->Tick != Online->Replicas.LastAppliedTick;
+        SyncReplicas(AppState, Arena, &Online->Replicas, Snapshot, DeltaTime,
                      Online->Client.PlayerIndex);
+        PredictLocalPlayer(AppState, Arena, &Online->Prediction, NewSnapshot,
+                           Snapshot->InputTick);
         return;
     }
     if (Online && Online->Replicas.Active)
     {
         LeaveReplicaWorld(AppState, Arena, &Online->Replicas);
+        Online->Prediction = {};
     }
     SimulateTick(AppState, Arena, DeltaTime);
 }

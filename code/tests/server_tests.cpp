@@ -212,6 +212,94 @@ TestSnapshotsAcknowledgeInputs()
 }
 
 internal void
+SetEnvironment(const char *Name, const char *Value)
+{
+#if defined(_WIN32)
+    _putenv_s(Name, Value);
+#else
+    setenv(Name, Value, 1);
+#endif
+}
+
+// The real client loop (online session, replicas, prediction) against a
+// real server in one process: what the client predicts for its own player
+// must end up where the server puts it.
+internal void
+TestPredictionAgreesWithServer()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0));
+
+    app_state *Client = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(48);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    InitSimulation(Client, &Arena, &Constants);
+    AddPlayerToSlot(Client, &Client->World, &Arena, 0, PlayerSpawnPosition(0));
+
+    char Address[32];
+    snprintf(Address, sizeof(Address), "127.0.0.1:%u", NetSocketPort(&Server.Socket));
+    SetEnvironment(ONLINE_ADDRESS_ENV, Address);
+    Client->Online = StartOnlineSession(&Arena);
+    SetEnvironment(ONLINE_ADDRESS_ENV, "");
+    Check(Client->Online->Enabled);
+
+    app_input Input = {};
+    Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
+    for (int Frame = 0; Frame < 120 && !IsOnline(Client->Online); ++Frame)
+    {
+        UpdateOnlineSession(Client->Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Check(IsOnline(Client->Online));
+    for (int Frame = 0; Frame < 10; ++Frame)
+    {
+        UpdateOnlineSession(Client->Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+
+    // Hold left (open ground from slot 0's spawn) for a second.
+    world_entity *Predicted = GetLocalPlayer(Client);
+    float StartX = Predicted->Position.X;
+    Input.ButtonQ.EndedDown = true;
+    for (int Frame = 0; Frame < 60; ++Frame)
+    {
+        UpdateOnlineSession(Client->Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Predicted = GetLocalPlayer(Client);
+    world_entity *Authority = Server.Game.AppState->Players[0].Entity;
+    Check(Predicted->Position.X < StartX - 50.0f);
+    // Moving, the client is ahead of the server by the inputs in flight.
+    Check(Predicted->Position.X <= Authority->Position.X + 0.01f);
+
+    // Released, both come to rest at the same spot.
+    Input.ButtonQ.EndedDown = false;
+    for (int Frame = 0; Frame < 60; ++Frame)
+    {
+        UpdateOnlineSession(Client->Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Predicted = GetLocalPlayer(Client);
+    Authority = Server.Game.AppState->Players[0].Entity;
+    float Error = Predicted->Position.X - Authority->Position.X;
+    Check(Error < 1.0f && Error > -1.0f);
+    Check(Predicted->Position.Y - Authority->Position.Y < 1.0f &&
+          Predicted->Position.Y - Authority->Position.Y > -1.0f);
+
+    NetClientDisconnect(&Client->Online->Client);
+    ServerStop(&Server);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(Client);
+}
+
+internal void
 TestClientConnectsAndMoves()
 {
     static server Server;
@@ -547,6 +635,7 @@ main()
     TestJoinMoveAndLeave();
     TestQuietClientTimesOut();
     TestClientConnectsAndMoves();
+    TestPredictionAgreesWithServer();
     TestSnapshotsAcknowledgeInputs();
     TestPlayerNamesReachEveryone();
     TestNinthClientIsTurnedAway();
