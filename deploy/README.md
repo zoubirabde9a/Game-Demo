@@ -23,6 +23,8 @@ Build the tools with `build_server.bat` (Windows) or `build_server.sh`. The cont
 | A game build with this content id is let in | `build\probe.exe 152.53.147.77:27015 <content-id>` (exit 5: different build) |
 | Load: 8 players for 75 s | `build\bots.exe 152.53.147.77:27015 <content-id> 8 75`, then read the stats line in the server log |
 
+What a healthy run looks like (local debug server, Old Arena, 2026-10-03, protocol GDMA): all 8 bots stay connected at 20 snapshots a second; the minute's stats line reads about `tick avg 2.2 ms max 12.5 ms of 16.7, 0 late`, `0 bad` packets in, and about 78 KB/s out (10 KB/s per player). Clients send one input packet per frame, so inbound grows with their frame rate (about 41 KB/s for 8 players at 60 fps). The live server is built with `-O2`, so its ticks should be several times faster; late ticks or bad packets there are worth a look.
+
 ## On the server
 
 | Task | Command |
