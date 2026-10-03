@@ -10,7 +10,7 @@
 #if defined(MONSTER_NAME_PASS)
 MONSTER(Slime)
 MONSTER(Slimelet)
-#else
+#elif !defined(MONSTER_ART_PASS)
 
 internal void
 DefineMonster_Slime(monster_def *Def)
@@ -62,6 +62,8 @@ DefineMonster_Slimelet(monster_def *Def)
     Def->FrameSize = 32;
     Def->SecondsPerFrame[MonsterRow_Move] = 0.07f;
 }
+
+#else
 
 // NOTE(zoubir): the shared body. Scale 1 fills a 48 pixel frame; Core
 // says whether the drowned skull shows inside

@@ -4,7 +4,7 @@
    the mark. */
 #if defined(MONSTER_NAME_PASS)
 MONSTER(Shade)
-#else
+#elif !defined(MONSTER_ART_PASS)
 
 internal void
 DefineMonster_Shade(monster_def *Def)
@@ -35,6 +35,8 @@ DefineMonster_Shade(monster_def *Def)
     Step->Spread = 50.f;
     Step->Knockback = 300.f;
 }
+
+#else
 
 internal void
 DrawMonster_Shade(sprite_canvas *Canvas, monster_pose Pose)

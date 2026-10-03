@@ -11,7 +11,7 @@
 #if defined(MONSTER_NAME_PASS)
 MONSTER(Shaman)
 MONSTER(Thrall)
-#else
+#elif !defined(MONSTER_ART_PASS)
 
 internal void
 DefineMonster_Shaman(monster_def *Def)
@@ -67,6 +67,8 @@ DefineMonster_Thrall(monster_def *Def)
     Def->FrameSize = 40;
     Def->SecondsPerFrame[MonsterRow_Move] = 0.08f;
 }
+
+#else
 
 internal void
 DrawMonster_Shaman(sprite_canvas *Canvas, monster_pose Pose)

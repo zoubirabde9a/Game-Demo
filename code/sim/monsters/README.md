@@ -7,7 +7,9 @@ One file per monster kind. A file holds everything about that monster: its stats
 1. Copy `shade.cpp` to `<name>.cpp` and rename `Shade` everywhere in it to your kind's name.
 2. Add `#include "<name>.cpp"` as a new line in `monster_list.inc`. Git merges that file line by line (`merge=union` in `.gitattributes`), so two people adding a line at the same moment both keep theirs.
 3. Fill in `DefineMonster_<Name>`: stats, `SpawnWeight` (relative odds when the arena refills), `FrameSize`, and up to three abilities with `AddMonsterAbility`.
-4. Write `DrawMonster_<Name>`. It is called once per frame of the sprite sheet with a `monster_pose` (which row, which frame, `t` from 0 to 1, and `Wave`, a sine of `t` for loops). Draw the monster facing right; the game mirrors it for left.
+4. Write `DrawMonster_<Name>` below the file's `#else` line. A monster file is read in three passes: the name pass (`MONSTER(<Name>)`), the rules pass (`DefineMonster_<Name>`, compiled into the game rules and the server) and the art pass (everything after `#else`, compiled only into the client by `code/art/monster_art.cpp`). Keep drawing code in the art section so the server never builds it.
+
+   `DrawMonster_<Name>` It is called once per frame of the sprite sheet with a `monster_pose` (which row, which frame, `t` from 0 to 1, and `Wave`, a sine of `t` for loops). Draw the monster facing right; the game mirrors it for left.
 5. Run `art.bat` and look at `build\monster_art\<Name>.png`. Run `test.bat`; it checks every kind's numbers and that every frame has something drawn in it.
 
 `MonsterKind_<Name>` exists as soon as the line is in `monster_list.inc`.

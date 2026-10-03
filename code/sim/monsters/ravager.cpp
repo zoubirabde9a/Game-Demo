@@ -3,7 +3,7 @@
    wall, the ravager smashes into it and stays dazed for a long time. */
 #if defined(MONSTER_NAME_PASS)
 MONSTER(Ravager)
-#else
+#elif !defined(MONSTER_ART_PASS)
 
 internal void
 DefineMonster_Ravager(monster_def *Def)
@@ -34,6 +34,8 @@ DefineMonster_Ravager(monster_def *Def)
     Rush->Speed = 620.f;
     Rush->Knockback = 700.f;
 }
+
+#else
 
 internal void
 DrawMonster_Ravager(sprite_canvas *Canvas, monster_pose Pose)

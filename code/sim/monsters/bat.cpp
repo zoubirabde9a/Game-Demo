@@ -3,7 +3,7 @@
    the line and it overshoots. */
 #if defined(MONSTER_NAME_PASS)
 MONSTER(Bat)
-#else
+#elif !defined(MONSTER_ART_PASS)
 
 internal void
 DefineMonster_Bat(monster_def *Def)
@@ -35,6 +35,8 @@ DefineMonster_Bat(monster_def *Def)
     Swoop->Speed = 560.f;
     Swoop->Knockback = 250.f;
 }
+
+#else
 
 internal void
 DrawMonster_Bat(sprite_canvas *Canvas, monster_pose Pose)

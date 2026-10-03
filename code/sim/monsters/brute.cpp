@@ -3,7 +3,7 @@
    outside the ring or eat a hit that throws you back. */
 #if defined(MONSTER_NAME_PASS)
 MONSTER(Brute)
-#else
+#elif !defined(MONSTER_ART_PASS)
 
 internal void
 DefineMonster_Brute(monster_def *Def)
@@ -30,6 +30,8 @@ DefineMonster_Brute(monster_def *Def)
     Slam->Radius = 80.f;
     Slam->Knockback = 600.f;
 }
+
+#else
 
 internal void
 DrawMonster_Brute(sprite_canvas *Canvas, monster_pose Pose)

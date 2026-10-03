@@ -4,7 +4,7 @@
    it outside them. */
 #if defined(MONSTER_NAME_PASS)
 MONSTER(Spider)
-#else
+#elif !defined(MONSTER_ART_PASS)
 
 internal void
 DefineMonster_Spider(monster_def *Def)
@@ -56,6 +56,8 @@ DefineMonster_Spider(monster_def *Def)
     Spit->Status = StatusEffect_Poisoned;
     Spit->StatusSeconds = 3.f;
 }
+
+#else
 
 // NOTE(zoubir): one leg as hip -> raised knee -> foot on the ground
 internal void

@@ -4,7 +4,7 @@
    embers, and stepping between two lanes dodges the whole fan. */
 #if defined(MONSTER_NAME_PASS)
 MONSTER(Imp)
-#else
+#elif !defined(MONSTER_ART_PASS)
 
 internal void
 DefineMonster_Imp(monster_def *Def)
@@ -40,6 +40,8 @@ DefineMonster_Imp(monster_def *Def)
     Fan->Status = StatusEffect_Burning;
     Fan->StatusSeconds = 1.5f;
 }
+
+#else
 
 internal void
 DrawMonster_Imp(sprite_canvas *Canvas, monster_pose Pose)

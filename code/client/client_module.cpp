@@ -11,6 +11,7 @@
    Depends on sim (included before this). Screen widgets live in ui/.
    A new client file goes on its own line below, after the files it uses. */
 
+#include "../art/art_module.cpp"
 #include "draw_entities.cpp"
 #include "play_events.cpp"
 #include "replicas.cpp"

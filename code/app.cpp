@@ -33,7 +33,6 @@
 #include "sim/sim_module.cpp"
 #include "client/client_module.cpp"
 #include "ui/ui_module.cpp"
-#include "art/monster_render.cpp"
 
 #include "app_ui.h"
 

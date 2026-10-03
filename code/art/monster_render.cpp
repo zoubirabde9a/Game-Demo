@@ -2,8 +2,6 @@
    function into a sprite-sheet texture at startup, and drawing ability
    telegraphs (the danger zones on the ground) over the world. */
 
-#include "monster_fx.cpp"
-
 inline u32
 MonsterSheetWidth(monster_def *Def)
 {

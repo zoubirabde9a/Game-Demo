@@ -1,11 +1,11 @@
 /* Monster kinds: every monster is EntityType_Monster (so sword, fireball
    and collision rules apply to all of them). A kind is a monster_def:
    stats, size, how often it spawns, up to MAX_MONSTER_ABILITIES abilities,
-   and a function that draws its sprite frames. Each kind lives in its own
+   and (client only, art/monster_art.cpp) a function that draws its
+   sprite frames. Each kind lives in its own
    file under sim/monsters/, listed once in sim/monsters/monster_list.inc.
    See sim/monsters/README.md for adding one. */
 
-#include "../art/sprite_canvas.cpp"
 #include "monster_affixes.cpp"
 #include "status_effects.cpp"
 
@@ -106,7 +106,6 @@ enum monster_sheet_row
     MonsterRow_Count
 };
 
-typedef void monster_draw_function(sprite_canvas *Canvas, monster_pose Pose);
 
 // NOTE(zoubir): what happens when a monster of this kind dies
 enum monster_death_effect
@@ -214,15 +213,6 @@ typedef void monster_define_function(monster_def *Def);
 global_variable monster_define_function *MonsterDefineFunctions[MonsterKind_Count] =
 {
 #define MONSTER(Name) DefineMonster_##Name,
-#define MONSTER_NAME_PASS
-#include "monsters/monster_list.inc"
-#undef MONSTER_NAME_PASS
-#undef MONSTER
-};
-
-global_variable monster_draw_function *MonsterDrawFunctions[MonsterKind_Count] =
-{
-#define MONSTER(Name) DrawMonster_##Name,
 #define MONSTER_NAME_PASS
 #include "monsters/monster_list.inc"
 #undef MONSTER_NAME_PASS

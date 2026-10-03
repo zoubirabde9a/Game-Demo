@@ -3,7 +3,7 @@
    first one placed where you are heading. Keep moving sideways. */
 #if defined(MONSTER_NAME_PASS)
 MONSTER(Toad)
-#else
+#elif !defined(MONSTER_ART_PASS)
 
 internal void
 DefineMonster_Toad(monster_def *Def)
@@ -40,6 +40,8 @@ DefineMonster_Toad(monster_def *Def)
     Barrage->HazardSeconds = 4.f;
     Barrage->HazardStyle = HazardStyle_Bile;
 }
+
+#else
 
 internal void
 DrawMonster_Toad(sprite_canvas *Canvas, monster_pose Pose)
