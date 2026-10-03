@@ -36,7 +36,7 @@ struct net_server_clients
 enum net_receive_event
 {
     NetReceive_Ignored,   // unknown sender, stale or server-only packet
-    NetReceive_Joined,    // a new client took slot SlotIndex
+    NetReceive_Joined,    // a client took slot SlotIndex; start it fresh, even if it was in use
     NetReceive_Rejoined,  // a repeated connect request; reply already filled
     NetReceive_Denied,    // server full; reply filled
     NetReceive_Left,      // client said goodbye; slot is free again

@@ -54,16 +54,16 @@ NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Pack
             return Result;
         }
 
-        if (Slot)
+        if (!Slot)
         {
-            // Same address, new salt: the client restarted. Drop the old session.
-            *Slot = {};
+            for (SlotIndex = 0; SlotIndex < NET_MAX_CLIENTS; ++SlotIndex)
+            {
+                if (!Clients->Slots[SlotIndex].Connected) break;
+            }
         }
-
-        for (SlotIndex = 0; SlotIndex < NET_MAX_CLIENTS; ++SlotIndex)
-        {
-            if (!Clients->Slots[SlotIndex].Connected) break;
-        }
+        // else: same address with a new salt means the client restarted.
+        // It keeps its slot, and the Joined event below tells the game to
+        // start that slot over.
 
         if (SlotIndex == NET_MAX_CLIENTS)
         {

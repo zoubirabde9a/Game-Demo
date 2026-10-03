@@ -15,6 +15,11 @@ if errorlevel 1 goto failed
 .\net_tests.exe
 if errorlevel 1 set Result=1
 
+cl %TestFlags% ..\code\tests\server_tests.cpp /link -incremental:no
+if errorlevel 1 goto failed
+.\server_tests.exe
+if errorlevel 1 set Result=1
+
 popd
 exit /b %Result%
 

@@ -18,9 +18,9 @@ Each step leaves the game building, the tests passing and the game playable.
     - [x] 2a. Player slots with per-slot input, spawn point and queued actions; keyboard mapped in `client/keyboard_input.cpp`; monsters chase the nearest player.
     - [x] 2b. Swords, fireballs and shockwaves damage other players (never their owner); kills and deaths credited to slots; HUD shows the local slot's score.
 - [ ] 3. Split simulation from rendering. A `SimulateTick(world, inputs[], dt)` updates every entity without drawing, playing sounds or touching assets; the client draws in a separate pass.
-- [ ] 4. Headless server program (`code/server/`). Fixed-tick loop around `SimulateTick`, builds on Windows (for local testing) and Linux (for the VPS) with no graphics libraries.
+- [~] 4. Headless server program (`code/server/`). Fixed-tick loop around `SimulateTick`, builds on Windows (for local testing) and Linux (for the VPS) with no graphics libraries. Done except the real game: the server runs `placeholder_game.cpp` behind `code/server/game_api.h`. After step 3, write a second implementation of that interface around the simulation and include it in `server.cpp` in place of the placeholder.
+- [x] 6. Server networking: `code/net/connections.h` (client slots, timeouts, new-input filtering) and `code/net/socket.h` (UDP on Windows and Linux), driven by `code/server/server.cpp`.
 - [x] 5. Network protocol (`code/net/`). Packet layout for connect, input and snapshot, with serialization tests. `code/net/protocol.h` describes the packets; `code/tests/net_tests.cpp` checks them.
-- [ ] 6. Server networking. UDP socket, client slots, timeouts, applying inputs, sending snapshots.
 - [ ] 7. Client networking. Connect to a server address, send input each frame, draw entities from snapshots, show other players' names and health.
 - [ ] 8. Scoreboard and match flow in the HUD: player list, kills, deaths, respawn timer.
 - [ ] 9. Deploy the server to the VPS (needs the VPS address and login from the user) as a service that restarts on failure.
