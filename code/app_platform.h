@@ -77,7 +77,8 @@ struct read_file_result
 //#define PLATFORM_READ_ENTIRE_FILE(name) read_file_result name(thread_context* Thread, app_memory* Memory, char* FileName)
 //typedef PLATFORM_READ_ENTIRE_FILE(platform_read_entire_file);
 
-#if APP_DEV
+// NOTE(zoubir): despite the DEBUG names, the game loads fonts and shaders
+// through these in every build
 struct debug_read_file_result
 {
     void *Memory;
@@ -92,9 +93,6 @@ typedef DEBUG_PLATFORM_FREE_FILE_MEMORY(debug_platform_free_file_memory);
 
 #define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name(char *fileName, u32 memorySize, void *memory)
 typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
-
-#else
-#endif
 
 struct platform_work_queue;
 #define PLATFORM_WORK_QUEUE_CALLBACK(Name) void Name(void *Data)

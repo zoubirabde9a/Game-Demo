@@ -10,12 +10,10 @@
 
 #include <stdint.h>
 
-// TODO(zoubir): Remove Those
-#if APP_DEV
+// NOTE(zoubir): the game uses malloc, memcpy, strlen and sprintf in every build
 #include "stdlib.h"
 #include "string.h"
 #include "stdio.h"
-#endif
 
 #define Pi32 3.14159265359f
 
@@ -40,6 +38,7 @@ typedef uint64_t u64;
 #define InvalidCodePath Assert(!"InvalidCodePath")
 #else
 #define Assert(expression)
+#define InvalidCodePath
 #endif
 
 #define Kilobytes(value) ((value) * 1024ll)
