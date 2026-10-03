@@ -94,9 +94,87 @@ CheckChunks(world *World)
     return true;
 }
 
+// How far two entities' collision shapes overlap, along the axis where
+// they overlap least: the distance one would need to move to be clear.
+// 0 when they do not touch. Shapes may have several boxes (trees).
+internal float
+Penetration(world_entity *A, world_entity *B)
+{
+    float Deepest = 0;
+    for (u32 IndexA = 0; IndexA < A->Collision->VolumesCount; ++IndexA)
+    for (u32 IndexB = 0; IndexB < B->Collision->VolumesCount; ++IndexB)
+    {
+        entity_collision_volume *VA = &A->Collision->Volumes[IndexA];
+        entity_collision_volume *VB = &B->Collision->Volumes[IndexB];
+        v3 CenterA = A->Position + VA->Offset;
+        v3 CenterB = B->Position + VB->Offset;
+        float Least = 1e30f;
+        for (u32 Axis = 0; Axis < 3; ++Axis)
+        {
+            float Distance = CenterA.Data[Axis] - CenterB.Data[Axis];
+            if (Distance < 0) Distance = -Distance;
+            float Gap = VA->HalfDims.Data[Axis] + VB->HalfDims.Data[Axis] - Distance;
+            if (Gap < Least) Least = Gap;
+        }
+        if (Least > Deepest) Deepest = Least;
+    }
+    return Deepest;
+}
+
+internal bool32
+IsMover(world_entity *E)
+{
+    return E->IsPresent && E->Collision && !IsDeadPlayer(E) &&
+           (E->Type == EntityType_Player || E->Type == EntityType_Monster);
+}
+
+global_variable u32 UnitOverlapTicks;  // ticks where two units overlapped
+global_variable float DeepestUnitOverlap;
+
+// Units must never end a tick inside something the rules say blocks them.
+// Overlap with walls, trees and rocks fails at once; overlap between units
+// is counted (pushes and spawns can briefly cause it) and reported.
+internal bool32
+CheckCollisions(server_game *Game)
+{
+    app_state *AppState = Game->AppState;
+    world *World = &AppState->World;
+    const float Tolerance = 0.5f;
+    bool32 UnitOverlapThisTick = false;
+
+    for (u32 IndexA = 0; IndexA < World->EntityCount; ++IndexA)
+    {
+        world_entity *A = &World->Entities[IndexA];
+        if (!IsMover(A)) continue;
+        for (u32 IndexB = 0; IndexB < World->EntityCount; ++IndexB)
+        {
+            world_entity *B = &World->Entities[IndexB];
+            if (B == A || !B->IsPresent || !B->Collision || IsDeadPlayer(B)) continue;
+            bool32 Solid = B->Type == EntityType_StaticObject || B->Type == EntityType_Tiled;
+            if (!Solid && !(IsMover(B) && IndexB > IndexA)) continue;
+            if (!CanCollide(AppState, A->Type, B->Type) || !CanCollide(AppState, A, B)) continue;
+
+            float Depth = Penetration(A, B);
+            if (Depth <= Tolerance) continue;
+            if (Solid)
+            {
+                printf("  entity %u (type %d) at (%.1f, %.1f, %.1f) is %.1f deep in entity %u (type %d) at (%.1f, %.1f)\n",
+                       IndexA, (int)A->Type, A->Position.X, A->Position.Y, A->Position.Z, Depth,
+                       IndexB, (int)B->Type, B->Position.X, B->Position.Y);
+                Require(Depth <= Tolerance);
+            }
+            UnitOverlapThisTick = true;
+            if (Depth > DeepestUnitOverlap) DeepestUnitOverlap = Depth;
+        }
+    }
+    if (UnitOverlapThisTick) UnitOverlapTicks++;
+    return true;
+}
+
 internal bool32
 CheckWorld(server_game *Game)
 {
+    if (!CheckCollisions(Game)) return false;
     app_state *AppState = Game->AppState;
     world *World = &AppState->World;
     float Width = (float)(World->NumTilesX * World->TileWidth);
@@ -219,6 +297,10 @@ SoakOneSeed(u32 Seed, u32 Minutes)
     }
     printf("  seed %u: %u min, %s, peak %u entity slots, %u kills and %u deaths among current players\n",
            Seed, Minutes, Ok ? "ok" : "stopped", MaxEntities, Kills, Deaths);
+    printf("    units overlapped on %u of %u ticks, deepest %.1f units\n",
+           UnitOverlapTicks, CurrentTick, DeepestUnitOverlap);
+    UnitOverlapTicks = 0;
+    DeepestUnitOverlap = 0;
     GameShutdown(&Game);
     return Ok;
 }

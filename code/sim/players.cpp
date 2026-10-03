@@ -1,6 +1,70 @@
 /* Player slots: joining, finding players, and respawning them. */
 
-// NOTE(zoubir): puts a new player entity in SlotIndex; returns it
+// NOTE(zoubir): in monster_population.cpp, included after this file
+internal bool32
+IsSpawnSpotFree(app_state *AppState, world *World, v3 Position,
+                entity_collision_volume_group *Volume);
+
+// NOTE(zoubir): nearest spot to Desired on rings of 24 units that is inside
+// the arena and clear; Desired itself when every ring is full
+internal v3
+FindFreeSpotAround(app_state *AppState, world *World, v3 Desired,
+                   entity_collision_volume_group *Volume)
+{
+    float Width = (float)(World->NumTilesX * World->TileWidth);
+    float Height = (float)(World->NumTilesY * World->TileHeight);
+    float Margin = 2.f * (float)World->TileWidth;
+    for(u32 Ring = 1; Ring <= 12; Ring++)
+    {
+        float Radius = 24.f * Ring;
+        u32 Steps = 8 * Ring;
+        for(u32 Step = 0; Step < Steps; Step++)
+        {
+            float Angle = 2.f * Pi32 * (float)Step / (float)Steps;
+            v3 Spot = Desired + V3(Radius * Cos(Angle), Radius * Sin(Angle), 0.f);
+            if (Spot.X < Margin || Spot.X > Width - Margin ||
+                Spot.Y < Margin || Spot.Y > Height - Margin)
+            {
+                continue;
+            }
+            if (IsSpawnSpotFree(AppState, World, Spot, Volume))
+            {
+                return Spot;
+            }
+        }
+    }
+    return Desired;
+}
+
+// NOTE(zoubir): Desired if a player fits there, else the nearest free spot
+// around it. A spawn point inside a tree, or a monster standing on it,
+// would otherwise leave the player stuck inside something. Self is the
+// player being placed, whose own body must not count as in the way, or 0.
+internal v3
+FindFreePlayerSpot(app_state *AppState, world *World, v3 Desired,
+                   world_entity *Self)
+{
+    // NOTE(zoubir): hide Self from the overlap checks during the search only
+    bool32 SelfWasPresent = Self ? Self->IsPresent : false;
+    if (Self)
+    {
+        Self->IsPresent = false;
+    }
+    v3 Result = Desired;
+    entity_collision_volume_group *Volume = AppState->PlayerCollision;
+    if (!IsSpawnSpotFree(AppState, World, Desired, Volume))
+    {
+        Result = FindFreeSpotAround(AppState, World, Desired, Volume);
+    }
+    if (Self)
+    {
+        Self->IsPresent = SelfWasPresent;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): puts a new player entity in SlotIndex, at SpawnPosition
+// or the nearest free spot to it; returns it
 internal world_entity *
 AddPlayerToSlot(app_state *AppState, world *World, memory_arena *Arena,
                 u32 SlotIndex, v3 SpawnPosition)
@@ -10,7 +74,8 @@ AddPlayerToSlot(app_state *AppState, world *World, memory_arena *Arena,
     *Slot = {};
     Slot->Active = true;
     Slot->SpawnPosition = SpawnPosition;
-    Slot->Entity = AddPlayer(AppState, World, Arena, SpawnPosition);
+    Slot->Entity = AddPlayer(AppState, World, Arena,
+                             FindFreePlayerSpot(AppState, World, SpawnPosition, 0));
     Slot->Entity->PlayerIndex = SlotIndex;
     return Slot->Entity;
 }
@@ -107,7 +172,7 @@ UpdateDeadPlayer(player_slot *Slot, world *World, memory_arena *Arena,
     }
 
     v3 OldPosition = Player->Position;
-    Player->Position = Slot->SpawnPosition;
+    Player->Position = FindFreePlayerSpot(AppState, World, Slot->SpawnPosition, Player);
     Player->Velocity = {};
     Player->Hp = Player->MaxHp;
     Slot->RespawnTimer = 0.f;

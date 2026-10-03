@@ -12,7 +12,7 @@
 #define Minimum(A, B) ((A < B) ? (A) : (B))
 #define Maximum(A, B) ((A > B) ? (A) : (B))
 
-#define Absolute(A) ((A > 0) ? (A) : (-A))
+#define Absolute(A) (((A) > 0) ? (A) : -(A))
 
 struct v2
 {
