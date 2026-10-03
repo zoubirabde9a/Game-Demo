@@ -874,6 +874,10 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
                 float MaxDistance = 10000;
                 MoveEntity(ThisEntity, World, MemoryArena, Input, AppState,
                            {0.f, 0.f, Gravity}, &MaxDistance);
+                if (!ThisEntity->IsPresent)
+                {
+                    break;
+                }
                 
                 float AnimationSpeedRate = 1.f;
                 animation_type AnimationType = AnimationType_Stand;

@@ -617,9 +617,7 @@ MoveEntity(world_entity *Entity, world *World,
                                                 {MinCorner.Y, Rel.Y, Rel.X, Rel.Z, EntityDelta.Y, EntityDelta.X, EntityDelta.Z, MinCorner.X, MaxCorner.X, MinCorner.Z, MaxCorner.Z, {0, 1, 0}},
                                                 {MaxCorner.Y, Rel.Y, Rel.X, Rel.Z, EntityDelta.Y, EntityDelta.X, EntityDelta.Z, MinCorner.X, MaxCorner.X, MinCorner.Z, MaxCorner.Z, {0, -1, 0}},
                                                 {MinCorner.Z, Rel.Z, Rel.Y, Rel.X, EntityDelta.Z, EntityDelta.Y, EntityDelta.X, MinCorner.Y, MaxCorner.Y, MinCorner.X, MaxCorner.X, {0, 0, -1}},
-                                                {MaxCorner.Z, Rel.Z, Rel.Y, Rel.X, EntityDelta.Z, EntityDelta.Y, EntityDelta.X, MinCorner.Y, MaxCorner.Y, MinCorner.X, MaxCorner.X, {0, 0, 1}},
-                                                {MinCorner.Z, Rel.Z, Rel.X, Rel.Y, EntityDelta.Z, EntityDelta.X, EntityDelta.Y, MinCorner.X, MaxCorner.X, MinCorner.Y, MaxCorner.Y, {0, 0, 1}},
-                                                {MaxCorner.Z, Rel.Z, Rel.X, Rel.Y, EntityDelta.Z, EntityDelta.X, EntityDelta.Y, MinCorner.X, MaxCorner.X, MinCorner.Y, MaxCorner.Y, {0, 0, -1}}
+                                                {MaxCorner.Z, Rel.Z, Rel.Y, Rel.X, EntityDelta.Z, EntityDelta.Y, EntityDelta.X, MinCorner.Y, MaxCorner.Y, MinCorner.X, MaxCorner.X, {0, 0, 1}}
                                             };
                                         
                                         for(u32 WallIndex = 0;
@@ -668,6 +666,12 @@ MoveEntity(world_entity *Entity, world *World,
             bool32 StopsOnCollision =
                 HandleCollision(World, Entity,
                                 CollidedEntity);
+            // NOTE(zoubir): a monster that walks into a fireball dies
+            // here, and must not be put back into the chunks
+            if (!Entity->IsPresent)
+            {
+                return;
+            }
             if (StopsOnCollision)
             {
                 Entity->Velocity = Entity->Velocity - 1.f * DotProduct(Entity->Velocity, WallNormal) * WallNormal;
@@ -765,6 +769,7 @@ for(u32 EntityIndex = 0;
 {
     world_entity *TestEntity = &World->Entities[EntityIndex];
     if (TestEntity != Entity &&
+        TestEntity->IsPresent &&
         CanCollide(AppState, Entity->Type, TestEntity->Type) &&
         CanCollide(AppState, Entity, TestEntity))
     {
