@@ -34,6 +34,51 @@ CanSweepAgainst(app_state *AppState, world_entity *Entity, world_entity *Other)
     return Result;
 }
 
+// NOTE(zoubir): how far two boxes must overlap before a sweep treats them
+// as already inside each other; resting contact is closer than this
+#define MOVE_OVERLAP_EPSILON 0.01f
+
+inline bool32
+IsWalkingUnit(world_entity *Entity)
+{
+    bool32 Result = (Entity->Type == EntityType_Player ||
+                     Entity->Type == EntityType_Monster ||
+                     Entity->Type == EntityType_Familiar);
+    return Result;
+}
+
+// NOTE(zoubir): per axis, how far a point Rel lies inside a box of half
+// size Diameter centred on 0 (negative outside)
+inline v3
+OverlapDepth(v3 Diameter, v3 Rel)
+{
+    v3 Result = V3(Diameter.X - Absolute(Rel.X),
+                   Diameter.Y - Absolute(Rel.Y),
+                   Diameter.Z - Absolute(Rel.Z));
+    return Result;
+}
+
+// NOTE(zoubir): the way out of an overlap: the axis with least depth,
+// pointing from the other box towards the mover
+inline v3
+ShallowestAxisNormal(v3 Depth, v3 Rel)
+{
+    v3 Result = {};
+    if (Depth.X <= Depth.Y && Depth.X <= Depth.Z)
+    {
+        Result.X = (Rel.X >= 0.f) ? 1.f : -1.f;
+    }
+    else if (Depth.Y <= Depth.Z)
+    {
+        Result.Y = (Rel.Y >= 0.f) ? 1.f : -1.f;
+    }
+    else
+    {
+        Result.Z = (Rel.Z >= 0.f) ? 1.f : -1.f;
+    }
+    return Result;
+}
+
 // NOTE(zoubir): sweeps every volume of Entity, moving from From by Delta,
 // against every volume of Other (Minkowski boxes, one wall per face).
 // Lowers *tMin to the earliest hit and sets *Normal; true if Other was hit
@@ -43,6 +88,7 @@ SweepAgainstEntity(world_entity *Entity, v3 From, v3 Delta,
                    world_entity *Other, float *tMin, v3 *Normal)
 {
     bool32 Hit = false;
+    bool32 BothAreUnits = IsWalkingUnit(Entity) && IsWalkingUnit(Other);
     for(u32 VolumeIndex = 0;
         VolumeIndex < Entity->Collision->VolumesCount;
         VolumeIndex++)
@@ -59,6 +105,32 @@ SweepAgainstEntity(world_entity *Entity, v3 From, v3 Delta,
             v3 MaxCorner = MinkowskiDiameter;
             v3 Rel = (From + Volume->Offset) -
                 (Other->Position + OtherVolume->Offset);
+
+            // NOTE(zoubir): two units already overlapping (one spawned on
+            // top of the other): every face is "ahead", so the walls below
+            // would trap the mover. Let it move out or along; only a move
+            // that goes deeper is stopped, at its start, with the normal
+            // of the shallowest axis so the slide keeps the rest. Walls
+            // and projectiles keep the face test, so nothing slides out
+            // through a wall it started inside.
+            v3 Depth = OverlapDepth(MinkowskiDiameter, Rel);
+            if (BothAreUnits &&
+                Depth.X > MOVE_OVERLAP_EPSILON &&
+                Depth.Y > MOVE_OVERLAP_EPSILON &&
+                Depth.Z > MOVE_OVERLAP_EPSILON)
+            {
+                float Now = Minimum(Depth.X, Minimum(Depth.Y, Depth.Z));
+                v3 DepthAfter = OverlapDepth(MinkowskiDiameter, Rel + Delta);
+                float After = Minimum(DepthAfter.X,
+                                      Minimum(DepthAfter.Y, DepthAfter.Z));
+                if (After > Now && *tMin > 0.f)
+                {
+                    *tMin = 0.f;
+                    *Normal = ShallowestAxisNormal(Depth, Rel);
+                    Hit = true;
+                }
+                continue;
+            }
 
             test_wall Walls[] =
                 {

@@ -115,54 +115,6 @@ Walk(test_world *Test, world_entity *Entity, v2 Direction, u32 Frames)
 }
 
 internal void
-TestWallStopsUnit()
-{
-    test_world Test = CreateTestWorld();
-    world_entity *Wall = AddTestEntity(&Test, EntityType_StaticObject,
-                                       {400, 300, 0}, Test.WallVolume);
-    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
-                                         {300, 300, 0}, Test.UnitVolume);
-    Walk(&Test, Player, {1, 0}, 120);
-
-    float PlayerRight = Player->Position.X + 15.f;
-    float WallLeft = Wall->Position.X - 16.f;
-    Check(PlayerRight <= WallLeft + 0.01f);
-    Check(PlayerRight > WallLeft - 2.f);
-    Check(Player->Position.Y == 300.f);
-    DestroyTestWorld(&Test);
-}
-
-internal void
-TestUnitSlidesAlongWall()
-{
-    test_world Test = CreateTestWorld();
-    AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0},
-                  Test.WallVolume);
-    // NOTE(zoubir): level with the wall's left face, 9 units away
-    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
-                                         {360, 282, 0}, Test.UnitVolume);
-    // NOTE(zoubir): pressing into the face while moving down keeps the
-    // downward part of the move
-    Walk(&Test, Player, {0.707f, 0.707f}, 30);
-    Check(Player->Position.X + 15.f <= 384.01f);
-    Check(Player->Position.Y > 295.f);
-    DestroyTestWorld(&Test);
-}
-
-internal void
-TestUnitsDoNotPassThroughEachOther()
-{
-    test_world Test = CreateTestWorld();
-    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
-                                          {400, 300, 0}, Test.UnitVolume);
-    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
-                                         {300, 300, 0}, Test.UnitVolume);
-    Walk(&Test, Player, {1, 0}, 120);
-    Check(Player->Position.X + 15.f <= Monster->Position.X - 15.f + 0.01f);
-    DestroyTestWorld(&Test);
-}
-
-internal void
 TestFireBallKillsMonsterOnce()
 {
     test_world Test = CreateTestWorld();
@@ -1241,6 +1193,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 
 #include "monster_tests.cpp"
 #include "terrain_tests.cpp"
+#include "collision_tests.cpp"
 
 #define RUN(Test) printf("%s\n", #Test); Test()
 
@@ -1251,9 +1204,6 @@ main()
     // which test it was
     setvbuf(stdout, 0, _IONBF, 0);
 
-    RUN(TestWallStopsUnit);
-    RUN(TestUnitSlidesAlongWall);
-    RUN(TestUnitsDoNotPassThroughEachOther);
     RUN(TestFireBallKillsMonsterOnce);
     RUN(TestMonsterDyingMidMoveLeavesNoGhost);
     RUN(TestRemovedSlotIsReused);
@@ -1289,6 +1239,7 @@ main()
 
     RunMonsterTests();
     RunTerrainTests();
+    RunCollisionTests();
 
     printf("%d of %d checks passed\n", TestChecks - TestFailures, TestChecks);
     return TestFailures ? 1 : 0;
