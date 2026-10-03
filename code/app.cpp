@@ -869,20 +869,17 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
             }
             case EntityType_Monster:
             {
-                //Gravity
-                float Gravity = -1000.f;
-                float MaxDistance = 10000;
-                MoveEntity(ThisEntity, World, MemoryArena, Input, AppState,
-                           {0.f, 0.f, Gravity}, &MaxDistance);
+                float AnimationSpeedRate;
+                animation_type AnimationType;
+                animation_direction AnimationDirection;
+                UpdateMonster(ThisEntity, World, MemoryArena, Input, AppState,
+                              &AnimationSpeedRate,
+                              &AnimationType,
+                              &AnimationDirection);
                 if (!ThisEntity->IsPresent)
                 {
                     break;
                 }
-                
-                float AnimationSpeedRate = 1.f;
-                animation_type AnimationType = AnimationType_Stand;
-                animation_direction AnimationDirection =
-                    AnimationDirection_Down;
 
                 DoEntityAnimation(ThisEntity, Assets, AppState,
                                   Input->DeltaTime, AnimationSpeedRate,

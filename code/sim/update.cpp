@@ -466,6 +466,61 @@ UpdatePlayer(world_entity *Player, world *World,
 
 }
 
+// NOTE(zoubir): monsters walk toward the player once it comes within
+// AggroRange, and stop at arm's length so they do not shove it around
+internal void
+UpdateMonster(world_entity *Entity, world *World,
+              memory_arena *Arena,
+              app_input *Input, app_state *AppState,
+              float *AnimationSpeed,
+              animation_type *AnimationType,
+              animation_direction *AnimationDirection)
+{
+    float AggroRange = 320.f;
+    float StopRange = 40.f;
+    float MonsterAcceleration = 28000.f;
+
+    *AnimationType = AnimationType_Stand;
+    *AnimationDirection =
+        Entity->AnimationState.LastAnimationDirection;
+    *AnimationSpeed = 1.f;
+
+    v3 DDEntity = {};
+    world_entity *Target = AppState->Player;
+    if (Target && Target->IsPresent)
+    {
+        v2 ToTarget = Target->Position.XY - Entity->Position.XY;
+        float DistanceToTarget = Length(ToTarget);
+        if (DistanceToTarget < AggroRange &&
+            DistanceToTarget > StopRange)
+        {
+            ToTarget *= 1.f / DistanceToTarget;
+            DDEntity.XY = ToTarget;
+            *AnimationType = AnimationType_Move;
+            if (Absolute(ToTarget.X) > Absolute(ToTarget.Y))
+            {
+                *AnimationDirection = ToTarget.X > 0 ?
+                    AnimationDirection_Right : AnimationDirection_Left;
+            }
+            else
+            {
+                *AnimationDirection = ToTarget.Y > 0 ?
+                    AnimationDirection_Up : AnimationDirection_Down;
+            }
+        }
+    }
+
+    DDEntity *= MonsterAcceleration * Input->DeltaTime;
+    // Drag
+    DDEntity -= (10.f * Entity->Velocity);
+    //Gravity
+    DDEntity.Z = -1000.f;
+
+    float MaxDistance = 10000.f;
+    MoveEntity(Entity, World, Arena, Input, AppState,
+               DDEntity, &MaxDistance);
+}
+
 internal void
 UpdateFamiliar(world_entity *Entity, world *World,
              memory_arena *Arena,
