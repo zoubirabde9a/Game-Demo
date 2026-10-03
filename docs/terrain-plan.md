@@ -18,7 +18,7 @@ Goal: four maps. Two are procedural and infinite: the ground is generated around
 
 ## Steps
 
-- [ ] 1. Terrain kinds and generators, with no change to the world yet. `sim/terrain/`: a table of terrain kinds and their rules; integer value noise; `TerrainAt(map, tile x, tile y)` for any signed tile; map registry with the four map definitions; hand-made layouts as text grids. Tests: determinism, golden hashes, layouts parse, every kind reachable.
+- [x] 1. Terrain kinds and generators, with no change to the world yet. `sim/terrain/`: a table of terrain kinds and their rules; integer value noise; `TerrainAt(map, tile x, tile y)` for any signed tile; map registry with the four map definitions; hand-made layouts as text grids. Tests: determinism, golden hashes, layouts parse, every kind reachable.
 - [ ] 2. Code-drawn terrain tiles: an atlas with one row per terrain kind and variants per tile, plus edge blending between kinds. Previewed by `art.bat`.
 - [ ] 3. World storage for unbounded maps: chunks in a hash table keyed by signed chunk coordinates instead of the fixed 12 x 12 grid; positions may go negative. Bounded maps use the same storage.
 - [ ] 4. Terrain drives collision and drawing: blocking terrain stops units (replacing the wall entities around the border); the client draws ground tiles from `TerrainAt` for the visible area, so infinite maps draw without a stored tile array.

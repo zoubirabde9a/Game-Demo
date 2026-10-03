@@ -9,6 +9,68 @@
 
 #define PREVIEW_SCALE 4
 
+// NOTE(zoubir): flat colors per terrain kind, for map previews only; the
+// real ground tiles are drawn in art/
+global_variable u32 PreviewTerrainColors[TerrainKind_Count] =
+{
+    ART_RGB(86, 140, 60),   // grass
+    ART_RGB(150, 116, 74),  // dirt
+    ART_RGB(96, 72, 48),    // mud
+    ART_RGB(80, 150, 190),  // shallow water
+    ART_RGB(30, 70, 130),   // deep water
+    ART_RGB(110, 108, 104), // rock
+    ART_RGB(120, 116, 112), // ash
+    ART_RGB(54, 50, 56),    // basalt
+    ART_RGB(26, 22, 28),    // basalt wall
+    ART_RGB(240, 100, 20),  // lava
+    ART_RGB(230, 236, 244), // snow
+    ART_RGB(170, 220, 240), // ice
+    ART_RGB(150, 146, 140), // stone floor
+    ART_RGB(70, 66, 70),    // stone wall
+};
+
+// NOTE(zoubir): one pixel block per tile; props as a dark dot in the middle
+internal void
+WriteMapPreview(map_def *Map, i32 MinX, i32 MinY, u32 TilesX, u32 TilesY,
+                u32 Scale, char *Path)
+{
+    u32 Width = TilesX * Scale;
+    u32 Height = TilesY * Scale;
+    u32 *Out = (u32 *)calloc(Width * Height, sizeof(u32));
+    for(u32 TileY = 0; TileY < TilesY; TileY++)
+    {
+        for(u32 TileX = 0; TileX < TilesX; TileX++)
+        {
+            i32 X = MinX + (i32)TileX;
+            i32 Y = MinY + (i32)TileY;
+            u32 Color = PreviewTerrainColors[TerrainAt(Map, X, Y)];
+            terrain_prop Prop = PropAt(Map, X, Y);
+            for(u32 PY = 0; PY < Scale; PY++)
+            {
+                for(u32 PX = 0; PX < Scale; PX++)
+                {
+                    u32 Pixel = Color;
+                    bool32 Middle = PX >= Scale / 4 && PX < Scale - Scale / 4 &&
+                        PY >= Scale / 4 && PY < Scale - Scale / 4;
+                    if (Prop != TerrainProp_None && Middle)
+                    {
+                        Pixel = Prop == TerrainProp_Boulder ? ART_RGB(60, 60, 60) :
+                            ART_RGB(20, 60, 20);
+                    }
+                    if (X == 0 && Y == 0)
+                    {
+                        Pixel = ART_RGB(255, 0, 255);
+                    }
+                    Out[(TileY * Scale + PY) * Width + TileX * Scale + PX] = Pixel;
+                }
+            }
+        }
+    }
+    stbi_write_png(Path, Width, Height, 4, Out, Width * 4);
+    printf("%s\n", Path);
+    free(Out);
+}
+
 int main()
 {
     _mkdir("monster_art");
@@ -89,6 +151,20 @@ int main()
         printf("%s\n", Path);
         free(Out);
         free(Sheet);
+    }
+    for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
+    {
+        map_def *Map = GetMapDef((map_id)MapIndex);
+        char Path[256];
+        snprintf(Path, sizeof(Path), "monster_art/map_%s.png", Map->Name);
+        if (Map->Kind == MapKind_Bounded)
+        {
+            WriteMapPreview(Map, -2, -2, Map->Width + 4, Map->Height + 4, 8, Path);
+        }
+        else
+        {
+            WriteMapPreview(Map, -160, -100, 320, 200, 3, Path);
+        }
     }
     return 0;
 }

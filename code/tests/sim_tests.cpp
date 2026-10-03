@@ -1127,6 +1127,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 }
 
 #include "monster_tests.cpp"
+#include "terrain_tests.cpp"
 
 #define RUN(Test) printf("%s\n", #Test); Test()
 
@@ -1172,6 +1173,7 @@ main()
     RUN(TestSimulateTickQueuesSoundsInsteadOfPlaying);
 
     RunMonsterTests();
+    RunTerrainTests();
 
     printf("%d of %d checks passed\n", TestChecks - TestFailures, TestChecks);
     return TestFailures ? 1 : 0;

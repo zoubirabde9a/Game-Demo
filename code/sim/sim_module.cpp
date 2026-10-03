@@ -19,6 +19,7 @@
 #include "world.cpp"
 #include "entity.cpp"
 #include "collision_rules.cpp"
+#include "terrain/terrain_module.cpp"
 #include "animations.cpp"
 #include "monster_kinds.cpp"
 #include "spawn.cpp"
