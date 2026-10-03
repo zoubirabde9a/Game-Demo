@@ -52,11 +52,10 @@ CheckChunks(world *World)
     static u16 Listed[ArrayCount(((world *)0)->Entities)];
     memset(Listed, 0, sizeof(Listed));
 
-    for (u32 X = 0; X < CHUNK_MAX_X; ++X)
-    for (u32 Y = 0; Y < CHUNK_MAX_Y; ++Y)
-    for (u32 Z = 0; Z < CHUNK_MAX_Z; ++Z)
+    for (world_chunk *Chunk = World->FirstChunk; Chunk; Chunk = Chunk->NextInWorld)
     {
-        for (world_entity_chunk *Block = &World->Chunks[X][Y][Z].FirstEntityChunk; Block; Block = Block->Next)
+        Require(FindChunk(World, Chunk->ChunkX, Chunk->ChunkY, Chunk->ChunkZ) == Chunk);
+        for (world_entity_chunk *Block = &Chunk->FirstEntityChunk; Block; Block = Block->Next)
         {
             Require(Block->EntityCount <= ArrayCount(Block->Entities));
             for (u32 Index = 0; Index < Block->EntityCount; ++Index)
@@ -80,9 +79,9 @@ CheckChunks(world *World)
         }
         entity_collision_volume *Total = &Entity->Collision->TotalVolume;
         rectangle3 Box = RectCenterHalfDims(Entity->Position + Total->Offset, Total->HalfDims);
-        u32 MinX, MinY, MinZ, MaxX, MaxY, MaxZ;
-        GetChunksFromBox(World, Box, &MinX, &MinY, &MinZ, &MaxX, &MaxY, &MaxZ);
-        u32 Expected = (MaxX - MinX + 1) * (MaxY - MinY + 1) * (MaxZ - MinZ + 1);
+        chunk_range Range = GetChunkRange(World, Box);
+        u32 Expected = (u32)((Range.MaxX - Range.MinX + 1) * (Range.MaxY - Range.MinY + 1) *
+                             (Range.MaxZ - Range.MinZ + 1));
         if (Listed[Index] != Expected)
         {
             printf("  entity %u (type %d) at (%.1f, %.1f, %.1f) is in %u chunks, its box covers %u\n",

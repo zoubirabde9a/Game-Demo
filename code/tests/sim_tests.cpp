@@ -736,7 +736,7 @@ TestCrowdedChunkRemovalKeepsEveryone()
 {
     test_world Test = CreateTestWorld();
     world *World = Test.World;
-    world_chunk *Chunk = GetChunk(World, 0, 0, 0);
+    world_chunk *Chunk = 0;
     world_entity *Units[40];
     for(u32 Index = 0; Index < 40; Index++)
     {
@@ -744,6 +744,8 @@ TestCrowdedChunkRemovalKeepsEveryone()
                                      {100.f + Index, 100.f, 0},
                                      Test.FireBallVolume);
     }
+    Chunk = FindChunk(World, 0, 0, 0);
+    Check(Chunk != 0);
     // NOTE(zoubir): 40 = 8 in the first block + two full blocks of 16
     Check(Chunk->FirstEntityChunk.EntityCount == 8);
     for(u32 Index = 32; Index < 40; Index++)

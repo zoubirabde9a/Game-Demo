@@ -27,11 +27,33 @@ struct world_entity_chunk
     world_entity_chunk *Next;
 };
 
+// NOTE(zoubir): one cell of the spatial index: the entities whose
+// collision boxes touch this block of tiles. Chunks are made the first time
+// something enters them and live in a hash table keyed by their signed
+// coordinates, so the world can grow in every direction
 struct world_chunk
 {
+    i32 ChunkX;
+    i32 ChunkY;
+    i32 ChunkZ;
     tile Tiles;
     world_entity_chunk FirstEntityChunk;
+    world_chunk *NextInHash;
+    world_chunk *NextInWorld;
 };
+
+// NOTE(zoubir): the chunks a box covers, inclusive
+struct chunk_range
+{
+    i32 MinX;
+    i32 MinY;
+    i32 MinZ;
+    i32 MaxX;
+    i32 MaxY;
+    i32 MaxZ;
+};
+
+#define WORLD_CHUNK_HASH_SIZE 4096
 
 // NOTE(zoubir): size of the arena, in tiles of ARENA_TILE_SIZE
 #define ARENA_TILE_SIZE 32
@@ -39,9 +61,6 @@ struct world_chunk
 #define ARENA_TILES_Y 40
 #define ARENA_TILES_Z 12
 
-#define CHUNK_MAX_X 12
-#define CHUNK_MAX_Y 12
-#define CHUNK_MAX_Z 4
 
 struct world
 {
@@ -71,7 +90,12 @@ struct world
     u32 TilesPerChunkZ;
     
     float TileDepth_;
-    world_chunk Chunks[CHUNK_MAX_X][CHUNK_MAX_Y][CHUNK_MAX_Z];
+    // NOTE(zoubir): bounded maps clamp chunk lookups to the map like
+    // before; unbounded ones take any X and Y, negative included
+    bool32 Unbounded;
+    world_chunk *ChunkHash[WORLD_CHUNK_HASH_SIZE];
+    world_chunk *FirstChunk;
+    u32 ChunkCount;
     world_entity Entities[4096];
     u32 EntityCount;
     // NOTE(zoubir): IDs of removed entities, reused before growing EntityCount

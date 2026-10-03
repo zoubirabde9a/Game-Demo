@@ -93,8 +93,6 @@ BuildArena(app_state *AppState, memory_arena *MemoryArena)
     World->NumTilesX = Map->Width;
     World->NumTilesY = Map->Height;
     World->NumTilesZ = ARENA_TILES_Z;
-    Assert(World->NumTilesX <= CHUNK_MAX_X * World->TilesPerChunkX);
-    Assert(World->NumTilesY <= CHUNK_MAX_Y * World->TilesPerChunkY);
 
     World->BoulderCollision =
         MakeSimpleGroundedCollisionVolume(MemoryArena, {13.f, 8.f, 14.f});

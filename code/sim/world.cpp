@@ -27,26 +27,51 @@ CannonicalizePosition(v3 AbsolutePosition, u32 TileWidth, u32 TileHeight,
     return Result;
 }
 
-inline world_chunk *
-GetChunk(world *World, u32 ChunkX, u32 ChunkY, u32 ChunkZ)
+inline u32
+ChunkHashSlot(i32 ChunkX, i32 ChunkY, i32 ChunkZ)
 {
-    Assert(ChunkX < CHUNK_MAX_X);
-    Assert(ChunkY < CHUNK_MAX_Y);
-    Assert(ChunkZ < CHUNK_MAX_Z);
-    world_chunk *Chunk = &World->Chunks[ChunkX][ChunkY][ChunkZ];
-    return Chunk;
+    u32 Hash = (u32)ChunkX * 73856093u ^ (u32)ChunkY * 19349663u ^
+        (u32)ChunkZ * 83492791u;
+    u32 Result = Hash & (WORLD_CHUNK_HASH_SIZE - 1);
+    return Result;
 }
 
+// NOTE(zoubir): the chunk at these coordinates, or 0 if nothing has ever
+// entered it
 inline world_chunk *
-GetChunk(world *World, v3 Position)
-{    
-    u32 ChunkX = (u32)(Position.X / (World->TilesPerChunkX * World->TileWidth));
-    u32 ChunkY = (u32)(Position.Y / (World->TilesPerChunkY * World->TileHeight));
-    u32 ChunkZ = (u32)(Position.Z / (World->TilesPerChunkZ * World->TileDepth));
-    world_chunk *Chunk = GetChunk(World, ChunkX, ChunkY, ChunkZ);
-    return Chunk;
+FindChunk(world *World, i32 ChunkX, i32 ChunkY, i32 ChunkZ)
+{
+    world_chunk *Result = World->ChunkHash[ChunkHashSlot(ChunkX, ChunkY, ChunkZ)];
+    while (Result &&
+           !(Result->ChunkX == ChunkX && Result->ChunkY == ChunkY &&
+             Result->ChunkZ == ChunkZ))
+    {
+        Result = Result->NextInHash;
+    }
+    return Result;
 }
 
+internal world_chunk *
+GetOrCreateChunk(world *World, memory_arena *Arena,
+                 i32 ChunkX, i32 ChunkY, i32 ChunkZ)
+{
+    world_chunk *Result = FindChunk(World, ChunkX, ChunkY, ChunkZ);
+    if (!Result)
+    {
+        Result = AllocateStruct(Arena, world_chunk);
+        ZeroSize(Result, sizeof(*Result));
+        Result->ChunkX = ChunkX;
+        Result->ChunkY = ChunkY;
+        Result->ChunkZ = ChunkZ;
+        u32 Slot = ChunkHashSlot(ChunkX, ChunkY, ChunkZ);
+        Result->NextInHash = World->ChunkHash[Slot];
+        World->ChunkHash[Slot] = Result;
+        Result->NextInWorld = World->FirstChunk;
+        World->FirstChunk = Result;
+        World->ChunkCount++;
+    }
+    return Result;
+}
 
 internal void
 InsertEntity(app_state *AppState,
@@ -127,61 +152,53 @@ RemoveEntity(world *World,
     return false;
 }
 
-internal void
-GetChunksFromRectangle(world *World,
-                       v2 MinPos, v2 MaxPos, v2 HalfDims,
-                       u32 *MinChunkX, u32 *MinChunkY,
-                       u32 *MaxChunkX, u32 *MaxChunkY)
+inline i32
+ChunkCoordinate(float Value, float ChunkSize)
 {
-    float TileMapWidth = (float)World->TileWidth * World->NumTilesX;
-    float TileMapHeight = (float)World->TileHeight * World->NumTilesY;
-    
-    u32 ChunkWidth = World->TilesPerChunkX * World->TileWidth;
-    u32 ChunkHeight = World->TilesPerChunkY * World->TileHeight;
-    
-    v2 Min = MinPos - HalfDims;
-    Min.X = Maximum(0.f, Min.X);
-    Min.Y = Maximum(0.f, Min.Y);
-    v2 Max = MaxPos + HalfDims;
-    Max.X = Minimum(TileMapWidth, Max.X);
-    Max.Y = Minimum(TileMapHeight, Max.Y);
-
-    *MinChunkX = (u32)(Min.X / ChunkWidth);
-    *MinChunkY = (u32)(Min.Y / ChunkHeight);
-    
-    *MaxChunkX = (u32)(Max.X / ChunkWidth);
-    *MaxChunkY = (u32)(Max.Y / ChunkHeight);
+    i32 Result = (i32)floorf(Value / ChunkSize);
+    return Result;
 }
 
-internal void
-GetChunksFromBox(world *World,
-                       rectangle3 Rect,
-                       u32 *MinChunkX, u32 *MinChunkY, u32 *MinChunkZ,
-                       u32 *MaxChunkX, u32 *MaxChunkY, u32 *MaxChunkZ)
+// NOTE(zoubir): the chunks a box touches. Bounded maps clamp the box to the
+// map first, as the fixed chunk grid used to; height always clamps to the
+// world's depth
+internal chunk_range
+GetChunkRange(world *World, rectangle3 Rect)
 {
-    float TileMapWidth = (float)World->TileWidth * World->NumTilesX;
-    float TileMapHeight = (float)World->TileHeight * World->NumTilesY;
+    float ChunkWidth = (float)(World->TilesPerChunkX * World->TileWidth);
+    float ChunkHeight = (float)(World->TilesPerChunkY * World->TileHeight);
+    float ChunkDepth = (float)(World->TilesPerChunkZ * World->TileDepth);
+
+    if (!World->Unbounded)
+    {
+        float TileMapWidth = (float)World->TileWidth * World->NumTilesX;
+        float TileMapHeight = (float)World->TileHeight * World->NumTilesY;
+        Rect.Min.X = Maximum(0.f, Rect.Min.X);
+        Rect.Min.Y = Maximum(0.f, Rect.Min.Y);
+        Rect.Max.X = Minimum(TileMapWidth, Rect.Max.X);
+        Rect.Max.Y = Minimum(TileMapHeight, Rect.Max.Y);
+    }
     float TileMapDepth = (float)World->TileDepth * World->NumTilesZ;
-    
-    u32 ChunkWidth = World->TilesPerChunkX * World->TileWidth;
-    u32 ChunkHeight = World->TilesPerChunkY * World->TileHeight;
-    u32 ChunkDepth = World->TilesPerChunkZ * World->TileDepth;
-    
-    Rect.Min.X = Maximum(0.f, Rect.Min.X);
-    Rect.Min.Y = Maximum(0.f, Rect.Min.Y);
     Rect.Min.Z = Maximum(0.f, Rect.Min.Z);
-    
-    Rect.Max.X = Minimum(TileMapWidth, Rect.Max.X);
-    Rect.Max.Y = Minimum(TileMapHeight, Rect.Max.Y);
     Rect.Max.Z = Minimum(TileMapDepth, Rect.Max.Z);
 
-    *MinChunkX = (u32)(Rect.Min.X / ChunkWidth);
-    *MinChunkY = (u32)(Rect.Min.Y / ChunkHeight);
-    *MinChunkZ = (u32)(Rect.Min.Z / ChunkDepth);
-    
-    *MaxChunkX = (u32)(Rect.Max.X / ChunkWidth);
-    *MaxChunkY = (u32)(Rect.Max.Y / ChunkHeight);
-    *MaxChunkZ = (u32)(Rect.Max.Z / ChunkDepth);
+    chunk_range Result;
+    Result.MinX = ChunkCoordinate(Rect.Min.X, ChunkWidth);
+    Result.MinY = ChunkCoordinate(Rect.Min.Y, ChunkHeight);
+    Result.MinZ = ChunkCoordinate(Rect.Min.Z, ChunkDepth);
+    Result.MaxX = ChunkCoordinate(Rect.Max.X, ChunkWidth);
+    Result.MaxY = ChunkCoordinate(Rect.Max.Y, ChunkHeight);
+    Result.MaxZ = ChunkCoordinate(Rect.Max.Z, ChunkDepth);
+    return Result;
+}
+
+inline chunk_range
+GetEntityChunkRange(world *World, world_entity *Entity, v3 Position)
+{
+    entity_collision_volume *Total = &Entity->Collision->TotalVolume;
+    rectangle3 Box = RectCenterHalfDims(Position + Total->Offset, Total->HalfDims);
+    chunk_range Result = GetChunkRange(World, Box);
+    return Result;
 }
 
 // NOTE(zoubir): every entity listed in the chunks Box touches, in chunk
@@ -194,18 +211,18 @@ GatherEntitiesInBox(world *World, rectangle3 Box, world_entity **Out,
                     u32 MaxCount)
 {
     u32 Count = 0;
-    u32 MinChunkX, MinChunkY, MinChunkZ;
-    u32 MaxChunkX, MaxChunkY, MaxChunkZ;
-    GetChunksFromBox(World, Box,
-                     &MinChunkX, &MinChunkY, &MinChunkZ,
-                     &MaxChunkX, &MaxChunkY, &MaxChunkZ);
-    for(u32 ChunkY = MinChunkY; ChunkY <= MaxChunkY; ChunkY++)
+    chunk_range Range = GetChunkRange(World, Box);
+    for(i32 ChunkY = Range.MinY; ChunkY <= Range.MaxY; ChunkY++)
     {
-        for(u32 ChunkX = MinChunkX; ChunkX <= MaxChunkX; ChunkX++)
+        for(i32 ChunkX = Range.MinX; ChunkX <= Range.MaxX; ChunkX++)
         {
-            for(u32 ChunkZ = MinChunkZ; ChunkZ <= MaxChunkZ; ChunkZ++)
+            for(i32 ChunkZ = Range.MinZ; ChunkZ <= Range.MaxZ; ChunkZ++)
             {
-                world_chunk *Chunk = GetChunk(World, ChunkX, ChunkY, ChunkZ);
+                world_chunk *Chunk = FindChunk(World, ChunkX, ChunkY, ChunkZ);
+                if (!Chunk)
+                {
+                    continue;
+                }
                 for(world_entity_chunk *Block = &Chunk->FirstEntityChunk;
                     Block;
                     Block = Block->Next)
@@ -225,23 +242,6 @@ GatherEntitiesInBox(world *World, rectangle3 Box, world_entity **Out,
     return Count;
 }
 
-
-inline void
-GetChunksFromEntity(world *World, world_entity *Entity,
-                    u32 *MinChunkX, u32 *MinChunkY, u32 *MinChunkZ,
-                    u32 *MaxChunkX, u32 *MaxChunkY, u32 *MaxChunkZ)
-{
-    //TODO(zoubir): changing dims may break something
-    // handle a change in dims ?
-    entity_collision_volume *EntityCollisionTotal =
-        &Entity->Collision->TotalVolume;
-    rectangle3 Box = RectCenterHalfDims(Entity->Position + EntityCollisionTotal->Offset,
-                                           EntityCollisionTotal->HalfDims);
-    GetChunksFromBox(World, Box,
-                     MinChunkX, MinChunkY, MinChunkZ,
-                     MaxChunkX, MaxChunkY, MaxChunkZ);
-    
-}
 
 internal world_entity *
 AddEntity(app_state *AppState,
@@ -271,63 +271,20 @@ AddEntity(app_state *AppState,
     NewEntity->Position = Position;
     NewEntity->Collision = Collision;
 
-    u32 MinChunkX;
-    u32 MinChunkY;
-    u32 MinChunkZ;
-    u32 MaxChunkX;
-    u32 MaxChunkY;
-    u32 MaxChunkZ;
-
-    #if 0
-    entity_collision_volume *EntityCollisionTotal =
-        &NewEntity->Collision->TotalVolume;
-    rectangle3 Box =
-        RectCenterHalfDims(NewEntity->Position + EntityCollisionTotal->Offset,
-                           EntityCollisionTotal->HalfDims);
-
-    Assert(Box.Max.X - Box.Min.X > World->MaxEntityVelocity.X);
-    Assert(Box.Max.Y - Box.Min.Y > World->MaxEntityVelocity.Y);
-//    Assert(Box.Max.Z - Box.Min.Z > World->MaxEntityVelocity.Z);
-    
-    GetChunksFromBox(World, Box,
-                     &MinChunkX, &MinChunkY, &MinChunkZ,
-                     &MaxChunkX, &MaxChunkY, &MaxChunkZ);
-    #endif
-    GetChunksFromEntity(World, NewEntity,
-                        &MinChunkX, &MinChunkY, &MinChunkZ,
-                        &MaxChunkX, &MaxChunkY, &MaxChunkZ);
-        
-    for(u32 ChunkZ = MinChunkZ;
-        ChunkZ <= MaxChunkZ;
-        ChunkZ++)
+    chunk_range Range = GetEntityChunkRange(World, NewEntity, NewEntity->Position);
+    for(i32 ChunkZ = Range.MinZ; ChunkZ <= Range.MaxZ; ChunkZ++)
     {
-        for(u32 ChunkY = MinChunkY;
-            ChunkY <= MaxChunkY;
-            ChunkY++)
+        for(i32 ChunkY = Range.MinY; ChunkY <= Range.MaxY; ChunkY++)
         {
-            for(u32 ChunkX = MinChunkX;
-                ChunkX <= MaxChunkX;
-                ChunkX++)
+            for(i32 ChunkX = Range.MinX; ChunkX <= Range.MaxX; ChunkX++)
             {
                 world_chunk *ThisChunk =
-                    GetChunk(World, ChunkX, ChunkY, ChunkZ);
-                // Add Entity Pointer Into The Chunk
-                world_entity_chunk *FirstEntityChunk =
-                    &ThisChunk->FirstEntityChunk;    
-                InsertEntity(AppState,
-                             World, Arena,
-                             FirstEntityChunk, NewEntity);                
+                    GetOrCreateChunk(World, Arena, ChunkX, ChunkY, ChunkZ);
+                InsertEntity(AppState, World, Arena,
+                             &ThisChunk->FirstEntityChunk, NewEntity);
             }
         }
     }
-#if 0                     
-    world_chunk *Chunk = GetChunk(World, Position);
-
-    // Add Entity Pointer Into The Chunk
-    world_entity_chunk *FirstEntityChunk = &Chunk->FirstEntityChunk;
-    
-    InsertEntity(World, Arena, FirstEntityChunk, NewEntity);
-#endif    
 
     return NewEntity;
 }
@@ -343,51 +300,22 @@ RemoveEntity(world *World, world_entity *Entity)
         return Result;
     }
 
-    u32 MinChunkX;
-    u32 MinChunkY;
-    u32 MinChunkZ;    
-    u32 MaxChunkX;    
-    u32 MaxChunkY;    
-    u32 MaxChunkZ;
-
-    entity_collision_volume *EntityCollisionTotal =
-        &Entity->Collision->TotalVolume;
-    rectangle3 Box = RectCenterHalfDims(Entity->Position + EntityCollisionTotal->Offset,
-                       EntityCollisionTotal->HalfDims);
-    GetChunksFromBox(World, Box,
-                     &MinChunkX, &MinChunkY, &MinChunkZ,
-                     &MaxChunkX, &MaxChunkY, &MaxChunkZ);    
-    
-
-    for(u32 ChunkZ = MinChunkZ;
-        ChunkZ <= MaxChunkZ;
-        ChunkZ++)
+    chunk_range Range = GetEntityChunkRange(World, Entity, Entity->Position);
+    for(i32 ChunkZ = Range.MinZ; ChunkZ <= Range.MaxZ; ChunkZ++)
     {
-        for(u32 ChunkY = MinChunkY;
-            ChunkY <= MaxChunkY;
-            ChunkY++)
+        for(i32 ChunkY = Range.MinY; ChunkY <= Range.MaxY; ChunkY++)
         {
-            for(u32 ChunkX = MinChunkX;
-                ChunkX <= MaxChunkX;
-                ChunkX++)
+            for(i32 ChunkX = Range.MinX; ChunkX <= Range.MaxX; ChunkX++)
             {
-                world_chunk *Chunk =
-                    GetChunk(World, ChunkX, ChunkY, ChunkZ);
-                Result = RemoveEntity(World, Chunk, Entity);
+                world_chunk *Chunk = FindChunk(World, ChunkX, ChunkY, ChunkZ);
+                Result = Chunk && RemoveEntity(World, Chunk, Entity);
                 Assert(Result);
-                Entity->IsPresent = false;        
+                Entity->IsPresent = false;
             }
         }
     }
     Assert(World->FreeEntityCount < ArrayCount(World->FreeEntityIDs));
     World->FreeEntityIDs[World->FreeEntityCount++] = Entity->ID;
-#if 0    
-    world_chunk *Chunk =
-        GetChunk(World, Entity->Position);
-    bool32 Result = RemoveEntity(World, Chunk, Entity);
-    Assert(Result);
-    Entity->IsPresent = false;
-    #endif
     return Result;
 }
        
@@ -397,89 +325,36 @@ CheckAndChangeEntityChunk(app_state *AppState,
                           v3 OldPosition,
                           world_entity *Entity)
 {
-    u32 OldMinChunkX;
-    u32 OldMinChunkY;
-    u32 OldMinChunkZ;    
-    u32 OldMaxChunkX;    
-    u32 OldMaxChunkY;    
-    u32 OldMaxChunkZ;
-
-    //TODO(zoubir): changing dims may break something
-    // handle a change in dims ?
-    entity_collision_volume *EntityCollisionTotal =
-        &Entity->Collision->TotalVolume;
-    rectangle3 OldBox = RectCenterHalfDims(OldPosition + EntityCollisionTotal->Offset,
-                       EntityCollisionTotal->HalfDims);
-    GetChunksFromBox(World, OldBox,
-                     &OldMinChunkX, &OldMinChunkY, &OldMinChunkZ,
-                     &OldMaxChunkX, &OldMaxChunkY, &OldMaxChunkZ);
-    u32 MinChunkX;
-    u32 MinChunkY;
-    u32 MinChunkZ;    
-    u32 MaxChunkX;    
-    u32 MaxChunkY;    
-    u32 MaxChunkZ;
-
-    rectangle3 NewBox = RectCenterHalfDims(Entity->Position + EntityCollisionTotal->Offset,
-                       EntityCollisionTotal->HalfDims);
-    GetChunksFromBox(World, NewBox,
-                     &MinChunkX, &MinChunkY, &MinChunkZ,
-                     &MaxChunkX, &MaxChunkY, &MaxChunkZ);    
-    
-    for(u32 ChunkZ = OldMinChunkZ;
-        ChunkZ <= OldMaxChunkZ;
-        ChunkZ++)
+    chunk_range Old = GetEntityChunkRange(World, Entity, OldPosition);
+    chunk_range New = GetEntityChunkRange(World, Entity, Entity->Position);
+    if (Old.MinX == New.MinX && Old.MinY == New.MinY && Old.MinZ == New.MinZ &&
+        Old.MaxX == New.MaxX && Old.MaxY == New.MaxY && Old.MaxZ == New.MaxZ)
     {
-        for(u32 ChunkY = OldMinChunkY;
-            ChunkY <= OldMaxChunkY;
-            ChunkY++)
+        return;
+    }
+    for(i32 ChunkZ = Old.MinZ; ChunkZ <= Old.MaxZ; ChunkZ++)
+    {
+        for(i32 ChunkY = Old.MinY; ChunkY <= Old.MaxY; ChunkY++)
         {
-            for(u32 ChunkX = OldMinChunkX;
-                ChunkX <= OldMaxChunkX;
-                ChunkX++)
+            for(i32 ChunkX = Old.MinX; ChunkX <= Old.MaxX; ChunkX++)
             {
-                world_chunk *ThisChunk =
-                    GetChunk(World, ChunkX, ChunkY, ChunkZ);
-                bool32 Removed = RemoveEntity(World, ThisChunk, Entity);
-                Assert(Removed);                
+                world_chunk *ThisChunk = FindChunk(World, ChunkX, ChunkY, ChunkZ);
+                bool32 Removed = ThisChunk && RemoveEntity(World, ThisChunk, Entity);
+                Assert(Removed);
             }
         }
     }
-    
-    for(u32 ChunkZ = MinChunkZ;
-        ChunkZ <= MaxChunkZ;
-        ChunkZ++)
+    for(i32 ChunkZ = New.MinZ; ChunkZ <= New.MaxZ; ChunkZ++)
     {
-        for(u32 ChunkY = MinChunkY;
-            ChunkY <= MaxChunkY;
-            ChunkY++)
+        for(i32 ChunkY = New.MinY; ChunkY <= New.MaxY; ChunkY++)
         {
-            for(u32 ChunkX = MinChunkX;
-                ChunkX <= MaxChunkX;
-                ChunkX++)
+            for(i32 ChunkX = New.MinX; ChunkX <= New.MaxX; ChunkX++)
             {
                 world_chunk *ThisChunk =
-                    GetChunk(World, ChunkX, ChunkY, ChunkZ);
-                InsertEntity(AppState,
-                             World, Arena,
+                    GetOrCreateChunk(World, Arena, ChunkX, ChunkY, ChunkZ);
+                InsertEntity(AppState, World, Arena,
                              &ThisChunk->FirstEntityChunk, Entity);
             }
         }
     }
-#if 0    
-    world_chunk *TargetChunk =
-        GetChunk(World, Entity->Position);
-    world_chunk *OldChunk =
-        GetChunk(World, OldPosition);
-    bool32 Removed = 0;
-    
-    if (TargetChunk != OldChunk)
-    {
-        Removed = RemoveEntity(World, OldChunk, Entity);
-        Assert(Removed);
-        // add the entity into the target chunk
-        InsertEntity(World, Arena,
-                     &TargetChunk->FirstEntityChunk, Entity);
-    }
-    #endif
 }

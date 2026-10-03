@@ -360,6 +360,85 @@ TestSnowSlowsMonsters()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): every present entity is listed in exactly the chunks its
+// box covers, the same check the soak test makes
+internal bool32
+ChunkListingIsExact(world *World)
+{
+    u32 Listed[64] = {};
+    for(world_chunk *Chunk = World->FirstChunk; Chunk; Chunk = Chunk->NextInWorld)
+    {
+        for(world_entity_chunk *Block = &Chunk->FirstEntityChunk; Block; Block = Block->Next)
+        {
+            for(u32 Index = 0; Index < Block->EntityCount; Index++)
+            {
+                u32 EntityIndex = (u32)(Block->Entities[Index] - World->Entities);
+                if (EntityIndex >= ArrayCount(Listed))
+                {
+                    return false;
+                }
+                Listed[EntityIndex]++;
+            }
+        }
+    }
+    for(u32 Index = 0; Index < World->EntityCount && Index < ArrayCount(Listed); Index++)
+    {
+        world_entity *Entity = &World->Entities[Index];
+        u32 Expected = 0;
+        if (Entity->IsPresent && Entity->Collision)
+        {
+            chunk_range Range = GetEntityChunkRange(World, Entity, Entity->Position);
+            Expected = (u32)((Range.MaxX - Range.MinX + 1) * (Range.MaxY - Range.MinY + 1) *
+                             (Range.MaxZ - Range.MinZ + 1));
+        }
+        if (Listed[Index] != Expected)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+internal void
+TestUnboundedWorldTracksNegativePositions()
+{
+    test_world Test = CreateTestWorld();
+    world *World = Test.World;
+    World->Unbounded = true;
+
+    // NOTE(zoubir): a wall far out in negative space stops a unit there
+    world_entity *Wall = AddTestEntity(&Test, EntityType_StaticObject,
+                                       {-5000.f, -3000.f, 0}, Test.WallVolume);
+    world_entity *Walker = AddTestEntity(&Test, EntityType_Player,
+                                         {-5100.f, -3000.f, 0}, Test.UnitVolume);
+    Walk(&Test, Walker, {1, 0}, 120);
+    Check(Walker->Position.X + 15.f <= Wall->Position.X - 16.f + 0.01f);
+    Check(ChunkListingIsExact(World));
+
+    // NOTE(zoubir): walking across the origin moves it between chunks on
+    // both sides of zero
+    world_entity *Crosser = AddTestEntity(&Test, EntityType_Player,
+                                          {-40.f, -40.f, 0}, Test.UnitVolume);
+    Walk(&Test, Crosser, {0.707f, 0.707f}, 90);
+    Check(Crosser->Position.X > 40.f && Crosser->Position.Y > 40.f);
+    Check(ChunkListingIsExact(World));
+
+    // NOTE(zoubir): gathering around the walker finds the wall
+    rectangle3 Around = RectCenterHalfDims(Walker->Position, V3(200.f, 200.f, 50.f));
+    world_entity *Nearby[64];
+    u32 Count = GatherEntitiesInBox(World, Around, Nearby, ArrayCount(Nearby));
+    bool32 FoundWall = false;
+    for(u32 Index = 0; Index < Count; Index++)
+    {
+        FoundWall |= Nearby[Index] == Wall;
+    }
+    Check(FoundWall);
+
+    RemoveEntity(World, Wall);
+    Check(ChunkListingIsExact(World));
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunTerrainTests()
 {
@@ -373,6 +452,8 @@ RunTerrainTests()
     TestLavaBurnsWhoStandsInIt();
     printf("TestSnowSlowsMonsters\n");
     TestSnowSlowsMonsters();
+    printf("TestUnboundedWorldTracksNegativePositions\n");
+    TestUnboundedWorldTracksNegativePositions();
     printf("TestFloorDivRoundsDown\n");
     TestFloorDivRoundsDown();
     printf("TestNoiseStaysInRangeAndIsSmooth\n");
