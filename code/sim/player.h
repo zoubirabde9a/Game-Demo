@@ -22,6 +22,9 @@ struct player_input
 {
     // NOTE(zoubir): -1, 0 or 1 per axis, Y down
     v2 Move;
+    // NOTE(zoubir): unit vector from the player toward the cursor; zero
+    // keeps the last aim
+    v2 Aim;
     u32 Pressed;
 };
 

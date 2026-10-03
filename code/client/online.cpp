@@ -198,19 +198,19 @@ StartOnlineSession(memory_arena *Arena)
 }
 
 // NOTE(zoubir): KeysToUi while a screen takes the keyboard: the player
-// holds nothing
+// holds nothing. Aim is the unit vector toward the cursor (zero: no change).
 internal void
 UpdateOnlineSession(online_session *Online, app_input *Input,
-                    bool32 KeysToUi = false)
+                    bool32 KeysToUi = false, v2 Aim = {})
 {
     if (Online && Online->Enabled)
     {
         u16 Buttons = KeysToUi ? 0 : NetButtonsFromKeyboard(Input);
-        NetClientUpdate(&Online->Client, Input->DeltaTime, Buttons, 0.f, 0.f);
+        NetClientUpdate(&Online->Client, Input->DeltaTime, Buttons, Aim.X, Aim.Y);
         if (Online->Client.State == NetClient_Connected)
         {
             RecordPredictedInput(&Online->Prediction, Online->Client.InputTick,
-                                 Buttons, Input->DeltaTime);
+                                 Buttons, Input->DeltaTime, Aim);
         }
     }
 }

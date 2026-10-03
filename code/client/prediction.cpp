@@ -7,8 +7,9 @@
    has not applied yet are replayed on top, so the replica lands where the
    server will have it once those inputs arrive.
 
-   Only movement is predicted. Attacks, dashes and jumps change what other
-   players see, so they wait for the server.
+   Only movement and facing (the aim toward the cursor) are predicted.
+   Attacks, dashes and jumps change what other players see, so they wait
+   for the server.
 
    When the replay lands somewhere other than where the player was drawn a
    frame ago, the difference is kept as DrawError and the player is drawn
@@ -29,6 +30,7 @@ struct predicted_input
 {
     u32 Tick;
     u16 Buttons;
+    v2 Aim;
     float DeltaTime;
 };
 
@@ -71,7 +73,7 @@ GetPredictedInput(prediction_history *History, u32 Index)
 // next snapshot corrects whatever that costs
 internal void
 RecordPredictedInput(prediction_history *History, u32 Tick, u16 Buttons,
-                     float DeltaTime)
+                     float DeltaTime, v2 Aim = {})
 {
     if (History->Count == MAX_PREDICTED_INPUTS)
     {
@@ -81,6 +83,7 @@ RecordPredictedInput(prediction_history *History, u32 Tick, u16 Buttons,
     predicted_input *Input = GetPredictedInput(History, History->Count++);
     Input->Tick = Tick;
     Input->Buttons = Buttons;
+    Input->Aim = Aim;
     Input->DeltaTime = DeltaTime;
 }
 
@@ -100,7 +103,7 @@ DropAcknowledgedInputs(prediction_history *History, u32 InputTick)
 // local player to move
 internal bool32
 PredictLocalStep(app_state *AppState, memory_arena *Arena, u16 Buttons,
-                 float DeltaTime)
+                 v2 Aim, float DeltaTime)
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     world_entity *Player = Slot->Entity;
@@ -112,6 +115,7 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena, u16 Buttons,
 
     Slot->Input = {};
     Slot->Input.Move = MoveFromNetButtons(Buttons);
+    Slot->Input.Aim = Aim;
     float AnimationSpeed;
     animation_type AnimationType;
     animation_direction AnimationDirection;
@@ -152,7 +156,7 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
         {
             predicted_input *Input = GetPredictedInput(History, Index);
             Moved = PredictLocalStep(AppState, Arena, Input->Buttons,
-                                     Input->DeltaTime);
+                                     Input->Aim, Input->DeltaTime);
         }
     }
     else
@@ -168,7 +172,7 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
             predicted_input *Newest =
                 GetPredictedInput(History, History->Count - 1);
             Moved = PredictLocalStep(AppState, Arena, Newest->Buttons,
-                                     Newest->DeltaTime);
+                                     Newest->Aim, Newest->DeltaTime);
         }
     }
 

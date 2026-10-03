@@ -88,6 +88,7 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     if (Held & NetButton_Right) Out->Move.X += 1.f;
     if (Held & NetButton_Up) Out->Move.Y -= 1.f;
     if (Held & NetButton_Down) Out->Move.Y += 1.f;
+    Out->Aim = V2(Input->AimX, Input->AimY);
 
     if (Pressed & NetButton_Sword) Out->Pressed |= PlayerButton_Attack;
     if (Pressed & NetButton_Fireball) Out->Pressed |= PlayerButton_Cast;

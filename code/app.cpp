@@ -62,8 +62,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     // Input, and the camera on the local player before it moves.
     // While a screen such as the connect screen is open, keys type into it.
     bool32 KeysToUi = ConnectScreenTakesInput(AppState);
-    AppState->Players[AppState->LocalPlayerIndex].Input =
-        KeysToUi ? player_input{} : ReadKeyboardPlayerInput(Input);
+    player_input *LocalInput = &AppState->Players[AppState->LocalPlayerIndex].Input;
+    *LocalInput = KeysToUi ? player_input{} : ReadKeyboardPlayerInput(Input, AppState);
     if (!KeysToUi && Input->ButtonJ.Pressed)
     {
         PlaySound(AppState, {AssetType_BattleTheme});
@@ -74,7 +74,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     render_program TextureProgram = RenderContext->TextureProgram;
     BeginWorldPass(RenderContext, TransientArena, &AppState->World, Window);
     DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset, Window);
-    UpdateOnlineSession(AppState->Online, Input, KeysToUi);
+    UpdateOnlineSession(AppState->Online, Input, KeysToUi, LocalInput->Aim);
     RunWorldTick(AppState, &AppState->MemoryArena, Input->DeltaTime);
     PlaySimEvents(AppState);
     DrawWorldEntities(RenderContext, AppState, &AppState->Assets,

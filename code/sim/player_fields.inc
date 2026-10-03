@@ -6,3 +6,6 @@
     float ShockwaveCooldown;
     // NOTE(zoubir): seconds left on the shockwave ring effect
     float ShockwaveFlash;
+    // NOTE(zoubir): unit vector toward the cursor; the body faces it and
+    // sword and fireball fly along it, whichever way the player walks
+    v2 Aim;

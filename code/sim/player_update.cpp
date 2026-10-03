@@ -3,14 +3,16 @@
 
    1. QueuePlayerActions: held directions and pressed buttons become
       queued actions (move, sword, fireball). Each waits a moment for the
-      current animation, so a press during a swing is not lost.
+      current animation, so a press during a swing is not lost. Sword and
+      fireball take the aim (toward the cursor) at the moment of the press.
    2. FinishPlayerActions: a swing or cast whose animation ended frees
       the player.
    3. RunPlayerActionQueue: the first action that can run now does
       (StartSwordSwing, CastFireBall, or turning to move).
    4. UpdatePlayerMoveState: moving, or stopping when the keys let go.
    5. UsePlayerAbilities: jump, shockwave and dash, with their cooldowns.
-   6. PickPlayerAnimation: which animation and facing to play.
+   6. PickPlayerAnimation: which animation to play; the body faces the
+      aim, not the way it walks.
    7. MovePlayer: acceleration, ground friction and gravity into
       MoveEntity. */
 
@@ -32,30 +34,36 @@ struct player_tick
     animation_direction *AnimationDirection;
 };
 
-// NOTE(zoubir): the facing a sword or fireball gets from its direction;
-// anything off the axes keeps Right, and Y wins over X on a diagonal
+// NOTE(zoubir): the sprite row closest to Dir, for any angle; X wins a
+// perfect diagonal
 inline animation_direction
-AnimationDirectionFromVector(v2 Dir)
+DominantFacing(v2 Dir)
 {
-    animation_direction Result = AnimationDirection_Right;
-    if (Dir.X == 1.f) Result = AnimationDirection_Right;
-    if (Dir.X == -1.f) Result = AnimationDirection_Left;
-    if (Dir.Y == 1.f) Result = AnimationDirection_Down;
-    if (Dir.Y == -1.f) Result = AnimationDirection_Up;
+    animation_direction Result;
+    if (Absolute(Dir.X) >= Absolute(Dir.Y))
+    {
+        Result = Dir.X < 0.f ? AnimationDirection_Left : AnimationDirection_Right;
+    }
+    else
+    {
+        Result = Dir.Y < 0.f ? AnimationDirection_Up : AnimationDirection_Down;
+    }
     return Result;
 }
 
-// NOTE(zoubir): the facing the player's body animation gets: on a
-// diagonal X wins over Y (unlike projectiles). Keeps Current when Dir is
-// off the axes.
-inline animation_direction
-BodyFacingFromVector(v2 Dir, animation_direction Current)
+// NOTE(zoubir): the player's aim; before any cursor input, the way it last
+// walked (and Right for a player that never moved)
+inline v2
+GetPlayerAim(world_entity *Player)
 {
-    animation_direction Result = Current;
-    if (Dir.Y == -1.f) Result = AnimationDirection_Up;
-    if (Dir.Y == 1.f) Result = AnimationDirection_Down;
-    if (Dir.X == 1.f) Result = AnimationDirection_Right;
-    if (Dir.X == -1.f) Result = AnimationDirection_Left;
+    v2 Result = Player->Aim;
+    if (LengthSq(Result) < 0.0001f)
+    {
+        Result = Player->Direction;
+        float LengthSquared = LengthSq(Result);
+        Result = LengthSquared > 0.0001f ?
+            Result * (1.f / SquareRoot(LengthSquared)) : V2(1.f, 0.f);
+    }
     return Result;
 }
 
@@ -79,6 +87,12 @@ QueuePlayerActions(player_slot *Slot, player_tick *Tick)
         AddPlayerDelayedInput(Slot, PDI_Move, PLAYER_ACTION_LINGER, Dir);
     }
 
+    if (LengthSq(Input->Aim) > 0.0001f)
+    {
+        Player->Aim = Input->Aim;
+    }
+    v2 Aim = GetPlayerAim(Player);
+
     Tick->Jumping = Player->Velocity.Z != 0.f;
     if (Tick->Jumping)
     {
@@ -86,13 +100,11 @@ QueuePlayerActions(player_slot *Slot, player_tick *Tick)
     }
     if (WasPressed(Input, PlayerButton_Attack))
     {
-        AddPlayerDelayedInput(Slot, PDI_Attack, PLAYER_ACTION_LINGER,
-                              Player->Direction);
+        AddPlayerDelayedInput(Slot, PDI_Attack, PLAYER_ACTION_LINGER, Aim);
     }
     if (WasPressed(Input, PlayerButton_Cast))
     {
-        AddPlayerDelayedInput(Slot, PDI_Cast, PLAYER_ACTION_LINGER,
-                              Player->Direction);
+        AddPlayerDelayedInput(Slot, PDI_Cast, PLAYER_ACTION_LINGER, Aim);
     }
 }
 
@@ -113,13 +125,12 @@ FinishPlayerActions(world_entity *Player, player_tick *Tick)
     }
 }
 
-// NOTE(zoubir): a sword hitbox in front of the player; the player lunges
-// a little toward it
+// NOTE(zoubir): a sword hitbox toward Dir (the aim); the player lunges a
+// little that way
 internal void
 StartSwordSwing(app_state *AppState, world *World, memory_arena *Arena,
-                world_entity *Player, player_tick *Tick)
+                world_entity *Player, v2 Dir, player_tick *Tick)
 {
-    v2 Dir = Player->Direction;
     Player->State = EntityState_Attacking;
     Player->CastingDirection = Dir;
     Player->AnimationState.SlotIndex = 0;
@@ -128,7 +139,7 @@ StartSwordSwing(app_state *AppState, world *World, memory_arena *Arena,
 
     v3 SwordPosition = Player->Position + V3(16.f * Dir.X, 16.f * Dir.Y, 0.f);
     AddSword(AppState, World, Arena, SwordPosition, Player,
-             AnimationDirectionFromVector(Dir));
+             DominantFacing(Dir));
     EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
 }
 
@@ -145,10 +156,11 @@ CastFireBall(app_state *AppState, world *World, memory_arena *Arena,
                     V3(Velocity.X, Velocity.Y, 0.f));
     FireBall->AnimationSpeed = 1.f;
     FireBall->AnimationType = AnimationType_Move;
-    FireBall->AnimationDirection = AnimationDirectionFromVector(Dir);
+    FireBall->AnimationDirection = DominantFacing(Dir);
 
     EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
     Player->State = EntityState_Casting;
+    Player->CastingDirection = Dir;
     Player->AnimationState.SlotIndex = 0;
 }
 
@@ -181,7 +193,8 @@ RunPlayerActionQueue(app_state *AppState, world *World, memory_arena *Arena,
                         Consumed = Player->State != EntityState_Attacking;
                         if (Consumed)
                         {
-                            StartSwordSwing(AppState, World, Arena, Player, Tick);
+                            StartSwordSwing(AppState, World, Arena, Player,
+                                            Action->Dir, Tick);
                         }
                     } break;
                     case PDI_Move:
@@ -277,9 +290,9 @@ UsePlayerAbilities(app_state *AppState, world *World, player_slot *Slot,
     }
 }
 
-// NOTE(zoubir): the animation for the player's state. Stopping and
-// attacking keep their facing; standing, moving and casting face where
-// the player last moved, and moving also pushes that way.
+// NOTE(zoubir): the animation for the player's state. The body faces the
+// aim; a swing or cast keeps the facing it started with so its animation
+// is not cut by the cursor moving. Moving pushes the way the keys point.
 internal void
 PickPlayerAnimation(world_entity *Player, player_tick *Tick)
 {
@@ -290,52 +303,35 @@ PickPlayerAnimation(world_entity *Player, player_tick *Tick)
         Player->State = EntityState_Standing;
     }
 
-    v2 Facing = Player->Direction;
-    bool32 IsAxis = (Facing.X == 1.f || Facing.X == -1.f ||
-                     Facing.Y == 1.f || Facing.Y == -1.f);
+    v2 Facing = GetPlayerAim(Player);
+    if (Player->State == EntityState_Attacking ||
+        Player->State == EntityState_Casting)
+    {
+        Facing = Player->CastingDirection;
+    }
+    *Tick->AnimationDirection = DominantFacing(Facing);
+
     if (Player->State == EntityState_Stopping)
     {
         Assert(!Tick->Move);
-        if (IsAxis)
-        {
-            *Tick->AnimationType = AnimationType_Stop;
-            *Tick->AnimationDirection =
-                BodyFacingFromVector(Facing, *Tick->AnimationDirection);
-        }
+        *Tick->AnimationType = AnimationType_Stop;
     }
     else if (Player->State == EntityState_Attacking)
     {
-        v2 Swing = Player->CastingDirection;
-        if (Swing.X == 1.f || Swing.X == -1.f || Swing.Y == 1.f || Swing.Y == -1.f)
-        {
-            *Tick->AnimationType = AnimationType_Attack;
-            *Tick->AnimationDirection =
-                BodyFacingFromVector(Swing, *Tick->AnimationDirection);
-        }
+        *Tick->AnimationType = AnimationType_Attack;
+    }
+    else if (Player->State == EntityState_Casting)
+    {
+        *Tick->AnimationType = AnimationType_Cast;
+    }
+    else if (Tick->Move)
+    {
+        *Tick->AnimationType = AnimationType_Move;
+        Tick->DDPlayer.XY = Player->Direction;
     }
     else
     {
-        if (Player->State == EntityState_Casting)
-        {
-            *Tick->AnimationType = AnimationType_Cast;
-        }
-        else if (Tick->Move)
-        {
-            *Tick->AnimationType = AnimationType_Move;
-        }
-        else
-        {
-            *Tick->AnimationType = AnimationType_Stand;
-        }
-        *Tick->AnimationDirection =
-            BodyFacingFromVector(Facing, *Tick->AnimationDirection);
-        if (Tick->Move)
-        {
-            if (Facing.Y == -1.f) Tick->DDPlayer.Y = -1.f;
-            if (Facing.Y == 1.f) Tick->DDPlayer.Y = 1.f;
-            if (Facing.X == 1.f) Tick->DDPlayer.X = 1.f;
-            if (Facing.X == -1.f) Tick->DDPlayer.X = -1.f;
-        }
+        *Tick->AnimationType = AnimationType_Stand;
     }
 }
 
