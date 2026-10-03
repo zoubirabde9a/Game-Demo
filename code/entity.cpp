@@ -223,21 +223,21 @@ GetTotalVolume(entity_collision_volume *Volumes,
                u32 VolumesCount)
 {
     Assert(VolumesCount > 0);
-    entity_collision_volume TotalVolume = Volumes[0];
-
-    for(u32 VolumeIndex = 0;
+    // NOTE(zoubir): volumes are center + half size, so grow a min/max box
+    v3 Min = Volumes[0].Offset - Volumes[0].HalfDims;
+    v3 Max = Volumes[0].Offset + Volumes[0].HalfDims;
+    for(u32 VolumeIndex = 1;
         VolumeIndex < VolumesCount;
         VolumeIndex++)
     {
-        entity_collision_volume *Volume =
-            &Volumes[VolumeIndex];
-        v3 Min = Minimum3(TotalVolume.Offset, Volume->Offset);
-        v3 Max = Maximum3(TotalVolume.Offset + TotalVolume.HalfDims,
-                Volume->Offset + Volume->HalfDims);
-        TotalVolume.Offset = Min;
-        TotalVolume.HalfDims = Max - Min;
+        entity_collision_volume *Volume = &Volumes[VolumeIndex];
+        Min = Minimum3(Min, Volume->Offset - Volume->HalfDims);
+        Max = Maximum3(Max, Volume->Offset + Volume->HalfDims);
     }
-    
+
+    entity_collision_volume TotalVolume;
+    TotalVolume.Offset = 0.5f * (Min + Max);
+    TotalVolume.HalfDims = 0.5f * (Max - Min);
     return TotalVolume;
 }
 
@@ -258,8 +258,6 @@ MakeGroundedTreeCollisionVolume(memory_arena *Arena)
     Group->Volumes[1].HalfDims = V3(43.f, 10.f, 28.f);
     Group->Volumes[1].Offset.Z = 15;
     Group->Volumes[1].Offset.Z += LowestHalfZ;
-    //TODO(zoubir): this is not the total volume
-    // make a function that returns one
     Group->TotalVolume = GetTotalVolume(Group->Volumes,
                                         Group->VolumesCount);
     return Group;
@@ -678,26 +676,25 @@ MoveEntity(world_entity *Entity, world *World,
             }
             else
             {
+                // NOTE(zoubir): passes through, so only the remaining
+                // part of the move is left for the next iteration
                 AddCollisionRule(AppState, Arena,
                                  Entity->ID, CollidedEntity->ID,
                                  false);
+                EntityDelta = EntityDelta - AllowedDelta;
             }
-        }
-        else
-        {
-            break;
         }
 
         for(u32 ChunkZ = MinChunkZ;
-            ChunkZ < MaxChunkZ;
+            ChunkZ <= MaxChunkZ;
             ChunkZ++)
         {        
             for(u32 ChunkY = MinChunkY;
-                ChunkY < MaxChunkY;
+                ChunkY <= MaxChunkY;
                 ChunkY++)
             {        
                 for(u32 ChunkX = MinChunkX;
-                    ChunkX < MaxChunkX;
+                    ChunkX <= MaxChunkX;
                     ChunkX++)
                 {        
                     world_chunk *CurrentChunk = GetChunk(World, ChunkX, ChunkY, ChunkZ);
@@ -705,6 +702,11 @@ MoveEntity(world_entity *Entity, world *World,
                                               Entity, &CurrentChunk->FirstEntityChunk);
                 }
             }
+        }
+
+        if (!CollidedEntity)
+        {
+            break;
         }
         
     }

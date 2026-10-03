@@ -2271,6 +2271,12 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
                                Assets,
                                ThisEntity, CameraOffset);
                 }
+                else
+                {
+                    // NOTE(zoubir): the swing is over, take the hitbox out
+                    // of the world so it stops hitting monsters
+                    RemoveEntity(World, ThisEntity);
+                }
                 break;
             }                    
             case EntityType_Familiar:

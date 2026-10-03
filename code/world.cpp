@@ -66,6 +66,7 @@ CheckEntityOverlapInChunk(app_state *AppState,
         
             if (Entity != TestEntity &&
                 CanOverlap(Entity, TestEntity) &&
+                CanCollide(AppState, Entity, TestEntity) &&
                 EntityOverlap(Entity, TestEntity))
             {
                 HandleOverlap(AppState, World, Arena,
