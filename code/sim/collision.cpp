@@ -141,7 +141,7 @@ HandleOverlap(app_state *AppState, world *World, memory_arena *Arena,
         v2 Away = Region->Position.XY - From;
         float Distance = Length(Away);
         if (!DamageEntity(AppState, World, Region, SWORD_DAMAGE, Entity) &&
-            Region->IsPresent && Distance > 0.f)
+            Region->IsPresent && !IsDodging(Region) && Distance > 0.f)
         {
             Region->Velocity.XY += (SWORD_KNOCKBACK / Distance) * Away;
         }

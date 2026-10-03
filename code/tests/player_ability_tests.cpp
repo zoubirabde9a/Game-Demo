@@ -461,6 +461,28 @@ TestSwordHitsItsSliceAtAnyAngle()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a hit landing mid-dash does nothing; once the dash
+// streak is over, hits land again
+internal void
+TestDashDodgesHits()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Dodger = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Dash;
+    RunPlayerFrames(&Test, 0, 1);
+    float Hp = Dodger->Hp;
+    Check(!DamageEntity(AppState, Test.World, Dodger, 30.f, 0));
+    Check(Dodger->Hp == Hp);
+    RunPlayerFrames(&Test, 0, 20);
+    DamageEntity(AppState, Test.World, Dodger, 30.f, 0);
+    Check(Dodger->Hp == Hp - 30.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -492,4 +514,6 @@ RunPlayerAbilityTests()
     TestSwordShovesSurvivorAway();
     printf("TestSwordHitsItsSliceAtAnyAngle\n");
     TestSwordHitsItsSliceAtAnyAngle();
+    printf("TestDashDodgesHits\n");
+    TestDashDodgesHits();
 }

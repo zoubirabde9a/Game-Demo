@@ -243,6 +243,15 @@ MakeGroundedTreeCollisionVolume(memory_arena *Arena)
     return Group;
 }
 
+// NOTE(zoubir): a player mid-dash or mid-blink (while its streak shows,
+// DashFlash) cannot be hurt or shoved: dashing through an attack dodges it
+inline bool32
+IsDodging(world_entity *Entity)
+{
+    bool32 Result = Entity->Type == EntityType_Player && Entity->DashFlash > 0.f;
+    return Result;
+}
+
 // NOTE(zoubir): every hit goes through here so deaths are counted once
 internal bool32
 DamageEntity(app_state *AppState, world *World,
@@ -250,7 +259,7 @@ DamageEntity(app_state *AppState, world *World,
 {
     // NOTE(zoubir): a dead player waits for respawn with Hp <= 0, so
     // further hits that frame do not count as more kills
-    if (!Target->IsPresent || Target->Hp <= 0.f)
+    if (!Target->IsPresent || Target->Hp <= 0.f || IsDodging(Target))
     {
         return false;
     }

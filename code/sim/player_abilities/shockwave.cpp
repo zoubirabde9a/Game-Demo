@@ -36,7 +36,7 @@ TriggerShockwave(app_state *AppState, world *World, world_entity *Source)
 
         HitCount++;
         if (!DamageEntity(AppState, World, Target, SHOCKWAVE_DAMAGE, Source) &&
-            Distance > 0.f)
+            !IsDodging(Target) && Distance > 0.f)
         {
             Target->Velocity.XY += (SHOCKWAVE_KNOCKBACK / Distance) * Away;
         }

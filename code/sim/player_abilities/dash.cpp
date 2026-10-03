@@ -1,6 +1,7 @@
 /* Dash (Alt): a burst of speed the way the keys point, or toward the aim
    when standing; ground drag eases it back to a walk. Cancels a swing's
-   or cast's root. DashFlash is what clients draw the streak from. */
+   or cast's root. While DashFlash lasts the player cannot be hurt or
+   shoved (IsDodging, entity.cpp), and clients draw the streak from it. */
 
 // NOTE(zoubir): ground drag brings this back to a walk in about a quarter
 // second, about 65 units travelled
