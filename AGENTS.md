@@ -43,6 +43,7 @@ A claim older than a day with no commits behind it is stale. You may delete it.
 
 - **Shared include lists.** The game is a unity build: `code/app.cpp` includes every `.cpp`. Add new files to the include list of their own module, not to `app.cpp`, so two agents adding files to different modules touch different lines.
 - **Big files.** If you need to change a file that is already claimed, split the part you need into its own file first, in a separate small commit, and land that before anything else.
+- **Registries.** When many people add entries of the same kind (monsters today), give each entry its own file and list the files in one `.inc` file with one line per entry. Mark that list `merge=union` in `.gitattributes` so two additions at once both survive the merge. `code/sim/monsters/` is the example to copy.
 - **README.md.** Keep module detail in a short note at the top of the module's main file or in `docs/`, not in the README. The README covers building, controls and the top-level layout only.
 
 ## 5. Before you merge
