@@ -4,8 +4,8 @@
    1. QueuePlayerActions: held directions set this tick's move; pressed
       buttons become queued actions (sword, fireball). Each waits a
       moment for the current animation, so a press during a swing is not
-      lost. Sword and
-      fireball take the aim (toward the cursor) at the moment of the press.
+      lost. Sword and fireball take the aim (toward the cursor) at the
+      moment of the press.
    2. FinishPlayerActions: a swing or cast whose animation ended frees
       the player.
    3. RunPlayerActionQueue: the first action that can run now does
@@ -13,28 +13,23 @@
    4. UpdatePlayerMoveState: moving, or stopping when the keys let go. A
       swing or cast roots the player only for its short ActionLock, then
       the player walks (slower) while the animation finishes.
-   5. UsePlayerAbilities: jump, shockwave and dash, with their cooldowns.
-      Dash bursts the way the keys point, or toward the aim when standing,
-      and cancels a swing's or cast's root.
+   5. UsePlayerAbilities: jump, shockwave and dash, each when its key is
+      pressed and its cooldown allows.
    6. PickPlayerAnimation: which animation to play; the body faces the
       aim, not the way it walks.
    7. MovePlayer: acceleration, ground friction and gravity into
-      MoveEntity. */
+      MoveEntity.
+
+   Each ability is one file in player_abilities/, included below: what it
+   does, its numbers, and its cooldown. A new ability is a new file there,
+   one include line, a button in player.h and one call in
+   UsePlayerAbilities or the action queue. */
 
 #define PLAYER_ACCELERATION 56000.f
 // NOTE(zoubir): how long a queued action waits for the current animation
 #define PLAYER_ACTION_LINGER 0.15f
-#define FIREBALL_SPEED 450.f
-#define FIREBALL_HAND_HEIGHT 30.f
-// NOTE(zoubir): how long a swing or cast roots the player, and how fast
-// they walk for the rest of its animation
-#define PLAYER_SWING_LOCK 0.08f
-#define PLAYER_CAST_LOCK 0.05f
+// NOTE(zoubir): how fast the player walks while a swing or cast finishes
 #define PLAYER_ACTION_MOVE_SCALE 0.7f
-// NOTE(zoubir): dash speed; ground drag brings it back to a walk in about
-// a quarter second, about 65 units travelled
-#define PLAYER_DASH_SPEED 650.f
-#define PLAYER_DASH_FLASH_SECONDS 0.15f
 
 // NOTE(zoubir): what one tick of the player decides, handed between steps
 struct player_tick
@@ -80,6 +75,12 @@ GetPlayerAim(world_entity *Player)
     }
     return Result;
 }
+
+#include "player_abilities/sword.cpp"
+#include "player_abilities/fireball.cpp"
+#include "player_abilities/jump.cpp"
+#include "player_abilities/shockwave.cpp"
+#include "player_abilities/dash.cpp"
 
 internal void
 QueuePlayerActions(player_slot *Slot, player_tick *Tick)
@@ -140,47 +141,6 @@ FinishPlayerActions(world_entity *Player, player_tick *Tick)
     {
         Player->State = EntityState_Standing;
     }
-}
-
-// NOTE(zoubir): a sword hitbox toward Dir (the aim); the player lunges a
-// little that way
-internal void
-StartSwordSwing(app_state *AppState, world *World, memory_arena *Arena,
-                world_entity *Player, v2 Dir, player_tick *Tick)
-{
-    Player->State = EntityState_Attacking;
-    Player->ActionLock = PLAYER_SWING_LOCK;
-    Player->CastingDirection = Dir;
-    Player->AnimationState.SlotIndex = 0;
-    Tick->Acceleration *= 0.6f;
-    Tick->DDPlayer.XY = Dir;
-
-    v3 SwordPosition = Player->Position + V3(16.f * Dir.X, 16.f * Dir.Y, 0.f);
-    AddSword(AppState, World, Arena, SwordPosition, Player,
-             DominantFacing(Dir));
-    EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
-}
-
-internal void
-CastFireBall(app_state *AppState, world *World, memory_arena *Arena,
-             world_entity *Player, v2 Dir, player_tick *Tick)
-{
-    v2 Start = Player->Position.XY + Dir * V2(32.f, 32.f);
-    v2 Velocity = FIREBALL_SPEED * Dir;
-    *Tick->AnimationType = AnimationType_Cast;
-    world_entity *FireBall =
-        AddFireBall(AppState, World, Arena, Player,
-                    V3(Start.X, Start.Y, FIREBALL_HAND_HEIGHT),
-                    V3(Velocity.X, Velocity.Y, 0.f));
-    FireBall->AnimationSpeed = 1.f;
-    FireBall->AnimationType = AnimationType_Move;
-    FireBall->AnimationDirection = DominantFacing(Dir);
-
-    EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
-    Player->State = EntityState_Casting;
-    Player->ActionLock = PLAYER_CAST_LOCK;
-    Player->CastingDirection = Dir;
-    Player->AnimationState.SlotIndex = 0;
 }
 
 // NOTE(zoubir): runs the first queued action that can run; once one has,
@@ -281,45 +241,9 @@ UsePlayerAbilities(app_state *AppState, world *World, player_slot *Slot,
 {
     world_entity *Player = Slot->Entity;
     player_input *Input = &Slot->Input;
-
-    // NOTE(zoubir): only from the ground, pressing again mid-air used
-    // to restart the jump and let the player fly
-    if (WasPressed(Input, PlayerButton_Jump) && !Tick->Jumping)
-    {
-        Player->State = EntityState_Jumping;
-        Player->Velocity.Z = 230.f;
-        EmitSound(&AppState->Events, AssetType_ZoubirAudio, Player->Position);
-    }
-
-    Player->ShockwaveCooldown = Maximum(0.f, Player->ShockwaveCooldown - DeltaTime);
-    Player->ShockwaveFlash = Maximum(0.f, Player->ShockwaveFlash - DeltaTime);
-    if (WasPressed(Input, PlayerButton_Shockwave) &&
-        Player->ShockwaveCooldown <= 0.f)
-    {
-        Player->ShockwaveCooldown = PLAYER_SHOCKWAVE_COOLDOWN;
-        TriggerShockwave(AppState, World, Player);
-        EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
-    }
-
-    Player->DashCooldown = Maximum(0.f, Player->DashCooldown - DeltaTime);
-    Player->DashFlash = Maximum(0.f, Player->DashFlash - DeltaTime);
-    if (WasPressed(Input, PlayerButton_Dash) &&
-        Player->DashCooldown <= 0.f)
-    {
-        // NOTE(zoubir): used to scale one tick's push, so standing still
-        // spent the cooldown and went nowhere
-        v2 Dir = GetPlayerAim(Player);
-        float HeldSquared = LengthSq(Input->Move);
-        if (HeldSquared > 0.0001f)
-        {
-            Dir = Input->Move * (1.f / SquareRoot(HeldSquared));
-        }
-        Player->Velocity.XY = PLAYER_DASH_SPEED * Dir;
-        Player->ActionLock = 0.f;
-        Player->DashCooldown = PLAYER_DASH_COOLDOWN;
-        Player->DashFlash = PLAYER_DASH_FLASH_SECONDS;
-        EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
-    }
+    UseJump(AppState, Player, Input, Tick);
+    UseShockwave(AppState, World, Player, Input, DeltaTime);
+    UseDash(AppState, Player, Input, DeltaTime);
 }
 
 // NOTE(zoubir): the animation for the player's state. The body faces the

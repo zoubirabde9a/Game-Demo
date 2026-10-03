@@ -1,6 +1,7 @@
-/* Player abilities that act on other entities (monsters and other
-   players, never the user). UpdatePlayer decides when
-   one fires (key + cooldown); the effect itself lives here. */
+/* Shockwave (E): hits every monster and other player within
+   SHOCKWAVE_RADIUS and throws the survivors away from the player. Every
+   PLAYER_SHOCKWAVE_COOLDOWN seconds (entity.h, the HUD reads it).
+   ShockwaveFlash is what clients draw the ring from. */
 
 #define SHOCKWAVE_RADIUS 90.f
 #define SHOCKWAVE_DAMAGE 40.f
@@ -42,4 +43,19 @@ TriggerShockwave(app_state *AppState, world *World, world_entity *Source)
     }
     Source->ShockwaveFlash = SHOCKWAVE_FLASH_SECONDS;
     return HitCount;
+}
+
+internal void
+UseShockwave(app_state *AppState, world *World, world_entity *Player,
+             player_input *Input, float DeltaTime)
+{
+    Player->ShockwaveCooldown = Maximum(0.f, Player->ShockwaveCooldown - DeltaTime);
+    Player->ShockwaveFlash = Maximum(0.f, Player->ShockwaveFlash - DeltaTime);
+    if (WasPressed(Input, PlayerButton_Shockwave) &&
+        Player->ShockwaveCooldown <= 0.f)
+    {
+        Player->ShockwaveCooldown = PLAYER_SHOCKWAVE_COOLDOWN;
+        TriggerShockwave(AppState, World, Player);
+        EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
+    }
 }

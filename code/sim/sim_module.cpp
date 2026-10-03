@@ -29,7 +29,6 @@
 #include "spawn.cpp"
 #include "players.cpp"
 #include "arena.cpp"
-#include "abilities.cpp"
 #include "monster_population.cpp"
 #include "terrain_effects.cpp"
 #include "update.cpp"
