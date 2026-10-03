@@ -127,10 +127,24 @@ internal void
 HandleOverlap(app_state *AppState, world *World, memory_arena *Arena,
               world_entity *Entity, world_entity *Region)
 {
-        
     if (Entity->Type == EntityType_Sword)
     {
-        DamageEntity(AppState, World, Region, SWORD_DAMAGE, Entity);
+        // NOTE(zoubir): a survivor is shoved away from the swinger (or the
+        // blade when the swinger is unknown), so a hit is felt
+        v2 From = Entity->Position.XY;
+        world_entity *Swinger = Entity->HasOwner ?
+            AppState->Players[Entity->OwnerSlot].Entity : 0;
+        if (Swinger && Swinger->IsPresent)
+        {
+            From = Swinger->Position.XY;
+        }
+        v2 Away = Region->Position.XY - From;
+        float Distance = Length(Away);
+        if (!DamageEntity(AppState, World, Region, SWORD_DAMAGE, Entity) &&
+            Region->IsPresent && Distance > 0.f)
+        {
+            Region->Velocity.XY += (SWORD_KNOCKBACK / Distance) * Away;
+        }
         // NOTE(zoubir): one hit per swing per target
         AddCollisionRule(AppState, Arena,
                          Entity->ID, Region->ID,

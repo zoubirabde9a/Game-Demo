@@ -411,6 +411,26 @@ TestWalkingCutsCastAnimation()
 }
 
 internal void
+TestSwordShovesSurvivorAway()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Attacker = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                             0, {300, 300, 0});
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {330, 300, 0}, Test.UnitVolume);
+    Monster->MaxHp = Monster->Hp = 100.f;
+    world_entity *Sword = AddSword(AppState, Test.World, &Test.Arena,
+                                   {316, 300, 0}, Attacker,
+                                   AnimationDirection_Right);
+    UpdateSword(Sword, Test.World, &Test.Arena, AppState, Test.Input.DeltaTime);
+    Check(Monster->Hp == 100.f - SWORD_DAMAGE);
+    Check(Monster->Velocity.X > 0.9f * SWORD_KNOCKBACK);
+    Check(Absolute(Monster->Velocity.Y) < 1.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 RunPlayerAbilityTests()
 {
     printf("TestFireBallFliesTowardAim\n");
@@ -437,4 +457,6 @@ RunPlayerAbilityTests()
     TestFastClicksFireAtSteadyRate();
     printf("TestWalkingCutsCastAnimation\n");
     TestWalkingCutsCastAnimation();
+    printf("TestSwordShovesSurvivorAway\n");
+    TestSwordShovesSurvivorAway();
 }
