@@ -292,6 +292,12 @@ DamageEntity(app_state *AppState, world *World,
         {
             Attacker->Kills++;
         }
+        u8 KillerMonster = (Source && Source->Type == EntityType_Monster) ?
+            (u8)Source->MonsterKind : SIM_NOBODY;
+        EmitKill(&AppState->Events,
+                 (Attacker && Attacker != Victim) ?
+                 (u8)(Attacker - AppState->Players) : SIM_NOBODY,
+                 (u8)Target->PlayerIndex, KillerMonster);
     }
     return true;
 }

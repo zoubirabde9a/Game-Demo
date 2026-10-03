@@ -17,7 +17,7 @@
 
 #include "../app_defs.h"
 
-#define NET_PROTOCOL_ID 0x47444d41u // "GDMA", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d42u // "GDMB", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -26,6 +26,7 @@
 #define NET_MAX_SNAPSHOT_SCORES 8   // one per player slot (MAX_PLAYERS)
 #define NET_MAX_SNAPSHOT_FACINGS 8  // front-armoured monsters per snapshot
 #define NET_MAX_SNAPSHOT_SOUNDS 8   // sounds heard since the last snapshot
+#define NET_MAX_SNAPSHOT_KILLS 4    // player deaths since the last snapshot
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
@@ -144,6 +145,13 @@ struct net_score
     u16 MonsterKills;
 };
 
+struct net_kill
+{
+    u8 Killer;        // player slot, 0xFF for none
+    u8 Victim;        // player slot
+    u8 KillerMonster; // monster kind, 0xFF for none
+};
+
 struct net_snapshot
 {
     u32 Tick;
@@ -168,6 +176,10 @@ struct net_snapshot
     // its sounds; they are not worth resending.
     u8 SoundCount;
     u8 Sounds[NET_MAX_SNAPSHOT_SOUNDS];
+    // Player deaths anywhere since this player's previous snapshot, for
+    // the kill feed. Slots and monster kinds; 0xFF means nobody.
+    u8 KillCount;
+    net_kill Kills[NET_MAX_SNAPSHOT_KILLS];
 };
 
 struct net_packet
@@ -188,6 +200,12 @@ internal u32 NetWritePacket(net_packet *Packet, u8 *Buffer, u32 BufferSize);
 
 // Returns true and fills Packet if Buffer holds exactly one well-formed packet.
 internal bool32 NetReadPacket(u8 *Buffer, u32 Size, net_packet *Packet);
+
+// Writes a snapshot packet, dropping its last (farthest) entities and
+// whatever points at them until it fits; returns the size, 0 if even one
+// entity does not fit. Sets *Dropped to how many entities were left out.
+internal u32 NetWriteSnapshotFitting(net_packet *Packet, u8 *Buffer, u32 BufferSize,
+                                     u32 *Dropped);
 
 // True if sequence A is newer than B, treating the u16 counter as wrapping.
 internal bool32 NetSequenceNewer(u16 A, u16 B);

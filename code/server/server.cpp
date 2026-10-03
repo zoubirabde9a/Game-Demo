@@ -65,11 +65,12 @@ ServerFormatStats(server *Server, double IntervalSeconds, char *Out, u32 OutSize
     double AverageMs = S->Ticks ? 1000.0 * S->TickSecondsTotal / S->Ticks : 0;
     snprintf(Out, OutSize,
              "stats over %.0f s: %u/%u players, tick avg %.2f ms max %.2f ms of %.1f, %u late, "
-             "in %u pkt %.1f KB (%u bad), out %u pkt %.1f KB (%.1f KB/s)",
+             "in %u pkt %.1f KB (%u bad), out %u pkt %.1f KB (%.1f KB/s), %u trimmed",
              IntervalSeconds, ServerPlayerCount(Server), NET_MAX_CLIENTS,
              AverageMs, 1000.0 * S->TickSecondsMax, 1000.0 / SERVER_TICK_RATE, S->LateTicks,
              S->PacketsIn, S->BytesIn / 1024.0, S->BadPacketsIn,
-             S->PacketsOut, S->BytesOut / 1024.0, S->BytesOut * PerSecond / 1024.0);
+             S->PacketsOut, S->BytesOut / 1024.0, S->BytesOut * PerSecond / 1024.0,
+             S->TrimmedSnapshots);
     *S = {};
 }
 
@@ -152,7 +153,18 @@ ServerSendSnapshots(server *Server)
         NetServerStampHeader(Slot, &Packet, NetPacket_Snapshot);
         Packet.Snapshot.Tick = Server->Tick;
         GameWriteSnapshot(&Server->Game, Index, &Packet.Snapshot);
-        ServerSend(Server, Slot->Address, &Packet);
+        // A busy moment can fill every list at once; then the farthest
+        // entities wait for the next snapshot rather than the whole
+        // snapshot being lost.
+        u8 Buffer[NET_MAX_PACKET_SIZE];
+        u32 Dropped = 0;
+        u32 Size = NetWriteSnapshotFitting(&Packet, Buffer, sizeof(Buffer), &Dropped);
+        if (Dropped) Server->Stats.TrimmedSnapshots++;
+        if (Size && NetSendTo(&Server->Socket, Slot->Address, Buffer, Size))
+        {
+            Server->Stats.PacketsOut++;
+            Server->Stats.BytesOut += Size;
+        }
     }
 }
 

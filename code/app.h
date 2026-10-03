@@ -93,6 +93,8 @@ struct app_state
     sim_events Events;
     // NOTE(zoubir): connection to a dedicated server, see client/online.cpp
     struct online_session *Online;
+    // NOTE(zoubir): recent player deaths for the UI, client/kill_feed.cpp
+    struct kill_feed *KillFeed;
     // NOTE(zoubir): address and name form, see ui/connect_screen.cpp
     struct connect_screen *ConnectScreen;
     // NOTE(zoubir): see ui/minimap.cpp; made on first draw

@@ -543,6 +543,53 @@ TestRespawnCountdownOnline()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a player's death is reported with who did it, and the
+// kill feed keeps the newest first and forgets them after a while
+internal void
+TestKillsReachTheKillFeed()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Attacker = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                             0, {300, 300, 0});
+    world_entity *Victim = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           1, {330, 300, 0});
+    AppState->Events = {};
+    Check(DamageEntity(AppState, Test.World, Victim, Victim->Hp + 1.f, Attacker));
+    bool32 Found = false;
+    for(u32 Index = 0; Index < AppState->Events.Count; Index++)
+    {
+        sim_event *Event = &AppState->Events.Events[Index];
+        if (Event->Type == SimEvent_Kill && Event->Killer == 0 &&
+            Event->Victim == 1 && Event->KillerMonster == SIM_NOBODY)
+        {
+            Found = true;
+        }
+    }
+    Check(Found);
+
+    kill_feed *Feed = (kill_feed *)calloc(1, sizeof(kill_feed));
+    for(u8 Victim = 0; Victim < KILL_FEED_SIZE + 2; Victim++)
+    {
+        sim_event Kill = {};
+        Kill.Type = SimEvent_Kill;
+        Kill.Killer = SIM_NOBODY;
+        Kill.Victim = Victim;
+        Kill.KillerMonster = 3;
+        AddToKillFeed(Feed, &Kill);
+        AgeKillFeed(Feed, 1.f);
+    }
+    Check(Feed->Count == KILL_FEED_SIZE);
+    Check(Feed->Entries[0].Victim == KILL_FEED_SIZE + 1);
+    Check(Feed->Entries[0].Age == 1.f);
+    AgeKillFeed(Feed, KILL_FEED_SECONDS - 2.5f);
+    Check(Feed->Count == 2);
+    AgeKillFeed(Feed, 10.f);
+    Check(Feed->Count == 0);
+    free(Feed);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunOnlineTests()
 {
@@ -570,4 +617,6 @@ RunOnlineTests()
     TestReplicaFacingFromSnapshot();
     printf("TestRespawnCountdownOnline\n");
     TestRespawnCountdownOnline();
+    printf("TestKillsReachTheKillFeed\n");
+    TestKillsReachTheKillFeed();
 }

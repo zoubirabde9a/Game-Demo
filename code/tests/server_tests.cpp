@@ -592,6 +592,37 @@ TestSoundsReachPlayersNearby()
     GameShutdown(&Game);
 }
 
+// A player's death reaches every player's snapshot once, near or far.
+internal void
+TestKillsReachEveryone()
+{
+    static server_game Game;
+    GameInit(&Game);
+    app_state *AppState = Game.AppState;
+    GamePlayerJoined(&Game, 0);
+    GamePlayerJoined(&Game, 1);
+    GamePlayerJoined(&Game, 2);
+    static net_snapshot Out[3];
+    for (u32 Slot = 0; Slot < 3; ++Slot) GameWriteSnapshot(&Game, Slot, &Out[Slot]);
+
+    world_entity *Victim = AppState->Players[2].Entity;
+    DamageEntity(AppState, &AppState->World, Victim, Victim->Hp + 1.f,
+                 AppState->Players[0].Entity);
+    GameTick(&Game, 1.f / 60.f);
+    for (u32 Slot = 0; Slot < 3; ++Slot)
+    {
+        Out[Slot] = {};
+        GameWriteSnapshot(&Game, Slot, &Out[Slot]);
+        Check(Out[Slot].KillCount == 1);
+        Check(Out[Slot].Kills[0].Killer == 0 && Out[Slot].Kills[0].Victim == 2);
+    }
+    GameTick(&Game, 1.f / 60.f);
+    Out[0] = {};
+    GameWriteSnapshot(&Game, 0, &Out[0]);
+    Check(Out[0].KillCount == 0);
+    GameShutdown(&Game);
+}
+
 // More moving things than fit in a snapshot: the viewer still gets its own
 // player first and everything near it, and the rest nearest first.
 internal void
@@ -985,6 +1016,7 @@ main()
     TestClientConnectsAndMoves();
     TestSnapshotPrefersWhatIsNear();
     TestSoundsReachPlayersNearby();
+    TestKillsReachEveryone();
     TestArmoredMonstersSendFacing();
     TestPredictionAgreesWithServer();
     TestConnectAndLeaveFromTheGame();

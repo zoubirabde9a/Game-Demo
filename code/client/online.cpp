@@ -279,6 +279,12 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
                           (asset_type_id)Snapshot->Sounds[Index], V3(0.f));
             }
         }
+        for(u32 Index = 0; NewSnapshot && Index < Snapshot->KillCount; Index++)
+        {
+            net_kill *Kill = &Snapshot->Kills[Index];
+            EmitKill(&AppState->Events, Kill->Killer, Kill->Victim,
+                     Kill->KillerMonster);
+        }
         PredictLocalPlayer(AppState, Arena, &Online->Prediction, NewSnapshot,
                            Snapshot->InputTick, DeltaTime);
         return;

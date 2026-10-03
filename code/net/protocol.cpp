@@ -164,6 +164,16 @@ NetSerializePacket(net_stream *S, net_packet *P)
             {
                 NetU8(S, &P->Snapshot.Sounds[Index]);
             }
+            NetU8(S, &P->Snapshot.KillCount);
+            if (P->Snapshot.KillCount > NET_MAX_SNAPSHOT_KILLS) return false;
+            for (u32 Index = 0; Index < P->Snapshot.KillCount; ++Index)
+            {
+                net_kill *Kill = &P->Snapshot.Kills[Index];
+                NetU8(S, &Kill->Killer);
+                NetU8(S, &Kill->Victim);
+                NetU8(S, &Kill->KillerMonster);
+                if (Kill->Victim >= NET_MAX_SNAPSHOT_SCORES) return false;
+            }
         } break;
 
         default: return false;
@@ -187,4 +197,37 @@ NetReadPacket(u8 *Buffer, u32 Size, net_packet *Packet)
     *Packet = {};
     if (!NetSerializePacket(&S, Packet)) return false;
     return S.At == Size; // trailing bytes mean a corrupt or foreign packet
+}
+
+internal u32
+NetWriteSnapshotFitting(net_packet *Packet, u8 *Buffer, u32 BufferSize, u32 *Dropped)
+{
+    net_snapshot *Snapshot = &Packet->Snapshot;
+    u32 Start = Snapshot->Count;
+    u32 Size = NetWritePacket(Packet, Buffer, BufferSize);
+    while (Size == 0 && Snapshot->Count > 1)
+    {
+        Snapshot->Count--;
+        u32 Kept = 0;
+        for (u32 Index = 0; Index < Snapshot->AbilityCount; ++Index)
+        {
+            if (Snapshot->Abilities[Index].EntityIndex < Snapshot->Count)
+            {
+                Snapshot->Abilities[Kept++] = Snapshot->Abilities[Index];
+            }
+        }
+        Snapshot->AbilityCount = (u8)Kept;
+        Kept = 0;
+        for (u32 Index = 0; Index < Snapshot->FacingCount; ++Index)
+        {
+            if (Snapshot->Facings[Index].EntityIndex < Snapshot->Count)
+            {
+                Snapshot->Facings[Kept++] = Snapshot->Facings[Index];
+            }
+        }
+        Snapshot->FacingCount = (u8)Kept;
+        Size = NetWritePacket(Packet, Buffer, BufferSize);
+    }
+    if (Dropped) *Dropped = Start - Snapshot->Count;
+    return Size;
 }

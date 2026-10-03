@@ -30,6 +30,7 @@ struct server_stats
     double TickSecondsTotal;
     double TickSecondsMax;
     u32 PacketsIn, PacketsOut, BadPacketsIn;
+    u32 TrimmedSnapshots; // snapshots that left far entities out to fit
     u64 BytesIn, BytesOut;
 };
 

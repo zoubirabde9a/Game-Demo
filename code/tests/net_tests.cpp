@@ -105,6 +105,15 @@ FullSnapshot()
     {
         P.Snapshot.Sounds[Index] = (u8)(200 + Index);
     }
+    // Two kills: with every kill slot full as well it no longer fits in a
+    // datagram (TestOverfullSnapshotIsTrimmed).
+    P.Snapshot.KillCount = 2;
+    for (u8 Index = 0; Index < NET_MAX_SNAPSHOT_KILLS; ++Index)
+    {
+        P.Snapshot.Kills[Index].Killer = Index;
+        P.Snapshot.Kills[Index].Victim = (u8)(Index + 1);
+        P.Snapshot.Kills[Index].KillerMonster = 0xFF;
+    }
 
     // ...and the longest name.
     P.Snapshot.NameSlot = NET_MAX_SNAPSHOT_SCORES - 1;
@@ -203,6 +212,37 @@ TestInputRoundTrip()
     Check(Out.Input.Inputs[1].AimY == -1.0f);
 }
 
+// Every list full at once is more than one datagram: writing it plainly
+// fails, and NetWriteSnapshotFitting leaves out the last (farthest)
+// entities, and what pointed at them, until it fits.
+internal void
+TestOverfullSnapshotIsTrimmed()
+{
+    net_packet P = FullSnapshot();
+    P.Snapshot.KillCount = NET_MAX_SNAPSHOT_KILLS;
+    static u8 Buffer[NET_MAX_PACKET_SIZE];
+    Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
+    u32 Dropped = 0;
+    u32 Size = NetWriteSnapshotFitting(&P, Buffer, sizeof(Buffer), &Dropped);
+    Check(Size > 0 && Size <= NET_MAX_PACKET_SIZE);
+    Check(Dropped >= 1 && Dropped <= 2);
+    Check(P.Snapshot.Count == NET_MAX_SNAPSHOT_ENTITIES - Dropped);
+    static net_packet Out;
+    Check(NetReadPacket(Buffer, Size, &Out));
+    Check(Out.Snapshot.KillCount == NET_MAX_SNAPSHOT_KILLS);
+    for (u32 Index = 0; Index < Out.Snapshot.AbilityCount; ++Index)
+    {
+        Check(Out.Snapshot.Abilities[Index].EntityIndex < Out.Snapshot.Count);
+    }
+    // One that already fits is written as it is.
+    P = FullSnapshot();
+    P.Snapshot.Count = 10;
+    P.Snapshot.AbilityCount = 0;
+    P.Snapshot.FacingCount = 0;
+    Check(NetWriteSnapshotFitting(&P, Buffer, sizeof(Buffer), &Dropped) > 0);
+    Check(Dropped == 0 && P.Snapshot.Count == 10);
+}
+
 internal void
 TestFullSnapshotFits()
 {
@@ -234,6 +274,9 @@ TestFullSnapshotFits()
     Check(Out.Snapshot.NameSlot == NET_MAX_SNAPSHOT_SCORES - 1);
     Check(Out.Snapshot.FacingCount == NET_MAX_SNAPSHOT_FACINGS);
     Check(Out.Snapshot.SoundCount == NET_MAX_SNAPSHOT_SOUNDS);
+    Check(Out.Snapshot.KillCount == 2);
+    Check(Out.Snapshot.Kills[1].Victim == 2);
+    Check(Out.Snapshot.Kills[0].KillerMonster == 0xFF);
     Check(Out.Snapshot.Sounds[NET_MAX_SNAPSHOT_SOUNDS - 1] == 200 + NET_MAX_SNAPSHOT_SOUNDS - 1);
     Check(Out.Snapshot.Facings[NET_MAX_SNAPSHOT_FACINGS - 1].Angle ==
           (NET_MAX_SNAPSHOT_FACINGS - 1) * 32 + 1);
@@ -553,6 +596,7 @@ main()
     TestNamesRoundTripAndAreCleaned();
     TestInputRoundTrip();
     TestFullSnapshotFits();
+    TestOverfullSnapshotIsTrimmed();
     TestFixedPointPrecisionAndClamping();
     TestRejectsAbilityForMissingEntity();
     TestRejectsBadPackets();
