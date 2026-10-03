@@ -26,8 +26,11 @@
    UsePlayerAbilities or the action queue. */
 
 #define PLAYER_ACCELERATION 56000.f
-// NOTE(zoubir): how long a queued action waits for the current animation
-#define PLAYER_ACTION_LINGER 0.15f
+// NOTE(zoubir): how long a queued action waits for the current animation;
+// longer than a whole swing (6 frames of 0.03 s, animations.cpp), so a
+// click anywhere in a swing chains the next one. It was 0.15 s, and clicks
+// in a swing's first moments were dropped
+#define PLAYER_ACTION_LINGER 0.25f
 // NOTE(zoubir): how fast the player walks while a swing or cast finishes
 #define PLAYER_ACTION_MOVE_SCALE 0.7f
 

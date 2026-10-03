@@ -284,6 +284,57 @@ TestHitsShowOneNumberEach()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): counts sword entities that appear over Frames, by ID
+internal u32
+CountSwordsOver(test_world *Test, u32 SlotIndex, u32 Frames)
+{
+    u32 Seen[16] = {};
+    u32 SeenCount = 0;
+    for(u32 Frame = 0; Frame < Frames; Frame++)
+    {
+        SimulateTick(Test->AppState, &Test->Arena, 1.f / 60.f);
+        Test->AppState->Players[SlotIndex].Input.Pressed = 0;
+        world *World = Test->World;
+        for(u32 Index = 0; Index < World->EntityCount; Index++)
+        {
+            world_entity *Entity = &World->Entities[Index];
+            if (!Entity->IsPresent || Entity->Type != EntityType_Sword)
+            {
+                continue;
+            }
+            bool32 Known = false;
+            for(u32 K = 0; K < SeenCount; K++)
+            {
+                Known = Known || Seen[K] == Entity->ID;
+            }
+            if (!Known && SeenCount < ArrayCount(Seen))
+            {
+                Seen[SeenCount++] = Entity->ID;
+            }
+        }
+    }
+    return SeenCount;
+}
+
+// NOTE(zoubir): a second click early in a swing used to wait less than
+// the swing lasts and was dropped
+internal void
+TestClickDuringSwingQueuesNextSwing()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    // NOTE(zoubir): the real swing length, 6 frames of 0.03 s
+    SetupAnimationSets(AppState, &Test.Arena);
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Attack;
+    SimulateTick(AppState, &Test.Arena, 1.f / 60.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Attack;
+    Check(CountSwordsOver(&Test, 0, 40) == 2);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -305,4 +356,6 @@ RunPlayerAbilityTests()
     TestBlinkLandsAtCursorOrStopsAtWall();
     printf("TestHitsShowOneNumberEach\n");
     TestHitsShowOneNumberEach();
+    printf("TestClickDuringSwingQueuesNextSwing\n");
+    TestClickDuringSwingQueuesNextSwing();
 }
