@@ -126,7 +126,7 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
     char Status[128];
     GetOnlineStatusText(Online, Status, sizeof(Status));
     DrawScreenText(RenderContext, Font, Left + Pad, Top + 190.f,
-                   Status[0] ? Status : "Playing offline", RGBA8_WHITE);
+                   Status[0] ? Status : (char *)"Playing offline", RGBA8_WHITE);
 
     BeginContainer(UIContext, Left, Top, Width, Height);
     DoEditBox(&Screen->Address, AppState, UIContext, Pad, 66.f,
@@ -140,7 +140,7 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
     bool32 Ended = (Phase == OnlinePhase_Ended);
     float ButtonWidth = 0.5f * (FieldWidth - 10.f);
     float ButtonY = Height - Pad - RowHeight;
-    char *LeftText = Trying ? "Cancel" : (Ended ? "Retry" : "Connect");
+    char *LeftText = (char *)(Trying ? "Cancel" : (Ended ? "Retry" : "Connect"));
     if (DoButton(&Screen->LeftButton, AppState, UIContext, Pad, ButtonY,
                  ButtonWidth, RowHeight, LeftText))
     {
@@ -155,7 +155,7 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
             Screen->WaitingToJoin = true;
         }
     }
-    char *RightText = Joined ? "Back to game" : "Play offline";
+    char *RightText = (char *)(Joined ? "Back to game" : "Play offline");
     if (DoButton(&Screen->RightButton, AppState, UIContext,
                  Width - Pad - ButtonWidth, ButtonY, ButtonWidth, RowHeight,
                  RightText))
