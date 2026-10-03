@@ -608,6 +608,130 @@ TestBellyFlopLeavesSlowingGoo()
 }
 
 internal void
+TestEliteRollRateAndVariety()
+{
+    random_series Series = Seed(99);
+    u32 Counts[MonsterAffix_Count] = {};
+    u32 Rolls = 20000;
+    for(u32 Roll = 0; Roll < Rolls; Roll++)
+    {
+        Counts[RollEliteAffix(&Series)]++;
+    }
+    float EliteShare = 1.f - (float)Counts[MonsterAffix_None] / (float)Rolls;
+    Check(EliteShare > ELITE_CHANCE - 0.02f && EliteShare < ELITE_CHANCE + 0.02f);
+    for(u32 Affix = 1; Affix < MonsterAffix_Count; Affix++)
+    {
+        Check(Counts[Affix] > 0);
+    }
+}
+
+internal void
+TestArmoredEliteHasMoreHealth()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Brute = AddTestMonster(&Test, MonsterKind_Brute, {1000, 1000, 0});
+    float BaseHp = Brute->MaxHp;
+    ApplyEliteAffix(Brute, MonsterAffix_Armored);
+    Check(Brute->MaxHp == BaseHp * GetAffix(MonsterAffix_Armored)->HpScale);
+    Check(Brute->Hp == Brute->MaxHp);
+    Check(Brute->Tint == GetAffix(MonsterAffix_Armored)->Tint);
+    Check(GetMoveSpeedScale(Brute) < 1.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestVampiricBiteHeals()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Brute = AddTestMonster(&Test, MonsterKind_Brute, {1000, 1000, 0});
+    world_entity *Player = AddTestPlayer(&Test, {1040, 1000, 0});
+    ApplyEliteAffix(Brute, MonsterAffix_Vampiric);
+    Brute->Hp = 20.f;
+    monster_affix_def *Affix = GetAffix(MonsterAffix_Vampiric);
+    float Damage = GetMonsterDef(MonsterKind_Brute)->AttackDamage * Affix->DamageScale;
+    MonsterBite(Test.AppState, Test.World, Brute, Player);
+    Check(Player->Hp == 100.f - Damage);
+    Check(Brute->Hp == 20.f + Affix->LifeSteal * Damage);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestChillingHitsSlowAndShotsCarryIt()
+{
+    test_world Test = CreateTestWorld();
+    Test.AppState->FireBallCollision = Test.FireBallVolume;
+    world_entity *Imp = AddTestMonster(&Test, MonsterKind_Imp, {600, 1000, 0});
+    world_entity *Player = AddTestPlayer(&Test, {800, 1000, 0});
+    ApplyEliteAffix(Imp, MonsterAffix_Chilling);
+    monster_ability *Fan = &GetMonsterDef(MonsterKind_Imp)->Abilities[0];
+    bool32 Slowed = false;
+    for(u32 Frame = 0; Frame < SecondsToFrames(Fan->Windup + Fan->Active); Frame++)
+    {
+        StepWorld(&Test, 1);
+        Slowed |= HasStatus(Player, StatusEffect_Slowed);
+    }
+    Check(Slowed);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestFrenziedAbilitiesRechargeFaster()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Brute = AddTestMonster(&Test, MonsterKind_Brute, {1000, 1000, 0});
+    AddTestPlayer(&Test, {1050, 1000, 0});
+    ApplyEliteAffix(Brute, MonsterAffix_Frenzied);
+    monster_ability *Slam = &GetMonsterDef(MonsterKind_Brute)->Abilities[0];
+    StepMonster(&Test, Brute, 1);
+    StepMonster(&Test, Brute, SecondsToFrames(Slam->Windup + Slam->Active +
+                                              Slam->Recover));
+    Check(Brute->AbilityPhase == AbilityPhase_Ready);
+    float Expected = Slam->Cooldown * GetAffix(MonsterAffix_Frenzied)->CooldownScale;
+    Check(Brute->AbilityCooldowns[0] <= Expected);
+    Check(Brute->AbilityCooldowns[0] > Expected - 0.2f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestEliteSlimeChildrenKeepAffix()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Slime = AddTestMonster(&Test, MonsterKind_Slime, {1000, 1000, 0});
+    ApplyEliteAffix(Slime, MonsterAffix_Armored);
+    DamageEntity(AppState, Test.World, Slime, Slime->Hp + 1.f, 0);
+    UpdateMonsterPopulation(AppState, Test.World, &Test.Arena, AppState->Monsters,
+                            Test.Input.DeltaTime);
+    u32 Children = 0;
+    for(u32 EntityIndex = 0; EntityIndex < Test.World->EntityCount; EntityIndex++)
+    {
+        world_entity *Child = &Test.World->Entities[EntityIndex];
+        if (Child->IsPresent && Child->MonsterKind == MonsterKind_Slimelet &&
+            Child->Type == EntityType_Monster)
+        {
+            Children++;
+            Check(Child->EliteAffix == MonsterAffix_Armored);
+            Check(Child->MaxHp > GetMonsterDef(MonsterKind_Slimelet)->MaxHp);
+        }
+    }
+    Check(Children == GetMonsterDef(MonsterKind_Slime)->SplitCount);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestMonsterTableHashTracksChanges()
+{
+    u32 First = ComputeMonsterTableHash();
+    Check(First == ComputeMonsterTableHash());
+    monster_def *Def = GetMonsterDef(MonsterKind_Brute);
+    float Saved = Def->MaxHp;
+    Def->MaxHp += 1.f;
+    Check(ComputeMonsterTableHash() != First);
+    Def->MaxHp = Saved;
+    Check(ComputeMonsterTableHash() == First);
+}
+
+internal void
 RunMonsterTests()
 {
     printf("TestMonsterDefsAreValid\n");
@@ -654,4 +778,18 @@ RunMonsterTests()
     TestSplitChildrenNeverOverlapWalls();
     printf("TestBellyFlopLeavesSlowingGoo\n");
     TestBellyFlopLeavesSlowingGoo();
+    printf("TestEliteRollRateAndVariety\n");
+    TestEliteRollRateAndVariety();
+    printf("TestArmoredEliteHasMoreHealth\n");
+    TestArmoredEliteHasMoreHealth();
+    printf("TestVampiricBiteHeals\n");
+    TestVampiricBiteHeals();
+    printf("TestChillingHitsSlowAndShotsCarryIt\n");
+    TestChillingHitsSlowAndShotsCarryIt();
+    printf("TestFrenziedAbilitiesRechargeFaster\n");
+    TestFrenziedAbilitiesRechargeFaster();
+    printf("TestEliteSlimeChildrenKeepAffix\n");
+    TestEliteSlimeChildrenKeepAffix();
+    printf("TestMonsterTableHashTracksChanges\n");
+    TestMonsterTableHashTracksChanges();
 }

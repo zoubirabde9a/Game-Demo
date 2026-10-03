@@ -6,6 +6,7 @@
    See sim/monsters/README.md for adding one. */
 
 #include "../art/sprite_canvas.cpp"
+#include "monster_affixes.cpp"
 #include "status_effects.cpp"
 
 enum monster_ability_kind
@@ -143,7 +144,9 @@ AddMonsterAbility(monster_def *Def, monster_ability_kind Kind, char *Name)
 {
     Assert(Def->AbilityCount < MAX_MONSTER_ABILITIES);
     monster_ability *Result = &Def->Abilities[Def->AbilityCount++];
-    *Result = {};
+    // NOTE(zoubir): ZeroSize, not = {}, so padding is zero too and
+    // ComputeMonsterTableHash sees the same bytes in every program
+    ZeroSize(Result, sizeof(*Result));
     Result->Kind = Kind;
     Result->Name = Name;
     Result->Count = 1;
@@ -154,7 +157,7 @@ AddMonsterAbility(monster_def *Def, monster_ability_kind Kind, char *Name)
 inline void
 DefaultMonsterDef(monster_def *Def)
 {
-    *Def = {};
+    ZeroSize(Def, sizeof(*Def));
     Def->SpawnWeight = 1;
     Def->FrameSize = 48;
     Def->FrameCounts[MonsterRow_Idle] = 4;
@@ -179,6 +182,7 @@ struct monster_death_record
 {
     monster_kind Kind;
     v3 Position;
+    u32 EliteAffix;
 };
 #define MAX_PENDING_DEATHS 32
 
@@ -323,4 +327,59 @@ RecordMonsterDeath(app_state *AppState, world_entity *Monster)
         &Population->PendingDeaths[Population->PendingDeathCount++];
     Record->Kind = Monster->MonsterKind;
     Record->Position = Monster->Position;
+    Record->EliteAffix = Monster->EliteAffix;
+}
+
+inline u32
+HashBytes(u32 Hash, void *Data, memory_index Size)
+{
+    u8 *Bytes = (u8 *)Data;
+    for(memory_index Index = 0; Index < Size; Index++)
+    {
+        Hash = (Hash ^ Bytes[Index]) * 16777619u;
+    }
+    return Hash;
+}
+
+inline u32
+HashString(u32 Hash, char *String)
+{
+    for(; String && *String; String++)
+    {
+        Hash = (Hash ^ (u8)*String) * 16777619u;
+    }
+    return Hash;
+}
+
+// NOTE(zoubir): a fingerprint of every monster kind, ability and affix.
+// Client and server must agree on it, since kinds travel as numbers.
+// Names are hashed by text; the pointers to them differ per program
+internal u32
+ComputeMonsterTableHash()
+{
+    u32 Hash = 2166136261u;
+    u32 KindCount = MonsterKind_Count;
+    Hash = HashBytes(Hash, &KindCount, sizeof(KindCount));
+    for(u32 KindIndex = 0; KindIndex < MonsterKind_Count; KindIndex++)
+    {
+        monster_def Def;
+        memcpy(&Def, GetMonsterDef((monster_kind)KindIndex), sizeof(Def));
+        Hash = HashString(Hash, Def.Name);
+        Def.Name = 0;
+        for(u32 AbilityIndex = 0; AbilityIndex < MAX_MONSTER_ABILITIES; AbilityIndex++)
+        {
+            Hash = HashString(Hash, Def.Abilities[AbilityIndex].Name);
+            Def.Abilities[AbilityIndex].Name = 0;
+        }
+        Hash = HashBytes(Hash, &Def, sizeof(Def));
+    }
+    for(u32 AffixIndex = 0; AffixIndex < MonsterAffix_Count; AffixIndex++)
+    {
+        monster_affix_def Affix;
+        memcpy(&Affix, GetAffix(AffixIndex), sizeof(Affix));
+        Hash = HashString(Hash, Affix.Name);
+        Affix.Name = 0;
+        Hash = HashBytes(Hash, &Affix, sizeof(Affix));
+    }
+    return Hash;
 }

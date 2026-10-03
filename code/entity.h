@@ -215,6 +215,9 @@ struct world_entity
     // their damage ticks
     float StatusTimers[StatusEffect_Count];
     float StatusTickTimer;
+    // NOTE(zoubir): monster_affix of an elite monster, and of the shots and
+    // hazards it makes; 0 for ordinary ones. See sim/monster_affixes.cpp
+    u32 EliteAffix;
     // NOTE(zoubir): seconds until the player can dash / shockwave again
     float DashCooldown;
     float ShockwaveCooldown;

@@ -192,10 +192,43 @@ DrawStatusPips(render_context *RenderContext, world *World, v3 CameraOffset)
 // NOTE(zoubir): the danger zone of every monster in windup. The ring
 // closes in from twice its size as the windup runs out, so the moment it
 // matches the real radius is the moment it hits
+// NOTE(zoubir): a slowly turning ring of dots at an elite's feet, in its
+// affix color
+internal void
+DrawEliteAuras(render_context *RenderContext, world *World, v3 CameraOffset)
+{
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (!Entity->IsPresent || Entity->Type != EntityType_Monster ||
+            !Entity->EliteAffix)
+        {
+            continue;
+        }
+        monster_affix_def *Affix = GetAffix(Entity->EliteAffix);
+        v2 Feet = Entity->Position.XY - CameraOffset.XY;
+        float Radius = 0.45f * Entity->Dimensions.X;
+        // NOTE(zoubir): steps round with the animation clock
+        float Turn = 0.35f * (float)Entity->AnimationState.SlotIndex;
+        u32 Dots = 12;
+        for(u32 Dot = 0; Dot < Dots; Dot++)
+        {
+            float Angle = Turn + 2.f * Pi32 * (float)Dot / (float)Dots;
+            v2 P = Feet + V2(Radius * Cos(Angle), 0.45f * Radius * Sin(Angle));
+            float Size = (Dot % 3 == 0) ? 3.f : 2.f;
+            DrawFilledRectangle(RenderContext, P.X - 0.5f * Size, P.Y - 0.5f * Size,
+                                Size, Size, Affix->AuraColor, 0.f);
+        }
+    }
+}
+
 internal void
 DrawMonsterTelegraphs(render_context *RenderContext, world *World,
                       v3 CameraOffset)
 {
+    DrawEliteAuras(RenderContext, World, CameraOffset);
     DrawStatusPips(RenderContext, World, CameraOffset);
     for(u32 EntityIndex = 0;
         EntityIndex < World->EntityCount;

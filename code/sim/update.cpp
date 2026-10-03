@@ -573,7 +573,7 @@ UpdateMonster(world_entity *Entity, world *World,
         if (DistanceToTarget < Stats->AttackRange &&
             Entity->AttackCooldown <= 0.f)
         {
-            DamageEntity(AppState, World, Target, Stats->AttackDamage, Entity);
+            MonsterBite(AppState, World, Entity, Target);
             Entity->AttackCooldown = Stats->AttackInterval;
         }
 

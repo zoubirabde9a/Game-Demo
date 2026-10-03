@@ -29,12 +29,14 @@ HasStatus(world_entity *Entity, status_effect Effect)
     return Result;
 }
 
-// NOTE(zoubir): multiply movement acceleration by this
+// NOTE(zoubir): multiply movement acceleration by this; covers slows and
+// elite speed
 inline float
 GetMoveSpeedScale(world_entity *Entity)
 {
     float Result = HasStatus(Entity, StatusEffect_Slowed) ?
         STATUS_SLOW_SCALE : 1.f;
+    Result *= GetAffixSpeedScale(Entity);
     return Result;
 }
 

@@ -109,6 +109,7 @@ SpawnRoamingMonster(app_state *AppState, world *World, memory_arena *Arena,
         {
             world_entity *Monster =
                 AddMonster(AppState, World, Arena, Position, Kind);
+            ApplyEliteAffix(Monster, RollEliteAffix(&Population->Series));
             StaggerMonsterCooldowns(AppState, Monster);
             return Monster;
         }
@@ -196,6 +197,8 @@ SplitMonster(app_state *AppState, world *World, memory_arena *Arena,
         }
         world_entity *Spawned = AddMonster(AppState, World, Arena, Position,
                                            Def->SplitKind);
+        // NOTE(zoubir): an elite's children keep its affix
+        ApplyEliteAffix(Spawned, Record->EliteAffix);
         StaggerMonsterCooldowns(AppState, Spawned);
         // NOTE(zoubir): a little pop outward so the split reads
         Spawned->Velocity.XY = 180.f * Out;

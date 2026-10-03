@@ -50,16 +50,44 @@ FindMonsterTarget(world *World, v2 From, float *DistanceOut)
 // (through DamageEntity, so deaths are counted), push, and the ability's
 // status effect. Source is the monster or shot, which earns no kill credit
 internal void
-HitPlayer(app_state *AppState, world *World, world_entity *Player,
-          world_entity *Source, monster_ability *Ability, v2 Push)
+DealMonsterDamage(app_state *AppState, world *World, world_entity *Player,
+                  world_entity *Source, float Damage, v2 Push,
+                  status_effect Status, float StatusSeconds)
 {
     if (!Player->IsPresent || Player->Hp <= 0.f)
     {
         return;
     }
+    monster_affix_def *Affix = GetAffix(Source ? Source->EliteAffix : 0);
+    Damage *= Affix->DamageScale;
     Player->Velocity.XY += Push;
-    ApplyStatus(Player, Ability->Status, Ability->StatusSeconds);
-    DamageEntity(AppState, World, Player, Ability->Damage, Source);
+    ApplyStatus(Player, Status, StatusSeconds);
+    ApplyStatus(Player, Affix->OnHitStatus, Affix->OnHitStatusSeconds);
+    float Dealt = Minimum(Damage, Player->Hp);
+    DamageEntity(AppState, World, Player, Damage, Source);
+    if (Source && Source->Type == EntityType_Monster &&
+        Source->IsPresent && Affix->LifeSteal > 0.f)
+    {
+        Source->Hp = Minimum(Source->MaxHp, Source->Hp + Affix->LifeSteal * Dealt);
+    }
+}
+
+internal void
+HitPlayer(app_state *AppState, world *World, world_entity *Player,
+          world_entity *Source, monster_ability *Ability, v2 Push)
+{
+    DealMonsterDamage(AppState, World, Player, Source, Ability->Damage, Push,
+                      Ability->Status, Ability->StatusSeconds);
+}
+
+// NOTE(zoubir): the plain bite every monster has, off AttackInterval
+internal void
+MonsterBite(app_state *AppState, world *World, world_entity *Monster,
+            world_entity *Player)
+{
+    monster_def *Def = GetMonsterDef(Monster->MonsterKind);
+    DealMonsterDamage(AppState, World, Player, Monster, Def->AttackDamage,
+                      V2(0.f), StatusEffect_None, 0.f);
 }
 
 // NOTE(zoubir): hits every player within Radius of Center, pushing them
@@ -259,6 +287,7 @@ AddMonsterShot(app_state *AppState, world *World, memory_arena *Arena,
                                    AppState->FireBallCollision);
     Shot->MonsterKind = Owner->MonsterKind;
     Shot->AbilityIndex = Owner->AbilityIndex;
+    Shot->EliteAffix = Owner->EliteAffix;
     Shot->Velocity.XY = Ability->Speed * Direction;
     Shot->TimeLeft = Ability->Active;
     Shot->Dimensions = V2((float)SHOT_FRAME_SIZE, (float)SHOT_FRAME_SIZE);
@@ -307,6 +336,7 @@ AddMonsterHazard(app_state *AppState, world *World, memory_arena *Arena,
                                      AppState->FireBallCollision);
     Hazard->MonsterKind = Owner->MonsterKind;
     Hazard->AbilityIndex = Owner->AbilityIndex;
+    Hazard->EliteAffix = Owner->EliteAffix;
     Hazard->TimeLeft = Ability->HazardSeconds;
     float Size = 2.f * Ability->Radius;
     Hazard->Dimensions = V2(Size, Size);
@@ -623,7 +653,8 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
             *AnimationType = AnimationType_Stop;
             if (Entity->AbilityTimer <= 0.f)
             {
-                Entity->AbilityCooldowns[Entity->AbilityIndex] = Ability->Cooldown;
+                Entity->AbilityCooldowns[Entity->AbilityIndex] =
+                    Ability->Cooldown * GetAffix(Entity->EliteAffix)->CooldownScale;
                 SetMonsterPhase(Entity, AbilityPhase_Ready, 0.f);
                 *AnimationType = AnimationType_Stand;
             }

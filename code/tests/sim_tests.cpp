@@ -272,14 +272,16 @@ TestMonsterPopulationRefillsAwayFromPlayers()
     FillMonsterPopulation(AppState, Test.World, &Test.Arena, Population);
     Check(CountLiveMonsters(Test.World) == 6);
 
-    // NOTE(zoubir): kill two, they come back one per respawn delay
+    // NOTE(zoubir): kill two, they come back one per respawn delay. Kinds
+    // that split on death are skipped, their children would add to the count
     u32 Killed = 0;
     for(u32 EntityIndex = 0;
         EntityIndex < Test.World->EntityCount && Killed < 2;
         EntityIndex++)
     {
         world_entity *Entity = &Test.World->Entities[EntityIndex];
-        if (Entity->IsPresent && Entity->Type == EntityType_Monster)
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster &&
+            GetMonsterDef(Entity->MonsterKind)->DeathEffect == DeathEffect_None)
         {
             DamageEntity(AppState, Test.World, Entity, 1000.f, 0);
             Killed++;

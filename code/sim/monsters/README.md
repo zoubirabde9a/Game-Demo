@@ -45,6 +45,21 @@ Any ability can also set:
 - `Status` and `StatusSeconds`: put on every player it hits. Burning (fast damage), Poisoned (slow damage) and Slowed (movement scaled down) live in `code/sim/status_effects.cpp`. A second application keeps whichever timer is longer; effects never stack.
 - `HazardSeconds` and `HazardStyle` (slam and mortar): the slam's center or each mortar spot leaves a patch of ground of `Radius` that keeps applying `Status` to anyone standing in it.
 
+## Elites
+
+`code/sim/monster_affixes.cpp` holds a table of affixes. When the arena refills a monster, there is a 15% chance (`ELITE_CHANCE`) it rolls one. Any kind can roll any affix.
+
+| Affix | Effect |
+| --- | --- |
+| Frenzied | abilities recharge in 55% of the time, moves faster |
+| Armored | 2.2x health, slower |
+| Vampiric | heals for 60% of the damage it deals |
+| Chilling | every hit also slows |
+
+Elites are tinted and have a ring of dots in the affix color at their feet. Their shots and hazards carry the affix, and split children keep it. A new affix is one enum value and one table row.
+
+`ComputeMonsterTableHash` fingerprints every kind, ability and affix, so a client and a server can check they were built from the same monster data.
+
 ## Death effects
 
 A kind can set `DeathEffect`. `DamageEntity` records the death; the population runs the effect on its next update (it is the code that can spawn entities). Today there is one:
