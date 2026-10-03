@@ -558,6 +558,24 @@ TestSwingsInTheAirArePaced()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): the preview lands short of a wall in the way, where the
+// blink itself stops, and at the target when the way is clear
+internal void
+TestBlinkPreviewStopsAtWalls()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0}, Test.WallVolume);
+    v2 Walled = FindBlinkLanding(AppState, Player, V2(450.f, 300.f));
+    Check(Walled.X + 15.f <= 384.f + 0.01f && Walled.X > 360.f);
+    v2 Clear = FindBlinkLanding(AppState, Player, V2(300.f, 420.f));
+    Check(Absolute(Clear.Y - 420.f) < 0.01f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -595,4 +613,6 @@ RunPlayerAbilityTests()
     TestJumpClearsGroundHazards();
     printf("TestSwingsInTheAirArePaced\n");
     TestSwingsInTheAirArePaced();
+    printf("TestBlinkPreviewStopsAtWalls\n");
+    TestBlinkPreviewStopsAtWalls();
 }
