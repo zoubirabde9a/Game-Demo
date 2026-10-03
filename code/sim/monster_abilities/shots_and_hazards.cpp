@@ -105,8 +105,9 @@ UpdateMonsterHazard(world_entity *Hazard, world *World, app_state *AppState,
         EntityIndex++)
     {
         world_entity *Player = &World->Entities[EntityIndex];
+        // NOTE(zoubir): a player jumping over the patch is not touched
         if (Player->IsPresent && Player->Type == EntityType_Player &&
-            Player->Hp > 0.f &&
+            Player->Hp > 0.f && !IsClearOfGround(Player) &&
             Length(Player->Position.XY - Hazard->Position.XY) <= Ability->Radius)
         {
             ApplyStatus(Player, Ability->Status, Ability->StatusSeconds);

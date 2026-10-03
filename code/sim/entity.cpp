@@ -252,6 +252,17 @@ IsDodging(world_entity *Entity)
     return Result;
 }
 
+// NOTE(zoubir): high enough in a jump to clear ground hazards (bile, webs,
+// embers); a jump spends about 0.4 of its 0.46 s above this
+#define CLEARS_GROUND_HEIGHT 8.f
+
+inline bool32
+IsClearOfGround(world_entity *Entity)
+{
+    bool32 Result = Entity->Position.Z > CLEARS_GROUND_HEIGHT;
+    return Result;
+}
+
 // NOTE(zoubir): every hit goes through here so deaths are counted once
 internal bool32
 DamageEntity(app_state *AppState, world *World,

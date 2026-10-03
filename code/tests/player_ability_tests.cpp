@@ -483,6 +483,56 @@ TestDashDodgesHits()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): standing in a hazard gives its status; jumping over it
+// does not
+internal void
+TestJumpClearsGroundHazards()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Owner = AddTestEntity(&Test, EntityType_Monster,
+                                        {600, 600, 0}, Test.UnitVolume);
+    world_entity *Standing = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                             0, {300, 300, 0});
+    world_entity *Jumping = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                            1, {300, 400, 0});
+    Jumping->Position.Z = 20.f;
+    // NOTE(zoubir): any monster ability that leaves a patch with a status
+    monster_ability *Ability = 0;
+    for(u32 Kind = 0; Kind < MonsterKind_Count && !Ability; Kind++)
+    {
+        monster_def *Def = GetMonsterDef((monster_kind)Kind);
+        for(u32 Index = 0; Index < Def->AbilityCount && !Ability; Index++)
+        {
+            monster_ability *Candidate = &Def->Abilities[Index];
+            if (Candidate->HazardSeconds > 0.f && Candidate->Radius > 0.f &&
+                Candidate->Status != StatusEffect_None)
+            {
+                Ability = Candidate;
+                Owner->MonsterKind = (monster_kind)Kind;
+                Owner->AbilityIndex = Index;
+            }
+        }
+    }
+    Check(Ability != 0);
+    if (!Ability)
+    {
+        DestroyTestWorld(&Test);
+        return;
+    }
+    status_effect Status = Ability->Status;
+    world_entity *Under = AddMonsterHazard(AppState, Test.World, &Test.Arena,
+                                           Owner, Ability, V2(300.f, 300.f));
+    world_entity *Over = AddMonsterHazard(AppState, Test.World, &Test.Arena,
+                                          Owner, Ability, V2(300.f, 400.f));
+    UpdateMonsterHazard(Under, Test.World, AppState, 1.f / 60.f);
+    UpdateMonsterHazard(Over, Test.World, AppState, 1.f / 60.f);
+    Check(Standing->StatusTimers[Status] > 0.f);
+    Check(Jumping->StatusTimers[Status] == 0.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -516,4 +566,6 @@ RunPlayerAbilityTests()
     TestSwordHitsItsSliceAtAnyAngle();
     printf("TestDashDodgesHits\n");
     TestDashDodgesHits();
+    printf("TestJumpClearsGroundHazards\n");
+    TestJumpClearsGroundHazards();
 }

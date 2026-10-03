@@ -1,4 +1,6 @@
-/* Jump (Space): an upward kick, only from the ground. */
+/* Jump (Space): an upward kick, only from the ground. Most of the jump is
+   high enough to clear ground hazards (IsClearOfGround, entity.cpp), so
+   jumping over a patch of bile or webs avoids it. */
 
 internal void
 UseJump(app_state *AppState, world_entity *Player, player_input *Input,
