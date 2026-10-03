@@ -23,3 +23,5 @@ build/land_*.log
 # test.bat output of the programs it runs at once
 build/*_tests*.log
 build/*_tests*.code
+build/gcc_*.log
+build/gcc_*.code

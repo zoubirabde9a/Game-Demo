@@ -32,7 +32,9 @@ REM ")" in %ProgramFiles(x86)% would end the block early.
 where cl >nul 2>nul
 if not errorlevel 1 goto compiler_ready
 for /f "delims=" %%g in ('where git') do if not defined GitDir set "GitDir=%%~dpg"
-set "PATH=%SystemRoot%\system32;%SystemRoot%;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;%GitDir%"
+REM g++, when installed, lets test.bat check the code the live server builds
+for /f "delims=" %%g in ('where g++ 2^>nul') do if not defined GccDir set "GccDir=%%~dpg"
+set "PATH=%SystemRoot%\system32;%SystemRoot%;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;%GitDir%;%GccDir%"
 call "%Root%\misc\shell_64.bat" >nul
 REM vcvars may change the current folder
 cd /d "%Root%"

@@ -3,6 +3,9 @@ REM Builds and runs every test program in code\tests. Run misc\shell_64.bat firs
 REM All programs are compiled first (about half a second each), then the
 REM slow ones (simulation, server, soak) run at the same time, each into
 REM build\<name>.log, and their output is printed in order once all are done.
+REM When g++ is on PATH, the server, tools and tests are also checked with
+REM g++ -fsyntax-only (the live server is built with g++ on Linux, see
+REM build_server.sh), as more of those parallel jobs (gcc_<name>.log).
 REM Checks use "neq 0", not "errorlevel 1": a crashed test exits with a
 REM negative code, which "errorlevel 1" treats as success.
 setlocal EnableDelayedExpansion
@@ -32,6 +35,23 @@ for %%t in (%Slow%) do del /q %%t.code 2>nul
 start "" /b cmd /v:on /c ".\sim_tests.exe > sim_tests.log 2>&1 & echo ^!errorlevel^! > sim_tests.code"
 start "" /b cmd /v:on /c ".\server_tests.exe > server_tests.log 2>&1 & echo ^!errorlevel^! > server_tests.code"
 for /l %%k in (0,1,5) do start "" /b cmd /v:on /c ".\soak_tests.exe 1 2 %%k/6 > soak_tests_%%k.log 2>&1 & echo ^!errorlevel^! > soak_tests_%%k.code"
+
+REM g++ syntax checks, if g++ is here: the server as the live build makes
+REM it, the rest with the test flags.
+where g++ >nul 2>nul
+if %errorlevel% neq 0 goto no_gcc
+set GccRelease=-std=c++11 -w -fsyntax-only -DAPP_SLOW=0 -DAPP_DEV=0
+set GccDebug=-std=c++11 -w -fsyntax-only -DAPP_SLOW=1 -DAPP_DEV=1
+set Slow=%Slow% gcc_server gcc_probe gcc_bots gcc_net_tests gcc_sim_tests gcc_server_tests gcc_soak_tests
+for %%t in (gcc_server gcc_probe gcc_bots gcc_net_tests gcc_sim_tests gcc_server_tests gcc_soak_tests) do del /q %%t.code 2>nul
+start "" /b cmd /v:on /c "g++ %GccRelease% ..\code\server\server_main.cpp > gcc_server.log 2>&1 & echo ^!errorlevel^! > gcc_server.code"
+start "" /b cmd /v:on /c "g++ %GccRelease% ..\code\server\probe_main.cpp > gcc_probe.log 2>&1 & echo ^!errorlevel^! > gcc_probe.code"
+start "" /b cmd /v:on /c "g++ %GccRelease% ..\code\tools\bots_main.cpp > gcc_bots.log 2>&1 & echo ^!errorlevel^! > gcc_bots.code"
+for %%t in (net_tests sim_tests server_tests soak_tests) do start "" /b cmd /v:on /c "g++ %GccDebug% ..\code\tests\%%t.cpp > gcc_%%t.log 2>&1 & echo ^!errorlevel^! > gcc_%%t.code"
+goto gcc_started
+:no_gcc
+echo test: g++ not found, skipping the g++ syntax checks
+:gcc_started
 
 REM The quick ones meanwhile.
 .\net_tests.exe
