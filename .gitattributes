@@ -4,3 +4,4 @@
 *.service text eol=lf
 code/sim/maps/map_list.inc merge=union
 code/client/client_fields.inc merge=union
+code/client/screen_pass.inc merge=union

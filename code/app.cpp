@@ -85,20 +85,9 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     // shape, and 200 ran out with a few monsters winding up at once.
     UIBegin(RenderContext, TransientArena, Input, AppState, UIContext,
             UI_PASS_MAX_BATCHES, 4);
-    DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
-    DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
-    DrawLandmarkPointer(RenderContext, AppState, CameraOffset, Window);
-    DrawHud(RenderContext, AppState, CameraOffset);
-    DrawMinimap(RenderContext, AppState, Window->Width);
-    DrawRespawnCountdown(RenderContext, AppState, Window->Width, Window->Height);
-    if (Input->TabButton.EndedDown)
-    {
-        DrawScoreboard(RenderContext, AppState, Window->Width, Window->Height);
-    }
-    DoTileEditor(RenderContext, AppState, UIContext, Input, Window,
-                 TextureProgram, CameraOffset);
-    DoConnectScreen(RenderContext, AppState, UIContext, Input,
-                    Window->Width, Window->Height);
+    // NOTE(zoubir): every overlay and screen, one call per line, drawn in
+    // order; a new one is added there, not here
+#include "client/screen_pass.inc"
     UIEnd(UIContext);
 
     EndTemporaryMemory(FrameMemory);
