@@ -4,7 +4,7 @@
    $Revision: $
    $Creator: zoubir $
    ======================================================================== */
-#include "SDL\SDL.h"
+#include "third_party/SDL/SDL.h"
 //#undef main
 #include <emscripten\emscripten.h>
 #include <GLES3/gl3.h>

@@ -23,7 +23,7 @@ struct platform_file_handle;
 
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image\stb_image.h"
+#include "third_party/stb_image/stb_image.h"
 
 
 struct read_file_result

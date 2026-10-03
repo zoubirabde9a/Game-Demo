@@ -7,7 +7,7 @@
 
 #include "render.h"
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_truetype.h"
+#include "third_party/stb_truetype.h"
 internal font *
 CreateFont(open_gl *OpenGL,
            memory_arena *Arena,
