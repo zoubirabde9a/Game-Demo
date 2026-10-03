@@ -80,6 +80,8 @@ DrawHud(render_context *RenderContext, app_state *AppState,
 
     // Ability bars under the health bar, each with its key below it. A bar
     // fills back up while recharging and turns the accent colour when ready.
+    // A new bar also needs its cooldown in sim/player_cooldowns.cpp, or it
+    // never drains online (snapshots carry only the cooldowns listed there).
     struct hud_ability
     {
         char *Key;
