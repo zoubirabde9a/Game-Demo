@@ -66,6 +66,8 @@ CreateTestWorld()
     AppState->PlayerCollision = Result.UnitVolume;
     AppState->BatCollision = Result.UnitVolume;
     AppState->FireBallCollision = Result.FireBallVolume;
+    AppState->FamiliarCollision =
+        MakeSimpleGroundedCollisionVolume(&Result.Arena, {11, 6, 3.f});
     AppState->SwordCollision =
         MakeSimpleGroundedCollisionVolume(&Result.Arena, {31, 31, 31.f});
     return Result;
@@ -628,6 +630,94 @@ TestOnlineSessionStartsOnlyWithAnAddress()
     free(Arena.Base);
 }
 
+internal u32
+CountMovingEntities(world *World)
+{
+    u32 Result = 0;
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        world_entity *Entity = &World->Entities[Index];
+        if (Entity->IsPresent && IsMovingEntityType(Entity->Type))
+        {
+            Result++;
+        }
+    }
+    return Result;
+}
+
+internal net_entity_state
+SnapshotEntity(u16 Id, entity_type Type, float X, float Y, u8 Variant = 0)
+{
+    net_entity_state Result = {};
+    Result.Id = Id;
+    Result.Type = (u8)Type;
+    Result.Variant = Variant;
+    Result.Health = 80;
+    Result.X = X;
+    Result.Y = Y;
+    return Result;
+}
+
+internal void
+TestReplicasFollowSnapshots()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *OfflinePlayer =
+        AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    AddTestEntity(&Test, EntityType_Monster, {700, 700, 0}, Test.UnitVolume);
+    AddTestEntity(&Test, EntityType_StaticObject, {900, 900, 0},
+                  Test.WallVolume);
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+    Snapshot->Tick = 1;
+    Snapshot->Count = 3;
+    Snapshot->Entities[0] = SnapshotEntity(5, EntityType_Player, 500, 500);
+    Snapshot->Entities[1] = SnapshotEntity(9, EntityType_Monster, 800, 500,
+                                           (u8)MonsterKind_Bat);
+    Snapshot->Entities[2] = SnapshotEntity(12, EntityType_FireBall, 600, 500);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f);
+
+    // NOTE(zoubir): the offline player and monster are replaced by the
+    // three replicas (their entity slots may be reused), the wall stays
+    Check(CountMovingEntities(Test.World) == 3);
+    Check(Test.World->Entities[OfflinePlayer->ID].Type != EntityType_Player ||
+          Test.World->Entities[OfflinePlayer->ID].Position.X == 500.f);
+    world_entity *Local = GetLocalPlayer(AppState);
+    Check(Local && Local->Position.X == 500.f && Local->Hp == 80.f);
+    world_entity *Monster =
+        &Test.World->Entities[Table->LocalIndexPlusOne[9] - 1];
+    Check(Monster->Type == EntityType_Monster);
+    Check(Monster->MonsterKind == MonsterKind_Bat);
+
+    // NOTE(zoubir): next tick the player moves, the monster is gone and the
+    // server reused Id 12 for a sword
+    Snapshot->Tick = 2;
+    Snapshot->Count = 2;
+    Snapshot->Entities[0] = SnapshotEntity(5, EntityType_Player, 520, 500);
+    Snapshot->Entities[1] = SnapshotEntity(12, EntityType_Sword, 530, 500);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f);
+    Check(CountMovingEntities(Test.World) == 2);
+    Check(!Monster->IsPresent);
+    Check(GetLocalPlayer(AppState)->Position.X == 520.f);
+    Check(Test.World->Entities[Table->LocalIndexPlusOne[12] - 1].Type ==
+          EntityType_Sword);
+
+    // NOTE(zoubir): an unchanged tick does not move anything
+    Snapshot->Entities[0].X = 9999.f;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f);
+    Check(GetLocalPlayer(AppState)->Position.X == 520.f);
+
+    LeaveReplicaWorld(AppState, &Test.Arena, Table);
+    Check(!Table->Active);
+    Check(GetLocalPlayer(AppState)->Position.X ==
+          PlayerSpawnPosition(0).X);
+    free(Snapshot);
+    free(Table);
+    DestroyTestWorld(&Test);
+}
+
 // NOTE(zoubir): a chunk's entity list is a first block plus full blocks.
 // Emptying the first block, then removing from the third, used to copy
 // the third block over the first and silently drop the second.
@@ -801,6 +891,7 @@ main()
     RUN(TestScoreboardRanksByKillsThenDeaths);
     RUN(TestOnlineAddressAndButtons);
     RUN(TestOnlineSessionStartsOnlyWithAnAddress);
+    RUN(TestReplicasFollowSnapshots);
     RUN(TestCrowdedChunkRemovalKeepsEveryone);
     RUN(TestRandomPlaySoak);
     RUN(TestCopyString);

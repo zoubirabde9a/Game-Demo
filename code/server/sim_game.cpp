@@ -99,6 +99,23 @@ GameTick(server_game *Game, float Dt)
     AppState->Events = {};
 }
 
+// NOTE(zoubir): what the client needs, beyond the type, to pick the
+// sprite: the monster's kind, or the shot's style (kept in its texture)
+inline u8
+SimGameVariant(world_entity *Entity)
+{
+    u8 Result = 0;
+    if (Entity->Type == EntityType_Monster)
+    {
+        Result = (u8)Entity->MonsterKind;
+    }
+    else if (Entity->Type == EntityType_MonsterShot)
+    {
+        Result = (u8)Entity->Texture.Index;
+    }
+    return Result;
+}
+
 internal bool32
 SimGameIsSent(world_entity *Entity)
 {
@@ -168,6 +185,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
             E->Type = (u8)Entity->Type;
             E->Facing = (u8)Entity->AnimationState.LastAnimationDirection;
             E->Animation = (u8)Entity->AnimationState.CurrentType;
+            E->Variant = SimGameVariant(Entity);
             E->Health = (i16)Entity->Hp;
             E->X = Entity->Position.X;
             E->Y = Entity->Position.Y;

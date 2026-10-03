@@ -43,6 +43,7 @@
 #include "sim/setup.cpp"
 #include "client/draw_entities.cpp"
 #include "client/play_events.cpp"
+#include "client/replicas.cpp"
 #include "client/online.cpp"
 #include "ui/hud.cpp"
 #include "ui/scoreboard.cpp"
@@ -345,7 +346,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     
 #if 1
     UpdateOnlineSession(AppState->Online, Input);
-    SimulateTick(AppState, MemoryArena, Input->DeltaTime);
+    RunWorldTick(AppState, MemoryArena, Input->DeltaTime);
     PlaySimEvents(AppState);
     DrawWorldEntities(RenderContext, AppState, Assets, *TextureProgram,
                       CameraOffset);

@@ -14,6 +14,8 @@ struct online_session
 {
     bool32 Enabled;
     char AddressText[64];
+    // NOTE(zoubir): local copies of the server's entities, client/replicas.cpp
+    replica_table Replicas;
 #if !COMPILER_EMSCRIPTEN
     net_client Client;
 #endif
@@ -164,7 +166,33 @@ GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
     }
 }
 
+// NOTE(zoubir): the frame's one world update. Online the server's
+// snapshot drives the world; offline the local simulation does. Switches
+// between the two when the connection comes up or ends.
+internal void
+RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
+{
+    online_session *Online = AppState->Online;
+    if (IsOnline(Online) && Online->Client.HasSnapshot)
+    {
+        SyncReplicas(AppState, Arena, &Online->Replicas,
+                     &Online->Client.Snapshot, DeltaTime);
+        return;
+    }
+    if (Online && Online->Replicas.Active)
+    {
+        LeaveReplicaWorld(AppState, Arena, &Online->Replicas);
+    }
+    SimulateTick(AppState, Arena, DeltaTime);
+}
+
 #else
+
+internal void
+RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
+{
+    SimulateTick(AppState, Arena, DeltaTime);
+}
 
 internal online_session *
 StartOnlineSession(memory_arena *Arena)

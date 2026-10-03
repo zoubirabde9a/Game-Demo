@@ -21,6 +21,7 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     NetU8(S, &E->Type);
     NetU8(S, &E->Facing);
     NetU8(S, &E->Animation);
+    NetU8(S, &E->Variant);
     NetI16(S, &E->Health);
     NetFixed16(S, &E->X, NET_POSITION_STEPS);
     NetFixed16(S, &E->Y, NET_POSITION_STEPS);

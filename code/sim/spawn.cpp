@@ -106,12 +106,16 @@ AddSword(app_state *AppState,
     Entity->AnimationDirection = AnimationDirection;
     
     Entity->AnimationSet = &AppState->SwordAnimationSet;
-    if (Caster->Type == EntityType_Player)
+    // NOTE(zoubir): no caster when the client copies a server's sword
+    if (Caster)
     {
-        Entity->HasOwner = true;
-        Entity->OwnerSlot = Caster->PlayerIndex;
+        if (Caster->Type == EntityType_Player)
+        {
+            Entity->HasOwner = true;
+            Entity->OwnerSlot = Caster->PlayerIndex;
+        }
+        AddCollisionRule(AppState, Arena, Entity->ID, Caster->ID, false);
     }
-    AddCollisionRule(AppState, Arena, Entity->ID, Caster->ID, false);
         #if 0
     animation_slot *SlashAnimation =
         GetAnimation(AnimationSet,
@@ -345,12 +349,16 @@ AddFireBall(app_state *AppState,
     Entity->TimeLeft = 1.0f;
     
     Entity->AnimationSet = &AppState->FireballAnimationSet;
-    if (Owner->Type == EntityType_Player)
+    // NOTE(zoubir): no owner when the client copies a server's fireball
+    if (Owner)
     {
-        Entity->HasOwner = true;
-        Entity->OwnerSlot = Owner->PlayerIndex;
+        if (Owner->Type == EntityType_Player)
+        {
+            Entity->HasOwner = true;
+            Entity->OwnerSlot = Owner->PlayerIndex;
+        }
+        AddCollisionRule(AppState, Arena, Entity->ID, Owner->ID, false);
     }
-    AddCollisionRule(AppState, Arena, Entity->ID, Owner->ID, false);
     return Entity;
 }
 

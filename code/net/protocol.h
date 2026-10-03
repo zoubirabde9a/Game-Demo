@@ -77,6 +77,7 @@ struct net_entity_state
     u8 Type;
     u8 Facing;
     u8 Animation;
+    u8 Variant;    // which look within the type: monster kind, shot style
     i16 Health;
     // Sent as 16-bit fixed point: positions to 1/8 unit within +-4096,
     // velocities to 1/4 unit per second within +-8192. Values outside are clamped.

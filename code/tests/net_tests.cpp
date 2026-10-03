@@ -50,6 +50,7 @@ FullSnapshot()
         E->Type = (u8)(Index % 5);
         E->Facing = 1;
         E->Animation = 2;
+        E->Variant = (u8)(Index % 7);
         E->Health = (i16)(Index - 10);
         E->X = 12.5f * Index;
         E->Y = -3.25f;
@@ -123,6 +124,7 @@ TestFullSnapshotFits()
     net_entity_state *Last = &Out.Snapshot.Entities[NET_MAX_SNAPSHOT_ENTITIES - 1];
     Check(Last->Id == 1000 + NET_MAX_SNAPSHOT_ENTITIES - 1);
     Check(Out.Snapshot.Entities[0].Health == -10);
+    Check(Last->Variant == (NET_MAX_SNAPSHOT_ENTITIES - 1) % 7);
     Check(Last->VelY == -900.0f);
     Check(Last->X == 12.5f * (NET_MAX_SNAPSHOT_ENTITIES - 1)); // multiples of 1/8 are exact
     Check(Out.Snapshot.Entities[3].Y == -3.25f);
