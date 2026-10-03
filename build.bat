@@ -18,8 +18,8 @@ pushd build
 del *.pdb > NUL 2> NUL
 set Result=0
 
-REM The game runs from build\ and loads its fonts from buildonts; webonts is the one copy in git
-xcopy /y /q /i ..\webonts fonts > NUL
+REM The game runs from build\ and loads its fonts from build\fonts; web\fonts is the one copy in git
+xcopy /y /q /i ..\web\fonts fonts > NUL
 
 REM Packs art and sound into asset_1.zas
 cl %CommonCompilerFlags% ..\code\tools\test_asset_builder.cpp /link %CommonLinkerFlags%
