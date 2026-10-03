@@ -210,6 +210,35 @@ TestRemovedSlotIsReused()
 }
 
 internal void
+TestShockwaveHitsOnlyNearbyMonsters()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
+                                         {300, 300, 0}, Test.UnitVolume);
+    world_entity *Weak = AddTestEntity(&Test, EntityType_Monster,
+                                       {350, 300, 0}, Test.UnitVolume);
+    Weak->MaxHp = Weak->Hp = SHOCKWAVE_DAMAGE;
+    world_entity *Tough = AddTestEntity(&Test, EntityType_Monster,
+                                        {300, 360, 0}, Test.UnitVolume);
+    Tough->MaxHp = Tough->Hp = 100.f;
+    world_entity *Far = AddTestEntity(&Test, EntityType_Monster,
+                                      {300 + SHOCKWAVE_RADIUS + 20.f, 300, 0},
+                                      Test.UnitVolume);
+    Far->MaxHp = Far->Hp = 100.f;
+
+    u32 Hits = TriggerShockwave(Test.AppState, Test.World, Player);
+    Check(Hits == 2);
+    Check(!Weak->IsPresent);
+    Check(Test.AppState->KillCount == 1);
+    Check(Tough->Hp == 100.f - SHOCKWAVE_DAMAGE);
+    // NOTE(zoubir): thrown away from the player, which is above it
+    Check(Tough->Velocity.Y > 0.f);
+    Check(Far->Hp == 100.f);
+    Check(Player->ShockwaveFlash > 0.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 TestCopyString()
 {
     char Buffer[4];
@@ -243,6 +272,7 @@ main()
     RUN(TestFireBallKillsMonsterOnce);
     RUN(TestMonsterDyingMidMoveLeavesNoGhost);
     RUN(TestRemovedSlotIsReused);
+    RUN(TestShockwaveHitsOnlyNearbyMonsters);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
 

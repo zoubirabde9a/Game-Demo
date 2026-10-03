@@ -103,6 +103,7 @@ struct entity_collision_volume_group
 };
 
 #define PLAYER_DASH_COOLDOWN 0.8f
+#define PLAYER_SHOCKWAVE_COOLDOWN 4.f
 #define SWORD_DAMAGE 25.f
 #define FIREBALL_DAMAGE 25.f
 
@@ -154,8 +155,11 @@ struct world_entity
     float MaxHp;
     // NOTE(zoubir): seconds until a monster can hit again
     float AttackCooldown;
-    // NOTE(zoubir): seconds until the player can dash again
+    // NOTE(zoubir): seconds until the player can dash / shockwave again
     float DashCooldown;
+    float ShockwaveCooldown;
+    // NOTE(zoubir): seconds left on the shockwave ring effect
+    float ShockwaveFlash;
     
     u32 UpdateID;
     

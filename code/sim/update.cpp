@@ -296,6 +296,15 @@ UpdatePlayer(world_entity *Player, world *World,
         PlaySound(AppState, {AssetType_ZoubirAudio});
     }
     
+    Player->ShockwaveCooldown = Maximum(0.f, Player->ShockwaveCooldown - DeltaTime);
+    Player->ShockwaveFlash = Maximum(0.f, Player->ShockwaveFlash - DeltaTime);
+    if (Input->ButtonE.Pressed && Player->ShockwaveCooldown <= 0.f)
+    {
+        Player->ShockwaveCooldown = PLAYER_SHOCKWAVE_COOLDOWN;
+        TriggerShockwave(AppState, World, Player);
+        PlaySound(AppState, {AssetType_FireCast});
+    }
+
     Player->DashCooldown = Maximum(0.f, Player->DashCooldown - DeltaTime);
     if (Input->AltButton.Pressed && Player->DashCooldown <= 0.f)
     {

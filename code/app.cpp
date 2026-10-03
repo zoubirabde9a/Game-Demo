@@ -23,6 +23,7 @@
 #include "sim/collision_rules.cpp"
 #include "sim/monster_kinds.cpp"
 #include "sim/spawn.cpp"
+#include "sim/abilities.cpp"
 #include "sim/update.cpp"
 #include "sim/draw.cpp"
 #include "ui/hud.cpp"
@@ -892,7 +893,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     u32 NumberOfElements = 200;
     UIBegin(RenderContext, TransientArena, Input, AppState,
             UIContext, NumberOfElements, 4);
-    DrawHud(RenderContext, AppState);
+    DrawHud(RenderContext, AppState, CameraOffset);
     if (AppState->TileEditing)
     {
         float ContainerWidth = 300;
