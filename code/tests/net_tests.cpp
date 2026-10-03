@@ -220,6 +220,9 @@ TestOverfullSnapshotIsTrimmed()
 {
     net_packet P = FullSnapshot();
     P.Snapshot.KillCount = NET_MAX_SNAPSHOT_KILLS;
+    // The worst case: every entity in the air and moving, so none of its
+    // fields is left out.
+    for (u32 Index = 0; Index < NET_MAX_SNAPSHOT_ENTITIES; ++Index) P.Snapshot.Entities[Index].Z = 7.5f;
     static u8 Buffer[NET_MAX_PACKET_SIZE];
     Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
     u32 Dropped = 0;
@@ -694,6 +697,39 @@ TestInfoQueryRoundTripsAndIsNotAnAmplifier()
     Check(Out.InfoReply.ContentId == 0x25519fd6 && Out.InfoReply.MapId == 3);
 }
 
+// Height and velocity are left out when zero: a still entity on the ground
+// costs 12 bytes, a jumping, moving one 18, and both read back exactly.
+internal void
+TestStillEntitiesAreSmaller()
+{
+    static net_packet P, Out;
+    static u8 Buffer[NET_MAX_PACKET_SIZE];
+    P = {};
+    P.Header.Type = NetPacket_Snapshot;
+    P.Snapshot.NameSlot = NET_NO_NAME_SLOT;
+    P.Snapshot.Count = 1;
+    P.Snapshot.Entities[0].Id = 5;
+    P.Snapshot.Entities[0].Type = 4;
+    P.Snapshot.Entities[0].X = 100.f;
+    P.Snapshot.Entities[0].Y = 200.f;
+    u32 Still = NetWritePacket(&P, Buffer, sizeof(Buffer));
+    Check(NetReadPacket(Buffer, Still, &Out));
+    Check(Out.Snapshot.Entities[0].Type == 4 && Out.Snapshot.Entities[0].Z == 0.f);
+    Check(Out.Snapshot.Entities[0].VelX == 0.f && Out.Snapshot.Entities[0].X == 100.f);
+
+    P.Snapshot.Entities[0].Z = 12.5f;
+    P.Snapshot.Entities[0].VelX = -30.25f;
+    u32 Moving = NetWritePacket(&P, Buffer, sizeof(Buffer));
+    Check(Moving == Still + 6);
+    Check(NetReadPacket(Buffer, Moving, &Out));
+    Check(Out.Snapshot.Entities[0].Z == 12.5f && Out.Snapshot.Entities[0].VelX == -30.25f);
+    Check(Out.Snapshot.Entities[0].VelY == 0.f && Out.Snapshot.Entities[0].Type == 4);
+
+    // A type past 6 bits cannot be sent.
+    P.Snapshot.Entities[0].Type = 64;
+    Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
+}
+
 // The wire layout is pinned: one packet of every type, with every field
 // set, is written and its bytes hashed. A change to what goes on the wire
 // must come with a new NET_PROTOCOL_ID, or old and new builds would
@@ -703,8 +739,8 @@ TestInfoQueryRoundTripsAndIsNotAnAmplifier()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d45u
-#define NET_GOLDEN_LAYOUT 0x7d0da3dfu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d46u
+#define NET_GOLDEN_LAYOUT 0x1e0b55f8u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -804,6 +840,7 @@ main()
     TestLoopbackPacket();
     TestJoiningNeedsTheCookie();
     TestInfoQueryRoundTripsAndIsNotAnAmplifier();
+    TestStillEntitiesAreSmaller();
     TestWireLayoutIsPinned();
 
     printf("net tests: %d checks, %d failed\n", TestChecks, TestFailures);

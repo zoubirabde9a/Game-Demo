@@ -40,6 +40,7 @@ static_assert(AnimationType_Count <= 16, "Animation is 4 bits on the wire");
 static_assert(MonsterAffix_Count <= 8, "Affix is 3 bits on the wire");
 static_assert(StatusEffect_Count - 1 <= 3, "Status is 3 bits on the wire");
 static_assert(MAX_MONSTER_ABILITIES <= 4, "Ability is 2 bits on the wire");
+static_assert(EntityType_Count <= 64, "Type is 6 bits on the wire");
 
 // NOTE(zoubir): bit N set while status effect N + 1 is running
 inline u8

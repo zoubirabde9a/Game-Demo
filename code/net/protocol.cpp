@@ -14,11 +14,38 @@ NetSequenceNewer(u16 A, u16 B)
     return Distance != 0 && Distance < 0x8000;
 }
 
+// NOTE: the type byte keeps the type in its low 6 bits; the top two say
+// whether height and velocity follow. Most things stand on the ground and
+// many stand still, so those 6 bytes are usually left out.
+#define NET_ENTITY_TYPE_MASK 0x3f
+#define NET_ENTITY_HAS_Z 0x40
+#define NET_ENTITY_MOVING 0x80
+
+// Whether a value is still nonzero once quantized to Steps per unit.
+inline bool32
+NetNonZero(float Value, float Steps)
+{
+    float Scaled = Value * Steps;
+    return Scaled >= 0.5f || Scaled <= -0.5f;
+}
+
 internal void
 NetSerializeEntity(net_stream *S, net_entity_state *E)
 {
     NetU16(S, &E->Id);
-    NetU8(S, &E->Type);
+    u8 TypeAndFlags = 0;
+    if (S->Writing)
+    {
+        if (E->Type > NET_ENTITY_TYPE_MASK) S->Failed = true;
+        TypeAndFlags = (u8)(E->Type & NET_ENTITY_TYPE_MASK);
+        if (NetNonZero(E->Z, NET_POSITION_STEPS)) TypeAndFlags |= NET_ENTITY_HAS_Z;
+        if (NetNonZero(E->VelX, NET_VELOCITY_STEPS) || NetNonZero(E->VelY, NET_VELOCITY_STEPS))
+        {
+            TypeAndFlags |= NET_ENTITY_MOVING;
+        }
+    }
+    NetU8(S, &TypeAndFlags);
+    E->Type = TypeAndFlags & NET_ENTITY_TYPE_MASK;
     // Small fields are packed; out-of-range values are cut to their bits.
     u8 Look = (u8)((E->Facing & 3) | ((E->Animation & 15) << 2));
     NetU8(S, &Look);
@@ -33,9 +60,17 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     NetI16(S, &E->Health);
     NetFixed16(S, &E->X, NET_POSITION_STEPS);
     NetFixed16(S, &E->Y, NET_POSITION_STEPS);
-    NetFixed16(S, &E->Z, NET_POSITION_STEPS);
-    NetFixed16(S, &E->VelX, NET_VELOCITY_STEPS);
-    NetFixed16(S, &E->VelY, NET_VELOCITY_STEPS);
+    if (TypeAndFlags & NET_ENTITY_HAS_Z) NetFixed16(S, &E->Z, NET_POSITION_STEPS);
+    else E->Z = 0.f;
+    if (TypeAndFlags & NET_ENTITY_MOVING)
+    {
+        NetFixed16(S, &E->VelX, NET_VELOCITY_STEPS);
+        NetFixed16(S, &E->VelY, NET_VELOCITY_STEPS);
+    }
+    else
+    {
+        E->VelX = E->VelY = 0.f;
+    }
 }
 
 // Returns false if the ability points at an entity the snapshot does not hold.
