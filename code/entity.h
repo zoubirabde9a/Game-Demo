@@ -113,41 +113,8 @@ struct entity_collision_volume_group
 #define SWORD_DAMAGE 25.f
 #define FIREBALL_DAMAGE 25.f
 
-// NOTE(zoubir): one MonsterKind_<Name> per line of monster_list.inc, see
-// code/sim/monsters/README.md
-enum monster_kind
-{
-#define MONSTER(Name) MonsterKind_##Name,
-#define MONSTER_NAME_PASS
-#include "sim/monsters/monster_list.inc"
-#undef MONSTER_NAME_PASS
-#undef MONSTER
-    MonsterKind_Count
-};
-
-// NOTE(zoubir): timed conditions, see sim/status_effects.cpp
-enum status_effect
-{
-    StatusEffect_None,
-    StatusEffect_Burning,
-    StatusEffect_Poisoned,
-    StatusEffect_Slowed,
-    StatusEffect_Count
-};
-
-#define MAX_MONSTER_ABILITIES 3
-#define MAX_ABILITY_POINTS 4
-
-// NOTE(zoubir): every monster ability runs Windup (rooted, telegraphed,
-// can be dodged) -> Active (the hit or the movement) -> Recover (open to
-// punishment), then goes back to Ready. See sim/monster_abilities.cpp
-enum ability_phase
-{
-    AbilityPhase_Ready,
-    AbilityPhase_Windup,
-    AbilityPhase_Active,
-    AbilityPhase_Recover,
-};
+// NOTE(zoubir): monster kinds, abilities and status effects
+#include "sim/monster_types.h"
 
 struct world_entity
 {
@@ -183,54 +150,23 @@ struct world_entity
     animation_direction AnimationDirection;
 
     //Monster && Player
+    float Hp;
+    float MaxHp;
+    // NOTE(zoubir): seconds left on each status effect, and the clock for
+    // their damage ticks
+    float StatusTimers[StatusEffect_Count];
+    float StatusTickTimer;
+    // NOTE(zoubir): monster-only state (kind, abilities, elites, summons)
+    // lives in its own file so new monster features do not edit this one
+#include "sim/monster_fields.inc"
+    // NOTE(zoubir): player-only state (ability cooldowns)
+#include "sim/player_fields.inc"
     // NOTE(zoubir): which player_slot owns this player entity
     u32 PlayerIndex;
     // NOTE(zoubir): swords and fireballs remember the slot that made them,
     // so they never hit it and its kills are credited to it
     bool32 HasOwner;
     u32 OwnerSlot;
-    monster_kind MonsterKind;
-    // NOTE(zoubir): multiplied with the sprite, 0 means untinted
-    u32 Tint;
-    float Hp;
-    float MaxHp;
-    // NOTE(zoubir): seconds until a monster can hit again
-    float AttackCooldown;
-    // NOTE(zoubir): monsters with no player in range stroll this way
-    // until WanderTimer runs out, then pick a new direction (or rest)
-    v2 WanderDirection;
-    float WanderTimer;
-    // NOTE(zoubir): the monster ability in progress, if any
-    ability_phase AbilityPhase;
-    u32 AbilityIndex;
-    float AbilityTimer;
-    float AbilityCooldowns[MAX_MONSTER_ABILITIES];
-    // NOTE(zoubir): locked direction for charges, landing spots for
-    // mortars and blinks
-    v2 AbilityAim;
-    v2 AbilityPoints[MAX_ABILITY_POINTS];
-    u32 AbilityPointCount;
-    bool32 AbilityHasHit;
-    // NOTE(zoubir): seconds left on each status effect, and the clock for
-    // their damage ticks
-    float StatusTimers[StatusEffect_Count];
-    float StatusTickTimer;
-    // NOTE(zoubir): monster_affix of an elite monster, and of the shots and
-    // hazards it makes; 0 for ordinary ones. See sim/monster_affixes.cpp
-    u32 EliteAffix;
-    // NOTE(zoubir): entity slots are reused, so monsters that point at
-    // each other (summons, heal targets) keep the slot and a serial that
-    // is never reused. Serial 0 means not registered
-    u32 MonsterSerial;
-    u32 SummonerSlot;
-    u32 SummonerSerial;
-    u32 AbilityTargetSlot;
-    u32 AbilityTargetSerial;
-    // NOTE(zoubir): seconds until the player can dash / shockwave again
-    float DashCooldown;
-    float ShockwaveCooldown;
-    // NOTE(zoubir): seconds left on the shockwave ring effect
-    float ShockwaveFlash;
     
     u32 UpdateID;
     
