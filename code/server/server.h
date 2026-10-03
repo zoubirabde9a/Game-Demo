@@ -35,6 +35,7 @@ struct server_stats
     double TickSecondsMax;
     u32 PacketsIn, PacketsOut, BadPacketsIn;
     u32 TrimmedSnapshots; // snapshots that left far entities out to fit
+    u32 CappedSnapshots;  // snapshots with more nearby than NET_MAX_SNAPSHOT_ENTITIES
     u32 FullReceiveTicks; // ticks that stopped reading at SERVER_MAX_PACKETS_PER_TICK
     u64 BytesIn, BytesOut;
 };

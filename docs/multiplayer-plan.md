@@ -11,6 +11,10 @@ How it was built, step by step, is in [multiplayer-history.md](multiplayer-histo
 - **Transport is UDP** with a small header (protocol id, sequence, ack). Joining takes a cookie handshake, and every packet carries the client's salt as a token, so packets with a forged source address cannot take or reset a slot, act for a player, or end a session. Inputs are resent inside later packets until acknowledged; snapshots are not resent, because the next one replaces them.
 - **Simulation code is shared.** The server compiles `code/app_sim.cpp` (shared state, engine core, `code/sim/`) and nothing from `client/` or `ui/`, so sim code must not call into them. Terrain never crosses the wire: both sides build it from the map id.
 
+## How full snapshots get
+
+Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot carries about 20 entities (median), the 48-entity cap was never reached, nothing needed trimming, and the largest was 514 bytes of the 1200 allowed. So there is room for more fields; size work is not needed until the server's stats line shows `capped` or `trimmed` snapshots.
+
 ## Where things live
 
 | Piece | Files |
