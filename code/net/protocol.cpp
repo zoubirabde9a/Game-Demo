@@ -1,5 +1,5 @@
 /* Byte layout of the packets declared in protocol.h.
-   Header: u32 protocol id, u8 type, u16 sequence, u16 ack. Then the body. */
+   Header: u32 protocol id, u8 type, u16 sequence, u16 ack, u32 token. Then the body. */
 
 #include "protocol.h"
 #include "serialize.cpp"
@@ -78,6 +78,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
     NetU8(S, &P->Header.Type);
     NetU16(S, &P->Header.Sequence);
     NetU16(S, &P->Header.Ack);
+    NetU32(S, &P->Header.Token);
 
     switch (P->Header.Type)
     {

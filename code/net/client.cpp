@@ -9,6 +9,7 @@ NetClientSend(net_client *Client, net_packet *Packet, u8 Type)
     Packet->Header.Type = Type;
     Packet->Header.Sequence = Client->NextSequence++;
     Packet->Header.Ack = Client->NewestReceived;
+    Packet->Header.Token = Client->Salt;
     u8 Buffer[NET_MAX_PACKET_SIZE];
     u32 Size = NetWritePacket(Packet, Buffer, sizeof(Buffer));
     if (Size) NetSendTo(&Client->Socket, Client->Server, Buffer, Size);
@@ -113,7 +114,11 @@ NetClientUpdate(net_client *Client, float Dt, u16 Buttons, float AimX, float Aim
     {
         if (!NetAddressEqual(From, Client->Server)) continue;
         net_packet Packet;
-        if (NetReadPacket(Buffer, Size, &Packet)) NetClientHandle(Client, &Packet);
+        // NOTE: a packet without our token is not from our server
+        if (NetReadPacket(Buffer, Size, &Packet) && Packet.Header.Token == Client->Salt)
+        {
+            NetClientHandle(Client, &Packet);
+        }
     }
 
     net_packet Out = {};

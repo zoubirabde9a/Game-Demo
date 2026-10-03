@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d43u // "GDMC", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d44u // "GDMD", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -73,6 +73,10 @@ struct net_header
     u8 Type;       // net_packet_type
     u16 Sequence;  // sender's packet counter, wraps around
     u16 Ack;       // newest sequence received from the other side
+    // The client's salt, on every packet both ways. It never travels
+    // anywhere else, so a packet with the wrong one did not come from this
+    // connection's other end, whatever its source address says.
+    u32 Token;
 };
 
 struct net_input

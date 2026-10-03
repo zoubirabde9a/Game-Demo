@@ -52,6 +52,8 @@ ClientSend(test_client *Client, net_packet *Packet)
         Client->HasRequest = true;
         Client->Request = *Packet;
     }
+    // NOTE: like net_client, every packet carries the salt as its token
+    if (Client->HasRequest) Packet->Header.Token = Client->Request.ConnectRequest.ClientSalt;
     Packet->Header.Sequence = ++Client->Sequence;
     u32 Size = NetWritePacket(Packet, Buffer, sizeof(Buffer));
     NetSendTo(&Client->Socket, Client->Server, Buffer, Size);

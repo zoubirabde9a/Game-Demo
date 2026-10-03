@@ -8,7 +8,7 @@ How it was built, step by step, is in [multiplayer-history.md](multiplayer-histo
 
 - **The server is the authority.** It runs the simulation at 60 ticks a second, applies each player's input, and owns health, kills and spawning. Clients never decide hits.
 - **Clients send input, receive snapshots.** Each frame a client sends the buttons it holds and its aim. 20 times a second the server sends each player what is near it: the nearest moving entities, every score, one name in turn, monster wind-ups and facings, nearby sounds and every death.
-- **Transport is UDP** with a small header (protocol id, sequence, ack). Joining takes a cookie handshake, so a forged join cannot take or reset a slot. Inputs are resent inside later packets until acknowledged; snapshots are not resent, because the next one replaces them.
+- **Transport is UDP** with a small header (protocol id, sequence, ack). Joining takes a cookie handshake, and every packet carries the client's salt as a token, so packets with a forged source address cannot take or reset a slot, act for a player, or end a session. Inputs are resent inside later packets until acknowledged; snapshots are not resent, because the next one replaces them.
 - **Simulation code is shared.** The server compiles `code/app_sim.cpp` (shared state, engine core, `code/sim/`) and nothing from `client/` or `ui/`, so sim code must not call into them. Terrain never crosses the wire: both sides build it from the map id.
 
 ## Where things live
@@ -26,7 +26,7 @@ How it was built, step by step, is in [multiplayer-history.md](multiplayer-histo
 
 ## Next
 
-- [ ] Redeploy vps-eu. It runs an older protocol than main (now GDMC), so current builds are told "server runs a different version". Needs the user's go-ahead.
+- [ ] Redeploy vps-eu. It runs an older protocol than main (now GDMD), so current builds are told "server runs a different version". Needs the user's go-ahead.
 - [ ] Draw the kill feed (`AppState->KillFeed`); the UI agent has it.
 - [ ] Split `app_state` into a simulation part and a client part, so the server no longer sees client types. `app.h` changes often; agree it with the other agents first.
 - [ ] Clients send one input packet per frame, so a 144 Hz client sends 144 a second. Capping it at the server tick touches prediction (claimed by the player-abilities agent).

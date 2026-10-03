@@ -105,9 +105,9 @@ FullSnapshot()
     {
         P.Snapshot.Sounds[Index] = (u8)(200 + Index);
     }
-    // Two kills: with every kill slot full as well it no longer fits in a
+    // One kill: with more kill slots full as well it no longer fits in a
     // datagram (TestOverfullSnapshotIsTrimmed).
-    P.Snapshot.KillCount = 2;
+    P.Snapshot.KillCount = 1;
     for (u8 Index = 0; Index < NET_MAX_SNAPSHOT_KILLS; ++Index)
     {
         P.Snapshot.Kills[Index].Killer = Index;
@@ -274,8 +274,8 @@ TestFullSnapshotFits()
     Check(Out.Snapshot.NameSlot == NET_MAX_SNAPSHOT_SCORES - 1);
     Check(Out.Snapshot.FacingCount == NET_MAX_SNAPSHOT_FACINGS);
     Check(Out.Snapshot.SoundCount == NET_MAX_SNAPSHOT_SOUNDS);
-    Check(Out.Snapshot.KillCount == 2);
-    Check(Out.Snapshot.Kills[1].Victim == 2);
+    Check(Out.Snapshot.KillCount == 1);
+    Check(Out.Snapshot.Kills[0].Victim == 1);
     Check(Out.Snapshot.Kills[0].KillerMonster == 0xFF);
     Check(Out.Snapshot.Sounds[NET_MAX_SNAPSHOT_SOUNDS - 1] == 200 + NET_MAX_SNAPSHOT_SOUNDS - 1);
     Check(Out.Snapshot.Facings[NET_MAX_SNAPSHOT_FACINGS - 1].Angle ==
@@ -349,7 +349,9 @@ TestRejectsAbilityForMissingEntity()
 internal void
 TestRejectsBadPackets()
 {
-    u8 Buffer[NET_MAX_PACKET_SIZE];
+    // NOTE: one byte spare for the trailing-garbage case below; the
+    // largest snapshot fills NET_MAX_PACKET_SIZE exactly
+    u8 Buffer[NET_MAX_PACKET_SIZE + 1];
     net_packet P = FullSnapshot();
     net_packet Out;
 
@@ -382,9 +384,9 @@ TestRejectsBadPackets()
     Check(!NetReadPacket(Buffer, Size, &Out));
     Buffer[4] = NetPacket_Snapshot;
 
-    // Entity count above the limit. Count sits after the 9-byte header,
+    // Entity count above the limit. Count sits after the 13-byte header,
     // the 4-byte tick and the 4-byte input tick.
-    Buffer[17] = (u8)(NET_MAX_SNAPSHOT_ENTITIES + 1);
+    Buffer[21] = (u8)(NET_MAX_SNAPSHOT_ENTITIES + 1);
     Check(!NetReadPacket(Buffer, Size, &Out));
 
     // Input batches must hold 1..NET_MAX_INPUTS_PER_PACKET inputs.
@@ -588,7 +590,7 @@ TestLoopbackPacket()
     NetSocketsShutdown();
 }
 
-// With RequireCookie, a join request only takes a slot (or restarts one)
+// With Strict, a join request only takes a slot (or restarts one)
 // with the cookie the server sent to that address; strangers get a
 // challenge and cost no slot, and a forged restart of a connected player
 // from its address does nothing.
@@ -597,7 +599,7 @@ TestJoiningNeedsTheCookie()
 {
     static net_server_clients Clients;
     Clients = {};
-    Clients.RequireCookie = true;
+    Clients.Strict = true;
     Clients.Secret = 0x1234567;
     net_address A = {0x7f000001, 4000};
     net_address B = {0x7f000001, 4001};
@@ -633,6 +635,21 @@ TestJoiningNeedsTheCookie()
     Check(R.Event == NetReceive_Ignored);
     Check(Clients.Slots[Slot].Connected && Clients.Slots[Slot].Salt == 77);
 
+    // After joining, packets must carry the slot's token: a forged input
+    // or goodbye from A's address without it is ignored.
+    net_packet Input = {};
+    Input.Header = {NetPacket_Input, 5, 0, 12345};
+    Input.Input.Count = 1;
+    Input.Input.Inputs[0].Tick = 1;
+    Input.Input.Inputs[0].Buttons = NetButton_Left;
+    Check(NetServerReceive(&Clients, A, &Input, 701).Event == NetReceive_Ignored);
+    net_packet Bye = {};
+    Bye.Header = {NetPacket_Disconnect, 6, 0, 12345};
+    Check(NetServerReceive(&Clients, A, &Bye, 702).Event == NetReceive_Ignored);
+    Check(Clients.Slots[Slot].Connected);
+    Input.Header.Token = 77;
+    Check(NetServerReceive(&Clients, A, &Input, 703).Event == NetReceive_Inputs);
+
     // Two windows on, the old cookie no longer works.
     Request.ConnectRequest.ClientSalt = 78;
     Request.ConnectRequest.Cookie = Cookie;
@@ -648,8 +665,8 @@ TestJoiningNeedsTheCookie()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d43u
-#define NET_GOLDEN_LAYOUT 0x6274569cu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d44u
+#define NET_GOLDEN_LAYOUT 0x3d2821e9u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

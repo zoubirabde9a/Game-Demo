@@ -23,6 +23,7 @@ NetServerStampHeader(net_client_slot *Slot, net_packet *Packet, u8 Type)
     Packet->Header.Type = Type;
     Packet->Header.Sequence = Slot->NextSequence++;
     Packet->Header.Ack = Slot->NewestReceived;
+    Packet->Header.Token = Slot->Salt;
 }
 
 internal void
@@ -85,6 +86,7 @@ NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Pack
             Result.Event = NetReceive_Denied;
             Result.HasReply = true;
             Result.Reply.Header.Type = NetPacket_ConnectDenied;
+            Result.Reply.Header.Token = Salt;
             Result.Reply.ConnectDenied.ClientSalt = Salt;
             Result.Reply.ConnectDenied.Reason = NetDeny_WrongVersion;
             return Result;
@@ -92,12 +94,13 @@ NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Pack
 
         // A stranger, or a known address with a new salt, must first show
         // it receives at From.
-        if (Clients->RequireCookie && !(Slot && Slot->Salt == Salt) &&
+        if (Clients->Strict && !(Slot && Slot->Salt == Salt) &&
             !NetCookieValid(Clients, From, Salt, Packet->ConnectRequest.Cookie, ServerTick))
         {
             Result.Event = NetReceive_Ignored;
             Result.HasReply = true;
             Result.Reply.Header.Type = NetPacket_ConnectChallenge;
+            Result.Reply.Header.Token = Salt;
             Result.Reply.ConnectChallenge.ClientSalt = Salt;
             Result.Reply.ConnectChallenge.Cookie =
                 NetCookie(Clients->Secret, From, Salt, ServerTick >> NET_COOKIE_WINDOW_SHIFT);
@@ -129,6 +132,7 @@ NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Pack
             Result.Event = NetReceive_Denied;
             Result.HasReply = true;
             Result.Reply.Header.Type = NetPacket_ConnectDenied;
+            Result.Reply.Header.Token = Salt;
             Result.Reply.ConnectDenied.ClientSalt = Salt;
             Result.Reply.ConnectDenied.Reason = NetDeny_ServerFull;
             return Result;
@@ -151,6 +155,7 @@ NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Pack
     }
 
     if (!Slot) return Result;
+    if (Clients->Strict && Packet->Header.Token != Slot->Salt) return Result;
 
     Slot->SecondsSinceHeard = 0;
     Result.SlotIndex = SlotIndex;
