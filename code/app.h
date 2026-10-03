@@ -49,13 +49,13 @@ struct font
 };
 
 
-#include "asset.h"
-#include "utility.h"
-#include "ui.h"
+#include "engine/asset.h"
+#include "engine/utility.h"
+#include "engine/ui.h"
 #include "world.h"
 #include "sim/player.h"
 #include "sim/events.h"
-#include "audio.h"
+#include "engine/audio.h"
 
 // asset_id
 struct pairwise_collision_rule

@@ -13,17 +13,17 @@ struct v2
     float X, Y;
 };
 
-#include "app_defs.h"
-#include "memory.h"
+#include "../app_defs.h"
+#include "../engine/memory.h"
 struct platform_file_handle;
 
-#include "asset.h"
+#include "../engine/asset.h"
 #include "test_asset_builder.h"
 
 
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "third_party/stb_image/stb_image.h"
+#include "../third_party/stb_image/stb_image.h"
 
 
 struct read_file_result

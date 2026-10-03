@@ -8,7 +8,7 @@
 
 #define TEST_ASSET_BUILDER_H
 
-#include "file_formats.h"
+#include "../engine/file_formats.h"
 
 struct file_asset_info
 {

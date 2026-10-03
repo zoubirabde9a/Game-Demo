@@ -19,7 +19,7 @@ del *.pdb > NUL 2> NUL
 set Result=0
 
 REM Packs art and sound into asset_1.zas
-cl %CommonCompilerFlags% ..\code\test_asset_builder.cpp /link %CommonLinkerFlags%
+cl %CommonCompilerFlags% ..\code\tools\test_asset_builder.cpp /link %CommonLinkerFlags%
 if %errorlevel% neq 0 set Result=1
 
 REM The game, hot-reloaded by win32_app.exe; a fresh pdb name lets it rebuild while running

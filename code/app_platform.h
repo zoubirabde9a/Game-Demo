@@ -48,11 +48,11 @@
 //#include "GL/glew.h"
 #include "app_defs.h"
 
-#include "opengl.h"
+#include "engine/opengl.h"
 
-#include "math.h"
-#include "render.h"
-#include "memory.h"
+#include "engine/math.h"
+#include "engine/render.h"
+#include "engine/memory.h"
 
 inline u32
 safeTruncateU32(u64 value)

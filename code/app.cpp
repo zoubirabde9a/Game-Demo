@@ -22,16 +22,11 @@
 #include "stdlib.h"
 #include "time.h"
 
-// NOTE(zoubir): the engine: memory, rendering, assets, sound, world storage
-#include "random.cpp"
-#include "utility.cpp"
-#include "asset.cpp"
-#include "render.cpp"
-#include "ui.cpp"
+#include "engine/engine_module.cpp"
+
+// NOTE(zoubir): world storage and the entity struct every module shares
 #include "world.cpp"
 #include "entity.cpp"
-#include "opengl.cpp"
-#include "audio.cpp"
 
 // NOTE(zoubir): one line per module; a module lists its own files, so a new
 // file is added there, not here. Read the top of each for what it does.
