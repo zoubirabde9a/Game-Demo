@@ -70,7 +70,7 @@ set PATH=C:\WINDOWS\system32;C:\WINDOWS
 call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 ```
 
-The live server (vps-eu, see `deploy/README.md`) is an ARM machine. Code the server compiles must not use x86-only things directly: SSE goes through `app_platform.h` (which supplies portable versions on ARM), and tests must build with g++ (no `_putenv_s`-style Windows calls without a fallback). `deploy/deploy.sh vps-eu` builds on it and refuses to go live if the build or the join check fails.
+The live server (vps-eu, see `deploy/README.md`) is an ARM machine. Code the server compiles must not use x86-only things directly: SSE goes through `app_platform.h` (which supplies portable versions on ARM), and tests must build with g++ (no `_putenv_s`-style Windows calls without a fallback). `deploy/deploy.sh vps-eu` builds on it and refuses to go live if the build or the join check fails. Before deploying, `misc\linux_check.ps1` (Docker) builds the server on Linux and runs the network, server and soak tests there under AddressSanitizer.
 
 When g++ is installed (MSYS2 has one), `test.bat` also checks the server, tools and tests with `g++ -fsyntax-only`, so MSVC-only code fails before it reaches the live server. The server and the tests also build on Linux (`build_server.sh`, or `g++ -std=c++11 -w -DAPP_DEV=1 code/tests/<name>.cpp`), which is where AddressSanitizer is available.
 

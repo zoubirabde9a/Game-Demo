@@ -13,6 +13,10 @@ It sends the committed code, builds it on the server, installs it as the `game-d
 
 What the machine needs: Ubuntu or Debian on x86 or ARM, ssh access as root or a user with sudo, and UDP 27015 open in the hosting provider's firewall (the install opens it in ufw). The install puts in `g++` itself if it is missing. The smallest plan is enough. Measured on vps-eu with 8 bot players fighting over the internet: ticks average 0.36 ms and peak 4.3 ms of their 16.7 ms, no late ticks, every player gets 19.9 of 20 snapshots a second, and the server sends about 7 KB/s per player (at most 24 KB/s: 20 snapshots of under 1200 bytes).
 
+## Before a deploy
+
+Run `misc\linux_check.ps1` (needs Docker). It builds the server with `build_server.sh` in a Linux container, as the deploy does, and runs the network, server and soak tests there under AddressSanitizer. The content id it prints must match the Windows build's. About a minute and a half.
+
 ## Testing a live server from your computer
 
 Build the tools with `build_server.bat` (Windows) or `build_server.sh`. The content id is in the server's first log line, `journalctl -u game-demo | grep listening`; a game client from the same commit has the same one.
