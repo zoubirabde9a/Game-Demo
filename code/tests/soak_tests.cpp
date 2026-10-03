@@ -164,7 +164,20 @@ CheckCollisions(server_game *Game)
                 Require(Depth <= Tolerance);
             }
             UnitOverlapThisTick = true;
+            if (!getenv("SOAK_VERBOSE"))
+            {
+                printf("  units %u (type %d) and %u (type %d) overlap %.1f at (%.0f, %.0f)\n",
+                       IndexA, (int)A->Type, IndexB, (int)B->Type, Depth, A->Position.X, A->Position.Y);
+                Require(Depth <= Tolerance);
+            }
             if (Depth > DeepestUnitOverlap) DeepestUnitOverlap = Depth;
+            if (getenv("SOAK_VERBOSE"))
+            {
+                printf("    tick %u: entity %u (type %d kind %d phase %d ability %u) and %u (type %d kind %d phase %d ability %u) overlap %.1f at (%.0f, %.0f)\n",
+                       CurrentTick, IndexA, (int)A->Type, (int)A->MonsterKind, (int)A->AbilityPhase, A->AbilityIndex,
+                       IndexB, (int)B->Type, (int)B->MonsterKind, (int)B->AbilityPhase, B->AbilityIndex,
+                       Depth, A->Position.X, A->Position.Y);
+            }
         }
     }
     if (UnitOverlapThisTick) UnitOverlapTicks++;
@@ -348,12 +361,59 @@ TestFireballBurstsOnWall()
     GameShutdown(&Game);
 }
 
+// Units that start a tick inside a tree or inside each other end it apart.
+internal void
+TestOverlapsAreSeparated()
+{
+    static server_game Game;
+    GameInit(&Game);
+    world *World = &Game.AppState->World;
+    for (u32 Index = 0; Index < World->EntityCount; ++Index) // no monsters in the way
+    {
+        if (World->Entities[Index].Type == EntityType_Monster) RemoveEntity(World, &World->Entities[Index]);
+    }
+    Game.AppState->Monsters->Target = 0;
+    GamePlayerJoined(&Game, 0);
+    GamePlayerJoined(&Game, 1);
+    world_entity *P0 = Game.AppState->Players[0].Entity;
+    world_entity *P1 = Game.AppState->Players[1].Entity;
+
+    world_entity *Tree = 0;
+    for (u32 Index = 0; Index < World->EntityCount && !Tree; ++Index)
+    {
+        world_entity *E = &World->Entities[Index];
+        if (E->IsPresent && E->Type == EntityType_StaticObject && E->Collision == Game.AppState->TreeCollision) Tree = E;
+    }
+
+    // Player 0 put inside the tree's trunk: one tick later it is out.
+    v3 Before = P0->Position;
+    P0->Position = Tree->Position + V3(3.f, 2.f, 0.f);
+    CheckAndChangeEntityChunk(Game.AppState, World, Game.Arena, Before, P0);
+    if (!(Penetration(P0, Tree) > 0.5f)) Fail("player starts inside the tree", __LINE__);
+    GameTick(&Game, 1.0f / SERVER_TICK_RATE);
+    bool32 OutOfTree = Penetration(P0, Tree) <= 0.5f;
+
+    // Player 0 put almost on top of player 1: one tick later they are apart.
+    Before = P0->Position;
+    P0->Position = P1->Position + V3(4.f, 1.f, 0.f);
+    CheckAndChangeEntityChunk(Game.AppState, World, Game.Arena, Before, P0);
+    if (!(Penetration(P0, P1) > 0.5f)) Fail("players start overlapping", __LINE__);
+    GameTick(&Game, 1.0f / SERVER_TICK_RATE);
+    bool32 Apart = Penetration(P0, P1) <= 0.5f;
+
+    if (!OutOfTree) Fail("OutOfTree", __LINE__);
+    if (!Apart) Fail("Apart", __LINE__);
+    printf("  separation: %s\n", OutOfTree && Apart ? "ok" : "FAILED");
+    GameShutdown(&Game);
+}
+
 int
 main(int ArgCount, char **Args)
 {
     u32 Minutes = ArgCount > 1 ? (u32)atoi(Args[1]) : 3;
     u32 Seeds = ArgCount > 2 ? (u32)atoi(Args[2]) : 4;
     TestFireballBurstsOnWall();
+    TestOverlapsAreSeparated();
     printf("soak: %u seeds x %u simulated minutes, 8 players\n", Seeds, Minutes);
     for (u32 Seed = 1; Seed <= Seeds; ++Seed)
     {

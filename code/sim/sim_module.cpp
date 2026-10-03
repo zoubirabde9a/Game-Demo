@@ -20,5 +20,6 @@
 #include "abilities.cpp"
 #include "monster_population.cpp"
 #include "update.cpp"
+#include "separation.cpp"
 #include "simulate.cpp"
 #include "setup.cpp"

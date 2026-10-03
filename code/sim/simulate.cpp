@@ -108,4 +108,8 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
         UpdateMonsterPopulation(AppState, World, Arena, AppState->Monsters,
                                 DeltaTime);
     }
+
+    // NOTE(zoubir): last, so nothing that moved or spawned this tick is
+    // left inside a wall or another unit
+    SeparateOverlappingUnits(AppState, World, Arena);
 }
