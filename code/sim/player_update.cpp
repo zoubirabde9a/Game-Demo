@@ -1,15 +1,18 @@
 /* Player update: what one player does in a tick, driven by its slot's
    player_input (never the keyboard). UpdatePlayer reads as its steps:
 
-   1. QueuePlayerActions: held directions and pressed buttons become
-      queued actions (move, sword, fireball). Each waits a moment for the
-      current animation, so a press during a swing is not lost. Sword and
+   1. QueuePlayerActions: held directions set this tick's move; pressed
+      buttons become queued actions (sword, fireball). Each waits a
+      moment for the current animation, so a press during a swing is not
+      lost. Sword and
       fireball take the aim (toward the cursor) at the moment of the press.
    2. FinishPlayerActions: a swing or cast whose animation ended frees
       the player.
    3. RunPlayerActionQueue: the first action that can run now does
-      (StartSwordSwing, CastFireBall, or turning to move).
-   4. UpdatePlayerMoveState: moving, or stopping when the keys let go.
+      (StartSwordSwing or CastFireBall).
+   4. UpdatePlayerMoveState: moving, or stopping when the keys let go. A
+      swing or cast roots the player only for its short ActionLock, then
+      the player walks (slower) while the animation finishes.
    5. UsePlayerAbilities: jump, shockwave and dash, with their cooldowns.
    6. PickPlayerAnimation: which animation to play; the body faces the
       aim, not the way it walks.
@@ -21,6 +24,11 @@
 #define PLAYER_ACTION_LINGER 0.15f
 #define FIREBALL_SPEED 450.f
 #define FIREBALL_HAND_HEIGHT 30.f
+// NOTE(zoubir): how long a swing or cast roots the player, and how fast
+// they walk for the rest of its animation
+#define PLAYER_SWING_LOCK 0.08f
+#define PLAYER_CAST_LOCK 0.05f
+#define PLAYER_ACTION_MOVE_SCALE 0.7f
 
 // NOTE(zoubir): what one tick of the player decides, handed between steps
 struct player_tick
@@ -82,9 +90,12 @@ QueuePlayerActions(player_slot *Slot, player_tick *Tick)
     if (Down) Dir.Y = 1.f;
     if (Right) Dir.X = 1.f;
     if (Left) Dir.X = -1.f;
+    // NOTE(zoubir): held keys move this tick, they are not queued: a
+    // queued move ran first and pushed a swing or cast back a tick
     if (Up || Down || Right || Left)
     {
-        AddPlayerDelayedInput(Slot, PDI_Move, PLAYER_ACTION_LINGER, Dir);
+        Player->Direction = Dir;
+        Tick->Move = true;
     }
 
     if (LengthSq(Input->Aim) > 0.0001f)
@@ -132,6 +143,7 @@ StartSwordSwing(app_state *AppState, world *World, memory_arena *Arena,
                 world_entity *Player, v2 Dir, player_tick *Tick)
 {
     Player->State = EntityState_Attacking;
+    Player->ActionLock = PLAYER_SWING_LOCK;
     Player->CastingDirection = Dir;
     Player->AnimationState.SlotIndex = 0;
     Tick->Acceleration *= 0.6f;
@@ -160,6 +172,7 @@ CastFireBall(app_state *AppState, world *World, memory_arena *Arena,
 
     EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
     Player->State = EntityState_Casting;
+    Player->ActionLock = PLAYER_CAST_LOCK;
     Player->CastingDirection = Dir;
     Player->AnimationState.SlotIndex = 0;
 }
@@ -196,11 +209,6 @@ RunPlayerActionQueue(app_state *AppState, world *World, memory_arena *Arena,
                             StartSwordSwing(AppState, World, Arena, Player,
                                             Action->Dir, Tick);
                         }
-                    } break;
-                    case PDI_Move:
-                    {
-                        Player->Direction = Action->Dir;
-                        Tick->Move = true;
                     } break;
                     case PDI_Cast:
                     {
@@ -241,9 +249,16 @@ UpdatePlayerMoveState(world_entity *Player, player_tick *Tick)
     if (Player->State == EntityState_Attacking ||
         Player->State == EntityState_Casting)
     {
-        Tick->Move = false;
+        if (Player->ActionLock > 0.f)
+        {
+            Tick->Move = false;
+        }
+        else if (Tick->Move)
+        {
+            Tick->Acceleration *= PLAYER_ACTION_MOVE_SCALE;
+        }
     }
-    if (Tick->Move)
+    else if (Tick->Move)
     {
         Player->State = EntityState_Moving;
     }
@@ -327,11 +342,14 @@ PickPlayerAnimation(world_entity *Player, player_tick *Tick)
     else if (Tick->Move)
     {
         *Tick->AnimationType = AnimationType_Move;
-        Tick->DDPlayer.XY = Player->Direction;
     }
     else
     {
         *Tick->AnimationType = AnimationType_Stand;
+    }
+    if (Tick->Move)
+    {
+        Tick->DDPlayer.XY = Player->Direction;
     }
 }
 
@@ -377,6 +395,7 @@ UpdatePlayer(player_slot *Slot, world *World,
     *AnimationDirection = Player->AnimationState.LastAnimationDirection;
     *AnimationSpeedRate = 1.f;
 
+    Player->ActionLock = Maximum(0.f, Player->ActionLock - DeltaTime);
     player_tick Tick = {};
     Tick.Acceleration = PLAYER_ACCELERATION;
     Tick.AnimationSpeedRate = AnimationSpeedRate;

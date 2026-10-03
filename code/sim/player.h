@@ -30,7 +30,6 @@ struct player_input
 
 enum player_delayed_input_type
 {
-    PDI_Move,
     PDI_Attack,
     PDI_Cast,
     PDI_Count

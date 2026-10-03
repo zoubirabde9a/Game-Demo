@@ -1,6 +1,6 @@
 /* Player ability tests: the sword and fireball go toward the aim (the
-   cursor) at any angle, and the body faces the aim whichever way the
-   player walks. Included by sim_tests.cpp, which calls
+   cursor) at any angle, the body faces the aim whichever way the player
+   walks, and a swing roots the player only for a moment. Included by sim_tests.cpp, which calls
    RunPlayerAbilityTests. */
 
 inline v2
@@ -114,6 +114,27 @@ TestBodyFacesAimWhileWalkingAway()
 }
 
 internal void
+TestPlayerWalksDuringSwing()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Walker = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    AppState->Players[0].Input.Move = V2(1.f, 0.f);
+    AppState->Players[0].Input.Aim = V2(0.f, -1.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Attack;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(Walker->State == EntityState_Attacking);
+    float XAfterLock = Walker->Position.X;
+    // NOTE(zoubir): a swing used to root the player for its whole
+    // animation; now only for PLAYER_SWING_LOCK
+    RunPlayerFrames(&Test, 0, 8);
+    Check(Walker->Position.X > XAfterLock + 5.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 RunPlayerAbilityTests()
 {
     printf("TestFireBallFliesTowardAim\n");
@@ -122,4 +143,6 @@ RunPlayerAbilityTests()
     TestSwordSwingsTowardAim();
     printf("TestBodyFacesAimWhileWalkingAway\n");
     TestBodyFacesAimWhileWalkingAway();
+    printf("TestPlayerWalksDuringSwing\n");
+    TestPlayerWalksDuringSwing();
 }
