@@ -532,41 +532,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
         }
         
         
-        SetCollision(AppState, EntityType_Familiar,
-                     EntityType_StaticObject, true);
-        
-        SetCollision(AppState, EntityType_Familiar,
-                     EntityType_Monster, true);
-        
-        SetCollision(AppState, EntityType_Familiar,
-                     EntityType_Tiled, true);
-        
-        SetCollision(AppState, EntityType_Player,
-                     EntityType_Player, true);
-        
-        SetCollision(AppState, EntityType_Player,
-                     EntityType_StaticObject, true);
-        
-        SetCollision(AppState, EntityType_Player,
-                     EntityType_Tiled, true);
-        
-        SetCollision(AppState, EntityType_Player,
-                     EntityType_Monster, true);
-
-        SetCollision(AppState, EntityType_Monster,
-                     EntityType_StaticObject, true);
-
-        SetCollision(AppState, EntityType_Monster,
-                     EntityType_FireBall, true);
-        
-        SetCollision(AppState, EntityType_Monster,
-                     EntityType_Monster, true);
-
-        SetCollision(AppState, EntityType_StaticObject,
-                     EntityType_StaticObject, true);
-
-        SetCollision(AppState, EntityType_Sword,
-                     EntityType_Monster, true);
+        SetupCollisionTable(AppState);
         EndTemporaryMemory(TempMem);
         AppState->IsInitialized = true;
         

@@ -141,3 +141,45 @@ CanCollide(app_state *AppState, world_entity *A,
     
     return(Result);
 }
+
+// NOTE(zoubir): which entity types block or hit each other at all;
+// pairs not listed here pass through
+internal void
+SetupCollisionTable(app_state *AppState)
+{
+    SetCollision(AppState, EntityType_Familiar,
+                 EntityType_StaticObject, true);
+    
+    SetCollision(AppState, EntityType_Familiar,
+                 EntityType_Monster, true);
+    
+    SetCollision(AppState, EntityType_Familiar,
+                 EntityType_Tiled, true);
+    
+    SetCollision(AppState, EntityType_Player,
+                 EntityType_Player, true);
+    
+    SetCollision(AppState, EntityType_Player,
+                 EntityType_StaticObject, true);
+    
+    SetCollision(AppState, EntityType_Player,
+                 EntityType_Tiled, true);
+    
+    SetCollision(AppState, EntityType_Player,
+                 EntityType_Monster, true);
+
+    SetCollision(AppState, EntityType_Monster,
+                 EntityType_StaticObject, true);
+
+    SetCollision(AppState, EntityType_Monster,
+                 EntityType_FireBall, true);
+    
+    SetCollision(AppState, EntityType_Monster,
+                 EntityType_Monster, true);
+
+    SetCollision(AppState, EntityType_StaticObject,
+                 EntityType_StaticObject, true);
+
+    SetCollision(AppState, EntityType_Sword,
+                 EntityType_Monster, true);
+}
