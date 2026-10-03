@@ -230,10 +230,61 @@ StartMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
     return true;
 }
 
+// NOTE(zoubir): Direction must be unit length
+internal world_entity *
+AddMonsterShot(app_state *AppState, world *World, memory_arena *Arena,
+               world_entity *Owner, monster_ability *Ability, v2 Direction)
+{
+    v3 Start = Owner->Position;
+    Start.XY += 12.f * Direction;
+    // NOTE(zoubir): hand height, so the shot reads as thrown, and its
+    // shadow shows where it really is
+    Start.Z = Maximum(Owner->Position.Z, 14.f);
+    world_entity *Shot = AddEntity(AppState, World, Arena,
+                                   EntityType_MonsterShot, Start,
+                                   AppState->FireBallCollision);
+    Shot->MonsterKind = Owner->MonsterKind;
+    Shot->AbilityIndex = Owner->AbilityIndex;
+    Shot->Velocity.XY = Ability->Speed * Direction;
+    Shot->TimeLeft = Ability->Active;
+    Shot->Dimensions = V2((float)SHOT_FRAME_SIZE, (float)SHOT_FRAME_SIZE);
+    Shot->Texture = {AssetType_MonsterShot, (u32)Ability->ShotStyle};
+    Shot->ShadowTexture = {AssetType_Shadow};
+    Shot->AnimationDirection = Direction.X < 0.f ?
+        AnimationDirection_Left : AnimationDirection_Right;
+    if (AppState->Monsters)
+    {
+        Shot->AnimationSet =
+            &AppState->Monsters->ShotAnimationSets[Ability->ShotStyle];
+    }
+    return Shot;
+}
+
+// NOTE(zoubir): the directions of a volley's shots, evenly fanned over
+// Spread degrees around Aim. Returns how many were written
+internal u32
+GetVolleyDirections(monster_ability *Ability, v2 Aim, v2 *Directions,
+                    u32 MaxDirections)
+{
+    u32 Count = Minimum(Ability->Count, MaxDirections);
+    float BaseAngle = ATan2(Aim.Y, Aim.X);
+    float Fan = Ability->Spread * (Pi32 / 180.f);
+    for(u32 ShotIndex = 0; ShotIndex < Count; ShotIndex++)
+    {
+        float Offset = Count > 1 ?
+            Fan * ((float)ShotIndex / (float)(Count - 1) - 0.5f) : 0.f;
+        Directions[ShotIndex] = V2(Cos(BaseAngle + Offset),
+                                   Sin(BaseAngle + Offset));
+    }
+    return Count;
+}
+
+#define MAX_VOLLEY_SHOTS 7
+
 // NOTE(zoubir): the moment the windup ends
 internal void
-TriggerMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
-                      monster_ability *Ability)
+TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
+                      world_entity *Entity, monster_ability *Ability)
 {
     switch(Ability->Kind)
     {
@@ -270,7 +321,7 @@ TriggerMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
                 // NOTE(zoubir): a teleport skips MoveEntity, so the chunk
                 // lists must be told; otherwise the next move asserts
                 CheckAndChangeEntityChunk(AppState, World,
-                                          &AppState->MemoryArena,
+                                          Arena,
                                           OldPosition, Entity);
                 float FacingLength = Length(Facing);
                 if (FacingLength > 0.f)
@@ -282,9 +333,70 @@ TriggerMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
                                 Ability->Damage, Ability->Knockback);
         } break;
 
+        case MonsterAbility_Volley:
+        {
+            v2 Directions[MAX_VOLLEY_SHOTS];
+            u32 Count = GetVolleyDirections(Ability, Entity->AbilityAim,
+                                            Directions, MAX_VOLLEY_SHOTS);
+            for(u32 ShotIndex = 0; ShotIndex < Count; ShotIndex++)
+            {
+                AddMonsterShot(AppState, World, Arena, Entity, Ability,
+                               Directions[ShotIndex]);
+            }
+        } break;
+
         default:
         {
         } break;
+    }
+}
+
+// NOTE(zoubir): a shot flies straight until it runs out of time, hits a
+// wall, or comes within its ability's Radius of a player
+internal void
+UpdateMonsterShot(world_entity *Shot, world *World, memory_arena *Arena,
+                  float DeltaTime, app_state *AppState)
+{
+    monster_def *Def = GetMonsterDef(Shot->MonsterKind);
+    monster_ability *Ability = &Def->Abilities[Shot->AbilityIndex];
+
+    Shot->TimeLeft -= DeltaTime;
+    if (Shot->TimeLeft <= 0.f)
+    {
+        RemoveEntity(World, Shot);
+        return;
+    }
+
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Player = &World->Entities[EntityIndex];
+        if (Player->IsPresent && Player->Type == EntityType_Player &&
+            Player->Hp > 0.f &&
+            Length(Player->Position.XY - Shot->Position.XY) <= Ability->Radius)
+        {
+            Player->Hp -= Ability->Damage;
+            float Speed = Length(Shot->Velocity.XY);
+            if (Speed > 0.f)
+            {
+                Player->Velocity.XY += (Ability->Knockback / Speed) *
+                    Shot->Velocity.XY;
+            }
+            RemoveEntity(World, Shot);
+            return;
+        }
+    }
+
+    v3 Start = Shot->Position;
+    float Expected = Length(Shot->Velocity.XY) * DeltaTime;
+    v3 DDEntity = {};
+    float MaxDistance = 10000.f;
+    MoveEntity(Shot, World, Arena, DeltaTime, AppState, DDEntity, &MaxDistance);
+    if (Shot->IsPresent &&
+        Length(Shot->Position.XY - Start.XY) < 0.5f * Expected)
+    {
+        RemoveEntity(World, Shot);
     }
 }
 
@@ -408,7 +520,7 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
                                                   Ability->Windup);
             if (Entity->AbilityTimer <= 0.f)
             {
-                TriggerMonsterAbility(AppState, World, Entity, Ability);
+                TriggerMonsterAbility(AppState, World, Arena, Entity, Ability);
                 SetMonsterPhase(Entity, AbilityPhase_Active, Ability->Active);
             }
         } break;

@@ -109,6 +109,7 @@ SimGameIsSent(world_entity *Entity)
         case EntityType_FireBall:
         case EntityType_Sword:
         case EntityType_Familiar:
+        case EntityType_MonsterShot:
             return Entity->IsPresent;
         default:
             return false;

@@ -28,6 +28,7 @@ enum asset_type_id
     // drawn by code at startup (code/art) and never read from the pack
     AssetType_PackCount,
     AssetType_Monster = AssetType_PackCount,
+    AssetType_MonsterShot,
     AssetType_Count
 };
 

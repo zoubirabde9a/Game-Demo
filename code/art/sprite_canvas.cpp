@@ -306,6 +306,43 @@ OutlineFrame(sprite_canvas *Canvas, u32 Color)
     }
 }
 
+// NOTE(zoubir): a bat-style wing, shared by every winged monster: an arm bone to the wrist, three finger bones
+// fanning out from it, and membrane stretched between them with the
+// trailing edge scalloped. Lift -1 (down) .. 1 (up); Side -1 left, 1 right
+internal void
+DrawMembraneWing(sprite_canvas *Canvas, v2 Shoulder, float Side, float Lift,
+            float Span, color_ramp Membrane, color_ramp Bone)
+{
+    v2 Wrist = Shoulder + V2(Side * 0.45f * Span, -0.55f * Span * Lift - 2.f);
+    float Angles[3] = {-0.5f, 0.15f, 0.8f};
+    v2 Tips[3];
+    for(u32 Finger = 0; Finger < 3; Finger++)
+    {
+        float Angle = Angles[Finger] - 0.6f * Lift;
+        float Reach = Span * (0.75f - 0.12f * Finger);
+        Tips[Finger] = Wrist + V2(Side * Reach * Cos(Angle), Reach * Sin(Angle));
+    }
+    v2 Root = Shoulder + V2(0.f, 5.f);
+    FillTriangle(Canvas, Wrist, Tips[0], Tips[1], Membrane, 0.75f, 0.45f);
+    FillTriangle(Canvas, Wrist, Tips[1], Tips[2], Membrane, 0.65f, 0.35f);
+    FillTriangle(Canvas, Wrist, Tips[2], Root, Membrane, 0.55f, 0.25f);
+    FillTriangle(Canvas, Shoulder, Wrist, Root, Membrane, 0.6f, 0.3f);
+    // NOTE(zoubir): bites out of the trailing edge between fingers
+    for(u32 Finger = 0; Finger < 2; Finger++)
+    {
+        v2 Mid = 0.5f * (Tips[Finger] + Tips[Finger + 1]);
+        v2 Inward = 0.25f * (Wrist - Mid);
+        FillDot(Canvas, Mid.X - Inward.X * 0.2f, Mid.Y - Inward.Y * 0.2f,
+                1.6f, ART_CLEAR);
+    }
+    FillLimb(Canvas, Shoulder, Wrist, 1.3f, 1.f, Bone);
+    for(u32 Finger = 0; Finger < 3; Finger++)
+    {
+        FillLimb(Canvas, Wrist, Tips[Finger], 0.8f, 0.5f, Bone);
+    }
+    FillDot(Canvas, Wrist.X, Wrist.Y - 1.f, 0.9f, Bone.C[3]);
+}
+
 // NOTE(zoubir): what a monster's draw function is asked for. Anim is the
 // row (idle, move, windup, attack, recover); t runs 0..1 across the row
 struct monster_pose

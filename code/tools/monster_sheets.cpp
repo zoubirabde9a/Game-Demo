@@ -43,5 +43,28 @@ int main()
         free(Out);
         free(Sheet);
     }
+    for(u32 Style = 0; Style < ShotStyle_Count; Style++)
+    {
+        u32 Width = SHOT_FRAME_SIZE * SHOT_FRAMES;
+        u32 Sheet[SHOT_FRAME_SIZE * SHOT_FRAMES * SHOT_FRAME_SIZE];
+        BuildShotSheet((monster_shot_style)Style, Sheet);
+        u32 Scale = 8;
+        u32 OutWidth = Width * Scale;
+        u32 OutHeight = SHOT_FRAME_SIZE * Scale;
+        u32 *Out = (u32 *)calloc(OutWidth * OutHeight, sizeof(u32));
+        for(u32 Y = 0; Y < OutHeight; Y++)
+        {
+            for(u32 X = 0; X < OutWidth; X++)
+            {
+                u32 Pixel = Sheet[(Y / Scale) * Width + X / Scale];
+                Out[Y * OutWidth + X] = Pixel ? Pixel : ART_RGB(58, 66, 54);
+            }
+        }
+        char Path[256];
+        snprintf(Path, sizeof(Path), "monster_art/shot_%u.png", Style);
+        stbi_write_png(Path, OutWidth, OutHeight, 4, Out, OutWidth * 4);
+        printf("%s\n", Path);
+        free(Out);
+    }
     return 0;
 }

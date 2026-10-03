@@ -129,6 +129,18 @@ CreateMonsterPopulation(memory_arena *Arena, u32 Target, u32 SeedValue)
         SetupMonsterAnimationSet(&Result->AnimationSets[KindIndex], Arena,
                                  GetMonsterDef((monster_kind)KindIndex));
     }
+    for(u32 Style = 0; Style < ShotStyle_Count; Style++)
+    {
+        // NOTE(zoubir): shots are round, every direction plays one row
+        animation_set *Set = &Result->ShotAnimationSets[Style];
+        for(u32 Direction = 0; Direction < AnimationDirection_Count; Direction++)
+        {
+            AddAnimation(Set, Arena, AnimationType_Move,
+                         (animation_direction)Direction,
+                         0, SHOT_FRAMES, 0.06f,
+                         Direction == AnimationDirection_Left);
+        }
+    }
     return Result;
 }
 

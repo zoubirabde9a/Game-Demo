@@ -72,6 +72,8 @@ enum entity_type
     EntityType_Familiar,
     EntityType_FireBall,
     EntityType_Sword,
+    // NOTE(zoubir): a monster ability's projectile, sim/monster_abilities.cpp
+    EntityType_MonsterShot,
     EntityType_Count
 };
 

@@ -21,8 +21,23 @@ enum monster_ability_kind
     // NOTE(zoubir): marks a spot behind the target during windup, then
     // appears there and strikes everything within Radius
     MonsterAbility_Blink,
+    // NOTE(zoubir): throws Count shots fanned over Spread degrees along
+    // the aim locked at windup start. Shots fly at Speed for Active
+    // seconds, stop at walls and hit the first player within Radius
+    MonsterAbility_Volley,
     MonsterAbility_Count
 };
+
+// NOTE(zoubir): how a shot looks; one sheet row each in art/monster_fx.cpp
+enum monster_shot_style
+{
+    ShotStyle_Ember,
+    ShotStyle_Bile,
+    ShotStyle_Spine,
+    ShotStyle_Count
+};
+#define SHOT_FRAME_SIZE 16
+#define SHOT_FRAMES 4
 
 struct monster_ability
 {
@@ -41,8 +56,10 @@ struct monster_ability
     float Speed;
     float Knockback;
     u32 Count;
-    // NOTE(zoubir): mortar scatter, blink distance behind the target
+    // NOTE(zoubir): mortar scatter, blink distance behind the target,
+    // volley fan width in degrees
     float Spread;
+    monster_shot_style ShotStyle;
 };
 
 #define MONSTER_SHEET_COLUMNS 6
@@ -128,6 +145,7 @@ struct monster_population
     float RespawnTimer;
     random_series Series;
     animation_set AnimationSets[MonsterKind_Count];
+    animation_set ShotAnimationSets[ShotStyle_Count];
 };
 
 typedef void monster_define_function(monster_def *Def);

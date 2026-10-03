@@ -188,6 +188,13 @@ SetupCollisionTable(app_state *AppState)
 
     SetCollision(AppState, EntityType_Player,
                  EntityType_FireBall, true);
+
+    // NOTE(zoubir): walls stop monster shots; players are hit by distance
+    // in UpdateMonsterShot so a shot never shoves anyone
+    SetCollision(AppState, EntityType_MonsterShot,
+                 EntityType_StaticObject, true);
+    SetCollision(AppState, EntityType_MonsterShot,
+                 EntityType_Tiled, true);
 }
 
 // NOTE(zoubir): collision shapes, shared by every entity of a kind;

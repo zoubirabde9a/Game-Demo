@@ -72,6 +72,13 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
                               &AnimationDirection);
             } break;
 
+            case EntityType_MonsterShot:
+            {
+                UpdateMonsterShot(Entity, World, Arena, DeltaTime, AppState);
+                AnimationType = AnimationType_Move;
+                AnimationDirection = Entity->AnimationDirection;
+            } break;
+
             case EntityType_StaticObject:
             case EntityType_Tiled:
             case EntityType_Count:

@@ -83,6 +83,12 @@ TestMonsterDefsAreValid()
             Check(Ability->Damage > 0.f);
             Check(Ability->Radius > 0.f);
             Check(Ability->Count <= MAX_ABILITY_POINTS);
+            if (Ability->Kind == MonsterAbility_Volley)
+            {
+                Check(Ability->Count >= 1 && Ability->Count <= MAX_VOLLEY_SHOTS);
+                Check(Ability->Speed > 0.f && Ability->Active > 0.f);
+                Check(Ability->ShotStyle < ShotStyle_Count);
+            }
             if (Ability->Kind == MonsterAbility_Charge)
             {
                 Check(Ability->Speed > 0.f && Ability->Active > 0.f);
@@ -260,6 +266,115 @@ TestAbilityGoesBackOnCooldown()
     DestroyTestWorld(&Test);
 }
 
+inline u32
+CountEntitiesOfType(world *World, entity_type Type)
+{
+    u32 Result = 0;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        Result += Entity->IsPresent && Entity->Type == Type;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): shots are entities, so they need the simulation tick to fly
+internal void
+StepWorld(test_world *Test, u32 Frames)
+{
+    for(u32 Frame = 0; Frame < Frames; Frame++)
+    {
+        world *World = Test->World;
+        u32 EntityCount = World->EntityCount;
+        for(u32 EntityIndex = 0; EntityIndex < EntityCount; EntityIndex++)
+        {
+            world_entity *Entity = &World->Entities[EntityIndex];
+            if (!Entity->IsPresent)
+            {
+                continue;
+            }
+            if (Entity->Type == EntityType_Monster)
+            {
+                StepMonster(Test, Entity, 1);
+            }
+            else if (Entity->Type == EntityType_MonsterShot)
+            {
+                UpdateMonsterShot(Entity, World, &Test->Arena,
+                                  Test->Input.DeltaTime, Test->AppState);
+            }
+        }
+    }
+}
+
+internal void
+TestVolleyFansShotsAndHitsPlayerInLane()
+{
+    test_world Test = CreateTestWorld();
+    Test.AppState->FireBallCollision = Test.FireBallVolume;
+    world_entity *Imp = AddTestMonster(&Test, MonsterKind_Imp, {600, 1000, 0});
+    world_entity *Player = AddTestPlayer(&Test, {800, 1000, 0});
+    monster_ability *Fan = &GetMonsterDef(MonsterKind_Imp)->Abilities[0];
+
+    StepWorld(&Test, 1);
+    Check(Imp->AbilityPhase == AbilityPhase_Windup);
+    Check(CountEntitiesOfType(Test.World, EntityType_MonsterShot) == 0);
+    StepWorld(&Test, SecondsToFrames(Fan->Windup) - 1);
+    Check(CountEntitiesOfType(Test.World, EntityType_MonsterShot) == Fan->Count);
+    // NOTE(zoubir): only the middle lane points at the player
+    StepWorld(&Test, SecondsToFrames(Fan->Active));
+    Check(Player->Hp == 100.f - Fan->Damage);
+    Check(CountEntitiesOfType(Test.World, EntityType_MonsterShot) == 0);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestWallBlocksVolley()
+{
+    test_world Test = CreateTestWorld();
+    Test.AppState->FireBallCollision = Test.FireBallVolume;
+    world_entity *Imp = AddTestMonster(&Test, MonsterKind_Imp, {600, 1000, 0});
+    world_entity *Player = AddTestPlayer(&Test, {800, 1000, 0});
+    monster_ability *Fan = &GetMonsterDef(MonsterKind_Imp)->Abilities[0];
+    AddTestEntity(&Test, EntityType_StaticObject, {700, 1000, 0}, Test.WallVolume);
+
+    StepWorld(&Test, 1 + SecondsToFrames(Fan->Windup + Fan->Active));
+    Check(Imp->IsPresent);
+    Check(Player->Hp == 100.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestShotsDoNotHurtMonsters()
+{
+    test_world Test = CreateTestWorld();
+    Test.AppState->FireBallCollision = Test.FireBallVolume;
+    AddTestMonster(&Test, MonsterKind_Imp, {600, 1000, 0});
+    world_entity *Brute = AddTestMonster(&Test, MonsterKind_Brute, {700, 1000, 0});
+    AddTestPlayer(&Test, {900, 1000, 0});
+    float BruteHp = Brute->Hp;
+    StepWorld(&Test, 120);
+    Check(Brute->Hp == BruteHp);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): the blink crosses from chunk 0 into chunk 1 (512 units
+// wide); a player walking into the new spot must bump into the shade
+internal void
+TestBlinkMovesMonsterToNewChunk()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Shade = AddTestMonster(&Test, MonsterKind_Shade, {440, 1000, 0});
+    world_entity *Player = AddTestPlayer(&Test, {520, 1000, 0});
+    monster_ability *Step = &GetMonsterDef(MonsterKind_Shade)->Abilities[0];
+
+    StepMonster(&Test, Shade, 1 + SecondsToFrames(Step->Windup));
+    Check(Shade->Position.X > 512.f);
+    world_entity *Walker = AddTestPlayer(&Test, {Shade->Position.X + 80.f, 1000, 0});
+    Walk(&Test, Walker, {-1, 0}, 40);
+    Check(Walker->Position.X >= Shade->Position.X + 29.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunMonsterTests()
 {
@@ -281,4 +396,12 @@ RunMonsterTests()
     TestBlinkLandsBehindTarget();
     printf("TestAbilityGoesBackOnCooldown\n");
     TestAbilityGoesBackOnCooldown();
+    printf("TestVolleyFansShotsAndHitsPlayerInLane\n");
+    TestVolleyFansShotsAndHitsPlayerInLane();
+    printf("TestWallBlocksVolley\n");
+    TestWallBlocksVolley();
+    printf("TestShotsDoNotHurtMonsters\n");
+    TestShotsDoNotHurtMonsters();
+    printf("TestBlinkMovesMonsterToNewChunk\n");
+    TestBlinkMovesMonsterToNewChunk();
 }

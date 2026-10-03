@@ -2,6 +2,8 @@
    function into a sprite-sheet texture at startup, and drawing ability
    telegraphs (the danger zones on the ground) over the world. */
 
+#include "monster_fx.cpp"
+
 inline u32
 MonsterSheetWidth(monster_def *Def)
 {
@@ -76,6 +78,19 @@ AddMonsterTextures(assets *Assets, open_gl *OpenGL, memory_arena *TempArena)
                             Pixels, Width, Height,
                             MONSTER_SHEET_COLUMNS, MonsterRow_Count,
                             V2(0.5f, 0.875f));
+        EndTemporaryMemory(Temp);
+    }
+
+    ReserveGeneratedAssets(Assets, AssetType_MonsterShot, ShotStyle_Count);
+    for(u32 Style = 0; Style < ShotStyle_Count; Style++)
+    {
+        u32 Width = SHOT_FRAME_SIZE * SHOT_FRAMES;
+        temporary_memory Temp = BeginTemporaryMemory(TempArena);
+        u32 *Pixels = AllocateArray(TempArena, Width * SHOT_FRAME_SIZE, u32);
+        BuildShotSheet((monster_shot_style)Style, Pixels);
+        AddGeneratedTexture(Assets, OpenGL, {AssetType_MonsterShot, Style},
+                            Pixels, Width, SHOT_FRAME_SIZE,
+                            SHOT_FRAMES, 1, V2(0.5f, 0.5f));
         EndTemporaryMemory(Temp);
     }
 }
@@ -185,6 +200,22 @@ DrawMonsterTelegraphs(render_context *RenderContext, world *World,
                 DrawDottedCircle(RenderContext, Spot, Ability->Radius, SpiritColor, 2.f);
                 DrawDottedCircle(RenderContext, Spot, Ability->Radius * Closing,
                                  SpiritColor, 3.f);
+            } break;
+
+            case MonsterAbility_Volley:
+            {
+                // NOTE(zoubir): one lane per shot, as long as it can fly
+                v2 Directions[MAX_VOLLEY_SHOTS];
+                u32 Count = GetVolleyDirections(Ability, Entity->AbilityAim,
+                                                Directions, MAX_VOLLEY_SHOTS);
+                float Reach = Ability->Speed * Ability->Active;
+                for(u32 ShotIndex = 0; ShotIndex < Count; ShotIndex++)
+                {
+                    v2 End = Self + Reach * Directions[ShotIndex];
+                    DrawDottedLine(RenderContext, Self, End, Color, 2.f, 10.f);
+                    DrawDottedLine(RenderContext, Self,
+                                   Self + Progress * (End - Self), Color, 3.f, 7.f);
+                }
             } break;
 
             default:
