@@ -68,38 +68,53 @@ DrawHud(render_context *RenderContext, app_state *AppState,
         return;
     }
 
-    float X = 20.f;
-    float Y = 20.f;
-    DrawHudBar(RenderContext, X, Y, 200.f, 14.f,
+    // NOTE(zoubir): laid out top to bottom with a running Y
+    float X = UI_GAP_LARGE;
+    float Y = UI_GAP_LARGE;
+    float Width = 200.f;
+    DrawHudBar(RenderContext, X, Y, Width, 14.f,
                Player->Hp / Player->MaxHp, UI_COLOR_HEALTH);
+    Y += 14.f + UI_GAP_SMALL;
 
     DrawPlayerLabels(RenderContext, AppState, CameraOffset);
 
-    // Ability bars, left to right: dash (Alt), shockwave (E). Each fills
-    // back up while recharging and turns yellow when ready.
-    float Cooldowns[] =
-        {
-            Player->DashCooldown / PLAYER_DASH_COOLDOWN,
-            Player->ShockwaveCooldown / PLAYER_SHOCKWAVE_COOLDOWN,
-        };
-    for(u32 AbilityIndex = 0;
-        AbilityIndex < ArrayCount(Cooldowns);
-        AbilityIndex++)
+    // Ability bars under the health bar, each with its key below it. A bar
+    // fills back up while recharging and turns the accent colour when ready.
+    struct hud_ability
     {
-        float Charge = 1.f - Cooldowns[AbilityIndex];
-        DrawHudBar(RenderContext, X + AbilityIndex * 70.f, Y + 20.f,
-                   60.f, 6.f, Charge,
-                   Charge >= 1.f ?
-                   UI_COLOR_ACCENT : UI_COLOR_DIM);
+        char *Key;
+        float Cooldown;
+    };
+    hud_ability Abilities[] =
+        {
+            {"Alt", Player->DashCooldown / PLAYER_DASH_COOLDOWN},
+            {"E", Player->ShockwaveCooldown / PLAYER_SHOCKWAVE_COOLDOWN},
+            {"F", Player->BlinkCooldown / PLAYER_BLINK_COOLDOWN},
+        };
+    u32 AbilityCount = ArrayCount(Abilities);
+    float BarGap = 10.f;
+    float BarWidth = (Width - BarGap * (AbilityCount - 1)) / AbilityCount;
+    font *Small = AppState->Fonts.Small;
+    for(u32 AbilityIndex = 0; AbilityIndex < AbilityCount; AbilityIndex++)
+    {
+        float Charge = 1.f - Abilities[AbilityIndex].Cooldown;
+        bool32 Ready = Charge >= 1.f;
+        float BarX = X + AbilityIndex * (BarWidth + BarGap);
+        DrawHudBar(RenderContext, BarX, Y, BarWidth, 6.f, Charge,
+                   Ready ? UI_COLOR_ACCENT : UI_COLOR_DIM);
+        UIText(RenderContext, Small, BarX + 0.5f * BarWidth, Y + 8.f,
+               Abilities[AbilityIndex].Key,
+               Ready ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED, UIAlign_Center);
     }
+    Y += 8.f + UILineHeight(Small) + UI_GAP_SMALL;
 
     font *Font = AppState->Fonts.Body;
     char Text[64];
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     snprintf(Text, sizeof(Text), "Kills %u   Deaths %u   Monsters %u",
              Slot->Kills, Slot->Deaths, Slot->MonsterKills);
-    UIText(RenderContext, Font, X, Y + 32.f, Text, UI_COLOR_TEXT);
+    UIText(RenderContext, Font, X, Y, Text, UI_COLOR_TEXT);
+    Y += UILineHeight(Font) + 4.f;
 
-    DrawConnectionIndicator(RenderContext, AppState, X,
-                            Y + 32.f + UILineHeight(Font) + 4.f);
+    DrawConnectionIndicator(RenderContext, AppState, X, Y);
 }
