@@ -7,3 +7,4 @@
 #include "toad.cpp"
 #include "shade.cpp"
 #include "imp.cpp"
+#include "spider.cpp"

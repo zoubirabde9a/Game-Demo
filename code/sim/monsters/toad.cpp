@@ -34,6 +34,11 @@ DefineMonster_Toad(monster_def *Def)
     Barrage->Count = 3;
     Barrage->Spread = 70.f;
     Barrage->Knockback = 150.f;
+    // NOTE(zoubir): each shell leaves a bile puddle that poisons
+    Barrage->Status = StatusEffect_Poisoned;
+    Barrage->StatusSeconds = 2.5f;
+    Barrage->HazardSeconds = 4.f;
+    Barrage->HazardStyle = HazardStyle_Bile;
 }
 
 internal void

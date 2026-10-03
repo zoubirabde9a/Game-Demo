@@ -83,6 +83,16 @@ TestMonsterDefsAreValid()
             Check(Ability->Damage > 0.f);
             Check(Ability->Radius > 0.f);
             Check(Ability->Count <= MAX_ABILITY_POINTS);
+            if (Ability->Status != StatusEffect_None)
+            {
+                Check(Ability->Status < StatusEffect_Count);
+                Check(Ability->StatusSeconds > 0.f);
+            }
+            // NOTE(zoubir): only mortar spots leave hazards so far
+            Check(Ability->HazardSeconds == 0.f ||
+                  (Ability->Kind == MonsterAbility_Mortar &&
+                   Ability->HazardStyle < HazardStyle_Count &&
+                   Ability->Status != StatusEffect_None));
             if (Ability->Kind == MonsterAbility_Volley)
             {
                 Check(Ability->Count >= 1 && Ability->Count <= MAX_VOLLEY_SHOTS);
@@ -302,7 +312,13 @@ StepWorld(test_world *Test, u32 Frames)
                 UpdateMonsterShot(Entity, World, &Test->Arena,
                                   Test->Input.DeltaTime, Test->AppState);
             }
+            else if (Entity->Type == EntityType_MonsterHazard)
+            {
+                UpdateMonsterHazard(Entity, World, Test->AppState,
+                                    Test->Input.DeltaTime);
+            }
         }
+        UpdateStatusEffects(Test->AppState, World, Test->Input.DeltaTime);
     }
 }
 
@@ -322,7 +338,10 @@ TestVolleyFansShotsAndHitsPlayerInLane()
     Check(CountEntitiesOfType(Test.World, EntityType_MonsterShot) == Fan->Count);
     // NOTE(zoubir): only the middle lane points at the player
     StepWorld(&Test, SecondsToFrames(Fan->Active));
-    Check(Player->Hp == 100.f - Fan->Damage);
+    // NOTE(zoubir): the ember also sets the player burning
+    float BurnLimit = STATUS_BURN_DPS * (Fan->StatusSeconds + STATUS_TICK_SECONDS);
+    Check(Player->Hp <= 100.f - Fan->Damage);
+    Check(Player->Hp >= 100.f - Fan->Damage - BurnLimit);
     Check(CountEntitiesOfType(Test.World, EntityType_MonsterShot) == 0);
     DestroyTestWorld(&Test);
 }
@@ -376,6 +395,114 @@ TestBlinkMovesMonsterToNewChunk()
 }
 
 internal void
+TestStatusRefreshesInsteadOfStacking()
+{
+    world_entity Entity = {};
+    ApplyStatus(&Entity, StatusEffect_Burning, 2.f);
+    ApplyStatus(&Entity, StatusEffect_Burning, 1.f);
+    Check(Entity.StatusTimers[StatusEffect_Burning] == 2.f);
+    ApplyStatus(&Entity, StatusEffect_Burning, 3.f);
+    Check(Entity.StatusTimers[StatusEffect_Burning] == 3.f);
+    ApplyStatus(&Entity, StatusEffect_None, 3.f);
+    Check(GetMoveSpeedScale(&Entity) == 1.f);
+    ApplyStatus(&Entity, StatusEffect_Slowed, 1.f);
+    Check(GetMoveSpeedScale(&Entity) == STATUS_SLOW_SCALE);
+}
+
+internal void
+TestBurnDamagesInTicksThenStops()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Player = AddTestPlayer(&Test, {800, 1000, 0});
+    ApplyStatus(Player, StatusEffect_Burning, 2.f);
+    StepWorld(&Test, 20);
+    // NOTE(zoubir): no tick before half a second
+    Check(Player->Hp == 100.f);
+    StepWorld(&Test, 180);
+    float Tick = STATUS_BURN_DPS * STATUS_TICK_SECONDS;
+    Check(Player->Hp <= 100.f - 3.f * Tick);
+    Check(Player->Hp >= 100.f - 4.f * Tick);
+    Check(!HasStatus(Player, StatusEffect_Burning));
+    float AfterBurn = Player->Hp;
+    StepWorld(&Test, 60);
+    Check(Player->Hp == AfterBurn);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestSlowedMonsterCoversLessGround()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Normal = AddTestMonster(&Test, MonsterKind_Brute, {400, 600, 0});
+    world_entity *Slowed = AddTestMonster(&Test, MonsterKind_Brute, {400, 1400, 0});
+    // NOTE(zoubir): monsters chase players through the player slots
+    AddPlayerToSlot(Test.AppState, Test.World, &Test.Arena, 0, {650, 600, 0});
+    AddPlayerToSlot(Test.AppState, Test.World, &Test.Arena, 1, {650, 1400, 0});
+    ApplyStatus(Slowed, StatusEffect_Slowed, 10.f);
+    StepMonster(&Test, Normal, 90);
+    StepMonster(&Test, Slowed, 90);
+    float NormalMoved = Normal->Position.X - 400.f;
+    float SlowedMoved = Slowed->Position.X - 400.f;
+    Check(NormalMoved > 20.f);
+    Check(SlowedMoved < 0.7f * NormalMoved);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestBileShellsLeavePoisonPuddles()
+{
+    test_world Test = CreateTestWorld();
+    AddTestMonster(&Test, MonsterKind_Toad, {600, 1000, 0});
+    world_entity *Player = AddTestPlayer(&Test, {800, 1000, 0});
+    monster_ability *Barrage = &GetMonsterDef(MonsterKind_Toad)->Abilities[0];
+
+    StepWorld(&Test, 1 + SecondsToFrames(Barrage->Windup));
+    Check(CountEntitiesOfType(Test.World, EntityType_MonsterHazard) == Barrage->Count);
+    Check(HasStatus(Player, StatusEffect_Poisoned));
+    StepWorld(&Test, SecondsToFrames(Barrage->HazardSeconds));
+    Check(CountEntitiesOfType(Test.World, EntityType_MonsterHazard) == 0);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestWebSlowsOnlyWhileStandingInIt()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Spider = AddTestMonster(&Test, MonsterKind_Spider, {600, 1000, 0});
+    world_entity *Player = AddTestPlayer(&Test, {800, 1000, 0});
+    monster_ability *Snare = &GetMonsterDef(MonsterKind_Spider)->Abilities[0];
+
+    StepWorld(&Test, 1 + SecondsToFrames(Snare->Windup));
+    Check(CountEntitiesOfType(Test.World, EntityType_MonsterHazard) == 1);
+    // NOTE(zoubir): keep the spider from spitting while we watch the web
+    Spider->AbilityCooldowns[1] = 1000.f;
+    StepWorld(&Test, SecondsToFrames(2.f * Snare->StatusSeconds));
+    Check(HasStatus(Player, StatusEffect_Slowed));
+    Player->Position.Y += 200.f;
+    StepWorld(&Test, SecondsToFrames(Snare->StatusSeconds));
+    Check(!HasStatus(Player, StatusEffect_Slowed));
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestEmbersSetPlayerOnFire()
+{
+    test_world Test = CreateTestWorld();
+    Test.AppState->FireBallCollision = Test.FireBallVolume;
+    AddTestMonster(&Test, MonsterKind_Imp, {600, 1000, 0});
+    world_entity *Player = AddTestPlayer(&Test, {800, 1000, 0});
+    monster_ability *Fan = &GetMonsterDef(MonsterKind_Imp)->Abilities[0];
+    bool32 Burned = false;
+    for(u32 Frame = 0; Frame < SecondsToFrames(Fan->Windup + Fan->Active); Frame++)
+    {
+        StepWorld(&Test, 1);
+        Burned |= HasStatus(Player, StatusEffect_Burning);
+    }
+    Check(Burned);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 RunMonsterTests()
 {
     printf("TestMonsterDefsAreValid\n");
@@ -404,4 +531,16 @@ RunMonsterTests()
     TestShotsDoNotHurtMonsters();
     printf("TestBlinkMovesMonsterToNewChunk\n");
     TestBlinkMovesMonsterToNewChunk();
+    printf("TestStatusRefreshesInsteadOfStacking\n");
+    TestStatusRefreshesInsteadOfStacking();
+    printf("TestBurnDamagesInTicksThenStops\n");
+    TestBurnDamagesInTicksThenStops();
+    printf("TestSlowedMonsterCoversLessGround\n");
+    TestSlowedMonsterCoversLessGround();
+    printf("TestBileShellsLeavePoisonPuddles\n");
+    TestBileShellsLeavePoisonPuddles();
+    printf("TestWebSlowsOnlyWhileStandingInIt\n");
+    TestWebSlowsOnlyWhileStandingInIt();
+    printf("TestEmbersSetPlayerOnFire\n");
+    TestEmbersSetPlayerOnFire();
 }

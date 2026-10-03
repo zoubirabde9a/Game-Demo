@@ -141,6 +141,16 @@ CreateMonsterPopulation(memory_arena *Arena, u32 Target, u32 SeedValue)
                          Direction == AnimationDirection_Left);
         }
     }
+    for(u32 Style = 0; Style < HazardStyle_Count; Style++)
+    {
+        animation_set *Set = &Result->HazardAnimationSets[Style];
+        for(u32 Direction = 0; Direction < AnimationDirection_Count; Direction++)
+        {
+            AddAnimation(Set, Arena, AnimationType_Stand,
+                         (animation_direction)Direction,
+                         0, HAZARD_FRAMES, 0.15f);
+        }
+    }
     return Result;
 }
 

@@ -442,7 +442,7 @@ UpdatePlayer(player_slot *Slot, world *World,
     
     
 
-    DDPlayer *= PlayerAcceleration * DeltaTime;
+    DDPlayer *= PlayerAcceleration * GetMoveSpeedScale(Player) * DeltaTime;
     // Drag
     DDPlayer -= (10.f * Player->Velocity);
     //Gravity
@@ -611,7 +611,7 @@ UpdateMonster(world_entity *Entity, world *World,
             AnimationDirection_Right : AnimationDirection_Left;
     }
 
-    DDEntity *= Stats->Acceleration * DeltaTime;
+    DDEntity *= Stats->Acceleration * GetMoveSpeedScale(Entity) * DeltaTime;
     // Drag
     DDEntity -= (10.f * Entity->Velocity);
     if (Flies)

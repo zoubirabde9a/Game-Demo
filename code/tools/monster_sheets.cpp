@@ -2,7 +2,7 @@
    scaled up 4x on a dark checkerboard, so art can be reviewed without
    starting the game. Built and run by art.bat. */
 
-#include <windows.h>
+#include <direct.h>
 #include "../app.cpp"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../third_party/stb_image/stb_image_write.h"
@@ -11,7 +11,7 @@
 
 int main()
 {
-    CreateDirectoryA("monster_art", 0);
+    _mkdir("monster_art");
     for(u32 KindIndex = 0; KindIndex < MonsterKind_Count; KindIndex++)
     {
         monster_def *Def = GetMonsterDef((monster_kind)KindIndex);
@@ -65,6 +65,30 @@ int main()
         stbi_write_png(Path, OutWidth, OutHeight, 4, Out, OutWidth * 4);
         printf("%s\n", Path);
         free(Out);
+    }
+    for(u32 Style = 0; Style < HazardStyle_Count; Style++)
+    {
+        u32 Width = HAZARD_FRAME_SIZE * HAZARD_FRAMES;
+        u32 *Sheet = (u32 *)calloc(Width * HAZARD_FRAME_SIZE, sizeof(u32));
+        BuildHazardSheet((monster_hazard_style)Style, Sheet);
+        u32 Scale = 4;
+        u32 OutWidth = Width * Scale;
+        u32 OutHeight = HAZARD_FRAME_SIZE * Scale;
+        u32 *Out = (u32 *)calloc(OutWidth * OutHeight, sizeof(u32));
+        for(u32 Y = 0; Y < OutHeight; Y++)
+        {
+            for(u32 X = 0; X < OutWidth; X++)
+            {
+                u32 Pixel = Sheet[(Y / Scale) * Width + X / Scale];
+                Out[Y * OutWidth + X] = Pixel ? Pixel : ART_RGB(58, 66, 54);
+            }
+        }
+        char Path[256];
+        snprintf(Path, sizeof(Path), "monster_art/hazard_%u.png", Style);
+        stbi_write_png(Path, OutWidth, OutHeight, 4, Out, OutWidth * 4);
+        printf("%s\n", Path);
+        free(Out);
+        free(Sheet);
     }
     return 0;
 }

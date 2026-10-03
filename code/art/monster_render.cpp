@@ -93,6 +93,19 @@ AddMonsterTextures(assets *Assets, open_gl *OpenGL, memory_arena *TempArena)
                             SHOT_FRAMES, 1, V2(0.5f, 0.5f));
         EndTemporaryMemory(Temp);
     }
+
+    ReserveGeneratedAssets(Assets, AssetType_MonsterHazard, HazardStyle_Count);
+    for(u32 Style = 0; Style < HazardStyle_Count; Style++)
+    {
+        u32 Width = HAZARD_FRAME_SIZE * HAZARD_FRAMES;
+        temporary_memory Temp = BeginTemporaryMemory(TempArena);
+        u32 *Pixels = AllocateArray(TempArena, Width * HAZARD_FRAME_SIZE, u32);
+        BuildHazardSheet((monster_hazard_style)Style, Pixels);
+        AddGeneratedTexture(Assets, OpenGL, {AssetType_MonsterHazard, Style},
+                            Pixels, Width, HAZARD_FRAME_SIZE,
+                            HAZARD_FRAMES, 1, V2(0.5f, 0.5f));
+        EndTemporaryMemory(Temp);
+    }
 }
 
 #define TELEGRAPH_DOTS 28
@@ -129,6 +142,53 @@ DrawDottedLine(render_context *RenderContext, v2 From, v2 To, u32 Color,
     }
 }
 
+#define STATUS_PIP_SIZE 4.f
+
+global_variable u32 StatusPipColors[StatusEffect_Count] =
+{
+    0,
+    0xFF2080FF, // NOTE(zoubir): burning, orange
+    0xFF30D060, // NOTE(zoubir): poisoned, green
+    0xFFFFD090, // NOTE(zoubir): slowed, pale blue
+};
+
+// NOTE(zoubir): a row of small squares above anyone with a status, one
+// per effect; each blinks during its last second
+internal void
+DrawStatusPips(render_context *RenderContext, world *World, v3 CameraOffset)
+{
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (!Entity->IsPresent || Entity->Hp <= 0.f ||
+            (Entity->Type != EntityType_Player &&
+             Entity->Type != EntityType_Monster))
+        {
+            continue;
+        }
+        v2 Head = Entity->Position.XY - CameraOffset.XY;
+        Head.Y -= Entity->Position.Z + Entity->Dimensions.Y + 8.f;
+        float X = Head.X - 0.5f * STATUS_PIP_SIZE;
+        for(u32 Effect = 1; Effect < StatusEffect_Count; Effect++)
+        {
+            float Left = Entity->StatusTimers[Effect];
+            if (Left <= 0.f)
+            {
+                continue;
+            }
+            bool32 Hidden = Left < 1.f && ((u32)(Left * 8.f) % 2) == 0;
+            if (!Hidden)
+            {
+                DrawFilledRectangle(RenderContext, X, Head.Y, STATUS_PIP_SIZE,
+                                    STATUS_PIP_SIZE, StatusPipColors[Effect], 0.f);
+            }
+            X += STATUS_PIP_SIZE + 2.f;
+        }
+    }
+}
+
 // NOTE(zoubir): the danger zone of every monster in windup. The ring
 // closes in from twice its size as the windup runs out, so the moment it
 // matches the real radius is the moment it hits
@@ -136,6 +196,7 @@ internal void
 DrawMonsterTelegraphs(render_context *RenderContext, world *World,
                       v3 CameraOffset)
 {
+    DrawStatusPips(RenderContext, World, CameraOffset);
     for(u32 EntityIndex = 0;
         EntityIndex < World->EntityCount;
         EntityIndex++)

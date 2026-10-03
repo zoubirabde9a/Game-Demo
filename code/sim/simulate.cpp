@@ -79,6 +79,11 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
                 AnimationDirection = Entity->AnimationDirection;
             } break;
 
+            case EntityType_MonsterHazard:
+            {
+                UpdateMonsterHazard(Entity, World, AppState, DeltaTime);
+            } break;
+
             case EntityType_StaticObject:
             case EntityType_Tiled:
             case EntityType_Count:
@@ -95,6 +100,8 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
                              DeltaTime, AnimationSpeed);
         }
     }
+
+    UpdateStatusEffects(AppState, World, DeltaTime);
 
     if (AppState->Monsters)
     {

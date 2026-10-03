@@ -6,6 +6,7 @@
    See sim/monsters/README.md for adding one. */
 
 #include "../art/sprite_canvas.cpp"
+#include "status_effects.cpp"
 
 enum monster_ability_kind
 {
@@ -39,6 +40,17 @@ enum monster_shot_style
 #define SHOT_FRAME_SIZE 16
 #define SHOT_FRAMES 4
 
+// NOTE(zoubir): how a lingering ground patch looks, art/monster_fx.cpp
+enum monster_hazard_style
+{
+    HazardStyle_Bile,
+    HazardStyle_Web,
+    HazardStyle_Embers,
+    HazardStyle_Count
+};
+#define HAZARD_FRAME_SIZE 48
+#define HAZARD_FRAMES 4
+
 struct monster_ability
 {
     monster_ability_kind Kind;
@@ -60,6 +72,13 @@ struct monster_ability
     // volley fan width in degrees
     float Spread;
     monster_shot_style ShotStyle;
+    // NOTE(zoubir): put on every player this ability hits (and on anyone
+    // standing in its hazard)
+    status_effect Status;
+    float StatusSeconds;
+    // NOTE(zoubir): mortar spots leave a hazard of Radius for this long
+    float HazardSeconds;
+    monster_hazard_style HazardStyle;
 };
 
 #define MONSTER_SHEET_COLUMNS 6
@@ -146,6 +165,7 @@ struct monster_population
     random_series Series;
     animation_set AnimationSets[MonsterKind_Count];
     animation_set ShotAnimationSets[ShotStyle_Count];
+    animation_set HazardAnimationSets[HazardStyle_Count];
 };
 
 typedef void monster_define_function(monster_def *Def);

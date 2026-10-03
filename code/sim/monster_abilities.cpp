@@ -46,11 +46,27 @@ FindMonsterTarget(world *World, v2 From, float *DistanceOut)
     return Result;
 }
 
-// NOTE(zoubir): damages every player within Radius of Center and pushes
-// them away from it. Returns how many were hit
+// NOTE(zoubir): every monster hit on a player goes through here: damage
+// (through DamageEntity, so deaths are counted), push, and the ability's
+// status effect. Source is the monster or shot, which earns no kill credit
+internal void
+HitPlayer(app_state *AppState, world *World, world_entity *Player,
+          world_entity *Source, monster_ability *Ability, v2 Push)
+{
+    if (!Player->IsPresent || Player->Hp <= 0.f)
+    {
+        return;
+    }
+    Player->Velocity.XY += Push;
+    ApplyStatus(Player, Ability->Status, Ability->StatusSeconds);
+    DamageEntity(AppState, World, Player, Ability->Damage, Source);
+}
+
+// NOTE(zoubir): hits every player within Radius of Center, pushing them
+// away from it. Returns how many were hit
 internal u32
-HurtPlayersInRadius(world *World, v2 Center, float Radius, float Damage,
-                    float Knockback)
+HurtPlayersInRadius(app_state *AppState, world *World, world_entity *Source,
+                    v2 Center, monster_ability *Ability)
 {
     u32 HitCount = 0;
     for(u32 EntityIndex = 0;
@@ -58,22 +74,20 @@ HurtPlayersInRadius(world *World, v2 Center, float Radius, float Damage,
         EntityIndex++)
     {
         world_entity *Player = &World->Entities[EntityIndex];
-        if (!Player->IsPresent || Player->Type != EntityType_Player)
+        if (!Player->IsPresent || Player->Type != EntityType_Player ||
+            Player->Hp <= 0.f)
         {
             continue;
         }
         v2 Away = Player->Position.XY - Center;
         float Distance = Length(Away);
-        if (Distance > Radius)
+        if (Distance > Ability->Radius)
         {
             continue;
         }
         HitCount++;
-        Player->Hp -= Damage;
-        if (Distance > 0.f)
-        {
-            Player->Velocity.XY += (Knockback / Distance) * Away;
-        }
+        v2 Push = Distance > 0.f ? (Ability->Knockback / Distance) * Away : V2(0.f);
+        HitPlayer(AppState, World, Player, Source, Ability, Push);
     }
     return HitCount;
 }
@@ -281,6 +295,56 @@ GetVolleyDirections(monster_ability *Ability, v2 Aim, v2 *Directions,
 
 #define MAX_VOLLEY_SHOTS 7
 
+// NOTE(zoubir): a patch of ground left behind by an ability (bile, webs,
+// embers). Anyone standing in it keeps getting the ability's status
+internal world_entity *
+AddMonsterHazard(app_state *AppState, world *World, memory_arena *Arena,
+                 world_entity *Owner, monster_ability *Ability, v2 Center)
+{
+    world_entity *Hazard = AddEntity(AppState, World, Arena,
+                                     EntityType_MonsterHazard,
+                                     V3(Center.X, Center.Y, 0.f),
+                                     AppState->FireBallCollision);
+    Hazard->MonsterKind = Owner->MonsterKind;
+    Hazard->AbilityIndex = Owner->AbilityIndex;
+    Hazard->TimeLeft = Ability->HazardSeconds;
+    float Size = 2.f * Ability->Radius;
+    Hazard->Dimensions = V2(Size, Size);
+    Hazard->Texture = {AssetType_MonsterHazard, (u32)Ability->HazardStyle};
+    if (AppState->Monsters)
+    {
+        Hazard->AnimationSet =
+            &AppState->Monsters->HazardAnimationSets[Ability->HazardStyle];
+    }
+    return Hazard;
+}
+
+internal void
+UpdateMonsterHazard(world_entity *Hazard, world *World, app_state *AppState,
+                    float DeltaTime)
+{
+    monster_def *Def = GetMonsterDef(Hazard->MonsterKind);
+    monster_ability *Ability = &Def->Abilities[Hazard->AbilityIndex];
+    Hazard->TimeLeft -= DeltaTime;
+    if (Hazard->TimeLeft <= 0.f)
+    {
+        RemoveEntity(World, Hazard);
+        return;
+    }
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Player = &World->Entities[EntityIndex];
+        if (Player->IsPresent && Player->Type == EntityType_Player &&
+            Player->Hp > 0.f &&
+            Length(Player->Position.XY - Hazard->Position.XY) <= Ability->Radius)
+        {
+            ApplyStatus(Player, Ability->Status, Ability->StatusSeconds);
+        }
+    }
+}
+
 // NOTE(zoubir): the moment the windup ends
 internal void
 TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
@@ -290,8 +354,8 @@ TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
     {
         case MonsterAbility_Slam:
         {
-            HurtPlayersInRadius(World, Entity->Position.XY, Ability->Radius,
-                                Ability->Damage, Ability->Knockback);
+            HurtPlayersInRadius(AppState, World, Entity, Entity->Position.XY,
+                                Ability);
         } break;
 
         case MonsterAbility_Mortar:
@@ -300,9 +364,13 @@ TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
                 PointIndex < Entity->AbilityPointCount;
                 PointIndex++)
             {
-                HurtPlayersInRadius(World, Entity->AbilityPoints[PointIndex],
-                                    Ability->Radius, Ability->Damage,
-                                    Ability->Knockback);
+                v2 Point = Entity->AbilityPoints[PointIndex];
+                HurtPlayersInRadius(AppState, World, Entity, Point, Ability);
+                if (Ability->HazardSeconds > 0.f)
+                {
+                    AddMonsterHazard(AppState, World, Arena, Entity, Ability,
+                                     Point);
+                }
             }
         } break;
 
@@ -329,8 +397,8 @@ TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
                     Entity->AbilityAim = (1.f / FacingLength) * Facing;
                 }
             }
-            HurtPlayersInRadius(World, Entity->Position.XY, Ability->Radius,
-                                Ability->Damage, Ability->Knockback);
+            HurtPlayersInRadius(AppState, World, Entity, Entity->Position.XY,
+                                Ability);
         } break;
 
         case MonsterAbility_Volley:
@@ -376,13 +444,10 @@ UpdateMonsterShot(world_entity *Shot, world *World, memory_arena *Arena,
             Player->Hp > 0.f &&
             Length(Player->Position.XY - Shot->Position.XY) <= Ability->Radius)
         {
-            Player->Hp -= Ability->Damage;
             float Speed = Length(Shot->Velocity.XY);
-            if (Speed > 0.f)
-            {
-                Player->Velocity.XY += (Ability->Knockback / Speed) *
-                    Shot->Velocity.XY;
-            }
+            v2 Push = Speed > 0.f ?
+                (Ability->Knockback / Speed) * Shot->Velocity.XY : V2(0.f);
+            HitPlayer(AppState, World, Player, Shot, Ability, Push);
             RemoveEntity(World, Shot);
             return;
         }
@@ -402,7 +467,7 @@ UpdateMonsterShot(world_entity *Shot, world *World, memory_arena *Arena,
 
 // NOTE(zoubir): charges move the monster and hit whoever they reach
 internal void
-UpdateCharge(world *World, world_entity *Entity, monster_def *Def,
+UpdateCharge(app_state *AppState, world *World, world_entity *Entity,
              monster_ability *Ability)
 {
     if (Entity->AbilityHasHit)
@@ -415,11 +480,12 @@ UpdateCharge(world *World, world_entity *Entity, monster_def *Def,
     {
         world_entity *Player = &World->Entities[EntityIndex];
         if (Player->IsPresent && Player->Type == EntityType_Player &&
+            Player->Hp > 0.f &&
             Length(Player->Position.XY - Entity->Position.XY) <=
             Ability->Radius)
         {
-            Player->Hp -= Ability->Damage;
-            Player->Velocity.XY += Ability->Knockback * Entity->AbilityAim;
+            HitPlayer(AppState, World, Player, Entity, Ability,
+                      Ability->Knockback * Entity->AbilityAim);
             Entity->AbilityHasHit = true;
         }
     }
@@ -534,7 +600,7 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
             {
                 *AnimationSpeed = 1.f;
                 Charging = true;
-                UpdateCharge(World, Entity, Def, Ability);
+                UpdateCharge(AppState, World, Entity, Ability);
                 if (Entity->AbilityHasHit)
                 {
                     Entity->AbilityTimer = 0.f;

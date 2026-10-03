@@ -26,7 +26,7 @@ Six columns, five rows, `FrameSize` pixels per cell, feet on the 7/8 line:
 
 Change `FrameCounts[Row]` or `SecondsPerFrame[Row]` in the define function to change a row.
 
-The drawing functions are in `code/art/sprite_canvas.cpp`: `FillBlob` (shaded ball), `FillLimb` (shaded tube with a radius at each end), `FillTriangle`, `FillDot` (flat disc, also used with `ART_CLEAR` to cut holes), `OutlineFrame` (call last) and `DissolveFrame`. Colors come in 4-step ramps, darkest first. Where one shape's edge falls on another, the edge takes the darkest step of its ramp, so parts stay separate without extra work.
+The drawing functions are in `code/art/sprite_canvas.cpp`: `FillBlob` (shaded ball), `FillLimb` (shaded tube with a radius at each end), `FillTriangle`, `FillDot` (flat disc, also used with `ART_CLEAR` to cut holes), `FillFlatEllipse` (unshaded, for things lying on the ground), `DrawMembraneWing` (bat-style wing with finger bones), `OutlineFrame` (call last) and `DissolveFrame`. Colors come in 4-step ramps, darkest first. Where one shape's edge falls on another, the edge takes the darkest step of its ramp, so parts stay separate without extra work.
 
 ## Abilities
 
@@ -38,6 +38,14 @@ Every ability runs windup, then active, then recover (`code/sim/monster_abilitie
 | `Charge` | runs along the direction locked at windup start; stops on the first player hit; a wall stuns it for 1.75x `Recover` | `Speed`, `Active` (run time), `Radius` (hit reach) |
 | `Mortar` | marks `Count` spots, the first where the target will be, the rest within `Spread`; each blows up when the windup ends | `Count`, `Spread`, `Radius` |
 | `Blink` | marks a spot `Spread` past the target, appears there when the windup ends and hits within `Radius` | `Spread`, `Radius` (keep it above `Spread`) |
+| `Volley` | throws `Count` shots fanned over `Spread` degrees; shots are entities that fly for `Active` seconds, stop at walls and hit the first player within `Radius` | `Count`, `Spread`, `Speed`, `Active`, `Radius`, `ShotStyle` |
+
+Any ability can also set:
+
+- `Status` and `StatusSeconds`: put on every player it hits. Burning (fast damage), Poisoned (slow damage) and Slowed (movement scaled down) live in `code/sim/status_effects.cpp`. A second application keeps whichever timer is longer; effects never stack.
+- `HazardSeconds` and `HazardStyle` (mortar only for now): each spot leaves a patch of ground of `Radius` that keeps applying `Status` to anyone standing in it.
+
+Every hit on a player goes through `HitPlayer`, which calls `DamageEntity` so deaths are counted like any other.
 
 A monster uses the first ability in its list that is off cooldown and whose `MinRange`..`MaxRange` contains the distance to the nearest player. A new ability kind needs a case in `StartMonsterAbility` and `TriggerMonsterAbility` (or `UpdateCharge` for movement), a telegraph in `DrawMonsterTelegraphs`, and a test in `code/tests/monster_tests.cpp`.
 
@@ -50,3 +58,7 @@ A monster uses the first ability in its list that is off cooldown and whose `Min
 | Ravager | Tuskback Ravager | Gore Rush: long charge, stunned by walls |
 | Toad | Bilecaller Toad | Bile Barrage: three shells, first one leads you |
 | Shade | Hollow Shade | Veil Step: dissolves, reappears behind you and rakes |
+| Imp | Cinder Imp | Cinder Fan: three embers in a fan; they set you burning |
+| Spider | Hexweaver Spider | Web Snare: a web that slows anyone in it. Venom Spit: one poisoned barb |
+
+The toad's shells now leave bile puddles that poison.

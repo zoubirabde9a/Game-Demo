@@ -246,6 +246,25 @@ FillTriangle(sprite_canvas *Canvas, v2 A, v2 B, v2 C, color_ramp Ramp,
     }
 }
 
+// NOTE(zoubir): one flat color, for things lying on the ground
+internal void
+FillFlatEllipse(sprite_canvas *Canvas, float CX, float CY, float RX, float RY,
+                u32 Color)
+{
+    for(i32 Y = (i32)(CY - RY - 1.f); Y <= (i32)(CY + RY + 1.f); Y++)
+    {
+        for(i32 X = (i32)(CX - RX - 1.f); X <= (i32)(CX + RX + 1.f); X++)
+        {
+            float NX = ((float)X + 0.5f - CX) / RX;
+            float NY = ((float)Y + 0.5f - CY) / RY;
+            if (NX * NX + NY * NY <= 1.f)
+            {
+                PutPixel(Canvas, X, Y, Color);
+            }
+        }
+    }
+}
+
 // NOTE(zoubir): solid disc with no shading, for eyes, glows and spots
 internal void
 FillDot(sprite_canvas *Canvas, float CX, float CY, float R, u32 Color)

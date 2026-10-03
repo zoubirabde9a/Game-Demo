@@ -74,6 +74,8 @@ enum entity_type
     EntityType_Sword,
     // NOTE(zoubir): a monster ability's projectile, sim/monster_abilities.cpp
     EntityType_MonsterShot,
+    // NOTE(zoubir): a lingering patch of bile, web or embers
+    EntityType_MonsterHazard,
     EntityType_Count
 };
 
@@ -121,6 +123,16 @@ enum monster_kind
 #undef MONSTER_NAME_PASS
 #undef MONSTER
     MonsterKind_Count
+};
+
+// NOTE(zoubir): timed conditions, see sim/status_effects.cpp
+enum status_effect
+{
+    StatusEffect_None,
+    StatusEffect_Burning,
+    StatusEffect_Poisoned,
+    StatusEffect_Slowed,
+    StatusEffect_Count
 };
 
 #define MAX_MONSTER_ABILITIES 3
@@ -199,6 +211,10 @@ struct world_entity
     v2 AbilityPoints[MAX_ABILITY_POINTS];
     u32 AbilityPointCount;
     bool32 AbilityHasHit;
+    // NOTE(zoubir): seconds left on each status effect, and the clock for
+    // their damage ticks
+    float StatusTimers[StatusEffect_Count];
+    float StatusTickTimer;
     // NOTE(zoubir): seconds until the player can dash / shockwave again
     float DashCooldown;
     float ShockwaveCooldown;

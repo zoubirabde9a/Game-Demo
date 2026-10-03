@@ -111,6 +111,11 @@ DrawEntity(render_context *RenderContext,
     // inside assets
     float SortingValue =
         Entity->Position.Y;
+    // NOTE(zoubir): ground patches lie flat, under every standing sprite
+    if (Entity->Type == EntityType_MonsterHazard)
+    {
+        SortingValue = 0.5f;
+    }
     
     if (Entity->Texture.Type)
     {

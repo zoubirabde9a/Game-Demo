@@ -37,6 +37,8 @@ DefineMonster_Imp(monster_def *Def)
     Fan->Count = 3;
     Fan->Spread = 36.f;
     Fan->ShotStyle = ShotStyle_Ember;
+    Fan->Status = StatusEffect_Burning;
+    Fan->StatusSeconds = 1.5f;
 }
 
 internal void
