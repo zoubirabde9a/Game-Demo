@@ -372,6 +372,94 @@ CrumbleOrphanedSummons(world *World)
     }
 }
 
+// NOTE(zoubir): a landmark's guards appear the first time a player comes
+// this close to its middle
+#define LANDMARK_WAKE_DISTANCE 420.f
+
+inline bool32
+IsLandmarkAwake(monster_population *Population, i32 RegionX, i32 RegionY)
+{
+    for(u32 Index = 0; Index < Population->AwakenedCount; Index++)
+    {
+        if (Population->AwakenedRegionX[Index] == RegionX &&
+            Population->AwakenedRegionY[Index] == RegionY)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+inline void
+MarkLandmarkAwake(monster_population *Population, i32 RegionX, i32 RegionY)
+{
+    u32 Slot = Population->AwakenedNext;
+    Population->AwakenedRegionX[Slot] = RegionX;
+    Population->AwakenedRegionY[Slot] = RegionY;
+    Population->AwakenedNext = (Slot + 1) % ArrayCount(Population->AwakenedRegionX);
+    if (Population->AwakenedCount < ArrayCount(Population->AwakenedRegionX))
+    {
+        Population->AwakenedCount++;
+    }
+}
+
+internal void
+AwakenNearbyLandmarks(app_state *AppState, world *World, memory_arena *Arena,
+                      monster_population *Population)
+{
+    map_def *Map = GetMapDef((map_id)World->MapId);
+    i32 Tile = (i32)World->TileWidth;
+    i32 RegionSize = LANDMARK_REGION_TILES * Tile;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Player = &World->Entities[EntityIndex];
+        if (!Player->IsPresent || Player->Type != EntityType_Player || Player->Hp <= 0.f)
+        {
+            continue;
+        }
+        i32 PlayerRegionX = FloorDiv((i32)floorf(Player->Position.X), RegionSize);
+        i32 PlayerRegionY = FloorDiv((i32)floorf(Player->Position.Y), RegionSize);
+        for(i32 DY = -1; DY <= 1; DY++)
+        {
+            for(i32 DX = -1; DX <= 1; DX++)
+            {
+                landmark_spot Spot = GetRegionLandmark(Map, PlayerRegionX + DX,
+                                                       PlayerRegionY + DY);
+                if (!Spot.Present ||
+                    IsLandmarkAwake(Population, Spot.RegionX, Spot.RegionY) ||
+                    Length(GetLandmarkCenter(&Spot, Tile).XY - Player->Position.XY) >
+                    LANDMARK_WAKE_DISTANCE)
+                {
+                    continue;
+                }
+                MarkLandmarkAwake(Population, Spot.RegionX, Spot.RegionY);
+                landmark_def *Def = &LandmarkTable[Spot.Landmark];
+                v3 Spots[MAX_LANDMARK_GUARDS];
+                u32 SpotCount = GetLandmarkGuardSpots(&Spot, Tile, Spots, ArrayCount(Spots));
+                for(u32 Guard = 0; Guard < Def->GuardCount && Guard < SpotCount; Guard++)
+                {
+                    monster_kind Kind = Def->Guards[Guard];
+                    monster_def *KindDef = GetMonsterDef(Kind);
+                    entity_collision_volume_group *Volume = KindDef->FlyHeight > 0.f ?
+                        AppState->BatCollision : AppState->PlayerCollision;
+                    if (!IsSpawnSpotFree(AppState, World, Spots[Guard], Volume))
+                    {
+                        continue;
+                    }
+                    world_entity *Monster = SpawnMonster(AppState, World, Arena,
+                                                         Spots[Guard], Kind);
+                    // NOTE(zoubir): the first guard leads, always an elite
+                    if (Guard == 0)
+                    {
+                        ApplyEliteAffix(Monster, 1 + RandomChoice(&Population->Series,
+                                                                  MonsterAffix_Count - 1));
+                    }
+                }
+            }
+        }
+    }
+}
+
 internal void
 UpdateMonsterPopulation(app_state *AppState, world *World,
                         memory_arena *Arena,
@@ -382,6 +470,7 @@ UpdateMonsterPopulation(app_state *AppState, world *World,
     if (World->Unbounded)
     {
         DespawnFarMonsters(World);
+        AwakenNearbyLandmarks(AppState, World, Arena, Population);
     }
     if (CountLiveMonsters(World) >= Population->Target)
     {

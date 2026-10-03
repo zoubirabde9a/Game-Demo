@@ -241,6 +241,12 @@ struct monster_population
     monster_death_record PendingDeaths[MAX_PENDING_DEATHS];
     u32 PendingDeathCount;
     u32 NextMonsterSerial;
+    // NOTE(zoubir): landmark regions whose guards have already appeared,
+    // newest overwriting oldest (sim/terrain/landmarks.cpp)
+    i32 AwakenedRegionX[64];
+    i32 AwakenedRegionY[64];
+    u32 AwakenedCount;
+    u32 AwakenedNext;
     animation_set AnimationSets[MonsterKind_Count];
     animation_set ShotAnimationSets[ShotStyle_Count];
     animation_set HazardAnimationSets[HazardStyle_Count];

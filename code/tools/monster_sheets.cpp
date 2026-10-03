@@ -197,6 +197,27 @@ int main()
         else
         {
             WriteMapPreview(Map, -160, -100, 320, 200, 3, Path);
+            // NOTE(zoubir): a close-up of the first of each landmark found
+            // near the origin, with some of its surroundings
+            bool32 Shown[ArrayCount(LandmarkTable)] = {};
+            for(i32 RY = -4; RY <= 4; RY++)
+            {
+                for(i32 RX = -4; RX <= 4; RX++)
+                {
+                    landmark_spot Spot = GetRegionLandmark(Map, RX, RY);
+                    if (!Spot.Present || Shown[Spot.Landmark])
+                    {
+                        continue;
+                    }
+                    Shown[Spot.Landmark] = true;
+                    landmark_def *Def = &LandmarkTable[Spot.Landmark];
+                    char LandmarkPath[256];
+                    snprintf(LandmarkPath, sizeof(LandmarkPath), "monster_art/landmark_%s.png",
+                             Def->Name);
+                    WriteMapPreview(Map, Spot.MinX - 6, Spot.MinY - 6, Def->Width + 12,
+                                    Def->Height + 12, 12, LandmarkPath);
+                }
+            }
         }
     }
     return 0;

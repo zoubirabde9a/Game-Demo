@@ -11,6 +11,8 @@
 #define TERRAIN_PRINT_HASHES 0
 #define TERRAIN_GOLDEN_WILDS 0x2D0D5828u
 #define TERRAIN_GOLDEN_WASTES 0xB0665B7Cu
+#define TERRAIN_GOLDEN_WILDS_FAR 0xD52C0394u
+#define TERRAIN_GOLDEN_WASTES_FAR 0xC52921E1u
 
 internal void
 TestFloorDivRoundsDown()
@@ -177,11 +179,17 @@ TestProceduralTerrainMatchesGoldenHashes()
 {
     u32 WildsHash = HashTerrainRegion(GetMapDef(MapId_Wilds), -96, -64, 128);
     u32 WastesHash = HashTerrainRegion(GetMapDef(MapId_Wastes), -96, -64, 128);
+    // NOTE(zoubir): a second square further out, with landmarks in it
+    u32 WildsFar = HashTerrainRegion(GetMapDef(MapId_Wilds), 80, -80, 160);
+    u32 WastesFar = HashTerrainRegion(GetMapDef(MapId_Wastes), 80, -80, 160);
 #if TERRAIN_PRINT_HASHES
-    printf("  wilds 0x%08X wastes 0x%08X\n", WildsHash, WastesHash);
+    printf("  wilds 0x%08X wastes 0x%08X far wilds 0x%08X far wastes 0x%08X\n",
+           WildsHash, WastesHash, WildsFar, WastesFar);
 #endif
     Check(WildsHash == TERRAIN_GOLDEN_WILDS);
     Check(WastesHash == TERRAIN_GOLDEN_WASTES);
+    Check(WildsFar == TERRAIN_GOLDEN_WILDS_FAR);
+    Check(WastesFar == TERRAIN_GOLDEN_WASTES_FAR);
 }
 
 internal void
@@ -532,6 +540,120 @@ TestInfiniteMapsPlayFarFromOrigin()
 }
 
 internal void
+TestLandmarkLayoutsAreValid()
+{
+    for(u32 Index = 0; Index < ArrayCount(LandmarkTable); Index++)
+    {
+        landmark_def *Def = &LandmarkTable[Index];
+        u32 Markers = 0;
+        for(u32 Y = 0; Y < Def->Height; Y++)
+        {
+            Check(strlen(Def->Layout[Y]) == Def->Width);
+            for(u32 X = 0; X < Def->Width; X++)
+            {
+                char C = Def->Layout[Y][X];
+                Check(C == '?' || FindLayoutSymbol(C) != 0);
+                Markers += (C == 'm' || C == 'n');
+            }
+        }
+        Check(Markers == Def->GuardCount);
+        Check(Def->GuardCount <= MAX_LANDMARK_GUARDS);
+        Check(Def->MapMask != 0);
+        // NOTE(zoubir): it must fit its region with the margin
+        Check(Def->Width + 8 < LANDMARK_REGION_TILES && Def->Height + 8 < LANDMARK_REGION_TILES);
+    }
+}
+
+internal void
+TestLandmarksStayAwayFromSpawnAndExist()
+{
+    for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
+    {
+        map_def *Map = GetMapDef((map_id)MapIndex);
+        u32 Found = 0;
+        for(i32 RY = -5; RY <= 5; RY++)
+        {
+            for(i32 RX = -5; RX <= 5; RX++)
+            {
+                landmark_spot Spot = GetRegionLandmark(Map, RX, RY);
+                if (!Spot.Present)
+                {
+                    continue;
+                }
+                Found++;
+                Check(Map->Kind == MapKind_Infinite);
+                Check(LandmarkTable[Spot.Landmark].MapMask & (1u << Map->Id));
+                // NOTE(zoubir): the same answer every time
+                landmark_spot Again = GetRegionLandmark(Map, RX, RY);
+                Check(Again.MinX == Spot.MinX && Again.MinY == Spot.MinY &&
+                      Again.Landmark == Spot.Landmark);
+                Check(!(RX >= -1 && RX <= 0 && RY >= -1 && RY <= 0));
+            }
+        }
+        if (Map->Kind == MapKind_Infinite)
+        {
+            Check(Found >= 10);
+        }
+        else
+        {
+            Check(Found == 0);
+        }
+    }
+}
+
+internal void
+TestLandmarkGuardsWakeOnce()
+{
+    app_state *AppState = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(64);
+    memory_arena Arena;
+    memory_arena Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    AppState->World.MapId = MapId_Wastes;
+    InitSimulation(AppState, &Arena, &Constants);
+    world *World = &AppState->World;
+    map_def *Map = GetMapDef(MapId_Wastes);
+    AppState->Monsters->Target = 0;
+
+    landmark_spot Spot = {};
+    for(i32 R = 1; R <= 5 && !Spot.Present; R++)
+    {
+        Spot = GetRegionLandmark(Map, R, 0);
+    }
+    Check(Spot.Present);
+    landmark_def *Def = &LandmarkTable[Spot.Landmark];
+    v3 Center = GetLandmarkCenter(&Spot, (i32)World->TileWidth);
+
+    world_entity *Player = AddPlayerToSlot(AppState, World, &Arena, 0,
+                                           Center + V3(0.f, 300.f, 0.f));
+    UpdateMonsterPopulation(AppState, World, &Arena, AppState->Monsters, 1.f / 60.f);
+    u32 Guards = 0;
+    u32 Elites = 0;
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        world_entity *Entity = &World->Entities[Index];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster &&
+            Length(Entity->Position.XY - Center.XY) < 400.f)
+        {
+            Guards++;
+            Elites += Entity->EliteAffix != 0;
+        }
+    }
+    Check(Guards >= 1 && Guards <= Def->GuardCount);
+    Check(Elites >= 1);
+
+    // NOTE(zoubir): waking again spawns nobody new
+    u32 Before = CountLiveMonsters(World);
+    UpdateMonsterPopulation(AppState, World, &Arena, AppState->Monsters, 1.f / 60.f);
+    Check(CountLiveMonsters(World) == Before);
+    Check(Player->IsPresent);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(AppState);
+}
+
+internal void
 RunTerrainTests()
 {
     printf("TestFindMapByName\n");
@@ -548,6 +670,12 @@ RunTerrainTests()
     TestUnboundedWorldTracksNegativePositions();
     printf("TestInfiniteMapsPlayFarFromOrigin\n");
     TestInfiniteMapsPlayFarFromOrigin();
+    printf("TestLandmarkLayoutsAreValid\n");
+    TestLandmarkLayoutsAreValid();
+    printf("TestLandmarksStayAwayFromSpawnAndExist\n");
+    TestLandmarksStayAwayFromSpawnAndExist();
+    printf("TestLandmarkGuardsWakeOnce\n");
+    TestLandmarkGuardsWakeOnce();
     printf("TestFloorDivRoundsDown\n");
     TestFloorDivRoundsDown();
     printf("TestNoiseStaysInRangeAndIsSmooth\n");

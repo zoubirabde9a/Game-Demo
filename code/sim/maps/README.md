@@ -22,6 +22,12 @@ Write a `Generate` function returning a `terrain_kind` for any `(x, y)` and, opt
 
 `test.bat` pins a hash of a 128 x 128 region of each procedural map (`terrain_tests.cpp`). If you change a generator on purpose, set `TERRAIN_PRINT_HASHES` to 1, run the tests, and copy the new values in. A hash that changes when you didn't touch a generator means terrain would desync.
 
+## Landmarks
+
+Infinite maps carry hand-made landmarks (`code/sim/terrain/landmarks.cpp`): Ruined Watchtower, Sunken Shrine, Spider Hollow (Wilds), Obsidian Altar, Ash Camp (Wastes). The ground is cut into regions of 80 x 80 tiles; from the seed, about half of them hold one landmark, on open ground, never near the origin. A layout uses the same legend as hand-made maps, plus `?` (keep the generated ground underneath), `b` basalt, `X` basalt wall, `d` dead tree on ash, and `m`/`n` guard markers on stone or dirt. The first time a player comes within about 13 tiles, the landmark's guards appear on their markers, the first of them an elite. `art.bat` writes a close-up of each landmark as `landmark_<Name>.png`.
+
+To add one: write the layout, add a row to `LandmarkTable` with the maps it may appear on (`MapMask`) and one guard kind per marker. The tests check the layout and the marker count.
+
 ## Monster mix
 
 `MonsterWeight[kind]` multiplies that kind's `SpawnWeight` on the map; 0 keeps it out entirely.

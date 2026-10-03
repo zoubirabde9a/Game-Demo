@@ -25,6 +25,8 @@ typedef terrain_prop map_prop_function(map_def *Map, i32 X, i32 Y,
 
 struct map_def
 {
+    // NOTE(zoubir): its own map_id, filled in by GetMapDef
+    u32 Id;
     char *Name;
     map_kind Kind;
     u32 Seed;
@@ -79,6 +81,12 @@ global_variable layout_symbol LayoutLegend[] =
     {'O', TerrainKind_Snow, TerrainProp_Boulder, false},
     {'s', TerrainKind_StoneFloor, TerrainProp_None, true},
     {'g', TerrainKind_Grass, TerrainProp_None, true},
+    {'b', TerrainKind_Basalt, TerrainProp_None, false},
+    {'X', TerrainKind_BasaltWall, TerrainProp_None, false},
+    {'d', TerrainKind_Ash, TerrainProp_DeadTree, false},
+    // NOTE(zoubir): landmark guard markers (sim/terrain/landmarks.cpp)
+    {'m', TerrainKind_StoneFloor, TerrainProp_None, false},
+    {'n', TerrainKind_Dirt, TerrainProp_None, false},
 };
 
 inline layout_symbol *
@@ -107,13 +115,18 @@ GetLayoutSymbol(map_def *Map, i32 X, i32 Y)
     return Result;
 }
 
+// NOTE(zoubir): in landmarks.cpp, included after this file
+internal char LandmarkSymbolAt(map_def *Map, i32 X, i32 Y);
+
 internal terrain_kind
 TerrainAt(map_def *Map, i32 X, i32 Y)
 {
     terrain_kind Result = Map->Outside;
     if (Map->Kind == MapKind_Infinite)
     {
-        Result = Map->Generate(Map, X, Y);
+        char Landmark = LandmarkSymbolAt(Map, X, Y);
+        layout_symbol *Symbol = Landmark ? FindLayoutSymbol(Landmark) : 0;
+        Result = Symbol ? Symbol->Ground : Map->Generate(Map, X, Y);
     }
     else
     {
@@ -132,6 +145,12 @@ PropAt(map_def *Map, i32 X, i32 Y)
     terrain_prop Result = TerrainProp_None;
     if (Map->Kind == MapKind_Infinite)
     {
+        char Landmark = LandmarkSymbolAt(Map, X, Y);
+        layout_symbol *Symbol = Landmark ? FindLayoutSymbol(Landmark) : 0;
+        if (Symbol)
+        {
+            return Symbol->Prop;
+        }
         terrain_kind Ground = Map->Generate(Map, X, Y);
         if (Map->PlaceProp && !GetTerrainDef(Ground)->Blocks)
         {
@@ -236,6 +255,7 @@ GetMapDef(map_id Id)
         {
             map_def *Map = &MapTable[MapIndex];
             DefaultMapDef(Map);
+            Map->Id = MapIndex;
             MapDefineFunctions[MapIndex](Map);
             if (Map->Kind == MapKind_Bounded)
             {
@@ -332,6 +352,8 @@ ComputeTerrainContentHash()
         else
         {
             Hash = (Hash ^ HashTerrainRegion(Map, -16, -16, 32)) * 16777619u;
+            // NOTE(zoubir): a region with landmarks in it
+            Hash = (Hash ^ HashTerrainRegion(Map, 120, -40, 64)) * 16777619u;
         }
     }
     return Hash;
