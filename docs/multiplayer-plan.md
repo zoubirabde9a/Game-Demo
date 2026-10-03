@@ -19,7 +19,7 @@ Each step leaves the game building, the tests passing and the game playable.
     - [ ] 2b. Swords, fireballs and shockwaves damage other players (never their owner); kills and deaths credited to slots; HUD shows the local slot's score.
 - [ ] 3. Split simulation from rendering. A `SimulateTick(world, inputs[], dt)` updates every entity without drawing, playing sounds or touching assets; the client draws in a separate pass.
 - [ ] 4. Headless server program (`code/server/`). Fixed-tick loop around `SimulateTick`, builds on Windows (for local testing) and Linux (for the VPS) with no graphics libraries.
-- [ ] 5. Network protocol (`code/net/`). Packet layout for connect, input and snapshot, with serialization tests.
+- [x] 5. Network protocol (`code/net/`). Packet layout for connect, input and snapshot, with serialization tests. `code/net/protocol.h` describes the packets; `code/tests/net_tests.cpp` checks them.
 - [ ] 6. Server networking. UDP socket, client slots, timeouts, applying inputs, sending snapshots.
 - [ ] 7. Client networking. Connect to a server address, send input each frame, draw entities from snapshots, show other players' names and health.
 - [ ] 8. Scoreboard and match flow in the HUD: player list, kills, deaths, respawn timer.
