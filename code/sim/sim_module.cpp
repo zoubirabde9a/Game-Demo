@@ -10,14 +10,17 @@
 
    World storage and the entity struct every module shares are world.* and
    entity.* (declared through app.h): the arena's tiles and chunk lists,
-   adding and removing entities, MoveEntity with its collision, overlaps,
-   and the animation state machine.
+   adding and removing entities, and the animation state machine.
+   collision.cpp is what happens when two entities meet; move.cpp is
+   MoveEntity, which sweeps an entity through the world each tick.
 
    A new sim file goes on its own line below, after the files it uses.
    Monster kinds are not listed here: see monsters/README.md. */
 
 #include "world.cpp"
 #include "entity.cpp"
+#include "collision.cpp"
+#include "move.cpp"
 #include "collision_rules.cpp"
 #include "terrain/terrain_module.cpp"
 #include "animations.cpp"
