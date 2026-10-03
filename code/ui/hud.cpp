@@ -45,7 +45,7 @@ internal void
 DrawHud(render_context *RenderContext, app_state *AppState,
         v3 CameraOffset)
 {
-    world_entity *Player = AppState->Player;
+    world_entity *Player = GetLocalPlayer(AppState);
     if (!Player || Player->MaxHp <= 0.f)
     {
         return;

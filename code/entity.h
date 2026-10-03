@@ -148,6 +148,8 @@ struct world_entity
     animation_direction AnimationDirection;
 
     //Monster && Player
+    // NOTE(zoubir): which player_slot owns this player entity
+    u32 PlayerIndex;
     monster_kind MonsterKind;
     // NOTE(zoubir): multiplied with the sprite, 0 means untinted
     u32 Tint;

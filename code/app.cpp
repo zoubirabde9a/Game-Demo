@@ -24,12 +24,14 @@
 #include "sim/animations.cpp"
 #include "sim/monster_kinds.cpp"
 #include "sim/spawn.cpp"
+#include "sim/players.cpp"
 #include "sim/arena.cpp"
 #include "sim/abilities.cpp"
 #include "sim/monster_population.cpp"
 #include "sim/update.cpp"
 #include "sim/draw.cpp"
 #include "ui/hud.cpp"
+#include "client/keyboard_input.cpp"
 
 #include "app_ui.h"
 
@@ -213,7 +215,13 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
 #if 1
     world *World = &AppState->World;
     tile_map *TileMap = &World->TileMap;
-    world_entity *Player = AppState->Player;
+    world_entity *Player = GetLocalPlayer(AppState);
+    AppState->Players[AppState->LocalPlayerIndex].Input =
+        ReadKeyboardPlayerInput(Input);
+    if (Input->ButtonJ.Pressed)
+    {
+        PlaySound(AppState, {AssetType_BattleTheme});
+    }
 
     float TileMapWidth = (float)(World->NumTilesX * World->TileWidth);
     float TileMapHeight = (float)(World->NumTilesY * World->TileHeight);
@@ -354,12 +362,12 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
                 animation_type AnimationType;
                 animation_direction AnimationDirection;
     
-                UpdatePlayer(ThisEntity, World, MemoryArena, Input, AppState,
-                             CameraOffset,
+                player_slot *Slot = GetPlayerSlot(AppState, ThisEntity);
+                UpdatePlayer(Slot, World, MemoryArena, Input, AppState,
                              &AnimationSpeedRate,
                              &AnimationType,
                              &AnimationDirection);
-                RespawnPlayerIfDead(ThisEntity, World, MemoryArena, AppState);
+                RespawnPlayerIfDead(Slot, World, MemoryArena, AppState);
 
                 DoEntityAnimation(ThisEntity, Assets, AppState,
                                   Input->DeltaTime, AnimationSpeedRate,

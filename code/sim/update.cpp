@@ -1,15 +1,17 @@
-/* Per-frame behaviour for units that think: the player (input, movement,
-   attacks, spells), the familiar (follows the player) and fireballs. */
+/* Per-frame behaviour for units that think: players (driven by their
+   slot's player_input, never the keyboard), monsters, the familiar and
+   fireballs. */
 
 internal void
-UpdatePlayer(world_entity *Player, world *World,
+UpdatePlayer(player_slot *Slot, world *World,
              memory_arena *Arena,
              app_input *Input, app_state *AppState,
-             v3 CameraOffset,
              float *AnimationSpeedRate,
              animation_type *AnimationType,
              animation_direction *AnimationDirection)
 {
+    world_entity *Player = Slot->Entity;
+    player_input *PlayerInput = &Slot->Input;
     float DeltaTime = Input->DeltaTime;
     v3 DDPlayer = {};
     float PlayerAcceleration = 56000.f;
@@ -17,15 +19,11 @@ UpdatePlayer(world_entity *Player, world *World,
     *AnimationDirection =
         Player->AnimationState.LastAnimationDirection;
     *AnimationSpeedRate = 1.f;
-    v2 MouseWorldPosition =
-        V2((float)Input->MouseX, (float)Input->MouseY) +
-        CameraOffset.XY;
-
     bool32 Move = 0;
-    bool32 Up = Input->ButtonZ.EndedDown;
-    bool32 Down = Input->ButtonS.EndedDown;
-    bool32 Right = Input->ButtonD.EndedDown;
-    bool32 Left = Input->ButtonQ.EndedDown;
+    bool32 Up = PlayerInput->Move.Y < 0.f;
+    bool32 Down = PlayerInput->Move.Y > 0.f;
+    bool32 Right = PlayerInput->Move.X > 0.f;
+    bool32 Left = PlayerInput->Move.X < 0.f;
 
     v2 Dir = {};
     float CastingTimeEventLinger = 0.15f;    
@@ -72,7 +70,7 @@ UpdatePlayer(world_entity *Player, world *World,
             DelayedMoveIndex < 1;
             DelayedMoveIndex ++)
         {
-            AddPlayerDelayedMove(AppState, MoveEventLinger, Dir);
+            AddPlayerDelayedInput(Slot, PDI_Move, MoveEventLinger, Dir);
         }
     }
 
@@ -84,14 +82,16 @@ UpdatePlayer(world_entity *Player, world *World,
     }
     
         
-    if (Input->RightButton.Pressed)
+    if (WasPressed(PlayerInput, PlayerButton_Attack))
     {
-        AddPlayerDelayedAttack(AppState, CastingTimeEventLinger, Player->Direction);
+        AddPlayerDelayedInput(Slot, PDI_Attack, CastingTimeEventLinger,
+                              Player->Direction);
     }
 
-    if (Input->LeftButton.Pressed)
-    {       
-        AddPlayerDelayedCast(AppState, CastingTimeEventLinger, Player->Direction);
+    if (WasPressed(PlayerInput, PlayerButton_Cast))
+    {
+        AddPlayerDelayedInput(Slot, PDI_Cast, CastingTimeEventLinger,
+                              Player->Direction);
     }
     
 
@@ -120,10 +120,10 @@ UpdatePlayer(world_entity *Player, world *World,
     
     bool32 Halted = 0;
     for(u32 DelayedInputIndex = 0;
-        DelayedInputIndex < AppState->PlayerDelayedInputCount;)
+        DelayedInputIndex < Slot->DelayedInputCount;)
     {
         player_delayed_input *DelayedInput =
-            &AppState->PlayerDelayedInput[DelayedInputIndex];
+            &Slot->DelayedInput[DelayedInputIndex];
         bool32 RemoveEvent = 0;
         bool32 Consumed = 0;
         if (Halted)
@@ -258,8 +258,8 @@ UpdatePlayer(world_entity *Player, world *World,
         }
         if (RemoveEvent)
         {
-            AppState->PlayerDelayedInput[DelayedInputIndex] =
-                AppState->PlayerDelayedInput[--AppState->PlayerDelayedInputCount];
+            Slot->DelayedInput[DelayedInputIndex] =
+                Slot->DelayedInput[--Slot->DelayedInputCount];
         }
     }
     
@@ -289,7 +289,7 @@ UpdatePlayer(world_entity *Player, world *World,
     
     // NOTE(zoubir): only from the ground, pressing again mid-air used
     // to restart the jump and let the player fly
-    if (Input->SpaceButton.Pressed && !Jumping)
+    if (WasPressed(PlayerInput, PlayerButton_Jump) && !Jumping)
     {
         Player->State = EntityState_Jumping;
         Player->Velocity.Z = 230.f;
@@ -298,7 +298,8 @@ UpdatePlayer(world_entity *Player, world *World,
     
     Player->ShockwaveCooldown = Maximum(0.f, Player->ShockwaveCooldown - DeltaTime);
     Player->ShockwaveFlash = Maximum(0.f, Player->ShockwaveFlash - DeltaTime);
-    if (Input->ButtonE.Pressed && Player->ShockwaveCooldown <= 0.f)
+    if (WasPressed(PlayerInput, PlayerButton_Shockwave) &&
+        Player->ShockwaveCooldown <= 0.f)
     {
         Player->ShockwaveCooldown = PLAYER_SHOCKWAVE_COOLDOWN;
         TriggerShockwave(AppState, World, Player);
@@ -306,7 +307,8 @@ UpdatePlayer(world_entity *Player, world *World,
     }
 
     Player->DashCooldown = Maximum(0.f, Player->DashCooldown - DeltaTime);
-    if (Input->AltButton.Pressed && Player->DashCooldown <= 0.f)
+    if (WasPressed(PlayerInput, PlayerButton_Dash) &&
+        Player->DashCooldown <= 0.f)
     {
         Player->DashCooldown = PLAYER_DASH_COOLDOWN;
         PlayerAcceleration *= 10;
@@ -423,13 +425,6 @@ UpdatePlayer(world_entity *Player, world *World,
             *AnimationDirection = AnimationDirection_Left;
         }
     
-        if (Input->ButtonJ.Pressed)
-        {
-            playing_sound *BattleTheme =
-                PlaySound(AppState, {AssetType_BattleTheme});
-//            ChangeVolume(BattleTheme, 5, {});
-        }
-    
     }
 
 
@@ -530,11 +525,12 @@ UpdateMonster(world_entity *Entity, world *World,
     }
 
     v3 DDEntity = {};
-    world_entity *Target = AppState->Player;
-    if (Target && Target->IsPresent)
+    float DistanceToTarget;
+    world_entity *Target = FindNearestPlayer(AppState, Entity->Position.XY,
+                                             &DistanceToTarget);
+    if (Target)
     {
         v2 ToTarget = Target->Position.XY - Entity->Position.XY;
-        float DistanceToTarget = Length(ToTarget);
         if (DistanceToTarget < Stats->AttackRange &&
             Entity->AttackCooldown <= 0.f)
         {
@@ -600,23 +596,6 @@ UpdateMonster(world_entity *Entity, world *World,
     float MaxDistance = 10000.f;
     MoveEntity(Entity, World, Arena, Input, AppState,
                DDEntity, &MaxDistance);
-}
-
-// NOTE(zoubir): the player is never removed, it goes back to the spawn
-// point with full health so nothing holding AppState->Player dangles
-internal void
-RespawnPlayerIfDead(world_entity *Player, world *World,
-                    memory_arena *Arena, app_state *AppState)
-{
-    if (Player->Hp <= 0.f)
-    {
-        v3 OldPosition = Player->Position;
-        Player->Position = AppState->PlayerSpawnPosition;
-        Player->Velocity = {};
-        Player->Hp = Player->MaxHp;
-        CheckAndChangeEntityChunk(AppState, World, Arena,
-                                  OldPosition, Player);
-    }
 }
 
 internal void

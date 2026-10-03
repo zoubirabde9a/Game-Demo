@@ -53,6 +53,7 @@ struct font
 #include "utility.h"
 #include "ui.h"
 #include "world.h"
+#include "sim/player.h"
 #include "audio.h"
 
 // asset_id
@@ -65,29 +66,12 @@ struct pairwise_collision_rule
     pairwise_collision_rule *Next;
 };
 
-enum player_delayed_input_type
-{
-    PDI_Move,
-    PDI_Attack,
-    PDI_Cast,
-    PDI_Count
-};
-
-struct player_delayed_input
-{
-    player_delayed_input_type Type;
-    float TimeRemaining;
-    v2 Dir;
-};
-
 struct app_state
 {
     bool32 IsInitialized;
     memory_arena MemoryArena;
     memory_arena ConstantsArena;
 
-    player_delayed_input PlayerDelayedInput[32];
-    u32 PlayerDelayedInputCount;
     
     font *DefaultFont;    
     texture_cache *TextureCache;
@@ -96,8 +80,9 @@ struct app_state
     world World;
     u32 UpdateID;
     
-    world_entity *Player;
-    v3 PlayerSpawnPosition;
+    player_slot Players[MAX_PLAYERS];
+    // NOTE(zoubir): the slot this machine's keyboard drives
+    u32 LocalPlayerIndex;
     u32 KillCount;
     struct monster_population *Monsters;
 
@@ -138,53 +123,6 @@ struct app_state
     opengl_texture_queue OpenglTextureQueue;
     open_gl *OpenGL;
 };
-
-inline void
-AddPlayerDelayedAttack(app_state *AppState,
-                      float TimeRemaining, v2 Dir)
-{
-    Assert(AppState->PlayerDelayedInputCount < ArrayCount(AppState->PlayerDelayedInput));
-    if (AppState->PlayerDelayedInputCount < ArrayCount(AppState->PlayerDelayedInput))
-    {
-        player_delayed_input *NewInput =
-            &AppState->PlayerDelayedInput[AppState->PlayerDelayedInputCount++];
-        NewInput->Type = PDI_Attack;
-        NewInput->TimeRemaining = TimeRemaining;
-        NewInput->Dir = Dir;
-    }
-}
-
-inline void
-AddPlayerDelayedMove(app_state *AppState,
-                     float TimeRemaining,
-                      v2 Dir)
-{
-    Assert(AppState->PlayerDelayedInputCount < ArrayCount(AppState->PlayerDelayedInput));
-    if (AppState->PlayerDelayedInputCount < ArrayCount(AppState->PlayerDelayedInput))
-    {
-        player_delayed_input *NewInput =
-            &AppState->PlayerDelayedInput[AppState->PlayerDelayedInputCount++];
-        NewInput->Type = PDI_Move;
-        NewInput->TimeRemaining = TimeRemaining;
-        NewInput->Dir = Dir;
-    }
-}
-
-inline void
-AddPlayerDelayedCast(app_state *AppState,
-                     float TimeRemaining,
-                      v2 Dir)
-{
-    Assert(AppState->PlayerDelayedInputCount < ArrayCount(AppState->PlayerDelayedInput));
-    if (AppState->PlayerDelayedInputCount < ArrayCount(AppState->PlayerDelayedInput))
-    {
-        player_delayed_input *NewInput =
-            &AppState->PlayerDelayedInput[AppState->PlayerDelayedInputCount++];
-        NewInput->Type = PDI_Cast;
-        NewInput->TimeRemaining = TimeRemaining;
-        NewInput->Dir = Dir;
-    }
-}
 
 struct transient_state
 {

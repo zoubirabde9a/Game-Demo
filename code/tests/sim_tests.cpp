@@ -247,7 +247,6 @@ TestMonsterPopulationRefillsAwayFromPlayers()
     AppState->BatCollision = Test.UnitVolume;
     world_entity *Player = AddTestEntity(&Test, EntityType_Player,
                                          {1000, 1000, 0}, Test.UnitVolume);
-    AppState->Player = Player;
     // NOTE(zoubir): scatter walls so some random spots are blocked
     for(u32 WallIndex = 0; WallIndex < 40; WallIndex++)
     {
@@ -343,6 +342,64 @@ TestIdleMonsterWanders()
 }
 
 internal void
+TestEachSlotFollowsItsOwnInput()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Still = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                          0, {300, 300, 0});
+    world_entity *Runner = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           1, {300, 600, 0});
+    AppState->Players[1].Input.Move = V2(1.f, 0.f);
+
+    float AnimationSpeed;
+    animation_type AnimationType;
+    animation_direction AnimationDirection;
+    for(u32 Frame = 0; Frame < 60; Frame++)
+    {
+        for(u32 SlotIndex = 0; SlotIndex < 2; SlotIndex++)
+        {
+            UpdatePlayer(&AppState->Players[SlotIndex], Test.World,
+                         &Test.Arena, &Test.Input, AppState,
+                         &AnimationSpeed, &AnimationType,
+                         &AnimationDirection);
+        }
+    }
+    Check(Still->Position.X == 300.f);
+    Check(Runner->Position.X > 350.f);
+    Check(Runner->Position.Y == 600.f);
+    Check(GetPlayerSlot(AppState, Runner) == &AppState->Players[1]);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestMonsterChasesNearestPlayer()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 1000, 0});
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 1, {1200, 1000, 0});
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {1000, 1000, 0}, Test.UnitVolume);
+    Monster->MonsterKind = MonsterKind_Brute;
+
+    float AnimationSpeed;
+    animation_type AnimationType;
+    animation_direction AnimationDirection;
+    for(u32 Frame = 0; Frame < 30; Frame++)
+    {
+        UpdateMonster(Monster, Test.World, &Test.Arena, &Test.Input,
+                      AppState, &AnimationSpeed, &AnimationType,
+                      &AnimationDirection);
+    }
+    // NOTE(zoubir): slot 1 is 200 away, slot 0 is 700 away (out of range)
+    Check(Monster->Position.X > 1010.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 TestCopyString()
 {
     char Buffer[4];
@@ -379,6 +436,8 @@ main()
     RUN(TestShockwaveHitsOnlyNearbyMonsters);
     RUN(TestMonsterPopulationRefillsAwayFromPlayers);
     RUN(TestIdleMonsterWanders);
+    RUN(TestEachSlotFollowsItsOwnInput);
+    RUN(TestMonsterChasesNearestPlayer);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
 

@@ -127,10 +127,10 @@ BuildArena(app_state *AppState, memory_arena *MemoryArena)
 
     TileMap->Tiles = Tiles;
 
-    world_entity *Player = AddPlayer(AppState, World,
-                                     MemoryArena, {350, 300});
-    AppState->Player = Player;
-    AppState->PlayerSpawnPosition = Player->Position;
+    AppState->LocalPlayerIndex = 0;
+    world_entity *Player = AddPlayerToSlot(AppState, World, MemoryArena,
+                                           AppState->LocalPlayerIndex,
+                                           {350, 300, 0});
     
     #if 1
     world_entity *Familiar =
