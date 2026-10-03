@@ -23,6 +23,7 @@
 #include "win32/work_queue.cpp"
 #include "win32/startup.cpp"
 #include "win32/frame.cpp"
+#include "win32/screenshot.cpp"
 
 // NOTE(zoubir): starts the window, OpenGL, sound and the game's memory,
 // then runs one game frame per loop at a fixed rate until the window closes
@@ -75,6 +76,9 @@ WinMain(HINSTANCE instance,
     win32_app_code appCode = Win32LoadAppCode(appCodeDLLFullPath,
                                               appCodeTempDLLFullPath);
 
+    win32_screenshot screenshot;
+    Win32InitScreenshot(&screenshot);
+
     LARGE_INTEGER lastCounter = Win32GetWallClock();
     LARGE_INTEGER flipWallClock = Win32GetWallClock();
     while(Running)
@@ -102,6 +106,11 @@ WinMain(HINSTANCE instance,
                              &appCode, &thread, &appMemory);
 
         Win32WaitForFrameEnd(&lastCounter, targetSecondsPerFrame, sleepIsGranular);
+        if (Win32SaveScreenshotIfDue(&screenshot, WindowDimensions.Width,
+                                     WindowDimensions.Height))
+        {
+            Running = false;
+        }
         Win32PresentFrame(windowHandle);
         flipWallClock = Win32GetWallClock();
 

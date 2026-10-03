@@ -12,7 +12,11 @@ build/server
 app_temp.dll
 # build.bat copies these from web/fonts
 build/fonts/
+# misc\screenshot.bat output
+build/*.png
 # art.bat previews
 build/monster_art/
 build/probe
 build/bots
+# misc\land.bat logs
+build/land_*.log
