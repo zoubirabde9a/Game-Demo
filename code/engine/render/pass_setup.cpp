@@ -1,0 +1,148 @@
+/* Setting up a pass: choosing the shader program and texture, picking
+   the plain or batched renderer, and RenderBegin, which takes the vertex
+   (and batch) arrays from the arena. */
+
+inline void
+RenderProgramUse(render_context *RenderContext,
+                 render_program *Program)
+{
+    open_gl *OpenGL = RenderContext->OpenGL;
+    if (!RenderContext->AProgramIsUsed ||
+        RenderContext->LastUsedProgramID != Program->ID)
+    {
+        OpenGL->glUseProgram(Program->ID);
+        for(u32 AttribIndex = 0;
+            AttribIndex < Program->NumAttrib;
+            AttribIndex++)
+        {
+            OpenGL->glEnableVertexAttribArray(AttribIndex);
+        }
+        
+        i32 MatrixLocation = OpenGL->glGetUniformLocation(Program->ID, "P");
+        OpenGL->glUniformMatrix4fv(MatrixLocation, 1, GL_FALSE, Program->ProjectionMatrix->Data);
+        
+        RenderContext->AProgramIsUsed = true;
+        RenderContext->LastUsedProgramID = Program->ID;
+    }
+        
+}
+
+inline void
+RenderProgramUnuse(open_gl *OpenGL, render_program *Program)
+{
+    OpenGL->glUseProgram(0);                
+    for(u32 AttribIndex = 0;
+        AttribIndex < Program->NumAttrib;
+        AttribIndex++)
+    {
+        OpenGL->glDisableVertexAttribArray(AttribIndex);
+    }                
+}
+
+inline render_program *
+GetTextureProgram(thread_context *Thread)
+{
+    return &Thread->RenderContext.TextureProgram;
+};
+
+internal void
+RenderSetProgram(render_context *RenderContext, render_program Program)
+{
+#if APP_DEV
+    if (RenderContext->RendererType == RENDERER_TYPE_DEFAULT)
+    {
+       Assert(RenderContext->Began == false);        
+    }
+#endif
+
+    switch (RenderContext->RendererType)
+    {
+        case RENDERER_TYPE_DEFAULT:
+        {
+            RenderContext->Program = Program;
+            break;
+        }
+    };
+ }
+
+internal void
+RenderSetTexture(render_context *RenderContext, u32 TextureID)
+{
+#if APP_DEV
+    if (RenderContext->RendererType == RENDERER_TYPE_DEFAULT)
+    {
+       Assert(RenderContext->Began == false);        
+    }
+#endif
+    
+    if (RenderContext->RendererType == RENDERER_TYPE_DEFAULT)
+    {
+        RenderContext->Texture = TextureID;
+    }
+    else if (RenderContext->RendererType == RENDERER_TYPE_BATCH)
+    {
+        render_batch *CurrentBatch =
+            &RenderContext->AllocatedBatches[RenderContext->BatchCount];
+        CurrentBatch->TextureID = TextureID;
+    }
+}
+
+inline void
+SetupDefaultRenderer(render_context *RenderContext, memory_arena *Arena)
+{
+    RenderContext->RendererType = RENDERER_TYPE_DEFAULT;
+    RenderContext->Arena = Arena;
+}
+
+internal void
+SetupBatchRenderer(render_context *RenderContext,
+                   memory_arena *Arena, u32 AllocatedBatchCount)
+{
+    Assert(AllocatedBatchCount > 0);
+    RenderContext->Arena = Arena;
+    RenderContext->RendererType = RENDERER_TYPE_BATCH;
+    RenderContext->AllocatedBatchCount = AllocatedBatchCount;
+    RenderContext->BatchCount = 0;
+    RenderContext->BatchOpen = false;
+    RenderContext->AllocatedBatches =
+        AllocateArray(Arena, AllocatedBatchCount,
+                             render_batch);
+}
+
+internal void
+RenderBegin(render_context *RenderContext,
+            u32 AllocatedVertexCount, u32 Tag)
+{
+    memory_arena *Arena = RenderContext->Arena;
+    RenderContext->VertexCount = 0;
+    RenderContext->AllocatedVertexCount = AllocatedVertexCount;
+    RenderContext->OrderType = Tag;
+
+    switch(RenderContext->RendererType)
+    {
+        case RENDERER_TYPE_DEFAULT:
+        {
+            RenderContext->AllocatedVerticies =
+                AllocateArray(Arena, AllocatedVertexCount,
+                                render_vertex);
+            break;
+        }
+        case RENDERER_TYPE_BATCH:
+        {
+            //TODO(zoubir): make sure this value
+            // is correct 'AllocatedVertexCount * 2'
+            RenderContext->AllocatedVerticies =
+                AllocateArray(Arena, AllocatedVertexCount,
+                                render_vertex);
+            RenderContext->TemporaryVerticies =
+                AllocateArray(Arena, AllocatedVertexCount,
+                                render_vertex);
+//                RenderContext->AllocatedVerticies + RenderContext->AllocatedVertexCount;
+            RenderContext->BatchCount = 0;
+            break;
+        }
+    }
+#if APP_DEV
+    RenderContext->Began = true;
+#endif
+}
