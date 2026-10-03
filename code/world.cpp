@@ -111,51 +111,49 @@ InsertEntity(app_state *AppState,
     // are checked after moves and by UpdateSword, once the spawner has
     // set the owner; checking here let a new sword hit its own caster.
 }
+// NOTE(zoubir): a chunk keeps its entities in FirstEntityChunk plus a
+// chain of blocks that are always full; only the first block is partial.
+// Removing swaps in the last entity of the first block. When the first
+// block is empty it is refilled from the second block (never a later
+// one: copying a later block over it used to drop the second block and
+// every entity in it, so they could never be found or moved again).
 internal bool32
 RemoveEntity(world *World,
              world_chunk *Chunk,
              world_entity *Entity)
 {
-    bool32 Result = false;
-    world_entity_chunk *FirstEntityChunk = &Chunk->FirstEntityChunk;
-    world_entity_chunk *EntityChunk = FirstEntityChunk;
-    do {
+    world_entity_chunk *First = &Chunk->FirstEntityChunk;
+    for(world_entity_chunk *EntityChunk = First;
+        EntityChunk;
+        EntityChunk = EntityChunk->Next)
+    {
         for(u32 EntityIndex = 0;
             EntityIndex < EntityChunk->EntityCount;
             EntityIndex++)
         {
-            world_entity *ThisEntity = EntityChunk->Entities[EntityIndex];
-            if (ThisEntity == Entity)
+            if (EntityChunk->Entities[EntityIndex] == Entity)
             {
-                Result = true;
-                // swap with last element
-                if (FirstEntityChunk->EntityCount > 0)
+                if (First->EntityCount == 0 && First->Next)
                 {
-                    u32 LastIndex = FirstEntityChunk->EntityCount - 1;
-                    EntityChunk->Entities[EntityIndex] =
-                        FirstEntityChunk->Entities[LastIndex];
-                    FirstEntityChunk->EntityCount--;
+                    world_entity_chunk *Second = First->Next;
+                    bool32 FoundInSecond = (EntityChunk == Second);
+                    *First = *Second;
+                    Second->EntityCount = 0;
+                    Second->Next = World->FirstFreeChunk;
+                    World->FirstFreeChunk = Second;
+                    if (FoundInSecond)
+                    {
+                        EntityChunk = First;
+                    }
                 }
-                else
-                {
-                    // remove first chunk
-                    u32 LastIndex = EntityChunk->EntityCount - 1;
-                    EntityChunk->Entities[EntityIndex] =
-                        EntityChunk->Entities[LastIndex];
-                    EntityChunk->EntityCount--;
-                    *FirstEntityChunk = *EntityChunk;
-                    // move it to the free list
-                    EntityChunk->EntityCount = 0;
-                    EntityChunk->Next = World->FirstFreeChunk;
-                    World->FirstFreeChunk = EntityChunk;
-                }
-                break;
+                Assert(First->EntityCount > 0);
+                u32 LastIndex = --First->EntityCount;
+                EntityChunk->Entities[EntityIndex] = First->Entities[LastIndex];
+                return true;
             }
         }
-        EntityChunk = EntityChunk->Next;
-    } while(EntityChunk);
-    
-    return Result;
+    }
+    return false;
 }
 
 internal void

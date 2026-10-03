@@ -628,6 +628,81 @@ TestOnlineSessionStartsOnlyWithAnAddress()
     free(Arena.Base);
 }
 
+// NOTE(zoubir): a chunk's entity list is a first block plus full blocks.
+// Emptying the first block, then removing from the third, used to copy
+// the third block over the first and silently drop the second.
+internal void
+TestCrowdedChunkRemovalKeepsEveryone()
+{
+    test_world Test = CreateTestWorld();
+    world *World = Test.World;
+    world_chunk *Chunk = GetChunk(World, 0, 0, 0);
+    world_entity *Units[40];
+    for(u32 Index = 0; Index < 40; Index++)
+    {
+        Units[Index] = AddTestEntity(&Test, EntityType_StaticObject,
+                                     {100.f + Index, 100.f, 0},
+                                     Test.FireBallVolume);
+    }
+    // NOTE(zoubir): 40 = 8 in the first block + two full blocks of 16
+    Check(Chunk->FirstEntityChunk.EntityCount == 8);
+    for(u32 Index = 32; Index < 40; Index++)
+    {
+        Check(RemoveEntity(World, Chunk, Units[Index]));
+    }
+    Check(Chunk->FirstEntityChunk.EntityCount == 0);
+    // NOTE(zoubir): Units[0] went in first, so it sits in the last block
+    Check(RemoveEntity(World, Chunk, Units[0]));
+    for(u32 Index = 1; Index < 32; Index++)
+    {
+        Check(RemoveEntity(World, Chunk, Units[Index]));
+    }
+    Check(Chunk->FirstEntityChunk.EntityCount == 0);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): the full simulation under random play. Seed 5 used to
+// crash after about 8000 ticks on the chunk bug above.
+internal void
+TestRandomPlaySoak()
+{
+    app_state *AppState = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(48);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)),
+                    Megabytes(1));
+    InitSimulation(AppState, &Arena, &Constants);
+    for(u32 Slot = 0; Slot < 4; Slot++)
+    {
+        AddPlayerToSlot(AppState, &AppState->World, &Arena, Slot,
+                        PlayerSpawnPosition(Slot));
+    }
+    random_series Series = Seed(5);
+    u32 Ticks = 60 * 180;
+    for(u32 Tick = 0; Tick < Ticks; Tick++)
+    {
+        for(u32 Slot = 0; Slot < 4; Slot++)
+        {
+            player_input *Input = &AppState->Players[Slot].Input;
+            if (RandomChoice(&Series, 20) == 0)
+            {
+                Input->Move.X = (float)RandomChoice(&Series, 3) - 1.f;
+                Input->Move.Y = (float)RandomChoice(&Series, 3) - 1.f;
+            }
+            Input->Pressed = RandomChoice(&Series, 10) == 0 ?
+                (1u << RandomChoice(&Series, 5)) : 0;
+        }
+        SimulateTick(AppState, &Arena,
+                     RandomBetween(&Series, 0.005f, 0.05f));
+        AppState->Events.Count = 0;
+    }
+    Check(CountLiveMonsters(&AppState->World) > 0);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(AppState);
+}
+
 internal void
 TestCopyString()
 {
@@ -726,6 +801,8 @@ main()
     RUN(TestScoreboardRanksByKillsThenDeaths);
     RUN(TestOnlineAddressAndButtons);
     RUN(TestOnlineSessionStartsOnlyWithAnAddress);
+    RUN(TestCrowdedChunkRemovalKeepsEveryone);
+    RUN(TestRandomPlaySoak);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
     RUN(TestAnimationAdvancesWithoutTexture);
