@@ -8,9 +8,22 @@
    server will have it once those inputs arrive.
 
    Only movement is predicted. Attacks, dashes and jumps change what other
-   players see, so they wait for the server. */
+   players see, so they wait for the server.
+
+   When the replay lands somewhere other than where the player was drawn a
+   frame ago, the difference is kept as DrawError and the player is drawn
+   that far off its predicted position, shrinking each frame, so a
+   correction slides in over ~100 ms instead of snapping. Movement and
+   collision always run from the predicted position; the offset is added
+   back only after them. A jump longer than PREDICTION_SNAP_DISTANCE (a
+   respawn) snaps. */
 
 #define MAX_PREDICTED_INPUTS 128
+// NOTE(zoubir): a correction farther than this is a teleport, not an error
+#define PREDICTION_SNAP_DISTANCE (4.f * ARENA_TILE_SIZE)
+// NOTE(zoubir): share of DrawError removed per second; at 60 fps a
+// correction is under a tenth of its size after 100 ms
+#define PREDICTION_BLEND_RATE 20.f
 
 struct predicted_input
 {
@@ -26,6 +39,11 @@ struct prediction_history
     predicted_input Inputs[MAX_PREDICTED_INPUTS];
     u32 First;
     u32 Count;
+    // NOTE(zoubir): last frame's predicted position; the player was drawn
+    // DrawError away from it
+    bool32 HasShown;
+    v2 Predicted;
+    v2 DrawError;
 };
 
 // NOTE(zoubir): the server turns held net buttons into a move direction
@@ -104,30 +122,82 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena, u16 Buttons,
     return true;
 }
 
+// NOTE(zoubir): moves the local player's drawn position, keeping the
+// world's chunk lists right
+internal void
+SetLocalPlayerXY(app_state *AppState, memory_arena *Arena,
+                 world_entity *Player, v2 XY)
+{
+    v3 OldPosition = Player->Position;
+    Player->Position.XY = XY;
+    CheckAndChangeEntityChunk(AppState, &AppState->World, Arena,
+                              OldPosition, Player);
+}
+
 // NOTE(zoubir): call after SyncReplicas. On a new snapshot the replica
 // sits where the server had it, so replay every input it has not applied;
 // otherwise move it by this frame's input, the newest in the history.
 internal void
 PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
                    prediction_history *History, bool32 NewSnapshot,
-                   u32 InputTick)
+                   u32 InputTick, float DeltaTime)
 {
+    player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
+    world_entity *Player = Slot->Entity;
+    bool32 Moved = true;
     if (NewSnapshot)
     {
         DropAcknowledgedInputs(History, InputTick);
-        for(u32 Index = 0; Index < History->Count; Index++)
+        for(u32 Index = 0; Index < History->Count && Moved; Index++)
         {
             predicted_input *Input = GetPredictedInput(History, Index);
-            if (!PredictLocalStep(AppState, Arena, Input->Buttons,
-                                  Input->DeltaTime))
-            {
-                break;
-            }
+            Moved = PredictLocalStep(AppState, Arena, Input->Buttons,
+                                     Input->DeltaTime);
         }
     }
-    else if (History->Count > 0)
+    else
     {
-        predicted_input *Newest = GetPredictedInput(History, History->Count - 1);
-        PredictLocalStep(AppState, Arena, Newest->Buttons, Newest->DeltaTime);
+        // NOTE(zoubir): last frame drew the player DrawError off its
+        // predicted position; step from the predicted one
+        if (Player && History->HasShown)
+        {
+            SetLocalPlayerXY(AppState, Arena, Player, History->Predicted);
+        }
+        if (History->Count > 0)
+        {
+            predicted_input *Newest =
+                GetPredictedInput(History, History->Count - 1);
+            Moved = PredictLocalStep(AppState, Arena, Newest->Buttons,
+                                     Newest->DeltaTime);
+        }
     }
+
+    if (!Moved || !Player || !Player->IsPresent || IsDeadPlayer(Player))
+    {
+        History->HasShown = false;
+        History->DrawError = {};
+        return;
+    }
+
+    v2 Predicted = Player->Position.XY;
+    if (NewSnapshot)
+    {
+        History->DrawError = History->HasShown ?
+            (History->Predicted + History->DrawError) - Predicted :
+            V2(0.f, 0.f);
+        if (LengthSq(History->DrawError) >
+            Square(PREDICTION_SNAP_DISTANCE))
+        {
+            History->DrawError = {};
+        }
+    }
+    float Keep = 1.f - PREDICTION_BLEND_RATE * DeltaTime;
+    History->DrawError *= (Keep > 0.f) ? Keep : 0.f;
+    if (LengthSq(History->DrawError) < Square(0.01f))
+    {
+        History->DrawError = {};
+    }
+    SetLocalPlayerXY(AppState, Arena, Player, Predicted + History->DrawError);
+    History->Predicted = Predicted;
+    History->HasShown = true;
 }

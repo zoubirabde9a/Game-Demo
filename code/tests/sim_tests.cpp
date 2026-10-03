@@ -971,6 +971,64 @@ TestPredictionHistory()
     free(History);
 }
 
+// NOTE(zoubir): a server correction slides the drawn player over a few
+// frames instead of snapping, and a teleport-sized one snaps
+internal void
+TestPredictionBlendsCorrections()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    prediction_history *History =
+        (prediction_history *)calloc(1, sizeof(prediction_history));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+    float Dt = 1.f / 60.f;
+
+    Snapshot->Tick = 1;
+    Snapshot->Count = 1;
+    Snapshot->NameSlot = NET_NO_NAME_SLOT;
+    Snapshot->Entities[0] = SnapshotEntity(3, EntityType_Player, 500, 500, 0);
+    Snapshot->Entities[0].Health = 100;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
+    world_entity *Player = GetLocalPlayer(AppState);
+    Check(Player->Position.X == 500.f);
+
+    // NOTE(zoubir): the server says 20 units left of where it was drawn
+    Snapshot->Tick = 2;
+    Snapshot->Entities[0].X = 480.f;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
+    Check(Player->Position.X > 490.f);
+    Check(Player->Position.X < 500.f);
+    float Previous = Player->Position.X;
+    for(u32 Frame = 0; Frame < 6; Frame++)
+    {
+        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, Dt);
+        Check(Player->Position.X < Previous);
+        Previous = Player->Position.X;
+    }
+    Check(Player->Position.X < 482.f);
+    for(u32 Frame = 0; Frame < 30; Frame++)
+    {
+        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, Dt);
+    }
+    Check(Player->Position.X == 480.f);
+    Check(History->DrawError.X == 0.f);
+
+    // NOTE(zoubir): a respawn across the arena snaps at once
+    Snapshot->Tick = 3;
+    Snapshot->Entities[0].X = 480.f + 10.f * PREDICTION_SNAP_DISTANCE;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
+    Check(Player->Position.X == 480.f + 10.f * PREDICTION_SNAP_DISTANCE);
+
+    free(Snapshot);
+    free(History);
+    free(Table);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 TestPredictionMovesNowAndReplaysAfterSnapshot()
 {
@@ -992,13 +1050,13 @@ TestPredictionMovesNowAndReplaysAfterSnapshot()
 
     // NOTE(zoubir): holding right moves the player on the very first frame
     RecordPredictedInput(History, 1, NetButton_Right, Dt);
-    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
     float AfterOne = Player->Position.X;
     Check(AfterOne > 500.f);
     for(u32 Tick = 2; Tick <= 10; Tick++)
     {
         RecordPredictedInput(History, Tick, NetButton_Right, Dt);
-        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0);
+        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, Dt);
     }
     Check(Player->Position.X > AfterOne);
     Check(Player->Position.Y == 500.f);
@@ -1009,9 +1067,9 @@ TestPredictionMovesNowAndReplaysAfterSnapshot()
     Snapshot->InputTick = 10;
     Snapshot->Entities[0].X = 530.f;
     SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    PredictLocalPlayer(AppState, &Test.Arena, History, true, 10);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 10, Dt);
     Check(History->Count == 0);
-    Check(Player->Position.X == 530.f);
+    Check(Player->Position.X - History->DrawError.X == 530.f);
 
     // NOTE(zoubir): five newer inputs it has not applied: the player is
     // ahead of the server's position, as far as five frames carry it
@@ -1022,10 +1080,11 @@ TestPredictionMovesNowAndReplaysAfterSnapshot()
     Snapshot->Tick = 3;
     Snapshot->Entities[0].X = 540.f;
     SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    PredictLocalPlayer(AppState, &Test.Arena, History, true, 10);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 10, Dt);
     Check(History->Count == 5);
-    Check(Player->Position.X > 540.f);
-    Check(Player->Position.X < 540.f + 5.f * 30.f);
+    float Predicted = Player->Position.X - History->DrawError.X;
+    Check(Predicted > 540.f);
+    Check(Predicted < 540.f + 5.f * 30.f);
 
     free(Snapshot);
     free(History);
@@ -1166,6 +1225,7 @@ main()
     RUN(TestReplicasCarryMonsterDetails);
     RUN(TestPredictionHistory);
     RUN(TestPredictionMovesNowAndReplaysAfterSnapshot);
+    RUN(TestPredictionBlendsCorrections);
     RUN(TestReplicaFacingFromSnapshot);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);

@@ -207,7 +207,7 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
         SyncReplicas(AppState, Arena, &Online->Replicas, Snapshot, DeltaTime,
                      Online->Client.PlayerIndex);
         PredictLocalPlayer(AppState, Arena, &Online->Prediction, NewSnapshot,
-                           Snapshot->InputTick);
+                           Snapshot->InputTick, DeltaTime);
         return;
     }
     if (Online && Online->Replicas.Active)
