@@ -1,5 +1,7 @@
 # systemd service for the dedicated game server. Installed by deploy/install.sh.
-# The port comes from /etc/game-demo/server.env (PORT=27015 by default).
+# The port comes from /etc/game-demo/server.env (PORT=27015 by default), and
+# any other server options from SERVER_ARGS there, e.g. SERVER_ARGS=--bots 4
+# or SERVER_ARGS=--map keep --bots 2 (then: sudo systemctl restart game-demo).
 #   status:  systemctl status game-demo
 #   logs:    journalctl -u game-demo -f
 [Unit]
@@ -11,8 +13,9 @@ Wants=network-online.target
 User=gameserver
 Group=gameserver
 Environment=PORT=27015
+Environment=SERVER_ARGS=
 EnvironmentFile=-/etc/game-demo/server.env
-ExecStart=/opt/game-demo/current/server ${PORT}
+ExecStart=/opt/game-demo/current/server ${PORT} $SERVER_ARGS
 # SIGTERM makes the server tell every player it is closing, then exit 0.
 KillSignal=SIGTERM
 TimeoutStopSec=5

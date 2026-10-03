@@ -33,7 +33,7 @@ What a healthy run looks like (local debug server, Old Arena, 2026-10-03, protoc
 | Is it up? | `systemctl status game-demo` or `/opt/game-demo/current/probe` |
 | Who joined and left | `journalctl -u game-demo -f` |
 | Change the port | edit `/etc/game-demo/server.env`, then `sudo systemctl restart game-demo` |
-| Bots for a lone player | the server takes `--bots N` (bot players in free slots); add it to the server's arguments where the port is set |
+| Bots, or another map | add `SERVER_ARGS=--bots 4` (or `--map keep --bots 2`) to `/etc/game-demo/server.env`, then `sudo systemctl restart game-demo`; the service file needs to be the one from this commit or later |
 | Which build is live | `journalctl -u game-demo \| grep listening \| tail -1` (content id) and `readlink /opt/game-demo/current` (commit) |
 | Remove it completely | `systemctl disable --now game-demo; rm -rf /opt/game-demo /etc/game-demo /etc/systemd/system/game-demo.service; userdel gameserver; ufw delete allow 27015/udp` |
 | Roll back by hand | `ls /opt/game-demo/releases`, then `sudo ln -sfn /opt/game-demo/releases/<name> /opt/game-demo/current && sudo systemctl restart game-demo` |
