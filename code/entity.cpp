@@ -272,21 +272,47 @@ MakeGroundedTreeCollisionVolume(memory_arena *Arena)
 // NOTE(zoubir): every hit goes through here so deaths are counted once
 internal bool32
 DamageEntity(app_state *AppState, world *World,
-             world_entity *Target, float Damage)
+             world_entity *Target, float Damage, world_entity *Source)
 {
-    bool32 Killed = false;
-    if (Target->IsPresent)
+    // NOTE(zoubir): a dead player waits for respawn with Hp <= 0, so
+    // further hits that frame do not count as more kills
+    if (!Target->IsPresent || Target->Hp <= 0.f)
     {
-        Target->Hp -= Damage;
-        if (Target->Hp <= 0.f &&
-            Target->Type == EntityType_Monster)
+        return false;
+    }
+
+    Target->Hp -= Damage;
+    if (Target->Hp > 0.f)
+    {
+        return false;
+    }
+
+    // NOTE(zoubir): credit goes to the player behind the hit, if any
+    player_slot *Attacker = 0;
+    if (Source && Source->Type == EntityType_Player)
+    {
+        Attacker = &AppState->Players[Source->PlayerIndex];
+    }
+    else if (Source && Source->HasOwner)
+    {
+        Attacker = &AppState->Players[Source->OwnerSlot];
+    }
+
+    if (Target->Type == EntityType_Monster)
+    {
+        RemoveEntity(World, Target);
+        if (Attacker)
         {
-            RemoveEntity(World, Target);
-            AppState->KillCount++;
-            Killed = true;
+            Attacker->MonsterKills++;
         }
     }
-    return Killed;
+    else if (Target->Type == EntityType_Player &&
+             Attacker &&
+             Attacker != &AppState->Players[Target->PlayerIndex])
+    {
+        Attacker->Kills++;
+    }
+    return true;
 }
 
 internal bool32
@@ -303,10 +329,12 @@ HandleCollision(app_state *AppState, world *World,
         B = Tmp;
     }
 
+    // NOTE(zoubir): fireballs pierce; the caller adds a pass-through rule
+    // so each fireball hits each target once. The owner already has one.
     if (A->Type == EntityType_FireBall &&
-        B->Type == EntityType_Monster)
+        (B->Type == EntityType_Monster || B->Type == EntityType_Player))
     {
-        DamageEntity(AppState, World, B, FIREBALL_DAMAGE);
+        DamageEntity(AppState, World, B, FIREBALL_DAMAGE, A);
         Result = false;
     }
     return Result;
@@ -363,7 +391,8 @@ CanOverlap(world_entity *Entity, world_entity *Region)
     }
     
     if (Entity->Type == EntityType_Sword &&
-        Region->Type == EntityType_Monster)
+        (Region->Type == EntityType_Monster ||
+         Region->Type == EntityType_Player))
     {
         Result = true;
     }
@@ -412,12 +441,11 @@ HandleOverlap(app_state *AppState, world *World, memory_arena *Arena,
         
     if (Entity->Type == EntityType_Sword)
     {
-        if (!DamageEntity(AppState, World, Region, SWORD_DAMAGE))
-        {
-            AddCollisionRule(AppState, Arena,
-                             Entity->ID, Region->ID,
-                             false);
-        }
+        DamageEntity(AppState, World, Region, SWORD_DAMAGE, Entity);
+        // NOTE(zoubir): one hit per swing per target
+        AddCollisionRule(AppState, Arena,
+                         Entity->ID, Region->ID,
+                         false);
     }
 }
 

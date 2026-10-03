@@ -106,6 +106,12 @@ AddSword(app_state *AppState,
     Entity->AnimationDirection = AnimationDirection;
     
     Entity->AnimationSet = &AppState->SwordAnimationSet;
+    if (Caster->Type == EntityType_Player)
+    {
+        Entity->HasOwner = true;
+        Entity->OwnerSlot = Caster->PlayerIndex;
+    }
+    AddCollisionRule(AppState, Arena, Entity->ID, Caster->ID, false);
         #if 0
     animation_slot *SlashAnimation =
         GetAnimation(AnimationSet,
@@ -343,6 +349,12 @@ AddFireBall(app_state *AppState,
     Entity->TimeLeft = 1.0f;
     
     Entity->AnimationSet = &AppState->FireballAnimationSet;
+    if (Owner->Type == EntityType_Player)
+    {
+        Entity->HasOwner = true;
+        Entity->OwnerSlot = Owner->PlayerIndex;
+    }
+    AddCollisionRule(AppState, Arena, Entity->ID, Owner->ID, false);
     return Entity;
 }
 

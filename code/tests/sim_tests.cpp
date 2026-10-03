@@ -61,6 +61,13 @@ CreateTestWorld()
     Result.FireBallVolume =
         MakeSimpleGroundedCollisionVolume(&Result.Arena, {9, 9, 0.f});
     Result.Input.DeltaTime = 1.f / 60.f;
+
+    app_state *AppState = Result.AppState;
+    AppState->PlayerCollision = Result.UnitVolume;
+    AppState->BatCollision = Result.UnitVolume;
+    AppState->FireBallCollision = Result.FireBallVolume;
+    AppState->SwordCollision =
+        MakeSimpleGroundedCollisionVolume(&Result.Arena, {31, 31, 31.f});
     return Result;
 }
 
@@ -156,6 +163,8 @@ TestFireBallKillsMonsterOnce()
                                            {300, 300, 0},
                                            Test.FireBallVolume);
     FireBall->Velocity = {450, 0, 0};
+    FireBall->HasOwner = true;
+    FireBall->OwnerSlot = 2;
     for(u32 Frame = 0; Frame < 60; Frame++)
     {
         float MaxDistance = 10000.f;
@@ -163,7 +172,7 @@ TestFireBallKillsMonsterOnce()
                    Test.AppState, {}, &MaxDistance);
     }
     Check(!Monster->IsPresent);
-    Check(Test.AppState->KillCount == 1);
+    Check(Test.AppState->Players[2].MonsterKills == 1);
     // NOTE(zoubir): fireballs pierce, so it kept flying past
     Check(FireBall->Position.X > 420.f);
     DestroyTestWorld(&Test);
@@ -229,7 +238,7 @@ TestShockwaveHitsOnlyNearbyMonsters()
     u32 Hits = TriggerShockwave(Test.AppState, Test.World, Player);
     Check(Hits == 2);
     Check(!Weak->IsPresent);
-    Check(Test.AppState->KillCount == 1);
+    Check(Test.AppState->Players[Player->PlayerIndex].MonsterKills == 1);
     Check(Tough->Hp == 100.f - SHOCKWAVE_DAMAGE);
     // NOTE(zoubir): thrown away from the player, which is above it
     Check(Tough->Velocity.Y > 0.f);
@@ -270,7 +279,7 @@ TestMonsterPopulationRefillsAwayFromPlayers()
         world_entity *Entity = &Test.World->Entities[EntityIndex];
         if (Entity->IsPresent && Entity->Type == EntityType_Monster)
         {
-            DamageEntity(AppState, Test.World, Entity, 1000.f);
+            DamageEntity(AppState, Test.World, Entity, 1000.f, 0);
             Killed++;
         }
     }
@@ -400,6 +409,122 @@ TestMonsterChasesNearestPlayer()
 }
 
 internal void
+TestSwordHitsOtherPlayerNotOwner()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Attacker = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                             0, {300, 300, 0});
+    world_entity *Victim = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           1, {330, 300, 0});
+    Victim->MaxHp = Victim->Hp = SWORD_DAMAGE;
+    world_entity *Sword = AddSword(AppState, Test.World, &Test.Arena,
+                                   {316, 300, 0}, Attacker,
+                                   AnimationDirection_Right);
+    // NOTE(zoubir): the swing lasts several frames but hits once
+    while (UpdateSword(Sword, Test.World, &Test.Arena, AppState,
+                       Test.Input.DeltaTime))
+    {
+    }
+    Check(Attacker->Hp == Attacker->MaxHp);
+    Check(Victim->Hp <= 0.f);
+    Check(AppState->Players[0].Kills == 1);
+
+    RespawnPlayerIfDead(&AppState->Players[1], Test.World, &Test.Arena,
+                        AppState);
+    Check(AppState->Players[1].Deaths == 1);
+    Check(Victim->Hp == Victim->MaxHp);
+    Check(Victim->Position.X == 330.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestSwordHitsMonster()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Attacker = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                             0, {300, 300, 0});
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {330, 300, 0}, Test.UnitVolume);
+    Monster->MaxHp = Monster->Hp = 100.f;
+    world_entity *Sword = AddSword(AppState, Test.World, &Test.Arena,
+                                   {316, 300, 0}, Attacker,
+                                   AnimationDirection_Right);
+    while (UpdateSword(Sword, Test.World, &Test.Arena, AppState,
+                       Test.Input.DeltaTime))
+    {
+    }
+    Check(Monster->Hp == 100.f - SWORD_DAMAGE);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestFireBallHitsOtherPlayerNotOwner()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Caster = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *Victim = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           1, {420, 300, 0});
+    // NOTE(zoubir): cast from inside the caster to prove it ignores them
+    world_entity *FireBall = AddFireBall(AppState, Test.World, &Test.Arena,
+                                         Caster, {300, 300, 0},
+                                         {450, 0, 0});
+    for(u32 Frame = 0; Frame < 40; Frame++)
+    {
+        float MaxDistance = 10000.f;
+        MoveEntity(FireBall, Test.World, &Test.Arena, &Test.Input,
+                   AppState, {}, &MaxDistance);
+    }
+    Check(Caster->Hp == Caster->MaxHp);
+    Check(Victim->Hp == Victim->MaxHp - FIREBALL_DAMAGE);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestShockwaveHitsOtherPlayersNotSource()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Source = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *Other = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                          1, {350, 300, 0});
+    u32 Hits = TriggerShockwave(AppState, Test.World, Source);
+    Check(Hits == 1);
+    Check(Source->Hp == Source->MaxHp);
+    Check(Other->Hp == Other->MaxHp - SHOCKWAVE_DAMAGE);
+    Check(Other->Velocity.X > 0.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestMonsterBiteCreditsNobody()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    Player->Hp = 1.f;
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {340, 300, 0}, Test.UnitVolume);
+    Monster->MonsterKind = MonsterKind_Brute;
+    float AnimationSpeed;
+    animation_type AnimationType;
+    animation_direction AnimationDirection;
+    UpdateMonster(Monster, Test.World, &Test.Arena, &Test.Input, AppState,
+                  &AnimationSpeed, &AnimationType, &AnimationDirection);
+    Check(Player->Hp <= 0.f);
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        Check(AppState->Players[SlotIndex].Kills == 0);
+    }
+    DestroyTestWorld(&Test);
+}
+
+internal void
 TestCopyString()
 {
     char Buffer[4];
@@ -438,6 +563,11 @@ main()
     RUN(TestIdleMonsterWanders);
     RUN(TestEachSlotFollowsItsOwnInput);
     RUN(TestMonsterChasesNearestPlayer);
+    RUN(TestSwordHitsOtherPlayerNotOwner);
+    RUN(TestSwordHitsMonster);
+    RUN(TestFireBallHitsOtherPlayerNotOwner);
+    RUN(TestShockwaveHitsOtherPlayersNotSource);
+    RUN(TestMonsterBiteCreditsNobody);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
 

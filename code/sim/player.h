@@ -46,8 +46,10 @@ struct player_slot
     struct world_entity *Entity;
     player_input Input;
     v3 SpawnPosition;
+    // NOTE(zoubir): Kills counts other players, MonsterKills counts monsters
     u32 Kills;
     u32 Deaths;
+    u32 MonsterKills;
 
     player_delayed_input DelayedInput[32];
     u32 DelayedInputCount;

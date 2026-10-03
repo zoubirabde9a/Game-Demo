@@ -150,6 +150,10 @@ struct world_entity
     //Monster && Player
     // NOTE(zoubir): which player_slot owns this player entity
     u32 PlayerIndex;
+    // NOTE(zoubir): swords and fireballs remember the slot that made them,
+    // so they never hit it and its kills are credited to it
+    bool32 HasOwner;
+    u32 OwnerSlot;
     monster_kind MonsterKind;
     // NOTE(zoubir): multiplied with the sprite, 0 means untinted
     u32 Tint;

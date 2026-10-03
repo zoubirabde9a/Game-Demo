@@ -1,4 +1,5 @@
-/* Player abilities that act on other entities. UpdatePlayer decides when
+/* Player abilities that act on other entities (monsters and other
+   players, never the user). UpdatePlayer decides when
    one fires (key + cooldown); the effect itself lives here. */
 
 #define SHOCKWAVE_RADIUS 90.f
@@ -18,8 +19,9 @@ TriggerShockwave(app_state *AppState, world *World, world_entity *Source)
         EntityIndex++)
     {
         world_entity *Target = &World->Entities[EntityIndex];
-        if (!Target->IsPresent ||
-            Target->Type != EntityType_Monster)
+        if (!Target->IsPresent || Target == Source ||
+            (Target->Type != EntityType_Monster &&
+             Target->Type != EntityType_Player))
         {
             continue;
         }
@@ -32,7 +34,7 @@ TriggerShockwave(app_state *AppState, world *World, world_entity *Source)
         }
 
         HitCount++;
-        if (!DamageEntity(AppState, World, Target, SHOCKWAVE_DAMAGE) &&
+        if (!DamageEntity(AppState, World, Target, SHOCKWAVE_DAMAGE, Source) &&
             Distance > 0.f)
         {
             Target->Velocity.XY += (SHOCKWAVE_KNOCKBACK / Distance) * Away;

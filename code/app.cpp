@@ -382,8 +382,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
             case EntityType_Sword:
             {
                 
-                ThisEntity->TimeLeft -= Input->DeltaTime;                
-                if (ThisEntity->TimeLeft > 0.f)
+                if (UpdateSword(ThisEntity, World, MemoryArena, AppState,
+                                Input->DeltaTime))
                 {
                     float AnimationSpeedRate = 1.f;
                     animation_type AnimationType = AnimationType_Stand;
@@ -397,12 +397,6 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
                                *TextureProgram,
                                Assets,
                                ThisEntity, CameraOffset);
-                }
-                else
-                {
-                    // NOTE(zoubir): the swing is over, take the hitbox out
-                    // of the world so it stops hitting monsters
-                    RemoveEntity(World, ThisEntity);
                 }
                 break;
             }                    

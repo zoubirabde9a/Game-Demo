@@ -182,6 +182,12 @@ SetupCollisionTable(app_state *AppState)
 
     SetCollision(AppState, EntityType_Sword,
                  EntityType_Monster, true);
+
+    SetCollision(AppState, EntityType_Sword,
+                 EntityType_Player, true);
+
+    SetCollision(AppState, EntityType_Player,
+                 EntityType_FireBall, true);
 }
 
 // NOTE(zoubir): collision shapes, shared by every entity of a kind;

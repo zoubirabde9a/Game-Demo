@@ -83,7 +83,6 @@ struct app_state
     player_slot Players[MAX_PLAYERS];
     // NOTE(zoubir): the slot this machine's keyboard drives
     u32 LocalPlayerIndex;
-    u32 KillCount;
     struct monster_population *Monsters;
 
     v3 TargetCamera;

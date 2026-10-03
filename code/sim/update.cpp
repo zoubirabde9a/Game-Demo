@@ -474,6 +474,40 @@ UpdatePlayer(player_slot *Slot, world *World,
 
 }
 
+// NOTE(zoubir): a sword is a short-lived hitbox that never moves, so
+// MoveEntity never checks it; test its overlaps every frame instead.
+// Returns false once the swing is over and the sword is removed.
+internal bool32
+UpdateSword(world_entity *Sword, world *World, memory_arena *Arena,
+            app_state *AppState, float DeltaTime)
+{
+    Sword->TimeLeft -= DeltaTime;
+    if (Sword->TimeLeft <= 0.f)
+    {
+        RemoveEntity(World, Sword);
+        return false;
+    }
+
+    u32 MinChunkX, MinChunkY, MinChunkZ;
+    u32 MaxChunkX, MaxChunkY, MaxChunkZ;
+    GetChunksFromEntity(World, Sword,
+                        &MinChunkX, &MinChunkY, &MinChunkZ,
+                        &MaxChunkX, &MaxChunkY, &MaxChunkZ);
+    for(u32 ChunkZ = MinChunkZ; ChunkZ <= MaxChunkZ; ChunkZ++)
+    {
+        for(u32 ChunkY = MinChunkY; ChunkY <= MaxChunkY; ChunkY++)
+        {
+            for(u32 ChunkX = MinChunkX; ChunkX <= MaxChunkX; ChunkX++)
+            {
+                world_chunk *Chunk = GetChunk(World, ChunkX, ChunkY, ChunkZ);
+                CheckEntityOverlapInChunk(AppState, World, Arena, Sword,
+                                          &Chunk->FirstEntityChunk);
+            }
+        }
+    }
+    return true;
+}
+
 #define MONSTER_WANDER_SPEED_SCALE 0.35f
 
 // NOTE(zoubir): returns the scaled push for an idle monster; half of the
@@ -534,7 +568,7 @@ UpdateMonster(world_entity *Entity, world *World,
         if (DistanceToTarget < Stats->AttackRange &&
             Entity->AttackCooldown <= 0.f)
         {
-            Target->Hp -= Stats->AttackDamage;
+            DamageEntity(AppState, World, Target, Stats->AttackDamage, Entity);
             Entity->AttackCooldown = Stats->AttackInterval;
         }
 

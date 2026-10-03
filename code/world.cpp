@@ -106,9 +106,9 @@ InsertEntity(app_state *AppState,
         FirstEntityChunk->EntityCount = 0;
         FirstEntityChunk->Next = OldEntityChunk;
     }
-
-    CheckEntityOverlapInChunk(AppState, World, Arena,
-                              NewEntity, FirstEntityChunk);
+    // NOTE(zoubir): inserting only records where an entity is. Overlaps
+    // are checked after moves and by UpdateSword, once the spawner has
+    // set the owner; checking here let a new sword hit its own caster.
 }
 internal bool32
 RemoveEntity(world *World,

@@ -80,7 +80,9 @@ DrawHud(render_context *RenderContext, app_state *AppState,
     if (Font)
     {
         char Text[64];
-        snprintf(Text, sizeof(Text), "Kills: %u", AppState->KillCount);
+        player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
+        snprintf(Text, sizeof(Text), "Kills %u   Deaths %u   Monsters %u",
+                 Slot->Kills, Slot->Deaths, Slot->MonsterKills);
         v4 NoClip = {0.f, 0.f, 100000.f, 100000.f};
         // NOTE(zoubir): Y is the baseline, so drop it by the font ascent
         RenderText(RenderContext, X, Y + 32.f + Font->UpperLimit, Font,
