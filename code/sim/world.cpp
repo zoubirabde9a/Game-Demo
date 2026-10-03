@@ -320,10 +320,13 @@ RemoveEntity(world *World, world_entity *Entity)
                 world_chunk *Chunk = FindChunk(World, ChunkX, ChunkY, ChunkZ);
                 Result = Chunk && RemoveEntity(World, Chunk, Entity);
                 Assert(Result);
-                Entity->IsPresent = false;
             }
         }
     }
+    // NOTE(zoubir): outside the loop: an entity wholly past a bounded map's
+    // edge is in no chunk, the loop never ran, and it stayed present with
+    // its ID on the free list, freed again the next tick
+    Entity->IsPresent = false;
     Assert(World->FreeEntityCount < ArrayCount(World->FreeEntityIDs));
     World->FreeEntityIDs[World->FreeEntityCount++] = Entity->ID;
     return Result;

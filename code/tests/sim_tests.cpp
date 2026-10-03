@@ -180,6 +180,22 @@ TestRemovedSlotIsReused()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a monster hazard landed past the arena's edge once; it is
+// in no chunk, and removing it must still free it, once
+internal void
+TestRemovingEntityPastMapEdgeFreesItOnce()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Outside = AddTestEntity(&Test, EntityType_Monster,
+                                          {-40, 300, 0}, Test.UnitVolume);
+    u32 FreeBefore = Test.World->FreeEntityCount;
+    RemoveEntity(Test.World, Outside);
+    Check(!Outside->IsPresent);
+    RemoveEntity(Test.World, Outside);
+    Check(Test.World->FreeEntityCount == FreeBefore + 1);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 TestShockwaveHitsOnlyNearbyMonsters()
 {
@@ -717,6 +733,7 @@ main()
     RUN(TestFireBallKillsMonsterOnce);
     RUN(TestMonsterDyingMidMoveLeavesNoGhost);
     RUN(TestRemovedSlotIsReused);
+    RUN(TestRemovingEntityPastMapEdgeFreesItOnce);
     RUN(TestShockwaveHitsOnlyNearbyMonsters);
     RUN(TestMonsterPopulationRefillsAwayFromPlayers);
     RUN(TestIdleMonsterWanders);
