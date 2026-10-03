@@ -303,6 +303,16 @@ TestReplicasCarryMonsterDetails()
 
     world_entity *Monster = &Test.World->Entities[Table->LocalIndexPlusOne[4] - 1];
     Check(Monster->EliteAffix == 3);
+    // NOTE(zoubir): an elite's health bar and tint match the server's
+    Check(Monster->MaxHp == GetMonsterDef((monster_kind)Kind)->MaxHp * GetAffix(3)->HpScale);
+    Check(Monster->Tint == GetAffix(3)->Tint || GetAffix(3)->Tint == 0);
+    Check(Monster->Hp == 80.f);
+    // NOTE(zoubir): and only once, not again every snapshot
+    float EliteMaxHp = Monster->MaxHp;
+    Snapshot->Tick = 100;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
+    Check(Monster->MaxHp == EliteMaxHp);
+    Snapshot->Tick = 1;
     Check(Monster->StatusTimers[1] == 1.5f);
     Check(Monster->StatusTimers[2] == 0.f);
     Check(Monster->StatusTimers[3] == 1.5f);

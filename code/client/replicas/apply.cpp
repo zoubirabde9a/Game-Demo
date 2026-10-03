@@ -10,6 +10,16 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
     v3 OldPosition = Replica->Position;
     Replica->Position = V3(State->X, State->Y, State->Z);
     Replica->Velocity = V3(State->VelX, State->VelY, 0.f);
+    // NOTE(zoubir): an elite monster has more health and its own tint; the
+    // simulation sets both in ApplyEliteAffix, so the replica does too
+    // when it first shows the affix (it was made plain). Health comes
+    // from the snapshot right after.
+    if (Replica->Type == EntityType_Monster &&
+        Replica->EliteAffix == MonsterAffix_None &&
+        State->Affix != MonsterAffix_None && State->Affix < MonsterAffix_Count)
+    {
+        ApplyEliteAffix(Replica, State->Affix);
+    }
     Replica->Hp = (float)State->Health;
     if (State->Facing < AnimationDirection_Count)
     {
