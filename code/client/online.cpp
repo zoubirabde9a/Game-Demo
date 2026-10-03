@@ -310,6 +310,16 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
             Snapshot->Tick != Online->Replicas.LastAppliedTick;
         SyncReplicas(AppState, Arena, &Online->Replicas, Snapshot, DeltaTime,
                      Online->Client.PlayerIndex);
+        // NOTE(zoubir): the server's sounds go where the local game's go;
+        // PlaySimEvents plays them after this tick
+        for(u32 Index = 0; NewSnapshot && Index < Snapshot->SoundCount; Index++)
+        {
+            if (Snapshot->Sounds[Index] < AssetType_Count)
+            {
+                EmitSound(&AppState->Events,
+                          (asset_type_id)Snapshot->Sounds[Index], V3(0.f));
+            }
+        }
         PredictLocalPlayer(AppState, Arena, &Online->Prediction, NewSnapshot,
                            Snapshot->InputTick, DeltaTime);
         return;

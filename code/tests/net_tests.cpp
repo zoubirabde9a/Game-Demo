@@ -100,6 +100,11 @@ FullSnapshot()
         P.Snapshot.Facings[Index].EntityIndex = Index;
         P.Snapshot.Facings[Index].Angle = (u8)(Index * 32 + 1);
     }
+    P.Snapshot.SoundCount = NET_MAX_SNAPSHOT_SOUNDS;
+    for (u8 Index = 0; Index < NET_MAX_SNAPSHOT_SOUNDS; ++Index)
+    {
+        P.Snapshot.Sounds[Index] = (u8)(200 + Index);
+    }
 
     // ...and the longest name.
     P.Snapshot.NameSlot = NET_MAX_SNAPSHOT_SCORES - 1;
@@ -228,6 +233,8 @@ TestFullSnapshotFits()
     Check(LastScore->MonsterKills == 1000 + NET_MAX_SNAPSHOT_SCORES - 1);
     Check(Out.Snapshot.NameSlot == NET_MAX_SNAPSHOT_SCORES - 1);
     Check(Out.Snapshot.FacingCount == NET_MAX_SNAPSHOT_FACINGS);
+    Check(Out.Snapshot.SoundCount == NET_MAX_SNAPSHOT_SOUNDS);
+    Check(Out.Snapshot.Sounds[NET_MAX_SNAPSHOT_SOUNDS - 1] == 200 + NET_MAX_SNAPSHOT_SOUNDS - 1);
     Check(Out.Snapshot.Facings[NET_MAX_SNAPSHOT_FACINGS - 1].Angle ==
           (NET_MAX_SNAPSHOT_FACINGS - 1) * 32 + 1);
     Check(strcmp(Out.Snapshot.Name, "ABCDEFGHIJKLMNO") == 0);

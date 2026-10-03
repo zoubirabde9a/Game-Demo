@@ -17,7 +17,7 @@
 
 #include "../app_defs.h"
 
-#define NET_PROTOCOL_ID 0x47444d39u // "GDM9", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d41u // "GDMA", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -25,6 +25,7 @@
 #define NET_MAX_ABILITY_POINTS 4    // matches MAX_ABILITY_POINTS in entity.h
 #define NET_MAX_SNAPSHOT_SCORES 8   // one per player slot (MAX_PLAYERS)
 #define NET_MAX_SNAPSHOT_FACINGS 8  // front-armoured monsters per snapshot
+#define NET_MAX_SNAPSHOT_SOUNDS 8   // sounds heard since the last snapshot
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
@@ -161,6 +162,11 @@ struct net_snapshot
     char Name[NET_NAME_SIZE];
     u8 FacingCount;
     net_facing Facings[NET_MAX_SNAPSHOT_FACINGS];
+    // Sounds the simulation played near this player since its previous
+    // snapshot, as asset type ids (asset_type_id). A lost snapshot loses
+    // its sounds; they are not worth resending.
+    u8 SoundCount;
+    u8 Sounds[NET_MAX_SNAPSHOT_SOUNDS];
 };
 
 struct net_packet

@@ -451,6 +451,77 @@ TestArmoredMonstersSendFacing()
     Check(Out.FacingCount == 2);
 }
 
+// A fireball cast is heard by the caster and by players near it, once,
+// and not by a player across the map.
+internal bool32
+SnapshotHasSound(net_snapshot *Snapshot, u8 Sound)
+{
+    for (u32 Index = 0; Index < Snapshot->SoundCount; ++Index)
+    {
+        if (Snapshot->Sounds[Index] == Sound) return true;
+    }
+    return false;
+}
+
+internal void
+TestSoundsReachPlayersNearby()
+{
+    static server_game Game;
+    GameInit(&Game);
+    app_state *AppState = Game.AppState;
+    GamePlayerJoined(&Game, 0);
+    GamePlayerJoined(&Game, 1);
+    GamePlayerJoined(&Game, 2);
+    world_entity *Caster = AppState->Players[0].Entity;
+    world_entity *Near = AppState->Players[1].Entity;
+    world_entity *Far = AppState->Players[2].Entity;
+    v3 Before = Near->Position;
+    Near->Position = Caster->Position + V3(60.f, 0.f, 0.f);
+    CheckAndChangeEntityChunk(AppState, &AppState->World, Game.Arena, Before, Near);
+    Before = Far->Position;
+    Far->Position = Caster->Position + V3(SIM_GAME_HEARING_DISTANCE + 400.f, 0.f, 0.f);
+    CheckAndChangeEntityChunk(AppState, &AppState->World, Game.Arena, Before, Far);
+
+    static net_snapshot Out[3];
+    for (u32 Slot = 0; Slot < 3; ++Slot) GameWriteSnapshot(&Game, Slot, &Out[Slot]);
+
+    net_input Input = {};
+    Input.Tick = 1;
+    Input.Buttons = NetButton_Fireball;
+    GameApplyInput(&Game, 0, &Input);
+    for (u32 Tick = 0; Tick < 3; ++Tick) GameTick(&Game, 1.f / 60.f);
+
+    for (u32 Slot = 0; Slot < 3; ++Slot)
+    {
+        Out[Slot] = {};
+        GameWriteSnapshot(&Game, Slot, &Out[Slot]);
+    }
+    Check(SnapshotHasSound(&Out[0], (u8)AssetType_FireCast));
+    Check(SnapshotHasSound(&Out[1], (u8)AssetType_FireCast));
+    Check(!SnapshotHasSound(&Out[2], (u8)AssetType_FireCast));
+
+    // Heard once: the next snapshot does not repeat it.
+    GameTick(&Game, 1.f / 60.f);
+    Out[0] = {};
+    GameWriteSnapshot(&Game, 0, &Out[0]);
+    Check(!SnapshotHasSound(&Out[0], (u8)AssetType_FireCast));
+
+    // And it survives the trip through the protocol.
+    Out[1].SoundCount = 1;
+    Out[1].Sounds[0] = (u8)AssetType_FireCast;
+    static net_packet Packet;
+    Packet = {};
+    Packet.Header.Type = NetPacket_Snapshot;
+    Packet.Snapshot = Out[1];
+    static u8 Buffer[NET_MAX_PACKET_SIZE];
+    u32 Size = NetWritePacket(&Packet, Buffer, sizeof(Buffer));
+    Check(Size > 0);
+    static net_packet Back;
+    Check(NetReadPacket(Buffer, Size, &Back));
+    Check(Back.Snapshot.SoundCount == 1 && Back.Snapshot.Sounds[0] == (u8)AssetType_FireCast);
+    GameShutdown(&Game);
+}
+
 // More moving things than fit in a snapshot: the viewer still gets its own
 // player first and everything near it, and the rest nearest first.
 internal void
@@ -843,6 +914,7 @@ main()
     TestQuietClientTimesOut();
     TestClientConnectsAndMoves();
     TestSnapshotPrefersWhatIsNear();
+    TestSoundsReachPlayersNearby();
     TestArmoredMonstersSendFacing();
     TestPredictionAgreesWithServer();
     TestConnectAndLeaveFromTheGame();

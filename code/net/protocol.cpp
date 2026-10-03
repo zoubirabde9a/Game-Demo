@@ -158,6 +158,12 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU8(S, &Facing->Angle);
                 if (Facing->EntityIndex >= P->Snapshot.Count) return false;
             }
+            NetU8(S, &P->Snapshot.SoundCount);
+            if (P->Snapshot.SoundCount > NET_MAX_SNAPSHOT_SOUNDS) return false;
+            for (u32 Index = 0; Index < P->Snapshot.SoundCount; ++Index)
+            {
+                NetU8(S, &P->Snapshot.Sounds[Index]);
+            }
         } break;
 
         default: return false;
