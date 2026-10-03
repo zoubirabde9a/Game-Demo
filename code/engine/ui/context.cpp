@@ -1,6 +1,7 @@
 /* The UI context: widget state slots, the elements queued for drawing
    this frame, containers (a box that offsets and clips what is inside),
-   clipping, and the colours and inner boxes all widgets share. */
+   clipping, and the inner boxes all widgets share. Colours and sizes
+   are in theme.h. */
 
 inline ui_container *
 UIContextGetCurrentContainer(ui_context *UIContext)
@@ -126,12 +127,6 @@ ClipRectangle1(v2 Pos0, v2 Pos1, v2 Clip0, v2 Clip1)
 
     return Result;
 }
-
-#define RGBA8_UI_FILL (0xFF303030)
-#define RGBA8_UI_FILL_HOT (0xFF505050)
-#define RGBA8_UI_FIELD (0xFF181818)
-#define RGBA8_UI_BORDER (0xFF808080)
-#define RGBA8_UI_FOCUS (0xFF30C8F0)
 
 // NOTE(zoubir): the text area inside a widget, and its clip rectangle
 inline v4

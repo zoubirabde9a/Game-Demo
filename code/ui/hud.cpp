@@ -1,11 +1,6 @@
 /* Heads-up display: always-on screen-space widgets drawn on top of the
    world each frame: player health and ability cooldowns. */
 
-#define RGBA8_HUD_BACKGROUND (0xC0202020)
-#define RGBA8_HUD_HEALTH (0xFF3040D0)
-#define RGBA8_HUD_ABILITY_READY (0xFF30C8F0)
-#define RGBA8_HUD_ABILITY_CHARGING (0xFF808080)
-
 // NOTE(zoubir): Fraction is 0..1, filled from the left
 internal void
 DrawHudBar(render_context *RenderContext, float X, float Y,
@@ -13,11 +8,11 @@ DrawHudBar(render_context *RenderContext, float X, float Y,
 {
     Fraction = Minimum(1.f, Maximum(0.f, Fraction));
     DrawFilledRectangle(RenderContext, X, Y, Width, Height,
-                        RGBA8_HUD_BACKGROUND, 0.f);
+                        UI_COLOR_TRACK, 0.f);
     DrawFilledRectangle(RenderContext, X, Y, Fraction * Width, Height,
                         FillColor, 0.f);
     DrawRectangle(RenderContext, X, Y, Width, Height,
-                  RGBA8_WHITE, 0.f);
+                  UI_COLOR_BORDER, 0.f);
 }
 
 // NOTE(zoubir): expanding square outline around the player while the
@@ -37,7 +32,7 @@ DrawShockwaveRing(render_context *RenderContext, world_entity *Player,
     {
         float R = Radius - 3.f * RingIndex;
         DrawRectangle(RenderContext, Center.X - R, Center.Y - R,
-                      2.f * R, 2.f * R, RGBA8_HUD_ABILITY_READY, 0.f);
+                      2.f * R, 2.f * R, UI_COLOR_ACCENT, 0.f);
     }
 }
 
@@ -97,7 +92,7 @@ DrawPlayerLabels(render_context *RenderContext, app_state *AppState,
         float Height = Font->UpperLimit + Font->LowerLimit;
         DrawScreenText(RenderContext, Font,
                        Player->Position.X - CameraOffset.X - 0.5f * Width,
-                       SpriteTop - 14.f - Height, Text, RGBA8_WHITE);
+                       SpriteTop - 14.f - Height, Text, UI_COLOR_TEXT);
     }
 }
 
@@ -114,7 +109,7 @@ DrawHud(render_context *RenderContext, app_state *AppState,
     float X = 20.f;
     float Y = 20.f;
     DrawHudBar(RenderContext, X, Y, 200.f, 14.f,
-               Player->Hp / Player->MaxHp, RGBA8_HUD_HEALTH);
+               Player->Hp / Player->MaxHp, UI_COLOR_HEALTH);
 
     DrawShockwaveRing(RenderContext, Player, CameraOffset);
     DrawPlayerLabels(RenderContext, AppState, CameraOffset);
@@ -134,7 +129,7 @@ DrawHud(render_context *RenderContext, app_state *AppState,
         DrawHudBar(RenderContext, X + AbilityIndex * 70.f, Y + 20.f,
                    60.f, 6.f, Charge,
                    Charge >= 1.f ?
-                   RGBA8_HUD_ABILITY_READY : RGBA8_HUD_ABILITY_CHARGING);
+                   UI_COLOR_ACCENT : UI_COLOR_DIM);
     }
 
     font *Font = AppState->DefaultFont;
@@ -147,14 +142,14 @@ DrawHud(render_context *RenderContext, app_state *AppState,
         v4 NoClip = {0.f, 0.f, 100000.f, 100000.f};
         // NOTE(zoubir): Y is the baseline, so drop it by the font ascent
         RenderText(RenderContext, X, Y + 32.f + Font->UpperLimit, Font,
-                   RenderContext->TextureProgram, Text, RGBA8_WHITE,
+                   RenderContext->TextureProgram, Text, UI_COLOR_TEXT,
                    1.f, 1.f, NoClip, 0.f);
 
         GetOnlineStatusText(AppState->Online, Text, sizeof(Text));
         if (Text[0])
         {
             RenderText(RenderContext, X, Y + 60.f + Font->UpperLimit, Font,
-                       RenderContext->TextureProgram, Text, RGBA8_WHITE,
+                       RenderContext->TextureProgram, Text, UI_COLOR_TEXT,
                        1.f, 1.f, NoClip, 0.f);
         }
     }

@@ -8,6 +8,8 @@
 
 #define UI_H
 
+#include "ui/theme.h"
+
 struct app_state;
 struct font;
 
@@ -25,7 +27,6 @@ enum ui_element_type
     UIE_Invalid,
     UIE_EditBox,
     UIE_Button,
-    UIE_TextLabel,
     UIE_TilePickerWidget,
     UIE_Count
 };
@@ -48,12 +49,6 @@ struct ui_state
             v4 Padding;
         };
         
-        // TextLabel
-        struct
-        {
-            u32 TextJustification;
-        };
-
         // Button
         struct
         {

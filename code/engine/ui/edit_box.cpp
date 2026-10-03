@@ -12,21 +12,21 @@ DrawEditBox(ui_element *EditBox, ui_context *UIContext)
     bool32 IsHighlighted = (UIContext->HighlightedElement == EditBox);
 
     DrawFilledRectangle(RenderContext, EditBox->X, EditBox->Y,
-                        EditBox->Width, EditBox->Height, RGBA8_UI_FIELD, 0.f);
+                        EditBox->Width, EditBox->Height, UI_COLOR_FIELD, 0.f);
     DrawRectangle(RenderContext, EditBox->X, EditBox->Y,
                   EditBox->Width, EditBox->Height,
-                  (IsSelected || IsHighlighted) ? RGBA8_UI_FOCUS :
-                  RGBA8_UI_BORDER, 0.f);
+                  (IsSelected || IsHighlighted) ? UI_COLOR_ACCENT :
+                  UI_COLOR_BORDER, 0.f);
     if (IsSelected)
     {
         DrawFilledRectangle(RenderContext,
                             Inner.X + UIContext->ElementCursor.Offset, Inner.Y,
-                            1.f, Inner.W, RGBA8_UI_FOCUS, 0.f);
+                            1.f, Inner.W, UI_COLOR_ACCENT, 0.f);
     }
     RenderText(RenderContext, Inner.X, Inner.Y, Inner.Z, Inner.W,
                UIInnerClip(EditBox, State->Padding), State->Font,
                RenderContext->TextureProgram, Text,
-               TEXT_JUSTIFICATION_LEFT, RGBA8_WHITE, 0.f);
+               TEXT_JUSTIFICATION_LEFT, UI_COLOR_TEXT, 0.f);
 }
 
 internal ui_element_cursor
@@ -85,7 +85,7 @@ DoEditBox(ui_state *EditBox, app_state *AppState,
     char *Text = EditBox->Text;
     char *TextInput = Input->TextInput;
     u32 TextInputCount = Input->TextInputCount;    
-    EditBox->Padding = V4(4.f, 4.f, 4.f, 4.f);
+    EditBox->Padding = V4(UI_PADDING, UI_PADDING, UI_PADDING, UI_PADDING);
 
     v2 ContainerOffset = UIContext->ContainerOffset;
     ui_container *Container = UIContextGetCurrentContainer(UIContext);

@@ -17,8 +17,6 @@ struct connect_screen
     ui_state RightButton;
 };
 
-#define RGBA8_CONNECT_PANEL (0xE0181818)
-#define RGBA8_CONNECT_LABEL (0xFFA0A0A0)
 
 internal void
 SetEditBoxText(ui_state *EditBox, char *Text)
@@ -113,20 +111,20 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
     float Pad = 20.f;
     float FieldWidth = Width - 2.f * Pad;
     DrawFilledRectangle(RenderContext, Left, Top, Width, Height,
-                        RGBA8_CONNECT_PANEL, 0.f);
-    DrawRectangle(RenderContext, Left, Top, Width, Height, RGBA8_WHITE, 0.f);
+                        UI_COLOR_PANEL, 0.f);
+    DrawRectangle(RenderContext, Left, Top, Width, Height, UI_COLOR_BORDER, 0.f);
 
     DrawScreenText(RenderContext, Font, Left + Pad, Top + 14.f,
-                   "Play online (F4 to close)", RGBA8_WHITE);
+                   "Play online (F4 to close)", UI_COLOR_TEXT);
     DrawScreenText(RenderContext, Font, Left + Pad, Top + 46.f,
-                   "Server address, a.b.c.d:port", RGBA8_CONNECT_LABEL);
+                   "Server address, a.b.c.d:port", UI_COLOR_TEXT_MUTED);
     DrawScreenText(RenderContext, Font, Left + Pad, Top + 118.f,
-                   "Your name", RGBA8_CONNECT_LABEL);
+                   "Your name", UI_COLOR_TEXT_MUTED);
 
     char Status[128];
     GetOnlineStatusText(Online, Status, sizeof(Status));
     DrawScreenText(RenderContext, Font, Left + Pad, Top + 190.f,
-                   Status[0] ? Status : (char *)"Playing offline", RGBA8_WHITE);
+                   Status[0] ? Status : (char *)"Playing offline", UI_COLOR_TEXT);
 
     BeginContainer(UIContext, Left, Top, Width, Height);
     DoEditBox(&Screen->Address, AppState, UIContext, Pad, 66.f,

@@ -76,18 +76,18 @@ DrawButton(ui_element* Button, ui_context *UIContext)
 {
     render_context *RenderContext = UIContext->RenderContext;
     ui_state *State = Button->State;
-    v4 Padding = V4(4.f, 4.f, 4.f, 4.f);
+    v4 Padding = V4(UI_PADDING, UI_PADDING, UI_PADDING, UI_PADDING);
     v4 Inner = UIInnerRect(Button, Padding);
     bool32 IsHighlighted = (UIContext->HighlightedElement == Button);
 
     DrawFilledRectangle(RenderContext, Button->X, Button->Y,
                         Button->Width, Button->Height,
-                        IsHighlighted ? RGBA8_UI_FILL_HOT : RGBA8_UI_FILL, 0.f);
+                        IsHighlighted ? UI_COLOR_CONTROL_HOT : UI_COLOR_CONTROL, 0.f);
     DrawRectangle(RenderContext, Button->X, Button->Y,
                   Button->Width, Button->Height,
-                  IsHighlighted ? RGBA8_UI_FOCUS : RGBA8_UI_BORDER, 0.f);
+                  IsHighlighted ? UI_COLOR_ACCENT : UI_COLOR_BORDER, 0.f);
     RenderText(RenderContext, Inner.X, Inner.Y, Inner.Z, Inner.W,
                UIInnerClip(Button, Padding), State->Font,
                RenderContext->TextureProgram, State->ButtonText,
-               TEXT_JUSTIFICATION_MIDDLE, RGBA8_WHITE, 0.f);
+               TEXT_JUSTIFICATION_MIDDLE, UI_COLOR_TEXT, 0.f);
 }

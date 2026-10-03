@@ -2,9 +2,6 @@
    kills, deaths and monster kills, best first) and the respawn countdown
    shown while the local player is dead. */
 
-#define RGBA8_SCOREBOARD_PANEL (0xD0181818)
-#define RGBA8_SCOREBOARD_LOCAL (0xFF30C8F0)
-#define RGBA8_SCOREBOARD_HEADER (0xFFA0A0A0)
 
 // NOTE(zoubir): more kills first, then fewer deaths, then slot order
 inline bool32
@@ -59,15 +56,15 @@ DrawScoreboard(render_context *RenderContext, app_state *AppState,
     float Columns[] = {Left + 20.f, Left + 230.f, Left + 310.f, Left + 390.f};
 
     DrawFilledRectangle(RenderContext, Left, Top, Width, Height,
-                        RGBA8_SCOREBOARD_PANEL, 0.f);
-    DrawRectangle(RenderContext, Left, Top, Width, Height, RGBA8_WHITE, 0.f);
+                        UI_COLOR_PANEL, 0.f);
+    DrawRectangle(RenderContext, Left, Top, Width, Height, UI_COLOR_BORDER, 0.f);
 
     char *Headers[] = {"Player", "Kills", "Deaths", "Mobs"};
     float Y = Top + 12.f;
     for(u32 Column = 0; Column < ArrayCount(Headers); Column++)
     {
         DrawScreenText(RenderContext, Font, Columns[Column], Y,
-                       Headers[Column], RGBA8_SCOREBOARD_HEADER);
+                       Headers[Column], UI_COLOR_TEXT_MUTED);
     }
 
     for(u32 Rank = 0; Rank < Count; Rank++)
@@ -75,7 +72,7 @@ DrawScoreboard(render_context *RenderContext, app_state *AppState,
         u32 SlotIndex = Order[Rank];
         player_slot *Slot = &AppState->Players[SlotIndex];
         bool32 IsLocal = (SlotIndex == AppState->LocalPlayerIndex);
-        u32 Color = IsLocal ? RGBA8_SCOREBOARD_LOCAL : RGBA8_WHITE;
+        u32 Color = IsLocal ? UI_COLOR_ACCENT : UI_COLOR_TEXT;
         Y += RowHeight;
 
         char Text[32];
@@ -115,5 +112,5 @@ DrawRespawnCountdown(render_context *RenderContext, app_state *AppState,
     float TextWidth = GetTextWidth(Font, Text);
     DrawScreenText(RenderContext, Font,
                    0.5f * ((float)WindowWidth - TextWidth),
-                   0.4f * (float)WindowHeight, Text, RGBA8_WHITE);
+                   0.4f * (float)WindowHeight, Text, UI_COLOR_TEXT);
 }

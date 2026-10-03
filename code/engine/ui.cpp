@@ -7,7 +7,7 @@
 #include "ui.h"
 
 /* Immediate-mode widgets. Each frame: UIBegin, then Do* calls (buttons,
-   edit boxes, text labels, the tile picker) that handle input at once and
+   edit boxes, the tile picker) that handle input at once and
    queue an element, then UIEnd, which draws every queued element and
    flushes the pass. */
 
@@ -54,7 +54,6 @@ UIBegin(render_context *RenderContext,
 
 #include "ui/button.cpp"
 #include "ui/edit_box.cpp"
-#include "ui/text_label.cpp"
 #include "ui/tile_picker.cpp"
 
 inline void
@@ -78,11 +77,6 @@ UIEnd(ui_context *UIContext)
             case UIE_EditBox:
             {
                 DrawEditBox(Element, UIContext);
-                break;
-            }
-            case UIE_TextLabel:
-            {
-                DrawTextLabel(Element, UIContext);
                 break;
             }
             case UIE_TilePickerWidget:
