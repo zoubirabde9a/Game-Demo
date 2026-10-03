@@ -161,6 +161,36 @@ LocalServer(server *Server)
 }
 
 internal void
+TestPlayerNamesReachEveryone()
+{
+    static server Server;
+    static net_client Named, Plain;
+    Check(ServerStart(&Server, 0));
+    Check(NetClientConnect(&Named, LocalServer(&Server), 41, SimContentId(), "Zoubir"));
+    Check(NetClientConnect(&Plain, LocalServer(&Server), 42, SimContentId()));
+
+    // Names take turns in the snapshots, so within a couple of rounds both
+    // clients have seen slot 0's name.
+    bool32 NamedSaw = false, PlainSaw = false;
+    for (int Frame = 0; Frame < 240 && !(NamedSaw && PlainSaw); ++Frame)
+    {
+        NetClientUpdate(&Named, 1.0f / SERVER_TICK_RATE, 0, 0, 0);
+        NetClientUpdate(&Plain, 1.0f / SERVER_TICK_RATE, 0, 0, 0);
+        ServerTick(&Server);
+        net_snapshot *A = &Named.Snapshot, *B = &Plain.Snapshot;
+        if (Named.HasSnapshot && A->NameSlot == Named.PlayerIndex)
+            NamedSaw = strcmp(A->Name, "Zoubir") == 0;
+        if (Plain.HasSnapshot && B->NameSlot == Named.PlayerIndex)
+            PlainSaw = strcmp(B->Name, "Zoubir") == 0;
+    }
+    Check(NamedSaw);
+    Check(PlainSaw);
+    NetClientDisconnect(&Named);
+    NetClientDisconnect(&Plain);
+    ServerStop(&Server);
+}
+
+internal void
 TestClientConnectsAndMoves()
 {
     static server Server;
@@ -479,6 +509,7 @@ main()
     TestJoinMoveAndLeave();
     TestQuietClientTimesOut();
     TestClientConnectsAndMoves();
+    TestPlayerNamesReachEveryone();
     TestNinthClientIsTurnedAway();
     TestClientGivesUpWithoutServer();
     TestClientNoticesSilentServer();

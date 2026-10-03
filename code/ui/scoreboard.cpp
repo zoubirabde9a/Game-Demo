@@ -85,7 +85,7 @@ DrawScoreboard(render_context *RenderContext, app_state *AppState,
         }
         else
         {
-            snprintf(Text, sizeof(Text), "Player %u", SlotIndex + 1);
+            GetPlayerName(AppState, SlotIndex, Text, sizeof(Text));
         }
         DrawScreenText(RenderContext, Font, Columns[0], Y, Text, Color);
         u32 Values[] = {Slot->Kills, Slot->Deaths, Slot->MonsterKills};

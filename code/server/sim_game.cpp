@@ -16,6 +16,7 @@ struct server_game
     app_state *AppState;
     memory_arena *Arena;
     u16 HeldButtons[NET_MAX_CLIENTS];
+    u32 NameTurn; // which slot's name the next snapshots carry
 };
 
 internal void
@@ -91,10 +92,23 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
 }
 
 internal void
+GamePlayerNamed(server_game *Game, u32 Slot, char *Name)
+{
+    char *Out = Game->AppState->Players[Slot].Name;
+    u32 Length = 0;
+    for (; Name[Length] && Length + 1 < sizeof(Game->AppState->Players[Slot].Name); ++Length)
+    {
+        Out[Length] = Name[Length];
+    }
+    Out[Length] = 0;
+}
+
+internal void
 GameTick(server_game *Game, float Dt)
 {
     app_state *AppState = Game->AppState;
     SimulateTick(AppState, Game->Arena, Dt);
+    Game->NameTurn = (Game->NameTurn + 1) % MAX_PLAYERS;
 
     // Presses fire once; movement stays until the next input changes it.
     for (u32 Index = 0; Index < MAX_PLAYERS; ++Index)
@@ -206,6 +220,18 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
 
             SimGameWriteAbility(Entity, (u8)(Out->Count - 1), Out);
         }
+    }
+
+    // One connected player's name, the next one each tick.
+    Out->NameSlot = NET_NO_NAME_SLOT;
+    for (u32 Step = 0; Step < MAX_PLAYERS; ++Step)
+    {
+        u32 Slot = (Game->NameTurn + Step) % MAX_PLAYERS;
+        player_slot *Player = &Game->AppState->Players[Slot];
+        if (!Player->Active) continue;
+        Out->NameSlot = (u8)Slot;
+        for (u32 Index = 0; Index < NET_NAME_SIZE; ++Index) Out->Name[Index] = Player->Name[Index];
+        break;
     }
 
     // Every connected player's score, so each client can show the scoreboard.

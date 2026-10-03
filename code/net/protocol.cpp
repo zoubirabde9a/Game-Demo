@@ -77,6 +77,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
         {
             NetU32(S, &P->ConnectRequest.ClientSalt);
             NetU32(S, &P->ConnectRequest.ContentId);
+            NetName(S, P->ConnectRequest.Name, NET_NAME_SIZE);
         } break;
 
         case NetPacket_ConnectAccepted:
@@ -131,6 +132,12 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU16(S, &Score->Deaths);
                 NetU16(S, &Score->MonsterKills);
                 if (Score->Slot >= NET_MAX_SNAPSHOT_SCORES) return false;
+            }
+            NetU8(S, &P->Snapshot.NameSlot);
+            if (P->Snapshot.NameSlot != NET_NO_NAME_SLOT)
+            {
+                if (P->Snapshot.NameSlot >= NET_MAX_SNAPSHOT_SCORES) return false;
+                NetName(S, P->Snapshot.Name, NET_NAME_SIZE);
             }
         } break;
 

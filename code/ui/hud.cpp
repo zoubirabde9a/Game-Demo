@@ -52,8 +52,23 @@ DrawScreenText(render_context *RenderContext, font *Font, float X,
                1.f, 1.f, NoClip, 0.f);
 }
 
-// NOTE(zoubir): "Player N" over every other live player, just above the
-// health bar DrawEntity puts over the sprite
+// NOTE(zoubir): the name the player chose, or "Player N" without one
+internal void
+GetPlayerName(app_state *AppState, u32 SlotIndex, char *Out, u32 OutSize)
+{
+    char *Name = AppState->Players[SlotIndex].Name;
+    if (Name[0])
+    {
+        snprintf(Out, OutSize, "%s", Name);
+    }
+    else
+    {
+        snprintf(Out, OutSize, "Player %u", SlotIndex + 1);
+    }
+}
+
+// NOTE(zoubir): each other live player's name, just above the health bar
+// DrawEntity puts over the sprite
 internal void
 DrawPlayerLabels(render_context *RenderContext, app_state *AppState,
                  v3 CameraOffset)
@@ -76,8 +91,8 @@ DrawPlayerLabels(render_context *RenderContext, app_state *AppState,
             &GetAssetInfo(&AppState->Assets, Player->Texture)->Texture;
         float SpriteTop = Player->Position.Y - CameraOffset.Y -
             Player->Position.Z - Info->Origin.Y * Player->Dimensions.Y;
-        char Text[16];
-        snprintf(Text, sizeof(Text), "Player %u", SlotIndex + 1);
+        char Text[24];
+        GetPlayerName(AppState, SlotIndex, Text, sizeof(Text));
         float Width = GetTextWidth(Font, Text);
         float Height = Font->UpperLimit + Font->LowerLimit;
         DrawScreenText(RenderContext, Font,

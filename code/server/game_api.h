@@ -16,6 +16,8 @@ internal void GameShutdown(server_game *Game);
 internal u32 GameContentId(server_game *Game);
 // Can arrive for a slot already in use when a client restarts; reset it.
 internal void GamePlayerJoined(server_game *Game, u32 Slot);
+// Right after GamePlayerJoined: the name the player chose (may be empty).
+internal void GamePlayerNamed(server_game *Game, u32 Slot, char *Name);
 internal void GamePlayerLeft(server_game *Game, u32 Slot);
 // Inputs arrive oldest first and are never repeated.
 internal void GameApplyInput(server_game *Game, u32 Slot, net_input *Input);

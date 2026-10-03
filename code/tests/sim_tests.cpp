@@ -843,6 +843,47 @@ TestReplicaPlayersAndScoresFillSlots()
 }
 
 internal void
+TestPlayerNamesFromSnapshotsAndConfig()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+    Snapshot->Tick = 1;
+    Snapshot->Count = 2;
+    Snapshot->Entities[0] = SnapshotEntity(7, EntityType_Player, 600, 600, 0);
+    Snapshot->Entities[1] = SnapshotEntity(8, EntityType_Player, 900, 600, 3);
+    Snapshot->ScoreCount = 2;
+    Snapshot->Scores[0] = {0, 0, 0, 0};
+    Snapshot->Scores[1] = {3, 0, 0, 0};
+    Snapshot->NameSlot = 3;
+    snprintf(Snapshot->Name, NET_NAME_SIZE, "Mahdi");
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
+
+    char Name[24];
+    GetPlayerName(AppState, 3, Name, sizeof(Name));
+    Check(strcmp(Name, "Mahdi") == 0);
+    GetPlayerName(AppState, 0, Name, sizeof(Name));
+    Check(strcmp(Name, "Player 1") == 0);
+
+    // NOTE(zoubir): GAME_NAME wins over server.txt's second line
+    _putenv_s(ONLINE_ADDRESS_ENV, "10.0.0.1:27015");
+    _putenv_s(ONLINE_NAME_ENV, "  Zoubir  ");
+    char Address[64], Chosen[NET_NAME_SIZE];
+    Check(ReadOnlineConfig(Address, sizeof(Address), Chosen, sizeof(Chosen)));
+    Check(strcmp(Address, "10.0.0.1:27015") == 0);
+    Check(strcmp(Chosen, "Zoubir") == 0);
+    _putenv_s(ONLINE_ADDRESS_ENV, "");
+    _putenv_s(ONLINE_NAME_ENV, "");
+    Check(strcmp(SkipLines((char *)"1.2.3.4:5\r\nName here\n", 1), "Name here\n") == 0);
+    Check(SkipLines((char *)"only one line", 1)[0] == 0);
+
+    free(Snapshot);
+    free(Table);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 TestCopyString()
 {
     char Buffer[4];
@@ -944,6 +985,7 @@ main()
     RUN(TestCrowdedChunkRemovalKeepsEveryone);
     RUN(TestRandomPlaySoak);
     RUN(TestReplicaPlayersAndScoresFillSlots);
+    RUN(TestPlayerNamesFromSnapshotsAndConfig);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
     RUN(TestAnimationAdvancesWithoutTexture);

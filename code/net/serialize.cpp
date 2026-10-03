@@ -53,6 +53,34 @@ NetU32(net_stream *S, u32 *Value)
 
 internal void NetI16(net_stream *S, i16 *Value) { NetU16(S, (u16 *)Value); }
 
+// A short player name: length byte, then that many bytes, no terminator.
+// Name holds Capacity bytes including the terminator. Reading keeps only
+// printable ASCII (anything else becomes '?'), since it came off the net.
+internal void
+NetName(net_stream *S, char *Name, u32 Capacity)
+{
+    u8 Length = 0;
+    if (S->Writing)
+    {
+        while (Length + 1u < Capacity && Name[Length]) ++Length;
+    }
+    NetU8(S, &Length);
+    if (Length + 1u > Capacity)
+    {
+        S->Failed = true;
+        Length = 0;
+    }
+    NetBytes(S, (u8 *)Name, Length);
+    if (!S->Writing)
+    {
+        for (u32 Index = 0; Index < Length; ++Index)
+        {
+            if (Name[Index] < 32 || Name[Index] > 126) Name[Index] = '?';
+        }
+        Name[Length] = 0;
+    }
+}
+
 internal void
 NetF32(net_stream *S, float *Value)
 {

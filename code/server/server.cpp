@@ -109,6 +109,7 @@ ServerReceiveAll(server *Server)
             case NetReceive_Joined:
             {
                 GamePlayerJoined(&Server->Game, Result.SlotIndex);
+                GamePlayerNamed(&Server->Game, Result.SlotIndex, Result.Name);
                 ServerLog(Server, "player %u joined from " ADDRESS_FORMAT " (%u/%u)", Result.SlotIndex,
                           ADDRESS_ARGS(From), ServerPlayerCount(Server), NET_MAX_CLIENTS);
             } break;

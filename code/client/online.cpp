@@ -5,10 +5,13 @@
 
    The address comes from the GAME_SERVER environment variable, or else
    the first line of server.txt in the folder the game runs from, written
-   as "a.b.c.d:port". The browser build has no UDP and is always offline. */
+   as "a.b.c.d:port". The name other players see comes from GAME_NAME, or
+   else the second line of server.txt; empty shows as "Player N". The
+   browser build has no UDP and is always offline. */
 
 #define ONLINE_ADDRESS_FILE "server.txt"
 #define ONLINE_ADDRESS_ENV "GAME_SERVER"
+#define ONLINE_NAME_ENV "GAME_NAME"
 
 struct online_session
 {
@@ -50,27 +53,40 @@ CopyFirstLine(char *Out, u32 OutSize, char *Text)
 #pragma warning(push)
 #pragma warning(disable: 4996)
 #endif
-internal bool32
-ReadServerAddressText(char *Out, u32 OutSize)
+// NOTE(zoubir): the text after LineIndex line breaks, or "" past the end
+internal char *
+SkipLines(char *Text, u32 LineIndex)
 {
-    Out[0] = 0;
-    char *FromEnv = getenv(ONLINE_ADDRESS_ENV);
-    if (FromEnv && FromEnv[0])
+    for(; LineIndex > 0 && *Text; Text++)
     {
-        CopyFirstLine(Out, OutSize, FromEnv);
-    }
-    else
-    {
-        FILE *File = fopen(ONLINE_ADDRESS_FILE, "rb");
-        if (File)
+        if (*Text == '\n')
         {
-            char Line[128] = {};
-            fread(Line, 1, sizeof(Line) - 1, File);
-            fclose(File);
-            CopyFirstLine(Out, OutSize, Line);
+            LineIndex--;
         }
     }
-    return Out[0] != 0;
+    return Text;
+}
+
+// NOTE(zoubir): each setting from its environment variable, else from its
+// line of server.txt. Returns false when there is no address at all.
+internal bool32
+ReadOnlineConfig(char *Address, u32 AddressSize, char *Name, u32 NameSize)
+{
+    char File[256] = {};
+    FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "rb");
+    if (Handle)
+    {
+        fread(File, 1, sizeof(File) - 1, Handle);
+        fclose(Handle);
+    }
+
+    char *FromEnv = getenv(ONLINE_ADDRESS_ENV);
+    CopyFirstLine(Address, AddressSize,
+                  (FromEnv && FromEnv[0]) ? FromEnv : File);
+    FromEnv = getenv(ONLINE_NAME_ENV);
+    CopyFirstLine(Name, NameSize,
+                  (FromEnv && FromEnv[0]) ? FromEnv : SkipLines(File, 1));
+    return Address[0] != 0;
 }
 #if defined(_MSC_VER)
 #pragma warning(pop)
@@ -102,14 +118,15 @@ StartOnlineSession(memory_arena *Arena)
     online_session *Online = AllocateStruct(Arena, online_session);
     *Online = {};
     net_address Server;
-    if (ReadServerAddressText(Online->AddressText,
-                              sizeof(Online->AddressText)) &&
+    char Name[NET_NAME_SIZE];
+    if (ReadOnlineConfig(Online->AddressText, sizeof(Online->AddressText),
+                         Name, sizeof(Name)) &&
         NetParseAddress(Online->AddressText, &Server) &&
         NetSocketsStartup())
     {
         u32 Salt = (u32)time(0) ^ (u32)(size_t)Online;
         Online->Enabled = NetClientConnect(&Online->Client, Server, Salt,
-                                           SimContentId());
+                                           SimContentId(), Name);
     }
     return Online;
 }

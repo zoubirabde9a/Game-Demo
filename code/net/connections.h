@@ -51,6 +51,7 @@ struct net_receive_result
     net_packet Reply;
     u32 NewInputCount;
     net_input NewInputs[NET_MAX_INPUTS_PER_PACKET];
+    char Name[NET_NAME_SIZE]; // with NetReceive_Joined: the name the player asked for
 };
 
 internal net_receive_result

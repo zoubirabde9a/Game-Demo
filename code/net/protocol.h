@@ -17,13 +17,15 @@
 
 #include "../app_defs.h"
 
-#define NET_PROTOCOL_ID 0x47444d34u // "GDM4", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d35u // "GDM5", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
 #define NET_MAX_SNAPSHOT_ABILITIES 8 // monsters winding up or striking at once
 #define NET_MAX_ABILITY_POINTS 4    // matches MAX_ABILITY_POINTS in entity.h
 #define NET_MAX_SNAPSHOT_SCORES 8   // one per player slot (MAX_PLAYERS)
+#define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
+#define NET_NO_NAME_SLOT 0xff
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
 
 enum net_packet_type
@@ -104,7 +106,7 @@ struct net_ability_state
 // client can tell its own reply from a stale or spoofed one.
 // ContentId: the client build's SimContentId(); 0 for tools such as the
 // health probe, which never read snapshot contents.
-struct net_connect_request { u32 ClientSalt; u32 ContentId; };
+struct net_connect_request { u32 ClientSalt; u32 ContentId; char Name[NET_NAME_SIZE]; };
 struct net_connect_accepted { u32 ClientSalt; u8 PlayerIndex; u32 ServerTick; };
 struct net_connect_denied { u32 ClientSalt; u8 Reason; };
 
@@ -132,6 +134,11 @@ struct net_snapshot
     net_ability_state Abilities[NET_MAX_SNAPSHOT_ABILITIES];
     u8 ScoreCount;
     net_score Scores[NET_MAX_SNAPSHOT_SCORES];
+    // One player's name per snapshot, taking turns, so names cost a few
+    // bytes a tick yet every client has them all within MAX_PLAYERS ticks.
+    // NameSlot is NET_NO_NAME_SLOT when there is none.
+    u8 NameSlot;
+    char Name[NET_NAME_SIZE];
 };
 
 struct net_packet

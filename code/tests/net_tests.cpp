@@ -4,6 +4,7 @@
    Run test.bat from the repo root; exit code 0 means every check passed. */
 
 #include <stdio.h>
+#include <string.h>
 #include "../net/protocol.cpp"
 #include "../net/connections.cpp"
 #include "../net/socket.cpp"
@@ -87,6 +88,10 @@ FullSnapshot()
         Score->Deaths = 65535;
         Score->MonsterKills = (u16)(1000 + Index);
     }
+
+    // ...and the longest name.
+    P.Snapshot.NameSlot = NET_MAX_SNAPSHOT_SCORES - 1;
+    snprintf(P.Snapshot.Name, NET_NAME_SIZE, "%s", "ABCDEFGHIJKLMNO");
     return P;
 }
 
@@ -103,6 +108,36 @@ TestConnectRoundTrip()
     Check(Out.ConnectAccepted.ClientSalt == 0xdeadbeef);
     Check(Out.ConnectAccepted.PlayerIndex == 3);
     Check(Out.ConnectAccepted.ServerTick == 99);
+}
+
+internal void
+TestNamesRoundTripAndAreCleaned()
+{
+    net_packet In = {};
+    In.Header.Type = NetPacket_ConnectRequest;
+    In.ConnectRequest.ClientSalt = 5;
+    snprintf(In.ConnectRequest.Name, NET_NAME_SIZE, "Zoubir");
+    net_packet Out = RoundTrip(&In, 0);
+    Check(strcmp(Out.ConnectRequest.Name, "Zoubir") == 0);
+
+    // Control characters and bytes above 126 become '?'.
+    In.ConnectRequest.Name[1] = '\t';
+    In.ConnectRequest.Name[2] = (char)200;
+    Out = RoundTrip(&In, 0);
+    Check(strcmp(Out.ConnectRequest.Name, "Z??bir") == 0);
+
+    // A forged length longer than the buffer is refused.
+    u8 Buffer[NET_MAX_PACKET_SIZE];
+    u32 Size = NetWritePacket(&In, Buffer, sizeof(Buffer));
+    Check(Size > 0);
+    Buffer[Size - 7] = NET_NAME_SIZE; // the name's length byte
+    net_packet Bad;
+    Check(!NetReadPacket(Buffer, Size, &Bad));
+
+    // No name at all is fine.
+    In.ConnectRequest.Name[0] = 0;
+    Out = RoundTrip(&In, 0);
+    Check(Out.ConnectRequest.Name[0] == 0);
 }
 
 internal void
@@ -147,6 +182,8 @@ TestFullSnapshotFits()
     Check(LastScore->Kills == 3 * (NET_MAX_SNAPSHOT_SCORES - 1));
     Check(LastScore->Deaths == 65535);
     Check(LastScore->MonsterKills == 1000 + NET_MAX_SNAPSHOT_SCORES - 1);
+    Check(Out.Snapshot.NameSlot == NET_MAX_SNAPSHOT_SCORES - 1);
+    Check(strcmp(Out.Snapshot.Name, "ABCDEFGHIJKLMNO") == 0);
     net_ability_state *A = &Out.Snapshot.Abilities[2];
     Check(A->EntityIndex == NET_MAX_SNAPSHOT_ENTITIES - 3);
     Check(A->Phase == 1 && A->Ability == 2);
@@ -447,6 +484,7 @@ int
 main()
 {
     TestConnectRoundTrip();
+    TestNamesRoundTripAndAreCleaned();
     TestInputRoundTrip();
     TestFullSnapshotFits();
     TestFixedPointPrecisionAndClamping();

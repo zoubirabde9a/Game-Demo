@@ -52,6 +52,8 @@ struct player_slot
     u32 Kills;
     u32 Deaths;
     u32 MonsterKills;
+    // NOTE(zoubir): chosen by the player, may be empty ("Player N" then)
+    char Name[16];
     // NOTE(zoubir): counts down while the player is dead (Hp <= 0)
     float RespawnTimer;
 

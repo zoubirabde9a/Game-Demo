@@ -244,6 +244,12 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
         }
 
         ApplySnapshotScores(AppState, Snapshot);
+        if (Snapshot->NameSlot < MAX_PLAYERS)
+        {
+            CopyString(AppState->Players[Snapshot->NameSlot].Name,
+                       sizeof(AppState->Players[Snapshot->NameSlot].Name),
+                       Snapshot->Name);
+        }
 
         for(u32 Id = 0; Id < MAX_REPLICAS; Id++)
         {

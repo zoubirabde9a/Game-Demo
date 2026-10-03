@@ -23,9 +23,14 @@ NetClientEnd(net_client *Client, net_client_end Reason)
 }
 
 internal bool32
-NetClientConnect(net_client *Client, net_address Server, u32 Salt, u32 ContentId)
+NetClientConnect(net_client *Client, net_address Server, u32 Salt, u32 ContentId,
+                 const char *Name)
 {
     *Client = {};
+    for (u32 Index = 0; Name && Name[Index] && Index + 1 < NET_NAME_SIZE; ++Index)
+    {
+        Client->Name[Index] = Name[Index];
+    }
     Client->Socket = NetOpenSocket(0);
     if (!Client->Socket.Open) return false;
     Client->Server = Server;
@@ -114,6 +119,10 @@ NetClientUpdate(net_client *Client, float Dt, u16 Buttons, float AimX, float Aim
             Client->RetryTimer = NET_CONNECT_RETRY;
             Out.ConnectRequest.ClientSalt = Client->Salt;
             Out.ConnectRequest.ContentId = Client->ContentId;
+            for (u32 Index = 0; Index < NET_NAME_SIZE; ++Index)
+            {
+                Out.ConnectRequest.Name[Index] = Client->Name[Index];
+            }
             NetClientSend(Client, &Out, NetPacket_ConnectRequest);
         }
     }

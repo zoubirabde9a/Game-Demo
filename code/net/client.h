@@ -50,6 +50,7 @@ struct net_client
     net_address Server;
     u32 Salt;
     u32 ContentId;
+    char Name[NET_NAME_SIZE];
     float SecondsSinceHeard;
     float SecondsConnecting;
     float RetryTimer;
@@ -62,7 +63,9 @@ struct net_client
 
 // Opens a socket and starts connecting. Salt should be random per launch.
 // ContentId is SimContentId() for a game client, 0 for a tool.
-internal bool32 NetClientConnect(net_client *Client, net_address Server, u32 Salt, u32 ContentId);
+// Name is what other players see; empty shows as "Player N".
+internal bool32 NetClientConnect(net_client *Client, net_address Server, u32 Salt, u32 ContentId,
+                                 const char *Name = "");
 
 // Reads everything from the server, then sends this frame's input (or a
 // connect retry). Call once per frame with the buttons held this frame.

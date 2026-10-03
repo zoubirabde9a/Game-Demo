@@ -96,6 +96,10 @@ NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Pack
         Slot->NewestReceived = Packet->Header.Sequence;
         Result.Event = NetReceive_Joined;
         Result.SlotIndex = SlotIndex;
+        for (u32 Index = 0; Index < NET_NAME_SIZE; ++Index)
+        {
+            Result.Name[Index] = Packet->ConnectRequest.Name[Index];
+        }
         NetFillAccepted(Slot, SlotIndex, ServerTick, &Result);
         return Result;
     }
