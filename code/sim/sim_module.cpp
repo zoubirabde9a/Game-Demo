@@ -8,9 +8,16 @@
    Entry points: InitSimulation (setup.cpp), SimulateTick (simulate.cpp),
    AddPlayerToSlot / RemovePlayerFromSlot (players.cpp), SimContentId.
 
+   World storage and the entity struct every module shares are world.* and
+   entity.* (declared through app.h): the arena's tiles and chunk lists,
+   adding and removing entities, MoveEntity with its collision, overlaps,
+   and the animation state machine.
+
    A new sim file goes on its own line below, after the files it uses.
    Monster kinds are not listed here: see monsters/README.md. */
 
+#include "world.cpp"
+#include "entity.cpp"
 #include "collision_rules.cpp"
 #include "animations.cpp"
 #include "monster_kinds.cpp"

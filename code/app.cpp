@@ -21,10 +21,6 @@
 
 #include "engine/engine_module.cpp"
 
-// NOTE(zoubir): world storage and the entity struct every module shares
-#include "world.cpp"
-#include "entity.cpp"
-
 // NOTE(zoubir): the ids of the immediate-mode widgets, used by client startup
 #include "app_ui.h"
 

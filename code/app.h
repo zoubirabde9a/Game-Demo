@@ -52,7 +52,7 @@ struct font
 #include "engine/asset.h"
 #include "engine/utility.h"
 #include "engine/ui.h"
-#include "world.h"
+#include "sim/world.h"
 #include "sim/player.h"
 #include "sim/events.h"
 #include "engine/audio.h"

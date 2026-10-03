@@ -114,7 +114,7 @@ struct entity_collision_volume_group
 #define FIREBALL_DAMAGE 25.f
 
 // NOTE(zoubir): monster kinds, abilities and status effects
-#include "sim/monster_types.h"
+#include "monster_types.h"
 
 struct world_entity
 {
@@ -158,9 +158,9 @@ struct world_entity
     float StatusTickTimer;
     // NOTE(zoubir): monster-only state (kind, abilities, elites, summons)
     // lives in its own file so new monster features do not edit this one
-#include "sim/monster_fields.inc"
+#include "monster_fields.inc"
     // NOTE(zoubir): player-only state (ability cooldowns)
-#include "sim/player_fields.inc"
+#include "player_fields.inc"
     // NOTE(zoubir): which player_slot owns this player entity
     u32 PlayerIndex;
     // NOTE(zoubir): swords and fireballs remember the slot that made them,
