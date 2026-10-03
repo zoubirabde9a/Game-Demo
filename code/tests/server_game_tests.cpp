@@ -272,6 +272,55 @@ TestSnapshotCarriesMonsterWindup()
     GameShutdown(&Game);
 }
 
+// Bots fill the highest slots no human uses, play (they move), make room
+// when a human takes their slot, and leave when fewer are wanted.
+internal void
+TestBotsFillFreeSlots()
+{
+    static server_game Game;
+    GameInit(&Game);
+    app_state *AppState = Game.AppState;
+    float Dt = 1.f / 60.f;
+    Game.BotTarget = 3;
+    GameKeepBots(&Game, 0, Dt);
+    Check(AppState->Players[7].Active && AppState->Players[6].Active && AppState->Players[5].Active);
+    Check(!AppState->Players[4].Active);
+    Check(strcmp(AppState->Players[7].Name, "Bot 8") == 0);
+
+    v3 Start[3];
+    for (u32 Index = 0; Index < 3; ++Index) Start[Index] = AppState->Players[5 + Index].Entity->Position;
+    for (u32 Tick = 0; Tick < 600; ++Tick)
+    {
+        GameKeepBots(&Game, 0, Dt);
+        GameTick(&Game, Dt);
+    }
+    u32 Moved = 0;
+    for (u32 Index = 0; Index < 3; ++Index)
+    {
+        world_entity *Bot = AppState->Players[5 + Index].Entity;
+        if (Bot && LengthSq(Bot->Position.XY - Start[Index].XY) > Square(32.f)) ++Moved;
+    }
+    Check(Moved >= 2);
+
+    // A human joins slot 7 (the network's choice); the bot there is gone
+    // and another slot gets one.
+    GamePlayerJoined(&Game, 7);
+    GamePlayerNamed(&Game, 7, "Gary");
+    GameKeepBots(&Game, 1u << 7, Dt);
+    Check(!Game.Bots[7].Active);
+    Check(strcmp(AppState->Players[7].Name, "Gary") == 0);
+    Check(Game.Bots[4].Active && Game.Bots[5].Active && Game.Bots[6].Active);
+
+    // Fewer wanted: the extra ones leave.
+    Game.BotTarget = 1;
+    GameKeepBots(&Game, 1u << 7, Dt);
+    u32 Left = 0;
+    for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot) Left += Game.Bots[Slot].Active ? 1 : 0;
+    Check(Left == 1);
+    Check(AppState->Players[7].Active);
+    GameShutdown(&Game);
+}
+
 internal void
 RunServerGameTests()
 {
@@ -281,4 +330,5 @@ RunServerGameTests()
     TestArmoredMonstersSendFacing();
     TestSameNamesAreToldApart();
     TestSnapshotCarriesMonsterWindup();
+    TestBotsFillFreeSlots();
 }

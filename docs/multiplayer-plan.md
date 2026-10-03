@@ -22,6 +22,7 @@ How it was built, step by step, is in [multiplayer-history.md](multiplayer-histo
 | The server's world on the client | `client/replicas.cpp` (details in `client/replicas/`), smoothing in `client/replica_smoothing.cpp` |
 | Local player prediction | `client/prediction.cpp` |
 | Connect screen, kill feed data | `ui/connect_screen.cpp`, `client/kill_feed.cpp` |
+| Bot players (`server --bots N`) | `server/bots.cpp`, kept topped up by `GameKeepBots` in `server/sim_game.cpp` |
 | Live server, deploy, load test, who is online | `deploy/README.md`, `deploy/deploy.sh`, `build\bots.exe`, `build\probe.exe --info` |
 
 ## Next

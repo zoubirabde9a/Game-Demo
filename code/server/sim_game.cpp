@@ -9,6 +9,7 @@
 
 #include "../app_sim.cpp" // the simulation without the client or UI
 #include "event_relay.cpp"
+#include "bots.cpp"
 
 #define SIM_GAME_MEMORY Megabytes(64)
 struct server_game
@@ -20,6 +21,10 @@ struct server_game
     u32 LastInputTick[NET_MAX_CLIENTS]; // newest input applied per slot
     // Sounds and deaths on their way to the clients (event_relay.cpp).
     event_relay Relay;
+    // How many bots to keep in slots no human uses, and their brains
+    // (bots.cpp).
+    u32 BotTarget;
+    bot_brain Bots[MAX_PLAYERS];
 };
 
 internal void
@@ -57,6 +62,7 @@ GameShutdown(server_game *Game)
 internal void
 GamePlayerJoined(server_game *Game, u32 Slot)
 {
+    Game->Bots[Slot].Active = false;
     RelayJoined(&Game->Relay, Slot);
     app_state *AppState = Game->AppState;
     RemovePlayerFromSlot(AppState, &AppState->World, Slot);
@@ -240,5 +246,53 @@ GameListPlayers(server_game *Game, net_info_reply *Out)
         char *Name = Out->Names[Out->NameCount++];
         if (Player->Name[0]) snprintf(Name, NET_NAME_SIZE, "%s", Player->Name);
         else snprintf(Name, NET_NAME_SIZE, "Player %u", Slot + 1);
+    }
+}
+
+// Before each tick: keep BotTarget bots in the slots no human is connected
+// to (bit N of ConnectedSlots set = a human has slot N), highest slots
+// first so humans, who join the lowest free slot, rarely displace one;
+// then give each bot this tick's input.
+internal void
+GameKeepBots(server_game *Game, u32 ConnectedSlots, float Dt)
+{
+    app_state *AppState = Game->AppState;
+    u32 BotCount = 0;
+    for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
+    {
+        if ((ConnectedSlots >> Slot) & 1) Game->Bots[Slot].Active = false;
+        if (Game->Bots[Slot].Active) ++BotCount;
+    }
+    for (u32 Step = 0; Step < MAX_PLAYERS; ++Step)
+    {
+        u32 Slot = MAX_PLAYERS - 1 - Step;
+        bool32 Human = (ConnectedSlots >> Slot) & 1;
+        bot_brain *Bot = &Game->Bots[Slot];
+        if (BotCount < Game->BotTarget && !Human && !Bot->Active &&
+            !AppState->Players[Slot].Active)
+        {
+            GamePlayerJoined(Game, Slot);
+            char Name[NET_NAME_SIZE];
+            snprintf(Name, sizeof(Name), "Bot %u", Slot + 1);
+            GamePlayerNamed(Game, Slot, Name);
+            *Bot = {};
+            Bot->Active = true;
+            Bot->Random = 0x9e3779b9u * (Slot + 1) ^ Game->Relay.Tick;
+            ++BotCount;
+        }
+        else if (BotCount > Game->BotTarget && Bot->Active)
+        {
+            GamePlayerLeft(Game, Slot);
+            Bot->Active = false;
+            --BotCount;
+        }
+    }
+    for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
+    {
+        bot_brain *Bot = &Game->Bots[Slot];
+        if (!Bot->Active) continue;
+        world_entity *Self = AppState->Players[Slot].Entity;
+        net_input Input = BotThink(Bot, AppState, Self, Game->Relay.Tick + 1, Dt);
+        GameApplyInput(Game, Slot, &Input);
     }
 }

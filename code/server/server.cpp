@@ -202,6 +202,12 @@ ServerTick(server *Server)
 {
     float Dt = 1.0f / SERVER_TICK_RATE;
     ServerReceiveAll(Server);
+    u32 ConnectedSlots = 0;
+    for (u32 Index = 0; Index < NET_MAX_CLIENTS; ++Index)
+    {
+        if (Server->Clients.Slots[Index].Connected) ConnectedSlots |= 1u << Index;
+    }
+    GameKeepBots(&Server->Game, ConnectedSlots, Dt);
     GameTick(&Server->Game, Dt);
     Server->Tick++;
     if (Server->Tick % SERVER_SNAPSHOT_INTERVAL == 0) ServerSendSnapshots(Server);

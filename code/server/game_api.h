@@ -24,6 +24,9 @@ internal void GameApplyInput(server_game *Game, u32 Slot, net_input *Input);
 internal void GameTick(server_game *Game, float Dt);
 // Fills Out with the entities the player in ViewerSlot should see.
 internal void GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out);
+// Before each tick: keep the wanted number of bots (server_game.BotTarget)
+// in slots no human is connected to; bit N of ConnectedSlots is slot N.
+internal void GameKeepBots(server_game *Game, u32 ConnectedSlots, float Dt);
 // Fills the names of the connected players into an info reply.
 internal void GameListPlayers(server_game *Game, net_info_reply *Out);
 
