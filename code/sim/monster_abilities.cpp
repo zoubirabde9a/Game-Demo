@@ -13,6 +13,8 @@
    in which case it has already moved it this frame. */
 
 #define MONSTER_ABILITY_RETRY_SECONDS 0.5f
+// NOTE(zoubir): how long the shell glints after blocking a hit
+#define BLOCK_FLASH_SECONDS 0.2f
 // NOTE(zoubir): a charge that covers less than this share of its speed in a
 // frame has hit a wall and stuns the monster for longer
 #define CHARGE_BLOCKED_SHARE 0.35f
@@ -658,6 +660,90 @@ UpdateCharge(app_state *AppState, world *World, world_entity *Entity,
     }
 }
 
+// NOTE(zoubir): turns Direction toward the nearest player at the kind's
+// TurnRate, so slow turners can be flanked
+internal void
+UpdateMonsterFacing(world *World, world_entity *Entity, monster_def *Def,
+                    float DeltaTime)
+{
+    if (LengthSq(Entity->Direction) < 0.0001f)
+    {
+        Entity->Direction = V2(1.f, 0.f);
+    }
+    world_entity *Target = FindMonsterTarget(World, Entity->Position.XY, 0);
+    if (!Target)
+    {
+        return;
+    }
+    v2 Want = Target->Position.XY - Entity->Position.XY;
+    float WantLength = Length(Want);
+    if (WantLength <= 0.f)
+    {
+        return;
+    }
+    Want *= 1.f / WantLength;
+    if (Def->TurnRate <= 0.f)
+    {
+        Entity->Direction = Want;
+        return;
+    }
+    float Current = ATan2(Entity->Direction.Y, Entity->Direction.X);
+    float Delta = ATan2(Want.Y, Want.X) - Current;
+    while (Delta > Pi32)
+    {
+        Delta -= 2.f * Pi32;
+    }
+    while (Delta < -Pi32)
+    {
+        Delta += 2.f * Pi32;
+    }
+    float Step = Def->TurnRate * DeltaTime;
+    if (Delta > Step)
+    {
+        Delta = Step;
+    }
+    else if (Delta < -Step)
+    {
+        Delta = -Step;
+    }
+    Entity->Direction = V2(Cos(Current + Delta), Sin(Current + Delta));
+}
+
+// NOTE(zoubir): true when Source sits inside Target's armored front arc
+internal bool32
+IsInFrontArc(world_entity *Target, monster_def *Def, v2 SourcePosition)
+{
+    v2 ToSource = SourcePosition - Target->Position.XY;
+    float Distance = Length(ToSource);
+    if (Distance <= 0.f || LengthSq(Target->Direction) < 0.0001f)
+    {
+        return false;
+    }
+    float HalfArc = 0.5f * Def->FrontArcDegrees * (Pi32 / 180.f);
+    bool32 Result = DotProduct((1.f / Distance) * ToSource, Target->Direction) >=
+        Cos(HalfArc);
+    return Result;
+}
+
+// NOTE(zoubir): DamageEntity runs every hit through this before taking
+// health; monsters with a shell shrug off hits from the front
+internal float
+ModifyIncomingDamage(world_entity *Target, world_entity *Source, float Damage)
+{
+    float Result = Damage;
+    if (Target->Type == EntityType_Monster && Source)
+    {
+        monster_def *Def = GetMonsterDef(Target->MonsterKind);
+        if (Def->FrontArmor > 0.f &&
+            IsInFrontArc(Target, Def, Source->Position.XY))
+        {
+            Result *= 1.f - Def->FrontArmor;
+            Target->BlockFlash = BLOCK_FLASH_SECONDS;
+        }
+    }
+    return Result;
+}
+
 inline animation_direction
 FacingFromAim(v2 Aim, animation_direction Current)
 {
@@ -691,6 +777,8 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
                        animation_direction *AnimationDirection)
 {
     monster_def *Def = GetMonsterDef(Entity->MonsterKind);
+    Entity->BlockFlash = Maximum(0.f, Entity->BlockFlash - DeltaTime);
+    UpdateMonsterFacing(World, Entity, Def, DeltaTime);
     for(u32 AbilityIndex = 0;
         AbilityIndex < Def->AbilityCount;
         AbilityIndex++)

@@ -201,6 +201,10 @@ CanOverlap(world_entity *Entity, world_entity *Region);
 // effect (split, ...) for the population to run next tick
 internal void
 RecordMonsterDeath(app_state *AppState, world_entity *Monster);
+// NOTE(zoubir): in sim/monster_abilities.cpp; shells and other damage
+// reductions, applied to every hit before it takes health
+internal float
+ModifyIncomingDamage(world_entity *Target, world_entity *Source, float Damage);
 internal bool32
 EntityOverlap(world_entity *Entity, world_entity *Region);
 internal void

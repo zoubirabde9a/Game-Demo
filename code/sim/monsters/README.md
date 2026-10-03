@@ -52,6 +52,10 @@ Any ability can also set:
 - `Status` and `StatusSeconds`: put on every player it hits. Burning (fast damage), Poisoned (slow damage) and Slowed (movement scaled down) live in `code/sim/status_effects.cpp`. A second application keeps whichever timer is longer; effects never stack.
 - `HazardSeconds` and `HazardStyle` (slam and mortar): the slam's center or each mortar spot leaves a patch of ground of `Radius` that keeps applying `Status` to anyone standing in it.
 
+## Shells and turning
+
+`FrontArmor` (0..1) cuts every hit whose source stands inside the monster's front arc (`FrontArcDegrees`, centered on its `Direction`). `TurnRate` (radians per second) limits how fast that facing follows the nearest player, so a slow turner can be flanked. The arc is drawn on the ground in front of the monster and flashes white on a block. New monster state goes in `code/sim/monster_fields.inc`.
+
 ## Elites
 
 `code/sim/monster_affixes.cpp` holds a table of affixes. When the arena refills a monster, there is a 15% chance (`ELITE_CHANCE`) it rolls one. Any kind can roll any affix.
@@ -94,6 +98,7 @@ A monster uses the first ability in its list that is off cooldown and whose `Min
 | Slime | Gloomslime | Belly Flop: slam that leaves slowing goo. Splits into two Slimelets on death |
 | Shaman | Bone Shaman | Mend: heals the most hurt ally. Raise Dead: two Skeletal Thralls, at most four |
 | Thrall | Skeletal Thrall | none; quick and brittle, only appears from a shaman, crumbles when it dies |
+| Warden | Carapace Warden | Shell Bash: short shoulder charge. Front shell blocks 80% of hits; turns slowly. Not spawning yet (SpawnWeight 0, see its file) |
 | Slimelet | Slimelet | none; small and quick, only appears from a split |
 
 The toad's shells now leave bile puddles that poison.

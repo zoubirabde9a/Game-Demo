@@ -78,6 +78,12 @@ TestMonsterDefsAreValid()
             Check(Def->FrameCounts[Row] <= MONSTER_SHEET_COLUMNS);
             Check(Def->SecondsPerFrame[Row] > 0.f);
         }
+        Check(Def->FrontArmor >= 0.f && Def->FrontArmor < 1.f);
+        if (Def->FrontArmor > 0.f)
+        {
+            Check(Def->FrontArcDegrees > 0.f && Def->FrontArcDegrees < 360.f);
+        }
+        Check(Def->TurnRate >= 0.f);
         if (Def->DeathEffect == DeathEffect_Split)
         {
             Check(Def->SplitCount >= 1 && Def->SplitCount <= 4);
@@ -858,6 +864,51 @@ TestMendWaitsForSomeoneHurt()
 }
 
 internal void
+TestShellBlocksHitsFromTheFront()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Warden = AddTestMonster(&Test, MonsterKind_Warden, {1000, 1000, 0});
+    Warden->Direction = V2(1.f, 0.f);
+    world_entity *Front = AddTestPlayer(&Test, {1040, 1000, 0});
+    world_entity *Behind = AddTestPlayer(&Test, {960, 1000, 0});
+    monster_def *Def = GetMonsterDef(MonsterKind_Warden);
+
+    float Start = Warden->Hp;
+    DamageEntity(Test.AppState, Test.World, Warden, 10.f, Front);
+    Check(Absolute(Warden->Hp - (Start - 10.f * (1.f - Def->FrontArmor))) < 0.001f);
+    Check(Warden->BlockFlash > 0.f);
+
+    Start = Warden->Hp;
+    DamageEntity(Test.AppState, Test.World, Warden, 10.f, Behind);
+    Check(Warden->Hp == Start - 10.f);
+
+    // NOTE(zoubir): no source (status ticks) is never blocked
+    Start = Warden->Hp;
+    DamageEntity(Test.AppState, Test.World, Warden, 4.f, 0);
+    Check(Warden->Hp == Start - 4.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestWardenTurnsSlowlyTowardTarget()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Warden = AddTestMonster(&Test, MonsterKind_Warden, {1000, 1000, 0});
+    Warden->Direction = V2(1.f, 0.f);
+    AddTestPlayer(&Test, {700, 1000, 0});
+    monster_def *Def = GetMonsterDef(MonsterKind_Warden);
+
+    StepMonster(&Test, Warden, 30);
+    float Turned = ATan2(Warden->Direction.Y, Warden->Direction.X);
+    Turned = Turned < 0.f ? -Turned : Turned;
+    Check(Turned <= Def->TurnRate * 0.5f + 0.05f);
+    Check(Warden->Direction.X > -0.9f);
+    StepMonster(&Test, Warden, 180);
+    Check(Warden->Direction.X < -0.99f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 RunMonsterTests()
 {
     printf("TestMonsterDefsAreValid\n");
@@ -928,4 +979,8 @@ RunMonsterTests()
     TestMendHealsMostHurtAlly();
     printf("TestMendWaitsForSomeoneHurt\n");
     TestMendWaitsForSomeoneHurt();
+    printf("TestShellBlocksHitsFromTheFront\n");
+    TestShellBlocksHitsFromTheFront();
+    printf("TestWardenTurnsSlowlyTowardTarget\n");
+    TestWardenTurnsSlowlyTowardTarget();
 }

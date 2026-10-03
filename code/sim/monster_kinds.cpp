@@ -144,6 +144,14 @@ struct monster_def
     monster_death_effect DeathEffect;
     monster_kind SplitKind;
     u32 SplitCount;
+
+    // NOTE(zoubir): share of damage a hit loses when it comes from inside
+    // the front arc (centered on the monster's Direction)
+    float FrontArmor;
+    float FrontArcDegrees;
+    // NOTE(zoubir): radians per second the facing turns toward the target;
+    // 0 turns instantly
+    float TurnRate;
 };
 // NOTE(zoubir): older code calls the def "stats"
 typedef monster_def monster_stats;

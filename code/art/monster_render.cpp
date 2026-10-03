@@ -223,11 +223,52 @@ DrawEliteAuras(render_context *RenderContext, world *World, v3 CameraOffset)
     }
 }
 
+#define SHELL_ARC_COLOR 0xFFB0E0F0
+#define SHELL_BLOCK_COLOR 0xFFFFFFFF
+
+// NOTE(zoubir): an arc of dots on the ground in front of armored monsters,
+// showing the side their shell covers; it flashes white on a block
+internal void
+DrawShellArcs(render_context *RenderContext, world *World, v3 CameraOffset)
+{
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (!Entity->IsPresent || Entity->Type != EntityType_Monster)
+        {
+            continue;
+        }
+        monster_def *Def = GetMonsterDef(Entity->MonsterKind);
+        if (Def->FrontArmor <= 0.f || LengthSq(Entity->Direction) < 0.0001f)
+        {
+            continue;
+        }
+        v2 Feet = Entity->Position.XY - CameraOffset.XY;
+        float Radius = 0.6f * Entity->Dimensions.X;
+        float Facing = ATan2(Entity->Direction.Y, Entity->Direction.X);
+        float HalfArc = 0.5f * Def->FrontArcDegrees * (Pi32 / 180.f);
+        bool32 Blocked = Entity->BlockFlash > 0.f;
+        u32 Color = Blocked ? SHELL_BLOCK_COLOR : SHELL_ARC_COLOR;
+        float Size = Blocked ? 3.f : 2.f;
+        u32 Dots = 9;
+        for(u32 Dot = 0; Dot < Dots; Dot++)
+        {
+            float Angle = Facing - HalfArc + 2.f * HalfArc * (float)Dot / (float)(Dots - 1);
+            v2 P = Feet + V2(Radius * Cos(Angle), 0.6f * Radius * Sin(Angle));
+            DrawFilledRectangle(RenderContext, P.X - 0.5f * Size, P.Y - 0.5f * Size,
+                                Size, Size, Color, 0.f);
+        }
+    }
+}
+
 internal void
 DrawMonsterTelegraphs(render_context *RenderContext, world *World,
                       v3 CameraOffset)
 {
     DrawEliteAuras(RenderContext, World, CameraOffset);
+    DrawShellArcs(RenderContext, World, CameraOffset);
     DrawStatusPips(RenderContext, World, CameraOffset);
     for(u32 EntityIndex = 0;
         EntityIndex < World->EntityCount;

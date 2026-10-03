@@ -13,3 +13,4 @@
 #include "spider.cpp"
 #include "slime.cpp"
 #include "necromancy.cpp"
+#include "warden.cpp"

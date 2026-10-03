@@ -33,3 +33,6 @@
     u32 SummonerSerial;
     u32 AbilityTargetSlot;
     u32 AbilityTargetSerial;
+    // NOTE(zoubir): seconds left on the shell glint after a blocked hit;
+    // facing for armored monsters lives in the shared Direction field
+    float BlockFlash;

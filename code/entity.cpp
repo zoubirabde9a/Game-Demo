@@ -255,6 +255,7 @@ DamageEntity(app_state *AppState, world *World,
         return false;
     }
 
+    Damage = ModifyIncomingDamage(Target, Source, Damage);
     Target->Hp -= Damage;
     if (Target->Hp > 0.f)
     {
