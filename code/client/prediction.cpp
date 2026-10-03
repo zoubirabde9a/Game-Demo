@@ -7,9 +7,12 @@
    has not applied yet are replayed on top, so the replica lands where the
    server will have it once those inputs arrive.
 
-   Movement, facing (the aim toward the cursor), dash and blink are
+   Movement, facing (the aim toward the cursor), jump, dash and blink are
    predicted: they move only the player, so they happen the frame they
-   are pressed. Each recorded input keeps which buttons went down on it,
+   are pressed. Snapshots carry no vertical speed, so each input keeps
+   the player's vertical speed after it, and a replay starts from the
+   one the server last acknowledged rather than from zero (which pulled
+   a jump down between snapshots). Each recorded input keeps which buttons went down on it,
    worked out the same way the server does, and the cooldowns the server
    sends say whether dash and blink are ready; UpdatePlayer counts them
    down as it steps, replays included. Attacks, shockwaves and jumps
@@ -39,6 +42,8 @@ struct predicted_input
     u16 Pressed;
     v2 Aim;
     float DeltaTime;
+    // NOTE(zoubir): the player's vertical speed once this input was applied
+    float VelocityZAfter;
 };
 
 // NOTE(zoubir): a ring of the inputs the server has not acknowledged yet,
@@ -54,6 +59,8 @@ struct prediction_history
     v2 Predicted;
     v2 DrawError;
     u16 LastButtons;
+    // NOTE(zoubir): VelocityZAfter of the newest input the server applied
+    float AckedVelocityZ;
 };
 
 // NOTE(zoubir): the server turns held net buttons into a move direction
@@ -103,6 +110,7 @@ DropAcknowledgedInputs(prediction_history *History, u32 InputTick)
     while (History->Count > 0 &&
            GetPredictedInput(History, 0)->Tick <= InputTick)
     {
+        History->AckedVelocityZ = GetPredictedInput(History, 0)->VelocityZAfter;
         History->First = (History->First + 1) % MAX_PREDICTED_INPUTS;
         History->Count--;
     }
@@ -126,6 +134,7 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     Slot->Input = {};
     Slot->Input.Move = MoveFromNetButtons(Input->Buttons);
     Slot->Input.Aim = Input->Aim;
+    if (Input->Pressed & NetButton_Jump) Slot->Input.Pressed |= PlayerButton_Jump;
     if (Input->Pressed & NetButton_Dash) Slot->Input.Pressed |= PlayerButton_Dash;
     if (Input->Pressed & NetButton_Blink) Slot->Input.Pressed |= PlayerButton_Blink;
     float AnimationSpeed;
@@ -133,6 +142,7 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     animation_direction AnimationDirection;
     UpdatePlayer(Slot, &AppState->World, Arena, Input->DeltaTime, AppState,
                  &AnimationSpeed, &AnimationType, &AnimationDirection);
+    Input->VelocityZAfter = Player->Velocity.Z;
     Player->AnimationType = AnimationType;
     Player->AnimationDirection = AnimationDirection;
     return true;
@@ -164,6 +174,10 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
     if (NewSnapshot)
     {
         DropAcknowledgedInputs(History, InputTick);
+        if (Player && Player->Position.Z > 0.f)
+        {
+            Player->Velocity.Z = History->AckedVelocityZ;
+        }
         for(u32 Index = 0; Index < History->Count && Moved; Index++)
         {
             Moved = PredictLocalStep(AppState, Arena,

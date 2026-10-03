@@ -380,6 +380,7 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     u32 LastTick = 0;
     u32 CooldownsCompared = 0, CooldownsOff = 0, ServerCooling = 0, ClientCooling = 0;
     u32 DashPresses = 0, DashesSeenAtOnce = 0;
+    u32 JumpPresses = 0, JumpsSeenAtOnce = 0;
     app_input Input = {};
     Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
     for (int Frame = 0; Frame < Seconds * SERVER_TICK_RATE; ++Frame)
@@ -388,12 +389,20 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
         // bars have something to show.
         Input.AltButton.EndedDown = (Frame % 90) < 2;
         Input.ButtonE.EndedDown = (Frame % 300) < 2;
+        // NOTE(zoubir): and jumps, so its own jump arc can be compared
+        Input.SpaceButton.EndedDown = (Frame % 120) == 45;
         UpdateOnlineSession(Online, &Input);
         RunWorldTick(Client, &Arena, Input.DeltaTime);
         // NOTE(zoubir): dash is predicted, so the client's player has already
         // dashed on the frame the key goes down (its cooldown has started;
         // its speed may not show it, pressed against a wall)
         world_entity *Own = Client->Players[Client->LocalPlayerIndex].Entity;
+        if ((Frame % 120) == 45 && IsOnline(Online) && Online->Replicas.Active &&
+            Own && Own->IsPresent && !IsDeadPlayer(Own))
+        {
+            ++JumpPresses;
+            JumpsSeenAtOnce += Own->Velocity.Z > 0.f ? 1 : 0;
+        }
         if ((Frame % 90) == 0 && IsOnline(Online) && Online->Replicas.Active &&
             Own && Own->IsPresent && !IsDeadPlayer(Own))
         {
@@ -485,6 +494,10 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     Check(CooldownsCompared > 100 && CooldownsOff == 0);
     printf("  dash presses %u, dashing on the press frame %u\n", DashPresses, DashesSeenAtOnce);
     Check(DashPresses > 3 && DashesSeenAtOnce >= DashPresses - 1);
+    // NOTE(zoubir): jump is predicted too: rising on the press frame
+    printf("  jump presses %u, rising on the press frame %u\n",
+           JumpPresses, JumpsSeenAtOnce);
+    Check(JumpPresses > 1 && JumpsSeenAtOnce >= JumpPresses);
     Check(ServerCooling > 0 && ClientCooling > 0);
 
     NetClientDisconnect(&Online->Client);
