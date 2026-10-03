@@ -14,7 +14,9 @@
    - hit numbers: the damage each hit did, rising from the target
      (player_fx/hit_numbers.cpp);
    - blink preview: where a blink would land, while it is ready
-     (player_fx/blink_preview.cpp).
+     (player_fx/blink_preview.cpp);
+   - fireball trails: embers cooling behind every fireball
+     (player_fx/fireball_trails.cpp).
 
    Entry point: DrawPlayerAbilityFx, once a frame from app.cpp. */
 
@@ -24,6 +26,7 @@
 #include "player_fx/dash_streaks.cpp"
 #include "player_fx/hit_numbers.cpp"
 #include "player_fx/blink_preview.cpp"
+#include "player_fx/fireball_trails.cpp"
 
 struct player_fx
 {
@@ -31,6 +34,7 @@ struct player_fx
     sword_arcs Swords;
     dash_streaks Dashes;
     hit_numbers Hits;
+    fireball_trails Embers;
 };
 
 // NOTE(zoubir): the state lives in MemoryArena, not the world arena, so a
@@ -49,7 +53,9 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     UpdateSwordArcs(&Fx->Swords, AppState, DeltaTime);
     UpdateDashStreaks(&Fx->Dashes, AppState, DeltaTime);
     UpdateHitNumbers(&Fx->Hits, AppState, DeltaTime);
+    UpdateFireBallTrails(&Fx->Embers, AppState, DeltaTime);
 
+    DrawFireBallTrails(RenderContext, &Fx->Embers, CameraOffset);
     DrawDashStreaks(RenderContext, &Fx->Dashes, CameraOffset);
     DrawShockwaveRings(RenderContext, &Fx->Rings, CameraOffset);
     DrawSwordArcs(RenderContext, &Fx->Swords, CameraOffset);
