@@ -1,0 +1,11 @@
+# Compiler output from build.bat (written into build/)
+*.obj
+*.pdb
+*.map
+*.exp
+*.lib
+!lib/**/*.lib
+build/*.exe
+build/*.dll
+# Runtime copy the exe makes so app.dll can be hot-reloaded
+app_temp.dll
