@@ -22,7 +22,7 @@
 #include "engine/engine_module.cpp"
 
 // NOTE(zoubir): the ids of the immediate-mode widgets, used by client startup
-#include "app_ui.h"
+#include "ui/ui_ids.h"
 
 // NOTE(zoubir): one line per module; a module lists its own files, so a new
 // file is added there, not here. Read the top of each for what it does.
