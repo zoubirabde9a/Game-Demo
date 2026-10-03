@@ -9,6 +9,27 @@
 #include "app_platform.h"
 #include "win32_app.h"
 #include "win32_opengl.cpp"
+
+// NOTE(zoubir): input only counts while the game window is in front.
+// GetKeyState reports keys pressed in other windows too, and a key held
+// while switching away would otherwise stay down forever.
+global_variable bool32 GlobalHasInputFocus;
+global_variable bool32 GlobalMouseInClient;
+
+inline bool32
+Win32KeyDown(int VirtualKey)
+{
+    bool32 Result = GlobalHasInputFocus &&
+        (GetKeyState(VirtualKey) & (1 << 15));
+    return Result;
+}
+
+inline bool32
+Win32MouseDown(int VirtualKey)
+{
+    bool32 Result = GlobalMouseInClient && Win32KeyDown(VirtualKey);
+    return Result;
+}
 //#include "GL\glew.h"
 
 global_variable bool Running; 
@@ -1435,61 +1456,68 @@ WinMain(HINSTANCE instance,
             POINT mouseP;
             GetCursorPos(&mouseP);
             ScreenToClient(windowHandle, &mouseP);
+            RECT clientRect;
+            GetClientRect(windowHandle, &clientRect);
+            GlobalHasInputFocus = (GetForegroundWindow() == windowHandle);
+            GlobalMouseInClient = (mouseP.x >= clientRect.left &&
+                                   mouseP.x < clientRect.right &&
+                                   mouseP.y >= clientRect.top &&
+                                   mouseP.y < clientRect.bottom);
             NewInput->MouseX = mouseP.x;
             NewInput->MouseY = mouseP.y;
             NewInput->MouseZ = 0;
             
             Win32ProcessKeyboardMessage(&OldInput->mouseButtons[0],
                                         &NewInput->mouseButtons[0],
-                                        GetKeyState(VK_LBUTTON) & (1 << 15));
+                                        Win32MouseDown(VK_LBUTTON));
             Win32ProcessKeyboardMessage(&OldInput->mouseButtons[1],
                                         &NewInput->mouseButtons[1],
-                                        GetKeyState(VK_MBUTTON) & (1 << 15));
+                                        Win32MouseDown(VK_MBUTTON));
             Win32ProcessKeyboardMessage(&OldInput->mouseButtons[2],
                                         &NewInput->mouseButtons[2],
-                                        GetKeyState(VK_RBUTTON) & (1 << 15));
+                                        Win32MouseDown(VK_RBUTTON));
             Win32ProcessKeyboardMessage(&OldInput->mouseButtons[3],
                                         &NewInput->mouseButtons[3],
-                                        GetKeyState(VK_XBUTTON1) & (1 << 15));
+                                        Win32MouseDown(VK_XBUTTON1));
             Win32ProcessKeyboardMessage(&OldInput->mouseButtons[4],
                                         &NewInput->mouseButtons[4],
-                                        GetKeyState(VK_XBUTTON2) & (1 << 15));
+                                        Win32MouseDown(VK_XBUTTON2));
             
             Win32ProcessKeyboardMessage(&OldInput->ArrowUp,
                                         &NewInput->ArrowUp,
-                                        GetKeyState(VK_UP) & (1 << 15));
+                                        Win32KeyDown(VK_UP));
             
             Win32ProcessKeyboardMessage(&OldInput->ArrowDown,
                                         &NewInput->ArrowDown,
-                                        GetKeyState(VK_DOWN) & (1 << 15));
+                                        Win32KeyDown(VK_DOWN));
             
             Win32ProcessKeyboardMessage(&OldInput->ArrowRight,
                                         &NewInput->ArrowRight,
-                                        GetKeyState(VK_RIGHT) & (1 << 15));
+                                        Win32KeyDown(VK_RIGHT));
             
             Win32ProcessKeyboardMessage(&OldInput->ArrowLeft,
                                         &NewInput->ArrowLeft,
-                                        GetKeyState(VK_LEFT) & (1 << 15));
+                                        Win32KeyDown(VK_LEFT));
             
             Win32ProcessKeyboardMessage(&OldInput->CapsButton,
                                         &NewInput->CapsButton,
-                                        GetKeyState(VK_CAPITAL) & (1 << 15));
+                                        Win32KeyDown(VK_CAPITAL));
             
             Win32ProcessKeyboardMessage(&OldInput->BackspaceButton,
                                         &NewInput->BackspaceButton,
-                                        GetKeyState(VK_BACK) & (1 << 15));
+                                        Win32KeyDown(VK_BACK));
             
             Win32ProcessKeyboardMessage(&OldInput->SpaceButton,
                                         &NewInput->SpaceButton,
-                                        GetKeyState(VK_SPACE) & (1 << 15));
+                                        Win32KeyDown(VK_SPACE));
 
             Win32ProcessKeyboardMessage(&OldInput->ShiftButton,
                                         &NewInput->ShiftButton,
-                                        GetKeyState(VK_SHIFT) & (1 << 15));
+                                        Win32KeyDown(VK_SHIFT));
             
             Win32ProcessKeyboardMessage(&OldInput->AltButton,
                                         &NewInput->AltButton,
-                                        GetKeyState(VK_MENU) & (1 << 15));
+                                        Win32KeyDown(VK_MENU));
             
             for(u32 FButtonIndex = 0;
                 FButtonIndex < 12;
@@ -1497,7 +1525,7 @@ WinMain(HINSTANCE instance,
             {
                 Win32ProcessKeyboardMessage(&OldInput->FButtons[FButtonIndex],
                                             &NewInput->FButtons[FButtonIndex],
-                                            GetKeyState(VK_F1 + FButtonIndex) & (1 << 15));
+                                            Win32KeyDown(VK_F1 + FButtonIndex));
             };
 
             if (NewInput->ButtonF1.Pressed)
@@ -1548,7 +1576,7 @@ WinMain(HINSTANCE instance,
                 int Number = VirtualKey - '0';
                 Win32ProcessKeyboardMessage(&OldInput->NumbersButtons[Number],
                                             &NewInput->NumbersButtons[Number],
-                                            GetKeyState(VirtualKey) & (1 << 15));
+                                            Win32KeyDown(VirtualKey));
                 if (Win32VerifyInput(NewInput,
                                      &NewInput->NumbersButtons[Number],
                                      VirtualKey, TimeToSpam))
@@ -1565,7 +1593,7 @@ WinMain(HINSTANCE instance,
                 int Alphabet = VirtualKey - 'A';
                 Win32ProcessKeyboardMessage(&OldInput->AlphaButtons[Alphabet],
                                             &NewInput->AlphaButtons[Alphabet],
-                                            GetKeyState(VirtualKey) & (1 << 15));
+                                            Win32KeyDown(VirtualKey));
                 if (Win32VerifyInput(NewInput,
                                      &NewInput->AlphaButtons[Alphabet],
                                      VirtualKey, TimeToSpam))
