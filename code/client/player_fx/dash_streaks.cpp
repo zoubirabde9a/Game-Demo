@@ -1,9 +1,12 @@
 /* Dash streaks: while a player's dash flag is on (DashFlash locally, the
-   PLAYER_FLASH_DASH bit the server sends for replicas), a dot is left at
-   its feet every frame; each dot shrinks and fades over
-   DASH_STREAK_SECONDS, so the path reads as a streak. */
+   PLAYER_FLASH_DASH bit the server sends for replicas; dash and blink both
+   set it), dots are laid every DASH_STREAK_SPACING units along the path
+   it covered since the last frame, so a blink's jump or a replica's step
+   between snapshots reads as one line. Each dot shrinks and fades over
+   DASH_STREAK_SECONDS. */
 
-#define MAX_DASH_DOTS 64
+#define MAX_DASH_DOTS 128
+#define DASH_STREAK_SPACING 8.f
 #define DASH_STREAK_SECONDS 0.25f
 #define DASH_STREAK_RGB 0x00FFF0D0
 
@@ -17,7 +20,21 @@ struct dash_streaks
 {
     dash_dot Dots[MAX_DASH_DOTS];
     u32 Count;
+    // NOTE(zoubir): where each slot's player was last frame, while dashing
+    bool32 WasOn[MAX_PLAYERS];
+    v2 Last[MAX_PLAYERS];
 };
+
+inline void
+AddDashDot(dash_streaks *Fx, v2 Position)
+{
+    if (Fx->Count < MAX_DASH_DOTS)
+    {
+        dash_dot *Dot = &Fx->Dots[Fx->Count++];
+        Dot->Position = Position;
+        Dot->Age = 0.f;
+    }
+}
 
 inline bool32
 IsDashShowing(world_entity *Player)
@@ -48,13 +65,23 @@ UpdateDashStreaks(dash_streaks *Fx, app_state *AppState, float DeltaTime)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];
         world_entity *Player = Slot->Entity;
-        if (Slot->Active && Player && Player->IsPresent &&
-            IsDashShowing(Player) && Fx->Count < MAX_DASH_DOTS)
+        bool32 On = Slot->Active && Player && Player->IsPresent &&
+            IsDashShowing(Player);
+        if (On)
         {
-            dash_dot *Dot = &Fx->Dots[Fx->Count++];
-            Dot->Position = Player->Position.XY;
-            Dot->Age = 0.f;
+            v2 Now = Player->Position.XY;
+            v2 From = Fx->WasOn[SlotIndex] ? Fx->Last[SlotIndex] : Now;
+            float Distance = Length(Now - From);
+            u32 Steps = (u32)(Distance / DASH_STREAK_SPACING);
+            Steps = Steps > 32 ? 32 : Steps;
+            for(u32 Step = 1; Step <= Steps; Step++)
+            {
+                AddDashDot(Fx, Lerp2(From, (float)Step / (float)(Steps + 1), Now));
+            }
+            AddDashDot(Fx, Now);
+            Fx->Last[SlotIndex] = Now;
         }
+        Fx->WasOn[SlotIndex] = On;
     }
 }
 

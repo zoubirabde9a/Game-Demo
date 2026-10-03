@@ -221,6 +221,40 @@ TestDashGoesWhereKeysPointElseTowardAim()
 }
 
 internal void
+TestBlinkLandsAtCursorOrStopsAtWall()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Blinker = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                            0, {300, 300, 0});
+    // NOTE(zoubir): cursor 100 units right, inside the reach
+    AppState->Players[0].Input.Aim = V2(100.f / PLAYER_AIM_REACH, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Blink;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(Absolute(Blinker->Position.X - 400.f) < 3.f);
+    Check(Blinker->BlinkCooldown > 0.f);
+    Check(Blinker->DashFlash > 0.f);
+
+    // NOTE(zoubir): on cooldown, a second press does nothing
+    float X = Blinker->Position.X;
+    AppState->Players[0].Input.Pressed = PlayerButton_Blink;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(Absolute(Blinker->Position.X - X) < 3.f);
+
+    // NOTE(zoubir): a wall on the way stops it at the wall's face
+    world_entity *Walled = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           1, {300, 700, 0});
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 700, 0}, Test.WallVolume);
+    AppState->Players[1].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[1].Input.Pressed = PlayerButton_Blink;
+    RunPlayerFrames(&Test, 1, 1);
+    Check(Walled->Position.X > 350.f);
+    Check(Walled->Position.X + 15.f <= 384.01f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 RunPlayerAbilityTests()
 {
     printf("TestFireBallFliesTowardAim\n");
@@ -237,4 +271,6 @@ RunPlayerAbilityTests()
     TestSwordSwingStartsOneArc();
     printf("TestDashGoesWhereKeysPointElseTowardAim\n");
     TestDashGoesWhereKeysPointElseTowardAim();
+    printf("TestBlinkLandsAtCursorOrStopsAtWall\n");
+    TestBlinkLandsAtCursorOrStopsAtWall();
 }

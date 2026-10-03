@@ -9,8 +9,11 @@
     // NOTE(zoubir): unit vector toward the cursor; the body faces it and
     // sword and fireball fly along it, whichever way the player walks
     v2 Aim;
+    // NOTE(zoubir): how far toward PLAYER_AIM_REACH the cursor is, 0..1
+    float AimReach;
     // NOTE(zoubir): seconds left in which the player cannot walk, set when
     // a swing or cast starts; the rest of the animation can be walked out of
     float ActionLock;
     // NOTE(zoubir): seconds left on the dash streak clients draw
     float DashFlash;
+    float BlinkCooldown;

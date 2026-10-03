@@ -1,12 +1,13 @@
 /* Local controls: turns this machine's keyboard and mouse into the
    player_input the simulation understands. ZQSD move (AZERTY layout),
    the mouse cursor aims, right click sword, left click fireball, Space
-   jump, Alt dash, E shockwave. Holding Tab shows the scoreboard (read in app.cpp, it
-   is not a player action). */
+   jump, Alt dash, E shockwave, F blink. Holding Tab shows the scoreboard
+   (read in app.cpp, it is not a player action). */
 
-// NOTE(zoubir): unit vector from the local player to the cursor, in world
-// units; the camera is last frame's, which is what is on screen. Zero when
-// there is no local player or the cursor sits on it.
+// NOTE(zoubir): from the local player to the cursor, in world units, over
+// PLAYER_AIM_REACH and capped at length 1; the camera is last frame's,
+// which is what is on screen. Zero when there is no local player or the
+// cursor sits on it.
 internal v2
 AimFromCursor(app_input *Input, app_state *AppState)
 {
@@ -20,7 +21,9 @@ AimFromCursor(app_input *Input, app_state *AppState)
         float LengthSquared = LengthSq(ToCursor);
         if (LengthSquared > 4.f)
         {
-            Result = ToCursor * (1.f / SquareRoot(LengthSquared));
+            float Length = SquareRoot(LengthSquared);
+            Result = ToCursor * (Minimum(Length, PLAYER_AIM_REACH) /
+                                 (Length * PLAYER_AIM_REACH));
         }
     }
     return Result;
@@ -41,5 +44,6 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
     if (Input->SpaceButton.Pressed) { Result.Pressed |= PlayerButton_Jump; }
     if (Input->AltButton.Pressed) { Result.Pressed |= PlayerButton_Dash; }
     if (Input->ButtonE.Pressed) { Result.Pressed |= PlayerButton_Shockwave; }
+    if (Input->ButtonF.Pressed) { Result.Pressed |= PlayerButton_Blink; }
     return Result;
 }

@@ -13,8 +13,8 @@
    4. UpdatePlayerMoveState: moving, or stopping when the keys let go. A
       swing or cast roots the player only for its short ActionLock, then
       the player walks (slower) while the animation finishes.
-   5. UsePlayerAbilities: jump, shockwave and dash, each when its key is
-      pressed and its cooldown allows.
+   5. UsePlayerAbilities: jump, shockwave, dash and blink, each when its
+      key is pressed and its cooldown allows.
    6. PickPlayerAnimation: which animation to play; the body faces the
       aim, not the way it walks.
    7. MovePlayer: acceleration, ground friction and gravity into
@@ -81,6 +81,7 @@ GetPlayerAim(world_entity *Player)
 #include "player_abilities/jump.cpp"
 #include "player_abilities/shockwave.cpp"
 #include "player_abilities/dash.cpp"
+#include "player_abilities/blink.cpp"
 
 internal void
 QueuePlayerActions(player_slot *Slot, player_tick *Tick)
@@ -105,9 +106,12 @@ QueuePlayerActions(player_slot *Slot, player_tick *Tick)
         Tick->Move = true;
     }
 
-    if (LengthSq(Input->Aim) > 0.0001f)
+    float AimSquared = LengthSq(Input->Aim);
+    if (AimSquared > 0.0001f)
     {
-        Player->Aim = Input->Aim;
+        float AimLength = SquareRoot(AimSquared);
+        Player->Aim = Input->Aim * (1.f / AimLength);
+        Player->AimReach = Minimum(1.f, AimLength);
     }
     v2 Aim = GetPlayerAim(Player);
 
@@ -236,14 +240,15 @@ UpdatePlayerMoveState(world_entity *Player, player_tick *Tick)
 }
 
 internal void
-UsePlayerAbilities(app_state *AppState, world *World, player_slot *Slot,
-                   float DeltaTime, player_tick *Tick)
+UsePlayerAbilities(app_state *AppState, world *World, memory_arena *Arena,
+                   player_slot *Slot, float DeltaTime, player_tick *Tick)
 {
     world_entity *Player = Slot->Entity;
     player_input *Input = &Slot->Input;
     UseJump(AppState, Player, Input, Tick);
     UseShockwave(AppState, World, Player, Input, DeltaTime);
     UseDash(AppState, Player, Input, DeltaTime);
+    UseBlink(AppState, World, Arena, Player, Input, DeltaTime);
 }
 
 // NOTE(zoubir): the animation for the player's state. The body faces the
@@ -347,7 +352,7 @@ UpdatePlayer(player_slot *Slot, world *World,
     FinishPlayerActions(Player, &Tick);
     RunPlayerActionQueue(AppState, World, Arena, Slot, DeltaTime, &Tick);
     UpdatePlayerMoveState(Player, &Tick);
-    UsePlayerAbilities(AppState, World, Slot, DeltaTime, &Tick);
+    UsePlayerAbilities(AppState, World, Arena, Slot, DeltaTime, &Tick);
     PickPlayerAnimation(Player, &Tick);
     MovePlayer(AppState, World, Arena, Player, DeltaTime, &Tick);
 }

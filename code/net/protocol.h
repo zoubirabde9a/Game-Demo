@@ -65,6 +65,7 @@ enum net_button
     NetButton_Fireball  = 1 << 6,
     NetButton_Sword     = 1 << 7,
     NetButton_Shockwave = 1 << 8,
+    NetButton_Blink     = 1 << 9,
 };
 
 enum net_deny_reason

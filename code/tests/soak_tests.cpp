@@ -289,6 +289,7 @@ RandomButtons(soak_random *R, u16 Held, u32 Heading)
     if (Chance(R, 6)) Result |= NetButton_Jump;
     if (Chance(R, 6)) Result |= NetButton_Dash;
     if (Chance(R, 10)) Result |= NetButton_Shockwave;
+    if (Chance(R, 10)) Result |= NetButton_Blink;
     return Result;
 }
 

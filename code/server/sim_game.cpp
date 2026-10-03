@@ -104,6 +104,7 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     if (Pressed & NetButton_Jump) Out->Pressed |= PlayerButton_Jump;
     if (Pressed & NetButton_Dash) Out->Pressed |= PlayerButton_Dash;
     if (Pressed & NetButton_Shockwave) Out->Pressed |= PlayerButton_Shockwave;
+    if (Pressed & NetButton_Blink) Out->Pressed |= PlayerButton_Blink;
 }
 
 // Whether another connected player already goes by Name (ignoring case).

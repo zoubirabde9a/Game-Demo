@@ -70,6 +70,7 @@ NetButtonsFromKeyboard(app_input *Input)
     if (Input->LeftButton.EndedDown) Result |= NetButton_Fireball;
     if (Input->RightButton.EndedDown) Result |= NetButton_Sword;
     if (Input->ButtonE.EndedDown) Result |= NetButton_Shockwave;
+    if (Input->ButtonF.EndedDown) Result |= NetButton_Blink;
     return Result;
 }
 

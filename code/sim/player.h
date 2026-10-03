@@ -11,6 +11,9 @@
 // replica's AbilityIndex) while its shockwave ring shows
 #define PLAYER_FLASH_SHOCKWAVE 1
 #define PLAYER_FLASH_DASH 2
+// NOTE(zoubir): the cursor distance player_input.Aim can tell apart; the
+// blink range
+#define PLAYER_AIM_REACH 160.f
 
 // NOTE(zoubir): buttons pressed this tick (edge, not held)
 enum player_button
@@ -20,14 +23,16 @@ enum player_button
     PlayerButton_Jump = 1 << 2,
     PlayerButton_Dash = 1 << 3,
     PlayerButton_Shockwave = 1 << 4,
+    PlayerButton_Blink = 1 << 5,
 };
 
 struct player_input
 {
     // NOTE(zoubir): -1, 0 or 1 per axis, Y down
     v2 Move;
-    // NOTE(zoubir): unit vector from the player toward the cursor; zero
-    // keeps the last aim
+    // NOTE(zoubir): from the player toward the cursor, scaled so length 1
+    // is PLAYER_AIM_REACH away or farther (blink lands at the cursor when
+    // it is closer); zero keeps the last aim
     v2 Aim;
     u32 Pressed;
 };
