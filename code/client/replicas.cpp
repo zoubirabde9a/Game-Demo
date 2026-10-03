@@ -322,6 +322,7 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
                 bool32 Reused = (LocalBefore == Replica->ID + 1);
                 bool32 IsLocalPlayer = (State->Type == EntityType_Player &&
                                         State->Variant == LocalSlot);
+                bool32 WasDead = Reused && IsDeadPlayer(Replica);
                 ApplyStateToReplica(AppState, Arena, Replica, State);
                 SetSmoothingTarget(AppState, Arena, &Table->Smoothing,
                                    State->Id, Replica, Drawn,
@@ -335,6 +336,14 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
                     Slot->Active = true;
                     Slot->Entity = Replica;
                     Replica->PlayerIndex = State->Variant;
+                    // NOTE(zoubir): the server does not send respawn
+                    // timers; it starts its own at the death tick, so the
+                    // client starts the same one when it sees the death,
+                    // at most a snapshot late
+                    if (!WasDead && IsDeadPlayer(Replica))
+                    {
+                        Slot->RespawnTimer = PLAYER_RESPAWN_SECONDS;
+                    }
                 }
             }
         }
@@ -364,6 +373,14 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
         }
     }
 
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        if (Slot->Active && Slot->Entity && IsDeadPlayer(Slot->Entity))
+        {
+            Slot->RespawnTimer = Maximum(0.f, Slot->RespawnTimer - DeltaTime);
+        }
+    }
     AdvanceSmoothing(&Table->Smoothing, DeltaTime);
     for(u32 Id = 0; Id < MAX_REPLICAS; Id++)
     {

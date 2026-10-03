@@ -502,6 +502,47 @@ TestReplicaFacingFromSnapshot()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): the respawn countdown runs online too: it starts when a
+// snapshot first shows the local player dead and counts down every frame
+internal void
+TestRespawnCountdownOnline()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+    float Dt = 1.f / 60.f;
+
+    Snapshot->Tick = 1;
+    Snapshot->Count = 1;
+    Snapshot->NameSlot = NET_NO_NAME_SLOT;
+    Snapshot->Entities[0] = SnapshotEntity(5, EntityType_Player, 500, 500, 0);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    player_slot *Slot = &AppState->Players[0];
+    Check(!IsDeadPlayer(Slot->Entity));
+
+    Snapshot->Tick = 2;
+    Snapshot->Entities[0].Health = 0;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    Check(IsDeadPlayer(Slot->Entity));
+    Check(Slot->RespawnTimer > PLAYER_RESPAWN_SECONDS - 0.1f);
+    for(u32 Frame = 0; Frame < 60; Frame++)
+    {
+        SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    }
+    Check(Slot->RespawnTimer < PLAYER_RESPAWN_SECONDS - 0.9f);
+    Check(Slot->RespawnTimer > PLAYER_RESPAWN_SECONDS - 1.1f);
+
+    // NOTE(zoubir): a later snapshot of the same death does not restart it
+    Snapshot->Tick = 3;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    Check(Slot->RespawnTimer < PLAYER_RESPAWN_SECONDS - 0.9f);
+
+    free(Snapshot);
+    free(Table);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunOnlineTests()
 {
@@ -527,4 +568,6 @@ RunOnlineTests()
     TestReplicasGlideBetweenSnapshots();
     printf("TestReplicaFacingFromSnapshot\n");
     TestReplicaFacingFromSnapshot();
+    printf("TestRespawnCountdownOnline\n");
+    TestRespawnCountdownOnline();
 }
