@@ -7,14 +7,16 @@
    The address and name come from the environment or server.txt
    (online_config.cpp). The connect screen (ui/connect_screen.cpp) calls
    OnlineConnect and OnlineDisconnect. When a connection ends for a reason
-   worth retrying (server restarted, link lost, no answer) the session
-   reconnects by itself, ONLINE_RECONNECT_TRIES times, waiting longer each
-   time. The browser build has no UDP and is always offline. */
+   worth retrying (server restarted or full, link lost, no answer) the
+   session keeps reconnecting by itself, waiting longer each time up to
+   ONLINE_RECONNECT_MAX_WAIT, until it is back or the player leaves. The
+   world plays offline meanwhile. The browser build has no UDP and is
+   always offline. */
 
-#define ONLINE_RECONNECT_TRIES 5
 // NOTE(zoubir): the first retry waits this long, each later one this
-// much more
+// much more, never more than the max
 #define ONLINE_RECONNECT_STEP 2.f
+#define ONLINE_RECONNECT_MAX_WAIT 15.f
 
 // NOTE(zoubir): what the connect screen shows and offers
 enum online_phase
@@ -32,6 +34,9 @@ struct online_session
     bool32 BadAddress;
     char AddressText[64];
     char NameText[NET_NAME_SIZE];
+    // NOTE(zoubir): set by OnlineConnect, cleared when the player leaves;
+    // while set, a dropped connection is retried
+    bool32 KeepTrying;
     // NOTE(zoubir): automatic reconnects since the last successful join,
     // and seconds until the next one
     u32 Reconnects;
@@ -71,7 +76,7 @@ NetButtonsFromKeyboard(app_input *Input)
 internal void
 OnlineDisconnect(online_session *Online)
 {
-    Online->Reconnects = ONLINE_RECONNECT_TRIES;
+    Online->KeepTrying = false;
     if (Online->Enabled)
     {
         NetClientDisconnect(&Online->Client);
@@ -86,6 +91,7 @@ OnlineConnect(online_session *Online, char *Address, char *Name)
 {
     OnlineDisconnect(Online);
     Online->Reconnects = 0;
+    Online->KeepTrying = true;
     if (Address != Online->AddressText)
     {
         CopyString(Online->AddressText, sizeof(Online->AddressText), Address);
@@ -105,27 +111,39 @@ OnlineConnect(online_session *Online, char *Address, char *Name)
     return Online->Enabled;
 }
 
-// NOTE(zoubir): a connection that ended on its own (not refused, not
-// left) and has tries left
+// NOTE(zoubir): a connection that ended on its own and could come back:
+// not left by choice, not turned away for running another version
 internal bool32
 WillReconnect(online_session *Online)
 {
     net_client_end Reason = Online->Client.EndReason;
-    bool32 Result = Online->Enabled &&
+    bool32 Result = Online->Enabled && Online->KeepTrying &&
         Online->Client.State == NetClient_Disconnected &&
-        Online->Reconnects < ONLINE_RECONNECT_TRIES &&
         (Reason == NetEnd_ServerClosed || Reason == NetEnd_LostConnection ||
-         Reason == NetEnd_NoAnswer);
+         Reason == NetEnd_NoAnswer || Reason == NetEnd_ServerFull);
     return Result;
 }
 
+// NOTE(zoubir): joins the configured server, or DefaultAddress when none
+// is configured (the game passes the live server; tests pass nothing and
+// stay offline). An address of "offline" means stay offline
 internal online_session *
-StartOnlineSession(memory_arena *Arena)
+StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0)
 {
     online_session *Online = AllocateStruct(Arena, online_session);
     *Online = {};
-    if (ReadOnlineConfig(Online->AddressText, sizeof(Online->AddressText),
-                         Online->NameText, sizeof(Online->NameText)))
+    if (!ReadOnlineConfig(Online->AddressText, sizeof(Online->AddressText),
+                          Online->NameText, sizeof(Online->NameText)) &&
+        DefaultAddress)
+    {
+        CopyString(Online->AddressText, sizeof(Online->AddressText),
+                   DefaultAddress);
+    }
+    if (StringsMatchIgnoringCase(Online->AddressText, ONLINE_OFFLINE_WORD))
+    {
+        Online->AddressText[0] = 0;
+    }
+    if (Online->AddressText[0])
     {
         OnlineConnect(Online, Online->AddressText, Online->NameText);
     }
@@ -154,7 +172,8 @@ UpdateOnlineSession(online_session *Online, app_input *Input,
             if (Online->ReconnectIn <= 0.f)
             {
                 Online->ReconnectIn =
-                    ONLINE_RECONNECT_STEP * (float)(Online->Reconnects + 1);
+                    Minimum(ONLINE_RECONNECT_MAX_WAIT,
+                            ONLINE_RECONNECT_STEP * (float)(Online->Reconnects + 1));
             }
             Online->ReconnectIn -= Input->DeltaTime;
             if (Online->ReconnectIn <= 0.f)
@@ -231,7 +250,10 @@ GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
         {
             if (WillReconnect(Online))
             {
-                snprintf(Out, OutSize, "Connection lost, reconnecting in %.0f s",
+                snprintf(Out, OutSize, "%s, reconnecting in %.0f s",
+                         Client->EndReason == NetEnd_ServerFull ?
+                         "Server full" : (Client->EndReason == NetEnd_NoAnswer ?
+                                          "Server not answering" : "Connection lost"),
                          Maximum(1.f, Online->ReconnectIn + 0.5f));
                 return;
             }
@@ -306,7 +328,7 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
 }
 
 internal online_session *
-StartOnlineSession(memory_arena *Arena)
+StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0)
 {
     online_session *Online = AllocateStruct(Arena, online_session);
     *Online = {};

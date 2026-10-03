@@ -140,6 +140,28 @@ TestClientRejoinsRestartedServer()
     Check(IsOnline(Online));
     Check(Online->Reconnects == 0);
 
+    // A long outage: the client keeps retrying, waiting at most
+    // ONLINE_RECONNECT_MAX_WAIT between tries, and is back soon after.
+    ServerStop(&Server);
+    int OutageFrames = 60 * SERVER_TICK_RATE;
+    for (int Frame = 0; Frame < OutageFrames; ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+    }
+    Check(!IsOnline(Online));
+    Check(Online->Reconnects >= 5);
+    Check(WillReconnect(Online));
+    Check(ServerStart(&Server, Port));
+    Frames = (int)((ONLINE_RECONNECT_MAX_WAIT + 4.f) * SERVER_TICK_RATE);
+    for (int Frame = 0; Frame < Frames && !IsOnline(Online); ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Check(IsOnline(Online));
+
     // Leaving by choice stays left.
     OnlineDisconnect(Online);
     Check(!WillReconnect(Online));

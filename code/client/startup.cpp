@@ -84,7 +84,7 @@ StartClient(app_state *AppState, transient_state *TransientState,
 #endif
     InitSimulation(AppState, &AppState->WorldArena, ConstantsArena);
     AddLocalPlayer(AppState, &AppState->WorldArena);
-    AppState->Online = StartOnlineSession(MemoryArena);
+    AppState->Online = StartOnlineSession(MemoryArena, ONLINE_DEFAULT_SERVER);
     EndTemporaryMemory(TempMem);
     AppState->IsInitialized = true;
 }

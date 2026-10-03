@@ -2,11 +2,31 @@
    GAME_SERVER and GAME_NAME environment variables or else the first two
    lines of server.txt in the folder the game runs from. A connect from
    the connect screen writes server.txt so the next launch reuses it.
+   With neither, the game joins ONLINE_DEFAULT_SERVER, the live server
+   (deploy/README.md); GAME_SERVER=offline keeps it offline.
    online.cpp uses ReadOnlineConfig and SaveOnlineConfig. */
 
 #define ONLINE_ADDRESS_FILE "server.txt"
 #define ONLINE_ADDRESS_ENV "GAME_SERVER"
 #define ONLINE_NAME_ENV "GAME_NAME"
+#define ONLINE_DEFAULT_SERVER "152.53.147.77:27015"
+#define ONLINE_OFFLINE_WORD "offline"
+
+// NOTE(zoubir): A and B hold the same letters, ignoring case
+internal bool32
+StringsMatchIgnoringCase(char *A, char *B)
+{
+    for(; *A && *B; A++, B++)
+    {
+        char CA = (*A >= 'A' && *A <= 'Z') ? (char)(*A + 32) : *A;
+        char CB = (*B >= 'A' && *B <= 'Z') ? (char)(*B + 32) : *B;
+        if (CA != CB)
+        {
+            return false;
+        }
+    }
+    return *A == *B;
+}
 
 // NOTE(zoubir): copies the first line of Text, trimmed of spaces
 internal void
