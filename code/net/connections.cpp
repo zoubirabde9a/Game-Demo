@@ -1,0 +1,147 @@
+/* Server-side client table declared in connections.h. */
+
+#include "connections.h"
+
+internal bool32
+NetAddressEqual(net_address A, net_address B)
+{
+    return A.Ip == B.Ip && A.Port == B.Port;
+}
+
+internal net_client_slot *
+NetFindClient(net_server_clients *Clients, net_address Address, u32 *IndexOut)
+{
+    for (u32 Index = 0; Index < NET_MAX_CLIENTS; ++Index)
+    {
+        net_client_slot *Slot = &Clients->Slots[Index];
+        if (Slot->Connected && NetAddressEqual(Slot->Address, Address))
+        {
+            *IndexOut = Index;
+            return Slot;
+        }
+    }
+    return 0;
+}
+
+internal void
+NetServerStampHeader(net_client_slot *Slot, net_packet *Packet, u8 Type)
+{
+    Packet->Header.Type = Type;
+    Packet->Header.Sequence = Slot->NextSequence++;
+    Packet->Header.Ack = Slot->NewestReceived;
+}
+
+internal void
+NetFillAccepted(net_client_slot *Slot, u32 SlotIndex, u32 ServerTick, net_receive_result *Result)
+{
+    Result->HasReply = true;
+    NetServerStampHeader(Slot, &Result->Reply, NetPacket_ConnectAccepted);
+    Result->Reply.ConnectAccepted.ClientSalt = Slot->Salt;
+    Result->Reply.ConnectAccepted.PlayerIndex = (u8)SlotIndex;
+    Result->Reply.ConnectAccepted.ServerTick = ServerTick;
+}
+
+internal net_receive_result
+NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Packet, u32 ServerTick)
+{
+    net_receive_result Result = {};
+    u32 SlotIndex = 0;
+    net_client_slot *Slot = NetFindClient(Clients, From, &SlotIndex);
+
+    if (Packet->Header.Type == NetPacket_ConnectRequest)
+    {
+        u32 Salt = Packet->ConnectRequest.ClientSalt;
+        if (Slot && Slot->Salt == Salt)
+        {
+            Slot->SecondsSinceHeard = 0;
+            Result.Event = NetReceive_Rejoined;
+            Result.SlotIndex = SlotIndex;
+            NetFillAccepted(Slot, SlotIndex, ServerTick, &Result);
+            return Result;
+        }
+
+        if (Slot)
+        {
+            // Same address, new salt: the client restarted. Drop the old session.
+            *Slot = {};
+        }
+
+        for (SlotIndex = 0; SlotIndex < NET_MAX_CLIENTS; ++SlotIndex)
+        {
+            if (!Clients->Slots[SlotIndex].Connected) break;
+        }
+
+        if (SlotIndex == NET_MAX_CLIENTS)
+        {
+            Result.Event = NetReceive_Denied;
+            Result.HasReply = true;
+            Result.Reply.Header.Type = NetPacket_ConnectDenied;
+            Result.Reply.ConnectDenied.ClientSalt = Salt;
+            Result.Reply.ConnectDenied.Reason = NetDeny_ServerFull;
+            return Result;
+        }
+
+        Slot = &Clients->Slots[SlotIndex];
+        *Slot = {};
+        Slot->Connected = true;
+        Slot->Address = From;
+        Slot->Salt = Salt;
+        Slot->NewestReceived = Packet->Header.Sequence;
+        Result.Event = NetReceive_Joined;
+        Result.SlotIndex = SlotIndex;
+        NetFillAccepted(Slot, SlotIndex, ServerTick, &Result);
+        return Result;
+    }
+
+    if (!Slot) return Result;
+
+    Slot->SecondsSinceHeard = 0;
+    Result.SlotIndex = SlotIndex;
+    if (NetSequenceNewer(Packet->Header.Sequence, Slot->NewestReceived))
+    {
+        Slot->NewestReceived = Packet->Header.Sequence;
+    }
+
+    if (Packet->Header.Type == NetPacket_Disconnect)
+    {
+        *Slot = {};
+        Result.Event = NetReceive_Left;
+    }
+    else if (Packet->Header.Type == NetPacket_Input)
+    {
+        // Inputs arrive newest first and overlap with earlier packets.
+        // Walk oldest to newest and keep only ticks we have not applied.
+        net_input_batch *Batch = &Packet->Input;
+        for (i32 Index = (i32)Batch->Count - 1; Index >= 0; --Index)
+        {
+            net_input *Input = &Batch->Inputs[Index];
+            if (!Slot->HasInput || Input->Tick > Slot->NewestInputTick)
+            {
+                Result.NewInputs[Result.NewInputCount++] = *Input;
+                Slot->NewestInputTick = Input->Tick;
+                Slot->HasInput = true;
+            }
+        }
+        Result.Event = Result.NewInputCount ? NetReceive_Inputs : NetReceive_Ignored;
+    }
+
+    return Result;
+}
+
+internal u32
+NetServerAdvance(net_server_clients *Clients, float Dt)
+{
+    u32 TimedOut = 0;
+    for (u32 Index = 0; Index < NET_MAX_CLIENTS; ++Index)
+    {
+        net_client_slot *Slot = &Clients->Slots[Index];
+        if (!Slot->Connected) continue;
+        Slot->SecondsSinceHeard += Dt;
+        if (Slot->SecondsSinceHeard >= NET_CLIENT_TIMEOUT)
+        {
+            *Slot = {};
+            TimedOut |= 1u << Index;
+        }
+    }
+    return TimedOut;
+}

@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include "../net/protocol.cpp"
+#include "../net/connections.cpp"
 
 global_variable int TestFailures;
 global_variable int TestChecks;
@@ -163,6 +164,132 @@ TestSequenceWraparound()
     Check(!NetSequenceNewer(65530, 2));
 }
 
+internal net_packet
+ConnectRequest(u32 Salt)
+{
+    net_packet P = {};
+    P.Header.Type = NetPacket_ConnectRequest;
+    P.ConnectRequest.ClientSalt = Salt;
+    return P;
+}
+
+internal net_packet
+InputPacket(u16 Sequence, u32 NewestTick, u8 Count)
+{
+    net_packet P = {};
+    P.Header = {NetPacket_Input, Sequence, 0};
+    P.Input.Count = Count;
+    for (u8 Index = 0; Index < Count; ++Index)
+    {
+        P.Input.Inputs[Index].Tick = NewestTick - Index;
+    }
+    return P;
+}
+
+internal void
+TestClientsJoinAndRejoin()
+{
+    net_server_clients Clients = {};
+    net_address A = {0x7f000001, 4000};
+    net_address B = {0x7f000001, 4001};
+
+    net_packet Request = ConnectRequest(111);
+    net_receive_result R = NetServerReceive(&Clients, A, &Request, 10);
+    Check(R.Event == NetReceive_Joined);
+    Check(R.SlotIndex == 0);
+    Check(R.HasReply && R.Reply.Header.Type == NetPacket_ConnectAccepted);
+    Check(R.Reply.ConnectAccepted.ClientSalt == 111);
+    Check(R.Reply.ConnectAccepted.ServerTick == 10);
+
+    // The client did not hear back and asks again: same slot, no new player.
+    R = NetServerReceive(&Clients, A, &Request, 11);
+    Check(R.Event == NetReceive_Rejoined);
+    Check(R.SlotIndex == 0);
+    Check(R.Reply.Header.Sequence == 1);
+
+    net_packet Other = ConnectRequest(222);
+    R = NetServerReceive(&Clients, B, &Other, 12);
+    Check(R.Event == NetReceive_Joined);
+    Check(R.SlotIndex == 1);
+
+    // Same address with a new salt means the client restarted; it gets a fresh slot.
+    net_packet Restart = ConnectRequest(333);
+    R = NetServerReceive(&Clients, A, &Restart, 13);
+    Check(R.Event == NetReceive_Joined);
+    Check(R.SlotIndex == 0);
+    Check(Clients.Slots[0].Salt == 333);
+}
+
+internal void
+TestServerFullDenies()
+{
+    net_server_clients Clients = {};
+    for (u16 Index = 0; Index < NET_MAX_CLIENTS; ++Index)
+    {
+        net_packet Request = ConnectRequest(Index);
+        NetServerReceive(&Clients, {1, Index}, &Request, 0);
+    }
+    net_packet Late = ConnectRequest(99);
+    net_receive_result R = NetServerReceive(&Clients, {2, 0}, &Late, 0);
+    Check(R.Event == NetReceive_Denied);
+    Check(R.Reply.Header.Type == NetPacket_ConnectDenied);
+    Check(R.Reply.ConnectDenied.Reason == NetDeny_ServerFull);
+    Check(R.Reply.ConnectDenied.ClientSalt == 99);
+}
+
+internal void
+TestInputsAppliedOnceInOrder()
+{
+    net_server_clients Clients = {};
+    net_address A = {5, 5};
+    net_packet Request = ConnectRequest(1);
+    NetServerReceive(&Clients, A, &Request, 0);
+
+    net_packet First = InputPacket(1, 3, 3); // ticks 3, 2, 1
+    net_receive_result R = NetServerReceive(&Clients, A, &First, 0);
+    Check(R.Event == NetReceive_Inputs);
+    Check(R.NewInputCount == 3);
+    Check(R.NewInputs[0].Tick == 1 && R.NewInputs[2].Tick == 3);
+
+    net_packet Overlap = InputPacket(2, 5, 4); // ticks 5, 4, 3, 2
+    R = NetServerReceive(&Clients, A, &Overlap, 0);
+    Check(R.NewInputCount == 2);
+    Check(R.NewInputs[0].Tick == 4 && R.NewInputs[1].Tick == 5);
+    Check(Clients.Slots[0].NewestReceived == 2);
+
+    // A late, reordered packet brings nothing new and does not move the ack back.
+    R = NetServerReceive(&Clients, A, &First, 0);
+    Check(R.Event == NetReceive_Ignored);
+    Check(Clients.Slots[0].NewestReceived == 2);
+
+    // Strangers cannot inject inputs.
+    R = NetServerReceive(&Clients, {6, 6}, &Overlap, 0);
+    Check(R.Event == NetReceive_Ignored);
+    Check(R.NewInputCount == 0);
+}
+
+internal void
+TestClientsLeaveAndTimeOut()
+{
+    net_server_clients Clients = {};
+    net_packet Request = ConnectRequest(1);
+    NetServerReceive(&Clients, {1, 1}, &Request, 0);
+    NetServerReceive(&Clients, {2, 2}, &Request, 0);
+
+    net_packet Bye = {};
+    Bye.Header.Type = NetPacket_Disconnect;
+    net_receive_result R = NetServerReceive(&Clients, {1, 1}, &Bye, 0);
+    Check(R.Event == NetReceive_Left);
+    Check(!Clients.Slots[0].Connected);
+
+    Check(NetServerAdvance(&Clients, NET_CLIENT_TIMEOUT * 0.5f) == 0);
+    net_packet Ping = InputPacket(1, 1, 1);
+    NetServerReceive(&Clients, {2, 2}, &Ping, 0); // hearing from it resets the clock
+    Check(NetServerAdvance(&Clients, NET_CLIENT_TIMEOUT * 0.9f) == 0);
+    Check(NetServerAdvance(&Clients, NET_CLIENT_TIMEOUT * 0.2f) == (1u << 1));
+    Check(!Clients.Slots[1].Connected);
+}
+
 int
 main()
 {
@@ -171,6 +298,10 @@ main()
     TestFullSnapshotFits();
     TestRejectsBadPackets();
     TestSequenceWraparound();
+    TestClientsJoinAndRejoin();
+    TestServerFullDenies();
+    TestInputsAppliedOnceInOrder();
+    TestClientsLeaveAndTimeOut();
 
     printf("net tests: %d checks, %d failed\n", TestChecks, TestFailures);
     return TestFailures ? 1 : 0;

@@ -48,3 +48,10 @@ A claim older than a day with no commits behind it is stale. You may delete it.
 ## 5. Before you merge
 
 Run `test.bat` (simulation tests) and `build.bat` (game) in your worktree. Do not merge red.
+
+If `misc\shell_64.bat` prints "'vswhere.exe' is not recognized" and `cl` or `test.bat` are then not found, your PATH is longer than cmd can hold once Visual Studio appends to it. Start the shell with a short PATH first:
+
+```
+set PATH=C:\WINDOWS\system32;C:\WINDOWS
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+```
