@@ -5,14 +5,13 @@
 internal void
 UpdatePlayer(player_slot *Slot, world *World,
              memory_arena *Arena,
-             app_input *Input, app_state *AppState,
+             float DeltaTime, app_state *AppState,
              float *AnimationSpeedRate,
              animation_type *AnimationType,
              animation_direction *AnimationDirection)
 {
     world_entity *Player = Slot->Entity;
     player_input *PlayerInput = &Slot->Input;
-    float DeltaTime = Input->DeltaTime;
     v3 DDPlayer = {};
     float PlayerAcceleration = 56000.f;
     *AnimationType = AnimationType_Stand;
@@ -128,7 +127,7 @@ UpdatePlayer(player_slot *Slot, world *World,
         bool32 Consumed = 0;
         if (Halted)
         {                
-            DelayedInput->TimeRemaining -= Input->DeltaTime;
+            DelayedInput->TimeRemaining -= DeltaTime;
             if (DelayedInput->TimeRemaining <= 0.f)
             {
                 RemoveEvent = true;
@@ -183,7 +182,7 @@ UpdatePlayer(player_slot *Slot, world *World,
                         
                         AddSword(AppState, World, Arena, SwordPosition,
                                  Player, SwordAnimationDirection);
-                        PlaySound(AppState, {AssetType_Dash});
+                        EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
                         Consumed = true;
                     }
                 }
@@ -231,7 +230,7 @@ UpdatePlayer(player_slot *Slot, world *World,
                         FireBall->AnimationDirection = AnimationDirection_Up;                        
                     }
                     
-                    PlaySound(AppState, {AssetType_FireCast});
+                    EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
                     Player->State = EntityState_Standing;
                     Player->State = EntityState_Casting;
 //                    AddFlags(Player, EntityFlag_Casting);
@@ -251,7 +250,7 @@ UpdatePlayer(player_slot *Slot, world *World,
             }
             else
             {                    
-                DelayedInput->TimeRemaining -= Input->DeltaTime;
+                DelayedInput->TimeRemaining -= DeltaTime;
                 DelayedInputIndex++;
             }
 
@@ -293,7 +292,7 @@ UpdatePlayer(player_slot *Slot, world *World,
     {
         Player->State = EntityState_Jumping;
         Player->Velocity.Z = 230.f;
-        PlaySound(AppState, {AssetType_ZoubirAudio});
+        EmitSound(&AppState->Events, AssetType_ZoubirAudio, Player->Position);
     }
     
     Player->ShockwaveCooldown = Maximum(0.f, Player->ShockwaveCooldown - DeltaTime);
@@ -303,7 +302,7 @@ UpdatePlayer(player_slot *Slot, world *World,
     {
         Player->ShockwaveCooldown = PLAYER_SHOCKWAVE_COOLDOWN;
         TriggerShockwave(AppState, World, Player);
-        PlaySound(AppState, {AssetType_FireCast});
+        EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
     }
 
     Player->DashCooldown = Maximum(0.f, Player->DashCooldown - DeltaTime);
@@ -312,7 +311,7 @@ UpdatePlayer(player_slot *Slot, world *World,
     {
         Player->DashCooldown = PLAYER_DASH_COOLDOWN;
         PlayerAcceleration *= 10;
-        PlaySound(AppState, {AssetType_Dash});
+        EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
     }
 
     // Animation
@@ -458,7 +457,7 @@ UpdatePlayer(player_slot *Slot, world *World,
 //    Player->Position.Z = Maximum(0.f, Player->Position.Z);
     
     float MaxDistance = 10000.f;
-    MoveEntity(Player, World, Arena, Input, AppState,
+    MoveEntity(Player, World, Arena, DeltaTime, AppState,
                DDPlayer, &MaxDistance);
 
 
@@ -536,14 +535,13 @@ MonsterWander(world_entity *Entity, app_state *AppState, float DeltaTime)
 internal void
 UpdateMonster(world_entity *Entity, world *World,
               memory_arena *Arena,
-              app_input *Input, app_state *AppState,
+              float DeltaTime, app_state *AppState,
               float *AnimationSpeed,
               animation_type *AnimationType,
               animation_direction *AnimationDirection)
 {
     monster_stats *Stats = GetMonsterStats(Entity->MonsterKind);
     bool32 Flies = Stats->FlyHeight > 0.f;
-    float DeltaTime = Input->DeltaTime;
 
     Entity->AttackCooldown = Maximum(0.f, Entity->AttackCooldown -
                                      DeltaTime);
@@ -628,19 +626,18 @@ UpdateMonster(world_entity *Entity, world *World,
     }
 
     float MaxDistance = 10000.f;
-    MoveEntity(Entity, World, Arena, Input, AppState,
+    MoveEntity(Entity, World, Arena, DeltaTime, AppState,
                DDEntity, &MaxDistance);
 }
 
 internal void
 UpdateFamiliar(world_entity *Entity, world *World,
              memory_arena *Arena,
-             app_input *Input, app_state *AppState,
+             float DeltaTime, app_state *AppState,
              float *AnimationSpeed,
              animation_type *AnimationType,
              animation_direction *AnimationDirection)
 {
-    float DeltaTime = Input->DeltaTime;
     v3 DDEntity = {};
     float EntityAcceleration = 56000.f;
     *AnimationType = AnimationType_Stand;
@@ -697,7 +694,7 @@ UpdateFamiliar(world_entity *Entity, world *World,
     {        
         float MaxDistance =  DDEntityLength -
             MaxDistanceFromFollowingEntity;
-        MoveEntity(Entity, World, Arena, Input, AppState,
+        MoveEntity(Entity, World, Arena, DeltaTime, AppState,
                    DDEntity, &MaxDistance);
     }
 }
@@ -705,9 +702,8 @@ UpdateFamiliar(world_entity *Entity, world *World,
 internal void
 UpdateFireBall(world_entity *Entity, world *World,
                memory_arena *Arena,
-               app_input *Input, app_state *AppState)
+               float DeltaTime, app_state *AppState)
 {
-    float DeltaTime = Input->DeltaTime;
     v3 DDEntity = {};
     float DeltaZ = 0.5f * DDEntity.Z * Square(DeltaTime) +
         Entity->Velocity.Z * DeltaTime;    
@@ -727,7 +723,7 @@ UpdateFireBall(world_entity *Entity, world *World,
     }
     else
     {
-        MoveEntity(Entity, World, Arena, Input, AppState,
+        MoveEntity(Entity, World, Arena, DeltaTime, AppState,
                    DDEntity, &Entity->DistanceRemaining);
         Entity->TimeLeft -= DeltaTime;
     }

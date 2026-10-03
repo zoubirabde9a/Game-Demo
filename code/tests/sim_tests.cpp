@@ -99,7 +99,7 @@ Walk(test_world *Test, world_entity *Entity, v2 Direction, u32 Frames)
         DDEntity -= 10.f * Entity->Velocity;
         DDEntity.Z = -1000.f;
         float MaxDistance = 10000.f;
-        MoveEntity(Entity, Test->World, &Test->Arena, &Test->Input,
+        MoveEntity(Entity, Test->World, &Test->Arena, Test->Input.DeltaTime,
                    Test->AppState, DDEntity, &MaxDistance);
     }
 }
@@ -168,7 +168,7 @@ TestFireBallKillsMonsterOnce()
     for(u32 Frame = 0; Frame < 60; Frame++)
     {
         float MaxDistance = 10000.f;
-        MoveEntity(FireBall, Test.World, &Test.Arena, &Test.Input,
+        MoveEntity(FireBall, Test.World, &Test.Arena, Test.Input.DeltaTime,
                    Test.AppState, {}, &MaxDistance);
     }
     Check(!Monster->IsPresent);
@@ -342,7 +342,7 @@ TestIdleMonsterWanders()
     // walking direction at least once
     for(u32 Frame = 0; Frame < 600; Frame++)
     {
-        UpdateMonster(Monster, Test.World, &Test.Arena, &Test.Input,
+        UpdateMonster(Monster, Test.World, &Test.Arena, Test.Input.DeltaTime,
                       Test.AppState, &AnimationSpeed, &AnimationType,
                       &AnimationDirection);
     }
@@ -370,7 +370,7 @@ TestEachSlotFollowsItsOwnInput()
         for(u32 SlotIndex = 0; SlotIndex < 2; SlotIndex++)
         {
             UpdatePlayer(&AppState->Players[SlotIndex], Test.World,
-                         &Test.Arena, &Test.Input, AppState,
+                         &Test.Arena, Test.Input.DeltaTime, AppState,
                          &AnimationSpeed, &AnimationType,
                          &AnimationDirection);
         }
@@ -399,7 +399,7 @@ TestMonsterChasesNearestPlayer()
     animation_direction AnimationDirection;
     for(u32 Frame = 0; Frame < 30; Frame++)
     {
-        UpdateMonster(Monster, Test.World, &Test.Arena, &Test.Input,
+        UpdateMonster(Monster, Test.World, &Test.Arena, Test.Input.DeltaTime,
                       AppState, &AnimationSpeed, &AnimationType,
                       &AnimationDirection);
     }
@@ -475,7 +475,7 @@ TestFireBallHitsOtherPlayerNotOwner()
     for(u32 Frame = 0; Frame < 40; Frame++)
     {
         float MaxDistance = 10000.f;
-        MoveEntity(FireBall, Test.World, &Test.Arena, &Test.Input,
+        MoveEntity(FireBall, Test.World, &Test.Arena, Test.Input.DeltaTime,
                    AppState, {}, &MaxDistance);
     }
     Check(Caster->Hp == Caster->MaxHp);
@@ -514,7 +514,7 @@ TestMonsterBiteCreditsNobody()
     float AnimationSpeed;
     animation_type AnimationType;
     animation_direction AnimationDirection;
-    UpdateMonster(Monster, Test.World, &Test.Arena, &Test.Input, AppState,
+    UpdateMonster(Monster, Test.World, &Test.Arena, Test.Input.DeltaTime, AppState,
                   &AnimationSpeed, &AnimationType, &AnimationDirection);
     Check(Player->Hp <= 0.f);
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
@@ -537,10 +537,58 @@ TestCopyString()
 internal void
 TestEmptyAnimationSlotDoesNotCrash()
 {
+    animation_set Set = {};
     animation_state State = {};
-    animation_slot Empty = {};
-    v4 Uvs = DoAnimation(&State, 64, 64, 4, 4, 1.f / 60.f, 1.f, Empty);
+    AdvanceAnimation(&State, &Set, AnimationType_Move, AnimationDirection_Up,
+                     1.f / 60.f, 1.f);
+    v4 Uvs = GetAnimationUvs(&State, &Set, 64, 64, 4, 4);
     Check(Uvs.X == 0.f && Uvs.Y == 0.f && Uvs.Z == 0.f && Uvs.W == 0.f);
+}
+
+internal void
+TestAnimationAdvancesWithoutTexture()
+{
+    test_world Test = CreateTestWorld();
+    animation_set Set = {};
+    AddAnimation(&Set, &Test.Arena, AnimationType_Attack,
+                 AnimationDirection_Right, 10, 3, 0.1f);
+    animation_state State = {};
+    // NOTE(zoubir): 0.25 s at 0.1 s per frame is two frames in, with
+    // margin either side so float rounding cannot change the answer
+    for(u32 Frame = 0; Frame < 15; Frame++)
+    {
+        AdvanceAnimation(&State, &Set, AnimationType_Attack,
+                         AnimationDirection_Right, 1.f / 60.f, 1.f);
+    }
+    Check(State.SlotIndex == 2);
+    Check(!IsAnimationFinished(&Set, &State, AnimationType_Attack,
+                               AnimationDirection_Right));
+    // NOTE(zoubir): frame 10 + 2 = 12 on a 4x4 sheet is column 0, row 3
+    v4 Uvs = GetAnimationUvs(&State, &Set, 64, 64, 4, 4);
+    Check(Uvs.X == 0.f && Uvs.Y == 0.75f);
+    for(u32 Frame = 0; Frame < 12; Frame++)
+    {
+        AdvanceAnimation(&State, &Set, AnimationType_Attack,
+                         AnimationDirection_Right, 1.f / 60.f, 1.f);
+    }
+    Check(IsAnimationFinished(&Set, &State, AnimationType_Attack,
+                              AnimationDirection_Right));
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestSimulateTickQueuesSoundsInsteadOfPlaying()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    AppState->Players[0].Input.Pressed = PlayerButton_Jump;
+    SimulateTick(AppState, &Test.Arena, 1.f / 60.f);
+    Check(AppState->Events.Count == 1);
+    Check(AppState->Events.Events[0].Sound == AssetType_ZoubirAudio);
+    Check(Player->Position.Z > 0.f);
+    DestroyTestWorld(&Test);
 }
 
 #define RUN(Test) printf("%s\n", #Test); Test()
@@ -570,6 +618,8 @@ main()
     RUN(TestMonsterBiteCreditsNobody);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
+    RUN(TestAnimationAdvancesWithoutTexture);
+    RUN(TestSimulateTickQueuesSoundsInsteadOfPlaying);
 
     printf("%d of %d checks passed\n", TestChecks - TestFailures, TestChecks);
     return TestFailures ? 1 : 0;

@@ -29,7 +29,9 @@
 #include "sim/abilities.cpp"
 #include "sim/monster_population.cpp"
 #include "sim/update.cpp"
-#include "sim/draw.cpp"
+#include "sim/simulate.cpp"
+#include "client/draw_entities.cpp"
+#include "client/play_events.cpp"
 #include "ui/hud.cpp"
 #include "client/keyboard_input.cpp"
 
@@ -329,167 +331,10 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     #endif
     
 #if 1
-    // TODO(zoubir): IMPORTANT
-    // this shit is not updating entities
-    // that are not in camera bounds
-    u32 UpdateID = AppState->UpdateID++;
-    
-    for(u32 EntityIndex = 0;
-        EntityIndex < World->EntityCount;
-        EntityIndex++)
-    {
-        world_entity *ThisEntity =
-            &World->Entities[EntityIndex];
-        if (ThisEntity->IsPresent)
-        {
-                        
-//                        Assert(ThisEntity->CollisionHalfDims.Z * 2.f <
-//                               World->MaxEntityHalfDims.Z);
-
-//                        Assert(ThisEntity->CollisionHalfDims.Z * 2.f >
-//                               World->MaxEntityVelocity.Z);
-
-                        
-        if (ThisEntity->UpdateID != UpdateID)
-        {
-            ThisEntity->UpdateID = UpdateID;
-        switch(ThisEntity->Type)
-        {
-            case EntityType_Player:
-            {
-                // NOTE(zoubir): player code    
-                float AnimationSpeedRate;
-                animation_type AnimationType;
-                animation_direction AnimationDirection;
-    
-                player_slot *Slot = GetPlayerSlot(AppState, ThisEntity);
-                UpdatePlayer(Slot, World, MemoryArena, Input, AppState,
-                             &AnimationSpeedRate,
-                             &AnimationType,
-                             &AnimationDirection);
-                RespawnPlayerIfDead(Slot, World, MemoryArena, AppState);
-
-                DoEntityAnimation(ThisEntity, Assets, AppState,
-                                  Input->DeltaTime, AnimationSpeedRate,
-                                  AnimationType, AnimationDirection);
-                DrawEntity(RenderContext, AppState,
-                           *TextureProgram,
-                           Assets,
-                           ThisEntity, CameraOffset);
-
-                break;
-            }                    
-            case EntityType_Sword:
-            {
-                
-                if (UpdateSword(ThisEntity, World, MemoryArena, AppState,
-                                Input->DeltaTime))
-                {
-                    float AnimationSpeedRate = 1.f;
-                    animation_type AnimationType = AnimationType_Stand;
-                    animation_direction AnimationDirection =
-                        ThisEntity->AnimationDirection;
-    
-                    DoEntityAnimation(ThisEntity, Assets, AppState,
-                                      Input->DeltaTime, AnimationSpeedRate,
-                                      AnimationType, AnimationDirection);
-                    DrawEntity(RenderContext, AppState,
-                               *TextureProgram,
-                               Assets,
-                               ThisEntity, CameraOffset);
-                }
-                break;
-            }                    
-            case EntityType_Familiar:
-            {
-                // NOTE(zoubir): player code    
-                float AnimationSpeedRate;
-                animation_type AnimationType;
-                animation_direction AnimationDirection;
-    
-                UpdateFamiliar(ThisEntity, World, MemoryArena, Input, AppState,
-                               &AnimationSpeedRate,
-                               &AnimationType,
-                               &AnimationDirection);
-
-                DoEntityAnimation(ThisEntity, Assets, AppState,
-                                  Input->DeltaTime, AnimationSpeedRate,
-                                  AnimationType, AnimationDirection);
-
-                DrawEntity(RenderContext, AppState, *TextureProgram,
-                           Assets,
-                           ThisEntity, CameraOffset);
-                break;
-            }                    
-            case EntityType_FireBall:
-            {
-                // NOTE(zoubir): player code    
-                float AnimationSpeedRate = ThisEntity->AnimationSpeed;
-                animation_type AnimationType = ThisEntity->AnimationType;
-                animation_direction AnimationDirection = ThisEntity->AnimationDirection;
-    
-                UpdateFireBall(ThisEntity, World, MemoryArena, Input, AppState);
-
-                DoEntityAnimation(ThisEntity, Assets, AppState,
-                                  Input->DeltaTime, AnimationSpeedRate,
-                                  AnimationType, AnimationDirection);
-                
-                DrawEntity(RenderContext, AppState,
-                           *TextureProgram,
-                           Assets,
-                           ThisEntity, CameraOffset);
-                break;
-            }                    
-            case EntityType_StaticObject:
-            {
-                                
-                DrawEntity(RenderContext, AppState,
-                           *TextureProgram,
-                           Assets,
-                           ThisEntity, CameraOffset);
-                break;
-            }                    
-            case EntityType_Tiled:
-            {
-                                
-                DrawTileEntity(RenderContext, AppState, *TextureProgram,
-                               Assets,
-                               World, ThisEntity, CameraOffset);
-                break;
-            }
-            case EntityType_Monster:
-            {
-                float AnimationSpeedRate;
-                animation_type AnimationType;
-                animation_direction AnimationDirection;
-                UpdateMonster(ThisEntity, World, MemoryArena, Input, AppState,
-                              &AnimationSpeedRate,
-                              &AnimationType,
-                              &AnimationDirection);
-                if (!ThisEntity->IsPresent)
-                {
-                    break;
-                }
-
-                DoEntityAnimation(ThisEntity, Assets, AppState,
-                                  Input->DeltaTime, AnimationSpeedRate,
-                                  AnimationType, AnimationDirection);
-                
-                DrawEntity(RenderContext, AppState,
-                           *TextureProgram,
-                           Assets,
-                           ThisEntity, CameraOffset);
-                break;
-            }
-            case EntityType_Count:
-            case EntityType_Invalid:
-            {
-                break;
-            }
-        }
-        }
-        }
-    }
+    SimulateTick(AppState, MemoryArena, Input->DeltaTime);
+    PlaySimEvents(AppState);
+    DrawWorldEntities(RenderContext, AppState, Assets, *TextureProgram,
+                      CameraOffset);
     RenderFlush(RenderContext);
 
 #endif
@@ -499,8 +344,6 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
 //    EndTemporaryMemory(FrameTemporaryMemory);
 //    FrameTemporaryMemory = BeginTemporaryMemory(TransientArena);
     
-    UpdateMonsterPopulation(AppState, World, MemoryArena,
-                            AppState->Monsters, Input->DeltaTime);
 
     if (Input->ButtonF3.Pressed)
     {

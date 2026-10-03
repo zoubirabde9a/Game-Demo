@@ -79,37 +79,62 @@ GetTextureUvsFromIndex(u32 TextureWidth, u32 TextureHeight,
     return Result;
 }
 
-internal v4
-DoAnimation(animation_state *State,
-            u32 TextureWidth, u32 TextureHeight,
-            u32 TileNumX, u32 TileNumY,
-            float DeltaTime,
-            float SpeedRate, animation_slot Animation)
+// NOTE(zoubir): simulation side. Moves State along the frames of the
+// requested animation; switching direction restarts it. Needs no texture,
+// so the server runs it too (attack and cast states wait on it).
+internal void
+AdvanceAnimation(animation_state *State, animation_set *Set,
+                 animation_type Type, animation_direction Direction,
+                 float DeltaTime, float SpeedRate)
 {
-    v4 Result = {};
-    // NOTE(zoubir): a set without this type/direction (flyers have no
-    // up/down frames) draws nothing instead of dividing by zero
-    if (Animation.IndicesCount == 0)
+    Assert(Type < AnimationType_Count);
+    Assert(Direction < AnimationDirection_Count);
+    if (State->LastAnimationDirection != Direction)
     {
-        return Result;
+        State->SlotIndex = 0;
+    }
+    State->LastAnimationDirection = Direction;
+    State->CurrentType = Type;
+
+    animation_slot *Animation = GetAnimation(Set, Type, Direction);
+    // NOTE(zoubir): a set without this type/direction (flyers have no
+    // up/down frames) simply does not advance
+    if (Animation->IndicesCount == 0)
+    {
+        return;
     }
 
-    u32 Index = Animation.FirstIndex +
-        (State->SlotIndex % Animation.IndicesCount);
-    Result = GetTextureUvsFromIndex(TextureWidth, TextureHeight,
-                                    TileNumX, TileNumY, Index);
-
-    u32 FrameTimeIndex =
-        State->SlotIndex % Animation.IndicesCount;
-    float SecondsPerFrame = SpeedRate * Animation.FramesTimeInSeconds[FrameTimeIndex];
+    u32 FrameTimeIndex = State->SlotIndex % Animation->IndicesCount;
+    float SecondsPerFrame =
+        SpeedRate * Animation->FramesTimeInSeconds[FrameTimeIndex];
     State->DeltaTime += DeltaTime;
     if (State->DeltaTime >= SecondsPerFrame)
     {
         State->DeltaTime -= SecondsPerFrame;
         State->SlotIndex++;
     }
+}
 
-    if (Animation.Reversed)
+// NOTE(zoubir): drawing side. Texture coordinates of the frame State is
+// on, mirrored for reversed slots; all zero when the slot is empty.
+internal v4
+GetAnimationUvs(animation_state *State, animation_set *Set,
+                u32 TextureWidth, u32 TextureHeight,
+                u32 TileNumX, u32 TileNumY)
+{
+    v4 Result = {};
+    animation_slot *Animation =
+        GetAnimation(Set, State->CurrentType, State->LastAnimationDirection);
+    if (Animation->IndicesCount == 0)
+    {
+        return Result;
+    }
+
+    u32 Index = Animation->FirstIndex +
+        (State->SlotIndex % Animation->IndicesCount);
+    Result = GetTextureUvsFromIndex(TextureWidth, TextureHeight,
+                                    TileNumX, TileNumY, Index);
+    if (Animation->Reversed)
     {
         float Tmp = Result.X;
         Result.X = Result.Z;
@@ -117,57 +142,6 @@ DoAnimation(animation_state *State,
     }
     return Result;
 }
-
-inline v4
-DoAnimation(animation_state *State,
-            u32 TextureWidth, u32 TextureHeight,
-            u32 TileNumX, u32 TileNumY,
-            float DeltaTime,
-            float SpeedRate, animation_set *Set,
-            animation_type AnimationType,
-            animation_direction AnimationDirection)
-{
-    Assert(AnimationType < AnimationType_Count);
-    Assert(AnimationDirection < AnimationDirection_Count);
-    Assert(State);
-    v4 Result;
-    
-    animation_slot *Animation =
-        GetAnimation(Set, AnimationType, AnimationDirection);
-    
-    // NOTE(zoubir): Animation Does Not Exit
-    Assert(Animation->IndicesCount > 0);
-
-    #if 0
-    if (State->LastAnimationDirection != AnimationDirection)
-    {
-        State->DeltaTime = 0.f;
-        //TODO(zoubir): do we want this to be 1 instead of 0
-        State->SlotIndex = 0;
-        u32 Index = Animation->FirstIndex;
-        Result = GetTextureUvsFromIndex(TextureWidth, TextureHeight,
-                                        TileNumX, TileNumY, Index);
-    }
-    else
-    {
-        Result = DoAnimation(State, TextureWidth, TextureHeight,
-                    TileNumX, TileNumY, DeltaTime, SpeedRate,
-                    *Animation);
-                    
-    }
-    #endif
-    
-    if (State->LastAnimationDirection != AnimationDirection)
-    {
-        State->SlotIndex = 0;
-    }    
-    Result = DoAnimation(State, TextureWidth, TextureHeight,
-                         TileNumX, TileNumY, DeltaTime, SpeedRate,
-                         *Animation);
-    
-    State->LastAnimationDirection = AnimationDirection;
-    return Result;
-};
 
 inline bool32
 IsSet(world_entity *Entity, u32 Flag)
@@ -452,7 +426,7 @@ HandleOverlap(app_state *AppState, world *World, memory_arena *Arena,
 internal void
 MoveEntity(world_entity *Entity, world *World,
            memory_arena *Arena,
-           app_input *Input, app_state *AppState,
+           float DeltaTime, app_state *AppState,
            v3 DDEntity, float *MaxDistance)
 {
     // NOTE(zoubir): jumping code
@@ -460,8 +434,8 @@ MoveEntity(world_entity *Entity, world *World,
 //    DDEntityZ -= (10.f * Entity->VelocityZ);
     
     // NOTE(zoubir): New Position
-    v3 EntityDelta = 0.5f * DDEntity * Square(Input->DeltaTime) +
-        Entity->Velocity * Input->DeltaTime;
+    v3 EntityDelta = 0.5f * DDEntity * Square(DeltaTime) +
+        Entity->Velocity * DeltaTime;
 
     float SmallNumber = 0.01f;
 
@@ -490,7 +464,7 @@ MoveEntity(world_entity *Entity, world *World,
     #endif
 
 
-    Entity->Velocity = DDEntity * Input->DeltaTime +
+    Entity->Velocity = DDEntity * DeltaTime +
         Entity->Velocity;
 
     int NumIterations = 4;

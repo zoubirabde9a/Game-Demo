@@ -44,6 +44,8 @@ struct animation_state
     u32 SlotIndex;
     
     animation_direction LastAnimationDirection;
+    // NOTE(zoubir): what AdvanceAnimation last played, read when drawing
+    animation_type CurrentType;
 };
 
 struct animation_set

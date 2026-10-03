@@ -54,6 +54,7 @@ struct font
 #include "ui.h"
 #include "world.h"
 #include "sim/player.h"
+#include "sim/events.h"
 #include "audio.h"
 
 // asset_id
@@ -83,6 +84,8 @@ struct app_state
     player_slot Players[MAX_PLAYERS];
     // NOTE(zoubir): the slot this machine's keyboard drives
     u32 LocalPlayerIndex;
+    // NOTE(zoubir): filled by SimulateTick, drained by whoever runs it
+    sim_events Events;
     struct monster_population *Monsters;
 
     v3 TargetCamera;

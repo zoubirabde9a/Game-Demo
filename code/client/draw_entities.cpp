@@ -1,5 +1,6 @@
-/* Drawing for world entities: tiles, sprites, health bars, debug
-   collision boxes, and picking the animation frame for an entity. */
+/* Client-side drawing of world entities: tiles, sprites, health bars,
+   debug collision boxes, and the animation frame the simulation is on.
+   Reads entity state only; SimulateTick has already run this frame. */
 
 internal void
 DrawTileEntity(render_context *RenderContext,
@@ -258,28 +259,55 @@ DrawEntity(render_context *RenderContext,
     
 }
 
+// NOTE(zoubir): picks the sprite-sheet frame for the animation the
+// simulation is playing; drawing only, never advances it
 internal void
-DoEntityAnimation(world_entity *Entity, assets *Assets, app_state *AppState,
-                  float DeltaTime, float AnimationSpeedRate,
-                  animation_type AnimationType, animation_direction AnimationDirection)
+UpdateEntityUvs(world_entity *Entity, assets *Assets, app_state *AppState)
 {
-    open_gl *OpenGL = AppState->OpenGL;
-    loaded_texture *Texture = GetTexture(Assets, OpenGL,
+    if (!Entity->AnimationSet)
+    {
+        return;
+    }
+    loaded_texture *Texture = GetTexture(Assets, AppState->OpenGL,
                                          AppState, Entity->Texture);
-    zas_texture_info *TextureInfo = &GetAssetInfo(Assets, Entity->Texture)->Texture;
+    zas_texture_info *TextureInfo =
+        &GetAssetInfo(Assets, Entity->Texture)->Texture;
     if (Texture)
     {
-        Entity->Uvs = DoAnimation(&Entity->AnimationState, 
-                                      Texture->Width,
-                                      Texture->Height,
-                                      TextureInfo->NumTilesX,
-                                      TextureInfo->NumTilesY,
-                                      DeltaTime,
-                                      AnimationSpeedRate,
+        Entity->Uvs = GetAnimationUvs(&Entity->AnimationState,
                                       Entity->AnimationSet,
-                                      AnimationType,
-                                      AnimationDirection);
+                                      Texture->Width, Texture->Height,
+                                      TextureInfo->NumTilesX,
+                                      TextureInfo->NumTilesY);
     }
-                
+}
 
+// NOTE(zoubir): every present entity, sorted by the renderer's batch order
+internal void
+DrawWorldEntities(render_context *RenderContext, app_state *AppState,
+                  assets *Assets, render_program TextureProgram,
+                  v3 CameraOffset)
+{
+    world *World = &AppState->World;
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (!Entity->IsPresent)
+        {
+            continue;
+        }
+        if (Entity->Type == EntityType_Tiled)
+        {
+            DrawTileEntity(RenderContext, AppState, TextureProgram,
+                           Assets, World, Entity, CameraOffset);
+        }
+        else
+        {
+            UpdateEntityUvs(Entity, Assets, AppState);
+            DrawEntity(RenderContext, AppState, TextureProgram,
+                       Assets, Entity, CameraOffset);
+        }
+    }
 }
