@@ -95,6 +95,8 @@ struct app_state
     struct online_session *Online;
     // NOTE(zoubir): address and name form, see ui/connect_screen.cpp
     struct connect_screen *ConnectScreen;
+    // NOTE(zoubir): see ui/minimap.cpp; made on first draw
+    struct minimap *Minimap;
     struct monster_population *Monsters;
 
     v3 TargetCamera;

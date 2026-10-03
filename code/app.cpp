@@ -92,6 +92,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset);
     DrawLandmarkPointer(RenderContext, AppState, CameraOffset, Window);
     DrawHud(RenderContext, AppState, CameraOffset);
+    DrawMinimap(RenderContext, AppState, Window->Width);
     DrawRespawnCountdown(RenderContext, AppState, Window->Width, Window->Height);
     if (Input->TabButton.EndedDown)
     {
