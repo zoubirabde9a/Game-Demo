@@ -19,3 +19,5 @@
     float BlinkCooldown;
     // NOTE(zoubir): seconds until the next fireball may leave the hand
     float FireBallCooldown;
+    // NOTE(zoubir): seconds until the next sword swing may start
+    float SwingCooldown;

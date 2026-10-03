@@ -533,6 +533,31 @@ TestJumpClearsGroundHazards()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): in the air the jump state used to replace the swing
+// state each tick, so every click swung at once; swings are paced the
+// same as on the ground
+internal void
+TestSwingsInTheAirArePaced()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Jumper = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Jump;
+    RunPlayerFrames(&Test, 0, 3);
+    Check(Jumper->Position.Z > 0.f);
+    for(u32 Click = 0; Click < 4; Click++)
+    {
+        AppState->Players[0].Input.Pressed = PlayerButton_Attack;
+        RunPlayerFrames(&Test, 0, 2);
+    }
+    // NOTE(zoubir): four clicks over 8 frames (0.13 s), under one swing
+    Check(CountPresent(Test.World, EntityType_Sword) == 1);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -568,4 +593,6 @@ RunPlayerAbilityTests()
     TestDashDodgesHits();
     printf("TestJumpClearsGroundHazards\n");
     TestJumpClearsGroundHazards();
+    printf("TestSwingsInTheAirArePaced\n");
+    TestSwingsInTheAirArePaced();
 }

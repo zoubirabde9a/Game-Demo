@@ -113,6 +113,7 @@ UpdatePlayer(player_slot *Slot, world *World,
 
     Player->ActionLock = Maximum(0.f, Player->ActionLock - DeltaTime);
     Player->FireBallCooldown = Maximum(0.f, Player->FireBallCooldown - DeltaTime);
+    Player->SwingCooldown = Maximum(0.f, Player->SwingCooldown - DeltaTime);
     player_tick Tick = {};
     Tick.Acceleration = PLAYER_ACCELERATION;
     Tick.AnimationSpeedRate = AnimationSpeedRate;

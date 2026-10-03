@@ -100,7 +100,7 @@ RunPlayerActionQueue(app_state *AppState, world *World, memory_arena *Arena,
                 {
                     case PDI_Attack:
                     {
-                        Consumed = Player->State != EntityState_Attacking;
+                        Consumed = CanStartSwing(Player);
                         if (Consumed)
                         {
                             StartSwordSwing(AppState, World, Arena, Player,
