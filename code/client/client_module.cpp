@@ -19,6 +19,7 @@
 #include "replica_smoothing.cpp"
 #include "replicas.cpp"
 #include "prediction.cpp"
+#include "online_config.cpp"
 #include "online.cpp"
 #include "keyboard_input.cpp"
 #include "camera.cpp"
