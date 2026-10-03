@@ -10,7 +10,9 @@
    - sword arcs: a sweep along each new sword swing
      (player_fx/sword_arcs.cpp);
    - dash streaks: fading dots along a dashing player's path
-     (player_fx/dash_streaks.cpp).
+     (player_fx/dash_streaks.cpp);
+   - hit numbers: the damage each hit did, rising from the target
+     (player_fx/hit_numbers.cpp).
 
    Entry point: DrawPlayerAbilityFx, once a frame from app.cpp. */
 
@@ -18,12 +20,14 @@
 #include "player_fx/shockwave_rings.cpp"
 #include "player_fx/sword_arcs.cpp"
 #include "player_fx/dash_streaks.cpp"
+#include "player_fx/hit_numbers.cpp"
 
 struct player_fx
 {
     shockwave_rings Rings;
     sword_arcs Swords;
     dash_streaks Dashes;
+    hit_numbers Hits;
 };
 
 // NOTE(zoubir): the state lives in MemoryArena, not the world arena, so a
@@ -41,9 +45,11 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     UpdateShockwaveRings(&Fx->Rings, AppState, DeltaTime);
     UpdateSwordArcs(&Fx->Swords, AppState, DeltaTime);
     UpdateDashStreaks(&Fx->Dashes, AppState, DeltaTime);
+    UpdateHitNumbers(&Fx->Hits, AppState, DeltaTime);
 
     DrawDashStreaks(RenderContext, &Fx->Dashes, CameraOffset);
     DrawShockwaveRings(RenderContext, &Fx->Rings, CameraOffset);
     DrawSwordArcs(RenderContext, &Fx->Swords, CameraOffset);
     DrawAimMarker(RenderContext, AppState, CameraOffset);
+    DrawHitNumbers(RenderContext, AppState, &Fx->Hits, CameraOffset);
 }

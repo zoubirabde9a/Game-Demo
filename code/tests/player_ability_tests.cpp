@@ -1,8 +1,8 @@
 /* Player ability tests: the sword and fireball go toward the aim (the
    cursor) at any angle, the body faces the aim whichever way the player
    walks, a swing roots the player only for a moment, and each shockwave
-   and sword swing draws one ring or arc. Included by sim_tests.cpp,
-   which calls RunPlayerAbilityTests. */
+   and sword swing draws one ring or arc, and hits show one number each.
+   Included by sim_tests.cpp, which calls RunPlayerAbilityTests. */
 
 inline v2
 UnitOf(v2 V)
@@ -255,6 +255,36 @@ TestBlinkLandsAtCursorOrStopsAtWall()
 }
 
 internal void
+TestHitsShowOneNumberEach()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {400, 300, 0}, Test.UnitVolume);
+    Monster->MaxHp = Monster->Hp = 100.f;
+    hit_numbers *Fx = (hit_numbers *)calloc(1, sizeof(hit_numbers));
+    float Dt = 1.f / 60.f;
+    UpdateHitNumbers(Fx, AppState, Dt);
+    Check(Fx->Count == 0);
+
+    DamageEntity(AppState, Test.World, Monster, 12.f, 0);
+    UpdateHitNumbers(Fx, AppState, Dt);
+    Check(Fx->Count == 1);
+    Check(Fx->Numbers[0].Amount == 12);
+
+    // NOTE(zoubir): a burn ticking every frame adds up instead of
+    // showing a number per frame
+    for(u32 Frame = 0; Frame < 30; Frame++)
+    {
+        Monster->Hp -= 0.5f;
+        UpdateHitNumbers(Fx, AppState, Dt);
+    }
+    Check(Fx->Count >= 2 && Fx->Count <= 4);
+    free(Fx);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 RunPlayerAbilityTests()
 {
     printf("TestFireBallFliesTowardAim\n");
@@ -273,4 +303,6 @@ RunPlayerAbilityTests()
     TestDashGoesWhereKeysPointElseTowardAim();
     printf("TestBlinkLandsAtCursorOrStopsAtWall\n");
     TestBlinkLandsAtCursorOrStopsAtWall();
+    printf("TestHitsShowOneNumberEach\n");
+    TestHitsShowOneNumberEach();
 }
