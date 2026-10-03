@@ -12,6 +12,7 @@ DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, Window);
 DrawHud(RenderContext, AppState, CameraOffset);
 DrawMinimap(RenderContext, AppState, Window->Width);
+DrawControlsPanel(RenderContext, AppState, Input, Window->Height);
 DrawRespawnCountdown(RenderContext, AppState, Window->Width, Window->Height);
 if (Input->TabButton.EndedDown) DrawScoreboard(RenderContext, AppState, Window->Width, Window->Height);
 DoTileEditor(RenderContext, AppState, UIContext, Input, Window, TextureProgram, CameraOffset);

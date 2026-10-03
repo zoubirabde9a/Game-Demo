@@ -8,4 +8,5 @@
     struct kill_feed *KillFeed; // recent player deaths for the UI, client/kill_feed.cpp
     struct connect_screen *ConnectScreen; // address and name form, ui/connect_screen.cpp
     struct minimap *Minimap; // ui/minimap.cpp, made on first draw
+    struct controls_panel *ControlsPanel; // key list and its intro timer, ui/controls_panel.cpp
     struct player_fx *PlayerFx; // ability effects drawn over the world, client/player_fx.cpp
