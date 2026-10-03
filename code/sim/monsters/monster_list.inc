@@ -9,3 +9,4 @@
 #include "imp.cpp"
 #include "spider.cpp"
 #include "slime.cpp"
+#include "necromancy.cpp"

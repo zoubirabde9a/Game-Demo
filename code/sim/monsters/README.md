@@ -40,6 +40,11 @@ Every ability runs windup, then active, then recover (`code/sim/monster_abilitie
 | `Blink` | marks a spot `Spread` past the target, appears there when the windup ends and hits within `Radius` | `Spread`, `Radius` (keep it above `Spread`) |
 | `Volley` | throws `Count` shots fanned over `Spread` degrees; shots are entities that fly for `Active` seconds, stop at walls and hit the first player within `Radius` | `Count`, `Spread`, `Speed`, `Active`, `Radius`, `ShotStyle` |
 
+| `Summon` | marks up to `Count` graves `Spread` toward the target; a `SummonKind` monster climbs out of each one nobody stands on. Stops at `MaxActive` living summons; they crumble when the summoner dies | `SummonKind`, `Count`, `MaxActive`, `Spread` |
+| `Mend` | only starts when an ally within `Radius` is under 70% health; heals the most hurt one by `Heal` when the windup ends | `Radius`, `Heal` |
+
+Monsters that point at each other (summons, heal targets) store the entity slot and a `MonsterSerial`, because slots are reused. Every monster made by the game goes through `SpawnMonster`, which hands out serials.
+
 Any ability can also set:
 
 - `Status` and `StatusSeconds`: put on every player it hits. Burning (fast damage), Poisoned (slow damage) and Slowed (movement scaled down) live in `code/sim/status_effects.cpp`. A second application keeps whichever timer is longer; effects never stack.
@@ -85,6 +90,8 @@ A monster uses the first ability in its list that is off cooldown and whose `Min
 | Spider | Hexweaver Spider | Web Snare: a web that slows anyone in it. Venom Spit: one poisoned barb |
 
 | Slime | Gloomslime | Belly Flop: slam that leaves slowing goo. Splits into two Slimelets on death |
+| Shaman | Bone Shaman | Mend: heals the most hurt ally. Raise Dead: two Skeletal Thralls, at most four |
+| Thrall | Skeletal Thrall | none; quick and brittle, only appears from a shaman, crumbles when it dies |
 | Slimelet | Slimelet | none; small and quick, only appears from a split |
 
 The toad's shells now leave bile puddles that poison.

@@ -212,6 +212,52 @@ FindBlinkSpot(app_state *AppState, world *World, world_entity *Entity,
     return false;
 }
 
+#define MEND_THRESHOLD 0.7f
+
+inline u32
+CountActiveSummons(world *World, world_entity *Summoner)
+{
+    u32 Result = 0;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster &&
+            Entity->SummonerSerial == Summoner->MonsterSerial &&
+            Entity->SummonerSlot == Summoner->ID)
+        {
+            Result++;
+        }
+    }
+    return Result;
+}
+
+// NOTE(zoubir): the ally within Radius with the lowest share of its health,
+// if that share is under MEND_THRESHOLD; never the healer itself
+internal world_entity *
+FindMendTarget(world *World, world_entity *Healer, float Radius)
+{
+    world_entity *Result = 0;
+    float LowestShare = MEND_THRESHOLD;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Ally = &World->Entities[EntityIndex];
+        if (Ally == Healer || !Ally->IsPresent ||
+            Ally->Type != EntityType_Monster || Ally->MaxHp <= 0.f ||
+            !Ally->MonsterSerial ||
+            Length(Ally->Position.XY - Healer->Position.XY) > Radius)
+        {
+            continue;
+        }
+        float Share = Ally->Hp / Ally->MaxHp;
+        if (Share < LowestShare)
+        {
+            LowestShare = Share;
+            Result = Ally;
+        }
+    }
+    return Result;
+}
+
 // NOTE(zoubir): locks in what the ability needs to know at windup start.
 // Returns false when it cannot be used right now (blink with no room)
 internal bool32
@@ -261,6 +307,58 @@ StartMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
                 return false;
             }
             Entity->AbilityPoints[Entity->AbilityPointCount++] = Spot;
+        } break;
+
+        case MonsterAbility_Summon:
+        {
+            u32 Active = CountActiveSummons(World, Entity);
+            if (!Entity->MonsterSerial || Active >= Ability->MaxActive)
+            {
+                return false;
+            }
+            // NOTE(zoubir): rise between the summoner and its target
+            monster_def *SummonDef = GetMonsterDef(Ability->SummonKind);
+            entity_collision_volume_group *Volume = SummonDef->FlyHeight > 0.f ?
+                AppState->BatCollision : AppState->PlayerCollision;
+            u32 Count = Minimum(Ability->Count, Ability->MaxActive - Active);
+            Count = Minimum(Count, (u32)MAX_ABILITY_POINTS);
+            v2 Side = V2(-Entity->AbilityAim.Y, Entity->AbilityAim.X);
+            for(u32 PointIndex = 0; PointIndex < Count; PointIndex++)
+            {
+                float Offset = Count > 1 ?
+                    ((float)PointIndex / (float)(Count - 1) - 0.5f) : 0.f;
+                v2 Point = Entity->Position.XY +
+                    Ability->Spread * Entity->AbilityAim +
+                    (2.f * Ability->Spread * Offset) * Side;
+                if (IsInsideArena(World, Point, 40.f) &&
+                    IsSpawnSpotFree(AppState, World,
+                                    V3(Point.X, Point.Y, 0.f), Volume))
+                {
+                    Entity->AbilityPoints[Entity->AbilityPointCount++] = Point;
+                }
+            }
+            if (Entity->AbilityPointCount == 0)
+            {
+                return false;
+            }
+        } break;
+
+        case MonsterAbility_Mend:
+        {
+            world_entity *Ally = FindMendTarget(World, Entity, Ability->Radius);
+            if (!Ally)
+            {
+                return false;
+            }
+            Entity->AbilityTargetSlot = Ally->ID;
+            Entity->AbilityTargetSerial = Ally->MonsterSerial;
+            Entity->AbilityPoints[Entity->AbilityPointCount++] = Ally->Position.XY;
+            v2 ToAlly = Ally->Position.XY - Entity->Position.XY;
+            float AllyDistance = Length(ToAlly);
+            if (AllyDistance > 0.f)
+            {
+                Entity->AbilityAim = (1.f / AllyDistance) * ToAlly;
+            }
         } break;
 
         default:
@@ -445,6 +543,40 @@ TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
             {
                 AddMonsterShot(AppState, World, Arena, Entity, Ability,
                                Directions[ShotIndex]);
+            }
+        } break;
+
+        case MonsterAbility_Summon:
+        {
+            monster_def *SummonDef = GetMonsterDef(Ability->SummonKind);
+            entity_collision_volume_group *Volume = SummonDef->FlyHeight > 0.f ?
+                AppState->BatCollision : AppState->PlayerCollision;
+            for(u32 PointIndex = 0;
+                PointIndex < Entity->AbilityPointCount;
+                PointIndex++)
+            {
+                v2 Point = Entity->AbilityPoints[PointIndex];
+                v3 Point3 = V3(Point.X, Point.Y, 0.f);
+                // NOTE(zoubir): a player standing on the mark stops that one
+                if (IsSpawnSpotFree(AppState, World, Point3, Volume))
+                {
+                    world_entity *Summon = SpawnMonster(AppState, World, Arena,
+                                                        Point3, Ability->SummonKind);
+                    Summon->SummonerSlot = Entity->ID;
+                    Summon->SummonerSerial = Entity->MonsterSerial;
+                }
+            }
+        } break;
+
+        case MonsterAbility_Mend:
+        {
+            world_entity *Ally = FindMonsterBySerial(World, Entity->AbilityTargetSlot,
+                                                     Entity->AbilityTargetSerial);
+            // NOTE(zoubir): the ally can walk a little during the windup
+            if (Ally && Length(Ally->Position.XY - Entity->Position.XY) <=
+                1.5f * Ability->Radius)
+            {
+                Ally->Hp = Minimum(Ally->MaxHp, Ally->Hp + Ability->Heal);
             }
         } break;
 

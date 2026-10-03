@@ -218,6 +218,14 @@ struct world_entity
     // NOTE(zoubir): monster_affix of an elite monster, and of the shots and
     // hazards it makes; 0 for ordinary ones. See sim/monster_affixes.cpp
     u32 EliteAffix;
+    // NOTE(zoubir): entity slots are reused, so monsters that point at
+    // each other (summons, heal targets) keep the slot and a serial that
+    // is never reused. Serial 0 means not registered
+    u32 MonsterSerial;
+    u32 SummonerSlot;
+    u32 SummonerSerial;
+    u32 AbilityTargetSlot;
+    u32 AbilityTargetSerial;
     // NOTE(zoubir): seconds until the player can dash / shockwave again
     float DashCooldown;
     float ShockwaveCooldown;

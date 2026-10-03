@@ -27,6 +27,13 @@ enum monster_ability_kind
     // the aim locked at windup start. Shots fly at Speed for Active
     // seconds, stop at walls and hit the first player within Radius
     MonsterAbility_Volley,
+    // NOTE(zoubir): raises Count monsters of SummonKind on spots marked
+    // during windup, while fewer than MaxActive of its summons live.
+    // Summons crumble when their summoner dies
+    MonsterAbility_Summon,
+    // NOTE(zoubir): heals the most hurt ally within Radius by Heal; only
+    // starts when an ally is below MEND_THRESHOLD of its health
+    MonsterAbility_Mend,
     MonsterAbility_Count
 };
 
@@ -82,6 +89,9 @@ struct monster_ability
     // this long
     float HazardSeconds;
     monster_hazard_style HazardStyle;
+    monster_kind SummonKind;
+    u32 MaxActive;
+    float Heal;
 };
 
 #define MONSTER_SHEET_COLUMNS 6
@@ -193,6 +203,7 @@ struct monster_population
     random_series Series;
     monster_death_record PendingDeaths[MAX_PENDING_DEATHS];
     u32 PendingDeathCount;
+    u32 NextMonsterSerial;
     animation_set AnimationSets[MonsterKind_Count];
     animation_set ShotAnimationSets[ShotStyle_Count];
     animation_set HazardAnimationSets[HazardStyle_Count];

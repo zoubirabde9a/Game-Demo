@@ -20,6 +20,16 @@ AddTestMonster(test_world *Test, monster_kind Kind, v3 Position)
     return Monster;
 }
 
+// NOTE(zoubir): like AddTestMonster, but through SpawnMonster, so it has a
+// serial (summons and heals need one) and staggered cooldowns are reset
+internal world_entity *
+AddRegisteredMonster(test_world *Test, monster_kind Kind, v3 Position)
+{
+    world_entity *Monster = AddTestMonster(Test, Kind, Position);
+    Monster->MonsterSerial = ++Test->AppState->Monsters->NextMonsterSerial;
+    return Monster;
+}
+
 internal world_entity *
 AddTestPlayer(test_world *Test, v3 Position)
 {
@@ -88,6 +98,19 @@ TestMonsterDefsAreValid()
             Check(Ability->Windup >= 0.3f);
             Check(Ability->Cooldown > Ability->Windup);
             Check(Ability->MaxRange >= Ability->MinRange);
+            if (Ability->Kind == MonsterAbility_Summon)
+            {
+                Check(Ability->SummonKind < MonsterKind_Count);
+                Check(Ability->SummonKind != (monster_kind)KindIndex);
+                Check(Ability->MaxActive >= Ability->Count && Ability->Count >= 1);
+                Check(Ability->Spread > 0.f);
+                continue;
+            }
+            if (Ability->Kind == MonsterAbility_Mend)
+            {
+                Check(Ability->Heal > 0.f && Ability->Radius > 0.f);
+                continue;
+            }
             Check(Ability->Damage > 0.f);
             Check(Ability->Radius > 0.f);
             Check(Ability->Count <= MAX_ABILITY_POINTS);
@@ -732,6 +755,109 @@ TestMonsterTableHashTracksChanges()
 }
 
 internal void
+TestShamanRaisesThrallsUpToCap()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Shaman = AddRegisteredMonster(&Test, MonsterKind_Shaman, {600, 1000, 0});
+    AddTestPlayer(&Test, {850, 1000, 0});
+    monster_def *Def = GetMonsterDef(MonsterKind_Shaman);
+    monster_ability *Raise = &Def->Abilities[1];
+
+    StepWorld(&Test, 1);
+    Check(Shaman->AbilityPhase == AbilityPhase_Windup);
+    Check(Shaman->AbilityIndex == 1);
+    Check(Shaman->AbilityPointCount == Raise->Count);
+    StepWorld(&Test, SecondsToFrames(Raise->Windup));
+    Check(CountMonstersOfKind(Test.World, MonsterKind_Thrall) == Raise->Count);
+
+    // NOTE(zoubir): cast again and again; it never goes past MaxActive
+    for(u32 Cast = 0; Cast < 4; Cast++)
+    {
+        Shaman->AbilityCooldowns[1] = 0.f;
+        StepWorld(&Test, SecondsToFrames(Raise->Windup + Raise->Active +
+                                         Raise->Recover) + 2);
+    }
+    Check(CountMonstersOfKind(Test.World, MonsterKind_Thrall) == Raise->MaxActive);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestThrallsCrumbleWhenShamanDies()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Shaman = AddRegisteredMonster(&Test, MonsterKind_Shaman, {600, 1000, 0});
+    AddTestPlayer(&Test, {850, 1000, 0});
+    monster_ability *Raise = &GetMonsterDef(MonsterKind_Shaman)->Abilities[1];
+    StepWorld(&Test, 1 + SecondsToFrames(Raise->Windup));
+    Check(CountMonstersOfKind(Test.World, MonsterKind_Thrall) == Raise->Count);
+
+    DamageEntity(Test.AppState, Test.World, Shaman, Shaman->Hp + 1.f, 0);
+    UpdateMonsterPopulation(Test.AppState, Test.World, &Test.Arena,
+                            Test.AppState->Monsters, Test.Input.DeltaTime);
+    Check(CountMonstersOfKind(Test.World, MonsterKind_Thrall) == 0);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): a new monster in a dead summoner's slot must not adopt
+// the old summoner's thralls
+internal void
+TestReusedSlotIsNotTheSummoner()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Shaman = AddRegisteredMonster(&Test, MonsterKind_Shaman, {600, 1000, 0});
+    u32 ShamanSlot = Shaman->ID;
+    AddTestPlayer(&Test, {850, 1000, 0});
+    monster_ability *Raise = &GetMonsterDef(MonsterKind_Shaman)->Abilities[1];
+    StepWorld(&Test, 1 + SecondsToFrames(Raise->Windup));
+
+    DamageEntity(Test.AppState, Test.World, Shaman, Shaman->Hp + 1.f, 0);
+    world_entity *Newcomer = AddRegisteredMonster(&Test, MonsterKind_Brute, {300, 300, 0});
+    Check(Newcomer->ID == ShamanSlot);
+    UpdateMonsterPopulation(Test.AppState, Test.World, &Test.Arena,
+                            Test.AppState->Monsters, Test.Input.DeltaTime);
+    Check(CountMonstersOfKind(Test.World, MonsterKind_Thrall) == 0);
+    Check(Newcomer->IsPresent);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestMendHealsMostHurtAlly()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Shaman = AddRegisteredMonster(&Test, MonsterKind_Shaman, {600, 1000, 0});
+    world_entity *Scratched = AddRegisteredMonster(&Test, MonsterKind_Brute, {650, 900, 0});
+    world_entity *Wounded = AddRegisteredMonster(&Test, MonsterKind_Brute, {650, 1100, 0});
+    AddTestPlayer(&Test, {900, 1000, 0});
+    Scratched->Hp = 0.6f * Scratched->MaxHp;
+    Wounded->Hp = 0.2f * Wounded->MaxHp;
+    float WoundedHp = Wounded->Hp;
+    float ScratchedHp = Scratched->Hp;
+    monster_ability *Mend = &GetMonsterDef(MonsterKind_Shaman)->Abilities[0];
+
+    StepMonster(&Test, Shaman, 1);
+    Check(Shaman->AbilityPhase == AbilityPhase_Windup);
+    Check(Shaman->AbilityIndex == 0);
+    StepMonster(&Test, Shaman, SecondsToFrames(Mend->Windup));
+    Check(Wounded->Hp == WoundedHp + Mend->Heal);
+    Check(Scratched->Hp == ScratchedHp);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestMendWaitsForSomeoneHurt()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Shaman = AddRegisteredMonster(&Test, MonsterKind_Shaman, {600, 1000, 0});
+    AddRegisteredMonster(&Test, MonsterKind_Brute, {650, 900, 0});
+    AddTestPlayer(&Test, {900, 1000, 0});
+    // NOTE(zoubir): nobody hurt, so the shaman raises the dead instead
+    StepMonster(&Test, Shaman, 1);
+    Check(Shaman->AbilityPhase == AbilityPhase_Windup);
+    Check(Shaman->AbilityIndex == 1);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 RunMonsterTests()
 {
     printf("TestMonsterDefsAreValid\n");
@@ -792,4 +918,14 @@ RunMonsterTests()
     TestEliteSlimeChildrenKeepAffix();
     printf("TestMonsterTableHashTracksChanges\n");
     TestMonsterTableHashTracksChanges();
+    printf("TestShamanRaisesThrallsUpToCap\n");
+    TestShamanRaisesThrallsUpToCap();
+    printf("TestThrallsCrumbleWhenShamanDies\n");
+    TestThrallsCrumbleWhenShamanDies();
+    printf("TestReusedSlotIsNotTheSummoner\n");
+    TestReusedSlotIsNotTheSummoner();
+    printf("TestMendHealsMostHurtAlly\n");
+    TestMendHealsMostHurtAlly();
+    printf("TestMendWaitsForSomeoneHurt\n");
+    TestMendWaitsForSomeoneHurt();
 }

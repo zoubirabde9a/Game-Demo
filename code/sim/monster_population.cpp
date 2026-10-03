@@ -12,6 +12,38 @@
 internal void
 StaggerMonsterCooldowns(app_state *AppState, world_entity *Entity);
 
+// NOTE(zoubir): every monster the game makes comes through here, so each
+// gets a serial and starts with its abilities part way charged
+internal world_entity *
+SpawnMonster(app_state *AppState, world *World, memory_arena *Arena,
+             v3 Position, monster_kind Kind)
+{
+    world_entity *Monster = AddMonster(AppState, World, Arena, Position, Kind);
+    if (AppState->Monsters)
+    {
+        Monster->MonsterSerial = ++AppState->Monsters->NextMonsterSerial;
+    }
+    StaggerMonsterCooldowns(AppState, Monster);
+    return Monster;
+}
+
+// NOTE(zoubir): the monster in Slot if it is still the one with Serial
+inline world_entity *
+FindMonsterBySerial(world *World, u32 Slot, u32 Serial)
+{
+    world_entity *Result = 0;
+    if (Serial && Slot < World->EntityCount)
+    {
+        world_entity *Entity = &World->Entities[Slot];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster &&
+            Entity->MonsterSerial == Serial)
+        {
+            Result = Entity;
+        }
+    }
+    return Result;
+}
+
 inline u32
 CountLiveMonsters(world *World)
 {
@@ -108,9 +140,8 @@ SpawnRoamingMonster(app_state *AppState, world *World, memory_arena *Arena,
             IsSpawnSpotFree(AppState, World, Position, Volume))
         {
             world_entity *Monster =
-                AddMonster(AppState, World, Arena, Position, Kind);
+                SpawnMonster(AppState, World, Arena, Position, Kind);
             ApplyEliteAffix(Monster, RollEliteAffix(&Population->Series));
-            StaggerMonsterCooldowns(AppState, Monster);
             return Monster;
         }
     }
@@ -195,11 +226,10 @@ SplitMonster(app_state *AppState, world *World, memory_arena *Arena,
                 continue;
             }
         }
-        world_entity *Spawned = AddMonster(AppState, World, Arena, Position,
-                                           Def->SplitKind);
+        world_entity *Spawned = SpawnMonster(AppState, World, Arena, Position,
+                                             Def->SplitKind);
         // NOTE(zoubir): an elite's children keep its affix
         ApplyEliteAffix(Spawned, Record->EliteAffix);
-        StaggerMonsterCooldowns(AppState, Spawned);
         // NOTE(zoubir): a little pop outward so the split reads
         Spawned->Velocity.XY = 180.f * Out;
     }
@@ -230,12 +260,33 @@ RunPendingMonsterDeaths(app_state *AppState, world *World, memory_arena *Arena,
     Population->PendingDeathCount = 0;
 }
 
+// NOTE(zoubir): summons whose summoner is gone fall apart. They are removed
+// without DamageEntity: nobody killed them, so nobody gets credit
+internal void
+CrumbleOrphanedSummons(world *World)
+{
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster &&
+            Entity->SummonerSerial &&
+            !FindMonsterBySerial(World, Entity->SummonerSlot,
+                                 Entity->SummonerSerial))
+        {
+            RemoveEntity(World, Entity);
+        }
+    }
+}
+
 internal void
 UpdateMonsterPopulation(app_state *AppState, world *World,
                         memory_arena *Arena,
                         monster_population *Population, float DeltaTime)
 {
     RunPendingMonsterDeaths(AppState, World, Arena, Population);
+    CrumbleOrphanedSummons(World);
     if (CountLiveMonsters(World) >= Population->Target)
     {
         Population->RespawnTimer = MONSTER_RESPAWN_SECONDS;

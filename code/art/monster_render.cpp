@@ -112,6 +112,7 @@ AddMonsterTextures(assets *Assets, open_gl *OpenGL, memory_arena *TempArena)
 #define TELEGRAPH_COLOR_DANGER 0xFF3040FF
 #define TELEGRAPH_COLOR_HOT 0xFF60D0FF
 #define TELEGRAPH_COLOR_SPIRIT 0xFFF0E070
+#define TELEGRAPH_COLOR_MEND 0xFF70F070
 
 // NOTE(zoubir): a ring of small squares; the renderer has no circles
 internal void
@@ -294,6 +295,40 @@ DrawMonsterTelegraphs(render_context *RenderContext, world *World,
                 DrawDottedCircle(RenderContext, Spot, Ability->Radius, SpiritColor, 2.f);
                 DrawDottedCircle(RenderContext, Spot, Ability->Radius * Closing,
                                  SpiritColor, 3.f);
+            } break;
+
+            case MonsterAbility_Summon:
+            {
+                // NOTE(zoubir): graves that open when the windup ends; a
+                // player standing on one keeps it shut
+                u32 GraveColor = Flash ? TELEGRAPH_COLOR_HOT : TELEGRAPH_COLOR_MEND;
+                for(u32 PointIndex = 0;
+                    PointIndex < Entity->AbilityPointCount;
+                    PointIndex++)
+                {
+                    v2 Spot = Entity->AbilityPoints[PointIndex] - CameraOffset.XY;
+                    DrawDottedCircle(RenderContext, Spot, 16.f, GraveColor, 2.f);
+                    DrawDottedCircle(RenderContext, Spot, 16.f * Progress,
+                                     GraveColor, 3.f);
+                }
+            } break;
+
+            case MonsterAbility_Mend:
+            {
+                // NOTE(zoubir): a beam to the ally being healed, which follows
+                // it if it moves
+                world_entity *Ally = FindMonsterBySerial(World, Entity->AbilityTargetSlot,
+                                                         Entity->AbilityTargetSerial);
+                if (Ally)
+                {
+                    v2 AllySpot = Ally->Position.XY - CameraOffset.XY;
+                    DrawDottedLine(RenderContext, Self,
+                                   Self + Progress * (AllySpot - Self),
+                                   TELEGRAPH_COLOR_MEND, 3.f, 6.f);
+                    DrawDottedCircle(RenderContext, AllySpot,
+                                     0.5f * Ally->Dimensions.X * (2.f - Progress),
+                                     TELEGRAPH_COLOR_MEND, 2.f);
+                }
             } break;
 
             case MonsterAbility_Volley:
