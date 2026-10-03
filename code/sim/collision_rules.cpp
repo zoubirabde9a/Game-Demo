@@ -189,6 +189,13 @@ SetupCollisionTable(app_state *AppState)
     SetCollision(AppState, EntityType_Player,
                  EntityType_FireBall, true);
 
+    // NOTE(zoubir): walls, trees and rocks stop fireballs; UpdateFireBall
+    // removes one that was blocked or deflected
+    SetCollision(AppState, EntityType_FireBall,
+                 EntityType_StaticObject, true);
+    SetCollision(AppState, EntityType_FireBall,
+                 EntityType_Tiled, true);
+
     // NOTE(zoubir): walls stop monster shots; players are hit by distance
     // in UpdateMonsterShot so a shot never shoves anyone
     SetCollision(AppState, EntityType_MonsterShot,

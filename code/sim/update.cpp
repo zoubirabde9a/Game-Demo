@@ -730,9 +730,26 @@ UpdateFireBall(world_entity *Entity, world *World,
     }
     else
     {
+        v3 Start = Entity->Position;
+        v2 StartVelocity = Entity->Velocity.XY;
         MoveEntity(Entity, World, Arena, DeltaTime, AppState,
                    DDEntity, &Entity->DistanceRemaining);
         Entity->TimeLeft -= DeltaTime;
+
+        // NOTE(zoubir): a wall either stops the fireball or turns its
+        // velocity along the wall; either way it burst on the wall
+        float StartSpeed = Length(StartVelocity);
+        float EndSpeed = Length(Entity->Velocity.XY);
+        float Expected = StartSpeed * DeltaTime;
+        float Moved = Length(Entity->Position.XY - Start.XY);
+        // NOTE(zoubir): cosine of the turn; 1 when it flew straight on
+        float Turn = (StartSpeed > 0.f && EndSpeed > 0.f) ?
+            DotProduct(StartVelocity, Entity->Velocity.XY) / (StartSpeed * EndSpeed) : 0.f;
+        if (Entity->IsPresent && Expected > 0.f &&
+            (Moved < 0.5f * Expected || Turn < 0.99f))
+        {
+            RemoveEntity(World, Entity);
+        }
     }
 }
 
