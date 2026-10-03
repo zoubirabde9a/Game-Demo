@@ -338,6 +338,99 @@ TestPlayOverBadConnection()
     Check(Bad.Fireballs == 10);
 }
 
+// Online parity: what the client's replicas show must match the server's
+// entities. Several features worked offline and silently not online
+// (sounds, elite health and tint, monster warnings) because the client
+// never got or never used a field. A real client watches a real server
+// with bots fighting for 30 s; at every new snapshot each replica is
+// compared with its server entity, and anything the server showed at
+// least once (a wind-up, a burrow, an elite) must have shown on the client
+// too. A field that differs, or never reaches the client, is named.
+internal void
+TestReplicasMatchTheServer()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0));
+    Server.Game.BotTarget = 6;
+
+    app_state *Client = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(48);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    InitSimulation(Client, &Arena, &Constants);
+    AddPlayerToSlot(Client, &Client->World, &Arena, 0, PlayerSpawnPosition(&Client->World, 0));
+    SetEnvironment(ONLINE_ADDRESS_ENV, "");
+    Client->Online = StartOnlineSession(&Arena);
+    online_session *Online = Client->Online;
+    char Address[32];
+    snprintf(Address, sizeof(Address), "127.0.0.1:%u", NetSocketPort(&Server.Socket));
+    Check(OnlineConnect(Online, Address, "Watcher"));
+
+    world *ServerWorld = &Server.Game.AppState->World;
+    world *ClientWorld = &Client->World;
+    u32 Compared = 0, WrongType = 0, WrongKind = 0, WrongAffix = 0, WrongMaxHp = 0, WrongTint = 0;
+    u32 ServerWindups = 0, ClientWindups = 0, ServerBurrows = 0, ClientBurrows = 0;
+    u32 ServerElites = 0, ClientElites = 0, ServerFlashes = 0, ClientFlashes = 0;
+    u32 LastTick = 0;
+    app_input Input = {};
+    Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
+    for (int Frame = 0; Frame < 30 * SERVER_TICK_RATE; ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        if (IsOnline(Online) && Online->Replicas.Active &&
+            Online->Replicas.LastAppliedTick != LastTick)
+        {
+            LastTick = Online->Replicas.LastAppliedTick;
+            for (u32 Id = 0; Id < MAX_REPLICAS; ++Id)
+            {
+                if (!Online->Replicas.LocalIndexPlusOne[Id] || Id >= ServerWorld->EntityCount) continue;
+                world_entity *Theirs = &ServerWorld->Entities[Id];
+                world_entity *Ours = &ClientWorld->Entities[Online->Replicas.LocalIndexPlusOne[Id] - 1];
+                if (!Theirs->IsPresent || !Ours->IsPresent) continue;
+                ++Compared;
+                if (Ours->Type != Theirs->Type) { ++WrongType; continue; }
+                if (Theirs->Type != EntityType_Monster) continue;
+                if (Ours->MonsterKind != Theirs->MonsterKind) ++WrongKind;
+                if (Ours->EliteAffix != Theirs->EliteAffix) ++WrongAffix;
+                if (Ours->MaxHp != Theirs->MaxHp) ++WrongMaxHp;
+                if (Ours->Tint != Theirs->Tint) ++WrongTint;
+                bool32 TheirWindup = Theirs->AbilityPhase == AbilityPhase_Windup || Theirs->AbilityPhase == AbilityPhase_Active;
+                bool32 OurWindup = Ours->AbilityPhase == AbilityPhase_Windup || Ours->AbilityPhase == AbilityPhase_Active;
+                ServerWindups += TheirWindup ? 1 : 0;
+                ClientWindups += OurWindup ? 1 : 0;
+                ServerBurrows += Theirs->Burrowed ? 1 : 0;
+                ClientBurrows += Ours->Burrowed ? 1 : 0;
+                ServerElites += Theirs->EliteAffix ? 1 : 0;
+                ClientElites += Ours->EliteAffix ? 1 : 0;
+                ServerFlashes += Theirs->PhaseFlash > 0.f ? 1 : 0;
+                ClientFlashes += Ours->PhaseFlash > 0.f ? 1 : 0;
+            }
+        }
+        ServerTick(&Server);
+    }
+    printf("  parity: %u compared; wrong type %u, kind %u, affix %u, max hp %u, tint %u; "
+           "seen on server/client: wind-ups %u/%u, burrows %u/%u, elites %u/%u, enrage flashes %u/%u\n",
+           Compared, WrongType, WrongKind, WrongAffix, WrongMaxHp, WrongTint,
+           ServerWindups, ClientWindups, ServerBurrows, ClientBurrows,
+           ServerElites, ClientElites, ServerFlashes, ClientFlashes);
+    Check(Compared > 1000);
+    Check(WrongType == 0 && WrongKind == 0 && WrongAffix == 0);
+    Check(WrongMaxHp == 0 && WrongTint == 0);
+    Check(ServerWindups == 0 || ClientWindups > 0);
+    Check(ServerBurrows == 0 || ClientBurrows > 0);
+    Check(ServerElites == 0 || ClientElites > 0);
+    // NOTE: known gap, not checked: the enrage flash (PhaseFlash) is not
+    // sent; see docs/multiplayer-plan.md
+
+    NetClientDisconnect(&Online->Client);
+    ServerStop(&Server);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(Client);
+}
+
 internal void
 RunServerClientTests()
 {
@@ -348,4 +441,5 @@ RunServerClientTests()
     TestClientGivesUpWithoutServer();
     TestClientNoticesSilentServer();
     TestPlayOverBadConnection();
+    TestReplicasMatchTheServer();
 }
