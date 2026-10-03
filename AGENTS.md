@@ -51,7 +51,9 @@ A claim older than a day with no commits behind it is stale. You may delete it.
 
 ## 5. Before you merge
 
-Run `test.bat` and `build.bat` in your worktree. Do not merge red. If `main` moved while you tested, rebase and run them again: two changes that pass alone can fail together (a new monster ability broke the server tests that way).
+The short way: commit, then run `misc\land.bat` from your worktree. It rebases on `main`, runs `test.bat`, `build.bat` and `build.bat release`, and fast-forwards `main`; if `main` moved while it tested, it rebases and tests again. It stops on the first failure and leaves `main` alone, with the log in `build\land_*.log`.
+
+By hand: run `test.bat` and `build.bat` in your worktree. Do not merge red. If `main` moved while you tested, rebase and run them again: two changes that pass alone can fail together (a new monster ability broke the server tests that way).
 
 `test.bat` runs every program in `code/tests/`: the simulation, network, server and a one-minute soak with 8 random players. If you changed game rules (anything that moves, spawns or removes entities), also run a long soak by hand: `build\soak_tests.exe 5 6`. It checks the world's bookkeeping after every tick and names the tick where it broke.
 
