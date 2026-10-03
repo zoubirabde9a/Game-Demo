@@ -11,8 +11,9 @@
    3. RunPlayerActionQueue: the first action that can run now does
       (StartSwordSwing or CastFireBall).
    4. UpdatePlayerMoveState: moving, or stopping when the keys let go. A
-      swing or cast roots the player only for its short ActionLock, then
-      the player walks (slower) while the animation finishes.
+      swing or cast roots the player only for its short ActionLock. Then a
+      swing's animation finishes while the player walks slower, and a
+      cast's is cut by walking (the fireball has already left).
    5. UsePlayerAbilities: jump, shockwave, dash and blink, each when its
       key is pressed and its cooldown allows.
    6. PickPlayerAnimation: which animation to play; the body faces the
@@ -31,7 +32,7 @@
 // click anywhere in a swing chains the next one. It was 0.15 s, and clicks
 // in a swing's first moments were dropped
 #define PLAYER_ACTION_LINGER 0.25f
-// NOTE(zoubir): how fast the player walks while a swing or cast finishes
+// NOTE(zoubir): how fast the player walks while a swing finishes
 #define PLAYER_ACTION_MOVE_SCALE 0.7f
 
 // NOTE(zoubir): what one tick of the player decides, handed between steps
@@ -225,6 +226,15 @@ RunPlayerActionQueue(app_state *AppState, world *World, memory_arena *Arena,
 internal void
 UpdatePlayerMoveState(world_entity *Player, player_tick *Tick)
 {
+    // NOTE(zoubir): the fireball left when the cast began, so walking cuts
+    // the rest of the cast animation; holding fire used to mean walking at
+    // PLAYER_ACTION_MOVE_SCALE in the cast pose for good
+    if (Player->State == EntityState_Casting && Player->ActionLock <= 0.f &&
+        Tick->Move)
+    {
+        Player->State = EntityState_Moving;
+    }
+
     if (Player->State == EntityState_Attacking ||
         Player->State == EntityState_Casting)
     {

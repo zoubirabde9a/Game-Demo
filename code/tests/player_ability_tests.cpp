@@ -367,6 +367,49 @@ TestFastClicksFireAtSteadyRate()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): casting while walking roots for a moment, then the walk
+// goes on at full speed with the walk animation, as if no cast happened
+internal void
+TestWalkingCutsCastAnimation()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    SetupAnimationSets(AppState, &Test.Arena);
+    world_entity *Caster = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *Walker = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           1, {300, 700, 0});
+    for(u32 SlotIndex = 0; SlotIndex < 2; SlotIndex++)
+    {
+        AppState->Players[SlotIndex].Input.Move = V2(1.f, 0.f);
+        AppState->Players[SlotIndex].Input.Aim = V2(0.f, -1.f);
+    }
+    RunPlayerFrames(&Test, 0, 10);
+    RunPlayerFrames(&Test, 1, 10);
+    AppState->Players[0].Input.Pressed = PlayerButton_Cast;
+    animation_type Animation = AnimationType_Stand;
+    for(u32 Frame = 0; Frame < 30; Frame++)
+    {
+        for(u32 SlotIndex = 0; SlotIndex < 2; SlotIndex++)
+        {
+            float AnimationSpeed;
+            animation_direction Direction;
+            animation_type Type;
+            player_slot *Slot = &AppState->Players[SlotIndex];
+            UpdatePlayer(Slot, Test.World, &Test.Arena, Test.Input.DeltaTime,
+                         AppState, &AnimationSpeed, &Type, &Direction);
+            Slot->Input.Pressed = 0;
+            if (SlotIndex == 0) Animation = Type;
+        }
+    }
+    Check(Caster->State == EntityState_Moving);
+    Check(Animation == AnimationType_Move);
+    // NOTE(zoubir): only the short root is lost against a plain walk
+    Check(Walker->Position.X - Caster->Position.X < 8.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -392,4 +435,6 @@ RunPlayerAbilityTests()
     TestClickDuringSwingQueuesNextSwing();
     printf("TestFastClicksFireAtSteadyRate\n");
     TestFastClicksFireAtSteadyRate();
+    printf("TestWalkingCutsCastAnimation\n");
+    TestWalkingCutsCastAnimation();
 }
