@@ -235,6 +235,39 @@ TestPlayerNamesReachEveryone()
     ServerStop(&Server);
 }
 
+// Two players who pick the same name are told apart: the second becomes
+// "Name 2", shortened to fit; a different case counts as the same name.
+internal void
+TestSameNamesAreToldApart()
+{
+    static server_game Game;
+    GameInit(&Game);
+    app_state *AppState = Game.AppState;
+    GamePlayerJoined(&Game, 0);
+    GamePlayerNamed(&Game, 0, "Gary");
+    GamePlayerJoined(&Game, 1);
+    GamePlayerNamed(&Game, 1, "gary");
+    GamePlayerJoined(&Game, 2);
+    GamePlayerNamed(&Game, 2, "Gary");
+    Check(strcmp(AppState->Players[0].Name, "Gary") == 0);
+    Check(strcmp(AppState->Players[1].Name, "gary 2") == 0);
+    Check(strcmp(AppState->Players[2].Name, "Gary 3") == 0);
+
+    GamePlayerJoined(&Game, 3);
+    GamePlayerNamed(&Game, 3, "ABCDEFGHIJKLMNO");
+    GamePlayerJoined(&Game, 4);
+    GamePlayerNamed(&Game, 4, "ABCDEFGHIJKLMNO");
+    Check(strcmp(AppState->Players[4].Name, "ABCDEFGHIJKLM 2") == 0);
+
+    // No name stays no name ("Player N" on screen).
+    GamePlayerJoined(&Game, 5);
+    GamePlayerNamed(&Game, 5, "");
+    GamePlayerJoined(&Game, 6);
+    GamePlayerNamed(&Game, 6, "");
+    Check(AppState->Players[6].Name[0] == 0);
+    GameShutdown(&Game);
+}
+
 internal void
 TestSnapshotsAcknowledgeInputs()
 {
@@ -1028,6 +1061,7 @@ main()
     TestClientRejoinsRestartedServer();
     TestSnapshotsAcknowledgeInputs();
     TestPlayerNamesReachEveryone();
+    TestSameNamesAreToldApart();
     TestNinthClientIsTurnedAway();
     TestClientGivesUpWithoutServer();
     TestClientNoticesSilentServer();

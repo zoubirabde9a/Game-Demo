@@ -100,16 +100,48 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     if (Pressed & NetButton_Shockwave) Out->Pressed |= PlayerButton_Shockwave;
 }
 
+// Whether another connected player already goes by Name (ignoring case).
+internal bool32
+SimGameNameTaken(server_game *Game, u32 Slot, char *Name)
+{
+    for (u32 Other = 0; Other < MAX_PLAYERS; ++Other)
+    {
+        player_slot *Player = &Game->AppState->Players[Other];
+        if (Other == Slot || !Player->Active || !Player->Name[0]) continue;
+        u32 Index = 0;
+        for (; Name[Index] && Player->Name[Index]; ++Index)
+        {
+            char A = Name[Index], B = Player->Name[Index];
+            if (A >= 'A' && A <= 'Z') A += 'a' - 'A';
+            if (B >= 'A' && B <= 'Z') B += 'a' - 'A';
+            if (A != B) break;
+        }
+        if (!Name[Index] && !Player->Name[Index]) return true;
+    }
+    return false;
+}
+
+// A name already in use gets " 2", " 3"... so the scoreboard and the kill
+// feed can tell players apart; the base is shortened to make room.
 internal void
 GamePlayerNamed(server_game *Game, u32 Slot, char *Name)
 {
     char *Out = Game->AppState->Players[Slot].Name;
+    u32 Size = sizeof(Game->AppState->Players[Slot].Name);
     u32 Length = 0;
-    for (; Name[Length] && Length + 1 < sizeof(Game->AppState->Players[Slot].Name); ++Length)
+    for (; Name[Length] && Length + 1 < Size; ++Length)
     {
         Out[Length] = Name[Length];
     }
     Out[Length] = 0;
+    for (u32 Number = 2; Out[0] && SimGameNameTaken(Game, Slot, Out) && Number <= MAX_PLAYERS; ++Number)
+    {
+        char Suffix[8];
+        snprintf(Suffix, sizeof(Suffix), " %u", Number);
+        u32 SuffixLength = (u32)strlen(Suffix);
+        u32 Base = (Length + SuffixLength + 1 <= Size) ? Length : Size - 1 - SuffixLength;
+        for (u32 Index = 0; Index <= SuffixLength; ++Index) Out[Base + Index] = Suffix[Index];
+    }
 }
 
 internal void
