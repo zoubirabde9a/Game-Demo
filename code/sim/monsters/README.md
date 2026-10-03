@@ -43,7 +43,15 @@ Every ability runs windup, then active, then recover (`code/sim/monster_abilitie
 Any ability can also set:
 
 - `Status` and `StatusSeconds`: put on every player it hits. Burning (fast damage), Poisoned (slow damage) and Slowed (movement scaled down) live in `code/sim/status_effects.cpp`. A second application keeps whichever timer is longer; effects never stack.
-- `HazardSeconds` and `HazardStyle` (mortar only for now): each spot leaves a patch of ground of `Radius` that keeps applying `Status` to anyone standing in it.
+- `HazardSeconds` and `HazardStyle` (slam and mortar): the slam's center or each mortar spot leaves a patch of ground of `Radius` that keeps applying `Status` to anyone standing in it.
+
+## Death effects
+
+A kind can set `DeathEffect`. `DamageEntity` records the death; the population runs the effect on its next update (it is the code that can spawn entities). Today there is one:
+
+- `DeathEffect_Split`: `SplitCount` monsters of `SplitKind` pop out of the corpse, spread in a ring and never placed inside a wall. The tests reject a kind that splits into itself or into a kind that splits again.
+
+A kind with `SpawnWeight = 0` only appears through another monster, like the Slimelet. Two related kinds can share one file: list both in the name pass (`MONSTER(Slime)` and `MONSTER(Slimelet)`), see `slime.cpp`.
 
 Every hit on a player goes through `HitPlayer`, which calls `DamageEntity` so deaths are counted like any other.
 
@@ -60,5 +68,8 @@ A monster uses the first ability in its list that is off cooldown and whose `Min
 | Shade | Hollow Shade | Veil Step: dissolves, reappears behind you and rakes |
 | Imp | Cinder Imp | Cinder Fan: three embers in a fan; they set you burning |
 | Spider | Hexweaver Spider | Web Snare: a web that slows anyone in it. Venom Spit: one poisoned barb |
+
+| Slime | Gloomslime | Belly Flop: slam that leaves slowing goo. Splits into two Slimelets on death |
+| Slimelet | Slimelet | none; small and quick, only appears from a split |
 
 The toad's shells now leave bile puddles that poison.

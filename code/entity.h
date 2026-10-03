@@ -250,6 +250,10 @@ IsDeadPlayer(world_entity *Entity)
 
 internal bool32
 CanOverlap(world_entity *Entity, world_entity *Region);
+// NOTE(zoubir): in sim/monster_kinds.cpp; queues the monster's death
+// effect (split, ...) for the population to run next tick
+internal void
+RecordMonsterDeath(app_state *AppState, world_entity *Monster);
 internal bool32
 EntityOverlap(world_entity *Entity, world_entity *Region);
 internal void

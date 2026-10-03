@@ -168,11 +168,71 @@ FillMonsterPopulation(app_state *AppState, world *World, memory_arena *Arena,
 
 // NOTE(zoubir): call once per frame after entities have updated; brings
 // back one monster every MONSTER_RESPAWN_SECONDS while below Target
+// NOTE(zoubir): children of a split spread evenly around the corpse,
+// falling back to the corpse's own spot when the ring is blocked
+internal void
+SplitMonster(app_state *AppState, world *World, memory_arena *Arena,
+             monster_death_record *Record, monster_def *Def)
+{
+    monster_def *ChildDef = GetMonsterDef(Def->SplitKind);
+    entity_collision_volume_group *Volume = ChildDef->FlyHeight > 0.f ?
+        AppState->BatCollision : AppState->PlayerCollision;
+    float StartAngle = RandomBetween(&AppState->Monsters->Series, 0.f, 2.f * Pi32);
+    for(u32 Child = 0; Child < Def->SplitCount; Child++)
+    {
+        float Angle = StartAngle + 2.f * Pi32 * (float)Child / (float)Def->SplitCount;
+        v2 Out = V2(Cos(Angle), Sin(Angle));
+        v3 Position = Record->Position;
+        Position.XY += 20.f * Out;
+        Position.Z = 0.f;
+        if (!IsSpawnSpotFree(AppState, World, Position, Volume))
+        {
+            Position = Record->Position;
+            Position.Z = 0.f;
+            if (!IsSpawnSpotFree(AppState, World, Position, Volume))
+            {
+                continue;
+            }
+        }
+        world_entity *Spawned = AddMonster(AppState, World, Arena, Position,
+                                           Def->SplitKind);
+        StaggerMonsterCooldowns(AppState, Spawned);
+        // NOTE(zoubir): a little pop outward so the split reads
+        Spawned->Velocity.XY = 180.f * Out;
+    }
+}
+
+internal void
+RunPendingMonsterDeaths(app_state *AppState, world *World, memory_arena *Arena,
+                        monster_population *Population)
+{
+    for(u32 DeathIndex = 0;
+        DeathIndex < Population->PendingDeathCount;
+        DeathIndex++)
+    {
+        monster_death_record *Record = &Population->PendingDeaths[DeathIndex];
+        monster_def *Def = GetMonsterDef(Record->Kind);
+        switch(Def->DeathEffect)
+        {
+            case DeathEffect_Split:
+            {
+                SplitMonster(AppState, World, Arena, Record, Def);
+            } break;
+
+            default:
+            {
+            } break;
+        }
+    }
+    Population->PendingDeathCount = 0;
+}
+
 internal void
 UpdateMonsterPopulation(app_state *AppState, world *World,
                         memory_arena *Arena,
                         monster_population *Population, float DeltaTime)
 {
+    RunPendingMonsterDeaths(AppState, World, Arena, Population);
     if (CountLiveMonsters(World) >= Population->Target)
     {
         Population->RespawnTimer = MONSTER_RESPAWN_SECONDS;

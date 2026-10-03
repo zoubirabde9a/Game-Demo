@@ -174,11 +174,39 @@ DrawHazard_Embers(sprite_canvas *Canvas, u32 Frame)
     OutlineFrame(Canvas, ART_RGB(16, 10, 8));
 }
 
+internal void
+DrawHazard_Goo(sprite_canvas *Canvas, u32 Frame)
+{
+    color_ramp Goo = Ramp(ART_RGB(30, 26, 60), ART_RGB(56, 48, 104),
+                          ART_RGB(88, 80, 150), ART_RGB(150, 160, 220));
+    // NOTE(zoubir): a splat: center pool plus tendrils thrown outward
+    FillFlatEllipse(Canvas, HAZARD_CENTER, HAZARD_CENTER, HAZARD_RX * 0.65f,
+                    HAZARD_RY * 0.7f, Goo.C[1]);
+    for(u32 Tendril = 0; Tendril < 6; Tendril++)
+    {
+        float Angle = 2.f * Pi32 * (float)Tendril / 6.f + 0.4f;
+        float Reach = (Tendril % 2) ? 0.95f : 0.8f;
+        v2 Tip = V2(HAZARD_CENTER + Reach * HAZARD_RX * Cos(Angle),
+                    HAZARD_CENTER + Reach * HAZARD_RY * Sin(Angle));
+        FillFlatEllipse(Canvas, Tip.X, Tip.Y, 3.f, 2.f, Goo.C[1]);
+        FillFlatEllipse(Canvas, 0.5f * (Tip.X + HAZARD_CENTER),
+                        0.5f * (Tip.Y + HAZARD_CENTER), 4.f, 2.5f, Goo.C[1]);
+    }
+    FillFlatEllipse(Canvas, HAZARD_CENTER + 1.f, HAZARD_CENTER + 1.f,
+                    HAZARD_RX * 0.45f, HAZARD_RY * 0.45f, Goo.C[2]);
+    // NOTE(zoubir): the sheen slides across as the goo settles
+    float Sheen = -6.f + 4.f * (float)Frame;
+    FillFlatEllipse(Canvas, HAZARD_CENTER + Sheen, HAZARD_CENTER - 3.f, 4.f, 1.f,
+                    Goo.C[3]);
+    OutlineFrame(Canvas, ART_RGB(14, 10, 30));
+}
+
 global_variable hazard_draw_function *HazardDrawFunctions[HazardStyle_Count] =
 {
     DrawHazard_Bile,
     DrawHazard_Web,
     DrawHazard_Embers,
+    DrawHazard_Goo,
 };
 
 internal void

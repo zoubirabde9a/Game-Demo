@@ -356,6 +356,11 @@ TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
         {
             HurtPlayersInRadius(AppState, World, Entity, Entity->Position.XY,
                                 Ability);
+            if (Ability->HazardSeconds > 0.f)
+            {
+                AddMonsterHazard(AppState, World, Arena, Entity, Ability,
+                                 Entity->Position.XY);
+            }
         } break;
 
         case MonsterAbility_Mortar:

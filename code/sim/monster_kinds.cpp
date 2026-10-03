@@ -46,6 +46,7 @@ enum monster_hazard_style
     HazardStyle_Bile,
     HazardStyle_Web,
     HazardStyle_Embers,
+    HazardStyle_Goo,
     HazardStyle_Count
 };
 #define HAZARD_FRAME_SIZE 48
@@ -76,7 +77,8 @@ struct monster_ability
     // standing in its hazard)
     status_effect Status;
     float StatusSeconds;
-    // NOTE(zoubir): mortar spots leave a hazard of Radius for this long
+    // NOTE(zoubir): slams and mortar spots leave a hazard of Radius for
+    // this long
     float HazardSeconds;
     monster_hazard_style HazardStyle;
 };
@@ -94,6 +96,15 @@ enum monster_sheet_row
 };
 
 typedef void monster_draw_function(sprite_canvas *Canvas, monster_pose Pose);
+
+// NOTE(zoubir): what happens when a monster of this kind dies
+enum monster_death_effect
+{
+    DeathEffect_None,
+    // NOTE(zoubir): SplitCount monsters of SplitKind pop out of the corpse
+    DeathEffect_Split,
+    DeathEffect_Count
+};
 
 struct monster_def
 {
@@ -119,6 +130,10 @@ struct monster_def
 
     u32 AbilityCount;
     monster_ability Abilities[MAX_MONSTER_ABILITIES];
+
+    monster_death_effect DeathEffect;
+    monster_kind SplitKind;
+    u32 SplitCount;
 };
 // NOTE(zoubir): older code calls the def "stats"
 typedef monster_def monster_stats;
@@ -158,11 +173,22 @@ DefaultMonsterDef(monster_def *Def)
 
 // NOTE(zoubir): runtime state shared by every monster in the arena; the
 // refill logic lives in monster_population.cpp
+// NOTE(zoubir): a death waiting for its effect; DamageEntity cannot spawn
+// entities itself (it has no arena), so the population does it next tick
+struct monster_death_record
+{
+    monster_kind Kind;
+    v3 Position;
+};
+#define MAX_PENDING_DEATHS 32
+
 struct monster_population
 {
     u32 Target;
     float RespawnTimer;
     random_series Series;
+    monster_death_record PendingDeaths[MAX_PENDING_DEATHS];
+    u32 PendingDeathCount;
     animation_set AnimationSets[MonsterKind_Count];
     animation_set ShotAnimationSets[ShotStyle_Count];
     animation_set HazardAnimationSets[HazardStyle_Count];
@@ -283,3 +309,18 @@ SetupMonsterAnimationSet(animation_set *Set, memory_arena *Arena,
     }
 }
 
+internal void
+RecordMonsterDeath(app_state *AppState, world_entity *Monster)
+{
+    monster_population *Population = AppState->Monsters;
+    if (!Population ||
+        GetMonsterDef(Monster->MonsterKind)->DeathEffect == DeathEffect_None ||
+        Population->PendingDeathCount >= MAX_PENDING_DEATHS)
+    {
+        return;
+    }
+    monster_death_record *Record =
+        &Population->PendingDeaths[Population->PendingDeathCount++];
+    Record->Kind = Monster->MonsterKind;
+    Record->Position = Monster->Position;
+}

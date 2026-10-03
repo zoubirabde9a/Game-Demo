@@ -274,6 +274,7 @@ DamageEntity(app_state *AppState, world *World,
 
     if (Target->Type == EntityType_Monster)
     {
+        RecordMonsterDeath(AppState, Target);
         RemoveEntity(World, Target);
         if (Attacker)
         {

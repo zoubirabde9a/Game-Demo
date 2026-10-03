@@ -8,3 +8,4 @@
 #include "shade.cpp"
 #include "imp.cpp"
 #include "spider.cpp"
+#include "slime.cpp"

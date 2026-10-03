@@ -68,6 +68,14 @@ TestMonsterDefsAreValid()
             Check(Def->FrameCounts[Row] <= MONSTER_SHEET_COLUMNS);
             Check(Def->SecondsPerFrame[Row] > 0.f);
         }
+        if (Def->DeathEffect == DeathEffect_Split)
+        {
+            Check(Def->SplitCount >= 1 && Def->SplitCount <= 4);
+            Check(Def->SplitKind < MonsterKind_Count);
+            // NOTE(zoubir): a kind splitting into itself never ends
+            Check(Def->SplitKind != (monster_kind)KindIndex);
+            Check(GetMonsterDef(Def->SplitKind)->DeathEffect == DeathEffect_None);
+        }
         for(u32 AbilityIndex = 0;
             AbilityIndex < Def->AbilityCount;
             AbilityIndex++)
@@ -88,9 +96,10 @@ TestMonsterDefsAreValid()
                 Check(Ability->Status < StatusEffect_Count);
                 Check(Ability->StatusSeconds > 0.f);
             }
-            // NOTE(zoubir): only mortar spots leave hazards so far
+            // NOTE(zoubir): only slams and mortar spots leave hazards
             Check(Ability->HazardSeconds == 0.f ||
-                  (Ability->Kind == MonsterAbility_Mortar &&
+                  ((Ability->Kind == MonsterAbility_Mortar ||
+                    Ability->Kind == MonsterAbility_Slam) &&
                    Ability->HazardStyle < HazardStyle_Count &&
                    Ability->Status != StatusEffect_None));
             if (Ability->Kind == MonsterAbility_Volley)
@@ -502,6 +511,102 @@ TestEmbersSetPlayerOnFire()
     DestroyTestWorld(&Test);
 }
 
+inline u32
+CountMonstersOfKind(world *World, monster_kind Kind)
+{
+    u32 Result = 0;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        Result += Entity->IsPresent && Entity->Type == EntityType_Monster &&
+            Entity->MonsterKind == Kind;
+    }
+    return Result;
+}
+
+internal void
+TestSlimeSplitsWhenKilled()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Slime = AddTestMonster(&Test, MonsterKind_Slime, {1000, 1000, 0});
+    monster_population *Population = AppState->Monsters;
+    Population->Target = 0;
+    monster_def *Def = GetMonsterDef(MonsterKind_Slime);
+
+    DamageEntity(AppState, Test.World, Slime, Slime->Hp + 1.f, 0);
+    Check(!Slime->IsPresent);
+    // NOTE(zoubir): children appear on the population's next update
+    Check(CountMonstersOfKind(Test.World, MonsterKind_Slimelet) == 0);
+    UpdateMonsterPopulation(AppState, Test.World, &Test.Arena, Population,
+                            Test.Input.DeltaTime);
+    Check(CountMonstersOfKind(Test.World, MonsterKind_Slimelet) == Def->SplitCount);
+    Check(Population->PendingDeathCount == 0);
+
+    // NOTE(zoubir): slimelets end the chain
+    for(u32 EntityIndex = 0; EntityIndex < Test.World->EntityCount; EntityIndex++)
+    {
+        world_entity *Entity = &Test.World->Entities[EntityIndex];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster)
+        {
+            DamageEntity(AppState, Test.World, Entity, Entity->Hp + 1.f, 0);
+        }
+    }
+    UpdateMonsterPopulation(AppState, Test.World, &Test.Arena, Population,
+                            Test.Input.DeltaTime);
+    Check(CountLiveMonsters(Test.World) == 0);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestSplitChildrenNeverOverlapWalls()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Slime = AddTestMonster(&Test, MonsterKind_Slime, {1000, 1000, 0});
+    AppState->Monsters->Target = 0;
+    // NOTE(zoubir): boxed in on three sides
+    AddTestEntity(&Test, EntityType_StaticObject, {1040, 1000, 0}, Test.WallVolume);
+    AddTestEntity(&Test, EntityType_StaticObject, {960, 1000, 0}, Test.WallVolume);
+    AddTestEntity(&Test, EntityType_StaticObject, {1000, 1030, 0}, Test.WallVolume);
+    DamageEntity(AppState, Test.World, Slime, Slime->Hp + 1.f, 0);
+    UpdateMonsterPopulation(AppState, Test.World, &Test.Arena, AppState->Monsters,
+                            Test.Input.DeltaTime);
+    for(u32 EntityIndex = 0; EntityIndex < Test.World->EntityCount; EntityIndex++)
+    {
+        world_entity *Child = &Test.World->Entities[EntityIndex];
+        if (!Child->IsPresent || Child->Type != EntityType_Monster)
+        {
+            continue;
+        }
+        for(u32 OtherIndex = 0; OtherIndex < Test.World->EntityCount; OtherIndex++)
+        {
+            world_entity *Other = &Test.World->Entities[OtherIndex];
+            if (Other != Child && Other->IsPresent &&
+                CanCollide(AppState, Child->Type, Other->Type))
+            {
+                Check(!EntityOverlap(Child, Other));
+            }
+        }
+    }
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestBellyFlopLeavesSlowingGoo()
+{
+    test_world Test = CreateTestWorld();
+    AddTestMonster(&Test, MonsterKind_Slime, {1000, 1000, 0});
+    world_entity *Player = AddTestPlayer(&Test, {1050, 1000, 0});
+    monster_ability *Flop = &GetMonsterDef(MonsterKind_Slime)->Abilities[0];
+
+    StepWorld(&Test, 1 + SecondsToFrames(Flop->Windup));
+    Check(Player->Hp <= 100.f - Flop->Damage);
+    Check(CountEntitiesOfType(Test.World, EntityType_MonsterHazard) == 1);
+    Check(HasStatus(Player, StatusEffect_Slowed));
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunMonsterTests()
 {
@@ -543,4 +648,10 @@ RunMonsterTests()
     TestWebSlowsOnlyWhileStandingInIt();
     printf("TestEmbersSetPlayerOnFire\n");
     TestEmbersSetPlayerOnFire();
+    printf("TestSlimeSplitsWhenKilled\n");
+    TestSlimeSplitsWhenKilled();
+    printf("TestSplitChildrenNeverOverlapWalls\n");
+    TestSplitChildrenNeverOverlapWalls();
+    printf("TestBellyFlopLeavesSlowingGoo\n");
+    TestBellyFlopLeavesSlowingGoo();
 }
