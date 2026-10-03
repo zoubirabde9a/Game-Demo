@@ -656,6 +656,44 @@ TestJoiningNeedsTheCookie()
     Check(NetServerReceive(&Clients, B, &Request, 100 + 3 * 512).Event == NetReceive_Ignored);
 }
 
+// The info query: round trips, and a request is never smaller than the
+// largest reply, so it cannot be used to multiply traffic.
+internal void
+TestInfoQueryRoundTripsAndIsNotAnAmplifier()
+{
+    static net_packet Request, Reply, Out;
+    Request = {};
+    Request.Header.Type = NetPacket_InfoRequest;
+    Request.InfoRequest.Nonce = 0xabcdef01;
+    static u8 Buffer[NET_MAX_PACKET_SIZE];
+    u32 RequestSize = NetWritePacket(&Request, Buffer, sizeof(Buffer));
+    Check(RequestSize > 0);
+    Check(NetReadPacket(Buffer, RequestSize, &Out));
+    Check(Out.InfoRequest.Nonce == 0xabcdef01);
+    // A request without its padding is rejected.
+    Check(!NetReadPacket(Buffer, RequestSize - 1, &Out));
+
+    Reply = {};
+    Reply.Header.Type = NetPacket_InfoReply;
+    Reply.InfoReply.Nonce = 0xabcdef01;
+    Reply.InfoReply.ContentId = 0x25519fd6;
+    Reply.InfoReply.MapId = 3;
+    Reply.InfoReply.PlayerCount = NET_MAX_SNAPSHOT_SCORES;
+    Reply.InfoReply.MaxPlayers = NET_MAX_SNAPSHOT_SCORES;
+    Reply.InfoReply.NameCount = NET_MAX_SNAPSHOT_SCORES;
+    for (u32 Index = 0; Index < NET_MAX_SNAPSHOT_SCORES; ++Index)
+    {
+        snprintf(Reply.InfoReply.Names[Index], NET_NAME_SIZE, "ABCDEFGHIJKLMN%u", Index);
+    }
+    u32 ReplySize = NetWritePacket(&Reply, Buffer, sizeof(Buffer));
+    Check(ReplySize > 0);
+    Check(RequestSize >= ReplySize);
+    Check(NetReadPacket(Buffer, ReplySize, &Out));
+    Check(Out.InfoReply.NameCount == NET_MAX_SNAPSHOT_SCORES);
+    Check(strcmp(Out.InfoReply.Names[7], "ABCDEFGHIJKLMN7") == 0);
+    Check(Out.InfoReply.ContentId == 0x25519fd6 && Out.InfoReply.MapId == 3);
+}
+
 // The wire layout is pinned: one packet of every type, with every field
 // set, is written and its bytes hashed. A change to what goes on the wire
 // must come with a new NET_PROTOCOL_ID, or old and new builds would
@@ -665,8 +703,8 @@ TestJoiningNeedsTheCookie()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d44u
-#define NET_GOLDEN_LAYOUT 0x3d2821e9u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d45u
+#define NET_GOLDEN_LAYOUT 0x7d0da3dfu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -681,8 +719,8 @@ HashBytes(u32 Hash, u8 *Bytes, u32 Count)
 internal void
 TestWireLayoutIsPinned()
 {
-    static net_packet Packets[7];
-    for (u32 Index = 0; Index < 7; ++Index) Packets[Index] = {};
+    static net_packet Packets[9];
+    for (u32 Index = 0; Index < 9; ++Index) Packets[Index] = {};
     Packets[0].Header = {NetPacket_ConnectRequest, 1, 2};
     Packets[0].ConnectRequest.ClientSalt = 0x12345678;
     Packets[0].ConnectRequest.ContentId = 0x9abcdef0;
@@ -710,9 +748,20 @@ TestWireLayoutIsPinned()
     Packets[6].Header = {NetPacket_ConnectChallenge, 11, 12};
     Packets[6].ConnectChallenge.ClientSalt = 0x12345678;
     Packets[6].ConnectChallenge.Cookie = 0x13579bdf;
+    Packets[7].Header = {NetPacket_InfoRequest, 13, 14};
+    Packets[7].InfoRequest.Nonce = 0x0badf00d;
+    Packets[8].Header = {NetPacket_InfoReply, 15, 16};
+    Packets[8].InfoReply.Nonce = 0x0badf00d;
+    Packets[8].InfoReply.ContentId = 0x25519fd6;
+    Packets[8].InfoReply.MapId = 1;
+    Packets[8].InfoReply.PlayerCount = 2;
+    Packets[8].InfoReply.MaxPlayers = 8;
+    Packets[8].InfoReply.NameCount = 2;
+    snprintf(Packets[8].InfoReply.Names[0], NET_NAME_SIZE, "%s", "Gary");
+    snprintf(Packets[8].InfoReply.Names[1], NET_NAME_SIZE, "%s", "Player 2");
 
     u32 Hash = 2166136261u;
-    for (u32 Index = 0; Index < 7; ++Index)
+    for (u32 Index = 0; Index < 9; ++Index)
     {
         static u8 Buffer[NET_MAX_PACKET_SIZE];
         u32 Size = NetWritePacket(&Packets[Index], Buffer, sizeof(Buffer));
@@ -754,6 +803,7 @@ main()
     TestParseAddress();
     TestLoopbackPacket();
     TestJoiningNeedsTheCookie();
+    TestInfoQueryRoundTripsAndIsNotAnAmplifier();
     TestWireLayoutIsPinned();
 
     printf("net tests: %d checks, %d failed\n", TestChecks, TestFailures);

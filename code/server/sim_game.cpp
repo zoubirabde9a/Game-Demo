@@ -386,3 +386,17 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
 
     RelayWrite(&Game->Relay, ViewerSlot, First != 0, Center, Out);
 }
+
+internal void
+GameListPlayers(server_game *Game, net_info_reply *Out)
+{
+    Out->NameCount = 0;
+    for (u32 Slot = 0; Slot < MAX_PLAYERS && Out->NameCount < NET_MAX_SNAPSHOT_SCORES; ++Slot)
+    {
+        player_slot *Player = &Game->AppState->Players[Slot];
+        if (!Player->Active) continue;
+        char *Name = Out->Names[Out->NameCount++];
+        if (Player->Name[0]) snprintf(Name, NET_NAME_SIZE, "%s", Player->Name);
+        else snprintf(Name, NET_NAME_SIZE, "Player %u", Slot + 1);
+    }
+}

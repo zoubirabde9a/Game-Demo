@@ -22,11 +22,11 @@ How it was built, step by step, is in [multiplayer-history.md](multiplayer-histo
 | The server's world on the client | `client/replicas.cpp` (details in `client/replicas/`), smoothing in `client/replica_smoothing.cpp` |
 | Local player prediction | `client/prediction.cpp` |
 | Connect screen, kill feed data | `ui/connect_screen.cpp`, `client/kill_feed.cpp` |
-| Live server, deploy, load test | `deploy/README.md`, `deploy/deploy.sh`, `build\bots.exe` |
+| Live server, deploy, load test, who is online | `deploy/README.md`, `deploy/deploy.sh`, `build\bots.exe`, `build\probe.exe --info` |
 
 ## Next
 
-- [ ] Redeploy vps-eu. It runs an older protocol than main (now GDMD), so current builds are told "server runs a different version". Needs the user's go-ahead.
+- [ ] Redeploy vps-eu. It runs an older protocol than main (now GDME), so current builds are told "server runs a different version". Needs the user's go-ahead.
 - [ ] Draw the kill feed (`AppState->KillFeed`); the UI agent has it.
 - [ ] Split `app_state` into a simulation part and a client part, so the server no longer sees client types. `app.h` changes often; agree it with the other agents first.
 - [ ] Clients send one input packet per frame, so a 144 Hz client sends 144 a second. Capping it at the server tick touches prediction (claimed by the player-abilities agent).

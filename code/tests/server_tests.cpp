@@ -292,6 +292,54 @@ TestFloodDoesNotStallTheServer()
     ServerStop(&Server);
 }
 
+// Asking who is playing takes no slot and lists the players' names.
+internal void
+TestInfoQueryListsPlayers()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0));
+    net_address To = {0x7f000001, NetSocketPort(&Server.Socket)};
+    static net_client Player;
+    Check(NetClientConnect(&Player, To, 616, SimContentId(), "Gary"));
+    for (int Frame = 0; Frame < 120 && Player.State != NetClient_Connected; ++Frame)
+    {
+        NetClientUpdate(&Player, 1.0f / SERVER_TICK_RATE, 0, 0, 0);
+        ServerTick(&Server);
+    }
+    Check(Player.State == NetClient_Connected);
+
+    net_socket Asker = NetOpenSocket(0);
+    static net_packet Request, Reply;
+    Request.Header.Type = NetPacket_InfoRequest;
+    Request.InfoRequest.Nonce = 4242;
+    static u8 Buffer[NET_MAX_PACKET_SIZE];
+    NetSendTo(&Asker, To, Buffer, NetWritePacket(&Request, Buffer, sizeof(Buffer)));
+    bool32 Answered = false;
+    for (int Tick = 0; Tick < 60 && !Answered; ++Tick)
+    {
+        ServerTick(&Server);
+        net_address From;
+        u32 Size;
+        while ((Size = NetReceiveFrom(&Asker, &From, Buffer, sizeof(Buffer))) != 0)
+        {
+            if (NetReadPacket(Buffer, Size, &Reply) && Reply.Header.Type == NetPacket_InfoReply)
+            {
+                Answered = true;
+            }
+        }
+    }
+    Check(Answered);
+    Check(Reply.InfoReply.Nonce == 4242);
+    Check(Reply.InfoReply.PlayerCount == 1 && Reply.InfoReply.MaxPlayers == NET_MAX_CLIENTS);
+    Check(Reply.InfoReply.NameCount == 1 && strcmp(Reply.InfoReply.Names[0], "Gary") == 0);
+    Check(Reply.InfoReply.ContentId == SimContentId());
+    Check(ServerPlayerCount(&Server) == 1);
+
+    NetCloseSocket(&Asker);
+    NetClientDisconnect(&Player);
+    ServerStop(&Server);
+}
+
 internal void
 TestSnapshotsAcknowledgeInputs()
 {
@@ -539,6 +587,7 @@ main()
     TestPlayerNamesReachEveryone();
     TestNinthClientIsTurnedAway();
     TestFloodDoesNotStallTheServer();
+    TestInfoQueryListsPlayers();
     TestStatsCountTrafficAndTicks();
     TestDifferentBuildIsRefused();
     printf("  content id %08x\n", SimContentId());

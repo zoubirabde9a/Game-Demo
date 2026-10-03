@@ -93,6 +93,22 @@ ServerStart(server *Server, u16 Port, u32 MapId)
     return Server->Socket.Open;
 }
 
+// Who is playing, for anyone who asks (probe --info); no slot is taken.
+internal void
+ServerAnswerInfo(server *Server, net_address From, net_packet *Request)
+{
+    net_packet Reply = {};
+    Reply.Header.Type = NetPacket_InfoReply;
+    Reply.Header.Token = Request->Header.Token;
+    Reply.InfoReply.Nonce = Request->InfoRequest.Nonce;
+    Reply.InfoReply.ContentId = Server->Clients.ContentId;
+    Reply.InfoReply.MapId = Server->Clients.MapId;
+    Reply.InfoReply.PlayerCount = (u8)ServerPlayerCount(Server);
+    Reply.InfoReply.MaxPlayers = NET_MAX_CLIENTS;
+    GameListPlayers(&Server->Game, &Reply.InfoReply);
+    ServerSend(Server, From, &Reply);
+}
+
 internal void
 ServerReceiveAll(server *Server)
 {
@@ -110,6 +126,12 @@ ServerReceiveAll(server *Server)
         if (!NetReadPacket(Buffer, Size, &Packet))
         {
             Server->Stats.BadPacketsIn++;
+            continue;
+        }
+
+        if (Packet.Header.Type == NetPacket_InfoRequest)
+        {
+            ServerAnswerInfo(Server, From, &Packet);
             continue;
         }
 

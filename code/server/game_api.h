@@ -24,5 +24,7 @@ internal void GameApplyInput(server_game *Game, u32 Slot, net_input *Input);
 internal void GameTick(server_game *Game, float Dt);
 // Fills Out with the entities the player in ViewerSlot should see.
 internal void GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out);
+// Fills the names of the connected players into an info reply.
+internal void GameListPlayers(server_game *Game, net_info_reply *Out);
 
 #endif

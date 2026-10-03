@@ -96,6 +96,29 @@ NetSerializePacket(net_stream *S, net_packet *P)
             NetU32(S, &P->ConnectChallenge.Cookie);
         } break;
 
+        case NetPacket_InfoRequest:
+        {
+            NetU32(S, &P->InfoRequest.Nonce);
+            u8 Padding[NET_INFO_PADDING] = {};
+            NetBytes(S, Padding, NET_INFO_PADDING);
+        } break;
+
+        case NetPacket_InfoReply:
+        {
+            net_info_reply *Info = &P->InfoReply;
+            NetU32(S, &Info->Nonce);
+            NetU32(S, &Info->ContentId);
+            NetU8(S, &Info->MapId);
+            NetU8(S, &Info->PlayerCount);
+            NetU8(S, &Info->MaxPlayers);
+            NetU8(S, &Info->NameCount);
+            if (Info->NameCount > NET_MAX_SNAPSHOT_SCORES) return false;
+            for (u32 Index = 0; Index < Info->NameCount; ++Index)
+            {
+                NetName(S, Info->Names[Index], NET_NAME_SIZE);
+            }
+        } break;
+
         case NetPacket_ConnectAccepted:
         {
             NetU32(S, &P->ConnectAccepted.ClientSalt);

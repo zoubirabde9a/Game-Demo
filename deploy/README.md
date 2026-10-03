@@ -19,6 +19,7 @@ Build the tools with `build_server.bat` (Windows) or `build_server.sh`. The cont
 
 | Check | Command |
 |---|---|
+| Who is playing, without joining | `build\probe.exe --info 152.53.147.77:27015` (build, map, player count and names) |
 | A player can join | `build\probe.exe 152.53.147.77:27015` |
 | A game build with this content id is let in | `build\probe.exe 152.53.147.77:27015 <content-id>` (exit 5: different build) |
 | Load: 8 players for 75 s | `build\bots.exe 152.53.147.77:27015 <content-id> 8 75`, then read the stats line in the server log |

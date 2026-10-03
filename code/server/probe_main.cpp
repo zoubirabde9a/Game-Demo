@@ -5,18 +5,79 @@
    Exit codes: 0 joined and got a snapshot, 1 bad usage or no network,
    2 no answer, 3 server full, 4 connection lost, 5 wrong version.
    The deploy script runs it after every install, and it works as a
-   health check from anywhere. Built by build_server.sh / .bat. */
+   health check from anywhere.
+
+   probe --info a.b.c.d:port asks who is playing without joining: prints
+   the build, map and the connected players' names. Exit 0 with an answer,
+   2 without one. Built by build_server.sh / .bat. */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../net/protocol.cpp"
 #include "../net/socket.cpp"
 #include "../net/client.cpp"
 #include "platform/clock.cpp"
 
+// The server's info reply, without taking a slot.
+internal int
+ProbeInfo(const char *Text)
+{
+    net_address Server;
+    if (!NetParseAddress(Text, &Server) || !NetSocketsStartup())
+    {
+        fprintf(stderr, "usage: probe --info a.b.c.d:port\n");
+        return 1;
+    }
+    net_socket Socket = NetOpenSocket(0);
+    u32 Nonce = (u32)(ClockSeconds() * 1000.0) ^ 0x6a09e667u;
+    static net_packet Request, Reply;
+    Request.Header.Type = NetPacket_InfoRequest;
+    Request.InfoRequest.Nonce = Nonce;
+    static u8 Buffer[NET_MAX_PACKET_SIZE];
+    u32 Size = NetWritePacket(&Request, Buffer, sizeof(Buffer));
+
+    int Result = 2;
+    double Start = ClockSeconds();
+    double NextSend = Start;
+    while (Result == 2 && ClockSeconds() - Start < 2.0)
+    {
+        if (ClockSeconds() >= NextSend)
+        {
+            NetSendTo(&Socket, Server, Buffer, Size);
+            NextSend += 0.25;
+        }
+        net_address From;
+        u32 Got;
+        while ((Got = NetReceiveFrom(&Socket, &From, Buffer + Size, sizeof(Buffer) - Size)) != 0)
+        {
+            if (NetReadPacket(Buffer + Size, Got, &Reply) &&
+                Reply.Header.Type == NetPacket_InfoReply && Reply.InfoReply.Nonce == Nonce)
+            {
+                net_info_reply *Info = &Reply.InfoReply;
+                printf("ok: %s build %08x, map %u, %u/%u players", Text, Info->ContentId,
+                       Info->MapId, Info->PlayerCount, Info->MaxPlayers);
+                for (u32 Index = 0; Index < Info->NameCount; ++Index)
+                {
+                    printf("%s%s", Index ? ", " : ": ", Info->Names[Index]);
+                }
+                printf("\n");
+                Result = 0;
+                break;
+            }
+        }
+        ClockSleep(1.0 / 60.0);
+    }
+    if (Result == 2) printf("down: no answer from %s\n", Text);
+    NetCloseSocket(&Socket);
+    NetSocketsShutdown();
+    return Result;
+}
+
 int
 main(int ArgCount, char **Args)
 {
+    if (ArgCount > 2 && strcmp(Args[1], "--info") == 0) return ProbeInfo(Args[2]);
     const char *Text = ArgCount > 1 ? Args[1] : "127.0.0.1:27015";
     net_address Server;
     if (!NetParseAddress(Text, &Server))

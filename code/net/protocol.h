@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d44u // "GDMD", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d45u // "GDME", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -46,6 +46,11 @@ enum net_packet_type
     // cookie. Proves the sender receives at its address before it gets a
     // slot (see connections.h).
     NetPacket_ConnectChallenge,
+    // Anyone to the server, without joining: who is playing, on which map
+    // and build. The request is padded to at least the reply's size, so
+    // the server cannot be used to multiply someone else's traffic.
+    NetPacket_InfoRequest,
+    NetPacket_InfoReply,
     NetPacket_Count,
 };
 
@@ -129,6 +134,21 @@ struct net_ability_state
 // Cookie is 0 until the server's ConnectChallenge supplies one.
 struct net_connect_request { u32 ClientSalt; u32 ContentId; u32 Cookie; char Name[NET_NAME_SIZE]; };
 struct net_connect_challenge { u32 ClientSalt; u32 Cookie; };
+
+// Padding bytes after the nonce: the largest reply body is 140 bytes
+// (12 + 8 names of up to 1 + 15), so a request is never the smaller one.
+#define NET_INFO_PADDING 144
+struct net_info_request { u32 Nonce; };
+struct net_info_reply
+{
+    u32 Nonce;      // echoes the request's
+    u32 ContentId;  // the server build's SimContentId()
+    u8 MapId;
+    u8 PlayerCount;
+    u8 MaxPlayers;
+    u8 NameCount;   // names of the connected players, in slot order
+    char Names[NET_MAX_SNAPSHOT_SCORES][NET_NAME_SIZE];
+};
 // NOTE(zoubir): MapId is the server's map_id; the client builds the same
 // ground from it (terrain never crosses the wire)
 struct net_connect_accepted { u32 ClientSalt; u8 PlayerIndex; u32 ServerTick; u8 MapId; };
@@ -203,6 +223,8 @@ struct net_packet
         net_connect_accepted ConnectAccepted;
         net_connect_denied ConnectDenied;
         net_connect_challenge ConnectChallenge;
+        net_info_request InfoRequest;
+        net_info_reply InfoReply;
         net_input_batch Input;
         net_snapshot Snapshot;
     };
