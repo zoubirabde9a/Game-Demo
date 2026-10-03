@@ -46,6 +46,11 @@ for /f "delims=" %%g in ('where g++') do if not defined GccDir set "GccDir=%%~dp
 set "PATH=%GccDir%;%PATH%"
 set GccRelease=-std=c++11 -w -fsyntax-only -DAPP_SLOW=0 -DAPP_DEV=0
 set GccDebug=-std=c++11 -w -fsyntax-only -DAPP_SLOW=1 -DAPP_DEV=1
+REM A g++ that cannot compile an empty program is a broken install, not
+REM broken code: say so and skip, rather than failing everyone's land.
+echo int main() { return 0; } > gcc_works.cpp
+g++ %GccRelease% gcc_works.cpp > gcc_works.log 2>&1
+if %errorlevel% neq 0 goto broken_gcc
 set Slow=%Slow% gcc_server gcc_probe gcc_bots gcc_net_tests gcc_sim_tests gcc_server_tests gcc_soak_tests
 for %%t in (gcc_server gcc_probe gcc_bots gcc_net_tests gcc_sim_tests gcc_server_tests gcc_soak_tests) do del /q %%t.code 2>nul
 start "" /b cmd /v:on /c "g++ %GccRelease% ..\code\server\server_main.cpp > gcc_server.log 2>&1 & echo ^!errorlevel^! > gcc_server.code"
@@ -55,6 +60,9 @@ for %%t in (net_tests sim_tests server_tests soak_tests) do start "" /b cmd /v:o
 goto gcc_started
 :no_gcc
 echo test: g++ not found, skipping the g++ syntax checks
+goto gcc_started
+:broken_gcc
+echo test: WARNING g++ at %GccDir% cannot compile an empty program, skipping the g++ syntax checks (see build\gcc_works.log)
 :gcc_started
 
 REM The quick ones meanwhile.

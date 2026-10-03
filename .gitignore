@@ -25,3 +25,4 @@ build/*_tests*.log
 build/*_tests*.code
 build/gcc_*.log
 build/gcc_*.code
+build/gcc_works.*
