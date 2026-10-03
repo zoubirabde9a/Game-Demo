@@ -38,7 +38,9 @@ main(int ArgCount, char **Args)
     }
     Server.Logging = true;
     StopSignalInstall();
-    printf("server listening on UDP port %u at %d ticks/s\n", Port, SERVER_TICK_RATE);
+    // The content id tells which game build this is; clients must match it.
+    printf("server listening on UDP port %u at %d ticks/s, content id %08x\n",
+           Port, SERVER_TICK_RATE, Server.Clients.ContentId);
     fflush(stdout);
 
     double TickSeconds = 1.0 / SERVER_TICK_RATE;

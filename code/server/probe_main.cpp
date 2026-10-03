@@ -1,11 +1,14 @@
-/* Checks that a game server answers. Usage: probe [address:port]
+/* Checks that a game server answers. Usage: probe [address:port] [content-id]
    Connects like a real client, waits for the first snapshot, then says
-   goodbye. Exit codes: 0 joined and got a snapshot, 1 bad usage or no
-   network, 2 no answer, 3 server full, 4 connection lost.
+   goodbye. With a content id (hex, as the server's log prints it) it
+   joins as that game build, so it also checks the version gate.
+   Exit codes: 0 joined and got a snapshot, 1 bad usage or no network,
+   2 no answer, 3 server full, 4 connection lost, 5 wrong version.
    The deploy script runs it after every install, and it works as a
    health check from anywhere. Built by build_server.sh / .bat. */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "../net/protocol.cpp"
 #include "../net/socket.cpp"
 #include "../net/client.cpp"
@@ -18,9 +21,10 @@ main(int ArgCount, char **Args)
     net_address Server;
     if (!NetParseAddress(Text, &Server))
     {
-        fprintf(stderr, "usage: probe [a.b.c.d:port]\n");
+        fprintf(stderr, "usage: probe [a.b.c.d:port] [content-id-hex]\n");
         return 1;
     }
+    u32 ContentId = ArgCount > 2 ? (u32)strtoul(Args[2], 0, 16) : 0;
     if (!NetSocketsStartup())
     {
         fprintf(stderr, "could not start networking\n");
@@ -29,7 +33,7 @@ main(int ArgCount, char **Args)
 
     static net_client Client;
     u32 Salt = (u32)(ClockSeconds() * 1000.0) ^ 0x9e3779b9u;
-    if (!NetClientConnect(&Client, Server, Salt, 0))
+    if (!NetClientConnect(&Client, Server, Salt, ContentId))
     {
         fprintf(stderr, "could not open a socket\n");
         return 1;
@@ -56,6 +60,7 @@ main(int ArgCount, char **Args)
         {
             case NetEnd_ServerFull: printf("full: %s refused the probe\n", Text); Result = 3; break;
             case NetEnd_NoAnswer: printf("down: no answer from %s\n", Text); Result = 2; break;
+            case NetEnd_WrongVersion: printf("version: %s runs a different game build than %08x\n", Text, ContentId); Result = 5; break;
             default: printf("lost: connection to %s dropped\n", Text); Result = 4; break;
         }
     }
