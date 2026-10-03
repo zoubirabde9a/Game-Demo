@@ -169,11 +169,42 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
                               OldPosition, Replica);
 }
 
+// NOTE(zoubir): player slots mirror the server's: a slot is active while
+// the server lists its score, and points at that player's replica. The
+// local slot stays active so the camera always has someone to follow.
+internal void
+ApplySnapshotScores(app_state *AppState, net_snapshot *Snapshot)
+{
+    bool32 Listed[MAX_PLAYERS] = {};
+    for(u32 Index = 0; Index < Snapshot->ScoreCount; Index++)
+    {
+        net_score *Score = &Snapshot->Scores[Index];
+        if (Score->Slot < MAX_PLAYERS)
+        {
+            player_slot *Slot = &AppState->Players[Score->Slot];
+            Listed[Score->Slot] = true;
+            Slot->Active = true;
+            Slot->Kills = Score->Kills;
+            Slot->Deaths = Score->Deaths;
+            Slot->MonsterKills = Score->MonsterKills;
+        }
+    }
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        if (!Listed[SlotIndex] && SlotIndex != AppState->LocalPlayerIndex)
+        {
+            AppState->Players[SlotIndex].Active = false;
+            AppState->Players[SlotIndex].Entity = 0;
+        }
+    }
+}
+
 // NOTE(zoubir): moves every replica to the newest snapshot (once per new
-// server tick) and plays their animations locally every frame
+// server tick) and plays their animations locally every frame. LocalSlot
+// is the slot the server gave this client.
 internal void
 SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
-             net_snapshot *Snapshot, float DeltaTime)
+             net_snapshot *Snapshot, float DeltaTime, u32 LocalSlot)
 {
     world *World = &AppState->World;
     if (!Table->Active)
@@ -186,6 +217,7 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
     if (Snapshot->Tick != Table->LastAppliedTick)
     {
         Table->LastAppliedTick = Snapshot->Tick;
+        AppState->LocalPlayerIndex = LocalSlot;
         for(u32 Index = 0; Index < Snapshot->Count; Index++)
         {
             net_entity_state *State = &Snapshot->Entities[Index];
@@ -199,17 +231,19 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
             {
                 ApplyStateToReplica(AppState, Arena, Replica, State);
                 Table->SeenTick[State->Id] = Snapshot->Tick;
-                // NOTE(zoubir): the server always sends our own player first
-                if (Index == 0 && State->Type == EntityType_Player)
+                // NOTE(zoubir): a player's Variant is its slot on the server
+                if (State->Type == EntityType_Player &&
+                    State->Variant < MAX_PLAYERS)
                 {
-                    player_slot *Local =
-                        &AppState->Players[AppState->LocalPlayerIndex];
-                    Local->Active = true;
-                    Local->Entity = Replica;
-                    Replica->PlayerIndex = AppState->LocalPlayerIndex;
+                    player_slot *Slot = &AppState->Players[State->Variant];
+                    Slot->Active = true;
+                    Slot->Entity = Replica;
+                    Replica->PlayerIndex = State->Variant;
                 }
             }
         }
+
+        ApplySnapshotScores(AppState, Snapshot);
 
         for(u32 Id = 0; Id < MAX_REPLICAS; Id++)
         {
@@ -254,6 +288,11 @@ LeaveReplicaWorld(app_state *AppState, memory_arena *Arena,
     ClearMovingEntities(AppState);
     *Table = {};
     world *World = &AppState->World;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        AppState->Players[SlotIndex] = {};
+    }
+    AppState->LocalPlayerIndex = 0;
     u32 Slot = AppState->LocalPlayerIndex;
     world_entity *Player = AddPlayerToSlot(AppState, World, Arena, Slot,
                                            PlayerSpawnPosition(Slot));

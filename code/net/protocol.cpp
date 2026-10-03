@@ -121,6 +121,17 @@ NetSerializePacket(net_stream *S, net_packet *P)
             {
                 if (!NetSerializeAbility(S, &P->Snapshot.Abilities[Index], P->Snapshot.Count)) return false;
             }
+            NetU8(S, &P->Snapshot.ScoreCount);
+            if (P->Snapshot.ScoreCount > NET_MAX_SNAPSHOT_SCORES) return false;
+            for (u32 Index = 0; Index < P->Snapshot.ScoreCount; ++Index)
+            {
+                net_score *Score = &P->Snapshot.Scores[Index];
+                NetU8(S, &Score->Slot);
+                NetU16(S, &Score->Kills);
+                NetU16(S, &Score->Deaths);
+                NetU16(S, &Score->MonsterKills);
+                if (Score->Slot >= NET_MAX_SNAPSHOT_SCORES) return false;
+            }
         } break;
 
         default: return false;

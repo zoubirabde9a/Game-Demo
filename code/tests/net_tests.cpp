@@ -76,6 +76,17 @@ FullSnapshot()
             A->PointY[Point] = 2000.0f;
         }
     }
+
+    // ...and every player slot's score.
+    P.Snapshot.ScoreCount = NET_MAX_SNAPSHOT_SCORES;
+    for (u8 Index = 0; Index < NET_MAX_SNAPSHOT_SCORES; ++Index)
+    {
+        net_score *Score = &P.Snapshot.Scores[Index];
+        Score->Slot = Index;
+        Score->Kills = (u16)(Index * 3);
+        Score->Deaths = 65535;
+        Score->MonsterKills = (u16)(1000 + Index);
+    }
     return P;
 }
 
@@ -130,6 +141,12 @@ TestFullSnapshotFits()
     Check(Out.Snapshot.Entities[3].Y == -3.25f);
 
     Check(Out.Snapshot.AbilityCount == NET_MAX_SNAPSHOT_ABILITIES);
+    Check(Out.Snapshot.ScoreCount == NET_MAX_SNAPSHOT_SCORES);
+    net_score *LastScore = &Out.Snapshot.Scores[NET_MAX_SNAPSHOT_SCORES - 1];
+    Check(LastScore->Slot == NET_MAX_SNAPSHOT_SCORES - 1);
+    Check(LastScore->Kills == 3 * (NET_MAX_SNAPSHOT_SCORES - 1));
+    Check(LastScore->Deaths == 65535);
+    Check(LastScore->MonsterKills == 1000 + NET_MAX_SNAPSHOT_SCORES - 1);
     net_ability_state *A = &Out.Snapshot.Abilities[2];
     Check(A->EntityIndex == NET_MAX_SNAPSHOT_ENTITIES - 3);
     Check(A->Phase == 1 && A->Ability == 2);

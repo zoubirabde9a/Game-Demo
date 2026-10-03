@@ -23,6 +23,7 @@
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
 #define NET_MAX_SNAPSHOT_ABILITIES 8 // monsters winding up or striking at once
 #define NET_MAX_ABILITY_POINTS 4    // matches MAX_ABILITY_POINTS in entity.h
+#define NET_MAX_SNAPSHOT_SCORES 8   // one per player slot (MAX_PLAYERS)
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
 
 enum net_packet_type
@@ -77,7 +78,7 @@ struct net_entity_state
     u8 Type;
     u8 Facing;
     u8 Animation;
-    u8 Variant;    // which look within the type: monster kind, shot style
+    u8 Variant;    // which look within the type: monster kind, shot style, player slot
     i16 Health;
     // Sent as 16-bit fixed point: positions to 1/8 unit within +-4096,
     // velocities to 1/4 unit per second within +-8192. Values outside are clamped.
@@ -113,6 +114,15 @@ struct net_input_batch
     net_input Inputs[NET_MAX_INPUTS_PER_PACKET]; // newest first
 };
 
+// One connected player's score, so every client can show the scoreboard.
+struct net_score
+{
+    u8 Slot;
+    u16 Kills;        // other players killed
+    u16 Deaths;
+    u16 MonsterKills;
+};
+
 struct net_snapshot
 {
     u32 Tick;
@@ -120,6 +130,8 @@ struct net_snapshot
     net_entity_state Entities[NET_MAX_SNAPSHOT_ENTITIES];
     u8 AbilityCount;
     net_ability_state Abilities[NET_MAX_SNAPSHOT_ABILITIES];
+    u8 ScoreCount;
+    net_score Scores[NET_MAX_SNAPSHOT_SCORES];
 };
 
 struct net_packet

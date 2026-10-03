@@ -41,6 +41,51 @@ DrawShockwaveRing(render_context *RenderContext, world_entity *Player,
     }
 }
 
+// NOTE(zoubir): RenderText places the baseline at Y; this takes the top
+internal void
+DrawScreenText(render_context *RenderContext, font *Font, float X,
+               float TopY, char *Text, u32 Color)
+{
+    v4 NoClip = {0.f, 0.f, 100000.f, 100000.f};
+    RenderText(RenderContext, X, TopY + Font->UpperLimit, Font,
+               RenderContext->TextureProgram, Text, Color,
+               1.f, 1.f, NoClip, 0.f);
+}
+
+// NOTE(zoubir): "Player N" over every other live player, just above the
+// health bar DrawEntity puts over the sprite
+internal void
+DrawPlayerLabels(render_context *RenderContext, app_state *AppState,
+                 v3 CameraOffset)
+{
+    font *Font = AppState->DefaultFont;
+    if (!Font)
+    {
+        return;
+    }
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        world_entity *Player = Slot->Entity;
+        if (SlotIndex == AppState->LocalPlayerIndex || !Slot->Active ||
+            !Player || !Player->IsPresent || IsDeadPlayer(Player))
+        {
+            continue;
+        }
+        zas_texture_info *Info =
+            &GetAssetInfo(&AppState->Assets, Player->Texture)->Texture;
+        float SpriteTop = Player->Position.Y - CameraOffset.Y -
+            Player->Position.Z - Info->Origin.Y * Player->Dimensions.Y;
+        char Text[16];
+        snprintf(Text, sizeof(Text), "Player %u", SlotIndex + 1);
+        float Width = GetTextWidth(Font, Text);
+        float Height = Font->UpperLimit + Font->LowerLimit;
+        DrawScreenText(RenderContext, Font,
+                       Player->Position.X - CameraOffset.X - 0.5f * Width,
+                       SpriteTop - 14.f - Height, Text, RGBA8_WHITE);
+    }
+}
+
 internal void
 DrawHud(render_context *RenderContext, app_state *AppState,
         v3 CameraOffset)
@@ -57,6 +102,7 @@ DrawHud(render_context *RenderContext, app_state *AppState,
                Player->Hp / Player->MaxHp, RGBA8_HUD_HEALTH);
 
     DrawShockwaveRing(RenderContext, Player, CameraOffset);
+    DrawPlayerLabels(RenderContext, AppState, CameraOffset);
 
     // Ability bars, left to right: dash (Alt), shockwave (E). Each fills
     // back up while recharging and turns yellow when ready.

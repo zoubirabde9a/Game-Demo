@@ -88,6 +88,8 @@ TestJoinMoveAndLeave()
     Check(TickUntil(&Server, &Client, NetPacket_Snapshot, &Reply));
     Check(Reply.Snapshot.Count > 1); // the player plus the arena's monsters
     Check(Reply.Snapshot.Entities[0].Type == EntityType_Player); // own player first
+    Check(Reply.Snapshot.Entities[0].Variant == 0); // a player's Variant is its slot
+    Check(Reply.Snapshot.ScoreCount == 1 && Reply.Snapshot.Scores[0].Slot == 0);
     float StartX = Reply.Snapshot.Entities[0].X;
 
     // Hold left; the player should move left in later snapshots.

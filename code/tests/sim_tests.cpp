@@ -679,7 +679,7 @@ TestReplicasFollowSnapshots()
     Snapshot->Entities[1] = SnapshotEntity(9, EntityType_Monster, 800, 500,
                                            (u8)MonsterKind_Bat);
     Snapshot->Entities[2] = SnapshotEntity(12, EntityType_FireBall, 600, 500);
-    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
 
     // NOTE(zoubir): the offline player and monster are replaced by the
     // three replicas (their entity slots may be reused), the wall stays
@@ -699,7 +699,7 @@ TestReplicasFollowSnapshots()
     Snapshot->Count = 2;
     Snapshot->Entities[0] = SnapshotEntity(5, EntityType_Player, 520, 500);
     Snapshot->Entities[1] = SnapshotEntity(12, EntityType_Sword, 530, 500);
-    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
     Check(CountMovingEntities(Test.World) == 2);
     Check(!Monster->IsPresent);
     Check(GetLocalPlayer(AppState)->Position.X == 520.f);
@@ -708,7 +708,7 @@ TestReplicasFollowSnapshots()
 
     // NOTE(zoubir): an unchanged tick does not move anything
     Snapshot->Entities[0].X = 9999.f;
-    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 0);
     Check(GetLocalPlayer(AppState)->Position.X == 520.f);
 
     LeaveReplicaWorld(AppState, &Test.Arena, Table);
@@ -793,6 +793,53 @@ TestRandomPlaySoak()
     free(Arena.Base);
     free(Constants.Base);
     free(AppState);
+}
+
+internal void
+TestReplicaPlayersAndScoresFillSlots()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+
+    // NOTE(zoubir): this client is slot 1; slot 0 is someone else
+    Snapshot->Tick = 1;
+    Snapshot->Count = 2;
+    Snapshot->Entities[0] = SnapshotEntity(7, EntityType_Player, 600, 600, 1);
+    Snapshot->Entities[1] = SnapshotEntity(8, EntityType_Player, 900, 600, 0);
+    Snapshot->ScoreCount = 2;
+    Snapshot->Scores[0] = {1, 2, 0, 5};
+    Snapshot->Scores[1] = {0, 0, 2, 1};
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 1);
+
+    Check(AppState->LocalPlayerIndex == 1);
+    Check(GetLocalPlayer(AppState)->Position.X == 600.f);
+    Check(AppState->Players[0].Active);
+    Check(AppState->Players[0].Entity->Position.X == 900.f);
+    Check(AppState->Players[0].Entity->PlayerIndex == 0);
+    Check(AppState->Players[1].Kills == 2 && AppState->Players[1].MonsterKills == 5);
+    Check(AppState->Players[0].Deaths == 2);
+    u32 Order[MAX_PLAYERS];
+    Check(RankPlayers(AppState, Order) == 2);
+    Check(Order[0] == 1);
+
+    // NOTE(zoubir): slot 0 leaves the server
+    Snapshot->Tick = 2;
+    Snapshot->Count = 1;
+    Snapshot->ScoreCount = 1;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, 1.f / 60.f, 1);
+    Check(!AppState->Players[0].Active);
+    Check(AppState->Players[1].Active);
+
+    LeaveReplicaWorld(AppState, &Test.Arena, Table);
+    Check(AppState->LocalPlayerIndex == 0);
+    Check(AppState->Players[0].Active && !AppState->Players[1].Active);
+    Check(AppState->Players[0].Kills == 0);
+    free(Snapshot);
+    free(Table);
+    DestroyTestWorld(&Test);
 }
 
 internal void
@@ -896,6 +943,7 @@ main()
     RUN(TestReplicasFollowSnapshots);
     RUN(TestCrowdedChunkRemovalKeepsEveryone);
     RUN(TestRandomPlaySoak);
+    RUN(TestReplicaPlayersAndScoresFillSlots);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
     RUN(TestAnimationAdvancesWithoutTexture);

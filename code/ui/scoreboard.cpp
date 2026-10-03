@@ -6,17 +6,6 @@
 #define RGBA8_SCOREBOARD_LOCAL (0xFF30C8F0)
 #define RGBA8_SCOREBOARD_HEADER (0xFFA0A0A0)
 
-// NOTE(zoubir): RenderText places the baseline at Y; this takes the top
-internal void
-DrawScreenText(render_context *RenderContext, font *Font, float X,
-               float TopY, char *Text, u32 Color)
-{
-    v4 NoClip = {0.f, 0.f, 100000.f, 100000.f};
-    RenderText(RenderContext, X, TopY + Font->UpperLimit, Font,
-               RenderContext->TextureProgram, Text, Color,
-               1.f, 1.f, NoClip, 0.f);
-}
-
 // NOTE(zoubir): more kills first, then fewer deaths, then slot order
 inline bool32
 RanksAbove(player_slot *A, player_slot *B)

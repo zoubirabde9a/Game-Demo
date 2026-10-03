@@ -105,8 +105,9 @@ GameTick(server_game *Game, float Dt)
     AppState->Events = {};
 }
 
-// NOTE(zoubir): what the client needs, beyond the type, to pick the
-// sprite: the monster's kind, or the shot's style (kept in its texture)
+// NOTE(zoubir): what the client needs beyond the type: the monster's
+// kind or the shot's style (kept in its texture) to pick the sprite, the
+// player's slot to match it with the scoreboard
 inline u8
 SimGameVariant(world_entity *Entity)
 {
@@ -114,6 +115,10 @@ SimGameVariant(world_entity *Entity)
     if (Entity->Type == EntityType_Monster)
     {
         Result = (u8)Entity->MonsterKind;
+    }
+    else if (Entity->Type == EntityType_Player)
+    {
+        Result = (u8)Entity->PlayerIndex;
     }
     else if (Entity->Type == EntityType_MonsterShot)
     {
@@ -201,5 +206,18 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
 
             SimGameWriteAbility(Entity, (u8)(Out->Count - 1), Out);
         }
+    }
+
+    // Every connected player's score, so each client can show the scoreboard.
+    Out->ScoreCount = 0;
+    for (u32 Slot = 0; Slot < MAX_PLAYERS && Out->ScoreCount < NET_MAX_SNAPSHOT_SCORES; ++Slot)
+    {
+        player_slot *Player = &Game->AppState->Players[Slot];
+        if (!Player->Active) continue;
+        net_score *Score = &Out->Scores[Out->ScoreCount++];
+        Score->Slot = (u8)Slot;
+        Score->Kills = (u16)Player->Kills;
+        Score->Deaths = (u16)Player->Deaths;
+        Score->MonsterKills = (u16)Player->MonsterKills;
     }
 }

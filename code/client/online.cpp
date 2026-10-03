@@ -178,7 +178,8 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
     if (IsOnline(Online) && Online->Client.HasSnapshot)
     {
         SyncReplicas(AppState, Arena, &Online->Replicas,
-                     &Online->Client.Snapshot, DeltaTime);
+                     &Online->Client.Snapshot, DeltaTime,
+                     Online->Client.PlayerIndex);
         return;
     }
     if (Online && Online->Replicas.Active)
