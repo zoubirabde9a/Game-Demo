@@ -5,7 +5,9 @@
    other they drift through freely. This step finds every player or
    monster that ends the tick overlapping something it collides with and
    pushes it out along the shortest way on the ground plane: the whole
-   distance away from walls, trees and rocks, half each between two units. */
+   distance away from walls, trees and rocks, half each between two units.
+   On infinite maps walls and props are terrain, not entities, so the
+   terrain stand-ins around each unit are checked too. */
 
 #define SEPARATION_SLOP 0.01f
 
@@ -118,6 +120,25 @@ SeparationPass(app_state *AppState, world *World, memory_arena *Arena)
                 NudgeEntity(AppState, World, Arena, B, -0.5f * Push);
             }
             Pushes++;
+        }
+
+        if (World->Unbounded && CanCollide(AppState, A->Type, EntityType_StaticObject))
+        {
+            entity_collision_volume *Total = &A->Collision->TotalVolume;
+            rectangle3 Box = RectCenterHalfDims(A->Position + Total->Offset,
+                                                Total->HalfDims);
+            world_entity *Terrain[64];
+            u32 Count = GatherTerrainColliders(World, Box, Terrain, 0,
+                                               ArrayCount(Terrain));
+            for(u32 Index = 0; Index < Count; Index++)
+            {
+                v2 Push = SeparationPush(A, Terrain[Index]);
+                if (Push.X != 0.f || Push.Y != 0.f)
+                {
+                    NudgeEntity(AppState, World, Arena, A, Push);
+                    Pushes++;
+                }
+            }
         }
     }
     return Pushes;

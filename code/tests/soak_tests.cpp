@@ -179,6 +179,28 @@ CheckCollisions(server_game *Game)
             }
         }
     }
+    // On infinite maps walls and props are terrain stand-ins, not entities.
+    if (World->Unbounded)
+    {
+        for (u32 IndexA = 0; IndexA < World->EntityCount; ++IndexA)
+        {
+            world_entity *A = &World->Entities[IndexA];
+            if (!IsMover(A) || !CanCollide(AppState, A->Type, EntityType_StaticObject)) continue;
+            entity_collision_volume *Total = &A->Collision->TotalVolume;
+            rectangle3 Box = RectCenterHalfDims(A->Position + Total->Offset, Total->HalfDims);
+            world_entity *Terrain[64];
+            u32 Count = GatherTerrainColliders(World, Box, Terrain, 0, ArrayCount(Terrain));
+            for (u32 Index = 0; Index < Count; ++Index)
+            {
+                float Depth = Penetration(A, Terrain[Index]);
+                if (Depth <= Tolerance) continue;
+                printf("  entity %u (type %d kind %d) at (%.1f, %.1f, %.1f) is %.1f deep in terrain at (%.1f, %.1f)\n",
+                       IndexA, (int)A->Type, (int)A->MonsterKind, A->Position.X, A->Position.Y,
+                       A->Position.Z, Depth, Terrain[Index]->Position.X, Terrain[Index]->Position.Y);
+                Require(Depth <= Tolerance);
+            }
+        }
+    }
     if (UnitOverlapThisTick) UnitOverlapTicks++;
     return true;
 }
@@ -200,8 +222,9 @@ CheckWorld(server_game *Game)
         world_entity *Entity = &World->Entities[Index];
         if (!Entity->IsPresent) continue;
         ++Present;
-        bool32 Inside = Entity->Position.X >= -64.0f && Entity->Position.X <= Width + 64.0f &&
-                        Entity->Position.Y >= -64.0f && Entity->Position.Y <= Height + 64.0f;
+        bool32 Inside = World->Unbounded ||
+                        (Entity->Position.X >= -64.0f && Entity->Position.X <= Width + 64.0f &&
+                         Entity->Position.Y >= -64.0f && Entity->Position.Y <= Height + 64.0f);
         if (!Inside)
         {
             printf("  entity %u type %d kind %d at (%.1f, %.1f, %.1f) moving (%.1f, %.1f), arena %.0f x %.0f\n",
@@ -210,8 +233,7 @@ CheckWorld(server_game *Game)
         }
         Require(IsFinite(Entity->Position.X) && IsFinite(Entity->Position.Y) && IsFinite(Entity->Position.Z));
         Require(IsFinite(Entity->Velocity.X) && IsFinite(Entity->Velocity.Y) && IsFinite(Entity->Velocity.Z));
-        Require(Entity->Position.X >= -64.0f && Entity->Position.X <= Width + 64.0f);
-        Require(Entity->Position.Y >= -64.0f && Entity->Position.Y <= Height + 64.0f);
+        Require(Inside);
         Require(Entity->Position.Z >= -0.01f);
         Require(IsFinite(Entity->Hp));
     }
@@ -245,11 +267,14 @@ CheckWorld(server_game *Game)
 
 // The buttons a player holds change now and then, like a real player.
 internal u16
-RandomButtons(soak_random *R, u16 Held)
+RandomButtons(soak_random *R, u16 Held, u32 Heading)
 {
     if (!Chance(R, 8)) return Held;
     u16 Result = 0;
     u32 Dir = NextRandom(R) % 9; // 8 directions or standing still
+    // On infinite maps each player leans toward its own heading, so the
+    // group spreads out and the world has to follow them all.
+    if (Heading < 8 && Chance(R, 2)) Dir = Heading;
     if (Dir == 0 || Dir == 1 || Dir == 7) Result |= NetButton_Left;
     if (Dir == 3 || Dir == 4 || Dir == 5) Result |= NetButton_Right;
     if (Dir == 1 || Dir == 2 || Dir == 3) Result |= NetButton_Up;
@@ -263,12 +288,14 @@ RandomButtons(soak_random *R, u16 Held)
 }
 
 internal bool32
-SoakOneSeed(u32 Seed, u32 Minutes)
+SoakOneSeed(u32 Seed, u32 Minutes, u32 MapId)
 {
     CurrentSeed = Seed;
     soak_random R = {Seed * 2654435761u + 1};
     static server_game Game;
-    GameInit(&Game);
+    GameInit(&Game, MapId);
+    bool32 Unbounded = Game.AppState->World.Unbounded;
+    float FarthestApart = 0.f;
 
     bool32 Joined[MAX_PLAYERS] = {};
     u16 Held[MAX_PLAYERS] = {};
@@ -286,7 +313,7 @@ SoakOneSeed(u32 Seed, u32 Minutes)
             else if (Joined[Slot] && Chance(&R, 3000)) { GamePlayerLeft(&Game, Slot); Joined[Slot] = false; Held[Slot] = 0; }
             if (!Joined[Slot]) continue;
 
-            Held[Slot] = RandomButtons(&R, Held[Slot]);
+            Held[Slot] = RandomButtons(&R, Held[Slot], Unbounded ? Slot : 9);
             net_input Input = {++InputTick, Held[Slot], 0, 0};
             GameApplyInput(&Game, Slot, &Input);
         }
@@ -299,6 +326,15 @@ SoakOneSeed(u32 Seed, u32 Minutes)
         }
         Ok = CheckWorld(&Game);
         if (Game.AppState->World.EntityCount > MaxEntities) MaxEntities = Game.AppState->World.EntityCount;
+        for (u32 A = 0; A < MAX_PLAYERS; ++A)
+        for (u32 B = A + 1; B < MAX_PLAYERS; ++B)
+        {
+            player_slot *SA = &Game.AppState->Players[A];
+            player_slot *SB = &Game.AppState->Players[B];
+            if (!SA->Active || !SB->Active || !SA->Entity || !SB->Entity) continue;
+            float Apart = Length(SA->Entity->Position.XY - SB->Entity->Position.XY);
+            if (Apart > FarthestApart) FarthestApart = Apart;
+        }
     }
 
     u32 Kills = 0, Deaths = 0;
@@ -307,8 +343,9 @@ SoakOneSeed(u32 Seed, u32 Minutes)
         Kills += Game.AppState->Players[Slot].Kills + Game.AppState->Players[Slot].MonsterKills;
         Deaths += Game.AppState->Players[Slot].Deaths;
     }
-    printf("  seed %u: %u min, %s, peak %u entity slots, %u kills and %u deaths among current players\n",
-           Seed, Minutes, Ok ? "ok" : "stopped", MaxEntities, Kills, Deaths);
+    printf("  %s seed %u: %u min, %s, peak %u entity slots, %u chunks, players up to %.0f apart, %u kills and %u deaths among current players\n",
+           GetMapDef((map_id)MapId)->Name, Seed, Minutes, Ok ? "ok" : "stopped", MaxEntities,
+           Game.AppState->World.ChunkCount, FarthestApart, Kills, Deaths);
     printf("    units overlapped on %u of %u ticks, deepest %.1f units\n",
            UnitOverlapTicks, CurrentTick, DeepestUnitOverlap);
     UnitOverlapTicks = 0;
@@ -406,17 +443,28 @@ TestOverlapsAreSeparated()
     GameShutdown(&Game);
 }
 
+// Usage: soak_tests [minutes] [seeds] [map]. With no map, the seeds play
+// the Old Arena and one more seed plays each infinite map.
 int
 main(int ArgCount, char **Args)
 {
     u32 Minutes = ArgCount > 1 ? (u32)atoi(Args[1]) : 3;
     u32 Seeds = ArgCount > 2 ? (u32)atoi(Args[2]) : 4;
+    map_id OnlyMap = ArgCount > 3 ? FindMapByName(Args[3], MapId_Count) : MapId_Count;
     TestFireballBurstsOnWall();
     TestOverlapsAreSeparated();
     printf("soak: %u seeds x %u simulated minutes, 8 players\n", Seeds, Minutes);
     for (u32 Seed = 1; Seed <= Seeds; ++Seed)
     {
-        SoakOneSeed(Seed, Minutes);
+        SoakOneSeed(Seed, Minutes, OnlyMap == MapId_Count ? MapId_Arena : OnlyMap);
+    }
+    if (OnlyMap == MapId_Count)
+    {
+        for (u32 MapIndex = 0; MapIndex < MapId_Count; ++MapIndex)
+        {
+            if (GetMapDef((map_id)MapIndex)->Kind != MapKind_Infinite) continue;
+            SoakOneSeed(Seeds + 1, Minutes, MapIndex);
+        }
     }
     printf("soak tests: %s\n", TestFailures ? "FAILED" : "all seeds passed");
     return TestFailures ? 1 : 0;

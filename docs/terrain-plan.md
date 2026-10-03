@@ -26,7 +26,7 @@ Goal: four maps. Two are procedural and infinite: the ground is generated around
 - [x] 5. Streaming (done without streaming entities): as players move, chunks around them generate their props (trees, rocks, ruins) deterministically and far chunks unload theirs. The monster population spawns in a ring around players on infinite maps instead of anywhere on the map.
 - [x] 6. Terrain rules on units: mud and snow slow, ice slides, lava burns, shallow water slows, deep water and rock walls block.
 - [x] 7. The four maps playable, chosen at server start (`--map`), sent in the handshake, with per-map monster spawn weights.
-- [ ] 8. Soak on an infinite map with players walking far apart, checking chunk counts stay bounded and nobody ends inside blocking terrain.
+- [x] 8. Soak on an infinite map with players walking far apart, checking chunk counts stay bounded and nobody ends inside blocking terrain.
 
 ## How infinite maps stay cheap
 
@@ -35,3 +35,7 @@ Infinite maps never turn terrain into entities. When something moves, `GatherEnt
 ## Limits
 
 Positions stay 32-bit floats. Precision is under a hundredth of a unit up to about 100,000 units from the origin (about 3,000 tiles each way), so the infinite maps are infinite in practice up to that radius; beyond it the generator keeps working but movement precision degrades. Rebasing the origin is out of scope.
+
+## Status
+
+All eight steps are done. `soak_tests 8 2 wilds` (and `wastes`): eight players drifting up to about 4,400 units apart over eight simulated minutes, under 45 entity slots and under 65 chunks, nobody ever inside terrain or another unit. The Old Arena soak needs about 400 slots for the same game, because its walls and trees are entities.
