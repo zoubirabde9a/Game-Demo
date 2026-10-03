@@ -86,7 +86,13 @@ DoAnimation(animation_state *State,
             float DeltaTime,
             float SpeedRate, animation_slot Animation)
 {
-    v4 Result;
+    v4 Result = {};
+    // NOTE(zoubir): a set without this type/direction (flyers have no
+    // up/down frames) draws nothing instead of dividing by zero
+    if (Animation.IndicesCount == 0)
+    {
+        return Result;
+    }
 
     u32 Index = Animation.FirstIndex +
         (State->SlotIndex % Animation.IndicesCount);

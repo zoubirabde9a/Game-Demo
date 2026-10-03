@@ -230,24 +230,37 @@ AddTileEntity(app_state *AppState,
 
 internal world_entity *
 AddMonster(app_state *AppState,
-          world *World, memory_arena *Arena, v3 Position)
+           world *World, memory_arena *Arena, v3 Position,
+           monster_kind Kind)
 {
-    assets *Assets = &AppState->Assets;
+    monster_stats *Stats = GetMonsterStats(Kind);
+    bool32 Flies = Stats->FlyHeight > 0.f;
     world_entity *Entity =
         AddEntity(AppState, World, Arena,
                   EntityType_Monster,
-                  Position, AppState->PlayerCollision);
-    
-    Entity->Dimensions = {48, 48};
+                  Position,
+                  Flies ? AppState->BatCollision : AppState->PlayerCollision);
+
+    Entity->MonsterKind = Kind;
+    Entity->Tint = Stats->Tint;
     Entity->AnimationState = {};
-    Entity->Texture = {AssetType_Zoubir};
     Entity->ShadowTexture = {AssetType_Shadow};
-//    Entity->TextureOrigin = {0.5f, 0.875f};
-    Entity->MaxHp = 100.f;
+    Entity->MaxHp = Stats->MaxHp;
     Entity->Hp = Entity->MaxHp;
-    
-    Entity->AnimationSet = &AppState->ZoubirAnimationSet;
-        
+
+    if (Flies)
+    {
+        Entity->Dimensions = {45 * 0.7f, 25 * 0.7f};
+        Entity->Texture = {AssetType_Familiar};
+        Entity->AnimationSet = &AppState->FamiliarAnimationSet;
+    }
+    else
+    {
+        Entity->Dimensions = {48, 48};
+        Entity->Texture = {AssetType_Zoubir};
+        Entity->AnimationSet = &AppState->ZoubirAnimationSet;
+    }
+
     return Entity;
 }
 

@@ -125,7 +125,7 @@ DrawEntity(render_context *RenderContext,
                        SortingValue, TextureProgram);
 
             ColorRGBA8 Color;
-            Color.ColorU32 = RGBA8_WHITE;
+            Color.ColorU32 = Entity->Tint ? Entity->Tint : RGBA8_WHITE;
             Color.A = 255;
             RenderQuadTexture(RenderContext,
                               EntityTexturePosition.X,

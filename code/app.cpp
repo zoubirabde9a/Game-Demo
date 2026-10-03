@@ -21,6 +21,7 @@
 #include "opengl.cpp"
 #include "audio.cpp"
 #include "sim/collision_rules.cpp"
+#include "sim/monster_kinds.cpp"
 #include "sim/spawn.cpp"
 #include "sim/update.cpp"
 #include "sim/draw.cpp"
@@ -160,6 +161,9 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
             MakeSimpleGroundedCollisionVolume(ConstantsArena, {15, 4, 19.f});
         AppState->FamiliarCollision = 
             MakeSimpleGroundedCollisionVolume(ConstantsArena, {11, 6, 3.f});        
+        // NOTE(zoubir): tall enough that fireballs cast at hand height hit
+        AppState->BatCollision = 
+            MakeSimpleGroundedCollisionVolume(ConstantsArena, {11, 6, 10.f});
         AppState->FireBallCollision = 
             MakeSimpleGroundedCollisionVolume(ConstantsArena, {9, 9, 0.f});        
         AppState->SwordCollision = 
@@ -508,7 +512,9 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
                        {((MonsterIndex % 3) * 32.f + MonsterIndex) * 32.f,
                                600 +
                                (float)((MonsterIndex % 2) * 5 + MonsterIndex) * 4,
-                               0.f});
+                               0.f},
+                       (MonsterIndex % 3 == 2) ?
+                       MonsterKind_Bat : MonsterKind_Brute);
         }
 
         random_series Series = Seed(67);

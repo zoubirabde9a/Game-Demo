@@ -480,20 +480,22 @@ UpdateMonster(world_entity *Entity, world *World,
               animation_type *AnimationType,
               animation_direction *AnimationDirection)
 {
-    float AggroRange = 320.f;
-    float StopRange = 40.f;
-    float AttackRange = 52.f;
-    float AttackDamage = 10.f;
-    float AttackInterval = 1.f;
-    float MonsterAcceleration = 28000.f;
+    monster_stats *Stats = GetMonsterStats(Entity->MonsterKind);
+    bool32 Flies = Stats->FlyHeight > 0.f;
+    float DeltaTime = Input->DeltaTime;
 
     Entity->AttackCooldown = Maximum(0.f, Entity->AttackCooldown -
-                                     Input->DeltaTime);
+                                     DeltaTime);
 
     *AnimationType = AnimationType_Stand;
     *AnimationDirection =
         Entity->AnimationState.LastAnimationDirection;
     *AnimationSpeed = 1.f;
+
+    if (Flies && *AnimationDirection != AnimationDirection_Left)
+    {
+        *AnimationDirection = AnimationDirection_Right;
+    }
 
     v3 DDEntity = {};
     world_entity *Target = AppState->Player;
@@ -501,20 +503,21 @@ UpdateMonster(world_entity *Entity, world *World,
     {
         v2 ToTarget = Target->Position.XY - Entity->Position.XY;
         float DistanceToTarget = Length(ToTarget);
-        if (DistanceToTarget < AttackRange &&
+        if (DistanceToTarget < Stats->AttackRange &&
             Entity->AttackCooldown <= 0.f)
         {
-            Target->Hp -= AttackDamage;
-            Entity->AttackCooldown = AttackInterval;
+            Target->Hp -= Stats->AttackDamage;
+            Entity->AttackCooldown = Stats->AttackInterval;
         }
 
-        if (DistanceToTarget < AggroRange &&
-            DistanceToTarget > StopRange)
+        if (DistanceToTarget < Stats->AggroRange &&
+            DistanceToTarget > Stats->StopRange)
         {
             ToTarget *= 1.f / DistanceToTarget;
             DDEntity.XY = ToTarget;
             *AnimationType = AnimationType_Move;
-            if (Absolute(ToTarget.X) > Absolute(ToTarget.Y))
+            // NOTE(zoubir): flyer sprites only face left and right
+            if (Flies || Absolute(ToTarget.X) > Absolute(ToTarget.Y))
             {
                 *AnimationDirection = ToTarget.X > 0 ?
                     AnimationDirection_Right : AnimationDirection_Left;
@@ -527,11 +530,26 @@ UpdateMonster(world_entity *Entity, world *World,
         }
     }
 
-    DDEntity *= MonsterAcceleration * Input->DeltaTime;
+    DDEntity *= Stats->Acceleration * DeltaTime;
     // Drag
     DDEntity -= (10.f * Entity->Velocity);
-    //Gravity
-    DDEntity.Z = -1000.f;
+    if (Flies)
+    {
+        // NOTE(zoubir): bob around the hover height, like the familiar
+        Entity->tFlying += DeltaTime * 6.f;
+        if (Entity->tFlying > 2.f * Pi32)
+        {
+            Entity->tFlying -= 2.f * Pi32;
+        }
+        Entity->Position.Z = Stats->FlyHeight + 4.f * Sin(Entity->tFlying);
+        DDEntity.Z = 0.f;
+        Entity->Velocity.Z = 0.f;
+    }
+    else
+    {
+        //Gravity
+        DDEntity.Z = -1000.f;
+    }
 
     float MaxDistance = 10000.f;
     MoveEntity(Entity, World, Arena, Input, AppState,

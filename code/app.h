@@ -121,6 +121,7 @@ struct app_state
     entity_collision_volume_group *WallCollision;
     entity_collision_volume_group *PlayerCollision;
     entity_collision_volume_group *FamiliarCollision;
+    entity_collision_volume_group *BatCollision;
     entity_collision_volume_group *FireBallCollision;
     entity_collision_volume_group *SwordCollision;
 

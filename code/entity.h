@@ -104,6 +104,13 @@ struct entity_collision_volume_group
 
 #define PLAYER_DASH_COOLDOWN 0.8f
 
+enum monster_kind
+{
+    MonsterKind_Brute,
+    MonsterKind_Bat,
+    MonsterKind_Count
+};
+
 struct world_entity
 {
     u32 ID;
@@ -138,6 +145,9 @@ struct world_entity
     animation_direction AnimationDirection;
 
     //Monster && Player
+    monster_kind MonsterKind;
+    // NOTE(zoubir): multiplied with the sprite, 0 means untinted
+    u32 Tint;
     float Hp;
     float MaxHp;
     // NOTE(zoubir): seconds until a monster can hit again
