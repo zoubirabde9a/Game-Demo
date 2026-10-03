@@ -336,6 +336,76 @@ TestConnectAndLeaveFromTheGame()
     free(Client);
 }
 
+// A server restart (a deploy) does not need the player: the client sees
+// the server close, waits, and joins the new one by itself. Leaving by
+// choice does not reconnect.
+internal void
+TestClientRejoinsRestartedServer()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0));
+    u16 Port = NetSocketPort(&Server.Socket);
+
+    app_state *Client = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(48);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    InitSimulation(Client, &Arena, &Constants);
+    AddPlayerToSlot(Client, &Client->World, &Arena, 0,
+                    PlayerSpawnPosition(&Client->World, 0));
+    SetEnvironment(ONLINE_ADDRESS_ENV, "");
+    Client->Online = StartOnlineSession(&Arena);
+    online_session *Online = Client->Online;
+
+    char Address[32];
+    snprintf(Address, sizeof(Address), "127.0.0.1:%u", Port);
+    Check(OnlineConnect(Online, Address, "Gary"));
+    app_input Input = {};
+    Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
+    for (int Frame = 0; Frame < 120 && !IsOnline(Online); ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Check(IsOnline(Online));
+
+    // The server goes down and comes back on the same port.
+    ServerStop(&Server);
+    for (int Frame = 0; Frame < 10; ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+    }
+    Check(!IsOnline(Online));
+    Check(WillReconnect(Online));
+    char Status[128];
+    GetOnlineStatusText(Online, Status, sizeof(Status));
+    Check(strstr(Status, "reconnecting") != 0);
+    Check(ServerStart(&Server, Port));
+
+    // First retry after ONLINE_RECONNECT_STEP seconds.
+    int Frames = (int)((ONLINE_RECONNECT_STEP + 2.f) * SERVER_TICK_RATE);
+    for (int Frame = 0; Frame < Frames && !IsOnline(Online); ++Frame)
+    {
+        UpdateOnlineSession(Online, &Input);
+        RunWorldTick(Client, &Arena, Input.DeltaTime);
+        ServerTick(&Server);
+    }
+    Check(IsOnline(Online));
+    Check(Online->Reconnects == 0);
+
+    // Leaving by choice stays left.
+    OnlineDisconnect(Online);
+    Check(!WillReconnect(Online));
+
+    ServerStop(&Server);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(Client);
+}
+
 // The real client loop (online session, replicas, prediction) against a
 // real server in one process: what the client predicts for its own player
 // must end up where the server puts it.
@@ -918,6 +988,7 @@ main()
     TestArmoredMonstersSendFacing();
     TestPredictionAgreesWithServer();
     TestConnectAndLeaveFromTheGame();
+    TestClientRejoinsRestartedServer();
     TestSnapshotsAcknowledgeInputs();
     TestPlayerNamesReachEveryone();
     TestNinthClientIsTurnedAway();

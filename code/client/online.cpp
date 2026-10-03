@@ -7,7 +7,11 @@
    the first line of server.txt in the folder the game runs from, written
    as "a.b.c.d:port". The name other players see comes from GAME_NAME, or
    else the second line of server.txt; empty shows as "Player N". The
-   connect screen (ui/connect_screen.cpp) calls OnlineConnect and
+   When a connection ends for a reason worth retrying (server restarted,
+   connection lost, no answer) the session reconnects by itself,
+   ONLINE_RECONNECT_TRIES times, waiting longer each time.
+
+   The connect screen (ui/connect_screen.cpp) calls OnlineConnect and
    OnlineDisconnect, and a connect from it rewrites server.txt so the next
    launch reuses the address. The browser build has no UDP and is always
    offline. */
@@ -15,6 +19,10 @@
 #define ONLINE_ADDRESS_FILE "server.txt"
 #define ONLINE_ADDRESS_ENV "GAME_SERVER"
 #define ONLINE_NAME_ENV "GAME_NAME"
+#define ONLINE_RECONNECT_TRIES 5
+// NOTE(zoubir): the first retry waits this long, each later one this
+// much more
+#define ONLINE_RECONNECT_STEP 2.f
 
 // NOTE(zoubir): what the connect screen shows and offers
 enum online_phase
@@ -32,6 +40,10 @@ struct online_session
     bool32 BadAddress;
     char AddressText[64];
     char NameText[NET_NAME_SIZE];
+    // NOTE(zoubir): automatic reconnects since the last successful join,
+    // and seconds until the next one
+    u32 Reconnects;
+    float ReconnectIn;
     // NOTE(zoubir): local copies of the server's entities, client/replicas.cpp
     replica_table Replicas;
     // NOTE(zoubir): inputs the server has not applied yet, client/prediction.cpp
@@ -152,6 +164,7 @@ SaveOnlineConfig(char *Address, char *Name)
 internal void
 OnlineDisconnect(online_session *Online)
 {
+    Online->Reconnects = ONLINE_RECONNECT_TRIES;
     if (Online->Enabled)
     {
         NetClientDisconnect(&Online->Client);
@@ -165,6 +178,7 @@ internal bool32
 OnlineConnect(online_session *Online, char *Address, char *Name)
 {
     OnlineDisconnect(Online);
+    Online->Reconnects = 0;
     if (Address != Online->AddressText)
     {
         CopyString(Online->AddressText, sizeof(Online->AddressText), Address);
@@ -182,6 +196,20 @@ OnlineConnect(online_session *Online, char *Address, char *Name)
                                            SimContentId(), Online->NameText);
     }
     return Online->Enabled;
+}
+
+// NOTE(zoubir): a connection that ended on its own (not refused, not
+// left) and has tries left
+internal bool32
+WillReconnect(online_session *Online)
+{
+    net_client_end Reason = Online->Client.EndReason;
+    bool32 Result = Online->Enabled &&
+        Online->Client.State == NetClient_Disconnected &&
+        Online->Reconnects < ONLINE_RECONNECT_TRIES &&
+        (Reason == NetEnd_ServerClosed || Reason == NetEnd_LostConnection ||
+         Reason == NetEnd_NoAnswer);
+    return Result;
 }
 
 internal online_session *
@@ -209,8 +237,26 @@ UpdateOnlineSession(online_session *Online, app_input *Input,
         NetClientUpdate(&Online->Client, Input->DeltaTime, Buttons, Aim.X, Aim.Y);
         if (Online->Client.State == NetClient_Connected)
         {
+            Online->Reconnects = 0;
+            Online->ReconnectIn = 0.f;
             RecordPredictedInput(&Online->Prediction, Online->Client.InputTick,
                                  Buttons, Input->DeltaTime, Aim);
+        }
+        else if (WillReconnect(Online))
+        {
+            if (Online->ReconnectIn <= 0.f)
+            {
+                Online->ReconnectIn =
+                    ONLINE_RECONNECT_STEP * (float)(Online->Reconnects + 1);
+            }
+            Online->ReconnectIn -= Input->DeltaTime;
+            if (Online->ReconnectIn <= 0.f)
+            {
+                u32 Tries = Online->Reconnects + 1;
+                OnlineConnect(Online, Online->AddressText, Online->NameText);
+                Online->Reconnects = Tries;
+                Online->ReconnectIn = 0.f;
+            }
         }
     }
 }
@@ -276,6 +322,12 @@ GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
         } break;
         case NetClient_Disconnected:
         {
+            if (WillReconnect(Online))
+            {
+                snprintf(Out, OutSize, "Connection lost, reconnecting in %.0f s",
+                         Maximum(1.f, Online->ReconnectIn + 0.5f));
+                return;
+            }
             char *Reasons[] = {"disconnected", "no answer from server",
                                "server full", "server closed",
                                "lost connection", "left",
