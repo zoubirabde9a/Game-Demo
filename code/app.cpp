@@ -13,9 +13,11 @@
 #include "net/client.cpp"
 #endif
 
-// NOTE(zoubir): the shared state, the engine and the simulation: what the
-// dedicated server builds too
+// NOTE(zoubir): the shared state, the engine core and the simulation: what
+// the dedicated server builds too
 #include "app_sim.cpp"
+// NOTE(zoubir): the rest of the engine: rendering, assets, sound, widgets
+#include "engine/engine_module.cpp"
 
 // NOTE(zoubir): the ids of the immediate-mode widgets, used by client startup
 #include "ui/ui_ids.h"

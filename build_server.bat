@@ -7,7 +7,7 @@ set ServerFlags=-MTd -nologo -Gm- -EHsc- -GR- -Od -Oi -WX -W4 -wd4201 -wd4100 -w
 if not exist build mkdir build
 pushd build
 set Result=0
-cl %ServerFlags% ..\code\server\server_main.cpp -Feserver.exe /link -incremental:no user32.lib Gdi32.lib Winmm.lib OpenGL32.lib
+cl %ServerFlags% ..\code\server\server_main.cpp -Feserver.exe /link -incremental:no Winmm.lib
 if %errorlevel% neq 0 set Result=1
 cl %ServerFlags% ..\code\server\probe_main.cpp -Feprobe.exe /link -incremental:no
 if %errorlevel% neq 0 set Result=1
