@@ -12,7 +12,9 @@
    - dash streaks: fading dots along a dashing player's path
      (player_fx/dash_streaks.cpp);
    - hit numbers: the damage each hit did, rising from the target
-     (player_fx/hit_numbers.cpp).
+     (player_fx/hit_numbers.cpp);
+   - blink preview: where a blink would land, while it is ready
+     (player_fx/blink_preview.cpp).
 
    Entry point: DrawPlayerAbilityFx, once a frame from app.cpp. */
 
@@ -21,6 +23,7 @@
 #include "player_fx/sword_arcs.cpp"
 #include "player_fx/dash_streaks.cpp"
 #include "player_fx/hit_numbers.cpp"
+#include "player_fx/blink_preview.cpp"
 
 struct player_fx
 {
@@ -50,6 +53,7 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     DrawDashStreaks(RenderContext, &Fx->Dashes, CameraOffset);
     DrawShockwaveRings(RenderContext, &Fx->Rings, CameraOffset);
     DrawSwordArcs(RenderContext, &Fx->Swords, CameraOffset);
+    DrawBlinkPreview(RenderContext, AppState, CameraOffset);
     DrawAimMarker(RenderContext, AppState, CameraOffset);
     DrawHitNumbers(RenderContext, AppState, &Fx->Hits, CameraOffset);
 }
