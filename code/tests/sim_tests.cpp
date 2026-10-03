@@ -5,6 +5,14 @@
 
 #include "../app.cpp"
 
+// Sets an environment variable for the online-session tests. "" counts as
+// unset to the game, so Windows deleting it and POSIX keeping it empty agree.
+#if defined(_WIN32)
+#define TestSetEnv(Name, Value) _putenv_s(Name, Value)
+#else
+#define TestSetEnv(Name, Value) setenv(Name, Value, 1)
+#endif
+
 global_variable int TestFailures;
 global_variable int TestChecks;
 
@@ -614,13 +622,13 @@ TestOnlineSessionStartsOnlyWithAnAddress()
     memory_arena Arena;
     InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
 
-    _putenv_s(ONLINE_ADDRESS_ENV, "");
+    TestSetEnv(ONLINE_ADDRESS_ENV, "");
     online_session *Offline = StartOnlineSession(&Arena);
     Check(!Offline->Enabled);
     Check(!IsOnline(Offline));
 
     // NOTE(zoubir): nothing listens on port 9, so it stays connecting
-    _putenv_s(ONLINE_ADDRESS_ENV, "127.0.0.1:9");
+    TestSetEnv(ONLINE_ADDRESS_ENV, "127.0.0.1:9");
     online_session *Online = StartOnlineSession(&Arena);
     Check(Online->Enabled);
     Check(Online->Client.State == NetClient_Connecting);
@@ -628,7 +636,7 @@ TestOnlineSessionStartsOnlyWithAnAddress()
     GetOnlineStatusText(Online, Status, sizeof(Status));
     Check(strcmp(Status, "Connecting to 127.0.0.1:9") == 0);
     NetClientDisconnect(&Online->Client);
-    _putenv_s(ONLINE_ADDRESS_ENV, "");
+    TestSetEnv(ONLINE_ADDRESS_ENV, "");
     free(Arena.Base);
 }
 
@@ -867,14 +875,14 @@ TestPlayerNamesFromSnapshotsAndConfig()
     Check(strcmp(Name, "Player 1") == 0);
 
     // NOTE(zoubir): GAME_NAME wins over server.txt's second line
-    _putenv_s(ONLINE_ADDRESS_ENV, "10.0.0.1:27015");
-    _putenv_s(ONLINE_NAME_ENV, "  Zoubir  ");
+    TestSetEnv(ONLINE_ADDRESS_ENV, "10.0.0.1:27015");
+    TestSetEnv(ONLINE_NAME_ENV, "  Zoubir  ");
     char Address[64], Chosen[NET_NAME_SIZE];
     Check(ReadOnlineConfig(Address, sizeof(Address), Chosen, sizeof(Chosen)));
     Check(strcmp(Address, "10.0.0.1:27015") == 0);
     Check(strcmp(Chosen, "Zoubir") == 0);
-    _putenv_s(ONLINE_ADDRESS_ENV, "");
-    _putenv_s(ONLINE_NAME_ENV, "");
+    TestSetEnv(ONLINE_ADDRESS_ENV, "");
+    TestSetEnv(ONLINE_NAME_ENV, "");
     Check(strcmp(SkipLines((char *)"1.2.3.4:5\r\nName here\n", 1), "Name here\n") == 0);
     Check(SkipLines((char *)"only one line", 1)[0] == 0);
 

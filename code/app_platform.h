@@ -32,21 +32,25 @@
 #endif
 #define COMPILER_LLVM 0
 
+// NOTE(zoubir): SSE comes from the CPU, not the compiler. x86 builds use
+// the real intrinsics; anything else (the ARM game server) gets the few
+// the sound mixer needs from engine/simd_portable.h, after app_defs.h.
 #if COMPILER_MSVC
 #include <intrin.h>
-#elif COMPILER_LLVM
-#include <x86intrin.h>
-#elif COMPILER_GCC
-#include <x86intrin.h>
 #elif COMPILER_EMSCRIPTEN
 #include <emmintrin.h>
+#elif defined(__x86_64__) || defined(__i386__)
+#include <x86intrin.h>
 #else
-#error SEE: NO optimisations are not available for this compiller
+#define APP_PORTABLE_SIMD 1
 #endif
 
 
 //#include "GL/glew.h"
 #include "app_defs.h"
+#if defined(APP_PORTABLE_SIMD)
+#include "engine/simd_portable.h"
+#endif
 
 #include "engine/opengl.h"
 

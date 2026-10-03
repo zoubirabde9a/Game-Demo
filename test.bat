@@ -22,6 +22,11 @@ if %errorlevel% neq 0 goto failed
 .\server_tests.exe
 if %errorlevel% neq 0 set Result=1
 
+cl %TestFlags% ..\code\tests\simd_tests.cpp /link -incremental:no
+if %errorlevel% neq 0 goto failed
+.\simd_tests.exe
+if %errorlevel% neq 0 set Result=1
+
 REM Short soak here; run soak_tests.exe 10 8 by hand for a long one.
 cl %TestFlags% ..\code\tests\soak_tests.cpp /link -incremental:no user32.lib Gdi32.lib Winmm.lib OpenGL32.lib
 if %errorlevel% neq 0 goto failed
