@@ -43,6 +43,9 @@ if errorlevel 1 (
 )
 :compiler_ready
 
+REM Warn (never block) when this branch changes files another agent claimed.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%Root%\misc\claims.ps1" -Base main
+
 if not exist build mkdir build
 set Attempt=0
 :again

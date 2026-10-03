@@ -34,6 +34,8 @@ Commit just that file straight to `main` (`git commit` in the main checkout, or 
 
 A claim older than a day with no commits behind it is stale. You may delete it.
 
+`misc\claims.ps1` lists the open claims with their age and warns when your branch changes a file someone else claimed (`misc\land.bat` runs it before testing). A claim counts as yours when its `who:` contains your branch name after `agent/`.
+
 ## 3. Land small and often
 
 - Rebase on `main` before you start and again before you merge: `git fetch; git rebase main`.
