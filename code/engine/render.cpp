@@ -232,6 +232,7 @@ SetupBatchRenderer(render_context *RenderContext,
     RenderContext->RendererType = RENDERER_TYPE_BATCH;
     RenderContext->AllocatedBatchCount = AllocatedBatchCount;
     RenderContext->BatchCount = 0;
+    RenderContext->BatchOpen = false;
     RenderContext->AllocatedBatches =
         AllocateArray(Arena, AllocatedBatchCount,
                              render_batch);
@@ -454,6 +455,51 @@ RenderFlush(render_context *RenderContext)
     // texture and program
 }
 
+// NOTE(zoubir): a batch pass's arrays are sized by a guess made before
+// drawing. When they cannot take VertexCount more vertices (and a new
+// batch, when NewBatch), this draws what is queued and empties them; an
+// open batch carries on at the start of the emptied arrays. A full pass
+// costs a draw call and, in a sorted pass, sort order across the break,
+// never a crash or a write past the end.
+internal void
+RenderMakeRoom(render_context *RenderContext, u32 VertexCount, bool32 NewBatch)
+{
+    if (RenderContext->RendererType != RENDERER_TYPE_BATCH)
+    {
+        return;
+    }
+    u32 BatchesNeeded = RenderContext->BatchCount +
+        ((NewBatch || RenderContext->BatchOpen) ? 1 : 0);
+    if (RenderContext->VertexCount + VertexCount <=
+        RenderContext->AllocatedVertexCount &&
+        BatchesNeeded <= RenderContext->AllocatedBatchCount)
+    {
+        return;
+    }
+
+    render_batch Open = {};
+    if (RenderContext->BatchOpen)
+    {
+        Open = RenderContext->AllocatedBatches[RenderContext->BatchCount];
+        if (Open.VertexCount > 0)
+        {
+            RenderContext->BatchCount++;
+        }
+    }
+    RenderFlush(RenderContext);
+#if APP_DEV
+    RenderContext->Began = true;
+#endif
+    RenderContext->BatchCount = 0;
+    RenderContext->VertexCount = 0;
+    if (RenderContext->BatchOpen)
+    {
+        Open.Verticies = RenderContext->AllocatedVerticies;
+        Open.VertexCount = 0;
+        RenderContext->AllocatedBatches[0] = Open;
+    }
+}
+
 inline void
 RenderVertex(render_context *RenderContext, render_vertex *Vertex)
 {
@@ -499,6 +545,7 @@ RenderQuadTexture(render_context *RenderContext, float X, float Y,
                   float Width, float Height, v4 Uvs,
                   u32 Color, float Depth)
 {
+    RenderMakeRoom(RenderContext, 6, false);
     render_vertex *Verticies =
         &RenderContext->AllocatedVerticies[RenderContext->VertexCount];
 
@@ -542,6 +589,7 @@ RenderQuadTexture(render_context *RenderContext, float X, float Y,
                   float Width, float Height, v4 Uvs,
                   u32 Color, float Depth, float Angle)
 {
+    RenderMakeRoom(RenderContext, 6, false);
     render_vertex *Verticies =
         &RenderContext->AllocatedVerticies[RenderContext->VertexCount];
 
@@ -589,6 +637,7 @@ RenderGlyph(render_context *RenderContext, float X, float Y, float Width,
               float Height, float UX, float VX, float UY, float VY,
                   u32 Color, float Depth)
 {
+    RenderMakeRoom(RenderContext, 6, false);
     render_vertex *Verticies =
         &RenderContext->AllocatedVerticies[RenderContext->VertexCount];
 
@@ -613,6 +662,7 @@ internal void
 DrawRectangle(render_context *RenderContext, float X, float Y,
               float Width, float Height, u32 Color, float SortingValue)
 {
+    RenderMakeRoom(RenderContext, 4, true);
     render_vertex *Verticies =
         &RenderContext->AllocatedVerticies[RenderContext->VertexCount];
     if (RenderContext->RendererType == RENDERER_TYPE_BATCH)
@@ -640,10 +690,10 @@ DrawFilledRectangle(render_context *RenderContext, float X, float Y,
 {
     if (RenderContext->RendererType == RENDERER_TYPE_BATCH)
     {
-        u32 BatchIndex = RenderContext->BatchCount;
         DrawRectangle(RenderContext, X, Y, Width, Height,
                       Color, SortingValue);
-        RenderContext->AllocatedBatches[BatchIndex].Type =
+        // NOTE(zoubir): read after drawing, which may have flushed
+        RenderContext->AllocatedBatches[RenderContext->BatchCount - 1].Type =
             RENDER_BATCH_TYPE_FILLED_RECTANGLE;
     }
 }
@@ -653,6 +703,7 @@ DrawRectangle3D(render_context *RenderContext, float X, float Y,
                 float Width, float Height, float Depth,
                 u32 Color, float SortingValue)
 {
+    RenderMakeRoom(RenderContext, 13, true);
     render_vertex *Verticies =
         &RenderContext->AllocatedVerticies[RenderContext->VertexCount];
     if (RenderContext->RendererType == RENDERER_TYPE_BATCH)
@@ -700,8 +751,10 @@ BeginBatch(render_context *RenderContext, u32 Texture, float SortingValue,
            render_program Program)
 {
     Assert(RenderContext->RendererType == RENDERER_TYPE_BATCH);
-    Assert(RenderContext->BatchCount < RenderContext->AllocatedBatchCount);
-    
+    Assert(!RenderContext->BatchOpen);
+    RenderMakeRoom(RenderContext, 0, true);
+    RenderContext->BatchOpen = true;
+
     render_vertex *Verticies =
         &RenderContext->AllocatedVerticies[RenderContext->VertexCount];
     render_batch *NewBatch =
@@ -718,6 +771,7 @@ inline void
 EndBatch(render_context *RenderContext)
 {
     Assert(RenderContext->RendererType == RENDERER_TYPE_BATCH);
+    RenderContext->BatchOpen = false;
     RenderContext->BatchCount++;
 }
 
@@ -830,10 +884,13 @@ inline void
 RenderText(render_context *RenderContext, float X, float Y,
            float Width, float Height, v4 Clip, font *Font, render_program Program,
            char *Text, u32 Justification, u32 Color, float Depth)
-{    
-    Y += Height;
+{
+    // NOTE(zoubir): the line is centred in the box. The glyph pass takes
+    // the bottom of the line and lifts the baseline by LowerLimit, so
+    // tall letters and descenders (g, y) both stay inside the clip
     float TextWidth = GetTextWidth(Font, Text);
     float FontHeight = Font->UpperLimit + Font->LowerLimit;
+    Y += 0.5f * (Height + FontHeight);
     #if 0
     float ScaleX = Width / TextWidth;
     float ScaleY = Height / FontHeight;

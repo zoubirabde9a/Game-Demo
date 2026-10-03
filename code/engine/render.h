@@ -131,6 +131,9 @@ struct render_context
             render_vertex *TemporaryVerticies;
             u32 AllocatedBatchCount;
             u32 BatchCount;
+            // NOTE(zoubir): between BeginBatch and EndBatch; the open
+            // batch sits at AllocatedBatches[BatchCount]
+            bool32 BatchOpen;
         };
     };
 
