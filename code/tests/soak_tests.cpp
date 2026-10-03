@@ -444,7 +444,8 @@ TestOverlapsAreSeparated()
 }
 
 // Usage: soak_tests [minutes] [seeds] [map]. With no map, the seeds play
-// the Old Arena and one more seed plays each infinite map.
+// the Old Arena and one more seed plays each other map, so a hand-made map
+// is soaked as well as the infinite ones.
 int
 main(int ArgCount, char **Args)
 {
@@ -462,7 +463,7 @@ main(int ArgCount, char **Args)
     {
         for (u32 MapIndex = 0; MapIndex < MapId_Count; ++MapIndex)
         {
-            if (GetMapDef((map_id)MapIndex)->Kind != MapKind_Infinite) continue;
+            if (MapIndex == MapId_Arena) continue;
             SoakOneSeed(Seeds + 1, Minutes, MapIndex);
         }
     }
