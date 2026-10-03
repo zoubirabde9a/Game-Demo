@@ -426,6 +426,11 @@ RenderFlush(render_context *RenderContext)
                         OpenGL->glDrawArrays(GL_LINE_LOOP, 0, (GLsizei)CurrentBatch->VertexCount);
                         break;
                     }
+                    case RENDER_BATCH_TYPE_FILLED_RECTANGLE:
+                    {
+                        OpenGL->glDrawArrays(GL_TRIANGLE_FAN, 0, (GLsizei)CurrentBatch->VertexCount);
+                        break;
+                    }
                 }
             }            
 #endif
@@ -612,6 +617,21 @@ DrawRectangle(render_context *RenderContext, float X, float Y,
         RenderVertex(RenderContext, X, Y + Height, Depth, Color);
         NewBatch->VertexCount = 4;
         RenderContext->BatchCount++;
+    }
+}
+
+// NOTE(zoubir): same as DrawRectangle, but filled instead of outlined
+internal void
+DrawFilledRectangle(render_context *RenderContext, float X, float Y,
+                    float Width, float Height, u32 Color, float SortingValue)
+{
+    if (RenderContext->RendererType == RENDERER_TYPE_BATCH)
+    {
+        u32 BatchIndex = RenderContext->BatchCount;
+        DrawRectangle(RenderContext, X, Y, Width, Height,
+                      Color, SortingValue);
+        RenderContext->AllocatedBatches[BatchIndex].Type =
+            RENDER_BATCH_TYPE_FILLED_RECTANGLE;
     }
 }
 

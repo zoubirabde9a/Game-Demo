@@ -24,6 +24,7 @@
 #include "sim/spawn.cpp"
 #include "sim/update.cpp"
 #include "sim/draw.cpp"
+#include "ui/hud.cpp"
 
 #include "app_ui.h"
 
@@ -491,6 +492,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
         world_entity *Player = AddPlayer(AppState, World,
                                          MemoryArena, {350, 300});
         AppState->Player = Player;
+        AppState->PlayerSpawnPosition = Player->Position;
         
         #if 1
         world_entity *Familiar =
@@ -772,6 +774,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
                              &AnimationSpeedRate,
                              &AnimationType,
                              &AnimationDirection);
+                RespawnPlayerIfDead(ThisEntity, World, MemoryArena, AppState);
 
                 DoEntityAnimation(ThisEntity, Assets, AppState,
                                   Input->DeltaTime, AnimationSpeedRate,
@@ -917,6 +920,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     u32 NumberOfElements = 200;
     UIBegin(RenderContext, TransientArena, Input, AppState,
             UIContext, NumberOfElements, 4);
+    DrawHud(RenderContext, AppState);
     if (AppState->TileEditing)
     {
         float ContainerWidth = 300;

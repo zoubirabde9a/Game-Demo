@@ -478,7 +478,13 @@ UpdateMonster(world_entity *Entity, world *World,
 {
     float AggroRange = 320.f;
     float StopRange = 40.f;
+    float AttackRange = 52.f;
+    float AttackDamage = 10.f;
+    float AttackInterval = 1.f;
     float MonsterAcceleration = 28000.f;
+
+    Entity->AttackCooldown = Maximum(0.f, Entity->AttackCooldown -
+                                     Input->DeltaTime);
 
     *AnimationType = AnimationType_Stand;
     *AnimationDirection =
@@ -491,6 +497,13 @@ UpdateMonster(world_entity *Entity, world *World,
     {
         v2 ToTarget = Target->Position.XY - Entity->Position.XY;
         float DistanceToTarget = Length(ToTarget);
+        if (DistanceToTarget < AttackRange &&
+            Entity->AttackCooldown <= 0.f)
+        {
+            Target->Hp -= AttackDamage;
+            Entity->AttackCooldown = AttackInterval;
+        }
+
         if (DistanceToTarget < AggroRange &&
             DistanceToTarget > StopRange)
         {
@@ -519,6 +532,23 @@ UpdateMonster(world_entity *Entity, world *World,
     float MaxDistance = 10000.f;
     MoveEntity(Entity, World, Arena, Input, AppState,
                DDEntity, &MaxDistance);
+}
+
+// NOTE(zoubir): the player is never removed, it goes back to the spawn
+// point with full health so nothing holding AppState->Player dangles
+internal void
+RespawnPlayerIfDead(world_entity *Player, world *World,
+                    memory_arena *Arena, app_state *AppState)
+{
+    if (Player->Hp <= 0.f)
+    {
+        v3 OldPosition = Player->Position;
+        Player->Position = AppState->PlayerSpawnPosition;
+        Player->Velocity = {};
+        Player->Hp = Player->MaxHp;
+        CheckAndChangeEntityChunk(AppState, World, Arena,
+                                  OldPosition, Player);
+    }
 }
 
 internal void

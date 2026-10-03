@@ -137,6 +137,9 @@ struct world_entity
 
     //Monster && Player
     float Hp;
+    float MaxHp;
+    // NOTE(zoubir): seconds until a monster can hit again
+    float AttackCooldown;
     
     u32 UpdateID;
     

@@ -139,14 +139,14 @@ DrawEntity(render_context *RenderContext,
         }
         {
             // Hp
-            if (Entity->Hp > 0.f && Entity->Hp <= 100.f)
+            if (Entity->MaxHp > 0.f && Entity->Hp > 0.f)
             {
                 DrawRectangle(RenderContext,
                               EntityTexturePosition.X +
                               Entity->Dimensions.X * 0.25f,
                               EntityTexturePosition.Y -
                               10,
-                              (Entity->Hp / 100.f) *
+                              (Entity->Hp / Entity->MaxHp) *
                               (Entity->Dimensions.X * 0.5f),
                               1,
                               RGBA8_WHITE, SortingValue);

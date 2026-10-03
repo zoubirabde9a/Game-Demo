@@ -63,7 +63,8 @@ struct render_vertex
 enum render_batch_type
 {
     RENDER_BATCH_TYPE_TEXTURE,
-    RENDER_BATCH_TYPE_RECTANGLE
+    RENDER_BATCH_TYPE_RECTANGLE,
+    RENDER_BATCH_TYPE_FILLED_RECTANGLE
 };
 
 struct render_program

@@ -47,6 +47,7 @@ typedef ptrdiff_t GLintptr;
 #define GL_TRUE                           1
 #define GL_TRIANGLES                      4
 #define GL_LINE_LOOP                      2
+#define GL_TRIANGLE_FAN                   6
 #define GL_LINEAR                         9729
 #define GL_REPEAT                         10497
 #define GL_RGBA                           6408

@@ -97,6 +97,7 @@ struct app_state
     u32 UpdateID;
     
     world_entity *Player;
+    v3 PlayerSpawnPosition;
 
     v3 TargetCamera;
     v3 CameraOffset;

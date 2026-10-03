@@ -18,6 +18,8 @@ AddPlayer(app_state *AppState,
     Player->Texture = {AssetType_Zoubir};
     Player->ShadowTexture = {AssetType_Shadow};
     Player->Direction = {0, -1};
+    Player->MaxHp = 100.f;
+    Player->Hp = Player->MaxHp;
 //    Player->TextureOrigin = {0.5f, 0.875f};
 
     
@@ -241,7 +243,8 @@ AddMonster(app_state *AppState,
     Entity->Texture = {AssetType_Zoubir};
     Entity->ShadowTexture = {AssetType_Shadow};
 //    Entity->TextureOrigin = {0.5f, 0.875f};
-    Entity->Hp = 100.f;
+    Entity->MaxHp = 100.f;
+    Entity->Hp = Entity->MaxHp;
     
     Entity->AnimationSet = &AppState->ZoubirAnimationSet;
         
