@@ -57,6 +57,7 @@ NetClientHandle(net_client *Client, net_packet *Packet)
             {
                 Client->State = NetClient_Connected;
                 Client->PlayerIndex = Packet->ConnectAccepted.PlayerIndex;
+                Client->MapId = Packet->ConnectAccepted.MapId;
                 Client->InputTick = Packet->ConnectAccepted.ServerTick;
             }
         } break;

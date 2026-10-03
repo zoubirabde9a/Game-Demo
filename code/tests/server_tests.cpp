@@ -69,6 +69,46 @@ SendInput(test_client *Client, u32 Tick, u16 Buttons)
     ClientSend(Client, &Input);
 }
 
+// NOTE(zoubir): a server started on another map tells the client which,
+// and a client rebuilding its world from that id gets the same ground
+internal void
+TestServerSendsItsMap()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0, MapId_Wastes));
+    Check(Server.Game.AppState->World.MapId == MapId_Wastes);
+    Check(Server.Game.AppState->World.Unbounded);
+    test_client Client = {NetOpenSocket(0), {0x7f000001, NetSocketPort(&Server.Socket)}, 0};
+    static net_packet Reply;
+    net_packet Request = {};
+    Request.Header.Type = NetPacket_ConnectRequest;
+    Request.ConnectRequest.ClientSalt = 91;
+    ClientSend(&Client, &Request);
+    Check(TickUntil(&Server, &Client, NetPacket_ConnectAccepted, &Reply));
+    Check(Reply.ConnectAccepted.MapId == MapId_Wastes);
+
+    // NOTE(zoubir): the joining side, as client/online.cpp does it
+    app_state *Joiner = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(64);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    InitSimulation(Joiner, &Arena, &Constants);
+    Check(Joiner->World.MapId == MapId_Arena);
+    RebuildWorldForMap(Joiner, &Arena, Reply.ConnectAccepted.MapId);
+    Check(Joiner->World.MapId == MapId_Wastes);
+    Check(Joiner->World.Unbounded);
+    Check(Joiner->Monsters != 0);
+    v3 Spawn = PlayerSpawnPosition(&Joiner->World, 0);
+    Check(Spawn.X == PlayerSpawnPosition(&Server.Game.AppState->World, 0).X);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(Joiner);
+
+    NetCloseSocket(&Client.Socket);
+    ServerStop(&Server);
+}
+
 internal void
 TestJoinMoveAndLeave()
 {
@@ -799,6 +839,7 @@ main()
         return 1;
     }
     TestJoinMoveAndLeave();
+    TestServerSendsItsMap();
     TestQuietClientTimesOut();
     TestClientConnectsAndMoves();
     TestSnapshotPrefersWhatIsNear();

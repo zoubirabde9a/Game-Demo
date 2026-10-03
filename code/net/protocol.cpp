@@ -93,6 +93,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
             NetU32(S, &P->ConnectAccepted.ClientSalt);
             NetU8(S, &P->ConnectAccepted.PlayerIndex);
             NetU32(S, &P->ConnectAccepted.ServerTick);
+            NetU8(S, &P->ConnectAccepted.MapId);
         } break;
 
         case NetPacket_ConnectDenied:

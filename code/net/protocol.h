@@ -17,7 +17,7 @@
 
 #include "../app_defs.h"
 
-#define NET_PROTOCOL_ID 0x47444d38u // "GDM8", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d39u // "GDM9", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -114,7 +114,9 @@ struct net_ability_state
 // ContentId: the client build's SimContentId(); 0 for tools such as the
 // health probe, which never read snapshot contents.
 struct net_connect_request { u32 ClientSalt; u32 ContentId; char Name[NET_NAME_SIZE]; };
-struct net_connect_accepted { u32 ClientSalt; u8 PlayerIndex; u32 ServerTick; };
+// NOTE(zoubir): MapId is the server's map_id; the client builds the same
+// ground from it (terrain never crosses the wire)
+struct net_connect_accepted { u32 ClientSalt; u8 PlayerIndex; u32 ServerTick; u8 MapId; };
 struct net_connect_denied { u32 ClientSalt; u8 Reason; };
 
 struct net_input_batch

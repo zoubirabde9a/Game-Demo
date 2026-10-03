@@ -293,6 +293,50 @@ FindMapByName(char *Name, map_id Fallback)
     return Fallback;
 }
 
+internal u32 HashTerrainRegion(map_def *Map, i32 MinX, i32 MinY, i32 Size);
+
+// NOTE(zoubir): a fingerprint of every map and terrain rule, for the
+// client/server build check: the terrain table, each map's kind, size and
+// layout text, and a patch of ground from each infinite map, so a change
+// to a generator or a layout turns away clients built before it
+internal u32
+ComputeTerrainContentHash()
+{
+    u32 Hash = 2166136261u;
+    for(u32 Kind = 0; Kind < TerrainKind_Count; Kind++)
+    {
+        terrain_def *Def = GetTerrainDef((terrain_kind)Kind);
+        u32 Parts[] = {(u32)Def->Blocks, (u32)(Def->SpeedScale * 1000.f),
+                       (u32)(Def->Friction * 1000.f), (u32)Def->StandStatus,
+                       (u32)(Def->StandStatusSeconds * 1000.f)};
+        for(u32 Part = 0; Part < ArrayCount(Parts); Part++)
+        {
+            Hash = (Hash ^ Parts[Part]) * 16777619u;
+        }
+    }
+    for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
+    {
+        map_def *Map = GetMapDef((map_id)MapIndex);
+        Hash = (Hash ^ (u32)Map->Kind) * 16777619u;
+        Hash = (Hash ^ Map->Seed) * 16777619u;
+        if (Map->Kind == MapKind_Bounded)
+        {
+            for(u32 Row = 0; Row < Map->Height; Row++)
+            {
+                for(char *C = Map->Layout[Row]; *C; C++)
+                {
+                    Hash = (Hash ^ (u8)*C) * 16777619u;
+                }
+            }
+        }
+        else
+        {
+            Hash = (Hash ^ HashTerrainRegion(Map, -16, -16, 32)) * 16777619u;
+        }
+    }
+    return Hash;
+}
+
 // NOTE(zoubir): a fingerprint of the ground over a square of tiles; the
 // tests pin it so a compiler or code change that moves terrain is caught
 internal u32

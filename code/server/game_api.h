@@ -10,7 +10,7 @@
 
 struct server_game;
 
-internal void GameInit(server_game *Game);
+internal void GameInit(server_game *Game, u32 MapId = 0);
 internal void GameShutdown(server_game *Game);
 // Fingerprint of the content clients must share; see SimContentId.
 internal u32 GameContentId(server_game *Game);

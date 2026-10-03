@@ -13,7 +13,8 @@ internal u32
 SimContentId()
 {
     u32 Parts[] = {EntityType_Count, MonsterKind_Count, StatusEffect_Count,
-                   MAX_PLAYERS, ComputeMonsterTableHash()};
+                   MAX_PLAYERS, ComputeMonsterTableHash(),
+                   MapId_Count, ComputeTerrainContentHash()};
     u32 Hash = 2166136261u; // FNV-1a
     u8 *Bytes = (u8 *)Parts;
     for(u32 Index = 0; Index < sizeof(Parts); Index++)
@@ -36,4 +37,34 @@ InitSimulation(app_state *AppState, memory_arena *MemoryArena,
         CreateMonsterPopulation(MemoryArena, MONSTER_POPULATION, 1337);
     FillMonsterPopulation(AppState, &AppState->World, MemoryArena,
                           AppState->Monsters);
+}
+
+// NOTE(zoubir): throws the world away and builds it again for MapId, with
+// no players and no monsters in it. The client calls it when it joins a
+// server playing another map; the replicas then fill the world from the
+// server's snapshots. Entity slots start again from 0, so every pairwise
+// collision rule (keyed by slot) goes too
+internal void
+RebuildWorldForMap(app_state *AppState, memory_arena *Arena, u32 MapId)
+{
+    for(u32 Bucket = 0; Bucket < ArrayCount(AppState->CollisionRuleHash); Bucket++)
+    {
+        while (AppState->CollisionRuleHash[Bucket])
+        {
+            pairwise_collision_rule *Rule = AppState->CollisionRuleHash[Bucket];
+            AppState->CollisionRuleHash[Bucket] = Rule->Next;
+            Rule->Next = AppState->FirstFreeCollisionRule;
+            AppState->FirstFreeCollisionRule = Rule;
+        }
+    }
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        AppState->Players[SlotIndex].Entity = 0;
+        AppState->Players[SlotIndex].Active = false;
+    }
+    ZeroSize(&AppState->World, sizeof(AppState->World));
+    AppState->World.MapId = MapId < MapId_Count ? MapId : MapId_Arena;
+    BuildArena(AppState, Arena);
+    AppState->Monsters =
+        CreateMonsterPopulation(Arena, MONSTER_POPULATION, 1337);
 }

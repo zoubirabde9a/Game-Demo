@@ -1,10 +1,13 @@
-/* Entry point of the dedicated server. Usage: server [port]
+/* Entry point of the dedicated server. Usage: server [port] [--map <name>]
    Runs ServerTick SERVER_TICK_RATE times a second until Ctrl+C or a
-   service stop, then tells every player it is closing and exits 0.
+   service stop, then tells every player it is closing and exits 0. The
+   map is any map's name or its last word ("keep", "wilds", "ashen
+   wastes"); players who join get it in the connect reply.
    Build with build_server.bat (Windows) or build_server.sh (Linux). */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "server.cpp"
 #include "platform/clock.cpp"
 #include "platform/stop_signal.cpp"
@@ -13,12 +16,29 @@ int
 main(int ArgCount, char **Args)
 {
     u16 Port = SERVER_DEFAULT_PORT;
-    if (ArgCount > 1)
+    u32 MapId = MapId_Arena;
+    for (int Arg = 1; Arg < ArgCount; ++Arg)
     {
-        int Parsed = atoi(Args[1]);
+        if (strcmp(Args[Arg], "--map") == 0 && Arg + 1 < ArgCount)
+        {
+            map_id Found = FindMapByName(Args[++Arg], MapId_Count);
+            if (Found == MapId_Count)
+            {
+                fprintf(stderr, "unknown map \"%s\"; maps:", Args[Arg]);
+                for (u32 Index = 0; Index < MapId_Count; ++Index)
+                {
+                    fprintf(stderr, " \"%s\"", GetMapDef((map_id)Index)->Name);
+                }
+                fprintf(stderr, "\n");
+                return 1;
+            }
+            MapId = Found;
+            continue;
+        }
+        int Parsed = atoi(Args[Arg]);
         if (Parsed <= 0 || Parsed > 65535)
         {
-            fprintf(stderr, "usage: server [port]\n");
+            fprintf(stderr, "usage: server [port] [--map <name>]\n");
             return 1;
         }
         Port = (u16)Parsed;
@@ -31,7 +51,7 @@ main(int ArgCount, char **Args)
     }
 
     static server Server;
-    if (!ServerStart(&Server, Port))
+    if (!ServerStart(&Server, Port, MapId))
     {
         fprintf(stderr, "could not open UDP port %u\n", Port);
         return 1;
@@ -39,8 +59,9 @@ main(int ArgCount, char **Args)
     Server.Logging = true;
     StopSignalInstall();
     // The content id tells which game build this is; clients must match it.
-    printf("server listening on UDP port %u at %d ticks/s, content id %08x\n",
-           Port, SERVER_TICK_RATE, Server.Clients.ContentId);
+    printf("server listening on UDP port %u at %d ticks/s, content id %08x, map %s\n",
+           Port, SERVER_TICK_RATE, Server.Clients.ContentId,
+           GetMapDef((map_id)MapId)->Name);
     fflush(stdout);
 
     double TickSeconds = 1.0 / SERVER_TICK_RATE;

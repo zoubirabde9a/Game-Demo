@@ -30,6 +30,7 @@ struct net_client_slot
 struct net_server_clients
 {
     u32 ContentId; // the server build's SimContentId(); clients must match or send 0
+    u8 MapId;      // the map the server plays, told to every client it accepts
     net_client_slot Slots[NET_MAX_CLIENTS];
 };
 

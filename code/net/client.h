@@ -41,6 +41,7 @@ struct net_client
     net_client_state State;
     net_client_end EndReason;
     u8 PlayerIndex;        // our slot on the server, valid once connected
+    u8 MapId;              // the server's map_id, valid once connected
 
     bool32 HasSnapshot;
     net_snapshot Snapshot; // newest world state from the server

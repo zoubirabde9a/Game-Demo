@@ -21,7 +21,7 @@ struct server_game
 };
 
 internal void
-GameInit(server_game *Game)
+GameInit(server_game *Game, u32 MapId)
 {
     // app_state is large and the arena lives right after it, as in the client.
     void *Memory = calloc(1, SIM_GAME_MEMORY);
@@ -30,6 +30,7 @@ GameInit(server_game *Game)
     InitializeArena(&AppState->MemoryArena, (memory_index *)(AppState + 1),
                     SIM_GAME_MEMORY - sizeof(app_state));
     SubArena(&AppState->ConstantsArena, &AppState->MemoryArena, Kilobytes(64));
+    AppState->World.MapId = MapId;
     InitSimulation(AppState, &AppState->MemoryArena, &AppState->ConstantsArena);
     AppState->IsInitialized = true;
 

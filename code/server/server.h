@@ -44,7 +44,8 @@ struct server
 };
 
 // Opens the socket. Port 0 picks a free one (tests use this).
-internal bool32 ServerStart(server *Server, u16 Port);
+// MapId picks the map (sim/maps/); 0 is the Old Arena.
+internal bool32 ServerStart(server *Server, u16 Port, u32 MapId = 0);
 internal void ServerTick(server *Server);
 // The caller times each ServerTick and reports it here.
 internal void ServerRecordTick(server *Server, double Seconds, bool32 Late);

@@ -26,13 +26,15 @@ NetServerStampHeader(net_client_slot *Slot, net_packet *Packet, u8 Type)
 }
 
 internal void
-NetFillAccepted(net_client_slot *Slot, u32 SlotIndex, u32 ServerTick, net_receive_result *Result)
+NetFillAccepted(net_client_slot *Slot, u32 SlotIndex, u32 ServerTick, u8 MapId,
+                net_receive_result *Result)
 {
     Result->HasReply = true;
     NetServerStampHeader(Slot, &Result->Reply, NetPacket_ConnectAccepted);
     Result->Reply.ConnectAccepted.ClientSalt = Slot->Salt;
     Result->Reply.ConnectAccepted.PlayerIndex = (u8)SlotIndex;
     Result->Reply.ConnectAccepted.ServerTick = ServerTick;
+    Result->Reply.ConnectAccepted.MapId = MapId;
 }
 
 internal net_receive_result
@@ -63,7 +65,7 @@ NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Pack
             Slot->SecondsSinceHeard = 0;
             Result.Event = NetReceive_Rejoined;
             Result.SlotIndex = SlotIndex;
-            NetFillAccepted(Slot, SlotIndex, ServerTick, &Result);
+            NetFillAccepted(Slot, SlotIndex, ServerTick, Clients->MapId, &Result);
             return Result;
         }
 
@@ -100,7 +102,7 @@ NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Pack
         {
             Result.Name[Index] = Packet->ConnectRequest.Name[Index];
         }
-        NetFillAccepted(Slot, SlotIndex, ServerTick, &Result);
+        NetFillAccepted(Slot, SlotIndex, ServerTick, Clients->MapId, &Result);
         return Result;
     }
 

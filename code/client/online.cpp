@@ -298,6 +298,14 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
     if (IsOnline(Online) && Online->Client.HasSnapshot)
     {
         net_snapshot *Snapshot = &Online->Client.Snapshot;
+        // NOTE(zoubir): joining a server on another map: build its ground
+        // first. Terrain is never sent, both sides generate it from the id
+        if (!Online->Replicas.Active &&
+            Online->Client.MapId != AppState->World.MapId)
+        {
+            RebuildWorldForMap(AppState, Arena, Online->Client.MapId);
+            Online->Replicas = {};
+        }
         bool32 NewSnapshot = !Online->Replicas.Active ||
             Snapshot->Tick != Online->Replicas.LastAppliedTick;
         SyncReplicas(AppState, Arena, &Online->Replicas, Snapshot, DeltaTime,

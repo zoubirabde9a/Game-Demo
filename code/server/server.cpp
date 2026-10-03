@@ -76,13 +76,15 @@ ServerFormatStats(server *Server, double IntervalSeconds, char *Out, u32 OutSize
 #define ADDRESS_FORMAT "%u.%u.%u.%u:%u"
 #define ADDRESS_ARGS(A) (A).Ip >> 24, ((A).Ip >> 16) & 255, ((A).Ip >> 8) & 255, (A).Ip & 255, (A).Port
 
+// NOTE(zoubir): MapId picks the map (sim/maps/); 0 is the Old Arena
 internal bool32
-ServerStart(server *Server, u16 Port)
+ServerStart(server *Server, u16 Port, u32 MapId)
 {
     *Server = {};
     Server->Socket = NetOpenSocket(Port);
-    GameInit(&Server->Game);
+    GameInit(&Server->Game, MapId);
     Server->Clients.ContentId = GameContentId(&Server->Game);
+    Server->Clients.MapId = (u8)Server->Game.AppState->World.MapId;
     return Server->Socket.Open;
 }
 

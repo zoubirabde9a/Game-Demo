@@ -25,7 +25,7 @@ Goal: four maps. Two are procedural and infinite: the ground is generated around
 - [x] 4. Terrain drives collision and drawing: blocking terrain stops units (replacing the wall entities around the border); the client draws ground tiles from `TerrainAt` for the visible area, so infinite maps draw without a stored tile array.
 - [x] 5. Streaming (done without streaming entities): as players move, chunks around them generate their props (trees, rocks, ruins) deterministically and far chunks unload theirs. The monster population spawns in a ring around players on infinite maps instead of anywhere on the map.
 - [x] 6. Terrain rules on units: mud and snow slow, ice slides, lava burns, shallow water slows, deep water and rock walls block.
-- [ ] 7. The four maps playable, chosen at server start (`--map`), sent in the handshake, with per-map monster spawn weights.
+- [x] 7. The four maps playable, chosen at server start (`--map`), sent in the handshake, with per-map monster spawn weights.
 - [ ] 8. Soak on an infinite map with players walking far apart, checking chunk counts stay bounded and nobody ends inside blocking terrain.
 
 ## How infinite maps stay cheap
