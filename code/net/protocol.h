@@ -17,6 +17,8 @@
 
 #include "../app_defs.h"
 
+// TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
+// change and this does not.
 #define NET_PROTOCOL_ID 0x47444d42u // "GDMB", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8

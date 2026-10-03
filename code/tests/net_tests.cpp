@@ -588,6 +588,80 @@ TestLoopbackPacket()
     NetSocketsShutdown();
 }
 
+// The wire layout is pinned: one packet of every type, with every field
+// set, is written and its bytes hashed. A change to what goes on the wire
+// must come with a new NET_PROTOCOL_ID, or old and new builds would
+// accept each other and misread every packet. When this fails, bump
+// NET_PROTOCOL_ID in protocol.h (if you have not), then copy the two
+// printed values into NET_GOLDEN_PROTOCOL_ID and NET_GOLDEN_LAYOUT below.
+// Changing only the test packets (FullSnapshot) also moves the hash;
+// then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
+// that both change the layout conflict on these lines, which is the point.
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d42u
+#define NET_GOLDEN_LAYOUT 0xb020a76bu
+
+internal u32
+HashBytes(u32 Hash, u8 *Bytes, u32 Count)
+{
+    for (u32 Index = 0; Index < Count; ++Index)
+    {
+        Hash = (Hash ^ Bytes[Index]) * 16777619u;
+    }
+    return Hash;
+}
+
+internal void
+TestWireLayoutIsPinned()
+{
+    static net_packet Packets[6];
+    for (u32 Index = 0; Index < 6; ++Index) Packets[Index] = {};
+    Packets[0].Header = {NetPacket_ConnectRequest, 1, 2};
+    Packets[0].ConnectRequest.ClientSalt = 0x12345678;
+    Packets[0].ConnectRequest.ContentId = 0x9abcdef0;
+    snprintf(Packets[0].ConnectRequest.Name, NET_NAME_SIZE, "%s", "Layout");
+    Packets[1].Header = {NetPacket_ConnectAccepted, 3, 4};
+    Packets[1].ConnectAccepted.ClientSalt = 0x12345678;
+    Packets[1].ConnectAccepted.PlayerIndex = 5;
+    Packets[1].ConnectAccepted.ServerTick = 777;
+    Packets[1].ConnectAccepted.MapId = 2;
+    Packets[2].Header = {NetPacket_ConnectDenied, 5, 6};
+    Packets[2].ConnectDenied.ClientSalt = 0x12345678;
+    Packets[2].ConnectDenied.Reason = 1;
+    Packets[3].Header = {NetPacket_Disconnect, 7, 8};
+    Packets[4].Header = {NetPacket_Input, 9, 10};
+    Packets[4].Input.Count = NET_MAX_INPUTS_PER_PACKET;
+    for (u32 Index = 0; Index < NET_MAX_INPUTS_PER_PACKET; ++Index)
+    {
+        Packets[4].Input.Inputs[Index].Tick = 100 - Index;
+        Packets[4].Input.Inputs[Index].Buttons = (u16)(0x101 * Index);
+        Packets[4].Input.Inputs[Index].AimX = 0.25f;
+        Packets[4].Input.Inputs[Index].AimY = -0.5f;
+    }
+    Packets[5] = FullSnapshot();
+
+    u32 Hash = 2166136261u;
+    for (u32 Index = 0; Index < 6; ++Index)
+    {
+        static u8 Buffer[NET_MAX_PACKET_SIZE];
+        u32 Size = NetWritePacket(&Packets[Index], Buffer, sizeof(Buffer));
+        Check(Size > 0);
+        Hash = HashBytes(Hash, (u8 *)&Size, sizeof(Size));
+        Hash = HashBytes(Hash, Buffer, Size);
+    }
+    bool32 Pinned = (NET_PROTOCOL_ID == NET_GOLDEN_PROTOCOL_ID &&
+                     Hash == NET_GOLDEN_LAYOUT);
+    if (!Pinned)
+    {
+        if (NET_PROTOCOL_ID == NET_GOLDEN_PROTOCOL_ID)
+        {
+            printf("  the wire layout changed but NET_PROTOCOL_ID did not: bump it in protocol.h\n");
+        }
+        printf("  then set NET_GOLDEN_PROTOCOL_ID 0x%08xu and NET_GOLDEN_LAYOUT 0x%08xu in net_tests.cpp\n",
+               NET_PROTOCOL_ID, Hash);
+    }
+    Check(Pinned);
+}
+
 int
 main()
 {
@@ -607,6 +681,7 @@ main()
     TestClientsLeaveAndTimeOut();
     TestParseAddress();
     TestLoopbackPacket();
+    TestWireLayoutIsPinned();
 
     printf("net tests: %d checks, %d failed\n", TestChecks, TestFailures);
     return TestFailures ? 1 : 0;
