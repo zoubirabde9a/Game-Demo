@@ -280,11 +280,16 @@ DamageEntity(app_state *AppState, world *World,
             Attacker->MonsterKills++;
         }
     }
-    else if (Target->Type == EntityType_Player &&
-             Attacker &&
-             Attacker != &AppState->Players[Target->PlayerIndex])
+    else if (Target->Type == EntityType_Player)
     {
-        Attacker->Kills++;
+        player_slot *Victim = &AppState->Players[Target->PlayerIndex];
+        Victim->Deaths++;
+        Victim->RespawnTimer = PLAYER_RESPAWN_SECONDS;
+        Target->Velocity = {};
+        if (Attacker && Attacker != Victim)
+        {
+            Attacker->Kills++;
+        }
     }
     return true;
 }
@@ -598,6 +603,7 @@ MoveEntity(world_entity *Entity, world *World,
                         {
                             world_entity *ThisEntity = EntityChunk->Entities[EntityIndex];
                             if ((ThisEntity != Entity) &&
+                                !IsDeadPlayer(ThisEntity) &&
                                 CanCollide(AppState, Entity, ThisEntity) &&
                                 CanCollide(AppState, Entity->Type,
                                            ThisEntity->Type))
@@ -785,6 +791,7 @@ for(u32 EntityIndex = 0;
     world_entity *TestEntity = &World->Entities[EntityIndex];
     if (TestEntity != Entity &&
         TestEntity->IsPresent &&
+        !IsDeadPlayer(TestEntity) &&
         CanCollide(AppState, Entity->Type, TestEntity->Type) &&
         CanCollide(AppState, Entity, TestEntity))
     {

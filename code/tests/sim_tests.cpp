@@ -430,9 +430,12 @@ TestSwordHitsOtherPlayerNotOwner()
     Check(Victim->Hp <= 0.f);
     Check(AppState->Players[0].Kills == 1);
 
-    RespawnPlayerIfDead(&AppState->Players[1], Test.World, &Test.Arena,
-                        AppState);
     Check(AppState->Players[1].Deaths == 1);
+    for(u32 Frame = 0; Frame < (u32)(PLAYER_RESPAWN_SECONDS * 60.f) + 2; Frame++)
+    {
+        UpdateDeadPlayer(&AppState->Players[1], Test.World, &Test.Arena,
+                         AppState, 1.f / 60.f);
+    }
     Check(Victim->Hp == Victim->MaxHp);
     Check(Victim->Position.X == 330.f);
     DestroyTestWorld(&Test);
@@ -522,6 +525,65 @@ TestMonsterBiteCreditsNobody()
         Check(AppState->Players[SlotIndex].Kills == 0);
     }
     DestroyTestWorld(&Test);
+}
+
+internal void
+TestDeadPlayerIsInertUntilRespawn()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Dead = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                         0, {400, 300, 0});
+    world_entity *Walker = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           1, {300, 300, 0});
+    DamageEntity(AppState, Test.World, Dead, 1000.f, Walker);
+    Check(IsDeadPlayer(Dead));
+    Check(AppState->Players[0].Deaths == 1);
+    Check(AppState->Players[1].Kills == 1);
+
+    // NOTE(zoubir): monsters ignore the body
+    float Distance;
+    Check(FindNearestPlayer(AppState, V2(410.f, 300.f), &Distance) == Walker);
+    // NOTE(zoubir): the body neither blocks nor takes more hits
+    Walk(&Test, Walker, {1, 0}, 120);
+    Check(Walker->Position.X > 430.f);
+    Check(TriggerShockwave(AppState, Test.World, Walker) == 0);
+    Check(AppState->Players[0].Deaths == 1);
+
+    float DeltaTime = 1.f / 60.f;
+    u32 Frames = (u32)(PLAYER_RESPAWN_SECONDS * 60.f) - 10;
+    for(u32 Frame = 0; Frame < Frames; Frame++)
+    {
+        Check(UpdateDeadPlayer(&AppState->Players[0], Test.World,
+                               &Test.Arena, AppState, DeltaTime));
+    }
+    for(u32 Frame = 0; Frame < 20; Frame++)
+    {
+        UpdateDeadPlayer(&AppState->Players[0], Test.World, &Test.Arena,
+                         AppState, DeltaTime);
+    }
+    Check(!IsDeadPlayer(Dead));
+    Check(Dead->Hp == Dead->MaxHp);
+    Check(Dead->Position.X == 400.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestScoreboardRanksByKillsThenDeaths()
+{
+    app_state *AppState = (app_state *)calloc(1, sizeof(app_state));
+    u32 Kills[] = {1, 3, 3, 0};
+    u32 Deaths[] = {0, 2, 1, 0};
+    for(u32 SlotIndex = 0; SlotIndex < 4; SlotIndex++)
+    {
+        AppState->Players[SlotIndex].Active = true;
+        AppState->Players[SlotIndex].Kills = Kills[SlotIndex];
+        AppState->Players[SlotIndex].Deaths = Deaths[SlotIndex];
+    }
+    u32 Order[MAX_PLAYERS];
+    Check(RankPlayers(AppState, Order) == 4);
+    Check(Order[0] == 2 && Order[1] == 1 && Order[2] == 0 && Order[3] == 3);
+    free(AppState);
 }
 
 internal void
@@ -618,6 +680,8 @@ main()
     RUN(TestFireBallHitsOtherPlayerNotOwner);
     RUN(TestShockwaveHitsOtherPlayersNotSource);
     RUN(TestMonsterBiteCreditsNobody);
+    RUN(TestDeadPlayerIsInertUntilRespawn);
+    RUN(TestScoreboardRanksByKillsThenDeaths);
     RUN(TestCopyString);
     RUN(TestEmptyAnimationSlotDoesNotCrash);
     RUN(TestAnimationAdvancesWithoutTexture);

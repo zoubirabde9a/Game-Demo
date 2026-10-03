@@ -33,6 +33,7 @@
 #include "client/draw_entities.cpp"
 #include "client/play_events.cpp"
 #include "ui/hud.cpp"
+#include "ui/scoreboard.cpp"
 #include "client/keyboard_input.cpp"
 #include "art/monster_render.cpp"
 
@@ -357,6 +358,11 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
             UIContext, NumberOfElements, 4);
     DrawMonsterTelegraphs(RenderContext, World, CameraOffset);
     DrawHud(RenderContext, AppState, CameraOffset);
+    DrawRespawnCountdown(RenderContext, AppState, Window->Width, Window->Height);
+    if (Input->TabButton.EndedDown)
+    {
+        DrawScoreboard(RenderContext, AppState, Window->Width, Window->Height);
+    }
     if (AppState->TileEditing)
     {
         float ContainerWidth = 300;

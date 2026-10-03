@@ -221,6 +221,15 @@ struct world_entity
     float TimeLeft;
 };
 
+// NOTE(zoubir): a dead player keeps its entity while waiting to respawn;
+// it must not block, be hit, or be chased in the meantime
+inline bool32
+IsDeadPlayer(world_entity *Entity)
+{
+    bool32 Result = (Entity->Type == EntityType_Player && Entity->Hp <= 0.f);
+    return Result;
+}
+
 internal bool32
 CanOverlap(world_entity *Entity, world_entity *Region);
 internal bool32

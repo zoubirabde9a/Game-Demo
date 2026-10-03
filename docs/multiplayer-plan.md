@@ -22,6 +22,6 @@ Each step leaves the game building, the tests passing and the game playable.
 - [x] 6. Server networking: `code/net/connections.h` (client slots, timeouts, new-input filtering) and `code/net/socket.h` (UDP on Windows and Linux), driven by `code/server/server.cpp`.
 - [x] 5. Network protocol (`code/net/`). Packet layout for connect, input and snapshot, with serialization tests. `code/net/protocol.h` describes the packets; `code/tests/net_tests.cpp` checks them.
 - [~] 7. Client networking. Connect to a server address, send input each frame, draw entities from snapshots, show other players' names and health. The connection itself is done: `code/net/client.h` connects with retries, sends inputs, keeps the newest snapshot and reports why a connection ended. Still to do: call it from the game and draw the snapshot.
-- [ ] 8. Scoreboard and match flow in the HUD: player list, kills, deaths, respawn timer.
+- [x] 8. Scoreboard and match flow in the HUD: player list, kills, deaths, respawn timer. Done: hold Tab for `ui/scoreboard.cpp`; dead players wait `PLAYER_RESPAWN_SECONDS` (3 s) as inert bodies (`IsDeadPlayer`) with a countdown on screen. Names are "Player N" until the protocol carries names.
 - [ ] 9. Deploy the server to the VPS (needs the VPS address and login from the user) as a service that restarts on failure.
 - [ ] 10. Client-side prediction for the local player, so movement feels instant despite latency.

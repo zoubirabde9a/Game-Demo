@@ -65,6 +65,7 @@ CheckEntityOverlapInChunk(app_state *AppState,
             world_entity *TestEntity = EntityChunk->Entities[EntityIndex];
         
             if (Entity != TestEntity &&
+                !IsDeadPlayer(TestEntity) &&
                 CanOverlap(Entity, TestEntity) &&
                 CanCollide(AppState, Entity, TestEntity) &&
                 EntityOverlap(Entity, TestEntity))

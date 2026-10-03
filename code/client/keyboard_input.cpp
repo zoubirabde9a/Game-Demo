@@ -1,7 +1,8 @@
 /* Local controls: turns this machine's keyboard and mouse into the
    player_input the simulation understands. ZQSD move (AZERTY layout),
    right click sword, left click fireball, Space jump, Alt dash,
-   E shockwave. */
+   E shockwave. Holding Tab shows the scoreboard (read in app.cpp, it
+   is not a player action). */
 
 internal player_input
 ReadKeyboardPlayerInput(app_input *Input)

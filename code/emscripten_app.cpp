@@ -243,6 +243,11 @@ WebMapSDLKeyToAppKey(app_input *Input, u32 SDLKey)
             Result = &Input->AltButton;
             break;
         };
+        case SDLK_TAB:
+        {
+            Result = &Input->TabButton;
+            break;
+        };
         
         case SDLK_z:
         {

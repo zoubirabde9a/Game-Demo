@@ -1518,6 +1518,10 @@ WinMain(HINSTANCE instance,
             Win32ProcessKeyboardMessage(&OldInput->AltButton,
                                         &NewInput->AltButton,
                                         Win32KeyDown(VK_MENU));
+
+            Win32ProcessKeyboardMessage(&OldInput->TabButton,
+                                        &NewInput->TabButton,
+                                        Win32KeyDown(VK_TAB));
             
             for(u32 FButtonIndex = 0;
                 FButtonIndex < 12;

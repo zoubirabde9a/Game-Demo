@@ -41,7 +41,8 @@ FindNearestPlayer(app_state *AppState, v2 Position, float *OutDistance)
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];
-        if (Slot->Active && Slot->Entity && Slot->Entity->IsPresent)
+        if (Slot->Active && Slot->Entity && Slot->Entity->IsPresent &&
+            !IsDeadPlayer(Slot->Entity))
         {
             float Distance = Length(Slot->Entity->Position.XY - Position);
             if (Distance < BestDistance)
@@ -58,21 +59,33 @@ FindNearestPlayer(app_state *AppState, v2 Position, float *OutDistance)
     return Result;
 }
 
-// NOTE(zoubir): the player entity is never removed, it goes back to its
-// slot's spawn point with full health so slot pointers never dangle
-internal void
-RespawnPlayerIfDead(player_slot *Slot, world *World,
-                    memory_arena *Arena, app_state *AppState)
+// NOTE(zoubir): the player entity is never removed. While dead it waits
+// out RespawnTimer (deaths are counted in DamageEntity), then goes back to
+// its slot's spawn point with full health, so slot pointers never dangle.
+// Returns true while the player is still dead.
+internal bool32
+UpdateDeadPlayer(player_slot *Slot, world *World, memory_arena *Arena,
+                 app_state *AppState, float DeltaTime)
 {
     world_entity *Player = Slot->Entity;
-    if (Player->Hp <= 0.f)
+    if (Player->Hp > 0.f)
     {
-        v3 OldPosition = Player->Position;
-        Player->Position = Slot->SpawnPosition;
-        Player->Velocity = {};
-        Player->Hp = Player->MaxHp;
-        Slot->Deaths++;
-        CheckAndChangeEntityChunk(AppState, World, Arena,
-                                  OldPosition, Player);
+        return false;
     }
+
+    Slot->RespawnTimer -= DeltaTime;
+    if (Slot->RespawnTimer > 0.f)
+    {
+        return true;
+    }
+
+    v3 OldPosition = Player->Position;
+    Player->Position = Slot->SpawnPosition;
+    Player->Velocity = {};
+    Player->Hp = Player->MaxHp;
+    Slot->RespawnTimer = 0.f;
+    Slot->DelayedInputCount = 0;
+    CheckAndChangeEntityChunk(AppState, World, Arena,
+                              OldPosition, Player);
+    return false;
 }

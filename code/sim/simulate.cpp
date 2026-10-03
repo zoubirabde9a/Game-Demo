@@ -33,10 +33,14 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
             case EntityType_Player:
             {
                 player_slot *Slot = GetPlayerSlot(AppState, Entity);
+                if (UpdateDeadPlayer(Slot, World, Arena, AppState, DeltaTime))
+                {
+                    Animates = false;
+                    break;
+                }
                 UpdatePlayer(Slot, World, Arena, DeltaTime, AppState,
                              &AnimationSpeed, &AnimationType,
                              &AnimationDirection);
-                RespawnPlayerIfDead(Slot, World, Arena, AppState);
             } break;
 
             case EntityType_Sword:

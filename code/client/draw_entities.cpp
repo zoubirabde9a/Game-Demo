@@ -294,7 +294,7 @@ DrawWorldEntities(render_context *RenderContext, app_state *AppState,
         EntityIndex++)
     {
         world_entity *Entity = &World->Entities[EntityIndex];
-        if (!Entity->IsPresent)
+        if (!Entity->IsPresent || IsDeadPlayer(Entity))
         {
             continue;
         }

@@ -19,7 +19,7 @@ TriggerShockwave(app_state *AppState, world *World, world_entity *Source)
         EntityIndex++)
     {
         world_entity *Target = &World->Entities[EntityIndex];
-        if (!Target->IsPresent || Target == Source ||
+        if (!Target->IsPresent || Target == Source || IsDeadPlayer(Target) ||
             (Target->Type != EntityType_Monster &&
              Target->Type != EntityType_Player))
         {
