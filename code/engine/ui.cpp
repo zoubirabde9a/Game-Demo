@@ -158,8 +158,7 @@ EndContainer(ui_context *UIContext)
 {
     Assert(UIContext->ContainersCount > 0);
     ui_container *LastContainer =
-        &UIContext->AllocatedContainers[UIContext->ContainersCount--];
-    // C
+        &UIContext->AllocatedContainers[--UIContext->ContainersCount];
     UIContext->ContainerOffset.X -= LastContainer->X;
     UIContext->ContainerOffset.Y -= LastContainer->Y;
 }
@@ -279,63 +278,51 @@ DoButton(u32 StateIndex,
     return DoButton(Button, AppState, UIContext, X, Y, Width, Height, Text);
 }
 
+#define RGBA8_UI_FILL (0xFF303030)
+#define RGBA8_UI_FILL_HOT (0xFF505050)
+#define RGBA8_UI_FIELD (0xFF181818)
+#define RGBA8_UI_BORDER (0xFF808080)
+#define RGBA8_UI_FOCUS (0xFF30C8F0)
+
+// NOTE(zoubir): the text area inside a widget, and its clip rectangle
+inline v4
+UIInnerRect(ui_element *Element, v4 Padding)
+{
+    v4 Result = V4(Element->X + Padding.X, Element->Y + Padding.Z,
+                   Element->Width - Padding.X - Padding.Y,
+                   Element->Height - Padding.Z - Padding.W);
+    return Result;
+}
+
+inline v4
+UIInnerClip(ui_element *Element, v4 Padding)
+{
+    v4 Result = V4(Element->DrawRect.X + Padding.X,
+                   Element->DrawRect.Y + Padding.Z,
+                   Element->DrawRect.Z - Padding.X - Padding.Y,
+                   Element->DrawRect.W - Padding.Z - Padding.W);
+    return Result;
+}
+
 internal void
 DrawButton(ui_element* Button, ui_context *UIContext)
 {
-    app_state *AppState = UIContext->AppState;
     render_context *RenderContext = UIContext->RenderContext;
-    render_program TextureProgram = RenderContext->TextureProgram;
-    loaded_texture ButtonTexture = AcquireTexture(AppState, "a");
     ui_state *State = Button->State;
-    font *Font = State->Font;
-    char *Text = State->Text;
-    
-    bool IsHighlighted = (UIContext->HighlightedElement ==
-                          Button);
-    float PaddingX = 4.f;
-    float PaddingY = 4.f;
-    float PaddingZ = 4.f;
-    float PaddingW = 4.f;
+    v4 Padding = V4(4.f, 4.f, 4.f, 4.f);
+    v4 Inner = UIInnerRect(Button, Padding);
+    bool32 IsHighlighted = (UIContext->HighlightedElement == Button);
 
-    Assert(PaddingX + PaddingY < Button->Width);
-    Assert(PaddingZ + PaddingW < Button->Height);
-    
-    float TextPositionX = Button->X + PaddingX;
-    float TextPositionY = Button->Y + PaddingZ;
-    float TextWidth = Button->Width - PaddingX - PaddingY;
-    float TextHeight = Button->Height - PaddingZ - PaddingW;
-
-    v4 TextClip =
-        {
-            Button->DrawRect.X + PaddingX,
-            Button->DrawRect.Y + PaddingZ,
-            Button->DrawRect.Z - PaddingX - PaddingY,
-            Button->DrawRect.W + PaddingZ - PaddingW,
-        };
-                          
-    u32 DrawColor = RGBA8_RED;
-    
-    if (IsHighlighted)
-    {
-        DrawColor = RGBA8_YELLOW;
-    }
-    
+    DrawFilledRectangle(RenderContext, Button->X, Button->Y,
+                        Button->Width, Button->Height,
+                        IsHighlighted ? RGBA8_UI_FILL_HOT : RGBA8_UI_FILL, 0.f);
     DrawRectangle(RenderContext, Button->X, Button->Y,
                   Button->Width, Button->Height,
-                  DrawColor, 0.f);
-    #if 0
-    DrawRectangle(RenderContext,
-                  Button->DrawRect.X, Button->DrawRect.Y,
-                  Button->DrawRect.Z, Button->DrawRect.W,
-                  RGBA8_GREEN, 0.f);
-    #endif
-    DrawRectangle(RenderContext, TextPositionX, TextPositionY,
-                  TextWidth, TextHeight,
-                  RGBA8_BLUE, 0.f);
-    RenderText(RenderContext, TextPositionX, TextPositionY,
-               TextWidth, TextHeight, TextClip, Font, TextureProgram,
-               Text, TEXT_JUSTIFICATION_MIDDLE, RGBA8_WHITE,
-               0.f);
+                  IsHighlighted ? RGBA8_UI_FOCUS : RGBA8_UI_BORDER, 0.f);
+    RenderText(RenderContext, Inner.X, Inner.Y, Inner.Z, Inner.W,
+               UIInnerClip(Button, Padding), State->Font,
+               RenderContext->TextureProgram, State->ButtonText,
+               TEXT_JUSTIFICATION_MIDDLE, RGBA8_WHITE, 0.f);
 }
 
 internal void
@@ -343,56 +330,27 @@ DrawEditBox(ui_element *EditBox, ui_context *UIContext)
 {
     ui_state *State = EditBox->State;
     render_context *RenderContext = UIContext->RenderContext;
-    render_program TextureProgram = RenderContext->TextureProgram;
-    font *Font = State->Font;
     char *Text = EditBox->State->Text + UIContext->ElementCursorCharOffset;
-    
-    Assert(State->Padding.X + State->Padding.Y < EditBox->Width);
-    Assert(State->Padding.Z + State->Padding.W < EditBox->Height);
-    
-    float TextPositionX = EditBox->X + State->Padding.X;
-    float TextPositionY = EditBox->Y + State->Padding.Z;
-    float TextWidth = EditBox->Width - State->Padding.X -
-        State->Padding.Y;
-    float TextHeight = EditBox->Height - State->Padding.Z -
-        State->Padding.W;
+    v4 Inner = UIInnerRect(EditBox, State->Padding);
+    bool32 IsSelected = (UIContext->SelectedState == State);
+    bool32 IsHighlighted = (UIContext->HighlightedElement == EditBox);
 
-    v4 TextClip =
-    {
-        EditBox->DrawRect.X + State->Padding.X,
-        EditBox->DrawRect.Y + State->Padding.Z,
-        EditBox->DrawRect.Z - State->Padding.X - State->Padding.Y,
-        EditBox->DrawRect.W + State->Padding.Z - State->Padding.W,
-    };
-
-    u32 DrawColor = RGBA8_RED;
-    if (UIContext->HighlightedElement == EditBox)
-    {
-        DrawColor = RGBA8_YELLOW;
-    }
-    
-    if (UIContext->SelectedState == State)
-    {
-        ui_element_cursor Cursor = UIContext->ElementCursor;
-        DrawRectangle(RenderContext, EditBox->X - 2, EditBox->Y - 2,
-                      EditBox->Width + 4, EditBox->Height + 4,
-                      RGBA8_BLACK, 0.f);
-        DrawRectangle(RenderContext, TextPositionX + Cursor.Offset, TextPositionY,
-                      1, TextHeight,
-                      DrawColor, 0.f);
-    }    
+    DrawFilledRectangle(RenderContext, EditBox->X, EditBox->Y,
+                        EditBox->Width, EditBox->Height, RGBA8_UI_FIELD, 0.f);
     DrawRectangle(RenderContext, EditBox->X, EditBox->Y,
                   EditBox->Width, EditBox->Height,
-                  DrawColor, 0.f);
-    
-    
-    DrawRectangle(RenderContext, TextPositionX, TextPositionY,
-                  TextWidth, TextHeight,
-                  RGBA8_BLUE, 0.f);    
-    RenderText(RenderContext, TextPositionX, TextPositionY,
-               TextWidth, TextHeight, TextClip, Font, TextureProgram,
-               Text, TEXT_JUSTIFICATION_LEFT, RGBA8_WHITE,
-               0.f);
+                  (IsSelected || IsHighlighted) ? RGBA8_UI_FOCUS :
+                  RGBA8_UI_BORDER, 0.f);
+    if (IsSelected)
+    {
+        DrawFilledRectangle(RenderContext,
+                            Inner.X + UIContext->ElementCursor.Offset, Inner.Y,
+                            1.f, Inner.W, RGBA8_UI_FOCUS, 0.f);
+    }
+    RenderText(RenderContext, Inner.X, Inner.Y, Inner.Z, Inner.W,
+               UIInnerClip(EditBox, State->Padding), State->Font,
+               RenderContext->TextureProgram, Text,
+               TEXT_JUSTIFICATION_LEFT, RGBA8_WHITE, 0.f);
 }
 
 internal ui_element_cursor
@@ -420,11 +378,31 @@ GetElementCursorFromOffset(font *Font, char *Text, float Offset)
     return Result;
 }
 
+// NOTE(zoubir): typing goes to the selected edit box; it only appends,
+// so the cursor sits after the last character
+internal void
+UISelectEditBox(ui_context *UIContext, ui_state *EditBox)
+{
+    UIContext->SelectedState = EditBox;
+    UIContext->ElementCursorCharOffset = 0;
+    UIContext->ElementCursor = {};
+    if (EditBox->Font)
+    {
+        UIContext->ElementCursor =
+            GetElementCursorFromOffset(EditBox->Font, EditBox->Text, 1e9f);
+    }
+}
+
+// NOTE(zoubir): MaxLength 0 means as much as Text holds
 internal void
 DoEditBox(ui_state *EditBox, app_state *AppState,
           ui_context *UIContext,
-          float X, float Y, float Width, float Height)
+          float X, float Y, float Width, float Height, u32 MaxLength = 0)
 {
+    if (MaxLength == 0 || MaxLength > ArrayCount(EditBox->Text) - 1)
+    {
+        MaxLength = ArrayCount(EditBox->Text) - 1;
+    }
     app_input *Input = UIContext->Input;
     bool32 MouseIsPressed = Input->LeftButton.Released;
     font *Font = AppState->DefaultFont;
@@ -464,11 +442,7 @@ DoEditBox(ui_state *EditBox, app_state *AppState,
     bool32 IsPressed = IsHighlighted && MouseIsPressed;
     if (IsPressed)
     {
-        UIContext->SelectedState = EditBox;
-        float Offset = Input->MouseX - X;
-        UIContext->ElementCursor =
-            GetElementCursorFromOffset(Font, Text, Offset);
-        
+        UISelectEditBox(UIContext, EditBox);
     }
     if (UIContext->SelectedState == EditBox)
     {
@@ -491,6 +465,10 @@ DoEditBox(ui_state *EditBox, app_state *AppState,
                 CurrentCharacter++)
             {
                 char C = TextInput[CurrentCharacter];
+                if (EditBox->TextCount >= MaxLength)
+                {
+                    break;
+                }
                 EditBox->Text[EditBox->TextCount++] = C;
                 UIContext->ElementCursor.Pos++;
                 float Offset = UIContext->ElementCursor.Offset +
@@ -514,10 +492,10 @@ DoEditBox(ui_state *EditBox, app_state *AppState,
 inline void
 DoEditBox(u32 StateIndex, app_state *AppState,
           ui_context *UIContext,
-          float X, float Y, float Width, float Height)
+          float X, float Y, float Width, float Height, u32 MaxLength = 0)
 {
     ui_state *EditBox = UIContextGetState(UIContext, StateIndex);
-    DoEditBox(EditBox, AppState, UIContext, X, Y, Width, Height);
+    DoEditBox(EditBox, AppState, UIContext, X, Y, Width, Height, MaxLength);
 }
 
 internal void

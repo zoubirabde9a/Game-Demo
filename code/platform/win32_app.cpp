@@ -866,6 +866,43 @@ win32PlaybackInput(win32_state *state, app_input *NewInput)
     }
 }
 
+// NOTE(zoubir): characters typed since the last frame, from WM_CHAR;
+// printable ASCII only, and backspace as an erase
+global_variable char GlobalTypedText[64];
+global_variable u32 GlobalTypedCount;
+global_variable bool32 GlobalTypedErase;
+
+internal void
+Win32AddTypedCharacter(u32 Character)
+{
+    if (Character == '')
+    {
+        GlobalTypedErase = true;
+    }
+    else if (Character >= 32 && Character < 127 &&
+             GlobalTypedCount + 1 < ArrayCount(GlobalTypedText))
+    {
+        GlobalTypedText[GlobalTypedCount++] = (char)Character;
+    }
+}
+
+internal void
+Win32TakeTypedText(app_input *Input)
+{
+    Input->TextInputCount = 0;
+    for(u32 Index = 0;
+        Index < GlobalTypedCount &&
+        Input->TextInputCount + 1 < ArrayCount(Input->TextInput);
+        Index++)
+    {
+        Input->TextInput[Input->TextInputCount++] = GlobalTypedText[Index];
+    }
+    Input->TextInput[Input->TextInputCount] = 0;
+    Input->TextErase = GlobalTypedErase;
+    GlobalTypedCount = 0;
+    GlobalTypedErase = false;
+}
+
 internal void
 Win32MessageLoop(win32_state *state,
                  app_controller_input *oldKeyboardController,
@@ -881,12 +918,22 @@ Win32MessageLoop(win32_state *state,
                 Running = false;
                 break;
             }
+            case WM_CHAR:
+            {
+                Win32AddTypedCharacter((u32)message.wParam);
+                break;
+            }
             case WM_SYSKEYDOWN:
             case WM_SYSKEYUP:
             case WM_KEYDOWN:
             case WM_KEYUP:
             {
-                    
+                // NOTE(zoubir): posts the WM_CHAR this loop picks up next;
+                // Alt combinations stay untranslated (no WM_SYSCHAR beep)
+                if (message.message == WM_KEYDOWN)
+                {
+                    TranslateMessage(&message);
+                }
                 u32 vKCode = (u32)message.wParam;
                 bool32 wasDown = ((message.lParam & (1 << 30)) != 0);
                 bool32 isDown = ((message.lParam & (1 << 31)) == 0);
@@ -1115,28 +1162,6 @@ Win32InitOpenGL(open_gl *OpenGL, HWND Window, HDC WindowDC)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, AppState->ScreenFboTexture, 0);
     }
 #endif
-}
-
-inline bool32
-Win32VerifyInput(app_input *Input, app_button_state *Button,
-                 u32 VirtualKey, u32 TimeToSpam)
-{
-    if (Button->Pressed ||
-        (Button->EndedDown && Input->TimeToTextInput > TimeToSpam))
-    {
-        Input->TimeToTextInput = 0;
-        if (Input->CapsOn)
-        {
-            Input->TextInput[Input->TextInputCount++] =
-                (char)VirtualKey;
-        }
-        else
-        {
-            Input->TextInput[Input->TextInputCount++] =
-                (char)VirtualKey + 32;
-        }
-    }
-    return Button->EndedDown;
 }
 
 struct platform_work_queue_entry
@@ -1537,42 +1562,6 @@ WinMain(HINSTANCE instance,
                 ToggleFullscreen(windowHandle);
             }
             
-            //TODO(zoubir): Handle the case where TextInput
-            //is full
-            //TODO(zoubir): compression
-            u32 TimeToSpam = 11;
-            int NumberOfKeysDown = 0;
-            NewInput->TextInputCount = 0;
-            NewInput->TextErase = false;
-
-            BYTE KeyState[256];
-            GetKeyboardState((LPBYTE)&KeyState);
-            NewInput->CapsOn = KeyState[VK_CAPITAL] & 1;
-            
-            if (NewInput->BackspaceButton.Pressed)
-            {
-                NewInput->TimeToTextErase = 0;
-                NewInput->TextErase = true;
-            }
-            
-            if (NewInput->TimeToTextErase > TimeToSpam)
-            {                
-                NewInput->TextErase = true;
-            }
-            
-            if (NewInput->BackspaceButton.EndedDown)
-            {
-                NewInput->TimeToTextErase =
-                    OldInput->TimeToTextErase + 1;
-                NumberOfKeysDown++;
-            }
-            else
-            {
-                NewInput->TimeToTextErase = 0;
-            }
-
-            bool32 OneInputIsDown = false;
-
             for(int VirtualKey = '0';
                 VirtualKey <= '9';
                 VirtualKey++)
@@ -1581,13 +1570,6 @@ WinMain(HINSTANCE instance,
                 Win32ProcessKeyboardMessage(&OldInput->NumbersButtons[Number],
                                             &NewInput->NumbersButtons[Number],
                                             Win32KeyDown(VirtualKey));
-                if (Win32VerifyInput(NewInput,
-                                     &NewInput->NumbersButtons[Number],
-                                     VirtualKey, TimeToSpam))
-                {
-                    OneInputIsDown = true;
-                    NumberOfKeysDown++;
-                }
             }
 
             for(int VirtualKey = 'A';
@@ -1598,50 +1580,12 @@ WinMain(HINSTANCE instance,
                 Win32ProcessKeyboardMessage(&OldInput->AlphaButtons[Alphabet],
                                             &NewInput->AlphaButtons[Alphabet],
                                             Win32KeyDown(VirtualKey));
-                if (Win32VerifyInput(NewInput,
-                                     &NewInput->AlphaButtons[Alphabet],
-                                     VirtualKey, TimeToSpam))
-                {
-                    OneInputIsDown = true;
-                    NumberOfKeysDown++;
-                }
-            }
-            
-            if (NewInput->SpaceButton.Pressed ||
-                (NewInput->SpaceButton.EndedDown &&
-                 NewInput->TimeToTextInput > TimeToSpam))
-            {
-                NewInput->TimeToTextInput = 0;
-                NewInput->TextInput[NewInput->TextInputCount++] =
-                    ' ';
             }
 
-            NewInput->TextInput[NewInput->TextInputCount] =
-                '\0';
-                
-            if (NewInput->SpaceButton.EndedDown)
-            {
-                OneInputIsDown = true;
-                    NumberOfKeysDown++;
-            }
+            // NOTE(zoubir): typed text comes from WM_CHAR (Win32MessageLoop),
+            // so it follows the keyboard layout, shift and key repeat
+            Win32TakeTypedText(NewInput);
 
-            if (OneInputIsDown)
-            {
-                NewInput->TimeToTextInput = 
-                    OldInput->TimeToTextInput + 1;
-            }
-            else
-            {
-                NewInput->TimeToTextInput = 0;
-            }
-
-            if (NumberOfKeysDown > 1)
-            {
-                NewInput->TimeToTextInput = 1;
-            }
-            
-
-            
             DWORD maxControllerCount = XUSER_MAX_COUNT;
             if (maxControllerCount > ArrayCount(NewInput->controllers) - 1)
             {

@@ -264,12 +264,11 @@ struct app_input
         };
     };
 
-    bool32 CapsOn;
+    // NOTE(zoubir): text typed this frame, null-terminated, printable
+    // ASCII; TextErase is one backspace
     bool32 TextErase;
     char TextInput[64];
     u32 TextInputCount;
-    u32 TimeToTextInput;
-    u32 TimeToTextErase;
 };
 
 inline app_controller_input *GetController(app_input* input, int controllerIndex)
