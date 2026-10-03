@@ -239,12 +239,23 @@ AddEntity(app_state *AppState,
           v3 Position,
           entity_collision_volume_group* Collision)
 {
-    Assert(ArrayCount(World->Entities) > World->EntityCount);
-    world_entity *NewEntity = 
-        World->Entities + World->EntityCount++;
+    u32 ID;
+    if (World->FreeEntityCount)
+    {
+        ID = World->FreeEntityIDs[--World->FreeEntityCount];
+        // NOTE(zoubir): rules were set up for the slot's previous owner
+        ClearCollisionRulesFor(AppState, ID);
+    }
+    else
+    {
+        Assert(ArrayCount(World->Entities) > World->EntityCount);
+        ID = World->EntityCount++;
+    }
+    world_entity *NewEntity = World->Entities + ID;
+    *NewEntity = {};
     NewEntity->IsPresent = true;
     
-    NewEntity->ID = World->EntityCount - 1;
+    NewEntity->ID = ID;
     NewEntity->Type = Type;
     NewEntity->Position = Position;
     NewEntity->Collision = Collision;
@@ -310,11 +321,17 @@ AddEntity(app_state *AppState,
     return NewEntity;
 }
 
-//TODO(zoubir): Decrement Entity Count 
 inline bool32
 RemoveEntity(world *World, world_entity *Entity)
 {
     bool32 Result = 0;
+    // NOTE(zoubir): a sword and a fireball can both kill the same
+    // monster in one frame
+    if (!Entity->IsPresent)
+    {
+        return Result;
+    }
+
     u32 MinChunkX;
     u32 MinChunkY;
     u32 MinChunkZ;    
@@ -351,6 +368,8 @@ RemoveEntity(world *World, world_entity *Entity)
             }
         }
     }
+    Assert(World->FreeEntityCount < ArrayCount(World->FreeEntityIDs));
+    World->FreeEntityIDs[World->FreeEntityCount++] = Entity->ID;
 #if 0    
     world_chunk *Chunk =
         GetChunk(World, Entity->Position);

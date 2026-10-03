@@ -196,6 +196,9 @@ AddCollisionRule(app_state *AppState, memory_arena *Arena,
 internal bool32
 CanCollide(app_state *AppState, world_entity *A,
            world_entity *B);
+
+internal void
+ClearCollisionRulesFor(app_state *AppState, u32 Entity);
 inline void
 SetCollision(app_state *AppState, entity_type A,
              entity_type B, bool32 Collides)

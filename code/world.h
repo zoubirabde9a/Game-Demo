@@ -63,6 +63,9 @@ struct world
     world_chunk Chunks[CHUNK_MAX_X][CHUNK_MAX_Y][CHUNK_MAX_Z];
     world_entity Entities[4096];
     u32 EntityCount;
+    // NOTE(zoubir): IDs of removed entities, reused before growing EntityCount
+    u32 FreeEntityIDs[4096];
+    u32 FreeEntityCount;
     world_entity_chunk *FirstFreeChunk;
 
     v3 MaxEntityVelocity;
