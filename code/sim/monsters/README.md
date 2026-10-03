@@ -16,7 +16,7 @@ One file per monster kind. A file holds everything about that monster: its stats
 
 ## Sprite sheet layout
 
-Six columns, five rows, `FrameSize` pixels per cell, feet on the 7/8 line:
+Six columns, six rows, `FrameSize` pixels per cell, feet on the 7/8 line:
 
 | Row | Played when | Default frames |
 | --- | --- | --- |
@@ -25,6 +25,7 @@ Six columns, five rows, `FrameSize` pixels per cell, feet on the 7/8 line:
 | Windup | an ability is winding up; stretched to last exactly the windup | 4 |
 | Attack | the ability's active part | 4 |
 | Recover | after the ability, the window for players to punish | 4 |
+| Special | optional (0 frames by default): a state such as being underground | 0 |
 
 Change `FrameCounts[Row]` or `SecondsPerFrame[Row]` in the define function to change a row.
 
@@ -43,6 +44,7 @@ Every ability runs windup, then active, then recover (`code/sim/monster_abilitie
 | `Volley` | throws `Count` shots fanned over `Spread` degrees; shots are entities that fly for `Active` seconds, stop at walls and hit the first player within `Radius` | `Count`, `Spread`, `Speed`, `Active`, `Radius`, `ShotStyle` |
 
 | `Summon` | marks up to `Count` graves `Spread` toward the target; a `SummonKind` monster climbs out of each one nobody stands on. Stops at `MaxActive` living summons; they crumble when the summoner dies | `SummonKind`, `Count`, `MaxActive`, `Spread` |
+| `Burrow` | digs in when the windup ends and stays underground (immune, drawn from the optional Special sheet row) for `Active` seconds; the landing spot follows the target until the last 40%, then locks and is ringed; erupts there hitting within `Radius` | `Active`, `Radius`, `Damage` |
 | `Mend` | only starts when an ally within `Radius` is under 70% health; heals the most hurt one by `Heal` when the windup ends | `Radius`, `Heal` |
 
 Monsters that point at each other (summons, heal targets) store the entity slot and a `MonsterSerial`, because slots are reused. Every monster made by the game goes through `SpawnMonster`, which hands out serials.
@@ -108,6 +110,7 @@ A monster uses the first ability in its list that is off cooldown and whose `Min
 | Thrall | Skeletal Thrall | none; quick and brittle, only appears from a shaman, crumbles when it dies |
 | Warden | Carapace Warden | Shell Bash: short shoulder charge. Front shell blocks 80% of hits; turns slowly. |
 | Warlord | Ashen Warlord | Boss, one at a time. Cinder Cleave: slam that burns and leaves embers. Ember Storm: five-ember fan. Below half health enrages and adds Call the Brood: two Cinder Imps |
+| Lurker | Dune Lurker | Tunnel Strike: burrows, tunnels toward you, erupts under a ring that locks before it hits |
 | Slimelet | Slimelet | none; small and quick, only appears from a split |
 
 The toad's shells now leave bile puddles that poison.

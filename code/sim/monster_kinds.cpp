@@ -34,6 +34,12 @@ enum monster_ability_kind
     // NOTE(zoubir): heals the most hurt ally within Radius by Heal; only
     // starts when an ally is below MEND_THRESHOLD of its health
     MonsterAbility_Mend,
+    // NOTE(zoubir): digs in when the windup ends and stays underground
+    // (immune) for Active seconds while a ripple tunnels toward the
+    // target. The landing spot follows the target until the last
+    // BURROW_LOCK_SHARE of Active, then locks and is marked; the monster
+    // erupts there, hitting everything within Radius
+    MonsterAbility_Burrow,
     MonsterAbility_Count
 };
 
@@ -108,6 +114,10 @@ enum monster_sheet_row
     MonsterRow_Windup,
     MonsterRow_Attack,
     MonsterRow_Recover,
+    // NOTE(zoubir): optional, for kinds with an odd state such as being
+    // underground; FrameCounts 0 leaves it empty. Played as
+    // AnimationType_JumpDown, which monsters never use otherwise
+    MonsterRow_Special,
     MonsterRow_Count
 };
 
@@ -205,6 +215,8 @@ DefaultMonsterDef(monster_def *Def)
     Def->SecondsPerFrame[MonsterRow_Windup] = 0.1f;
     Def->SecondsPerFrame[MonsterRow_Attack] = 0.08f;
     Def->SecondsPerFrame[MonsterRow_Recover] = 0.15f;
+    Def->FrameCounts[MonsterRow_Special] = 0;
+    Def->SecondsPerFrame[MonsterRow_Special] = 0.1f;
 }
 
 #include "monsters/monster_list.inc"
@@ -343,11 +355,16 @@ SetupMonsterAnimationSet(animation_set *Set, memory_arena *Arena,
             AnimationType_Cast,
             AnimationType_Attack,
             AnimationType_Stop,
+            AnimationType_JumpDown,
         };
     for(u32 Row = 0; Row < MonsterRow_Count; Row++)
     {
         u32 FirstIndex = Row * MONSTER_SHEET_COLUMNS;
         u32 Count = Def->FrameCounts[Row];
+        if (Count == 0)
+        {
+            continue;
+        }
         float Seconds = Def->SecondsPerFrame[Row];
         AddAnimation(Set, Arena, RowTypes[Row], AnimationDirection_Right,
                      FirstIndex, Count, Seconds);
@@ -364,8 +381,11 @@ SetupMonsterAnimationSet(animation_set *Set, memory_arena *Arena,
     {
         Set->Animations[AnimationType_JumpUp][Direction] =
             Set->Animations[AnimationType_Stand][Direction];
-        Set->Animations[AnimationType_JumpDown][Direction] =
-            Set->Animations[AnimationType_Stand][Direction];
+        if (Def->FrameCounts[MonsterRow_Special] == 0)
+        {
+            Set->Animations[AnimationType_JumpDown][Direction] =
+                Set->Animations[AnimationType_Stand][Direction];
+        }
     }
 }
 

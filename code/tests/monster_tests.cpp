@@ -74,7 +74,8 @@ TestMonsterDefsAreValid()
         Check(Def->AbilityCount <= MAX_MONSTER_ABILITIES);
         for(u32 Row = 0; Row < MonsterRow_Count; Row++)
         {
-            Check(Def->FrameCounts[Row] >= 1);
+            // NOTE(zoubir): the special row is optional
+            Check(Def->FrameCounts[Row] >= 1 || Row == MonsterRow_Special);
             Check(Def->FrameCounts[Row] <= MONSTER_SHEET_COLUMNS);
             Check(Def->SecondsPerFrame[Row] > 0.f);
         }
@@ -992,6 +993,70 @@ TestOnlyOneWarlordAtATime()
 }
 
 internal void
+TestBurrowedLurkerIsImmune()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Lurker = AddTestMonster(&Test, MonsterKind_Lurker, {600, 1000, 0});
+    AddTestPlayer(&Test, {850, 1000, 0});
+    monster_ability *Tunnel = &GetMonsterDef(MonsterKind_Lurker)->Abilities[0];
+
+    StepMonster(&Test, Lurker, 1 + SecondsToFrames(Tunnel->Windup));
+    Check(Lurker->Burrowed);
+    Check(Lurker->AbilityPhase == AbilityPhase_Active);
+    float Hp = Lurker->Hp;
+    DamageEntity(Test.AppState, Test.World, Lurker, 50.f, 0);
+    Check(Lurker->Hp == Hp);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestLurkerEruptsUnderStandingPlayer()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Lurker = AddTestMonster(&Test, MonsterKind_Lurker, {600, 1000, 0});
+    world_entity *Player = AddTestPlayer(&Test, {850, 1000, 0});
+    monster_ability *Tunnel = &GetMonsterDef(MonsterKind_Lurker)->Abilities[0];
+
+    StepMonster(&Test, Lurker, 1 + SecondsToFrames(Tunnel->Windup + Tunnel->Active));
+    Check(!Lurker->Burrowed);
+    Check(Lurker->AbilityPhase == AbilityPhase_Recover);
+    Check(Length(Lurker->Position.XY - Player->Position.XY) <= Tunnel->Radius);
+    Check(Player->Hp == 100.f - Tunnel->Damage);
+    // NOTE(zoubir): out of the ground, it can be hurt again
+    float Hp = Lurker->Hp;
+    DamageEntity(Test.AppState, Test.World, Lurker, 5.f, 0);
+    Check(Lurker->Hp == Hp - 5.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
+TestLurkerLandingFollowsUntilLock()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Lurker = AddTestMonster(&Test, MonsterKind_Lurker, {600, 1000, 0});
+    world_entity *Player = AddTestPlayer(&Test, {850, 1000, 0});
+    monster_ability *Tunnel = &GetMonsterDef(MonsterKind_Lurker)->Abilities[0];
+
+    StepMonster(&Test, Lurker, 1 + SecondsToFrames(Tunnel->Windup));
+    Check(Lurker->Burrowed);
+    // NOTE(zoubir): before the lock the landing spot follows the player
+    Player->Position.Y = 1150.f;
+    StepMonster(&Test, Lurker, 5);
+    Check(Length(Lurker->AbilityPoints[0] - Player->Position.XY) < 1.f);
+    // NOTE(zoubir): after the lock it stays put, and a player who leaves
+    // the ring is safe
+    StepMonster(&Test, Lurker, SecondsToFrames((1.f - BURROW_LOCK_SHARE) *
+                                               Tunnel->Active));
+    v2 Locked = Lurker->AbilityPoints[0];
+    Player->Position.Y = 1150.f + 2.f * Tunnel->Radius;
+    StepMonster(&Test, Lurker, SecondsToFrames(BURROW_LOCK_SHARE * Tunnel->Active));
+    Check(!Lurker->Burrowed);
+    Check(Length(Lurker->Position.XY - Locked) < 45.f);
+    Check(Player->Hp == 100.f);
+    DestroyTestWorld(&Test);
+}
+
+internal void
 RunMonsterTests()
 {
     printf("TestMonsterDefsAreValid\n");
@@ -1072,4 +1137,10 @@ RunMonsterTests()
     TestBroodOnlyCalledWhenEnraged();
     printf("TestOnlyOneWarlordAtATime\n");
     TestOnlyOneWarlordAtATime();
+    printf("TestBurrowedLurkerIsImmune\n");
+    TestBurrowedLurkerIsImmune();
+    printf("TestLurkerEruptsUnderStandingPlayer\n");
+    TestLurkerEruptsUnderStandingPlayer();
+    printf("TestLurkerLandingFollowsUntilLock\n");
+    TestLurkerLandingFollowsUntilLock();
 }

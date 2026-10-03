@@ -215,6 +215,9 @@ FindBlinkSpot(app_state *AppState, world *World, world_entity *Entity,
 }
 
 #define MEND_THRESHOLD 0.7f
+// NOTE(zoubir): share of a burrow's Active time, at the end, during which
+// the landing spot no longer follows the target
+#define BURROW_LOCK_SHARE 0.4f
 
 inline u32
 CountActiveSummons(world *World, world_entity *Summoner)
@@ -343,6 +346,15 @@ StartMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
             {
                 return false;
             }
+        } break;
+
+        case MonsterAbility_Burrow:
+        {
+            Entity->AbilityPoints[Entity->AbilityPointCount++] = Target->Position.XY;
+            Entity->AbilityTargetSlot = Target->ID;
+            // NOTE(zoubir): AbilityPoints[1] remembers where it dug in, for
+            // the ripple drawn between there and the landing spot
+            Entity->AbilityPoints[Entity->AbilityPointCount++] = Entity->Position.XY;
         } break;
 
         case MonsterAbility_Mend:
@@ -570,6 +582,12 @@ TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
             }
         } break;
 
+        case MonsterAbility_Burrow:
+        {
+            Entity->Burrowed = true;
+            Entity->Velocity = {};
+        } break;
+
         case MonsterAbility_Mend:
         {
             world_entity *Ally = FindMonsterBySerial(World, Entity->AbilityTargetSlot,
@@ -632,6 +650,56 @@ UpdateMonsterShot(world_entity *Shot, world *World, memory_arena *Arena,
     {
         RemoveEntity(World, Shot);
     }
+}
+
+// NOTE(zoubir): while underground the landing spot tracks the target,
+// until the lock
+internal void
+UpdateBurrow(world *World, world_entity *Entity, monster_ability *Ability)
+{
+    if (Entity->AbilityTimer <= BURROW_LOCK_SHARE * Ability->Active)
+    {
+        return;
+    }
+    if (Entity->AbilityTargetSlot < World->EntityCount)
+    {
+        world_entity *Target = &World->Entities[Entity->AbilityTargetSlot];
+        if (Target->IsPresent && Target->Type == EntityType_Player &&
+            Target->Hp > 0.f)
+        {
+            Entity->AbilityPoints[0] = Target->Position.XY;
+        }
+    }
+}
+
+// NOTE(zoubir): back to the surface on the landing spot, or as close to
+// it as there is room, hitting everything around
+internal void
+EruptFromBurrow(app_state *AppState, world *World, memory_arena *Arena,
+                world_entity *Entity, monster_ability *Ability)
+{
+    v2 Landing = Entity->AbilityPoints[0];
+    v2 Offsets[] =
+        {
+            V2(0.f, 0.f), V2(24.f, 0.f), V2(-24.f, 0.f), V2(0.f, 24.f),
+            V2(0.f, -24.f), V2(40.f, 30.f), V2(-40.f, -30.f),
+        };
+    for(u32 OffsetIndex = 0; OffsetIndex < ArrayCount(Offsets); OffsetIndex++)
+    {
+        v2 Spot = Landing + Offsets[OffsetIndex];
+        v3 Spot3 = V3(Spot.X, Spot.Y, Entity->Position.Z);
+        if (IsInsideArena(World, Spot, 40.f) &&
+            IsSpawnSpotFree(AppState, World, Spot3, Entity->Collision))
+        {
+            v3 OldPosition = Entity->Position;
+            Entity->Position = Spot3;
+            CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Entity);
+            break;
+        }
+    }
+    Entity->Burrowed = false;
+    Entity->Velocity = {};
+    HurtPlayersInRadius(AppState, World, Entity, Entity->Position.XY, Ability);
 }
 
 // NOTE(zoubir): charges move the monster and hit whoever they reach
@@ -731,6 +799,10 @@ internal float
 ModifyIncomingDamage(world_entity *Target, world_entity *Source, float Damage)
 {
     float Result = Damage;
+    if (Target->Type == EntityType_Monster && Target->Burrowed)
+    {
+        return 0.f;
+    }
     if (Target->Type == EntityType_Monster && Source)
     {
         monster_def *Def = GetMonsterDef(Target->MonsterKind);
@@ -917,8 +989,18 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
                     Entity->AbilityTimer = 0.f;
                 }
             }
+            if (Ability->Kind == MonsterAbility_Burrow)
+            {
+                *AnimationType = AnimationType_JumpDown;
+                *AnimationSpeed = 1.f;
+                UpdateBurrow(World, Entity, Ability);
+            }
             if (Entity->AbilityTimer <= 0.f)
             {
+                if (Ability->Kind == MonsterAbility_Burrow)
+                {
+                    EruptFromBurrow(AppState, World, Arena, Entity, Ability);
+                }
                 SetMonsterPhase(Entity, AbilityPhase_Recover, Ability->Recover);
                 Charging = false;
             }

@@ -41,5 +41,8 @@
     // (0 means 1)
     u32 Phase;
     float PhaseSpeedScale;
+    // NOTE(zoubir): underground during a Burrow: hidden (special sheet row)
+    // and immune to damage
+    bool32 Burrowed;
     // NOTE(zoubir): seconds left on the enrage burst effect
     float PhaseFlash;

@@ -30,6 +30,7 @@ BuildMonsterSheet(monster_kind Kind, u32 *Pixels)
             AnimationType_Cast,
             AnimationType_Attack,
             AnimationType_Stop,
+            AnimationType_JumpDown,
         };
     for(u32 Row = 0; Row < MonsterRow_Count; Row++)
     {
@@ -223,6 +224,50 @@ DrawEliteAuras(render_context *RenderContext, world *World, v3 CameraOffset)
     }
 }
 
+#define BURROW_RIPPLE_COLOR 0xFF60A0D0
+
+// NOTE(zoubir): a burrowing monster shows as a line of churned ground
+// running from where it dug in toward where it will come up; once the
+// spot locks, a closing ring marks the eruption
+internal void
+DrawBurrowTelegraphs(render_context *RenderContext, world *World,
+                     v3 CameraOffset)
+{
+    for(u32 EntityIndex = 0;
+        EntityIndex < World->EntityCount;
+        EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (!Entity->IsPresent || Entity->Type != EntityType_Monster ||
+            !Entity->Burrowed || Entity->AbilityPhase != AbilityPhase_Active)
+        {
+            continue;
+        }
+        monster_def *Def = GetMonsterDef(Entity->MonsterKind);
+        monster_ability *Ability = &Def->Abilities[Entity->AbilityIndex];
+        float Progress = Ability->Active > 0.f ?
+            ArtClamp01(1.f - Entity->AbilityTimer / Ability->Active) : 1.f;
+        v2 From = Entity->AbilityPoints[1] - CameraOffset.XY;
+        v2 To = Entity->AbilityPoints[0] - CameraOffset.XY;
+        // NOTE(zoubir): the head of the ripple travels along the tunnel
+        v2 Head = Lerp2(From, Progress, To);
+        DrawDottedLine(RenderContext, From, Head, BURROW_RIPPLE_COLOR, 2.f, 9.f);
+        DrawDottedCircle(RenderContext, Head, 10.f, BURROW_RIPPLE_COLOR, 3.f);
+        bool32 Locked = Entity->AbilityTimer <= BURROW_LOCK_SHARE * Ability->Active;
+        if (Locked)
+        {
+            float LockProgress = 1.f - Entity->AbilityTimer /
+                (BURROW_LOCK_SHARE * Ability->Active);
+            bool32 Flash = LockProgress > 0.6f &&
+                ((u32)(LockProgress * 20.f) % 2) == 0;
+            u32 Color = Flash ? TELEGRAPH_COLOR_HOT : TELEGRAPH_COLOR_DANGER;
+            DrawDottedCircle(RenderContext, To, Ability->Radius, Color, 2.f);
+            DrawDottedCircle(RenderContext, To, Ability->Radius * (2.f - LockProgress),
+                             Color, 3.f);
+        }
+    }
+}
+
 #define ENRAGE_BURST_COLOR 0xFF2050FF
 
 // NOTE(zoubir): a ring blowing outward the moment a monster enrages
@@ -294,6 +339,7 @@ DrawMonsterTelegraphs(render_context *RenderContext, world *World,
     DrawEliteAuras(RenderContext, World, CameraOffset);
     DrawShellArcs(RenderContext, World, CameraOffset);
     DrawEnrageBursts(RenderContext, World, CameraOffset);
+    DrawBurrowTelegraphs(RenderContext, World, CameraOffset);
     DrawStatusPips(RenderContext, World, CameraOffset);
     for(u32 EntityIndex = 0;
         EntityIndex < World->EntityCount;
@@ -375,6 +421,13 @@ DrawMonsterTelegraphs(render_context *RenderContext, world *World,
                     DrawDottedCircle(RenderContext, Spot, 16.f * Progress,
                                      GraveColor, 3.f);
                 }
+            } break;
+
+            case MonsterAbility_Burrow:
+            {
+                // NOTE(zoubir): sand sinking in around it as it digs
+                DrawDottedCircle(RenderContext, Self, 0.5f * Entity->Dimensions.X *
+                                 (1.f + Progress), BURROW_RIPPLE_COLOR, 2.f);
             } break;
 
             case MonsterAbility_Mend:

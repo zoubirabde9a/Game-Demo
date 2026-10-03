@@ -15,3 +15,4 @@
 #include "necromancy.cpp"
 #include "warden.cpp"
 #include "warlord.cpp"
+#include "lurker.cpp"
