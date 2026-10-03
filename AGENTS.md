@@ -59,6 +59,8 @@ By hand: run `test.bat` and `build.bat` in your worktree. Do not merge red. If `
 
 Also build `build.bat release` when you touch headers or `#if` blocks; the release build compiles different code.
 
+To look at what you changed on screen, run `misc\screenshot.bat out.png [frame]` after `build.bat`. It saves the frame the game draws (frame 90 by default) and quits; a desktop capture of the game window comes out white.
+
 If `misc\shell_64.bat` prints "'vswhere.exe' is not recognized" and `cl` or `test.bat` are then not found, your PATH is longer than cmd can hold once Visual Studio appends to it. Start the shell with a short PATH first:
 
 ```
