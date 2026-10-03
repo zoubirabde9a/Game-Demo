@@ -144,3 +144,16 @@ ApplySnapshotAbilities(world *World, replica_table *Table, net_snapshot *Snapsho
                              Def->Abilities[State->Ability].Kind == MonsterAbility_Burrow);
     }
 }
+
+// NOTE(zoubir): the local player's own cooldowns, which only the server
+// runs, put where the HUD reads them
+internal void
+ApplyOwnCooldowns(world_entity *Local, net_snapshot *Snapshot)
+{
+    for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
+    {
+        float Full;
+        float *Seconds = PlayerCooldown(Local, Index, &Full);
+        if (Seconds) *Seconds = CooldownFromByte(Snapshot->Cooldowns[Index], Full);
+    }
+}

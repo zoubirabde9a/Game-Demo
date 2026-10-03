@@ -179,6 +179,15 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     Out->Count = 0;
     Out->FacingCount = 0;
     Out->InputTick = Game->LastInputTick[ViewerSlot];
+    // The viewer's own cooldowns, for its HUD (sim/player_cooldowns.cpp).
+    static_assert(PLAYER_COOLDOWN_COUNT == NET_COOLDOWN_COUNT, "one byte per cooldown");
+    world_entity *Own = Game->AppState->Players[ViewerSlot].Entity;
+    for (u32 Index = 0; Index < NET_COOLDOWN_COUNT; ++Index)
+    {
+        float Full;
+        float *Seconds = Own ? PlayerCooldown(Own, Index, &Full) : 0;
+        Out->Cooldowns[Index] = Seconds ? CooldownToByte(*Seconds, Full) : 0;
+    }
     Out->AbilityCount = 0;
 
     // The viewer's own player goes first so it is never cut off by the

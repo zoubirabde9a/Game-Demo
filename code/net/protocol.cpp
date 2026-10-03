@@ -47,10 +47,11 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     NetU8(S, &TypeAndFlags);
     E->Type = TypeAndFlags & NET_ENTITY_TYPE_MASK;
     // Small fields are packed; out-of-range values are cut to their bits.
-    u8 Look = (u8)((E->Facing & 3) | ((E->Animation & 15) << 2));
+    u8 Look = (u8)((E->Facing & 3) | ((E->Animation & 15) << 2) | ((E->Flash & 1) << 6));
     NetU8(S, &Look);
     E->Facing = Look & 3;
     E->Animation = (Look >> 2) & 15;
+    E->Flash = (Look >> 6) & 1;
     NetU8(S, &E->Variant);
     u8 Extra = (u8)((E->Affix & 7) | ((E->Status & 7) << 3) | ((E->Ability & 3) << 6));
     NetU8(S, &Extra);
@@ -229,6 +230,10 @@ NetSerializePacket(net_stream *S, net_packet *P)
             for (u32 Index = 0; Index < P->Snapshot.SoundCount; ++Index)
             {
                 NetU8(S, &P->Snapshot.Sounds[Index]);
+            }
+            for (u32 Index = 0; Index < NET_COOLDOWN_COUNT; ++Index)
+            {
+                NetU8(S, &P->Snapshot.Cooldowns[Index]);
             }
             NetU8(S, &P->Snapshot.KillCount);
             if (P->Snapshot.KillCount > NET_MAX_SNAPSHOT_KILLS) return false;

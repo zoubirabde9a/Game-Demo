@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d46u // "GDMF", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d47u // "GDMG", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -29,6 +29,7 @@
 #define NET_MAX_SNAPSHOT_FACINGS 8  // front-armoured monsters per snapshot
 #define NET_MAX_SNAPSHOT_SOUNDS 8   // sounds heard since the last snapshot
 #define NET_MAX_SNAPSHOT_KILLS 4    // player deaths since the last snapshot
+#define NET_COOLDOWN_COUNT 3        // the viewer's own ability cooldowns
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
@@ -101,6 +102,7 @@ struct net_entity_state
     // Status and Ability, so each must stay within its bit count.
     u8 Facing;     // 2 bits: animation_direction
     u8 Animation;  // 4 bits: animation_type
+    u8 Flash;      // 1 bit: a monster's enrage burst is playing
     u8 Variant;    // which look within the type: monster kind (also for
                    // hazards), shot style, player slot
     u8 Affix;      // 3 bits: elite affix of a monster, shot or hazard
@@ -215,6 +217,10 @@ struct net_snapshot
     // the kill feed. Slots and monster kinds; 0xFF means nobody.
     u8 KillCount;
     net_kill Kills[NET_MAX_SNAPSHOT_KILLS];
+    // The viewer's own ability cooldowns, each 0..255 of that ability's full
+    // cooldown (0 = ready), for the HUD; abilities run only on the server.
+    // Which is which: PlayerCooldown in sim/player_cooldowns.cpp.
+    u8 Cooldowns[NET_COOLDOWN_COUNT];
 };
 
 struct net_packet

@@ -696,6 +696,42 @@ TestReplicasShowMonsterWindups()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a boss's enrage burst reaches its replica: it starts when
+// the snapshot's Flash bit comes on, is not restarted while the bit stays
+// on, and plays out by itself
+internal void
+TestEnrageBurstOnline()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+    float Dt = 1.f / 60.f;
+    Snapshot->Tick = 1;
+    Snapshot->Count = 1;
+    Snapshot->NameSlot = NET_NO_NAME_SLOT;
+    Snapshot->Entities[0] = SnapshotEntity(4, EntityType_Monster, 500, 500, 0);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    world_entity *Monster = &Test.World->Entities[Table->LocalIndexPlusOne[4] - 1];
+    Check(Monster->PhaseFlash == 0.f);
+
+    Snapshot->Tick = 2;
+    Snapshot->Entities[0].Flash = 1;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    Check(Monster->PhaseFlash > ENRAGE_FLASH_SECONDS - 0.05f);
+    float Started = Monster->PhaseFlash;
+    for(u32 Frame = 0; Frame < 6; Frame++) SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    Snapshot->Tick = 3;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    Check(Monster->PhaseFlash < Started - 0.05f);
+    for(u32 Frame = 0; Frame < 60; Frame++) SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    Check(Monster->PhaseFlash == 0.f);
+
+    free(Snapshot);
+    free(Table);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunOnlineTests()
 {
@@ -731,4 +767,6 @@ RunOnlineTests()
     TestLossLearnsTheSnapshotStep();
     printf("TestReplicasShowMonsterWindups\n");
     TestReplicasShowMonsterWindups();
+    printf("TestEnrageBurstOnline\n");
+    TestEnrageBurstOnline();
 }

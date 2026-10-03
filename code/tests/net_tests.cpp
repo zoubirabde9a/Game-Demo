@@ -718,6 +718,7 @@ TestStillEntitiesAreSmaller()
     Check(Out.Snapshot.Entities[0].Type == 4 && Out.Snapshot.Entities[0].Z == 0.f);
     Check(Out.Snapshot.Entities[0].VelX == 0.f && Out.Snapshot.Entities[0].X == 100.f);
 
+    P.Snapshot.Entities[0].Flash = 1;
     P.Snapshot.Entities[0].Z = 12.5f;
     P.Snapshot.Entities[0].VelX = -30.25f;
     u32 Moving = NetWritePacket(&P, Buffer, sizeof(Buffer));
@@ -725,6 +726,7 @@ TestStillEntitiesAreSmaller()
     Check(NetReadPacket(Buffer, Moving, &Out));
     Check(Out.Snapshot.Entities[0].Z == 12.5f && Out.Snapshot.Entities[0].VelX == -30.25f);
     Check(Out.Snapshot.Entities[0].VelY == 0.f && Out.Snapshot.Entities[0].Type == 4);
+    Check(Out.Snapshot.Entities[0].Flash == 1);
 
     // A type past 6 bits cannot be sent.
     P.Snapshot.Entities[0].Type = 64;
@@ -827,8 +829,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d46u
-#define NET_GOLDEN_LAYOUT 0x1e0b55f8u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d47u
+#define NET_GOLDEN_LAYOUT 0xa9691c88u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

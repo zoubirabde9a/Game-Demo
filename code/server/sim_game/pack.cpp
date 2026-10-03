@@ -130,6 +130,7 @@ SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
     E->Affix = (u8)Entity->EliteAffix;
     E->Status = SimGameStatusBits(Entity);
     E->Ability = (u8)Entity->AbilityIndex;
+    E->Flash = (Entity->Type == EntityType_Monster && Entity->PhaseFlash > 0.f) ? 1 : 0;
     if (Entity->Type == EntityType_Player)
     {
         E->Ability = (u8)((Entity->ShockwaveFlash > 0.f ? PLAYER_FLASH_SHOCKWAVE : 0) |

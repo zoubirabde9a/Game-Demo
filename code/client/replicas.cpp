@@ -23,6 +23,9 @@ struct replica_table
     u8 Type[MAX_REPLICAS];
     u16 Look[MAX_REPLICAS]; // see ReplicaLook
     u32 SeenTick[MAX_REPLICAS];
+    // NOTE(zoubir): the snapshot's Flash bit last time, so a burst starts
+    // once when it comes on (client/replicas/apply.cpp)
+    u8 Flashing[MAX_REPLICAS];
     // NOTE(zoubir): gliding between snapshots, client/replica_smoothing.cpp
     replica_smoothing Smoothing;
 };
@@ -155,6 +158,14 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
                                         State->Variant == LocalSlot);
                 bool32 WasDead = Reused && IsDeadPlayer(Replica);
                 ApplyStateToReplica(AppState, Arena, Replica, State);
+                // NOTE(zoubir): a boss's enrage burst: start it when the bit
+                // comes on; it then plays out on its own
+                if (State->Flash && !Table->Flashing[State->Id] &&
+                    Replica->Type == EntityType_Monster)
+                {
+                    Replica->PhaseFlash = ENRAGE_FLASH_SECONDS;
+                }
+                Table->Flashing[State->Id] = State->Flash;
                 SetSmoothingTarget(AppState, Arena, &Table->Smoothing,
                                    State->Id, Replica, Drawn,
                                    Reused && !IsLocalPlayer);
@@ -181,6 +192,11 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
 
         ApplySnapshotFacings(World, Table, Snapshot);
         ApplySnapshotAbilities(World, Table, Snapshot);
+        player_slot *Own = &AppState->Players[LocalSlot];
+        if (Own->Active && Own->Entity && Own->Entity->Type == EntityType_Player)
+        {
+            ApplyOwnCooldowns(Own->Entity, Snapshot);
+        }
         ApplySnapshotScores(AppState, Snapshot);
         if (Snapshot->NameSlot < MAX_PLAYERS)
         {
@@ -228,6 +244,21 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
                     Replica->AbilityPhase != AbilityPhase_Ready)
                 {
                     Replica->AbilityTimer = Maximum(0.f, Replica->AbilityTimer - DeltaTime);
+                }
+                if (Replica->Type == EntityType_Monster && Replica->PhaseFlash > 0.f)
+                {
+                    Replica->PhaseFlash = Maximum(0.f, Replica->PhaseFlash - DeltaTime);
+                }
+                // NOTE(zoubir): cooldown bars run down between snapshots
+                if (Replica->Type == EntityType_Player &&
+                    Replica == AppState->Players[LocalSlot].Entity)
+                {
+                    for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
+                    {
+                        float Full;
+                        float *Seconds = PlayerCooldown(Replica, Index, &Full);
+                        if (Seconds) *Seconds = Maximum(0.f, *Seconds - DeltaTime);
+                    }
                 }
             }
             if (Replica->IsPresent && Replica->AnimationSet)

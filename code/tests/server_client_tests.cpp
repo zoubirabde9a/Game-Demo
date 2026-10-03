@@ -373,16 +373,38 @@ TestReplicasMatchTheServer()
     u32 ServerWindups = 0, ClientWindups = 0, ServerBurrows = 0, ClientBurrows = 0;
     u32 ServerElites = 0, ClientElites = 0, ServerFlashes = 0, ClientFlashes = 0;
     u32 LastTick = 0;
+    u32 CooldownsCompared = 0, CooldownsOff = 0, ServerCooling = 0, ClientCooling = 0;
     app_input Input = {};
     Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
     for (int Frame = 0; Frame < 30 * SERVER_TICK_RATE; ++Frame)
     {
+        // The watcher dashes and shockwaves now and then, so its cooldown
+        // bars have something to show.
+        Input.AltButton.EndedDown = (Frame % 90) < 2;
+        Input.ButtonE.EndedDown = (Frame % 300) < 2;
         UpdateOnlineSession(Online, &Input);
         RunWorldTick(Client, &Arena, Input.DeltaTime);
         if (IsOnline(Online) && Online->Replicas.Active &&
             Online->Replicas.LastAppliedTick != LastTick)
         {
             LastTick = Online->Replicas.LastAppliedTick;
+            // The watcher's own cooldowns: within a snapshot's time of the
+            // server's (the server has ticked once more since it wrote).
+            world_entity *OwnTheirs = Server.Game.AppState->Players[Online->Client.PlayerIndex].Entity;
+            world_entity *OwnOurs = Client->Players[Client->LocalPlayerIndex].Entity;
+            if (OwnTheirs && OwnOurs)
+            {
+                for (u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; ++Index)
+                {
+                    float Full;
+                    float Theirs = *PlayerCooldown(OwnTheirs, Index, &Full);
+                    float Ours = *PlayerCooldown(OwnOurs, Index, &Full);
+                    ++CooldownsCompared;
+                    if (Theirs - Ours > 0.1f || Ours - Theirs > 0.1f) ++CooldownsOff;
+                    ServerCooling += Theirs > 0.f ? 1 : 0;
+                    ClientCooling += Ours > 0.f ? 1 : 0;
+                }
+            }
             for (u32 Id = 0; Id < MAX_REPLICAS; ++Id)
             {
                 if (!Online->Replicas.LocalIndexPlusOne[Id] || Id >= ServerWorld->EntityCount) continue;
@@ -421,8 +443,11 @@ TestReplicasMatchTheServer()
     Check(ServerWindups == 0 || ClientWindups > 0);
     Check(ServerBurrows == 0 || ClientBurrows > 0);
     Check(ServerElites == 0 || ClientElites > 0);
-    // NOTE: known gap, not checked: the enrage flash (PhaseFlash) is not
-    // sent; see docs/multiplayer-plan.md
+    Check(ServerFlashes == 0 || ClientFlashes > 0);
+    printf("  parity: own cooldowns %u compared, %u off by over 0.1 s, cooling on server/client %u/%u\n",
+           CooldownsCompared, CooldownsOff, ServerCooling, ClientCooling);
+    Check(CooldownsCompared > 100 && CooldownsOff == 0);
+    Check(ServerCooling > 0 && ClientCooling > 0);
 
     NetClientDisconnect(&Online->Client);
     ServerStop(&Server);
