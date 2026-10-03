@@ -346,11 +346,15 @@ TestPlayOverBadConnection()
 // compared with its server entity, and anything the server showed at
 // least once (a wind-up, a burrow, an elite) must have shown on the client
 // too. A field that differs, or never reaches the client, is named.
+// NOTE: the snapshot is written at the end of a server tick and compared
+// before the next one, so the server's state is the one that was sent and
+// the comparisons can be exact. Run on the arena and on an infinite map,
+// where the client first has to rebuild the world for the server's map.
 internal void
-TestReplicasMatchTheServer()
+TestReplicasMatchTheServer(u32 MapId, int Seconds)
 {
     static server Server;
-    Check(ServerStart(&Server, 0));
+    Check(ServerStart(&Server, 0, MapId));
     Server.Game.BotTarget = 6;
 
     app_state *Client = (app_state *)calloc(1, sizeof(app_state));
@@ -370,13 +374,14 @@ TestReplicasMatchTheServer()
     world *ServerWorld = &Server.Game.AppState->World;
     world *ClientWorld = &Client->World;
     u32 Compared = 0, WrongType = 0, WrongKind = 0, WrongAffix = 0, WrongMaxHp = 0, WrongTint = 0;
+    u32 Players = 0, WrongPlayerHp = 0, WrongDead = 0, WrongSlot = 0;
     u32 ServerWindups = 0, ClientWindups = 0, ServerBurrows = 0, ClientBurrows = 0;
     u32 ServerElites = 0, ClientElites = 0, ServerFlashes = 0, ClientFlashes = 0;
     u32 LastTick = 0;
     u32 CooldownsCompared = 0, CooldownsOff = 0, ServerCooling = 0, ClientCooling = 0;
     app_input Input = {};
     Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
-    for (int Frame = 0; Frame < 30 * SERVER_TICK_RATE; ++Frame)
+    for (int Frame = 0; Frame < Seconds * SERVER_TICK_RATE; ++Frame)
     {
         // The watcher dashes and shockwaves now and then, so its cooldown
         // bars have something to show.
@@ -413,6 +418,14 @@ TestReplicasMatchTheServer()
                 if (!Theirs->IsPresent || !Ours->IsPresent) continue;
                 ++Compared;
                 if (Ours->Type != Theirs->Type) { ++WrongType; continue; }
+                if (Theirs->Type == EntityType_Player)
+                {
+                    ++Players;
+                    if ((i16)Ours->Hp != (i16)Theirs->Hp) ++WrongPlayerHp;
+                    if (IsDeadPlayer(Ours) != IsDeadPlayer(Theirs)) ++WrongDead;
+                    if (Ours->PlayerIndex != Theirs->PlayerIndex) ++WrongSlot;
+                    continue;
+                }
                 if (Theirs->Type != EntityType_Monster) continue;
                 if (Ours->MonsterKind != Theirs->MonsterKind) ++WrongKind;
                 if (Ours->EliteAffix != Theirs->EliteAffix) ++WrongAffix;
@@ -432,6 +445,9 @@ TestReplicasMatchTheServer()
         }
         ServerTick(&Server);
     }
+    printf("  parity on %s: %u players, wrong health %u, dead %u, slot %u\n",
+           GetMapDef((map_id)MapId)->Name, Players, WrongPlayerHp, WrongDead, WrongSlot);
+    Check(Players > 100 && WrongPlayerHp == 0 && WrongDead == 0 && WrongSlot == 0);
     printf("  parity: %u compared; wrong type %u, kind %u, affix %u, max hp %u, tint %u; "
            "seen on server/client: wind-ups %u/%u, burrows %u/%u, elites %u/%u, enrage flashes %u/%u\n",
            Compared, WrongType, WrongKind, WrongAffix, WrongMaxHp, WrongTint,
@@ -466,5 +482,6 @@ RunServerClientTests()
     TestClientGivesUpWithoutServer();
     TestClientNoticesSilentServer();
     TestPlayOverBadConnection();
-    TestReplicasMatchTheServer();
+    TestReplicasMatchTheServer(MapId_Arena, 30);
+    TestReplicasMatchTheServer(MapId_Wilds, 15);
 }
