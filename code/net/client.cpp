@@ -23,13 +23,14 @@ NetClientEnd(net_client *Client, net_client_end Reason)
 }
 
 internal bool32
-NetClientConnect(net_client *Client, net_address Server, u32 Salt)
+NetClientConnect(net_client *Client, net_address Server, u32 Salt, u32 ContentId)
 {
     *Client = {};
     Client->Socket = NetOpenSocket(0);
     if (!Client->Socket.Open) return false;
     Client->Server = Server;
     Client->Salt = Salt;
+    Client->ContentId = ContentId;
     Client->State = NetClient_Connecting;
     return true;
 }
@@ -59,7 +60,8 @@ NetClientHandle(net_client *Client, net_packet *Packet)
         {
             if (Client->State == NetClient_Connecting && Packet->ConnectDenied.ClientSalt == Client->Salt)
             {
-                NetClientEnd(Client, NetEnd_ServerFull);
+                NetClientEnd(Client, Packet->ConnectDenied.Reason == NetDeny_WrongVersion ?
+                             NetEnd_WrongVersion : NetEnd_ServerFull);
             }
         } break;
 
@@ -111,6 +113,7 @@ NetClientUpdate(net_client *Client, float Dt, u16 Buttons, float AimX, float Aim
         {
             Client->RetryTimer = NET_CONNECT_RETRY;
             Out.ConnectRequest.ClientSalt = Client->Salt;
+            Out.ConnectRequest.ContentId = Client->ContentId;
             NetClientSend(Client, &Out, NetPacket_ConnectRequest);
         }
     }

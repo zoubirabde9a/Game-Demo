@@ -45,6 +45,19 @@ NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Pack
     if (Packet->Header.Type == NetPacket_ConnectRequest)
     {
         u32 Salt = Packet->ConnectRequest.ClientSalt;
+        u32 ContentId = Packet->ConnectRequest.ContentId;
+        if (ContentId != 0 && Clients->ContentId != 0 && ContentId != Clients->ContentId)
+        {
+            // A different build would misread every snapshot; refuse it
+            // before it takes a slot.
+            Result.Event = NetReceive_Denied;
+            Result.HasReply = true;
+            Result.Reply.Header.Type = NetPacket_ConnectDenied;
+            Result.Reply.ConnectDenied.ClientSalt = Salt;
+            Result.Reply.ConnectDenied.Reason = NetDeny_WrongVersion;
+            return Result;
+        }
+
         if (Slot && Slot->Salt == Salt)
         {
             Slot->SecondsSinceHeard = 0;

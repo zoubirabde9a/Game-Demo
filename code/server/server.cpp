@@ -82,6 +82,7 @@ ServerStart(server *Server, u16 Port)
     *Server = {};
     Server->Socket = NetOpenSocket(Port);
     GameInit(&Server->Game);
+    Server->Clients.ContentId = GameContentId(&Server->Game);
     return Server->Socket.Open;
 }
 
@@ -113,7 +114,9 @@ ServerReceiveAll(server *Server)
             } break;
             case NetReceive_Denied:
             {
-                ServerLog(Server, "refused " ADDRESS_FORMAT ": server full", ADDRESS_ARGS(From));
+                ServerLog(Server, "refused " ADDRESS_FORMAT ": %s", ADDRESS_ARGS(From),
+                          Result.Reply.ConnectDenied.Reason == NetDeny_WrongVersion ?
+                          "different game version" : "server full");
             } break;
             case NetReceive_Left:
             {

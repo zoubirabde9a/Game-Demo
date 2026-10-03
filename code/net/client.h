@@ -33,6 +33,7 @@ enum net_client_end
     NetEnd_ServerClosed,   // the server said goodbye
     NetEnd_LostConnection, // nothing heard from the server for too long
     NetEnd_LeftByChoice,
+    NetEnd_WrongVersion,   // the server runs a build with different content
 };
 
 struct net_client
@@ -48,6 +49,7 @@ struct net_client
     net_socket Socket;
     net_address Server;
     u32 Salt;
+    u32 ContentId;
     float SecondsSinceHeard;
     float SecondsConnecting;
     float RetryTimer;
@@ -59,7 +61,8 @@ struct net_client
 };
 
 // Opens a socket and starts connecting. Salt should be random per launch.
-internal bool32 NetClientConnect(net_client *Client, net_address Server, u32 Salt);
+// ContentId is SimContentId() for a game client, 0 for a tool.
+internal bool32 NetClientConnect(net_client *Client, net_address Server, u32 Salt, u32 ContentId);
 
 // Reads everything from the server, then sends this frame's input (or a
 // connect retry). Call once per frame with the buttons held this frame.

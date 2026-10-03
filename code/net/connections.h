@@ -29,6 +29,7 @@ struct net_client_slot
 
 struct net_server_clients
 {
+    u32 ContentId; // the server build's SimContentId(); clients must match or send 0
     net_client_slot Slots[NET_MAX_CLIENTS];
 };
 
@@ -37,7 +38,7 @@ enum net_receive_event
     NetReceive_Ignored,   // unknown sender, stale or server-only packet
     NetReceive_Joined,    // a client took slot SlotIndex; start it fresh, even if it was in use
     NetReceive_Rejoined,  // a repeated connect request; reply already filled
-    NetReceive_Denied,    // server full; reply filled
+    NetReceive_Denied,    // server full or wrong version (see Reply.ConnectDenied.Reason)
     NetReceive_Left,      // client said goodbye; slot is free again
     NetReceive_Inputs,    // NewInputs holds inputs not seen before, oldest first
 };

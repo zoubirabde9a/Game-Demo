@@ -76,6 +76,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
         case NetPacket_ConnectRequest:
         {
             NetU32(S, &P->ConnectRequest.ClientSalt);
+            NetU32(S, &P->ConnectRequest.ContentId);
         } break;
 
         case NetPacket_ConnectAccepted:

@@ -29,7 +29,7 @@ main(int ArgCount, char **Args)
 
     static net_client Client;
     u32 Salt = (u32)(ClockSeconds() * 1000.0) ^ 0x9e3779b9u;
-    if (!NetClientConnect(&Client, Server, Salt))
+    if (!NetClientConnect(&Client, Server, Salt, 0))
     {
         fprintf(stderr, "could not open a socket\n");
         return 1;

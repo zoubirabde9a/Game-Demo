@@ -36,6 +36,12 @@ GameInit(server_game *Game)
     Game->Arena = &AppState->MemoryArena;
 }
 
+internal u32
+GameContentId(server_game *Game)
+{
+    return SimContentId();
+}
+
 internal void
 GameShutdown(server_game *Game)
 {

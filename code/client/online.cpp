@@ -108,7 +108,8 @@ StartOnlineSession(memory_arena *Arena)
         NetSocketsStartup())
     {
         u32 Salt = (u32)time(0) ^ (u32)(size_t)Online;
-        Online->Enabled = NetClientConnect(&Online->Client, Server, Salt);
+        Online->Enabled = NetClientConnect(&Online->Client, Server, Salt,
+                                           SimContentId());
     }
     return Online;
 }
@@ -157,7 +158,8 @@ GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
         {
             char *Reasons[] = {"disconnected", "no answer from server",
                                "server full", "server closed",
-                               "lost connection", "left"};
+                               "lost connection", "left",
+                               "server runs a different version"};
             u32 Reason = (u32)Client->EndReason;
             snprintf(Out, OutSize, "Offline: %s",
                      Reason < ArrayCount(Reasons) ? Reasons[Reason] :

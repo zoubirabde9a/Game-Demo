@@ -12,6 +12,8 @@ struct server_game;
 
 internal void GameInit(server_game *Game);
 internal void GameShutdown(server_game *Game);
+// Fingerprint of the content clients must share; see SimContentId.
+internal u32 GameContentId(server_game *Game);
 // Can arrive for a slot already in use when a client restarts; reset it.
 internal void GamePlayerJoined(server_game *Game, u32 Slot);
 internal void GamePlayerLeft(server_game *Game, u32 Slot);

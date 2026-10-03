@@ -164,7 +164,7 @@ TestClientConnectsAndMoves()
     static server Server;
     static net_client Client;
     Check(ServerStart(&Server, 0));
-    Check(NetClientConnect(&Client, LocalServer(&Server), 1234));
+    Check(NetClientConnect(&Client, LocalServer(&Server), 1234, SimContentId()));
     Check(Client.State == NetClient_Connecting);
 
     for (int Frame = 0; Frame < 120 && !Client.HasSnapshot; ++Frame) StepBoth(&Server, &Client, 1, 0);
@@ -194,7 +194,7 @@ TestNinthClientIsTurnedAway()
     Check(ServerStart(&Server, 0));
     for (u32 Index = 0; Index < ArrayCount(Clients); ++Index)
     {
-        Check(NetClientConnect(&Clients[Index], LocalServer(&Server), 100 + Index));
+        Check(NetClientConnect(&Clients[Index], LocalServer(&Server), 100 + Index, SimContentId()));
     }
     for (int Frame = 0; Frame < 120; ++Frame)
     {
@@ -238,7 +238,7 @@ TestClientGivesUpWithoutServer()
     NetCloseSocket(&Probe);
 
     static net_client Client;
-    Check(NetClientConnect(&Client, Nowhere, 5));
+    Check(NetClientConnect(&Client, Nowhere, 5, SimContentId()));
     int Frames = (int)(NET_CONNECT_GIVE_UP * 60) + 2;
     for (int Frame = 0; Frame < Frames; ++Frame) NetClientUpdate(&Client, 1.0f / 60, 0, 0, 0);
     Check(Client.State == NetClient_Disconnected);
@@ -251,7 +251,7 @@ TestClientNoticesSilentServer()
     static server Server;
     static net_client Client;
     Check(ServerStart(&Server, 0));
-    Check(NetClientConnect(&Client, LocalServer(&Server), 9));
+    Check(NetClientConnect(&Client, LocalServer(&Server), 9, SimContentId()));
     for (int Frame = 0; Frame < 120 && Client.State != NetClient_Connected; ++Frame) StepBoth(&Server, &Client, 1, 0);
     Check(Client.State == NetClient_Connected);
 
@@ -302,7 +302,7 @@ PlayThroughLink(u32 DropPercent, u32 DuplicatePercent, u32 MaxDelayFrames, u32 T
 
     Check(ServerStart(&Server, 0));
     Check(LossyOpen(&Link, LocalServer(&Server), DropPercent, DuplicatePercent, MaxDelayFrames, 7));
-    Check(NetClientConnect(&Client, LossyAddress(&Link), 99));
+    Check(NetClientConnect(&Client, LossyAddress(&Link), 99, SimContentId()));
 
     // One frame: client sends, the relay carries it, the server ticks, the relay carries replies.
     #define FRAME(Buttons) do { NetClientUpdate(&Client, 1.0f / SERVER_TICK_RATE, (Buttons), 0, 0); \
@@ -359,12 +359,41 @@ TestPlayOverBadConnection()
 }
 
 internal void
+TestDifferentBuildIsRefused()
+{
+    static server Server;
+    static net_client Stranger, Probe, Player;
+    Check(ServerStart(&Server, 0));
+    Check(Server.Clients.ContentId == SimContentId());
+    Check(SimContentId() == SimContentId()); // stable within a build
+
+    // A client built with other monsters: refused before taking a slot.
+    Check(NetClientConnect(&Stranger, LocalServer(&Server), 1, SimContentId() ^ 0x5a5a));
+    for (int Frame = 0; Frame < 120 && Stranger.State == NetClient_Connecting; ++Frame) StepBoth(&Server, &Stranger, 1, 0);
+    Check(Stranger.State == NetClient_Disconnected);
+    Check(Stranger.EndReason == NetEnd_WrongVersion);
+    Check(!Server.Clients.Slots[0].Connected);
+
+    // The health probe sends 0 and is let in; so is a matching game client.
+    Check(NetClientConnect(&Probe, LocalServer(&Server), 2, 0));
+    for (int Frame = 0; Frame < 120 && !Probe.HasSnapshot; ++Frame) StepBoth(&Server, &Probe, 1, 0);
+    Check(Probe.State == NetClient_Connected);
+    Check(NetClientConnect(&Player, LocalServer(&Server), 3, SimContentId()));
+    for (int Frame = 0; Frame < 120 && !Player.HasSnapshot; ++Frame) StepBoth(&Server, &Player, 1, 0);
+    Check(Player.State == NetClient_Connected);
+
+    NetClientDisconnect(&Probe);
+    NetClientDisconnect(&Player);
+    ServerStop(&Server);
+}
+
+internal void
 TestStatsCountTrafficAndTicks()
 {
     static server Server;
     static net_client Client;
     Check(ServerStart(&Server, 0));
-    Check(NetClientConnect(&Client, LocalServer(&Server), 55));
+    Check(NetClientConnect(&Client, LocalServer(&Server), 55, SimContentId()));
     for (int Frame = 0; Frame < 120 && !Client.HasSnapshot; ++Frame) StepBoth(&Server, &Client, 1, 0);
     Check(Client.HasSnapshot);
 
@@ -454,6 +483,8 @@ main()
     TestSnapshotCarriesMonsterWindup();
     TestStatsCountTrafficAndTicks();
     TestPlayOverBadConnection();
+    TestDifferentBuildIsRefused();
+    printf("  content id %08x\n", SimContentId());
     NetSocketsShutdown();
 
     printf("server tests: %d checks, %d failed\n", TestChecks, TestFailures);
