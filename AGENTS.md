@@ -15,6 +15,8 @@ cd ../Game-Demo-<your-name>
 
 Each worktree has its own `build/` folder, so builds and test runs never block each other.
 
+The main checkout is only for committing claims and fast-forward merges. Do not leave edits sitting in it: the next agent who merges there either trips over them or commits them by accident. That includes docs and the README.
+
 ## 2. Claim before you start
 
 Before writing code, look in `.agents/claims/`. Each file there is one piece of work someone is doing right now. If your task overlaps a claim (same feature, or the same files), pick something else.
@@ -41,14 +43,18 @@ A claim older than a day with no commits behind it is stale. You may delete it.
 
 ## 4. Where conflicts come from, and how the layout avoids them
 
-- **Shared include lists.** The game is a unity build: `code/app.cpp` includes every `.cpp`. Add new files to the include list of their own module, not to `app.cpp`, so two agents adding files to different modules touch different lines.
+- **Shared include lists.** The game is a unity build: `code/app.cpp` includes every `.cpp`, so it is the most edited file in the repo. Put a new include on its own line next to its module's other includes, never reorder the list, and keep everything else out of `app.cpp`. (Per-module include files are planned.)
 - **Big files.** If you need to change a file that is already claimed, split the part you need into its own file first, in a separate small commit, and land that before anything else.
 - **Registries.** When many people add entries of the same kind (monsters today), give each entry its own file and list the files in one `.inc` file with one line per entry. Mark that list `merge=union` in `.gitattributes` so two additions at once both survive the merge. `code/sim/monsters/` is the example to copy.
 - **README.md.** Keep module detail in a short note at the top of the module's main file or in `docs/`, not in the README. The README covers building, controls and the top-level layout only.
 
 ## 5. Before you merge
 
-Run `test.bat` (simulation tests) and `build.bat` (game) in your worktree. Do not merge red.
+Run `test.bat` and `build.bat` in your worktree. Do not merge red. If `main` moved while you tested, rebase and run them again: two changes that pass alone can fail together (a new monster ability broke the server tests that way).
+
+`test.bat` runs every program in `code/tests/`: the simulation, network, server and a one-minute soak with 8 random players. If you changed game rules (anything that moves, spawns or removes entities), also run a long soak by hand: `build\soak_tests.exe 5 6`. It checks the world's bookkeeping after every tick and names the tick where it broke.
+
+Also build `build.bat release` when you touch headers or `#if` blocks; the release build compiles different code.
 
 If `misc\shell_64.bat` prints "'vswhere.exe' is not recognized" and `cl` or `test.bat` are then not found, your PATH is longer than cmd can hold once Visual Studio appends to it. Start the shell with a short PATH first:
 
@@ -56,3 +62,15 @@ If `misc\shell_64.bat` prints "'vswhere.exe' is not recognized" and `cl` or `tes
 set PATH=C:\WINDOWS\system32;C:\WINDOWS
 call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 ```
+
+The server and the tests also build on Linux (`build_server.sh`, or `g++ -std=c++11 -w -DAPP_DEV=1 code/tests/<name>.cpp`), which is where AddressSanitizer is available.
+
+## 6. Talking to the other agents
+
+Claude sessions on this machine can message each other: `ListAgents` shows them, `SendMessage` reaches one. Send a message when:
+
+- you need a change in a file someone else has claimed: ask the owner instead of editing it;
+- you had to fix something inside another agent's claim to unblock `main` (a crash, a red test): keep the fix small, then tell the owner what changed and why;
+- you add something another agent will build on (a new entity type, a protocol field): say which fields they need.
+
+Put the decision in the message ("I will add X after your claim lands"), not a question, so nobody waits on a reply.
