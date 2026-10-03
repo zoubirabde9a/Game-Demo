@@ -30,6 +30,8 @@
 #include "client/client_module.cpp"
 #include "ui/ui_module.cpp"
 
+#define UI_PASS_MAX_BATCHES 4096
+
 extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
 {
     app_state *AppState = (app_state *)Memory->PermanentStorage;
@@ -79,7 +81,11 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
 
     // Screens over the world.
     ui_context *UIContext = AppState->UIContext;
-    UIBegin(RenderContext, TransientArena, Input, AppState, UIContext, 200, 4);
+    // NOTE(zoubir): room for this many draw batches (and 6 vertices each)
+    // on top of the world. Text and monster telegraphs use one batch per
+    // shape, and 200 ran out with a few monsters winding up at once.
+    UIBegin(RenderContext, TransientArena, Input, AppState, UIContext,
+            UI_PASS_MAX_BATCHES, 4);
     DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
     DrawHud(RenderContext, AppState, CameraOffset);
     DrawRespawnCountdown(RenderContext, AppState, Window->Width, Window->Height);
