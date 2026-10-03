@@ -13,20 +13,15 @@
 #include "net/client.cpp"
 #endif
 
-#include "app.h"
-#include "stdio.h"
-#include "string.h"
-#include "stdlib.h"
-#include "time.h"
-
-#include "engine/engine_module.cpp"
+// NOTE(zoubir): the shared state, the engine and the simulation: what the
+// dedicated server builds too
+#include "app_sim.cpp"
 
 // NOTE(zoubir): the ids of the immediate-mode widgets, used by client startup
 #include "ui/ui_ids.h"
 
 // NOTE(zoubir): one line per module; a module lists its own files, so a new
 // file is added there, not here. Read the top of each for what it does.
-#include "sim/sim_module.cpp"
 #include "client/client_module.cpp"
 #include "ui/ui_module.cpp"
 

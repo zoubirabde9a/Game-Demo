@@ -5,6 +5,10 @@
 
 #include <stdio.h>
 #include "../server/server.cpp"
+// NOTE: the server builds only the simulation (app_sim.cpp); these tests
+// also run the real client against it, so they add the client on top.
+#include "../ui/ui_ids.h"
+#include "../client/client_module.cpp"
 #include "lossy_link.h"
 
 global_variable int TestFailures;

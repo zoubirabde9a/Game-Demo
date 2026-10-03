@@ -7,7 +7,7 @@
    arrives between two ticks are kept, so a tap shorter than a tick still
    fires once. */
 
-#include "../app.cpp"
+#include "../app_sim.cpp" // the simulation without the client or UI
 #include "event_relay.cpp"
 
 #define SIM_GAME_MEMORY Megabytes(64)
