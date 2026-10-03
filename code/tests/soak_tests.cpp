@@ -6,7 +6,8 @@
    caught on the tick it happens instead of as a crash minutes later.
 
    Usage: soak_tests [minutes-per-seed] [seed-count] [map | K/N]
-   (default 3 and 4). A map name runs every seed on that map only. K/N
+   (default 3 and 4); the default runs end with the random-frame-time
+   run and an all-bots run. A map name runs every seed on that map only. K/N
    runs only every Nth of the default runs, starting at the Kth (0-based),
    so N programs given 0/N .. N-1/N cover exactly the default runs, with
    the same seeds, at the same time; test.bat does that.
@@ -494,6 +495,45 @@ TestRandomPlaySoak()
     free(AppState);
 }
 
+// NOTE(zoubir): eight server bots (server/bots.cpp) and nobody else, for
+// a simulated minute, with the same world checks as the soak: the bots'
+// brains drive every player, so a bot that walks somewhere odd or keeps
+// pressing something the rules do not expect shows up here.
+internal void
+SoakBots(u32 Minutes)
+{
+    CurrentSeed = 0;
+    static server_game Game;
+    GameInit(&Game, MapId_Arena);
+    Game.BotTarget = MAX_PLAYERS;
+    bool32 Ok = true;
+    u32 Ticks = Minutes * 60 * SERVER_TICK_RATE;
+    float Dt = 1.0f / SERVER_TICK_RATE;
+    for (CurrentTick = 0; CurrentTick < Ticks && Ok; ++CurrentTick)
+    {
+        GameKeepBots(&Game, 0, Dt);
+        GameTick(&Game, Dt);
+        static net_snapshot Snapshot;
+        if (CurrentTick % SERVER_SNAPSHOT_INTERVAL == 0)
+        {
+            GameWriteSnapshot(&Game, CurrentTick % MAX_PLAYERS, &Snapshot);
+        }
+        Ok = CheckWorld(&Game);
+    }
+    u32 Kills = 0, MonsterKills = 0, Deaths = 0, Bots = 0;
+    for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
+    {
+        Kills += Game.AppState->Players[Slot].Kills;
+        MonsterKills += Game.AppState->Players[Slot].MonsterKills;
+        Deaths += Game.AppState->Players[Slot].Deaths;
+        Bots += Game.Bots[Slot].Active ? 1 : 0;
+    }
+    if (Bots != MAX_PLAYERS) Fail("all eight bots still playing", __LINE__);
+    printf("  bots: %u min, %s, %u bots, %u player kills, %u monster kills, %u deaths\n",
+           Minutes, Ok ? "ok" : "stopped", Bots, Kills, MonsterKills, Deaths);
+    GameShutdown(&Game);
+}
+
 int
 main(int ArgCount, char **Args)
 {
@@ -554,6 +594,11 @@ main(int ArgCount, char **Args)
     {
         printf("  random play, 4 players, 3 min of random frame times\n");
         TestRandomPlaySoak();
+    }
+    // Then eight bots, one more run.
+    if (OnlyMap == MapId_Count && (RunCount + 1) % Parts == Part)
+    {
+        SoakBots(Minutes);
     }
     printf("soak tests: %s\n", TestFailures ? "FAILED" : "all seeds passed");
     return TestFailures ? 1 : 0;

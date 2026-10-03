@@ -26,15 +26,15 @@ if %errorlevel% neq 0 goto failed
 cl %TestFlags% ..\code\tests\soak_tests.cpp /link -incremental:no %GameLibs%
 if %errorlevel% neq 0 goto failed
 
-REM The slow ones at once. The short soak is split in six parts, one per
-REM game it plays (five soak games and the random-play run), which
+REM The slow ones at once. The short soak is split in seven parts, one per
+REM game it plays (five soak games, the random-play run, the bots run), which
 REM together are exactly what "soak_tests.exe 1 2" plays; run
 REM soak_tests.exe 10 8 by hand for a long one.
-set Slow=sim_tests server_tests soak_tests_0 soak_tests_1 soak_tests_2 soak_tests_3 soak_tests_4 soak_tests_5
+set Slow=sim_tests server_tests soak_tests_0 soak_tests_1 soak_tests_2 soak_tests_3 soak_tests_4 soak_tests_5 soak_tests_6
 for %%t in (%Slow%) do del /q %%t.code 2>nul
 start "" /b cmd /v:on /c ".\sim_tests.exe > sim_tests.log 2>&1 & echo ^!errorlevel^! > sim_tests.code"
 start "" /b cmd /v:on /c ".\server_tests.exe > server_tests.log 2>&1 & echo ^!errorlevel^! > server_tests.code"
-for /l %%k in (0,1,5) do start "" /b cmd /v:on /c ".\soak_tests.exe 1 2 %%k/6 > soak_tests_%%k.log 2>&1 & echo ^!errorlevel^! > soak_tests_%%k.code"
+for /l %%k in (0,1,6) do start "" /b cmd /v:on /c ".\soak_tests.exe 1 2 %%k/7 > soak_tests_%%k.log 2>&1 & echo ^!errorlevel^! > soak_tests_%%k.code"
 
 REM g++ syntax checks, if g++ is here: the server as the live build makes
 REM it, the rest with the test flags.
