@@ -20,6 +20,8 @@ struct map_def;
 typedef terrain_kind map_terrain_function(map_def *Map, i32 X, i32 Y);
 typedef terrain_prop map_prop_function(map_def *Map, i32 X, i32 Y,
                                        terrain_kind Ground);
+// NOTE(zoubir): steps of raised ground at a tile, 0..ELEVATION_MAX_STEPS
+typedef i32 map_elevation_function(map_def *Map, i32 X, i32 Y);
 
 #define MAX_MAP_SPAWNS 8
 
@@ -34,11 +36,16 @@ struct map_def
     // NOTE(zoubir): infinite maps
     map_terrain_function *Generate;
     map_prop_function *PlaceProp;
+    // NOTE(zoubir): optional; flat when null
+    map_elevation_function *GenerateElevation;
 
     // NOTE(zoubir): bounded maps: Height rows of Width characters
     u32 Width;
     u32 Height;
     char **Layout;
+    // NOTE(zoubir): optional, Height rows of Width digits '0'..'9': the
+    // steps of raised ground at each tile; flat when null
+    char **ElevationLayout;
     terrain_kind Outside;
 
     // NOTE(zoubir): player spawn tiles; infinite maps keep the area around
@@ -87,6 +94,10 @@ global_variable layout_symbol LayoutLegend[] =
     // NOTE(zoubir): landmark guard markers (sim/terrain/landmarks.cpp)
     {'m', TerrainKind_StoneFloor, TerrainProp_None, false},
     {'n', TerrainKind_Dirt, TerrainProp_None, false},
+    // NOTE(zoubir): jumpables
+    {'l', TerrainKind_Grass, TerrainProp_Log, false},
+    {'f', TerrainKind_Grass, TerrainProp_Fence, false},
+    {'c', TerrainKind_StoneFloor, TerrainProp_Crate, false},
 };
 
 inline layout_symbol *
@@ -165,6 +176,33 @@ PropAt(map_def *Map, i32 X, i32 Y)
             Result = Symbol->Prop;
         }
     }
+    return Result;
+}
+
+// NOTE(zoubir): steps of raised ground at a tile (ELEVATION_STEP_HEIGHT
+// each). Landmarks sit flat, except where they keep the generated ground
+internal i32
+ElevationAt(map_def *Map, i32 X, i32 Y)
+{
+    i32 Result = 0;
+    if (Map->Kind == MapKind_Infinite)
+    {
+        char Landmark = LandmarkSymbolAt(Map, X, Y);
+        if ((!Landmark || Landmark == '?') && Map->GenerateElevation)
+        {
+            Result = Map->GenerateElevation(Map, X, Y);
+        }
+    }
+    else if (Map->ElevationLayout && X >= 0 && Y >= 0 &&
+             (u32)X < Map->Width && (u32)Y < Map->Height)
+    {
+        char Digit = Map->ElevationLayout[Y][X];
+        if (Digit >= '0' && Digit <= '9')
+        {
+            Result = Digit - '0';
+        }
+    }
+    Result = Minimum(Maximum(Result, 0), ELEVATION_MAX_STEPS);
     return Result;
 }
 

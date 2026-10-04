@@ -34,6 +34,9 @@ global_variable u32 MinimapPropColors[TerrainProp_Count] =
     UI_RGBA( 40,  90,  40, 255), // Tree
     UI_RGBA(120, 120, 120, 255), // Boulder
     UI_RGBA( 90,  70,  50, 255), // Dead tree
+    UI_RGBA(110,  80,  50, 255), // Log
+    UI_RGBA(130, 100,  70, 255), // Fence
+    UI_RGBA(140, 110,  60, 255), // Crate
 };
 
 struct minimap

@@ -73,8 +73,21 @@ enum terrain_prop
     TerrainProp_Tree,
     TerrainProp_Boulder,
     TerrainProp_DeadTree,
+    // NOTE(zoubir): jumpables: low enough to vault or jump over, solid
+    // enough to stand on (collision in sim/arena.cpp, art in
+    // art/terrain_art.cpp)
+    TerrainProp_Log,
+    TerrainProp_Fence,
+    TerrainProp_Crate,
     TerrainProp_Count
 };
 // NOTE(zoubir): drawn size of boulders and dead trees, in world units;
 // trees use the packed tree sprite
 #define TERRAIN_PROP_PIXELS 48
+
+// NOTE(zoubir): raised ground. A tile's elevation is a whole number of
+// steps (ElevationAt, sim/terrain/maps.cpp); each step lifts the ground
+// ELEVATION_STEP_HEIGHT units. A walking unit climbs one step on its own,
+// a jump (peak 36) clears four, a double jump about eight
+#define ELEVATION_STEP_HEIGHT 8.f
+#define ELEVATION_MAX_STEPS 9
