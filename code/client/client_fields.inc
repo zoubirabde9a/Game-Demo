@@ -13,3 +13,4 @@
     struct fx_bursts *FxBursts; // bursts the simulation asked for, client/fx_bursts.cpp
     struct body_poses *BodyPoses; // squash and stretch per unit, client/body_pose.cpp
     struct hud_pulses *HudPulses; // cooldown bars flashing as they come ready, ui/hud.cpp
+    struct monster_cast_tells *CastTells; // what monsters are casting, client/monster_cast_tells.cpp

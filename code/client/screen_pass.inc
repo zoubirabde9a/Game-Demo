@@ -8,6 +8,7 @@
 // theirs without a conflict. Put the logic in your own file and call it
 // from here.
 DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
+DrawMonsterCastTells(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, Window);
 DrawHud(RenderContext, AppState, CameraOffset, Input->DeltaTime);
