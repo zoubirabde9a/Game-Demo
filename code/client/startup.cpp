@@ -3,6 +3,42 @@
    with the local player and familiar, and the online session if a server
    address is configured. */
 
+// NOTE(zoubir): developer builds: GAME_DUMMY=<monster kind number> puts
+// a sturdy monster of that kind just right of the player when an offline
+// map starts, so a scripted screenshot (misc\screenshot.bat) has
+// something to hit in a known place
+#define DUMMY_ENV "GAME_DUMMY"
+#define DUMMY_OFFSET 40.f
+#define DUMMY_HP 2000.f
+
+internal void
+AddDeveloperDummy(app_state *AppState, memory_arena *Arena, world_entity *Player)
+{
+#if APP_DEV
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    char *Value = getenv(DUMMY_ENV);
+#pragma warning(pop)
+    if (!Value || !Value[0])
+    {
+        return;
+    }
+    u32 Kind = (u32)atoi(Value);
+    if (Kind >= MonsterKind_Count)
+    {
+        Kind = 0;
+    }
+    v3 Position = Player->Position;
+    Position.X += DUMMY_OFFSET;
+    world_entity *Dummy = AddMonster(AppState, &AppState->World, Arena,
+                                     Position, (monster_kind)Kind);
+    if (Dummy)
+    {
+        Dummy->MaxHp = Dummy->Hp = DUMMY_HP;
+    }
+#endif
+}
+
 // NOTE(zoubir): the local player at its map spawn, with its familiar
 internal void
 AddLocalPlayer(app_state *AppState, memory_arena *Arena)
@@ -14,6 +50,7 @@ AddLocalPlayer(app_state *AppState, memory_arena *Arena)
                         PlayerSpawnPosition(&AppState->World,
                                             AppState->LocalPlayerIndex));
     AddFamiliar(AppState, &AppState->World, Arena, Player);
+    AddDeveloperDummy(AppState, Arena, Player);
 }
 
 // NOTE(zoubir): offline only. Throws the world away and starts MapId
