@@ -22,7 +22,7 @@ IsBlinkSpotBlocked(app_state *AppState, world *World, v2 Position, float Z)
     entity_collision_volume *Total = &Probe.Collision->TotalVolume;
     rectangle3 Box = RectCenterHalfDims(Probe.Position + Total->Offset,
                                         Total->HalfDims);
-    world_entity *Nearby[256];
+    world_entity *Nearby[MOVE_MAX_NEARBY];
     u32 Count = GatherEntitiesInBox(World, Box, Nearby, ArrayCount(Nearby));
     for(u32 Index = 0; Index < Count; Index++)
     {

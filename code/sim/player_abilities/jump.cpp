@@ -51,7 +51,9 @@ SolidTopAhead(app_state *AppState, world *World, world_entity *Player, v2 Dir)
     entity_collision_volume *Total = &Probe.Collision->TotalVolume;
     rectangle3 Box = RectCenterHalfDims(Probe.Position + Total->Offset,
                                         Total->HalfDims);
-    world_entity *Nearby[64];
+    // NOTE(zoubir): a chunk lists every wall and unit in it, often far
+    // more than the few the probe touches; 64 overflowed on the arenas
+    world_entity *Nearby[MOVE_MAX_NEARBY];
     u32 Count = GatherEntitiesInBox(World, Box, Nearby, ArrayCount(Nearby));
     float Result = 0.f;
     for(u32 Index = 0; Index < Count; Index++)
