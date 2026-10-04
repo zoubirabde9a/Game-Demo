@@ -33,14 +33,14 @@ global_variable char *WatchtowerLayout[] =
 {
     "????##.##????",
     "??##.....##??",
-    "?#....o....#?",
+    "?#c...o....#?",
     "?#.........#?",
     "#....###....#",
     ".....#m#.....",
     "#..m.....m..#",
     "?#.........#?",
-    "?#...o.....#?",
-    "??##.....##??",
+    "?#...o....c#?",
+    "??##....c##??",
     "????##.##????",
 };
 
@@ -62,7 +62,7 @@ global_variable char *SunkenShrineLayout[] =
 
 global_variable char *SpiderHollowLayout[] =
 {
-    "???,,TT,,???",
+    "???,lTT,,???",
     "??,T%%%%T,??",
     "?,T%%::%%T,?",
     ",T%:n::n:%T,",
@@ -70,7 +70,7 @@ global_variable char *SpiderHollowLayout[] =
     "T%::::n:::%T",
     ",T%%::::%%T,",
     "?,TT%::%TT,?",
-    "???,,::,,???",
+    "???l,::,,l??",
 };
 
 global_variable char *ObsidianAltarLayout[] =
@@ -93,12 +93,12 @@ global_variable char *AshCampLayout[] =
 {
     "??aaaaaaaa??",
     "?aabbbbbbaa?",
-    "aab..d...baa",
+    "aab..d..cbaa",
     "ab..o..m..ba",
     "ab.m.LL...ba",
-    "ab....LL..ba",
+    "abc...LL..ba",
     "ab..m...o.ba",
-    "aab...d..baa",
+    "aab.c.d..baa",
     "?aabb..bbaa?",
     "??aaa..aaa??",
 };
@@ -253,5 +253,24 @@ GetLandmarkCenter(landmark_spot *Spot, i32 TileSize)
     landmark_def *Def = &LandmarkTable[Spot->Landmark];
     v3 Result = V3(((float)Spot->MinX + 0.5f * Def->Width) * TileSize,
                    ((float)Spot->MinY + 0.5f * Def->Height) * TileSize, 0.f);
+    return Result;
+}
+
+// NOTE(zoubir): how many tiles a tile lies outside its region's landmark
+// (0 on it), or a large number when the region has none; the procedural
+// maps' elevation slopes down to landmarks with it (sim/maps/map_shapes.h)
+internal i32
+LandmarkClearance(map_def *Map, i32 X, i32 Y)
+{
+    i32 Result = 1 << 20;
+    landmark_spot Spot = GetRegionLandmark(Map, FloorDiv(X, LANDMARK_REGION_TILES),
+                                           FloorDiv(Y, LANDMARK_REGION_TILES));
+    if (Spot.Present)
+    {
+        landmark_def *Def = &LandmarkTable[Spot.Landmark];
+        i32 OutX = Maximum(Spot.MinX - X, X - (Spot.MinX + (i32)Def->Width - 1));
+        i32 OutY = Maximum(Spot.MinY - Y, Y - (Spot.MinY + (i32)Def->Height - 1));
+        Result = Maximum(Maximum(OutX, OutY), 0);
+    }
     return Result;
 }

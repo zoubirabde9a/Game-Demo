@@ -9,10 +9,12 @@
    print the new hash with TERRAIN_PRINT_HASHES and update it. */
 
 #define TERRAIN_PRINT_HASHES 0
-#define TERRAIN_GOLDEN_WILDS 0x2D0D5828u
-#define TERRAIN_GOLDEN_WASTES 0xB0665B7Cu
-#define TERRAIN_GOLDEN_WILDS_FAR 0xD52C0394u
-#define TERRAIN_GOLDEN_WASTES_FAR 0xC52921E1u
+#define TERRAIN_GOLDEN_WILDS 0xB55A19CFu
+#define TERRAIN_GOLDEN_WASTES 0x4B35F37Cu
+#define TERRAIN_GOLDEN_WILDS_FAR 0xC3C17BBFu
+#define TERRAIN_GOLDEN_WASTES_FAR 0xFE0562E1u
+#define TERRAIN_GOLDEN_WILDS_ELEVATION 0x9904B5B2u
+#define TERRAIN_GOLDEN_WASTES_ELEVATION 0xA03D31D9u
 
 internal void
 TestFloorDivRoundsDown()
@@ -691,6 +693,218 @@ TestLandmarkPointerTargetsNearestUnreached()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a tile anyone can walk onto: not blocking, nothing on it
+internal bool32
+IsWalkableTile(map_def *Map, i32 X, i32 Y)
+{
+    bool32 Result = !GetTerrainDef(TerrainAt(Map, X, Y))->Blocks &&
+        PropAt(Map, X, Y) == TerrainProp_None;
+    return Result;
+}
+
+// NOTE(zoubir): marks the tiles reachable from (StartX, StartY) on foot,
+// without a jump: through walkable tiles whose elevation differs by at
+// most one step. Reached is Width x Height, for tiles from MinX, MinY
+internal void
+WalkFrom(map_def *Map, i32 MinX, i32 MinY, i32 Width, i32 Height,
+         i32 StartX, i32 StartY, u8 *Reached)
+{
+    i32 *Queue = (i32 *)calloc((size_t)(Width * Height), sizeof(i32));
+    i32 Head = 0;
+    i32 Tail = 0;
+    Reached[(StartY - MinY) * Width + (StartX - MinX)] = 1;
+    Queue[Tail++] = (StartY - MinY) * Width + (StartX - MinX);
+    i32 StepX[4] = {1, -1, 0, 0};
+    i32 StepY[4] = {0, 0, 1, -1};
+    while (Head < Tail)
+    {
+        i32 Index = Queue[Head++];
+        i32 X = MinX + Index % Width;
+        i32 Y = MinY + Index / Width;
+        i32 Steps = ElevationAt(Map, X, Y);
+        for(u32 Dir = 0; Dir < 4; Dir++)
+        {
+            i32 NX = X + StepX[Dir];
+            i32 NY = Y + StepY[Dir];
+            if (NX < MinX || NY < MinY || NX >= MinX + Width || NY >= MinY + Height)
+            {
+                continue;
+            }
+            i32 Next = (NY - MinY) * Width + (NX - MinX);
+            i32 Rise = ElevationAt(Map, NX, NY) - Steps;
+            if (!Reached[Next] && Rise <= 1 && Rise >= -1 && IsWalkableTile(Map, NX, NY))
+            {
+                Reached[Next] = 1;
+                Queue[Tail++] = Next;
+            }
+        }
+    }
+    free(Queue);
+}
+
+// NOTE(zoubir): every spawn stands on flat open ground (itself and its
+// eight neighbours at elevation 0), and every spawn can be reached from
+// every other on foot, so monsters that walk reach players by some route
+internal void
+TestElevationLayoutsAreValidAndSpawnsConnect()
+{
+    for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
+    {
+        map_def *Map = GetMapDef((map_id)MapIndex);
+        if (Map->Kind != MapKind_Bounded)
+        {
+            continue;
+        }
+        if (Map->ElevationLayout)
+        {
+            for(u32 Y = 0; Y < Map->Height; Y++)
+            {
+                Check(strlen(Map->ElevationLayout[Y]) == Map->Width);
+                for(u32 X = 0; X < Map->Width; X++)
+                {
+                    char Digit = Map->ElevationLayout[Y][X];
+                    Check(Digit >= '0' && Digit <= '9');
+                }
+            }
+        }
+        for(u32 Spawn = 0; Spawn < Map->SpawnCount; Spawn++)
+        {
+            for(i32 DY = -1; DY <= 1; DY++)
+            {
+                for(i32 DX = -1; DX <= 1; DX++)
+                {
+                    i32 X = Map->SpawnX[Spawn] + DX;
+                    i32 Y = Map->SpawnY[Spawn] + DY;
+                    Check(ElevationAt(Map, X, Y) == 0);
+                    Check(IsWalkableTile(Map, X, Y));
+                }
+            }
+        }
+        i32 Width = (i32)Map->Width;
+        i32 Height = (i32)Map->Height;
+        u8 *Reached = (u8 *)calloc((size_t)(Width * Height), 1);
+        WalkFrom(Map, 0, 0, Width, Height, Map->SpawnX[0], Map->SpawnY[0], Reached);
+        for(u32 Spawn = 1; Spawn < Map->SpawnCount; Spawn++)
+        {
+            Check(Reached[Map->SpawnY[Spawn] * Width + Map->SpawnX[Spawn]]);
+        }
+        free(Reached);
+    }
+}
+
+// NOTE(zoubir): the procedural maps spawn on flat ground, most of their
+// raised ground can be walked up to, some of it takes a jump, and
+// landmarks never sit in a pit
+internal void
+TestInfiniteMapsElevation()
+{
+    for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
+    {
+        map_def *Map = GetMapDef((map_id)MapIndex);
+        if (Map->Kind != MapKind_Infinite)
+        {
+            continue;
+        }
+        for(i32 Y = -MAP_SPAWN_CLEARING; Y <= MAP_SPAWN_CLEARING; Y++)
+        {
+            for(i32 X = -MAP_SPAWN_CLEARING; X <= MAP_SPAWN_CLEARING; X++)
+            {
+                if (InSpawnClearing(X, Y))
+                {
+                    Check(ElevationAt(Map, X, Y) == 0);
+                }
+            }
+        }
+        if (!Map->GenerateElevation)
+        {
+            continue;
+        }
+        i32 Size = 240;
+        i32 Min = -Size / 2;
+        u8 *Reached = (u8 *)calloc((size_t)(Size * Size), 1);
+        WalkFrom(Map, Min, Min, Size, Size, 0, 0, Reached);
+        u32 Flat = 0;
+        u32 Raised = 0;
+        u32 RaisedReached = 0;
+        u32 Cliffs = 0;
+        for(i32 Y = Min; Y < Min + Size; Y++)
+        {
+            for(i32 X = Min; X < Min + Size; X++)
+            {
+                if (!IsWalkableTile(Map, X, Y))
+                {
+                    continue;
+                }
+                i32 Steps = ElevationAt(Map, X, Y);
+                Check(Steps >= 0 && Steps < ELEVATION_MAX_STEPS);
+                if (Steps == 0)
+                {
+                    Flat++;
+                }
+                else
+                {
+                    Raised++;
+                    RaisedReached += Reached[(Y - Min) * Size + (X - Min)];
+                }
+                i32 Drop = Steps - ElevationAt(Map, X + 1, Y);
+                Cliffs += (Drop >= 2 || Drop <= -2) && IsWalkableTile(Map, X + 1, Y);
+            }
+        }
+        free(Reached);
+        Check(Raised > 0 && Cliffs > 0);
+        Check(Flat > Raised / 2);
+        Check(RaisedReached * 10 > Raised * 7);
+
+        for(i32 RY = -3; RY <= 3; RY++)
+        {
+            for(i32 RX = -3; RX <= 3; RX++)
+            {
+                landmark_spot Spot = GetRegionLandmark(Map, RX, RY);
+                if (!Spot.Present)
+                {
+                    continue;
+                }
+                landmark_def *Def = &LandmarkTable[Spot.Landmark];
+                for(i32 Y = Spot.MinY - 3; Y < Spot.MinY + (i32)Def->Height + 3; Y++)
+                {
+                    for(i32 X = Spot.MinX - 3; X < Spot.MinX + (i32)Def->Width + 3; X++)
+                    {
+                        Check(ElevationAt(Map, X, Y) <= LandmarkClearance(Map, X, Y));
+                    }
+                }
+            }
+        }
+    }
+}
+
+// NOTE(zoubir): a fingerprint of the elevation over a square of tiles,
+// pinned like the ground's
+internal u32
+HashElevationRegion(map_def *Map, i32 MinX, i32 MinY, i32 Size)
+{
+    u32 Hash = 2166136261u;
+    for(i32 Y = MinY; Y < MinY + Size; Y++)
+    {
+        for(i32 X = MinX; X < MinX + Size; X++)
+        {
+            Hash = (Hash ^ (u32)ElevationAt(Map, X, Y)) * 16777619u;
+        }
+    }
+    return Hash;
+}
+
+internal void
+TestProceduralElevationMatchesGoldenHashes()
+{
+    u32 Wilds = HashElevationRegion(GetMapDef(MapId_Wilds), 40, -120, 160);
+    u32 Wastes = HashElevationRegion(GetMapDef(MapId_Wastes), 40, -120, 160);
+#if TERRAIN_PRINT_HASHES
+    printf("  elevation: wilds 0x%08X wastes 0x%08X\n", Wilds, Wastes);
+#endif
+    Check(Wilds == TERRAIN_GOLDEN_WILDS_ELEVATION);
+    Check(Wastes == TERRAIN_GOLDEN_WASTES_ELEVATION);
+}
+
 internal void
 RunTerrainTests()
 {
@@ -727,4 +941,10 @@ RunTerrainTests()
     TestEveryTerrainKindIsUsed();
     printf("TestProceduralTerrainMatchesGoldenHashes\n");
     TestProceduralTerrainMatchesGoldenHashes();
+    printf("TestElevationLayoutsAreValidAndSpawnsConnect\n");
+    TestElevationLayoutsAreValidAndSpawnsConnect();
+    printf("TestInfiniteMapsElevation\n");
+    TestInfiniteMapsElevation();
+    printf("TestProceduralElevationMatchesGoldenHashes\n");
+    TestProceduralElevationMatchesGoldenHashes();
 }
