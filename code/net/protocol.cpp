@@ -38,7 +38,12 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     {
         if (E->Type > NET_ENTITY_TYPE_MASK) S->Failed = true;
         TypeAndFlags = (u8)(E->Type & NET_ENTITY_TYPE_MASK);
-        if (NetNonZero(E->Z, NET_POSITION_STEPS)) TypeAndFlags |= NET_ENTITY_HAS_Z;
+        // A unit thrown up this tick can still be at height 0; its speed
+        // goes with the height, so the flag counts either.
+        if (NetNonZero(E->Z, NET_POSITION_STEPS) || NetNonZero(E->VelZ, NET_VELOCITY_STEPS))
+        {
+            TypeAndFlags |= NET_ENTITY_HAS_Z;
+        }
         if (NetNonZero(E->VelX, NET_VELOCITY_STEPS) || NetNonZero(E->VelY, NET_VELOCITY_STEPS))
         {
             TypeAndFlags |= NET_ENTITY_MOVING;

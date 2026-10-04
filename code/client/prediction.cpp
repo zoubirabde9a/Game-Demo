@@ -159,6 +159,10 @@ RecordPredictedInput(prediction_history *History, u32 Tick, u16 Buttons,
     History->LastButtons = Buttons;
     Input->Aim = Aim;
     Input->DeltaTime = DeltaTime;
+    // NOTE(zoubir): stays empty for an input never stepped (the player was
+    // dead), so a replay after a respawn does not start from the body of
+    // an older input that last used this slot of the ring
+    Input->After = {};
 }
 
 internal void

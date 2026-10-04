@@ -64,16 +64,23 @@ ImpactOnHit(app_state *AppState, world *World, world_entity *Entity,
             world_entity *Other, v3 Normal)
 {
     float Into = -DotProduct(Entity->Velocity.XY, Normal.XY);
-    // NOTE(zoubir): a client replaying its own player's moves leaves what
-    // they do to others to the server; doing it here hurt and shoved the
-    // client's copies of monsters, once per replayed input
-    bool32 Predicted = Entity->Type == EntityType_Player &&
-        AppState->Players[Entity->PlayerIndex].Predicted;
-    if (Normal.Z != 0.f || Into <= 0.f || Predicted)
+    if (Normal.Z != 0.f || Into <= 0.f)
     {
         return 0.f;
     }
-    if (Into < IMPACT_MIN_SPEED || !IsThrownUnit(Entity))
+    // NOTE(zoubir): a client replaying its own player's moves leaves what
+    // they do to anyone (damage, stuns, shoves, the burst) to the server;
+    // doing it here hurt and shoved the client's copies of monsters once
+    // per replayed input. Only the player's own bounce off a wall is kept,
+    // or a thrown player would stop dead on its own screen
+    bool32 Predicted = Entity->Type == EntityType_Player &&
+        AppState->Players[Entity->PlayerIndex].Predicted;
+    bool32 Thrown = Into >= IMPACT_MIN_SPEED && IsThrownUnit(Entity);
+    if (Predicted)
+    {
+        return (Thrown && !IsWalkingUnit(Other)) ? IMPACT_WALL_BOUNCE * Into : 0.f;
+    }
+    if (!Thrown)
     {
         if (Entity->Type == EntityType_Player && IsWalkingUnit(Other) &&
             !IsDodging(Other))

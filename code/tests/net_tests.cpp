@@ -745,6 +745,14 @@ TestStillEntitiesAreSmaller()
     Check(Out.Snapshot.Entities[0].VelY == 0.f && Out.Snapshot.Entities[0].Type == 4);
     Check(Out.Snapshot.Entities[0].Flash == 1);
 
+    // A unit thrown up this tick, still at height 0, keeps its speed.
+    P.Snapshot.Entities[0].Z = 0.f;
+    P.Snapshot.Entities[0].VelZ = 420.f;
+    u32 Thrown = NetWritePacket(&P, Buffer, sizeof(Buffer));
+    Check(NetReadPacket(Buffer, Thrown, &Out));
+    Check(Out.Snapshot.Entities[0].VelZ == 420.f && Out.Snapshot.Entities[0].Z == 0.f);
+    P.Snapshot.Entities[0].VelZ = 0.f;
+
     // A type past 6 bits cannot be sent.
     P.Snapshot.Entities[0].Type = 64;
     Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
