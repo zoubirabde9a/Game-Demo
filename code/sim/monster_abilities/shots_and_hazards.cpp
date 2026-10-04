@@ -116,7 +116,8 @@ UpdateMonsterHazard(world_entity *Hazard, world *World, app_state *AppState,
 }
 
 // NOTE(zoubir): a shot flies straight until it runs out of time, hits a
-// wall, or comes within its ability's Radius of a player
+// wall, or comes within its ability's Radius of a player who is not
+// jumping over it (IsAboveShot)
 internal void
 UpdateMonsterShot(world_entity *Shot, world *World, memory_arena *Arena,
                   float DeltaTime, app_state *AppState)
@@ -137,7 +138,7 @@ UpdateMonsterShot(world_entity *Shot, world *World, memory_arena *Arena,
     {
         world_entity *Player = &World->Entities[EntityIndex];
         if (Player->IsPresent && Player->Type == EntityType_Player &&
-            Player->Hp > 0.f &&
+            Player->Hp > 0.f && !IsAboveShot(Player, Shot) &&
             Length(Player->Position.XY - Shot->Position.XY) <= Ability->Radius)
         {
             float Speed = Length(Shot->Velocity.XY);

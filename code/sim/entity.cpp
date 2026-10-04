@@ -238,23 +238,19 @@ GetTotalVolume(entity_collision_volume *Volumes,
     return TotalVolume;
 }
 
+// NOTE(zoubir): only the trunk blocks. The canopy had a box of its own,
+// 86 wide from 50 units up: walking under it was fine, but any jump near a
+// tree hit that invisible wall of leaves
 entity_collision_volume_group *
 MakeGroundedTreeCollisionVolume(memory_arena *Arena)
 {
     entity_collision_volume_group *Group =
         AllocateStruct(Arena, entity_collision_volume_group);
-
-    float LowestHalfZ = 63;
-    
-    Group->VolumesCount = 2;
+    Group->VolumesCount = 1;
     Group->Volumes =
         AllocateArray(Arena, Group->VolumesCount, entity_collision_volume);
     Group->Volumes[0].HalfDims = V3(18.f, 10.f, 63.f);
-    Group->Volumes[0].Offset.Z += LowestHalfZ;
-    
-    Group->Volumes[1].HalfDims = V3(43.f, 10.f, 28.f);
-    Group->Volumes[1].Offset.Z = 15;
-    Group->Volumes[1].Offset.Z += LowestHalfZ;
+    Group->Volumes[0].Offset.Z = 63.f;
     Group->TotalVolume = GetTotalVolume(Group->Volumes,
                                         Group->VolumesCount);
     return Group;
@@ -279,6 +275,18 @@ inline bool32
 IsClearOfGround(world_entity *Entity)
 {
     bool32 Result = Entity->Position.Z > CLEARS_GROUND_HEIGHT;
+    return Result;
+}
+
+// NOTE(zoubir): a monster shot flies at chest height (14 units); a player
+// whose feet are this far above it lets it pass underneath. A jump peaks
+// at 36 and spends about 0.3 s of its 0.42 s high enough
+#define CLEARS_SHOT_MARGIN 4.f
+
+inline bool32
+IsAboveShot(world_entity *Player, world_entity *Shot)
+{
+    bool32 Result = Player->Position.Z > Shot->Position.Z + CLEARS_SHOT_MARGIN;
     return Result;
 }
 

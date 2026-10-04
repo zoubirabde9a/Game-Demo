@@ -1,14 +1,17 @@
-/* Corner slip: a walking unit that clips the edge of a wall or tree by a
-   few units is pushed sideways past it instead of stopping dead. After a
+/* Corner slip: a walking unit that clips the edge of a wall or tree is
+   pushed sideways past it instead of stopping dead, so trunks and corners
+   feel round rather than catching on their square edges. After a
    blocking hit, MoveEntity hands the blocked part of the move here; part
    of it becomes a sideways step away from the obstacle's middle. The step
    is swept like any other, so it never goes through anything. Units do
    not slip around each other: crowds push apart in separation.cpp. */
 
 // NOTE(zoubir): the most a unit may overlap an obstacle's edge, along the
-// face it hit, and still slip; capped at half the unit's own width so a
-// unit square on to a wall still stops
-#define CORNER_SLIP_MAX 10.f
+// face it hit, and still slip: its own half width plus a quarter of the
+// obstacle's, never more than CORNER_SLIP_MAX. So a unit whose middle is
+// past a trunk's edge, or only just inside it, slides round, and one
+// square on to a wall or trunk, or half across it, still stops
+#define CORNER_SLIP_MAX 20.f
 
 inline bool32
 IsWalkingUnit(world_entity *Entity)
@@ -37,7 +40,8 @@ SlipPastCorner(world_entity *Entity, world_entity *Other, v3 Normal,
         (Other->Position + Theirs->Offset);
     float Overlap = Mine->HalfDims.Data[Axis] + Theirs->HalfDims.Data[Axis] -
         Absolute(Rel.Data[Axis]);
-    float Limit = Minimum(CORNER_SLIP_MAX, Mine->HalfDims.Data[Axis]);
+    float Limit = Minimum(CORNER_SLIP_MAX, Mine->HalfDims.Data[Axis] +
+                          0.25f * Theirs->HalfDims.Data[Axis]);
     float Pushing = -DotProduct(Blocked, Normal);
     if (Overlap > 0.f && Overlap <= Limit && Pushing > 0.f)
     {
