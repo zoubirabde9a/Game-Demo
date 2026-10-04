@@ -9,7 +9,8 @@
    - landing from a fall squashes it short and wide, springing back;
    - that same kick upward spins it once around, a somersault toward
      where it is heading;
-   - running leans it a little into the way it runs.
+   - running leans it a little into the way it runs;
+   - losing health flashes it red and jolts it, a short squash.
 
    The sprite keeps its feet where they were; DrawEntity asks
    GetBodyPose for the scale and the angle. Updated once a frame by UpdateBodyPoses,
@@ -34,6 +35,9 @@
 // NOTE(zoubir): radians of lean at full run speed (BODY_LEAN_SPEED)
 #define BODY_LEAN_MAX 0.12f
 #define BODY_LEAN_SPEED 180.f
+// NOTE(zoubir): a hit's red flash fades over this many seconds
+#define BODY_HIT_FLASH_SECONDS 0.14f
+#define BODY_HIT_SQUASH 0.55f
 
 inline float
 Clamp01(float Value)
@@ -54,6 +58,9 @@ struct body_pose
     float SpinSign;
     float LastX;
     float SpeedX;
+    float LastHp;
+    // NOTE(zoubir): 1 the frame health drops, down to 0
+    float Flash;
     u32 EntityId;
 };
 
@@ -64,6 +71,8 @@ struct body_pose_draw
     // NOTE(zoubir): turn about the feet (a lean) rather than the middle (a
     // somersault)
     bool32 AboutFeet;
+    // NOTE(zoubir): 0..1, how red the sprite is drawn
+    float Flash;
 };
 
 struct body_poses
@@ -108,7 +117,15 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
             Pose->EntityId = Entity->ID;
             Pose->LastZ = Entity->Position.Z;
             Pose->LastX = Entity->Position.X;
+            Pose->LastHp = Entity->Hp;
         }
+        if (Entity->Hp < Pose->LastHp)
+        {
+            Pose->Flash = 1.f;
+            Pose->Squash = Maximum(Pose->Squash, BODY_HIT_SQUASH);
+        }
+        Pose->LastHp = Entity->Hp;
+        Pose->Flash = Maximum(0.f, Pose->Flash - DeltaTime / BODY_HIT_FLASH_SECONDS);
 
         float SpeedZ = (Entity->Position.Z - Pose->LastZ) / DeltaTime;
         float SpeedX = (Entity->Position.X - Pose->LastX) / DeltaTime;
@@ -149,7 +166,7 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
 internal body_pose_draw
 GetBodyPose(app_state *AppState, world_entity *Entity)
 {
-    body_pose_draw Result = {V2(1.f, 1.f), 0.f, false};
+    body_pose_draw Result = {V2(1.f, 1.f), 0.f, false, 0.f};
     u32 Index = (u32)(Entity - AppState->World.Entities);
     if (!AppState->BodyPoses || Index >= BODY_POSE_SLOTS || !HasBodyPose(Entity))
     {
@@ -165,6 +182,7 @@ GetBodyPose(app_state *AppState, world_entity *Entity)
     // NOTE(zoubir): eased, so the squash springs back fast then settles
     float Squash = BODY_SQUASH_DEPTH * Pose->Squash * Pose->Squash;
     float Pop = BODY_POP_HEIGHT * Pose->Pop * Pose->Pop;
+    Result.Flash = Pose->Flash;
     Result.Scale.Y = 1.f + Stretch + Pop - Squash;
     Result.Scale.X = 1.f / Result.Scale.Y;
     if (Pose->Spin > 0.f)

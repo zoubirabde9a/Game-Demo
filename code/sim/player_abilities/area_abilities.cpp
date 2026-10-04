@@ -102,6 +102,7 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
             Target->Velocity.Z = Ability->Lift;
         }
         ApplyStatus(Target, StatusEffect_Stunned, Ability->StunSeconds);
+        Target->ThrownBySlot = Player->PlayerIndex + 1;
     }
     return HitCount;
 }

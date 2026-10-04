@@ -171,6 +171,9 @@ struct world_entity
     // their damage ticks
     float StatusTimers[StatusEffect_Count];
     float StatusTickTimer;
+    // NOTE(zoubir): the player slot + 1 that last threw this unit (0 for
+    // none), so kills by its impacts are theirs (sim/impacts.cpp)
+    u32 ThrownBySlot;
     // NOTE(zoubir): set each tick from the ground underfoot
     // (sim/terrain_effects.cpp); 0 means 1
     float GroundSpeedScale;

@@ -820,6 +820,37 @@ TestAbilitiesAskForBursts()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a monster pushed into a wall and killed by the slam is
+// the pusher's kill
+internal void
+TestImpactKillIsThePushers()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    AddTestEntity(&Test, EntityType_StaticObject, {420, 300, 0},
+                  Test.WallVolume);
+    world_entity *Victim = AddTestEntity(&Test, EntityType_Monster,
+                                         {350, 300, 0}, Test.UnitVolume);
+    float PushDamage = PlayerAreaAbilities[PlayerArea_Push].Damage;
+    Victim->MaxHp = 100.f;
+    Victim->Hp = PushDamage + 1.f;
+    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Push;
+    for(u32 Frame = 0; Frame < 30 && Victim->IsPresent; Frame++)
+    {
+        RunPlayerFrames(&Test, 0, 1);
+        if (Victim->IsPresent)
+        {
+            Walk(&Test, Victim, {0, 0}, 1);
+        }
+    }
+    Check(!Victim->IsPresent);
+    Check(AppState->Players[0].MonsterKills == 1);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -875,4 +906,6 @@ RunPlayerAbilityTests()
     TestStunnedPlayerCannotAct();
     printf("TestAbilitiesAskForBursts\n");
     TestAbilitiesAskForBursts();
+    printf("TestImpactKillIsThePushers\n");
+    TestImpactKillIsThePushers();
 }

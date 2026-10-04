@@ -145,6 +145,10 @@ DrawEntity(render_context *RenderContext,
             ColorRGBA8 Color;
             Color.ColorU32 = Entity->Tint ? Entity->Tint : RGBA8_WHITE;
             Color.A = 255;
+            // NOTE(zoubir): a fresh hit draws the sprite red (body_pose.cpp)
+            float Keep = 1.f - 0.75f * Pose.Flash;
+            Color.G = (u8)(Color.G * Keep);
+            Color.B = (u8)(Color.B * Keep);
             RenderQuadTexture(RenderContext,
                               EntityTexturePosition.X,
                               EntityTexturePosition.Y,

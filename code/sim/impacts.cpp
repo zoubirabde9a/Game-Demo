@@ -9,7 +9,9 @@
      body bounces back off instead of sliding along.
 
    Walking, dashing and anything not stunned never cause impacts, so a
-   player running into a wall is never hurt by it. */
+   player running into a wall is never hurt by it. The damage is credited
+   to the player who threw the body (ThrownBySlot), and a struck unit
+   counts as thrown by them too, so a kill down the chain is theirs. */
 
 // NOTE(zoubir): speed into the surface below which nothing happens; a
 // Push throws at 750, a walk is under 100
@@ -22,6 +24,19 @@
 #define IMPACT_WALL_STUN 0.9f
 // NOTE(zoubir): share of the speed into a wall that bounces back
 #define IMPACT_WALL_BOUNCE 0.35f
+
+// NOTE(zoubir): the player whose throw this is, or 0
+inline world_entity *
+GetThrower(app_state *AppState, world_entity *Entity)
+{
+    world_entity *Result = 0;
+    u32 Slot = Entity->ThrownBySlot;
+    if (Slot > 0 && Slot <= MAX_PLAYERS && AppState->Players[Slot - 1].Active)
+    {
+        Result = AppState->Players[Slot - 1].Entity;
+    }
+    return Result;
+}
 
 inline bool32
 IsThrownUnit(world_entity *Entity)
@@ -52,20 +67,22 @@ ImpactOnHit(app_state *AppState, world *World, world_entity *Entity,
     EmitSound(&AppState->Events, AssetType_Dash, Contact);
 
     float Bounce = 0.f;
+    world_entity *Thrower = GetThrower(AppState, Entity);
     if (IsWalkingUnit(Other))
     {
         if (!IsDodging(Other))
         {
             Other->Velocity.XY -= (IMPACT_TRANSFER * Into) * Normal.XY;
             ApplyStatus(Other, StatusEffect_Stunned, IMPACT_UNIT_STUN);
-            DamageEntity(AppState, World, Other, IMPACT_UNIT_DAMAGE, 0);
+            Other->ThrownBySlot = Entity->ThrownBySlot;
+            DamageEntity(AppState, World, Other, IMPACT_UNIT_DAMAGE, Thrower);
         }
-        DamageEntity(AppState, World, Entity, IMPACT_UNIT_DAMAGE, 0);
+        DamageEntity(AppState, World, Entity, IMPACT_UNIT_DAMAGE, Thrower);
     }
     else
     {
         ApplyStatus(Entity, StatusEffect_Stunned, IMPACT_WALL_STUN);
-        DamageEntity(AppState, World, Entity, IMPACT_WALL_DAMAGE, 0);
+        DamageEntity(AppState, World, Entity, IMPACT_WALL_DAMAGE, Thrower);
         Bounce = IMPACT_WALL_BOUNCE * Into;
     }
     return Bounce;
