@@ -190,14 +190,14 @@ DrawEntity(render_context *RenderContext,
             SortingValue = RaisedTopSortKey(TileY, (float)World->TileHeight, GroundZ) + 0.5f;
         }
     }
+    // NOTE(zoubir): squash and stretch about the sprite's origin (its
+    // feet), tilt and hit flash, body_pose.cpp
+    body_pose_draw Pose = GetBodyPose(AppState, Entity);
     
     if (Entity->Texture.Type)
     {
         TextureInfo = &GetAssetInfo(Assets, Entity->Texture)->Texture;
         Texture = GetTexture(Assets, OpenGL, AppState, Entity->Texture);
-        // NOTE(zoubir): squash and stretch about the sprite's origin (its
-        // feet), body_pose.cpp
-        body_pose_draw Pose = GetBodyPose(AppState, Entity);
         v2 Dimensions = Entity->Dimensions * Pose.Scale;
         v2 EntityTexturePosition = EntityCameraPosition -
             TextureInfo->Origin * Dimensions;
@@ -241,6 +241,28 @@ DrawEntity(render_context *RenderContext,
                               Color.ColorU32,
                               DrawZ, Pose.Angle);
             EndBatch(RenderContext);
+            if (Pose.White > 0.f)
+            {
+                // NOTE(zoubir): the first frames of a hit add the sprite
+                // over itself as light, twice, which washes it near white
+                BeginBatch(RenderContext, Texture->ID,
+                           SortingValue + 0.001f, TextureProgram);
+                RenderContext->AllocatedBatches[RenderContext->BatchCount].Blend =
+                    RenderBlend_Additive;
+                u32 Light = ((u32)(255.f * Pose.White) << 24) | 0x00FFFFFF;
+                for(u32 Pass = 0; Pass < 2; Pass++)
+                {
+                    RenderQuadTexture(RenderContext,
+                                      EntityTexturePosition.X,
+                                      EntityTexturePosition.Y,
+                                      Dimensions.X,
+                                      Dimensions.Y,
+                                      Entity->Uvs,
+                                      Light,
+                                      DrawZ, Pose.Angle);
+                }
+                EndBatch(RenderContext);
+            }
         }
         {
             // Hp
@@ -320,7 +342,8 @@ DrawEntity(render_context *RenderContext,
         ShadowTexture = GetTexture(Assets, OpenGL, AppState, Entity->ShadowTexture);
         ShadowTextureInfo = &GetAssetInfo(Assets, Entity->ShadowTexture)->Texture;
         
-        v2 ShadowDims = {28, 14};
+        // NOTE(zoubir): it spreads and narrows with the body's squash
+        v2 ShadowDims = {28.f * Pose.Scale.X, 14.f};
         ColorRGBA8 ShadowColor;
         ShadowColor.ColorU32 = RGBA8_WHITE;
         // NOTE(zoubir): the shadow lies on the ground under the entity,

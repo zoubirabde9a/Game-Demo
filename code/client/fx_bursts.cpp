@@ -105,11 +105,9 @@ DrawFxDot(render_context *RenderContext, v2 P, float Size, u32 Color)
                         Size, Size, Color, 0.f);
 }
 
-#define MAX_FX_BURSTS 64
-// NOTE(zoubir): a player running faster than this on the ground leaves a
-// puff of dust every FOOTSTEP_SECONDS
-#define FOOTSTEP_SPEED 80.f
-#define FOOTSTEP_SECONDS 0.24f
+// NOTE(zoubir): room for a fight's worth, plus every unit's run dust
+// (body_pose.cpp), which is the first thing dropped when it is full
+#define MAX_FX_BURSTS 128
 // NOTE(zoubir): shake: full within NEAR of the local player, none past
 // FAR; the most the screen moves, in pixels; trauma lost per second
 #define SHAKE_NEAR 150.f
@@ -152,7 +150,6 @@ struct fx_bursts
     // and the shake's wobble
     float Clock;
     float Trauma;
-    float StepTimer[MAX_PLAYERS];
 };
 
 internal fx_bursts *
@@ -203,7 +200,8 @@ GetFxClock(app_state *AppState)
     return Result;
 }
 
-// NOTE(zoubir): a full pool drops the oldest burst
+// NOTE(zoubir): a full pool skips a footstep's dust, or else drops the
+// oldest burst
 internal void
 AddBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,
          float Angle)
@@ -213,6 +211,10 @@ AddBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,
         return;
     }
     fx_bursts *Fx = GetFxBursts(AppState);
+    if (Fx->Count == MAX_FX_BURSTS && Kind == SimBurst_Step)
+    {
+        return;
+    }
     if (Fx->Count == MAX_FX_BURSTS)
     {
         for(u32 Index = 1; Index < Fx->Count; Index++)
@@ -271,26 +273,6 @@ UpdateFxBursts(app_state *AppState, float DeltaTime)
         if (Callout->Age >= COMBO_CALLOUT_SECONDS)
         {
             Callout->Name = 0;
-        }
-    }
-    // NOTE(zoubir): footsteps come from speed alone, so every player gets
-    // them, replicas included, without a word from the server
-    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
-    {
-        world_entity *Player = AppState->Players[SlotIndex].Entity;
-        bool32 Running = AppState->Players[SlotIndex].Active && Player &&
-            Player->IsPresent && !IsDeadPlayer(Player) &&
-            Player->Position.Z <= Player->GroundZ + 0.5f &&
-            LengthSq(Player->Velocity.XY) > Square(FOOTSTEP_SPEED);
-        Fx->StepTimer[SlotIndex] -= DeltaTime;
-        if (!Running)
-        {
-            Fx->StepTimer[SlotIndex] = 0.5f * FOOTSTEP_SECONDS;
-        }
-        else if (Fx->StepTimer[SlotIndex] <= 0.f)
-        {
-            Fx->StepTimer[SlotIndex] = FOOTSTEP_SECONDS;
-            AddBurst(AppState, SimBurst_Step, SlotIndex, Player->Position, 0.f);
         }
     }
     for(u32 Index = 0; Index < Fx->Count;)
