@@ -51,6 +51,7 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
         *AppState->PlayerFx = {};
     }
     player_fx *Fx = AppState->PlayerFx;
+    UpdateBodyPoses(AppState, DeltaTime);
     UpdateShockwaveRings(&Fx->Rings, AppState, DeltaTime);
     UpdateSwordArcs(&Fx->Swords, AppState, DeltaTime);
     UpdateDashStreaks(&Fx->Dashes, AppState, DeltaTime);

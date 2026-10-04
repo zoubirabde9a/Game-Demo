@@ -35,7 +35,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
 {
     {BurstShape_Gather, 0.25f, 46.f, 0x00FF90D0, false}, // CastGather, violet
     {BurstShape_Cone, 0.3f, 110.f, 0x00FFE8B0, false},   // PushCone, pale blue
-    {BurstShape_Column, 0.5f, 55.f, 0x0040C0FF, false},  // LaunchColumn, amber
+    {BurstShape_Column, 0.6f, 55.f, 0x0040C0FF, false},  // LaunchColumn, amber
     {BurstShape_Ring, 0.25f, 26.f, 0x00FFFFFF, true},    // AirJump, white
     {BurstShape_Puff, 0.4f, 24.f, 0x0090B0C0, true},     // Land, dust
 };
@@ -164,12 +164,12 @@ BurstJitter(u32 Index, u32 Salt)
 
 internal void
 DrawGroundRing(render_context *RenderContext, v2 Centre, float Radius,
-               u32 Color)
+               u32 Color, float DotSize = 4.f)
 {
     for(u32 Dot = 0; Dot < BURST_RING_DOTS; Dot++)
     {
         float Angle = 2.f * Pi32 * Dot / BURST_RING_DOTS;
-        DrawFxDot(RenderContext, Centre + GroundCircle(Angle, Radius), 3.f,
+        DrawFxDot(RenderContext, Centre + GroundCircle(Angle, Radius), DotSize,
                   Color);
     }
 }
@@ -225,8 +225,20 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
         {
             DrawGroundRing(RenderContext, Centre,
                            Look->Radius * (0.5f + 0.5f * EaseOut), Color);
+            DrawGroundRing(RenderContext, Centre,
+                           Look->Radius * 0.6f * (0.5f + 0.5f * EaseOut), Color,
+                           2.f);
+            // NOTE(zoubir): a beam shooting up out of the ground, gone in
+            // the first half
+            float Beam = Clamp01(1.f - 2.f * T);
+            for(u32 Dot = 0; Dot < 10 && Beam > 0.f; Dot++)
+            {
+                float Height = 110.f * EaseOut * (float)Dot / 9.f;
+                DrawFxDot(RenderContext, Centre - V2(0.f, Height),
+                          (8.f - 0.5f * Dot) * Beam, Color);
+            }
             // NOTE(zoubir): sparks thrown up from inside the ring
-            for(u32 Dot = 0; Dot < 14; Dot++)
+            for(u32 Dot = 0; Dot < 18; Dot++)
             {
                 float Angle = 2.f * Pi32 * BurstJitter(Dot, 1);
                 float Out = Look->Radius * 0.8f * BurstJitter(Dot, 2);
@@ -234,7 +246,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
                 float Height = Speed * Burst->Age - 300.f * Square(Burst->Age);
                 v2 P = Centre + GroundCircle(Angle, Out) -
                     V2(0.f, Maximum(0.f, Height));
-                DrawFxDot(RenderContext, P, 3.f, Color);
+                DrawFxDot(RenderContext, P, 4.f, Color);
             }
         } break;
 

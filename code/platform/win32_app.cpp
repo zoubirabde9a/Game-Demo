@@ -96,6 +96,7 @@ WinMain(HINSTANCE instance,
         Win32PollKeyboardAndMouse(windowHandle, OldInput, NewInput);
         Win32PollGamepads(OldInput, NewInput);
         Win32RecordOrPlayBackInput(&state, NewInput);
+        Win32ApplyScriptedKeys(&screenshot, NewInput);
 
         app_window AppWindow;
         AppWindow.Width = WindowDimensions.Width;

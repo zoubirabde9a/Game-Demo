@@ -11,3 +11,4 @@
     struct controls_panel *ControlsPanel; // key list and its intro timer, ui/controls_panel.cpp
     struct player_fx *PlayerFx; // ability effects drawn over the world, client/player_fx.cpp
     struct fx_bursts *FxBursts; // bursts the simulation asked for, client/fx_bursts.cpp
+    struct body_poses *BodyPoses; // squash and stretch per unit, client/body_pose.cpp

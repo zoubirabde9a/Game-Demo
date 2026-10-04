@@ -121,8 +121,11 @@ DrawEntity(render_context *RenderContext,
     {
         TextureInfo = &GetAssetInfo(Assets, Entity->Texture)->Texture;
         Texture = GetTexture(Assets, OpenGL, AppState, Entity->Texture);
+        // NOTE(zoubir): squash and stretch about the sprite's origin (its
+        // feet), body_pose.cpp
+        v2 Dimensions = Entity->Dimensions * GetBodyScale(AppState, Entity);
         v2 EntityTexturePosition = EntityCameraPosition -
-            TextureInfo->Origin * Entity->Dimensions;
+            TextureInfo->Origin * Dimensions;
         EntityTexturePosition.Y -= Entity->Position.Z;
         
         if (Texture)
@@ -136,8 +139,8 @@ DrawEntity(render_context *RenderContext,
             RenderQuadTexture(RenderContext,
                               EntityTexturePosition.X,
                               EntityTexturePosition.Y,
-                              Entity->Dimensions.X,
-                              Entity->Dimensions.Y,
+                              Dimensions.X,
+                              Dimensions.Y,
                               Entity->Uvs,
                               Color.ColorU32,
                               Entity->Position.Z);

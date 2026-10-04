@@ -15,6 +15,7 @@
    A new client file goes on its own line below, after the files it uses. */
 
 #include "../art/art_module.cpp"
+#include "body_pose.cpp"
 #include "draw_entities.cpp"
 #include "kill_feed.cpp"
 #include "fx_bursts.cpp"

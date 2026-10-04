@@ -2,7 +2,15 @@
    saves the frame it drew after GAME_SCREENSHOT_FRAME frames (default 90,
    1.5 seconds) and quits. Reads the back buffer, so it works when the
    window is covered or off screen, where a desktop capture shows nothing.
-   misc\screenshot.bat wraps it. */
+   misc\screenshot.bat wraps it.
+
+   GAME_SCREENSHOT_KEYS scripts the keys, so a shot can show an action:
+   space-separated From[-To]:Key, holding Key from frame From to To (just
+   From when there is no To). Key is a letter, _ for Space, < and > for
+   the left and right mouse buttons, or F4 (which closes the Play screen
+   offline shots open on). M:X,Y puts the mouse at X,Y in the window.
+   "2:F4 5-90:D 40:A M:900,400" closes the Play screen, walks right,
+   launches at frame 40 and aims to the right of the middle. */
 
 #pragma warning(push, 0)
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -22,12 +30,98 @@ extern "C" __declspec(dllimport) void __stdcall
 glReadPixels(int x, int y, int width, int height, unsigned int format,
              unsigned int type, void *pixels);
 
+struct win32_scripted_key
+{
+    u32 From;
+    u32 To;
+    char Key[4];
+};
+
 struct win32_screenshot
 {
     char Path[MAX_PATH];
     u32 Frame;
     u32 FramesDrawn;
+    win32_scripted_key Keys[32];
+    u32 KeyCount;
+    bool32 HasMouse;
+    i32 MouseX, MouseY;
 };
+
+// NOTE(zoubir): reads GAME_SCREENSHOT_KEYS (see the top of this file)
+internal void
+Win32ParseScriptedKeys(win32_screenshot *Shot, char *Text)
+{
+    while (*Text)
+    {
+        while (*Text == ' ') Text++;
+        if (!*Text) break;
+        if (Text[0] == 'M' && Text[1] == ':')
+        {
+            Text += 2;
+            Shot->MouseX = (i32)strtol(Text, &Text, 10);
+            if (*Text == ',') Text++;
+            Shot->MouseY = (i32)strtol(Text, &Text, 10);
+            Shot->HasMouse = true;
+        }
+        else
+        {
+            win32_scripted_key Key = {};
+            Key.From = (u32)strtoul(Text, &Text, 10);
+            Key.To = Key.From;
+            if (*Text == '-') Key.To = (u32)strtoul(Text + 1, &Text, 10);
+            if (*Text == ':' && Text[1])
+            {
+                Text++;
+                for(u32 Index = 0; Index < 3 && *Text && *Text != ' '; Index++)
+                {
+                    Key.Key[Index] = *Text++;
+                }
+                if (Shot->KeyCount < ArrayCount(Shot->Keys))
+                {
+                    Shot->Keys[Shot->KeyCount++] = Key;
+                }
+            }
+        }
+        while (*Text && *Text != ' ') Text++;
+    }
+}
+
+internal app_button_state *
+Win32ScriptedButton(app_input *Input, char *Name)
+{
+    char Key = Name[0];
+    if (Key == 'F' && Name[1] == '4') return &Input->ButtonF4;
+    if (Key >= 'a' && Key <= 'z') Key = (char)(Key - 'a' + 'A');
+    if (Key >= 'A' && Key <= 'Z') return &Input->AlphaButtons[Key - 'A'];
+    if (Key == '_') return &Input->SpaceButton;
+    if (Key == '<') return &Input->LeftButton;
+    if (Key == '>') return &Input->RightButton;
+    return 0;
+}
+
+// NOTE(zoubir): after the real keyboard and mouse are read, so the script
+// wins; the frame counted is the one about to be drawn
+internal void
+Win32ApplyScriptedKeys(win32_screenshot *Shot, app_input *Input)
+{
+    u32 Frame = Shot->FramesDrawn + 1;
+    for(u32 Index = 0; Index < Shot->KeyCount; Index++)
+    {
+        win32_scripted_key *Key = &Shot->Keys[Index];
+        app_button_state *Button = Win32ScriptedButton(Input, Key->Key);
+        if (Button && Frame >= Key->From && Frame <= Key->To)
+        {
+            Button->EndedDown = true;
+            Button->Pressed = Button->Pressed || Frame == Key->From;
+        }
+    }
+    if (Shot->HasMouse)
+    {
+        Input->MouseX = Shot->MouseX;
+        Input->MouseY = Shot->MouseY;
+    }
+}
 
 internal void
 Win32InitScreenshot(win32_screenshot *Shot)
@@ -45,6 +139,11 @@ Win32InitScreenshot(win32_screenshot *Shot)
                                 sizeof(Frame)))
     {
         Shot->Frame = (u32)atoi(Frame);
+    }
+    char Keys[512];
+    if (GetEnvironmentVariableA("GAME_SCREENSHOT_KEYS", Keys, sizeof(Keys)))
+    {
+        Win32ParseScriptedKeys(Shot, Keys);
     }
 }
 
