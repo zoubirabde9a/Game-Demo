@@ -14,3 +14,4 @@
     struct body_poses *BodyPoses; // squash and stretch per unit, client/body_pose.cpp
     struct hud_pulses *HudPulses; // cooldown bars flashing as they come ready, ui/hud.cpp
     struct monster_cast_tells *CastTells; // what monsters are casting, client/monster_cast_tells.cpp
+    struct ability_bar *AbilityBar; // health and ability slots at the bottom, ui/ability_bar.cpp

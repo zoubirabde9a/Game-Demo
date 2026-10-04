@@ -1,5 +1,6 @@
 /* ui: screen-space widgets drawn over the world: the heads-up display
-   (health, cooldowns, connection status, respawn countdown) and the
+   (scores, connection status, respawn countdown), the ability bar with
+   health and cooldowns at the bottom (icons in ability_icons/), and the
    scoreboard shown while Tab is held, the minimap, the connect screen
    (F4) and the tile editor (F3). The
    immediate-mode widget library they draw with is engine/ui.cpp.
@@ -14,4 +15,6 @@
 #include "connect_screen.cpp"
 #include "minimap.cpp"
 #include "controls_panel.cpp"
+#include "ability_icons/ability_icons.cpp"
+#include "ability_bar.cpp"
 #include "shader_errors.cpp"

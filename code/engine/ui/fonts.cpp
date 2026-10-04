@@ -6,6 +6,7 @@
 #define UI_FONT_SIZE_SMALL 16.f
 #define UI_FONT_SIZE_BODY 20.f
 #define UI_FONT_SIZE_TITLE 34.f
+#define UI_FONT_SIZE_STRONG 22.f
 
 internal void
 LoadUIFonts(font_set *Fonts, open_gl *OpenGL, memory_arena *Arena)
@@ -28,4 +29,6 @@ LoadUIFonts(font_set *Fonts, open_gl *OpenGL, memory_arena *Arena)
                                   Regular, ArrayCount(Regular));
     Fonts->Title = CreateFirstFont(OpenGL, Arena, UI_FONT_SIZE_TITLE,
                                    Bold, ArrayCount(Bold));
+    Fonts->Strong = CreateFirstFont(OpenGL, Arena, UI_FONT_SIZE_STRONG,
+                                    Bold, ArrayCount(Bold));
 }

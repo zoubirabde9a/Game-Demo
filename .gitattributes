@@ -5,3 +5,4 @@
 code/sim/maps/map_list.inc merge=union
 code/client/client_fields.inc merge=union
 code/client/screen_pass.inc merge=union
+code/ui/ability_icons/icon_list.inc merge=union

@@ -13,6 +13,7 @@ DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawClickMoveMarker(RenderContext, CameraOffset);
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, Window);
 DrawHud(RenderContext, AppState, CameraOffset, Input->DeltaTime);
+DrawAbilityBar(RenderContext, AppState, Input, Window->Width, Window->Height);
 DrawMinimap(RenderContext, AppState, Window->Width);
 DrawControlsPanel(RenderContext, AppState, Input, Window->Height);
 DrawRespawnCountdown(RenderContext, AppState, Window->Width, Window->Height);

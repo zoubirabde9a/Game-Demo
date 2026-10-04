@@ -20,6 +20,7 @@ struct font_set
     font *Small;   // hints, labels over players, small print
     font *Body;    // HUD text, buttons, edit boxes
     font *Title;   // screen headings, the respawn countdown
+    font *Strong;  // bold numbers on the HUD: cooldown seconds, health
 };
 
 enum ui_element_type

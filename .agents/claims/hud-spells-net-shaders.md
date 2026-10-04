@@ -1,4 +1,0 @@
-who: agent/hud
-task: spell bar at the bottom centre with drawn icons and shader cooldowns; a shader library (named programs, blend modes, time uniform, reload); server names and host names instead of typed IPs, server name in the HUD
-files: code/ui/hud.cpp, code/ui/ability_bar*, code/ui/ability_icons/*, code/ui/connection_indicator.cpp, code/ui/connect_screen.cpp, code/engine/opengl.cpp, code/engine/render.h, code/engine/render/*, code/net/address.h, code/net/platform/*, code/net/protocol.*, code/net/client.*, code/server/server.cpp, code/client/online.cpp, code/client/online_config.cpp, code/client/server_list.cpp, build/shaders/*, bin/shaders/*, web/shaders/*, code/net/connections.*, code/server/server_main.cpp, code/server/probe_main.cpp, code/tests/net_tests.cpp, code/client/server_browser.cpp
-since: 2026-10-04
