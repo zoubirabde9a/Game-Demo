@@ -185,6 +185,33 @@ int main()
         free(Out);
         free(Atlas);
     }
+    {
+        // NOTE(zoubir): the drawn props side by side on grass, 4 times size
+        u32 Size = TERRAIN_PROP_PIXELS;
+        u32 Width = Size * TerrainProp_Count;
+        u32 *Sheet = (u32 *)calloc(Width * Size, sizeof(u32));
+        for(u32 Prop = 0; Prop < TerrainProp_Count; Prop++)
+        {
+            sprite_canvas Canvas = CanvasFrame(Sheet, Width, Size, Prop, 0);
+            DrawTerrainProp(&Canvas, (terrain_prop)Prop);
+        }
+        u32 Scale = 4;
+        u32 OutWidth = Width * Scale;
+        u32 OutHeight = Size * Scale;
+        u32 *Out = (u32 *)calloc(OutWidth * OutHeight, sizeof(u32));
+        for(u32 Y = 0; Y < OutHeight; Y++)
+        {
+            for(u32 X = 0; X < OutWidth; X++)
+            {
+                u32 Pixel = Sheet[(Y / Scale) * Width + X / Scale];
+                Out[Y * OutWidth + X] = Pixel ? Pixel : ART_RGB(74, 122, 50);
+            }
+        }
+        stbi_write_png("monster_art/terrain_props.png", OutWidth, OutHeight, 4, Out, OutWidth * 4);
+        printf("monster_art/terrain_props.png\n");
+        free(Out);
+        free(Sheet);
+    }
     for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
     {
         map_def *Map = GetMapDef((map_id)MapIndex);
