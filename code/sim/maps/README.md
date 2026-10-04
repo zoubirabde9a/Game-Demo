@@ -32,7 +32,7 @@ So a stair is a run of tiles rising one step each (`1`, `2`, `3` up to the top),
 
 In the 3/4 view, height is drawn upward and a raised tile hides the ground just north of it. Put stairs on the south, east or west side where you can, so they read as stairs on screen. Give a blocking tile (a wall, rock) the height of the open ground beside it, so it sits on that ground: a parapet on a rampart three steps up is `3`. Avoid one-tile gaps between a cliff and a wall: a unit can wedge in them.
 
-Frostbite Keep was drawn with a small script (rectangles, ellipses, stairs) that prints both layouts; drawing straight in the text works just as well for small changes.
+The two hand-made maps were drawn with a small script (rectangles, ellipses, stairs, a 180 degree turn for the Arena) that prints both layouts; drawing straight in the text works just as well for small changes.
 
 ## Adding a procedural map
 
