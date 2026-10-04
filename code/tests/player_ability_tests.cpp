@@ -1205,6 +1205,30 @@ TestRespawnIsShielded()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): an area ability's effects take their size and length from
+// its row, so retuning the row moves them too
+internal void
+TestAreaEffectsFollowTheirRows()
+{
+    player_area_ability *Push = &PlayerAreaAbilities[PlayerArea_Push];
+    player_area_ability *Launch = &PlayerAreaAbilities[PlayerArea_Launch];
+    player_area_ability *Slam = &PlayerAreaAbilities[PlayerArea_Slam];
+    burst_area PushMark = BurstArea(SimBurst_PushMark);
+    Check(PushMark.Radius == Push->Radius);
+    Check(PushMark.Seconds == Push->CastTime);
+    Check(Absolute(Cos(PushMark.HalfAngle) - Push->ConeCos) < 0.001f);
+    Check(BurstArea(SimBurst_LaunchMark).Radius == Launch->Radius);
+    Check(BurstArea(SimBurst_LaunchColumn).Radius == Launch->Radius);
+    Check(BurstArea(SimBurst_SlamRing).Radius == Slam->Radius);
+    Check(BurstArea(SimBurst_ShockwaveRing).Radius ==
+          PlayerAreaAbilities[PlayerArea_Shockwave].Radius);
+    for(u32 Kind = 0; Kind < SimBurst_Count; Kind++)
+    {
+        burst_area Area = BurstArea((sim_burst)Kind);
+        Check(Area.Radius > 0.f && Area.Seconds > 0.f);
+    }
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1284,4 +1308,6 @@ RunPlayerAbilityTests()
     TestMonsterKillRefundsMovement();
     printf("TestRespawnIsShielded\n");
     TestRespawnIsShielded();
+    printf("TestAreaEffectsFollowTheirRows\n");
+    TestAreaEffectsFollowTheirRows();
 }

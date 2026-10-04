@@ -54,17 +54,18 @@ struct burst_look
     burst_pose Pose;
 };
 
-// NOTE(zoubir): one row per sim_burst, in its order; the radii of the
-// area abilities' bursts match their rows in
-// sim/player_abilities/area_abilities.cpp
+// NOTE(zoubir): one row per sim_burst, in its order. A Radius of 0 takes
+// the area of the area ability row whose burst or telegraph it is
+// (sim/player_abilities/area_abilities.cpp), and Seconds of 0 its cast
+// time, so a retuned ability's effects follow it (BurstArea)
 global_variable burst_look BurstLooks[SimBurst_Count] =
 {
     {BurstShape_Gather, 0.25f, 46.f, 0x00FF90D0, false, 0.f, BurstPose_Charge},   // CastGather, violet
-    {BurstShape_Cone, 0.3f, 110.f, 0x00FFE8B0, false, 0.35f, BurstPose_Release},   // PushCone, pale blue
-    {BurstShape_Column, 0.6f, 55.f, 0x0040C0FF, false, 0.6f, BurstPose_Release},   // LaunchColumn, amber
+    {BurstShape_Cone, 0.3f, 0.f, 0x00FFE8B0, false, 0.35f, BurstPose_Release},   // PushCone, pale blue
+    {BurstShape_Column, 0.6f, 0.f, 0x0040C0FF, false, 0.6f, BurstPose_Release},   // LaunchColumn, amber
     {BurstShape_Ring, 0.25f, 26.f, 0x00FFFFFF, true, 0.f, BurstPose_None},      // AirJump, white
     {BurstShape_Puff, 0.4f, 24.f, 0x0090B0C0, true, 0.15f, BurstPose_None},     // Land, dust
-    {BurstShape_Ring, 0.35f, 90.f, 0x00FFE8B0, false, 0.45f, BurstPose_None},   // ShockwaveRing, pale blue
+    {BurstShape_Ring, 0.35f, 0.f, 0x00FFE8B0, false, 0.45f, BurstPose_None},   // ShockwaveRing, pale blue
     {BurstShape_Spark, 0.22f, 26.f, 0x0080FFFF, false, 0.3f, BurstPose_None},   // Impact, pale yellow
     {BurstShape_Slash, 0.28f, 44.f, 0x00FFFFFF, false, 0.4f, BurstPose_None},  // Finisher, white
     // NOTE(zoubir): the sword's arcs run a little inside its reach
@@ -76,9 +77,9 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Puff, 0.3f, 9.f, 0x00C8D8E0, true, 0.f, BurstPose_None},        // Step, dust
     {BurstShape_Death, 0.45f, 30.f, 0x00E8F0FF, false, 0.25f, BurstPose_None},  // Death, pale
     {BurstShape_Column, 0.6f, 30.f, 0x00FFE0A0, false, 0.f, BurstPose_None},    // Spawn, pale blue
-    // NOTE(zoubir): telegraphs last as long as their ability's cast
-    {BurstShape_ConeMark, 0.12f, 110.f, 0x00FFE8B0, false, 0.f, BurstPose_None}, // PushMark, pale blue
-    {BurstShape_Mark, 0.3f, 55.f, 0x0040C0FF, false, 0.f, BurstPose_None},      // LaunchMark, amber
+    {BurstShape_ConeMark, 0.f, 0.f, 0x00FFE8B0, false, 0.f, BurstPose_None}, // PushMark, pale blue
+    {BurstShape_Mark, 0.f, 0.f, 0x0040C0FF, false, 0.f, BurstPose_None},      // LaunchMark, amber
+    {BurstShape_Ring, 0.35f, 0.f, 0x0080D0FF, false, 0.5f, BurstPose_None},     // SlamRing, warm
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these
@@ -135,6 +136,36 @@ GetFxBursts(app_state *AppState)
         *AppState->FxBursts = {};
     }
     return AppState->FxBursts;
+}
+
+// NOTE(zoubir): a burst's reach, half the width of its cone (Pi for a
+// whole circle) and length, from its look or else from the area ability
+// row it belongs to
+struct burst_area
+{
+    float Radius;
+    float HalfAngle;
+    float Seconds;
+};
+
+internal burst_area
+BurstArea(sim_burst Kind)
+{
+    burst_look *Look = &BurstLooks[Kind];
+    burst_area Result = {Look->Radius, Pi32, Look->Seconds};
+    for(u32 Index = 0; Index < PlayerArea_Count; Index++)
+    {
+        player_area_ability *Ability = &PlayerAreaAbilities[Index];
+        if (Ability->Burst == Kind || Ability->Telegraph == Kind)
+        {
+            if (Result.Radius == 0.f) Result.Radius = Ability->Radius;
+            if (Result.Seconds == 0.f) Result.Seconds = Ability->CastTime;
+            Result.HalfAngle = acosf(Ability->ConeCos);
+            break;
+        }
+    }
+    Result.Seconds = Maximum(Result.Seconds, 0.01f);
+    return Result;
 }
 
 internal float
@@ -223,7 +254,7 @@ UpdateFxBursts(app_state *AppState, float DeltaTime)
     {
         fx_burst *Burst = &Fx->Bursts[Index];
         Burst->Age += DeltaTime;
-        if (Burst->Age >= BurstLooks[Burst->Kind].Seconds)
+        if (Burst->Age >= BurstArea(Burst->Kind).Seconds)
         {
             *Burst = Fx->Bursts[--Fx->Count];
         }
@@ -277,7 +308,8 @@ internal void
 DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
 {
     burst_look *Look = &BurstLooks[Burst->Kind];
-    float T = Burst->Age / Look->Seconds;
+    burst_area Area = BurstArea(Burst->Kind);
+    float T = Burst->Age / Area.Seconds;
     float EaseOut = 1.f - (1.f - T) * (1.f - T);
     u32 Alpha = (u32)(255.f * (1.f - T * T));
     u32 Color = (Alpha << 24) | Look->RGB;
@@ -287,7 +319,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
         case BurstShape_Gather:
         {
             v2 Chest = Centre - V2(0.f, 22.f);
-            float Radius = Look->Radius * (1.f - EaseOut);
+            float Radius = Area.Radius * (1.f - EaseOut);
             for(u32 Dot = 0; Dot < 12; Dot++)
             {
                 float Angle = 2.f * Pi32 * Dot / 12.f + 3.f * T;
@@ -300,7 +332,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
         case BurstShape_Ring:
         {
             DrawGroundRing(RenderContext, Centre,
-                           Look->Radius * (0.3f + 0.7f * EaseOut), Color);
+                           Area.Radius * (0.3f + 0.7f * EaseOut), Color);
         } break;
 
         case BurstShape_Cone:
@@ -308,7 +340,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             // NOTE(zoubir): three arcs racing out, the front one biggest
             for(u32 Arc = 0; Arc < 3; Arc++)
             {
-                float Reach = Look->Radius * EaseOut * (1.f - 0.18f * Arc);
+                float Reach = Area.Radius * EaseOut * (1.f - 0.18f * Arc);
                 for(u32 Dot = 0; Dot < 9; Dot++)
                 {
                     float Spread = ((float)Dot / 8.f - 0.5f) * 2.4f;
@@ -323,9 +355,9 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
         case BurstShape_Column:
         {
             DrawGroundRing(RenderContext, Centre,
-                           Look->Radius * (0.5f + 0.5f * EaseOut), Color);
+                           Area.Radius * (0.5f + 0.5f * EaseOut), Color);
             DrawGroundRing(RenderContext, Centre,
-                           Look->Radius * 0.6f * (0.5f + 0.5f * EaseOut), Color,
+                           Area.Radius * 0.6f * (0.5f + 0.5f * EaseOut), Color,
                            2.f);
             // NOTE(zoubir): a beam shooting up out of the ground, gone in
             // the first half
@@ -340,7 +372,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             for(u32 Dot = 0; Dot < 18; Dot++)
             {
                 float Angle = 2.f * Pi32 * BurstJitter(Dot, 1);
-                float Out = Look->Radius * 0.8f * BurstJitter(Dot, 2);
+                float Out = Area.Radius * 0.8f * BurstJitter(Dot, 2);
                 float Speed = 140.f + 180.f * BurstJitter(Dot, 3);
                 float Height = Speed * Burst->Age - 300.f * Square(Burst->Age);
                 v2 P = Centre + GroundCircle(Angle, Out) -
@@ -354,7 +386,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             for(u32 Dot = 0; Dot < 8; Dot++)
             {
                 float Angle = 2.f * Pi32 * (Dot + 0.3f * BurstJitter(Dot, 7)) / 8.f;
-                float Out = Look->Radius * EaseOut;
+                float Out = Area.Radius * EaseOut;
                 v2 Direction = V2(Cos(Angle), Sin(Angle));
                 DrawFxDot(RenderContext, Centre + Out * Direction,
                           5.f - 3.f * T, Color);
@@ -369,7 +401,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             // widest early; sparks fly on along the hit
             v2 Along = V2(Cos(Burst->Angle), Sin(Burst->Angle));
             v2 Across = V2(-Along.Y, Along.X);
-            float HalfLength = Look->Radius * (0.4f + 0.6f * EaseOut);
+            float HalfLength = Area.Radius * (0.4f + 0.6f * EaseOut);
             for(u32 Dot = 0; Dot < 11; Dot++)
             {
                 float Offset = ((float)Dot / 10.f - 0.5f) * 2.f * HalfLength;
@@ -380,7 +412,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             {
                 float Spread = (BurstJitter(Dot, 8) - 0.5f) * 1.2f;
                 v2 Direction = V2(Cos(Burst->Angle + Spread), Sin(Burst->Angle + Spread));
-                float Out = Look->Radius * 1.2f * EaseOut * (0.5f + 0.5f * BurstJitter(Dot, 9));
+                float Out = Area.Radius * 1.2f * EaseOut * (0.5f + 0.5f * BurstJitter(Dot, 9));
                 DrawFxDot(RenderContext, Centre + Out * Direction, 4.f - 3.f * T, Color);
             }
         } break;
@@ -392,7 +424,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             // first half; dots behind it shrink and fade like a trail
             float Side = Look->Shape == BurstShape_Arc ? 1.f : -1.f;
             float Lead = Minimum(1.f, 2.f * T);
-            float Size = 3.f + Look->Radius / 8.f;
+            float Size = 3.f + Area.Radius / 8.f;
             for(u32 Dot = 0; Dot < 14; Dot++)
             {
                 float Along = (float)Dot / 13.f;
@@ -403,7 +435,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
                 }
                 float Angle = Burst->Angle +
                     Side * SWORD_HALF_ANGLE * (2.f * Along - 1.f);
-                v2 P = Centre + Look->Radius * V2(Cos(Angle), Sin(Angle));
+                v2 P = Centre + Area.Radius * V2(Cos(Angle), Sin(Angle));
                 u32 DotColor = ((u32)(255.f * Strength) << 24) | Look->RGB;
                 DrawFxDot(RenderContext, P, Size * (0.5f + 0.5f * Strength),
                           DotColor);
@@ -416,7 +448,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             {
                 float Spread = (BurstJitter(Dot, 10) - 0.5f) * 1.4f;
                 float Angle = Burst->Angle + Spread;
-                float Out = Look->Radius * EaseOut * (0.5f + 0.5f * BurstJitter(Dot, 11));
+                float Out = Area.Radius * EaseOut * (0.5f + 0.5f * BurstJitter(Dot, 11));
                 float Rise = 5.f * Sin(Pi32 * T) * BurstJitter(Dot, 12);
                 DrawFxDot(RenderContext,
                           Centre + GroundCircle(Angle, Out) - V2(0.f, Rise),
@@ -435,7 +467,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             for(u32 Dot = 0; Dot < 14; Dot++)
             {
                 float Angle = 2.f * Pi32 * (Dot + BurstJitter(Dot, 13)) / 14.f;
-                float Out = Look->Radius * EaseOut * (0.4f + 0.6f * BurstJitter(Dot, 14));
+                float Out = Area.Radius * EaseOut * (0.4f + 0.6f * BurstJitter(Dot, 14));
                 float Rise = 26.f * T * (0.5f + BurstJitter(Dot, 15));
                 v2 P = Centre + Out * V2(Cos(Angle), 0.6f * Sin(Angle)) -
                     V2(0.f, Rise);
@@ -447,18 +479,18 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
         {
             // NOTE(zoubir): the outline holds still while a ring closes in
             // on it, meeting it as the cast goes off
-            DrawGroundRing(RenderContext, Centre, Look->Radius,
+            DrawGroundRing(RenderContext, Centre, Area.Radius,
                            ((u32)(120.f + 120.f * T) << 24) | Look->RGB, 4.f);
-            DrawGroundRing(RenderContext, Centre, Look->Radius * T,
+            DrawGroundRing(RenderContext, Centre, Area.Radius * T,
                            ((u32)(200.f * T) << 24) | Look->RGB, 2.f);
         } break;
 
         case BurstShape_ConeMark:
         {
-            // NOTE(zoubir): the cone's edges and its far arc, PUSH's
-            // ConeCos 0.34 wide (about 70 degrees each side)
+            // NOTE(zoubir): the cone's edges and its far arc, from its
+            // area row
             u32 MarkColor = ((u32)(120.f + 120.f * T) << 24) | Look->RGB;
-            float Half = 1.22f;
+            float Half = Area.HalfAngle;
             for(u32 Dot = 0; Dot < 9; Dot++)
             {
                 float Along = (float)(Dot + 1) / 9.f;
@@ -466,12 +498,12 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
                 {
                     float Angle = Burst->Angle + (Side ? Half : -Half);
                     DrawFxDot(RenderContext,
-                              Centre + GroundCircle(Angle, Along * Look->Radius),
+                              Centre + GroundCircle(Angle, Along * Area.Radius),
                               4.f, MarkColor);
                 }
                 float ArcAngle = Burst->Angle + Half * (2.f * (float)Dot / 8.f - 1.f);
                 DrawFxDot(RenderContext,
-                          Centre + GroundCircle(ArcAngle, Look->Radius), 4.f,
+                          Centre + GroundCircle(ArcAngle, Area.Radius), 4.f,
                           MarkColor);
             }
         } break;
@@ -481,7 +513,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             for(u32 Dot = 0; Dot < 10; Dot++)
             {
                 float Angle = 2.f * Pi32 * (Dot + BurstJitter(Dot, 4)) / 10.f;
-                float Out = Look->Radius * EaseOut *
+                float Out = Area.Radius * EaseOut *
                     (0.6f + 0.4f * BurstJitter(Dot, 5));
                 float Rise = 6.f * EaseOut * BurstJitter(Dot, 6);
                 DrawFxDot(RenderContext,

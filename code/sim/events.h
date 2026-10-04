@@ -44,6 +44,7 @@ enum sim_burst
     SimBurst_Spawn,        // a beam where a player comes back
     SimBurst_PushMark,     // Push's cone on the ground while it is cast
     SimBurst_LaunchMark,   // Launch's circle on the ground while it is cast
+    SimBurst_SlamRing,     // a ring where a slam lands
     SimBurst_Count
 };
 

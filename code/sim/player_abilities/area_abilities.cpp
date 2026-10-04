@@ -65,7 +65,7 @@ global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
     // (movement_abilities.cpp) fires it where the player lands. Everything
     // within 80 units is thrown out and up and stunned
     {0, 0.f, 0.f, 0.f, 80.f, -1.f, {25.f, 380.f, 260.f, 260.f, 0.9f, SimBurst_Count},
-     SimBurst_ShockwaveRing, SimBurst_Count},
+     SimBurst_SlamRing, SimBurst_Count},
 };
 #define PLAYER_AREA_ABILITY_COUNT PlayerArea_Count
 static_assert(PlayerArea_Count <= PLAYER_AREA_ABILITY_SLOTS, "one cooldown each");
