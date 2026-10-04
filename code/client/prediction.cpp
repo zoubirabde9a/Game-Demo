@@ -17,8 +17,9 @@
    jumps). Each recorded input keeps which buttons went down on it, worked
    out the same way the server does, and the cooldowns the server sends
    say whether the movement abilities are ready; UpdatePlayer counts them
-   down as it steps, replays included. Attacks and area abilities change
-   what other players see, so they wait for the server.
+   down as it steps, replays included. Area casts are predicted too (the
+   slowdown and the pose), but their hits, and attacks, change what other
+   players see, so they wait for the server.
 
    When the replay lands somewhere other than where the player was drawn a
    frame ago, the difference is kept as DrawError and the player is drawn
@@ -45,6 +46,10 @@ struct predicted_body
     u32 JumpsUsed;
     float JumpBuffer;
     float VaultPush;
+    // NOTE(zoubir): an area cast under way (area_abilities.cpp)
+    u32 CastingArea;
+    float AreaCastLeft;
+    v2 CastingDirection;
 };
 
 inline predicted_body
@@ -55,16 +60,27 @@ SavePredictedBody(world_entity *Player)
     Result.JumpsUsed = Player->JumpsUsed;
     Result.JumpBuffer = Player->JumpBuffer;
     Result.VaultPush = Player->VaultPush;
+    Result.CastingArea = Player->CastingArea;
+    Result.AreaCastLeft = Player->AreaCastLeft;
+    Result.CastingDirection = Player->CastingDirection;
     return Result;
 }
 
+// NOTE(zoubir): the jump state only when the snapshot has the player in
+// the air; on the ground the server's word (standing) wins
 inline void
 RestorePredictedBody(world_entity *Player, predicted_body *Body)
 {
-    Player->Velocity.Z = Body->VelocityZ;
-    Player->JumpsUsed = Body->JumpsUsed;
-    Player->JumpBuffer = Body->JumpBuffer;
+    if (Player->Position.Z > 0.f)
+    {
+        Player->Velocity.Z = Body->VelocityZ;
+        Player->JumpsUsed = Body->JumpsUsed;
+        Player->JumpBuffer = Body->JumpBuffer;
+    }
     Player->VaultPush = Body->VaultPush;
+    Player->CastingArea = Body->CastingArea;
+    Player->AreaCastLeft = Body->AreaCastLeft;
+    Player->CastingDirection = Body->CastingDirection;
 }
 
 struct predicted_input
@@ -169,7 +185,7 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     Slot->Input.Move = MoveFromNetButtons(Input->Buttons);
     Slot->Input.Aim = Input->Aim;
     Slot->Input.Pressed = ((u32)Input->Pressed >> PLAYER_BUTTON_NET_SHIFT) &
-        (PlayerButton_Jump | PlayerMovementButtons());
+        (PlayerButton_Jump | PlayerMovementButtons() | PlayerAreaButtons());
     float AnimationSpeed;
     animation_type AnimationType;
     animation_direction AnimationDirection;
@@ -211,7 +227,7 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
     if (NewSnapshot)
     {
         DropAcknowledgedInputs(History, InputTick);
-        if (Player && Player->Position.Z > 0.f)
+        if (Player)
         {
             RestorePredictedBody(Player, &History->Acked);
         }

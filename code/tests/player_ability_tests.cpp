@@ -1389,6 +1389,34 @@ TestReviewFixes()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a predicted Launch casts (slowing the player) but neither
+// hits nor asks for its effects; the server does that
+internal void
+TestPredictedCastLeavesHitToServer()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *Target = AddTestEntity(&Test, EntityType_Monster,
+                                         {370, 300, 0}, Test.UnitVolume);
+    Target->MaxHp = Target->Hp = 100.f;
+    player_slot *Slot = &AppState->Players[0];
+    Slot->Predicted = true;
+    Slot->Input.Aim = V2(1.f, 0.f);
+    Slot->Input.Pressed = PlayerButton_Launch;
+    AppState->Events.Count = 0;
+    RunPlayerFrames(&Test, 0, 2);
+    Check(IsCastingAreaAbility(Player));
+    RunPlayerFrames(&Test, 0, 30);
+    Check(!IsCastingAreaAbility(Player));
+    Check(Target->Hp == 100.f);
+    Check(CountBursts(AppState, SimBurst_LaunchColumn) == 0);
+    Check(CountBursts(AppState, SimBurst_LaunchMark) == 0);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1478,4 +1506,6 @@ RunPlayerAbilityTests()
     TestRunningVaultsBoulders();
     printf("TestReviewFixes\n");
     TestReviewFixes();
+    printf("TestPredictedCastLeavesHitToServer\n");
+    TestPredictedCastLeavesHitToServer();
 }

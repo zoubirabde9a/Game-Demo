@@ -133,6 +133,19 @@ FireAreaOnLanding(app_state *AppState, world *World, world_entity *Player)
     EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
 }
 
+// NOTE(zoubir): every area ability's button (client/prediction.cpp predicts
+// their casts)
+internal u32
+PlayerAreaButtons()
+{
+    u32 Result = 0;
+    for(u32 Index = 0; Index < PLAYER_AREA_ABILITY_COUNT; Index++)
+    {
+        Result |= PlayerAreaAbilities[Index].Button;
+    }
+    return Result;
+}
+
 inline bool32
 IsCastingAreaAbility(world_entity *Player)
 {
@@ -157,6 +170,10 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
             Maximum(0.f, Player->AreaCooldowns[Index] - DeltaTime);
     }
 
+    // NOTE(zoubir): a client predicting its own player runs the cast (the
+    // slowdown, the pose, the cooldown) but leaves the hit and its sounds
+    // and bursts to the server, which sends them with its snapshot
+    bool32 Authoritative = !AppState->Players[Player->PlayerIndex].Predicted;
     if (!IsCastingAreaAbility(Player))
     {
         for(u32 Index = 0; Index < PLAYER_AREA_ABILITY_COUNT; Index++)
@@ -170,6 +187,10 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
                 Player->AreaCastLeft = Ability->CastTime;
                 Player->CastingDirection = GetPlayerAim(Player);
                 Player->AnimationState.SlotIndex = 0;
+                if (!Authoritative)
+                {
+                    break;
+                }
                 EmitSound(&AppState->Events, AssetType_FireCast,
                           Player->Position);
                 if (Ability->CastTime > 0.f)
@@ -206,6 +227,10 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
         player_area_ability *Ability =
             &PlayerAreaAbilities[Player->CastingArea - 1];
         Player->CastingArea = 0;
+        if (!Authoritative)
+        {
+            return;
+        }
         v2 Aim = Player->CastingDirection;
         FireAreaAbility(AppState, World, Player, Ability, Aim);
         v3 Centre = Player->Position;
