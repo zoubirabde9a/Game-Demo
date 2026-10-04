@@ -463,6 +463,9 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     u32 ServerElites = 0, ClientElites = 0, ServerFlashes = 0, ClientFlashes = 0;
     u32 LastTick = 0;
     u32 CooldownsCompared = 0, CooldownsOff = 0, ServerCooling = 0, ClientCooling = 0;
+    // NOTE(zoubir): the watcher's stagger from a shove (sim/hit.cpp), which
+    // its prediction replays from the snapshot's
+    u32 StaggersCompared = 0, StaggersOff = 0, ServerStaggered = 0, ClientStaggered = 0;
     u32 DashPresses = 0, DashesSeenAtOnce = 0;
     u32 JumpPresses = 0, JumpsSeenAtOnce = 0;
     // NOTE(zoubir): the last hit (sim/hit.cpp): units hit lately on each
@@ -529,6 +532,10 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
                     ServerCooling += Theirs > 0.f ? 1 : 0;
                     ClientCooling += Ours > 0.f ? 1 : 0;
                 }
+                ++StaggersCompared;
+                StaggersOff += Absolute(OwnTheirs->Stagger - OwnOurs->Stagger) > 0.1f ? 1 : 0;
+                ServerStaggered += OwnTheirs->Stagger > 0.f ? 1 : 0;
+                ClientStaggered += OwnOurs->Stagger > 0.f ? 1 : 0;
             }
             for (u32 Id = 0; Id < MAX_REPLICAS; ++Id)
             {
@@ -610,6 +617,10 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     printf("  parity: own cooldowns %u compared, %u off by over 0.1 s, cooling on server/client %u/%u\n",
            CooldownsCompared, CooldownsOff, ServerCooling, ClientCooling);
     Check(CooldownsCompared > 100 && CooldownsOff == 0);
+    printf("  parity: own stagger %u compared, %u off by over 0.1 s, staggered on server/client %u/%u\n",
+           StaggersCompared, StaggersOff, ServerStaggered, ClientStaggered);
+    Check(StaggersCompared > 100 && StaggersOff == 0);
+    Check(ServerStaggered == 0 || ClientStaggered > 0);
     printf("  dash presses %u, dashing on the press frame %u\n", DashPresses, DashesSeenAtOnce);
     Check(DashPresses > 3 && DashesSeenAtOnce >= DashPresses - 1);
     // NOTE(zoubir): jump is predicted too: rising on the press frame

@@ -33,7 +33,7 @@ Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot car
 
 ## Next
 
-- [ ] Redeploy vps-eu. It runs an older protocol than main (now GDMM) and ignores current builds, which show it as "not answering". Builds from GDMM on answer older and newer ones with the version notice. Needs the user's go-ahead.
+- [ ] Redeploy vps-eu. It runs an older protocol than main (now GDMO) and ignores current builds, which show it as "not answering". Builds from GDMM on answer older and newer ones with the version notice. Needs the user's go-ahead.
 - [ ] Give the live server a DNS name and put it in `client/server_list.cpp`, so it can move without a game update.
 - [ ] Draw the kill feed (`AppState->KillFeed`); the UI agent has it.
 - [ ] Split `app_state` into a simulation part and a client part, so the server no longer sees client types. `app.h` changes often; agree it with the other agents first.

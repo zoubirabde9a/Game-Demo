@@ -154,9 +154,10 @@ ApplySnapshotAbilities(world *World, replica_table *Table, net_snapshot *Snapsho
 }
 
 // NOTE(zoubir): the local player's own cooldowns, which only the server
-// runs, put where the HUD reads them
+// runs, put where the HUD reads them, and its stagger, which only the
+// server's hits start; prediction replays both from here
 internal void
-ApplyOwnCooldowns(world_entity *Local, net_snapshot *Snapshot)
+ApplyOwnTimers(world_entity *Local, net_snapshot *Snapshot)
 {
     for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
     {
@@ -164,6 +165,7 @@ ApplyOwnCooldowns(world_entity *Local, net_snapshot *Snapshot)
         float *Seconds = PlayerCooldown(Local, Index, &Full);
         if (Seconds) *Seconds = CooldownFromByte(Snapshot->Cooldowns[Index], Full);
     }
+    Local->Stagger = CooldownFromByte(Snapshot->Stagger, PlayerStats.StaggerSeconds);
 }
 
 // NOTE(zoubir): a player replica's slot on the server is its Variant; the

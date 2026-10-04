@@ -313,6 +313,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
             {
                 NetU8(S, &P->Snapshot.Cooldowns[Index]);
             }
+            NetU8(S, &P->Snapshot.Stagger);
             NetU8(S, &P->Snapshot.KillCount);
             if (P->Snapshot.KillCount > NET_MAX_SNAPSHOT_KILLS) return false;
             for (u32 Index = 0; Index < P->Snapshot.KillCount; ++Index)

@@ -10,9 +10,11 @@
    Movement, facing (the aim toward the cursor), jump and the movement
    abilities (dash, blink, the slam's dive) are predicted: they move only
    the player, so they happen the frame they are pressed. Snapshots carry
-   the player's vertical speed, so a replay starts from the server's,
-   throws and launches included; they carry no jumps spent, waiting jump
-   press or cast under way, so each input keeps those as they were after
+   the player's speed and its stagger from a shove (only the server's
+   hits start one), so a replay starts from the server's, throws, shoves
+   and launches included, and slides a shove out as the server does.
+   They carry no jumps spent, waiting jump press or cast under way, so
+   each input keeps those as they were after
    it (predicted_body), and a replay starts from the ones the server last
    acknowledged (without, replayed double jumps were refused). The combo
    trail is kept the same way, and attack and cast presses, which only

@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d4eu // "GDMN", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d4fu // "GDMO", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -256,6 +256,10 @@ struct net_snapshot
     // cooldown (0 = ready), for the HUD; abilities run only on the server.
     // Which is which: PlayerCooldown in sim/player_cooldowns.cpp.
     u8 Cooldowns[NET_COOLDOWN_COUNT];
+    // The viewer's own stagger from a shove (sim/hit.cpp), 0..255 of
+    // PlayerStats.StaggerSeconds; its prediction replays from it, or every
+    // shove would be braked away on the client and pulled back.
+    u8 Stagger;
     // Bursts seen near this player since its previous snapshot; cosmetic,
     // lost with their snapshot like sounds.
     u8 BurstCount;

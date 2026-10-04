@@ -183,6 +183,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
         float *Seconds = Own ? PlayerCooldown(Own, Index, &Full) : 0;
         Out->Cooldowns[Index] = Seconds ? CooldownToByte(*Seconds, Full) : 0;
     }
+    Out->Stagger = Own ? CooldownToByte(Own->Stagger, PlayerStats.StaggerSeconds) : 0;
     Out->AbilityCount = 0;
 
     // The viewer's own player goes first so it is never cut off by the

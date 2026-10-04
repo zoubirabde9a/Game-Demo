@@ -486,6 +486,56 @@ TestPredictionMovesNowAndReplaysAfterSnapshot()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a shove only the server ran (sim/hit.cpp) reaches the
+// client as the player's speed and stagger; the replay slides it out with
+// the keys off, as the server does. Without the stagger, keys held the
+// other way braked it at once and every shove was pulled back
+internal void
+TestPredictionReplaysAStagger()
+{
+    float Dt = 1.f / 60.f;
+    float Speeds[2];
+    for(u32 Staggered = 0; Staggered < 2; Staggered++)
+    {
+        test_world Test = CreateTestWorld();
+        app_state *AppState = Test.AppState;
+        replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+        prediction_history *History =
+            (prediction_history *)calloc(1, sizeof(prediction_history));
+        net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+
+        Snapshot->Tick = 1;
+        Snapshot->Count = 1;
+        Snapshot->NameSlot = NET_NO_NAME_SLOT;
+        Snapshot->Entities[0] = SnapshotEntity(3, EntityType_Player, 500, 500, 0);
+        Snapshot->Entities[0].Health = 100;
+        Snapshot->Entities[0].VelX = 250.f;
+        Snapshot->Stagger = Staggered ? 255 : 0;
+        for(u32 Tick = 1; Tick <= 5; Tick++)
+        {
+            RecordPredictedInput(History, Tick, NetButton_Left, Dt);
+        }
+        SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+        PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
+        world_entity *Player = GetLocalPlayer(AppState);
+        Speeds[Staggered] = Player->Velocity.X;
+        if (Staggered)
+        {
+            Check(Absolute(Player->Stagger -
+                           (PlayerStats.StaggerSeconds - 5.f * Dt)) < 0.001f);
+        }
+
+        free(Snapshot);
+        free(History);
+        free(Table);
+        DestroyTestWorld(&Test);
+    }
+    printf("  speed after 5 replayed ticks against a shove of 250: "
+           "%.0f without the stagger, %.0f with it\n", Speeds[0], Speeds[1]);
+    Check(Speeds[0] < 0.f);
+    Check(Speeds[1] > 80.f);
+}
+
 // NOTE(zoubir): walking the local player through a fireball replica must
 // not hurt it on the client: the server decides whether the shot hit, and
 // says so in its snapshot. A replica fireball has no owner, so the
@@ -886,6 +936,8 @@ RunOnlineTests()
     TestPredictionHistory();
     printf("TestPredictionMovesNowAndReplaysAfterSnapshot\n");
     TestPredictionMovesNowAndReplaysAfterSnapshot();
+    printf("TestPredictionReplaysAStagger\n");
+    TestPredictionReplaysAStagger();
     printf("TestPredictionTakesNoFireballDamage\n");
     TestPredictionTakesNoFireballDamage();
     printf("TestPredictionBlendsCorrections\n");
