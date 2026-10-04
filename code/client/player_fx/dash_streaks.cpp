@@ -129,7 +129,12 @@ UpdateDashStreaks(dash_streaks *Fx, app_state *AppState, float DeltaTime)
             {
                 AddDashDot(Fx, Lerp2(From, (float)Step / (float)(Steps + 1), Now));
             }
-            AddDashDot(Fx, Now);
+            // NOTE(zoubir): a dash stopped short (by a monster, a wall) stays
+            // put, and a dot a frame there piled up into a white block
+            if (!Fx->WasOn[SlotIndex] || Distance >= 0.5f * DASH_STREAK_SPACING)
+            {
+                AddDashDot(Fx, Now);
+            }
             Fx->Last[SlotIndex] = Now;
             Fx->GhostTimer[SlotIndex] -= DeltaTime;
             if (Fx->GhostTimer[SlotIndex] <= 0.f)

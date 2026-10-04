@@ -1127,18 +1127,41 @@ TestBodyPosesFollowMotion()
     }
     Body->Position.Z = 40.f;
     UpdateBodyPoses(AppState, Dt);
+    Body->Velocity.Z = -480.f;
     for(u32 Frame = 0; Frame < 5; Frame++)
     {
         Body->Position.Z -= 8.f;
         UpdateBodyPoses(AppState, Dt);
     }
     Body->Position.Z = 0.f;
+    Body->Velocity.Z = 0.f;
     UpdateBodyPoses(AppState, Dt);
     Check(GetBodyPose(AppState, Body).Scale.Y < 0.95f);
 
     Body->Hp -= 10.f;
     UpdateBodyPoses(AppState, Dt);
     Check(GetBodyPose(AppState, Body).Flash > 0.5f);
+
+    // NOTE(zoubir): a kick upward in the air spins it; a jump off the
+    // ground does not
+    for(u32 Frame = 0; Frame < 30; Frame++)
+    {
+        UpdateBodyPoses(AppState, Dt);
+    }
+    Body->Velocity.Z = 340.f;
+    Body->Position.Z = 6.f;
+    UpdateBodyPoses(AppState, Dt);
+    Check(GetBodyPose(AppState, Body).Angle == 0.f);
+    Body->Velocity.Z = 70.f;
+    Body->Position.Z = 30.f;
+    UpdateBodyPoses(AppState, Dt);
+    Body->Velocity.Z = 320.f;
+    Body->Position.Z = 36.f;
+    UpdateBodyPoses(AppState, Dt);
+    UpdateBodyPoses(AppState, Dt);
+    Check(Absolute(GetBodyPose(AppState, Body).Angle) > 0.3f);
+    Body->Position.Z = 0.f;
+    Body->Velocity.Z = 0.f;
 
     // NOTE(zoubir): turning squeezes it thin for a moment
     for(u32 Frame = 0; Frame < 30; Frame++)

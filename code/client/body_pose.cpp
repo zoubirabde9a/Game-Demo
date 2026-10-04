@@ -20,6 +20,7 @@
    - standing still on the ground it breathes, a slow rise and settle,
      each body at its own pace so a crowd does not breathe as one.
 
+   Vertical speed is the body's own; the rest is read from position.
    The sprite keeps its feet where they were; DrawEntity asks
    GetBodyPose for the scale and the angle. Updated once a frame by UpdateBodyPoses,
    after the world is drawn, so a pose is one frame old, which no one sees. */
@@ -44,7 +45,7 @@
 #define BODY_SQUASH_DEPTH 0.28f
 // NOTE(zoubir): a jump in vertical speed this big within a frame, in the
 // air, is a kick upward
-#define BODY_POP_KICK 200.f
+#define BODY_POP_KICK 120.f
 #define BODY_POP_HEIGHT 0.22f
 // NOTE(zoubir): per second, how fast squash and pop wear off
 #define BODY_POSE_RECOVERY 7.f
@@ -189,7 +190,10 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
         Pose->LastHp = Entity->Hp;
         Pose->Flash = Maximum(0.f, Pose->Flash - DeltaTime / BODY_HIT_FLASH_SECONDS);
 
-        float SpeedZ = (Entity->Position.Z - Pose->LastZ) / DeltaTime;
+        // NOTE(zoubir): the body's own vertical speed, which snapshots carry
+        // for replicas too; measured from height between frames, a second
+        // jump's kick came out under BODY_POP_KICK at 30 frames a second
+        float SpeedZ = Entity->Velocity.Z;
         float SpeedX = (Entity->Position.X - Pose->LastX) / DeltaTime;
         // NOTE(zoubir): eased, a one-frame jolt (a shove, a correction)
         // does not snap the lean
