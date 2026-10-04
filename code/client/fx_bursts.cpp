@@ -7,7 +7,10 @@
    is one row of BurstLooks; drawing is a handful of shapes.
 
    Also here: stars circling the head of anyone stunned, read from the
-   status timers, so they show the same offline and online. */
+   status timers, so they show the same offline and online; and screen
+   shake. Each burst adds its Shake to a trauma level, less the farther
+   it is from the local player; the camera shakes by trauma squared,
+   which fades within half a second (GetCameraShake). */
 
 enum burst_shape
 {
@@ -28,6 +31,8 @@ struct burst_look
     u32 RGB;
     // NOTE(zoubir): the local player's prediction makes these itself
     bool32 Predicted;
+    // NOTE(zoubir): 0..1, how hard the screen shakes when it is close
+    float Shake;
 };
 
 // NOTE(zoubir): one row per sim_burst, in its order; the radii of the
@@ -35,13 +40,13 @@ struct burst_look
 // sim/player_abilities/area_abilities.cpp
 global_variable burst_look BurstLooks[SimBurst_Count] =
 {
-    {BurstShape_Gather, 0.25f, 46.f, 0x00FF90D0, false}, // CastGather, violet
-    {BurstShape_Cone, 0.3f, 110.f, 0x00FFE8B0, false},   // PushCone, pale blue
-    {BurstShape_Column, 0.6f, 55.f, 0x0040C0FF, false},  // LaunchColumn, amber
-    {BurstShape_Ring, 0.25f, 26.f, 0x00FFFFFF, true},    // AirJump, white
-    {BurstShape_Puff, 0.4f, 24.f, 0x0090B0C0, true},     // Land, dust
-    {BurstShape_Ring, 0.35f, 90.f, 0x00FFE8B0, false},   // ShockwaveRing, pale blue
-    {BurstShape_Spark, 0.22f, 26.f, 0x0080FFFF, false},  // Impact, pale yellow
+    {BurstShape_Gather, 0.25f, 46.f, 0x00FF90D0, false, 0.f},   // CastGather, violet
+    {BurstShape_Cone, 0.3f, 110.f, 0x00FFE8B0, false, 0.35f},   // PushCone, pale blue
+    {BurstShape_Column, 0.6f, 55.f, 0x0040C0FF, false, 0.6f},   // LaunchColumn, amber
+    {BurstShape_Ring, 0.25f, 26.f, 0x00FFFFFF, true, 0.f},      // AirJump, white
+    {BurstShape_Puff, 0.4f, 24.f, 0x0090B0C0, true, 0.15f},     // Land, dust
+    {BurstShape_Ring, 0.35f, 90.f, 0x00FFE8B0, false, 0.45f},   // ShockwaveRing, pale blue
+    {BurstShape_Spark, 0.22f, 26.f, 0x0080FFFF, false, 0.3f},   // Impact, pale yellow
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these
@@ -53,6 +58,12 @@ DrawFxDot(render_context *RenderContext, v2 P, float Size, u32 Color)
 }
 
 #define MAX_FX_BURSTS 64
+// NOTE(zoubir): shake: full within NEAR of the local player, none past
+// FAR; the most the screen moves, in pixels; trauma lost per second
+#define SHAKE_NEAR 150.f
+#define SHAKE_FAR 650.f
+#define SHAKE_MAX_PIXELS 14.f
+#define SHAKE_RECOVERY 2.5f
 // NOTE(zoubir): ground circles are drawn this flat, as seen from above at
 // an angle
 #define BURST_GROUND_SQUASH 0.55f
@@ -71,7 +82,9 @@ struct fx_bursts
     fx_burst Bursts[MAX_FX_BURSTS];
     u32 Count;
     // NOTE(zoubir): seconds since the first draw, for the stun stars' spin
+    // and the shake's wobble
     float Clock;
+    float Trauma;
 };
 
 internal fx_bursts *
@@ -102,6 +115,14 @@ AddBurst(app_state *AppState, sim_burst Kind, v3 Position, float Angle)
         }
         Fx->Count--;
     }
+    world_entity *Local = GetLocalPlayer(AppState);
+    if (Local && BurstLooks[Kind].Shake > 0.f)
+    {
+        float Distance = Length(Position.XY - Local->Position.XY);
+        float Near = 1.f - Clamp01((Distance - SHAKE_NEAR) /
+                                   (SHAKE_FAR - SHAKE_NEAR));
+        Fx->Trauma = Minimum(1.f, Fx->Trauma + Near * BurstLooks[Kind].Shake);
+    }
     fx_burst *Burst = &Fx->Bursts[Fx->Count++];
     Burst->Kind = Kind;
     Burst->Position = Position;
@@ -124,6 +145,7 @@ UpdateFxBursts(app_state *AppState, float DeltaTime)
 {
     fx_bursts *Fx = GetFxBursts(AppState);
     Fx->Clock += DeltaTime;
+    Fx->Trauma = Maximum(0.f, Fx->Trauma - SHAKE_RECOVERY * DeltaTime);
     for(u32 Index = 0; Index < Fx->Count;)
     {
         fx_burst *Burst = &Fx->Bursts[Index];
@@ -312,6 +334,25 @@ DrawStunStars(render_context *RenderContext, world *World, v3 CameraOffset,
                       STUN_STAR_COLOR);
         }
     }
+}
+
+// NOTE(zoubir): how far to move the camera this frame; three unrelated
+// wobbles per axis, so the shake never settles into a pattern
+internal v2
+GetCameraShake(app_state *AppState)
+{
+    v2 Result = {};
+    if (AppState->FxBursts && AppState->FxBursts->Trauma > 0.f)
+    {
+        fx_bursts *Fx = AppState->FxBursts;
+        float T = Fx->Clock;
+        float Amount = SHAKE_MAX_PIXELS * Fx->Trauma * Fx->Trauma;
+        Result.X = Amount * (0.5f * Sin(61.f * T) + 0.3f * Sin(97.f * T + 1.f) +
+                             0.2f * Sin(151.f * T + 2.f));
+        Result.Y = Amount * (0.5f * Sin(67.f * T + 3.f) + 0.3f * Sin(89.f * T) +
+                             0.2f * Sin(139.f * T + 5.f));
+    }
+    return Result;
 }
 
 internal void

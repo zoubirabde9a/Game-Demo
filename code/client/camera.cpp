@@ -43,6 +43,9 @@ UpdateCamera(app_state *AppState, app_window *Window)
                                               Window->Width, Window->Height);
     }
     v3 CameraOffset = AppState->CameraOffset = AppState->TargetCamera;
+    // NOTE(zoubir): hits shake the screen (fx_bursts.cpp); added only to
+    // what is drawn, never to where the camera is heading
+    CameraOffset.XY += GetCameraShake(AppState);
     // NOTE(zoubir): floor, not a cast, so negative positions snap the
     // same way as positive ones
     CameraOffset.X = floorf(CameraOffset.X);
