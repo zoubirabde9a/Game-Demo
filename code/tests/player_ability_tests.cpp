@@ -612,6 +612,80 @@ TestWalkSpeedDoesNotDependOnFrameRate()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): one jump from the ground and one in the air, then none
+// until the player lands; the second goes higher than one jump can
+internal void
+TestDoubleJump()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    player_slot *Slot = &AppState->Players[0];
+    float SinglePeak = 0.f;
+    Slot->Input.Pressed = PlayerButton_Jump;
+    for(u32 Frame = 0; Frame < 40; Frame++)
+    {
+        RunPlayerFrames(&Test, 0, 1);
+        SinglePeak = Maximum(SinglePeak, Player->Position.Z);
+    }
+    Check(SinglePeak > 32.f);
+    Check(Player->Position.Z == 0.f);
+
+    Slot->Input.Pressed = PlayerButton_Jump;
+    RunPlayerFrames(&Test, 0, 12);
+    Slot->Input.Pressed = PlayerButton_Jump;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(Player->JumpsUsed == 2);
+    float DoublePeak = 0.f;
+    for(u32 Frame = 0; Frame < 60; Frame++)
+    {
+        // NOTE(zoubir): a third press in the air does nothing
+        Slot->Input.Pressed = (Frame == 20) ? PlayerButton_Jump : 0;
+        RunPlayerFrames(&Test, 0, 1);
+        DoublePeak = Maximum(DoublePeak, Player->Position.Z);
+        Check(Frame <= 20 || Player->Velocity.Z <= 0.f ||
+              Player->Position.Z == 0.f);
+    }
+    Check(DoublePeak > 60.f);
+    Check(Player->Position.Z == 0.f);
+    Check(Player->JumpsUsed == 0);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): running at a boulder and jumping clears it; running at a
+// wall and double jumping does not
+internal void
+TestJumpOverBoulderButNotWall()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    SetupCollisionVolumes(AppState, &Test.Arena);
+    AppState->PlayerCollision = Test.UnitVolume;
+    entity_collision_volume_group *Boulder =
+        MakeSimpleGroundedCollisionVolume(&Test.Arena, {13.f, 8.f, 14.f});
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0}, Boulder);
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 600, 0},
+                  AppState->WallCollision);
+    world_entity *Jumper = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {330, 300, 0});
+    world_entity *Climber = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                            1, {330, 600, 0});
+    for(u32 SlotIndex = 0; SlotIndex < 2; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        Slot->Input.Move = V2(1.f, 0.f);
+        Slot->Input.Pressed = PlayerButton_Jump;
+        RunPlayerFrames(&Test, SlotIndex, 12);
+        Slot->Input.Pressed = PlayerButton_Jump;
+        RunPlayerFrames(&Test, SlotIndex, 90);
+    }
+    Check(Jumper->Position.X > 450.f);
+    Check(Climber->Position.X + 15.f <= 400.f - 16.f + 0.01f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -653,4 +727,8 @@ RunPlayerAbilityTests()
     TestBlinkPreviewStopsAtWalls();
     printf("TestWalkSpeedDoesNotDependOnFrameRate\n");
     TestWalkSpeedDoesNotDependOnFrameRate();
+    printf("TestDoubleJump\n");
+    TestDoubleJump();
+    printf("TestJumpOverBoulderButNotWall\n");
+    TestJumpOverBoulderButNotWall();
 }

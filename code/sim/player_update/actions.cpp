@@ -39,7 +39,7 @@ QueuePlayerActions(player_slot *Slot, player_tick *Tick)
         Player->AimReach = Minimum(1.f, AimLength);
     }
 
-    Tick->Jumping = Player->Velocity.Z != 0.f;
+    Tick->Jumping = !IsOnGround(Player);
     if (Tick->Jumping)
     {
         Player->State = EntityState_Jumping;

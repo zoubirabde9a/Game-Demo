@@ -54,7 +54,7 @@ MovePlayer(app_state *AppState, world *World, memory_arena *Arena,
     // Drag
     DDPlayer -= (10.f * GetGroundFriction(Player) * Player->Velocity);
     // Gravity
-    DDPlayer.Z = -1000.f;
+    DDPlayer.Z = -PLAYER_GRAVITY;
 
     float MaxDistance = 10000.f;
     MoveEntity(Player, World, Arena, DeltaTime, AppState, DDPlayer, &MaxDistance);

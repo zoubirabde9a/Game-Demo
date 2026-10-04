@@ -12,7 +12,8 @@
    are pressed. Snapshots carry no vertical speed, so each input keeps
    the player's vertical speed after it, and a replay starts from the
    one the server last acknowledged rather than from zero (which pulled
-   a jump down between snapshots). Each recorded input keeps which buttons went down on it,
+   a jump down between snapshots); the jumps spent go the same way, so a
+   replayed double jump is still allowed. Each recorded input keeps which buttons went down on it,
    worked out the same way the server does, and the cooldowns the server
    sends say whether dash and blink are ready; UpdatePlayer counts them
    down as it steps, replays included. Attacks, shockwaves and jumps
@@ -42,8 +43,10 @@ struct predicted_input
     u16 Pressed;
     v2 Aim;
     float DeltaTime;
-    // NOTE(zoubir): the player's vertical speed once this input was applied
+    // NOTE(zoubir): the player's vertical speed and jumps spent once this
+    // input was applied
     float VelocityZAfter;
+    u32 JumpsUsedAfter;
 };
 
 // NOTE(zoubir): a ring of the inputs the server has not acknowledged yet,
@@ -59,8 +62,10 @@ struct prediction_history
     v2 Predicted;
     v2 DrawError;
     u16 LastButtons;
-    // NOTE(zoubir): VelocityZAfter of the newest input the server applied
+    // NOTE(zoubir): VelocityZAfter and JumpsUsedAfter of the newest input
+    // the server applied
     float AckedVelocityZ;
+    u32 AckedJumpsUsed;
 };
 
 // NOTE(zoubir): the server turns held net buttons into a move direction
@@ -111,6 +116,7 @@ DropAcknowledgedInputs(prediction_history *History, u32 InputTick)
            GetPredictedInput(History, 0)->Tick <= InputTick)
     {
         History->AckedVelocityZ = GetPredictedInput(History, 0)->VelocityZAfter;
+        History->AckedJumpsUsed = GetPredictedInput(History, 0)->JumpsUsedAfter;
         History->First = (History->First + 1) % MAX_PREDICTED_INPUTS;
         History->Count--;
     }
@@ -143,6 +149,7 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     UpdatePlayer(Slot, &AppState->World, Arena, Input->DeltaTime, AppState,
                  &AnimationSpeed, &AnimationType, &AnimationDirection);
     Input->VelocityZAfter = Player->Velocity.Z;
+    Input->JumpsUsedAfter = Player->JumpsUsed;
     Player->AnimationType = AnimationType;
     Player->AnimationDirection = AnimationDirection;
     return true;
@@ -177,6 +184,7 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
         if (Player && Player->Position.Z > 0.f)
         {
             Player->Velocity.Z = History->AckedVelocityZ;
+            Player->JumpsUsed = History->AckedJumpsUsed;
         }
         for(u32 Index = 0; Index < History->Count && Moved; Index++)
         {

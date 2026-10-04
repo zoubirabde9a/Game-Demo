@@ -21,3 +21,5 @@
     float FireBallCooldown;
     // NOTE(zoubir): seconds until the next sword swing may start
     float SwingCooldown;
+    // NOTE(zoubir): jumps since the player last stood on something
+    u32 JumpsUsed;

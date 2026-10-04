@@ -24,7 +24,7 @@ global_variable controls_row ControlsRows[] =
     {"Mouse",       "Aim; you face the cursor"},
     {"Left click",  "Fireball"},
     {"Right click", "Sword: a wide slice that shoves"},
-    {"Space",       "Jump over hazard patches"},
+    {"Space",       "Jump, again in the air; clears rocks"},
     {"Alt",         "Dash; dashing through an attack dodges it"},
     {"E",           "Shockwave around you"},
     {"F",           "Blink to the cursor"},
