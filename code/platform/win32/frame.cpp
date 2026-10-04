@@ -18,7 +18,7 @@ Win32ReloadAppCodeIfChanged(win32_app_code *appCode, char *dllPath,
 // NOTE(zoubir): keyboard controller buttons stay down from the last frame
 // unless a message says otherwise
 internal void
-Win32ReadMessages(win32_state *state, app_input *OldInput, app_input *NewInput)
+Win32CarryKeyboardController(app_input *OldInput, app_input *NewInput)
 {
     app_controller_input *newKeyboardController = GetController(NewInput, 0);
     app_controller_input *oldKeyboardController = GetController(OldInput, 0);
@@ -30,16 +30,23 @@ Win32ReadMessages(win32_state *state, app_input *OldInput, app_input *NewInput)
         newKeyboardController->buttons[buttonIndex].EndedDown =
             oldKeyboardController->buttons[buttonIndex].EndedDown;
     }
+}
+
+internal void
+Win32ReadMessages(win32_state *state, app_input *OldInput, app_input *NewInput)
+{
+    Win32CarryKeyboardController(OldInput, NewInput);
     Win32MessageLoop(state,
-                     oldKeyboardController,
-                     newKeyboardController);
+                     GetController(OldInput, 0),
+                     GetController(NewInput, 0));
 }
 
 // NOTE(zoubir): mouse position and buttons, then every key the game reads.
-// F1 toggles fullscreen here.
+// F1 and F11 toggle fullscreen here (Alt+Enter in Win32MessageLoop). The
+// mouse is in the game's 96-DPI pixels: screen pixels divided by Scale.
 internal void
 Win32PollKeyboardAndMouse(HWND windowHandle, app_input *OldInput,
-                          app_input *NewInput)
+                          app_input *NewInput, float Scale)
 {
     POINT mouseP;
     GetCursorPos(&mouseP);
@@ -51,8 +58,8 @@ Win32PollKeyboardAndMouse(HWND windowHandle, app_input *OldInput,
                            mouseP.x < clientRect.right &&
                            mouseP.y >= clientRect.top &&
                            mouseP.y < clientRect.bottom);
-    NewInput->MouseX = mouseP.x;
-    NewInput->MouseY = mouseP.y;
+    NewInput->MouseX = (i32)floorf((float)mouseP.x / Scale);
+    NewInput->MouseY = (i32)floorf((float)mouseP.y / Scale);
     NewInput->MouseZ = 0;
 
     Win32ProcessKeyboardMessage(&OldInput->mouseButtons[0],
@@ -120,7 +127,7 @@ Win32PollKeyboardAndMouse(HWND windowHandle, app_input *OldInput,
                                     Win32KeyDown(VK_F1 + FButtonIndex));
     };
 
-    if (NewInput->ButtonF1.Pressed)
+    if (NewInput->ButtonF1.Pressed || NewInput->ButtonF11.Pressed)
     {
         ToggleFullscreen(windowHandle);
     }

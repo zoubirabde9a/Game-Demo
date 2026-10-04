@@ -10,7 +10,12 @@
    the left and right mouse buttons, Alt, or F4 (which closes the Play
    screen offline shots open on). M:X,Y puts the mouse at X,Y in the window.
    "2:F4 5-90:D 40:A M:900,400" closes the Play screen, walks right,
-   launches at frame 40 and aims to the right of the middle. */
+   launches at frame 40 and aims to the right of the middle.
+
+   GAME_WINDOW=1920x1080 (or =fullscreen) opens the game at that size, so
+   a shot can check a layout at a resolution this monitor does not have
+   (window.cpp). The PNG is in screen pixels: on a monitor at 150% it is
+   1.5 times the size asked for. */
 
 #pragma warning(push, 0)
 #define STB_IMAGE_WRITE_IMPLEMENTATION

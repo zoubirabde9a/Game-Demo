@@ -29,10 +29,13 @@ Win32InitTimer()
     return sleepIsGranular;
 }
 
-// NOTE(zoubir): returns 0 when the window could not be made
+// NOTE(zoubir): returns 0 when the window could not be made. The drawing
+// area starts at 1280x720 96-DPI pixels, shrunk to fit a small screen.
 internal HWND
 Win32CreateMainWindow(HINSTANCE instance)
 {
+    Win32BecomeDpiAware();
+
     WNDCLASSA WindowClass = {};
 
     WindowClass.style =  CS_HREDRAW | CS_VREDRAW;
@@ -50,15 +53,21 @@ Win32CreateMainWindow(HINSTANCE instance)
         CreateWindowEx(0,
                        WindowClass.lpszClassName,
                        "Zoubir",
-                       WS_OVERLAPPEDWINDOW|WS_VISIBLE,
+                       WS_OVERLAPPEDWINDOW,
                        CW_USEDEFAULT,
                        CW_USEDEFAULT,
-                       1280,
-                       720,
+                       WIN32_DEFAULT_CLIENT_WIDTH,
+                       WIN32_DEFAULT_CLIENT_HEIGHT,
                        0,
                        0,
                        instance,
                        0);
+    if (windowHandle)
+    {
+        Win32SizeWindowClient(windowHandle, WIN32_DEFAULT_CLIENT_WIDTH,
+                              WIN32_DEFAULT_CLIENT_HEIGHT);
+        ShowWindow(windowHandle, SW_SHOW);
+    }
     return windowHandle;
 }
 
@@ -136,7 +145,9 @@ Win32AllocateAppMemory(win32_state *state, app_memory *appMemory,
 #endif
     appMemory->WorkQueue = WorkQueue;
     appMemory->PermanentStorageSize = Megabytes(64);
-    appMemory->TransientStorageSize = Megabytes(8);
+    // NOTE(zoubir): the transient block holds each frame's vertices; the
+    // world pass alone takes about 15 MB on a 4K drawing area
+    appMemory->TransientStorageSize = Megabytes(64);
     Win32FillPlatformApi(&appMemory->PlatformApi);
 
     state->appMemorySize = appMemory->PermanentStorageSize +

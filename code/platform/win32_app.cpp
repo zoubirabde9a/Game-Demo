@@ -25,6 +25,65 @@
 #include "win32/frame.cpp"
 #include "win32/screenshot.cpp"
 
+// NOTE(zoubir): one game frame: messages (unless the window procedure is
+// already handling them), input, the game, sound, waiting out the frame,
+// and presenting it
+internal void
+Win32RunFrame(win32_frame_loop *loop, bool32 readMessages)
+{
+    Win32ReloadAppCodeIfChanged(&loop->appCode, loop->dllPath,
+                                loop->tempDLLPath);
+    if (readMessages)
+    {
+        u32 framesBefore = loop->framesRunFromTimer;
+        Win32ReadMessages(loop->state, loop->OldInput, loop->NewInput);
+        if (!Running || loop->framesRunFromTimer != framesBefore)
+        {
+            // NOTE(zoubir): a drag or resize just ended and its frames ran
+            // from the timer; start the next frame fresh
+            return;
+        }
+    }
+    else
+    {
+        Win32CarryKeyboardController(loop->OldInput, loop->NewInput);
+    }
+
+    win32_drawable drawable =
+        Win32DrawableDimension(loop->windowHandle, &loop->lastDimensions);
+    app_input *NewInput = loop->NewInput;
+    NewInput->DeltaTime = loop->targetSecondsPerFrame;
+    Win32PollKeyboardAndMouse(loop->windowHandle, loop->OldInput, NewInput,
+                              drawable.Scale);
+    Win32PollGamepads(loop->OldInput, NewInput);
+    Win32RecordOrPlayBackInput(loop->state, NewInput);
+    Win32ApplyScriptedKeys(loop->screenshot, NewInput);
+
+    app_window AppWindow;
+    AppWindow.Width = drawable.Game.Width;
+    AppWindow.Height = drawable.Game.Height;
+    Win32SetViewport(drawable.Pixels);
+    loop->appCode.updateAndRender(loop->thread, loop->appMemory, NewInput,
+                                  &AppWindow);
+    Win32WriteFrameSound(loop->soundOutput, &loop->soundIsValid, loop->Samples,
+                         loop->flipWallClock, loop->targetSecondsPerFrame,
+                         loop->appUpdateHz, &loop->appCode, loop->thread,
+                         loop->appMemory);
+
+    Win32WaitForFrameEnd(&loop->lastCounter, loop->targetSecondsPerFrame,
+                         loop->sleepIsGranular);
+    if (Win32SaveScreenshotIfDue(loop->screenshot, drawable.Pixels.Width,
+                                 drawable.Pixels.Height))
+    {
+        Running = false;
+    }
+    Win32PresentFrame(loop->windowHandle);
+    loop->flipWallClock = Win32GetWallClock();
+
+    loop->NewInput = loop->OldInput;
+    loop->OldInput = NewInput;
+}
+
 // NOTE(zoubir): starts the window, OpenGL, sound and the game's memory,
 // then runs one game frame per loop at a fixed rate until the window closes
 int CALLBACK
@@ -56,7 +115,6 @@ WinMain(HINSTANCE instance,
     float targetSecondsPerFrame = 1.f / (float)appUpdateHz;
 
     win32_sound_output soundOutput = Win32StartSound(windowHandle, appUpdateHz);
-    bool32 soundIsValid = false;
     Running = true;
 
     i16 *Samples = Win32AllocateSoundSamples(&soundOutput);
@@ -69,56 +127,38 @@ WinMain(HINSTANCE instance,
         return 0;
     }
 
-    app_input input[2] = {};
-    app_input *OldInput = &input[0];
-    app_input *NewInput = &input[1];
-
-    win32_app_code appCode = Win32LoadAppCode(appCodeDLLFullPath,
-                                              appCodeTempDLLFullPath);
-
     win32_screenshot screenshot;
     Win32InitScreenshot(&screenshot);
 
-    LARGE_INTEGER lastCounter = Win32GetWallClock();
-    LARGE_INTEGER flipWallClock = Win32GetWallClock();
+    app_input input[2] = {};
+    win32_frame_loop loop = {};
+    loop.state = &state;
+    loop.windowHandle = windowHandle;
+    loop.thread = &thread;
+    loop.appMemory = &appMemory;
+    loop.dllPath = appCodeDLLFullPath;
+    loop.tempDLLPath = appCodeTempDLLFullPath;
+    loop.appCode = Win32LoadAppCode(appCodeDLLFullPath, appCodeTempDLLFullPath);
+    loop.OldInput = &input[0];
+    loop.NewInput = &input[1];
+    loop.soundOutput = &soundOutput;
+    loop.Samples = Samples;
+    loop.appUpdateHz = appUpdateHz;
+    loop.targetSecondsPerFrame = targetSecondsPerFrame;
+    loop.sleepIsGranular = sleepIsGranular;
+    loop.screenshot = &screenshot;
+    loop.lastDimensions = GetWindowDimension(windowHandle);
+    loop.lastCounter = Win32GetWallClock();
+    loop.flipWallClock = Win32GetWallClock();
+    GlobalFrameLoop = &loop;
+
+    Win32ApplyStartupWindowMode(windowHandle);
+
     while(Running)
     {
-        win32_window_dimensions WindowDimensions = GetWindowDimension(windowHandle);
-        Win32ReloadAppCodeIfChanged(&appCode, appCodeDLLFullPath,
-                                    appCodeTempDLLFullPath);
-        Win32ReadMessages(&state, OldInput, NewInput);
-        if (GlobalPause)
-        {
-            continue;
-        }
-
-        NewInput->DeltaTime = targetSecondsPerFrame;
-        Win32PollKeyboardAndMouse(windowHandle, OldInput, NewInput);
-        Win32PollGamepads(OldInput, NewInput);
-        Win32RecordOrPlayBackInput(&state, NewInput);
-        Win32ApplyScriptedKeys(&screenshot, NewInput);
-
-        app_window AppWindow;
-        AppWindow.Width = WindowDimensions.Width;
-        AppWindow.Height = WindowDimensions.Height;
-        appCode.updateAndRender(&thread, &appMemory, NewInput, &AppWindow);
-        Win32WriteFrameSound(&soundOutput, &soundIsValid, Samples, flipWallClock,
-                             targetSecondsPerFrame, appUpdateHz,
-                             &appCode, &thread, &appMemory);
-
-        Win32WaitForFrameEnd(&lastCounter, targetSecondsPerFrame, sleepIsGranular);
-        if (Win32SaveScreenshotIfDue(&screenshot, WindowDimensions.Width,
-                                     WindowDimensions.Height))
-        {
-            Running = false;
-        }
-        Win32PresentFrame(windowHandle);
-        flipWallClock = Win32GetWallClock();
-
-        app_input *tmp = OldInput;
-        OldInput = NewInput;
-        NewInput = tmp;
+        Win32RunFrame(&loop, true);
     }
 
+    GlobalFrameLoop = 0;
     return 0;
 }

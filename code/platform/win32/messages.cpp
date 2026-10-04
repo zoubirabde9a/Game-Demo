@@ -166,6 +166,13 @@ Win32MessageLoop(win32_state *state,
                 {
                     Running = false;
                 }
+                // NOTE(zoubir): Alt+Enter, the usual fullscreen key; on the
+                // first press only, not on key repeat
+                if (vKCode == VK_RETURN && altKeyDown &&
+                    message.message == WM_SYSKEYDOWN && !wasDown)
+                {
+                    ToggleFullscreen(message.hwnd);
+                }
                 break;
             }
             default:

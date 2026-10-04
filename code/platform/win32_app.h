@@ -55,5 +55,44 @@ struct win32_state
     char *executableFileName;
 };
 
+struct win32_screenshot;
+
+// NOTE(zoubir): everything one frame needs. WinMain runs frames from its
+// loop, and the window procedure runs them from a timer while Windows holds
+// the thread in its own loop (dragging or resizing the window), so the game
+// keeps drawing, ticking and filling the sound buffer during a drag.
+struct win32_frame_loop
+{
+    win32_state *state;
+    HWND windowHandle;
+    thread_context *thread;
+    app_memory *appMemory;
+    win32_app_code appCode;
+    char *dllPath;
+    char *tempDLLPath;
+
+    app_input *OldInput;
+    app_input *NewInput;
+
+    win32_sound_output *soundOutput;
+    bool32 soundIsValid;
+    i16 *Samples;
+    int appUpdateHz;
+    float targetSecondsPerFrame;
+    bool32 sleepIsGranular;
+    LARGE_INTEGER lastCounter;
+    LARGE_INTEGER flipWallClock;
+
+    win32_screenshot *screenshot;
+
+    // NOTE(zoubir): the last size with something to draw on; a minimised
+    // window reports 0 by 0 and the game keeps the size it had
+    win32_window_dimensions lastDimensions;
+    // NOTE(zoubir): set while Windows runs its size/move loop; frames then
+    // come from WM_TIMER
+    bool32 inSizeMove;
+    u32 framesRunFromTimer;
+};
+
 #define WIN32_APP_H
 #endif
