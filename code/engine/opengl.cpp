@@ -4,122 +4,65 @@
    $Revision: $
    $Creator: zoubir $
    ======================================================================== */
+// NOTE(zoubir): compiles one stage from Count source strings (a prelude
+// and the file); false with the driver's message in Error when it fails
 internal bool32
-CompileShader(open_gl *OpenGL,
-              memory_arena *Arena,
-              void* source, size_t size, char* name, u32 id)
+CompileShader(open_gl *OpenGL, u32 ShaderID, u32 Count, char **Sources,
+              i32 *Sizes, char *Error, u32 ErrorSize)
 {
-
-    GLint sizeGL = (GLint)size;
-    GLchar *sourceGL = (GLchar *)source;
-    //tell opengl that we want to use fileContents as the contents of the shader file
-    OpenGL->glShaderSource(id, 1, &sourceGL, &sizeGL);
-    //compile the shader
-    OpenGL->glCompileShader(id);
-    //check for errors
-    i32 success = 0;
-    OpenGL->glGetShaderiv(id, GL_COMPILE_STATUS, &success);
-
-    if (success == GL_FALSE)
+    OpenGL->glShaderSource(ShaderID, (GLsizei)Count, (GLchar **)Sources, Sizes);
+    OpenGL->glCompileShader(ShaderID);
+    i32 Success = 0;
+    OpenGL->glGetShaderiv(ShaderID, GL_COMPILE_STATUS, &Success);
+    if (Success == GL_FALSE)
     {
-        i32 maxLength = 0;
-        OpenGL->glGetShaderiv(id, GL_INFO_LOG_LENGTH, &maxLength);
-
-        //The maxLength includes the NULL character
-        temporary_memory TempMem = BeginTemporaryMemory(Arena);
-        char* errorLog = AllocateArray(Arena, (u32)maxLength, char);
-        OpenGL->glGetShaderInfoLog(id, maxLength, &maxLength, errorLog);
-
-        
-        //TODO(zoubir): Add logging
-        EndTemporaryMemory(TempMem);
-        Assert(0);
-
-        OpenGL->glDeleteShader(id); //Don't leak the shader.
+        GLsizei Length = 0;
+        OpenGL->glGetShaderInfoLog(ShaderID, (GLsizei)ErrorSize, &Length, Error);
     }
-    return success == GL_FALSE;
+    return Success != GL_FALSE;
 }
 
-internal void
-InitProgram(open_gl *OpenGL, memory_arena *Arena,
-            render_program *Program, char *VertexShaderFileName,
-            char *FragmentShaderFileName, char **Attributes, u32 NumAttrib)
+// NOTE(zoubir): a linked program from vertex and fragment sources (each
+// Count strings), the attributes bound to locations 0, 1, 2 in order.
+// Returns 0, with the reason in Error, when either stage or the link fails
+internal u32
+BuildProgram(open_gl *OpenGL, u32 Count, char **VertexSources, i32 *VertexSizes,
+             char **FragmentSources, i32 *FragmentSizes,
+             char **Attributes, u32 AttributeCount,
+             char *Error, u32 ErrorSize)
 {
-    Program->ID = OpenGL->glCreateProgram();
-    u32 VertexShaderID =
-        OpenGL->glCreateShader(GL_VERTEX_SHADER);
-    if (VertexShaderID == 0) {
-        // Error Creating VertexShader
-        // TODO(zoubir): Add Logging
-        Assert(0);
-    }
-
-    u32 FragmentShaderID =
-        OpenGL->glCreateShader(GL_FRAGMENT_SHADER);
-    if (FragmentShaderID == 0) {
-        // Error Creating FragmentShader
-        // TODO(zoubir): Add Logging
-        Assert(0);
-    }
-    debug_read_file_result VertexFileResult =
-        Platform.ReadEntireFile(VertexShaderFileName);
-    Assert(VertexFileResult.Memory);
-    debug_read_file_result FragmentFileResult =
-        Platform.ReadEntireFile(FragmentShaderFileName);
-    Assert(FragmentFileResult.Memory);
-
-    // Compile Shaders
-    CompileShader(OpenGL, Arena, VertexFileResult.Memory,
-                  VertexFileResult.Size, "Vertex Shader", VertexShaderID);
-    CompileShader(OpenGL, Arena, FragmentFileResult.Memory,
-                  FragmentFileResult.Size, "Fragment Shader", FragmentShaderID);
-
-    
-    Program->NumAttrib = NumAttrib;
-    for(u32 CurrentAttribute = 0;
-        CurrentAttribute < NumAttrib;
-        CurrentAttribute++)
+    Error[0] = 0;
+    u32 Vertex = OpenGL->glCreateShader(GL_VERTEX_SHADER);
+    u32 Fragment = OpenGL->glCreateShader(GL_FRAGMENT_SHADER);
+    u32 Program = 0;
+    if (CompileShader(OpenGL, Vertex, Count, VertexSources, VertexSizes,
+                      Error, ErrorSize) &&
+        CompileShader(OpenGL, Fragment, Count, FragmentSources, FragmentSizes,
+                      Error, ErrorSize))
     {
-        OpenGL->glBindAttribLocation(Program->ID, CurrentAttribute,
-                             Attributes[CurrentAttribute]);
+        Program = OpenGL->glCreateProgram();
+        for(u32 Index = 0; Index < AttributeCount; Index++)
+        {
+            OpenGL->glBindAttribLocation(Program, Index, Attributes[Index]);
+        }
+        OpenGL->glAttachShader(Program, Vertex);
+        OpenGL->glAttachShader(Program, Fragment);
+        OpenGL->glLinkProgram(Program);
+        i32 Linked = 0;
+        OpenGL->glGetProgramiv(Program, GL_LINK_STATUS, &Linked);
+        OpenGL->glDetachShader(Program, Vertex);
+        OpenGL->glDetachShader(Program, Fragment);
+        if (Linked == GL_FALSE)
+        {
+            GLsizei Length = 0;
+            OpenGL->glGetProgramInfoLog(Program, (GLsizei)ErrorSize, &Length, Error);
+            OpenGL->glDeleteProgram(Program);
+            Program = 0;
+        }
     }
-
-    //Attach shaders to program
-    OpenGL->glAttachShader(Program->ID, VertexShaderID);
-    OpenGL->glAttachShader(Program->ID, FragmentShaderID);
-        
-    //Link program
-    OpenGL->glLinkProgram(Program->ID);
-        
-    //Note the different functions here: glGetProgram* instead of glGetShader*.
-    int isLinked = 0;
-    OpenGL->glGetProgramiv(Program->ID, GL_LINK_STATUS, (int *)&isLinked);
-    if (isLinked == GL_FALSE)
-    {
-        int32_t maxLength = 0;
-        OpenGL->glGetProgramiv(Program->ID, GL_INFO_LOG_LENGTH, &maxLength);
-
-        //The maxLength includes the NULL character
-        temporary_memory TempMem = BeginTemporaryMemory(Arena);
-        char* errorLog =
-            AllocateArray(Arena, (u32)maxLength, char);
-        OpenGL->glGetProgramInfoLog(Program->ID, maxLength, &maxLength, errorLog);
-
-        // TODO(zoubir): Add Logging
-        EndTemporaryMemory(TempMem);
-        Assert(0);
-        //We don't need the program anymore.
-        OpenGL->glDeleteProgram(Program->ID);
-        //Don't leak shaders either.
-        OpenGL->glDeleteShader(VertexShaderID);
-        OpenGL->glDeleteShader(FragmentShaderID);
-    }
-
-    //Always detach shaders after a successful link.
-    OpenGL->glDetachShader(Program->ID, VertexShaderID);
-    OpenGL->glDetachShader(Program->ID, FragmentShaderID);
-    OpenGL->glDeleteShader(VertexShaderID);
-    OpenGL->glDeleteShader(FragmentShaderID);
+    OpenGL->glDeleteShader(Vertex);
+    OpenGL->glDeleteShader(Fragment);
+    return Program;
 }
 
 internal void
@@ -129,31 +72,10 @@ AppInitOpenGL(memory_arena *TransientArena, app_state *AppState,
     render_context* RenderContext = &Thread->RenderContext;
     open_gl *OpenGL = RenderContext->OpenGL;
 
-    render_program *TextureProgram = &RenderContext->TextureProgram;
-    render_program *LineProgram = &RenderContext->LineProgram;
     OpenGL->glEnable(GL_BLEND);
     OpenGL->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
-    char *TextureProgramAttributes[] =
-    {
-        "vertexPosition",
-        "vertexColor",
-        "vertexUV",
-    };
-    char *LineProgramAttributes[] =
-    {
-        "vertexPosition",
-        "vertexColor"
-    };
-    
-    InitProgram(OpenGL, TransientArena, TextureProgram,
-                "shaders/texture_shading.vert", "shaders/texture_shading.frag",
-                TextureProgramAttributes,
-                ArrayCount(TextureProgramAttributes));
-    InitProgram(OpenGL, TransientArena, LineProgram,
-                "shaders/line_shading.vert", "shaders/line_shading.frag",
-                LineProgramAttributes,
-                ArrayCount(LineProgramAttributes));
+
+    LoadShaderLibrary(RenderContext);
 
     OpenGL->glGenVertexArrays(1, &RenderContext->VAO);
 

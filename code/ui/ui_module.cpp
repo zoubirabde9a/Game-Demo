@@ -14,3 +14,4 @@
 #include "connect_screen.cpp"
 #include "minimap.cpp"
 #include "controls_panel.cpp"
+#include "shader_errors.cpp"

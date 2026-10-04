@@ -51,8 +51,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     // Screen: pixel coordinates, origin top left.
     mat4 ProjectionMatrix = OrthoMatrix(0.f, (float)Window->Width,
                                         (float)Window->Height, 0.f, 0.f, 100000.f);
-    RenderContext->TextureProgram.ProjectionMatrix = &ProjectionMatrix;
-    RenderContext->LineProgram.ProjectionMatrix = &ProjectionMatrix;
+    RenderBeginFrame(RenderContext, &ProjectionMatrix, Input->DeltaTime);
     OpenGL->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     OpenGL->glClearColor(1.0f, 0.5f, 0.5f, 1.0f);
 

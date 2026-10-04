@@ -19,3 +19,4 @@ DrawRespawnCountdown(RenderContext, AppState, Window->Width, Window->Height);
 if (Input->TabButton.EndedDown) DrawScoreboard(RenderContext, AppState, Window->Width, Window->Height);
 DoTileEditor(RenderContext, AppState, UIContext, Input, Window, TextureProgram, CameraOffset);
 DoConnectScreen(RenderContext, AppState, UIContext, Input, Window->Width, Window->Height);
+DrawShaderErrors(RenderContext, AppState, Window->Width);

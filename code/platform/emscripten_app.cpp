@@ -186,6 +186,8 @@ WebLoadOpenglFunctions(open_gl *OpenGL)
     GetOpenglFunction(glGetProgramInfoLog);
     GetOpenglFunction(glDeleteProgram);
     GetOpenglFunction(glDetachShader);    
+    GetOpenglFunction(glUniform1f);
+    GetOpenglFunction(glUniform2f);
 }
 
 internal app_button_state *

@@ -14,4 +14,5 @@
 #include "render.cpp"
 #include "ui.cpp"
 #include "opengl.cpp"
+#include "shader_library.cpp"
 #include "audio.cpp"

@@ -72,6 +72,31 @@ struct render_program
     u32 ID;
     u32 NumAttrib;
     mat4 *ProjectionMatrix;
+    // NOTE(zoubir): uniform locations, -1 when the shader has none
+    i32 ProjectionLocation;
+    i32 TimeLocation;
+};
+
+// NOTE(zoubir): every shader program the game draws with, one row each in
+// ShaderDefs (engine/render/shader_library.cpp), which says where its
+// files are. A new effect is a row there, a line here and its .frag file
+enum shader_id
+{
+    Shader_Texture,
+    Shader_Line,
+    Shader_SlotFrame,     // ability slot: rounded frame, ready glow and sheen
+    Shader_CooldownSweep, // ability slot: the dark clock sweep over the icon
+    Shader_Glow,          // soft round light, usually drawn additive
+    Shader_Ring,          // thin bright ring, usually drawn additive
+    Shader_Panel,         // rounded translucent panel with a lit top edge
+    Shader_Count
+};
+
+// NOTE(zoubir): how a batch mixes with what is under it
+enum render_blend
+{
+    RenderBlend_Alpha,    // ordinary see-through
+    RenderBlend_Additive, // adds light: glows, flashes, sparks
 };
 
 struct render_batch
@@ -82,6 +107,7 @@ struct render_batch
     float SortingValue;
     render_program Program;
     u32 Type;
+    u32 Blend; // render_blend
 };
 
 enum render_order_type
@@ -108,6 +134,11 @@ struct render_context
     struct memory_arena *Arena;
     render_program TextureProgram;
     render_program LineProgram;
+    // NOTE(zoubir): all programs by shader_id; TextureProgram and
+    // LineProgram are copies of the first two
+    render_program Programs[Shader_Count];
+    // NOTE(zoubir): seconds since the game started, the Time uniform
+    float Time;
     
     render_vertex *AllocatedVerticies;
     u32 AllocatedVertexCount;
@@ -140,7 +171,12 @@ struct render_context
     // for performance only
     bool32 AProgramIsUsed;
     u32 LastUsedProgramID;
+    u32 CurrentBlend;
 };
+
+// NOTE(zoubir): engine/shader_library.cpp
+internal void LoadShaderLibrary(render_context *RenderContext);
+internal void UpdateShaderLibrary(render_context *RenderContext, float DeltaTime);
 
 #define RENDER_H
 #endif

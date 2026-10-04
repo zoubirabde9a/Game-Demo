@@ -18,3 +18,4 @@
 #include "render/flush.cpp"
 #include "render/shapes.cpp"
 #include "render/text.cpp"
+#include "render/textures.cpp"

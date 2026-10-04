@@ -33,3 +33,13 @@
 // NOTE(zoubir): tall enough that descenders (g, y) in the body font are
 // not clipped inside an edit box or button
 #define UI_ROW_HEIGHT 40.f
+
+// NOTE(zoubir): Color with its alpha replaced by Alpha (0..1); shaders
+// that read the alpha as a parameter take it this way too
+inline u32
+WithAlpha(u32 Color, float Alpha)
+{
+    float Clamped = Alpha < 0.f ? 0.f : (Alpha > 1.f ? 1.f : Alpha);
+    u32 Result = (Color & 0x00FFFFFF) | ((u32)(Clamped * 255.f + 0.5f) << 24);
+    return Result;
+}

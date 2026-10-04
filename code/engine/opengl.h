@@ -25,6 +25,9 @@ typedef char GLchar;
 typedef ptrdiff_t GLsizeiptr;
 typedef ptrdiff_t GLintptr;
 
+#ifndef GL_ONE
+#define GL_ONE                            1
+#endif
 #ifndef GL_VERSION
 #define GL_VERSION                        7938
 #define GL_SRC_ALPHA                      770
@@ -116,6 +119,10 @@ typedef void type_glGetShaderInfoLog(GLuint Shader,
 typedef void type_glDeleteShader(GLuint Shader);
 typedef void type_glUniform1i(GLint Location,
                               GLint V0);
+typedef void type_glUniform1f(GLint Location,
+                              GLfloat V0);
+typedef void type_glUniform2f(GLint Location,
+                              GLfloat V0, GLfloat V1);
 
 typedef GLuint type_glCreateShader(GLenum ShaderType);
 typedef void type_glBindAttribLocation(GLuint Program,
@@ -211,6 +218,8 @@ struct open_gl
     OpenGLFunction(glGetProgramInfoLog);
     OpenGLFunction(glDeleteProgram);
     OpenGLFunction(glDetachShader);
+    OpenGLFunction(glUniform1f);
+    OpenGLFunction(glUniform2f);
 
 };
 #endif

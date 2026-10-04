@@ -176,6 +176,7 @@ DrawRectangle(render_context *RenderContext, float X, float Y,
         NewBatch->SortingValue = SortingValue;
         NewBatch->Program = RenderContext->LineProgram;
         NewBatch->Type = RENDER_BATCH_TYPE_RECTANGLE;
+        NewBatch->Blend = RenderBlend_Alpha;
         RenderVertex(RenderContext, X, Y, Depth, Color);
         RenderVertex(RenderContext, X + Width, Y, Depth, Color);
         RenderVertex(RenderContext, X + Width, Y + Height, Depth, Color);
@@ -216,6 +217,7 @@ DrawRectangle3D(render_context *RenderContext, float X, float Y,
         NewBatch->SortingValue = SortingValue;
         NewBatch->Program = RenderContext->LineProgram;
         NewBatch->Type = RENDER_BATCH_TYPE_RECTANGLE;
+        NewBatch->Blend = RenderBlend_Alpha;
         
         RenderVertex(RenderContext, X, Y, 0.f, Color);
         RenderVertex(RenderContext, X + Width, Y, 0.f, Color);
@@ -267,6 +269,7 @@ BeginBatch(render_context *RenderContext, u32 Texture, float SortingValue,
     NewBatch->VertexCount = 0;
     NewBatch->Program = Program;
     NewBatch->Type = RENDER_BATCH_TYPE_TEXTURE;
+    NewBatch->Blend = RenderBlend_Alpha;
 }
 
 inline void
@@ -275,4 +278,34 @@ EndBatch(render_context *RenderContext)
     Assert(RenderContext->RendererType == RENDERER_TYPE_BATCH);
     RenderContext->BatchOpen = false;
     RenderContext->BatchCount++;
+}
+
+// NOTE(zoubir): one quad drawn with a library shader (shader_id). The
+// shader gets UV 0,0 at the top left to 1,1 at the bottom right, Color as
+// the vertex colour (each effect says what its channels mean) and Texture
+// bound, for the effects that sample one (0 for none)
+internal void
+DrawShaderQuad(render_context *RenderContext, u32 Shader, float X, float Y,
+               float Width, float Height, u32 Color,
+               u32 Blend = RenderBlend_Alpha, u32 Texture = 0)
+{
+    Assert(Shader < Shader_Count);
+    BeginBatch(RenderContext, Texture, 0.f, RenderContext->Programs[Shader]);
+    RenderContext->AllocatedBatches[RenderContext->BatchCount].Blend = Blend;
+    RenderQuadTexture(RenderContext, X, Y, Width, Height, V4(0.f, 1.f, 1.f, 0.f),
+                      Color, 0.f);
+    EndBatch(RenderContext);
+}
+
+// NOTE(zoubir): a textured quad in its own batch, for a single sprite or
+// icon drawn over the UI; Uvs as RenderQuadTexture takes them
+internal void
+DrawTexturedQuad(render_context *RenderContext, u32 Texture, float X, float Y,
+                 float Width, float Height, v4 Uvs, u32 Color,
+                 u32 Blend = RenderBlend_Alpha)
+{
+    BeginBatch(RenderContext, Texture, 0.f, RenderContext->TextureProgram);
+    RenderContext->AllocatedBatches[RenderContext->BatchCount].Blend = Blend;
+    RenderQuadTexture(RenderContext, X, Y, Width, Height, Uvs, Color, 0.f);
+    EndBatch(RenderContext);
 }

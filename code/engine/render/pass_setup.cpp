@@ -18,13 +18,37 @@ RenderProgramUse(render_context *RenderContext,
             OpenGL->glEnableVertexAttribArray(AttribIndex);
         }
         
-        i32 MatrixLocation = OpenGL->glGetUniformLocation(Program->ID, "P");
-        OpenGL->glUniformMatrix4fv(MatrixLocation, 1, GL_FALSE, Program->ProjectionMatrix->Data);
+        if (Program->ProjectionLocation >= 0 && Program->ProjectionMatrix)
+        {
+            OpenGL->glUniformMatrix4fv(Program->ProjectionLocation, 1, GL_FALSE,
+                                       Program->ProjectionMatrix->Data);
+        }
+        if (Program->TimeLocation >= 0)
+        {
+            OpenGL->glUniform1f(Program->TimeLocation, RenderContext->Time);
+        }
         
         RenderContext->AProgramIsUsed = true;
         RenderContext->LastUsedProgramID = Program->ID;
     }
         
+}
+
+// NOTE(zoubir): once at the top of each frame: every program draws with
+// Projection, the clock moves on, and uniforms are sent again on first use
+// (so a resized window gets its new projection)
+internal void
+RenderBeginFrame(render_context *RenderContext, mat4 *Projection, float DeltaTime)
+{
+    RenderContext->Time += DeltaTime;
+    UpdateShaderLibrary(RenderContext, DeltaTime);
+    RenderContext->AProgramIsUsed = false;
+    for(u32 Index = 0; Index < Shader_Count; Index++)
+    {
+        RenderContext->Programs[Index].ProjectionMatrix = Projection;
+    }
+    RenderContext->TextureProgram.ProjectionMatrix = Projection;
+    RenderContext->LineProgram.ProjectionMatrix = Projection;
 }
 
 inline void

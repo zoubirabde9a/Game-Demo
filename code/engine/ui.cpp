@@ -14,6 +14,7 @@
 #include "ui/context.cpp"
 #include "ui/fonts.cpp"
 #include "ui/text.cpp"
+#include "ui/panel.cpp"
 
 internal void
 UIBegin(render_context *RenderContext,

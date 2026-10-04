@@ -152,6 +152,13 @@ RenderFlush(render_context *RenderContext)
                 render_program *Program = &CurrentBatch->Program;
 
                 RenderProgramUse(RenderContext, Program);
+                if (CurrentBatch->Blend != RenderContext->CurrentBlend)
+                {
+                    RenderContext->CurrentBlend = CurrentBatch->Blend;
+                    OpenGL->glBlendFunc(GL_SRC_ALPHA,
+                                        CurrentBatch->Blend == RenderBlend_Additive ?
+                                        GL_ONE : GL_ONE_MINUS_SRC_ALPHA);
+                }
                 
                 switch(CurrentBatch->Type)
                 {
@@ -174,6 +181,11 @@ RenderFlush(render_context *RenderContext)
                 }
             }            
 #endif
+            if (RenderContext->CurrentBlend != RenderBlend_Alpha)
+            {
+                RenderContext->CurrentBlend = RenderBlend_Alpha;
+                OpenGL->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            }
         }
     };
 
