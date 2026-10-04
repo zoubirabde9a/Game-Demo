@@ -1,6 +1,7 @@
 /* Moving an entity: MoveEntity sweeps it through the world for one tick,
-   sliding along walls, applying hits and overlaps, and refreshing the
-   ground height under it. Its steps are the functions above it. */
+   sliding along walls, stepping up and down low edges (stairs of raised
+   ground), applying hits and overlaps, and refreshing the ground height
+   under it. Its steps are the functions above it. */
 
 // NOTE(zoubir): falling faster than this when landing raises dust; a
 // jump lands at 340, a step off a boulder at about 200
@@ -8,6 +9,16 @@
 // NOTE(zoubir): how many entities a move can have nearby; crowded map
 // corners hold a few dozen walls per chunk
 #define MOVE_MAX_NEARBY 1024
+// NOTE(zoubir): a unit put on top of something is left this far above
+// it. Exactly on top, the side of the next box of the same height counts
+// as in the way (TestWall takes the edge as inside), and a unit walking
+// across a plateau stopped at the first seam
+#define MOVE_GROUND_HAIR 0.01f
+// NOTE(zoubir): how close above what is under it a unit counts as standing
+#define MOVE_GROUND_SNAP 0.5f
+
+// NOTE(zoubir): in sim/terrain/terrain_kinds.cpp, compiled after this file
+inline float GetStepUpHeight();
 
 // NOTE(zoubir): the box a move from From by Delta sweeps through, grown
 // by the mover's collision volume. The destination's Z is clamped to the
@@ -233,6 +244,47 @@ ResolveMoveHit(app_state *AppState, world *World, memory_arena *Arena,
     return true;
 }
 
+// NOTE(zoubir): a walking unit on the ground that walks into the side of
+// something solid whose top is no higher than GetStepUpHeight() above its
+// feet (one step of raised ground) steps up onto it, if it fits there.
+// Units are not stepped on. Nor does a unit in the air step: catching
+// ledges a step above the top of a double jump made the nine-step wall
+// climbable. Returns true when it stepped; the caller carries on with the
+// rest of the move
+internal bool32
+StepUpOnto(app_state *AppState, world *World, memory_arena *Arena,
+           world_entity *Entity, bool32 OnGround, world_entity *Other,
+           v3 Normal, world_entity **Nearby, u32 NearbyCount)
+{
+    if (!OnGround || Normal.Z != 0.f || !IsWalkingUnit(Entity) ||
+        IsWalkingUnit(Other) || Entity->Velocity.Z > 0.f)
+    {
+        return false;
+    }
+    entity_collision_volume *Theirs = &Other->Collision->TotalVolume;
+    float Top = Other->Position.Z + Theirs->Offset.Z + Theirs->HalfDims.Z;
+    float Rise = Top - Entity->Position.Z;
+    if (Rise <= 0.f || Rise > GetStepUpHeight())
+    {
+        return false;
+    }
+    v3 From = Entity->Position;
+    Entity->Position.Z = Top + MOVE_GROUND_HAIR;
+    for(u32 Index = 0; Index < NearbyCount; Index++)
+    {
+        world_entity *Blocker = Nearby[Index];
+        if (Blocker->IsPresent && CanSweepAgainst(AppState, Entity, Blocker) &&
+            EntityOverlap(Entity, Blocker))
+        {
+            Entity->Position = From;
+            return false;
+        }
+    }
+    Entity->Velocity.Z = 0.f;
+    CheckAndChangeEntityChunk(AppState, World, Arena, From, Entity);
+    return true;
+}
+
 // NOTE(zoubir): the height of the highest thing under the entity that it
 // could stand on (for its shadow), or the floor. Looks only at what shares
 // the entity's footprint: it used to scan every entity in the world after
@@ -283,7 +335,11 @@ UpdateGroundZ(app_state *AppState, world *World, world_entity *Entity)
                         (Other->Position.Z + OtherVolume->Offset.Z +
                          OtherVolume->HalfDims.Z);
                     Assert(Distance < 100000.f);
-                    if (Distance > 0.f && Distance < NearestDistance)
+                    // NOTE(zoubir): a top at the feet, or a hair above
+                    // them (a hovering shade bobbing against a ledge), is
+                    // what the unit stands on; skipped, the step down
+                    // below sank units into the box they touched
+                    if (Distance >= -MOVE_GROUND_SNAP && Distance < NearestDistance)
                     {
                         NearestDistance = Distance;
                         NearestVolume = OtherVolume;
@@ -310,6 +366,9 @@ MoveEntity(world_entity *Entity, world *World,
            float DeltaTime, app_state *AppState,
            v3 DDEntity, float *MaxDistance)
 {
+    // NOTE(zoubir): before gravity touches the velocity
+    bool32 WasOnGround = Entity->Velocity.Z <= 0.f &&
+        Entity->Position.Z <= Entity->GroundZ + MOVE_GROUND_SNAP;
     v3 Delta = 0.5f * DDEntity * Square(DeltaTime) + Entity->Velocity * DeltaTime;
     Entity->Velocity = DDEntity * DeltaTime + Entity->Velocity;
     float FallSpeed = -Entity->Velocity.Z;
@@ -361,8 +420,15 @@ MoveEntity(world_entity *Entity, world *World,
         // TODO(zoubir): once per MoveEntity call rather than every sweep
         CheckAndChangeEntityChunk(AppState, World, Arena, From, Entity);
 
-        if (Hit && !ResolveMoveHit(AppState, World, Arena, Entity, Hit, Normal,
-                                   AllowedDelta, &Delta))
+        if (Hit && StepUpOnto(AppState, World, Arena, Entity, WasOnGround, Hit,
+                              Normal, Nearby, NearbyCount))
+        {
+            // NOTE(zoubir): on with the rest of the move, level with the top
+            Delta = Delta - AllowedDelta;
+            Delta.Z = 0.f;
+        }
+        else if (Hit && !ResolveMoveHit(AppState, World, Arena, Entity, Hit, Normal,
+                                        AllowedDelta, &Delta))
         {
             return;
         }
@@ -374,6 +440,19 @@ MoveEntity(world_entity *Entity, world *World,
     }
 
     UpdateGroundZ(AppState, World, Entity);
+    // NOTE(zoubir): a unit walking off an edge no taller than a step comes
+    // down with it at once, as down a stair, instead of falling: it stays
+    // on the ground, so it can still jump. Nothing lies between its feet
+    // and GroundZ, the highest top under it
+    float Drop = Entity->Position.Z - Entity->GroundZ;
+    if (WasOnGround && IsWalkingUnit(Entity) && Entity->Velocity.Z <= 0.f &&
+        Drop > MOVE_GROUND_SNAP && Drop <= GetStepUpHeight())
+    {
+        v3 From = Entity->Position;
+        Entity->Position.Z = Entity->GroundZ + MOVE_GROUND_HAIR;
+        Entity->Velocity.Z = 0.f;
+        CheckAndChangeEntityChunk(AppState, World, Arena, From, Entity);
+    }
     // NOTE(zoubir): a unit that comes down hard and stops raises dust
     if (FallSpeed > MOVE_LAND_BURST_SPEED && Entity->Velocity.Z == 0.f &&
         IsWalkingUnit(Entity))

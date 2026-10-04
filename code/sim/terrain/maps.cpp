@@ -306,6 +306,54 @@ GetMapDef(map_id Id)
     return Result;
 }
 
+// NOTE(zoubir): the top of the raised ground under a point of World's map,
+// in world units: its tile's elevation. Props are not ground
+inline float
+GroundHeightAt(world *World, v2 Position)
+{
+    i32 TileSize = World->TileWidth ? (i32)World->TileWidth : ARENA_TILE_SIZE;
+    i32 TileX = FloorDiv((i32)floorf(Position.X), TileSize);
+    i32 TileY = FloorDiv((i32)floorf(Position.Y), TileSize);
+    float Result = (float)ElevationAt(GetMapDef((map_id)World->MapId), TileX, TileY) *
+        ELEVATION_STEP_HEIGHT;
+    return Result;
+}
+
+// NOTE(zoubir): Position moved up or down onto the ground under it, for
+// spawns: a unit placed on a raised tile stands on top of it, a hair
+// above like a unit that landed there (MOVE_GROUND_HAIR, sim/move.cpp)
+inline v3
+OnGround(world *World, v3 Position)
+{
+    v3 Result = Position;
+    float Ground = GroundHeightAt(World, Position.XY);
+    Result.Z = (Ground > 0.f) ? Ground + MOVE_GROUND_HAIR : 0.f;
+    return Result;
+}
+
+// NOTE(zoubir): the highest ground within Reach of a point, for whoever
+// hovers (flyers, the familiar): over this they never sink into a cliff
+internal float
+HighestGroundAround(world *World, v2 Position, float Reach)
+{
+    i32 TileSize = World->TileWidth ? (i32)World->TileWidth : ARENA_TILE_SIZE;
+    map_def *Map = GetMapDef((map_id)World->MapId);
+    i32 MinX = FloorDiv((i32)floorf(Position.X - Reach), TileSize);
+    i32 MinY = FloorDiv((i32)floorf(Position.Y - Reach), TileSize);
+    i32 MaxX = FloorDiv((i32)floorf(Position.X + Reach), TileSize);
+    i32 MaxY = FloorDiv((i32)floorf(Position.Y + Reach), TileSize);
+    i32 Steps = 0;
+    for(i32 Y = MinY; Y <= MaxY; Y++)
+    {
+        for(i32 X = MinX; X <= MaxX; X++)
+        {
+            Steps = Maximum(Steps, ElevationAt(Map, X, Y));
+        }
+    }
+    float Result = (float)Steps * ELEVATION_STEP_HEIGHT;
+    return Result;
+}
+
 // NOTE(zoubir): the map whose name starts with Name, ignoring case and
 // spaces ("keep", "frostbite", "ashen wastes"); Fallback when none does
 internal map_id
@@ -361,6 +409,21 @@ internal u32
 ComputeTerrainContentHash()
 {
     u32 Hash = 2166136261u;
+    // NOTE(zoubir): how high a step is and how much of it is walked, and
+    // every prop's box: both decide where units can go
+    u32 Climb[] = {(u32)(ELEVATION_STEP_HEIGHT * 1000.f), ELEVATION_MAX_STEPS,
+                   ELEVATION_WALK_STEPS};
+    for(u32 Part = 0; Part < ArrayCount(Climb); Part++)
+    {
+        Hash = (Hash ^ Climb[Part]) * 16777619u;
+    }
+    for(u32 Prop = 0; Prop < TerrainProp_Count; Prop++)
+    {
+        for(u32 Axis = 0; Axis < 3; Axis++)
+        {
+            Hash = (Hash ^ (u32)(PropTable[Prop].HalfDims.Data[Axis] * 1000.f)) * 16777619u;
+        }
+    }
     for(u32 Kind = 0; Kind < TerrainKind_Count; Kind++)
     {
         terrain_def *Def = GetTerrainDef((terrain_kind)Kind);
@@ -386,6 +449,13 @@ ComputeTerrainContentHash()
                     Hash = (Hash ^ (u8)*C) * 16777619u;
                 }
             }
+            for(u32 Row = 0; Map->ElevationLayout && Row < Map->Height; Row++)
+            {
+                for(char *C = Map->ElevationLayout[Row]; *C; C++)
+                {
+                    Hash = (Hash ^ (u8)*C) * 16777619u;
+                }
+            }
         }
         else
         {
@@ -407,7 +477,8 @@ HashTerrainRegion(map_def *Map, i32 MinX, i32 MinY, i32 Size)
     {
         for(i32 X = MinX; X < MinX + Size; X++)
         {
-            u32 Value = (u32)TerrainAt(Map, X, Y) | ((u32)PropAt(Map, X, Y) << 8);
+            u32 Value = (u32)TerrainAt(Map, X, Y) | ((u32)PropAt(Map, X, Y) << 8) |
+                ((u32)ElevationAt(Map, X, Y) << 16);
             Hash = (Hash ^ Value) * 16777619u;
         }
     }

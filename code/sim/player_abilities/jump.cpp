@@ -31,11 +31,13 @@ IsOnGround(world_entity *Player)
 }
 
 // NOTE(zoubir): auto-vault: a player on the ground pushing head-on into
-// something low (a boulder) for PLAYER_VAULT_PUSH jumps over it on its
-// own, as if it had pressed jump. Only solids whose top is within
-// PLAYER_VAULT_HEIGHT of the feet count; walls and trees stay walls
+// something low (a boulder, a log, a ledge of raised ground) for
+// PLAYER_VAULT_PUSH jumps onto or over it on its own, as if it had pressed
+// jump. Only solids whose top is within PLAYER_VAULT_HEIGHT of the feet
+// count, which is what one jump clears (ELEVATION_JUMP_STEPS,
+// terrain/terrain_kinds.cpp); walls, trees and taller ledges stay walls
 #define PLAYER_VAULT_PUSH 0.12f
-#define PLAYER_VAULT_HEIGHT 32.f
+#define PLAYER_VAULT_HEIGHT ((float)ELEVATION_JUMP_STEPS * ELEVATION_STEP_HEIGHT)
 // NOTE(zoubir): how far ahead the vault looks, and the speed along the
 // keys below which the player counts as stopped by what is ahead
 #define PLAYER_VAULT_PROBE 4.f
