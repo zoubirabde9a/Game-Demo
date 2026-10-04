@@ -78,7 +78,7 @@ TestDashThenAttackLunges()
         UpdateTestSwords(&Test);
         if (WithDash)
         {
-            Check(Target->Hp <= 1000.f - 1.5f * SWORD_DAMAGE + 0.1f);
+            Check(Target->Hp <= 1000.f - 1.5f * PlayerStats.SwordDamage + 0.1f);
             Check(CountBursts(Test.AppState, SimBurst_Lunge) == 1);
             Check(CountBursts(Test.AppState, SimBurst_SwingArc) == 0);
             Check(Player->ActionLock == 0.f);

@@ -1,7 +1,7 @@
 /* Sword (right click): a swing toward the aim that hits each thing in its
    slice once (UpdateSword, update.cpp; reach and width in entity.h). The
-   player lunges a little that way. Timing is its row in
-   spawn_actions.cpp.
+   player steps a little that way. A plain cut's damage, shove and timing
+   are in player_stats.cpp.
 
    Swings chain into a combo: a swing that starts within
    SWORD_COMBO_WINDOW of the last one takes the next cut of the chain
@@ -44,28 +44,33 @@ enum sword_cut_index
 #define SWORD_LUNGE_REACH 84.f
 #define SWORD_LUNGE_HALF_ANGLE 0.45f
 
+// NOTE(zoubir): a cut's damage and shove as multiples of a plain cut's
+// (player_stats.cpp)
+#define CUT_DAMAGE(Scale) ((Scale) * PlayerStats.SwordDamage)
+#define CUT_SHOVE(Scale) ((Scale) * PlayerStats.SwordShove)
+
 global_variable sword_cut SwordCuts[SwordCut_Count] =
 {
     // NOTE(zoubir): a target already in the air is knocked up a little
     // instead of only away, so swings can juggle it
-    {{SWORD_DAMAGE, SWORD_KNOCKBACK, 0.f, 220.f, 0.f, SimBurst_Count},
+    {{CUT_DAMAGE(1.f), CUT_SHOVE(1.f), 0.f, 220.f, 0.f, SimBurst_Count},
      SimBurst_SwingArc, 0.f, 0.f},
-    {{SWORD_DAMAGE, 1.25f * SWORD_KNOCKBACK, 0.f, 240.f, 0.f, SimBurst_Count},
+    {{CUT_DAMAGE(1.f), CUT_SHOVE(1.25f), 0.f, 240.f, 0.f, SimBurst_Count},
      SimBurst_SwingArcBack, 0.f, 0.f},
     // NOTE(zoubir): the finisher
-    {{1.4f * SWORD_DAMAGE, 1.8f * SWORD_KNOCKBACK, 300.f, 340.f, 0.7f,
-      SimBurst_Finisher},
+    {{CUT_DAMAGE(1.4f), CUT_SHOVE(1.8f), 300.f, 340.f, 0.7f, SimBurst_Finisher},
      SimBurst_SwingArcFinisher, 0.f, 0.f},
     // NOTE(zoubir): Lunge (dash, attack): harder, and a long shove along
     // the thrust
-    {{1.5f * SWORD_DAMAGE, 2.f * SWORD_KNOCKBACK, 0.f, 240.f, 0.2f,
-      SimBurst_Impact},
+    {{CUT_DAMAGE(1.5f), CUT_SHOVE(2.f), 0.f, 240.f, 0.2f, SimBurst_Impact},
      SimBurst_Count, SWORD_LUNGE_REACH, SWORD_LUNGE_HALF_ANGLE},
     // NOTE(zoubir): Skewer (jump, dash, attack): the lunge from the air,
     // throwing what it hits straight up and holding it there for a juggle
-    {{1.5f * SWORD_DAMAGE, 60.f, 380.f, 380.f, 0.8f, SimBurst_Finisher},
+    {{CUT_DAMAGE(1.5f), 60.f, 380.f, 380.f, 0.8f, SimBurst_Finisher},
      SimBurst_Count, SWORD_LUNGE_REACH, SWORD_LUNGE_HALF_ANGLE},
 };
+#undef CUT_DAMAGE
+#undef CUT_SHOVE
 
 // NOTE(zoubir): the survivor is thrown away from the swinger (or the blade
 // when the swinger is unknown), so a hit is felt

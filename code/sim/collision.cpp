@@ -17,6 +17,11 @@ IsPredictedPlayer(app_state *AppState, world_entity *Entity)
     return Result;
 }
 
+// NOTE(zoubir): a fireball burning Target (player_abilities/fireball.cpp,
+// included later)
+internal void FireBallHit(app_state *AppState, world *World,
+                          world_entity *FireBall, world_entity *Target);
+
 internal bool32
 HandleCollision(app_state *AppState, world *World,
                 world_entity *A,
@@ -40,7 +45,7 @@ HandleCollision(app_state *AppState, world *World,
     {
         if (!IsPredictedPlayer(AppState, B))
         {
-            DamageEntity(AppState, World, B, FIREBALL_DAMAGE, A);
+            FireBallHit(AppState, World, A, B);
         }
         Result = false;
     }

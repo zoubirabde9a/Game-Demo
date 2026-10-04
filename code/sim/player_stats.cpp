@@ -1,7 +1,9 @@
-/* Player stats: the numbers that decide how the player's body moves and
-   how much it takes, in one table, so tuning the feel happens here. The
-   abilities keep their own tables (player_abilities/), but the dash and
-   blink rows read their speed, reach and cooldowns from here.
+/* Player stats: the numbers that decide how the player's body moves, how
+   much it takes and what its basic attacks do, in one table, so tuning
+   the feel happens here. The abilities keep their own tables
+   (player_abilities/), but the dash, blink, sword and fireball rows read
+   their speed, reach, damage, shove and timing from here; the sword's
+   cuts (sword.cpp SwordCuts) are multiples of a plain cut.
 
    Walking (player_update/movement.cpp MovePlayer): the velocity goes
    straight toward the keys' direction at RunSpeed, at a fixed rate:
@@ -40,6 +42,18 @@ struct player_stats
     // next cooldown, so the pace stays the same and a press a moment early
     // is not lost (CanUseEarly)
     float EarlyPressSeconds;
+    // NOTE(zoubir): a plain sword cut's damage and shove (speed given to
+    // the target); seconds the player is rooted from the start of a swing
+    // or cast, and before the next may start
+    float SwordDamage;
+    float SwordShove;
+    float SwordLock;
+    float SwordInterval;
+    float FireballDamage;
+    float FireballSpeed;
+    float FireballRange;
+    float FireballLock;
+    float FireballInterval;
 };
 
 global_variable player_stats PlayerStats =
@@ -56,6 +70,15 @@ global_variable player_stats PlayerStats =
     PLAYER_AIM_REACH,               // BlinkReach
     3.f,                            // BlinkCooldown
     0.1f,                           // EarlyPressSeconds
+    25.f,                           // SwordDamage
+    280.f,                          // SwordShove
+    0.08f,                          // SwordLock
+    0.18f,                          // SwordInterval
+    25.f,                           // FireballDamage
+    450.f,                          // FireballSpeed
+    300.f,                          // FireballRange
+    0.05f,                          // FireballLock
+    0.35f,                          // FireballInterval
 };
 
 // NOTE(zoubir): how far the player slides once the keys let go at its

@@ -345,7 +345,7 @@ AddFireBall(app_state *AppState,
     Entity->Texture = {AssetType_FireBall};
     Entity->ShadowTexture = {AssetType_Shadow};
 //    Entity->TextureOrigin = {0.5f, 0.5f};
-    Entity->DistanceRemaining = 300.f;
+    Entity->DistanceRemaining = PlayerStats.FireballRange;
     Entity->TimeLeft = 1.0f;
     
     Entity->AnimationSet = &AppState->FireballAnimationSet;

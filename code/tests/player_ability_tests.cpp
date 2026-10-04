@@ -466,8 +466,8 @@ TestSwordShovesSurvivorAway()
                                    {316, 300, 0}, Attacker,
                                    AnimationDirection_Right);
     UpdateSword(Sword, Test.World, &Test.Arena, AppState, Test.Input.DeltaTime);
-    Check(Monster->Hp == 100.f - SWORD_DAMAGE);
-    Check(Monster->Velocity.X > 0.9f * SWORD_KNOCKBACK);
+    Check(Monster->Hp == 100.f - PlayerStats.SwordDamage);
+    Check(Monster->Velocity.X > 0.9f * PlayerStats.SwordShove);
     Check(Absolute(Monster->Velocity.Y) < 1.f);
     DestroyTestWorld(&Test);
 }
@@ -497,7 +497,7 @@ TestSwordHitsItsSliceAtAnyAngle()
         SimulateTick(AppState, &Test.Arena, 1.f / 60.f);
         AppState->Players[0].Input.Pressed = 0;
     }
-    Check(Diagonal->Hp == 100.f - SWORD_DAMAGE);
+    Check(Diagonal->Hp == 100.f - PlayerStats.SwordDamage);
     Check(Behind->Hp == 100.f);
     Check(Far->Hp == 100.f);
     DestroyTestWorld(&Test);

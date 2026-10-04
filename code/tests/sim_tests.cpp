@@ -120,7 +120,7 @@ TestFireBallKillsMonsterOnce()
     test_world Test = CreateTestWorld();
     world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
                                           {400, 300, 0}, Test.UnitVolume);
-    Monster->MaxHp = Monster->Hp = FIREBALL_DAMAGE;
+    Monster->MaxHp = Monster->Hp = PlayerStats.FireballDamage;
     world_entity *FireBall = AddTestEntity(&Test, EntityType_FireBall,
                                            {300, 300, 0},
                                            Test.FireBallVolume);
@@ -149,7 +149,7 @@ TestMonsterDyingMidMoveLeavesNoGhost()
                                            Test.FireBallVolume);
     world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
                                           {300, 300, 0}, Test.UnitVolume);
-    Monster->MaxHp = Monster->Hp = FIREBALL_DAMAGE;
+    Monster->MaxHp = Monster->Hp = PlayerStats.FireballDamage;
     Walk(&Test, Monster, {1, 0}, 60);
     Check(!Monster->IsPresent);
     Check(FireBall->IsPresent);
@@ -423,7 +423,7 @@ TestSwordHitsOtherPlayerNotOwner()
                                              0, {300, 300, 0});
     world_entity *Victim = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
                                            1, {330, 300, 0});
-    Victim->MaxHp = Victim->Hp = SWORD_DAMAGE;
+    Victim->MaxHp = Victim->Hp = PlayerStats.SwordDamage;
     world_entity *Sword = AddSword(AppState, Test.World, &Test.Arena,
                                    {316, 300, 0}, Attacker,
                                    AnimationDirection_Right);
@@ -464,7 +464,7 @@ TestSwordHitsMonster()
                        Test.Input.DeltaTime))
     {
     }
-    Check(Monster->Hp == 100.f - SWORD_DAMAGE);
+    Check(Monster->Hp == 100.f - PlayerStats.SwordDamage);
     DestroyTestWorld(&Test);
 }
 
@@ -488,7 +488,7 @@ TestFireBallHitsOtherPlayerNotOwner()
                    AppState, {}, &MaxDistance);
     }
     Check(Caster->Hp == Caster->MaxHp);
-    Check(Victim->Hp == Victim->MaxHp - FIREBALL_DAMAGE);
+    Check(Victim->Hp == Victim->MaxHp - PlayerStats.FireballDamage);
     DestroyTestWorld(&Test);
 }
 

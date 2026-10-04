@@ -1,7 +1,8 @@
 /* Spawn actions: the attacks that put something into the world (a sword
    swing, a fireball), as a table. Each row says how long the player is
-   rooted, how often it may go, how long a press waits in the action
-   queue for its turn, and which function makes the thing. Starting one
+   rooted, how often it may go (both from player_stats.cpp), how long a
+   press waits in the action queue for its turn, and which function makes
+   the thing. Starting one
    is the same for every row (StartSpawnAction); only the spawn differs.
    A new one is a row here, a name in player_action, its spawn function,
    a button in player.h and a key in client/action_keys.cpp. A combo
@@ -45,13 +46,14 @@ global_variable player_spawn_action PlayerSpawnActions[PlayerAction_Count] =
     // animation: in the air the jump state replaced the swing state, so
     // without it every click swung at once
     {PlayerButton_Attack, EntityState_Attacking, AnimationType_Attack,
-     0.08f, 0.18f, PLAYER_ACTION_LINGER, true, AssetType_Dash,
-     SpawnSwordSwing, ComboMove_Attack},
+     PlayerStats.SwordLock, PlayerStats.SwordInterval, PLAYER_ACTION_LINGER,
+     true, AssetType_Dash, SpawnSwordSwing, ComboMove_Attack},
     // NOTE(zoubir): Fireball (left click), about three a second; with no
     // limit each click restarted the cast animation. A press waits out
     // the whole interval
     {PlayerButton_Cast, EntityState_Casting, AnimationType_Cast,
-     0.05f, 0.35f, 0.35f, false, AssetType_FireCast,
+     PlayerStats.FireballLock, PlayerStats.FireballInterval,
+     PlayerStats.FireballInterval, false, AssetType_FireCast,
      SpawnFireBall, ComboMove_Cast},
 };
 
