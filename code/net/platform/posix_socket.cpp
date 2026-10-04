@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -46,6 +47,19 @@ NetSocketPort(net_socket *Socket)
     socklen_t Length = sizeof(Address);
     if (!Socket->Open || getsockname((int)Socket->Handle, (sockaddr *)&Address, &Length) != 0) return 0;
     return ntohs(Address.sin_port);
+}
+
+internal bool32
+NetLookupHost(const char *Host, u32 *Ip)
+{
+    addrinfo Hints = {};
+    Hints.ai_family = AF_INET;
+    Hints.ai_socktype = SOCK_DGRAM;
+    addrinfo *Found = 0;
+    if (getaddrinfo(Host, 0, &Hints, &Found) != 0 || !Found) return false;
+    *Ip = ntohl(((sockaddr_in *)Found->ai_addr)->sin_addr.s_addr);
+    freeaddrinfo(Found);
+    return true;
 }
 
 internal bool32

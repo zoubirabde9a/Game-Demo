@@ -701,6 +701,8 @@ TestInfoQueryRoundTripsAndIsNotAnAmplifier()
     Reply.InfoReply.MapId = 3;
     Reply.InfoReply.PlayerCount = NET_MAX_SNAPSHOT_SCORES;
     Reply.InfoReply.MaxPlayers = NET_MAX_SNAPSHOT_SCORES;
+    // NOTE: the longest server name, so the size check below covers it
+    snprintf(Reply.InfoReply.ServerName, NET_SERVER_NAME_SIZE, "%s", "ABCDEFGHIJKLMNOPQRSTUVW");
     Reply.InfoReply.NameCount = NET_MAX_SNAPSHOT_SCORES;
     for (u32 Index = 0; Index < NET_MAX_SNAPSHOT_SCORES; ++Index)
     {
@@ -713,6 +715,37 @@ TestInfoQueryRoundTripsAndIsNotAnAmplifier()
     Check(Out.InfoReply.NameCount == NET_MAX_SNAPSHOT_SCORES);
     Check(strcmp(Out.InfoReply.Names[7], "ABCDEFGHIJKLMN7") == 0);
     Check(Out.InfoReply.ContentId == 0x25519fd6 && Out.InfoReply.MapId == 3);
+    Check(strcmp(Out.InfoReply.ServerName, "ABCDEFGHIJKLMNOPQRSTUVW") == 0);
+}
+
+// Another build of the game is told apart from noise, and the notice a
+// server sends it reads back on any version and is never a packet.
+internal void
+TestVersionNotice()
+{
+    static u8 Buffer[NET_MAX_PACKET_SIZE];
+    static net_packet Request, Out;
+    Request = {};
+    Request.Header.Type = NetPacket_ConnectRequest;
+    u32 Size = NetWritePacket(&Request, Buffer, sizeof(Buffer));
+    Check(Size > 0);
+    Check(!NetIsOtherVersion(Buffer, Size));
+    // NOTE: the id's low byte (first on the wire) is the version letter
+    Buffer[0] = (u8)(Buffer[0] - 1);
+    Check(NetIsOtherVersion(Buffer, Size));
+    Check(!NetReadPacket(Buffer, Size, &Out));
+    Buffer[3] = 'X';
+    Check(!NetIsOtherVersion(Buffer, Size));
+    Check(!NetIsOtherVersion(Buffer, 3));
+
+    u8 Notice[NET_VERSION_NOTICE_SIZE];
+    NetWriteVersionNotice(Notice);
+    u32 ServerProtocol = 0;
+    Check(NetReadVersionNotice(Notice, sizeof(Notice), &ServerProtocol));
+    Check(ServerProtocol == NET_PROTOCOL_ID);
+    Check(!NetReadVersionNotice(Notice, sizeof(Notice) - 1, &ServerProtocol));
+    Check(!NetReadPacket(Notice, sizeof(Notice), &Out));
+    Check(Size > NET_VERSION_NOTICE_SIZE);
 }
 
 // Height and velocity are left out when zero: a still entity on the ground
@@ -854,8 +887,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d4cu
-#define NET_GOLDEN_LAYOUT 0x6d15376du
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d4du
+#define NET_GOLDEN_LAYOUT 0x8b82da3cu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -882,6 +915,7 @@ TestWireLayoutIsPinned()
     Packets[1].ConnectAccepted.PlayerIndex = 5;
     Packets[1].ConnectAccepted.ServerTick = 777;
     Packets[1].ConnectAccepted.MapId = 2;
+    snprintf(Packets[1].ConnectAccepted.ServerName, NET_SERVER_NAME_SIZE, "%s", "Layout Arena");
     Packets[2].Header = {NetPacket_ConnectDenied, 5, 6};
     Packets[2].ConnectDenied.ClientSalt = 0x12345678;
     Packets[2].ConnectDenied.Reason = 1;
@@ -907,6 +941,7 @@ TestWireLayoutIsPinned()
     Packets[8].InfoReply.MapId = 1;
     Packets[8].InfoReply.PlayerCount = 2;
     Packets[8].InfoReply.MaxPlayers = 8;
+    snprintf(Packets[8].InfoReply.ServerName, NET_SERVER_NAME_SIZE, "%s", "Layout Arena");
     Packets[8].InfoReply.NameCount = 2;
     snprintf(Packets[8].InfoReply.Names[0], NET_NAME_SIZE, "%s", "Gary");
     snprintf(Packets[8].InfoReply.Names[1], NET_NAME_SIZE, "%s", "Player 2");
@@ -955,6 +990,7 @@ main()
     TestLoopbackPacket();
     TestJoiningNeedsTheCookie();
     TestInfoQueryRoundTripsAndIsNotAnAmplifier();
+    TestVersionNotice();
     TestStillEntitiesAreSmaller();
     TestFuzzedPacketsAreSafe();
     TestWireLayoutIsPinned();

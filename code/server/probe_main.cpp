@@ -1,4 +1,4 @@
-/* Checks that a game server answers. Usage: probe [address:port] [content-id]
+/* Checks that a game server answers. Usage: probe [host:port] [content-id]
    Connects like a real client, waits for the first snapshot, then says
    goodbye. With a content id (hex, as the server's log prints it) it
    joins as that game build, so it also checks the version gate.
@@ -7,9 +7,10 @@
    The deploy script runs it after every install, and it works as a
    health check from anywhere.
 
-   probe --info a.b.c.d:port asks who is playing without joining: prints
-   the build, map and the connected players' names. Exit 0 with an answer,
-   2 without one. Built by build_server.sh / .bat. */
+   probe --info host:port asks who is playing without joining: prints
+   the server's name, build, map and the connected players' names. Exit 0
+   with an answer, 2 without one, 5 when the server runs another protocol.
+   The host may be a DNS name or a.b.c.d. Built by build_server.sh / .bat. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,9 +25,9 @@ internal int
 ProbeInfo(const char *Text)
 {
     net_address Server;
-    if (!NetParseAddress(Text, &Server) || !NetSocketsStartup())
+    if (!NetSocketsStartup() || !NetResolveServer(Text, &Server))
     {
-        fprintf(stderr, "usage: probe --info a.b.c.d:port\n");
+        fprintf(stderr, "usage: probe --info host:port\n");
         return 1;
     }
     net_socket Socket = NetOpenSocket(0);
@@ -51,12 +52,20 @@ ProbeInfo(const char *Text)
         u32 Got;
         while ((Got = NetReceiveFrom(&Socket, &From, Buffer + Size, sizeof(Buffer) - Size)) != 0)
         {
+            u32 ServerProtocol;
+            if (NetReadVersionNotice(Buffer + Size, Got, &ServerProtocol))
+            {
+                printf("version: %s speaks protocol %08x, this probe %08x\n", Text,
+                       ServerProtocol, NET_PROTOCOL_ID);
+                Result = 5;
+                break;
+            }
             if (NetReadPacket(Buffer + Size, Got, &Reply) &&
                 Reply.Header.Type == NetPacket_InfoReply && Reply.InfoReply.Nonce == Nonce)
             {
                 net_info_reply *Info = &Reply.InfoReply;
-                printf("ok: %s build %08x, map %u, %u/%u players", Text, Info->ContentId,
-                       Info->MapId, Info->PlayerCount, Info->MaxPlayers);
+                printf("ok: %s \"%s\" build %08x, map %u, %u/%u players", Text, Info->ServerName,
+                       Info->ContentId, Info->MapId, Info->PlayerCount, Info->MaxPlayers);
                 for (u32 Index = 0; Index < Info->NameCount; ++Index)
                 {
                     printf("%s%s", Index ? ", " : ": ", Info->Names[Index]);
@@ -79,18 +88,18 @@ main(int ArgCount, char **Args)
 {
     if (ArgCount > 2 && strcmp(Args[1], "--info") == 0) return ProbeInfo(Args[2]);
     const char *Text = ArgCount > 1 ? Args[1] : "127.0.0.1:27015";
-    net_address Server;
-    if (!NetParseAddress(Text, &Server))
-    {
-        fprintf(stderr, "usage: probe [a.b.c.d:port] [content-id-hex]\n");
-        return 1;
-    }
-    u32 ContentId = ArgCount > 2 ? (u32)strtoul(Args[2], 0, 16) : 0;
     if (!NetSocketsStartup())
     {
         fprintf(stderr, "could not start networking\n");
         return 1;
     }
+    net_address Server;
+    if (!NetResolveServer(Text, &Server))
+    {
+        fprintf(stderr, "usage: probe [host:port] [content-id-hex]\n");
+        return 1;
+    }
+    u32 ContentId = ArgCount > 2 ? (u32)strtoul(Args[2], 0, 16) : 0;
 
     static net_client Client;
     u32 Salt = (u32)(ClockSeconds() * 1000.0) ^ 0x9e3779b9u;
@@ -111,8 +120,9 @@ main(int ArgCount, char **Args)
     int Result = 0;
     if (Client.HasSnapshot)
     {
-        printf("ok: %s answered in %.0f ms, slot %u, %u entities in view\n", Text,
-               (ClockSeconds() - Start) * 1000.0, Client.PlayerIndex, Client.Snapshot.Count);
+        printf("ok: %s \"%s\" answered in %.0f ms, slot %u, %u entities in view\n", Text,
+               Client.ServerName, (ClockSeconds() - Start) * 1000.0, Client.PlayerIndex,
+               Client.Snapshot.Count);
         NetClientDisconnect(&Client);
     }
     else

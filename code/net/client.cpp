@@ -3,6 +3,50 @@
 
 #include "client.h"
 
+internal bool32
+NetResolveServer(const char *Text, net_address *Out)
+{
+    if (NetParseAddress(Text, Out)) return true;
+    // NOTE: "host" or "host:port"; the port is the text after the last colon
+    char Host[128];
+    u32 Length = 0;
+    u32 Colon = 0;
+    for (; Text[Length] && Length + 1 < sizeof(Host); ++Length)
+    {
+        Host[Length] = Text[Length];
+        if (Text[Length] == ':') Colon = Length + 1;
+    }
+    if (Text[Length]) return false;
+    Host[Length] = 0;
+    u32 Port = NET_DEFAULT_PORT;
+    if (Colon)
+    {
+        Host[Colon - 1] = 0;
+        Port = 0;
+        for (u32 Index = Colon; Index < Length; ++Index)
+        {
+            char C = Host[Index];
+            if (C < '0' || C > '9') return false;
+            Port = Port * 10 + (u32)(C - '0');
+            if (Port > 65535) return false;
+        }
+        if (Port == 0) return false;
+    }
+    if (!Host[0]) return false;
+    for (u32 Index = 0; Host[Index]; ++Index)
+    {
+        char C = Host[Index];
+        bool32 Allowed = (C >= 'a' && C <= 'z') || (C >= 'A' && C <= 'Z') ||
+            (C >= '0' && C <= '9') || C == '-' || C == '.';
+        if (!Allowed) return false;
+    }
+    u32 Ip;
+    if (!NetLookupHost(Host, &Ip)) return false;
+    Out->Ip = Ip;
+    Out->Port = (u16)Port;
+    return true;
+}
+
 internal void
 NetClientSend(net_client *Client, net_packet *Packet, u8 Type)
 {
@@ -60,6 +104,10 @@ NetClientHandle(net_client *Client, net_packet *Packet)
                 Client->PlayerIndex = Packet->ConnectAccepted.PlayerIndex;
                 Client->MapId = Packet->ConnectAccepted.MapId;
                 Client->InputTick = Packet->ConnectAccepted.ServerTick;
+                for (u32 Index = 0; Index < NET_SERVER_NAME_SIZE; ++Index)
+                {
+                    Client->ServerName[Index] = Packet->ConnectAccepted.ServerName[Index];
+                }
             }
         } break;
 
@@ -113,6 +161,13 @@ NetClientUpdate(net_client *Client, float Dt, u16 Buttons, float AimX, float Aim
            (Size = NetReceiveFrom(&Client->Socket, &From, Buffer, sizeof(Buffer))) != 0)
     {
         if (!NetAddressEqual(From, Client->Server)) continue;
+        u32 ServerProtocol;
+        if (Client->State == NetClient_Connecting &&
+            NetReadVersionNotice(Buffer, Size, &ServerProtocol))
+        {
+            NetClientEnd(Client, NetEnd_WrongVersion);
+            break;
+        }
         net_packet Packet;
         // NOTE: a packet without our token is not from our server
         if (NetReadPacket(Buffer, Size, &Packet) && Packet.Header.Token == Client->Salt)

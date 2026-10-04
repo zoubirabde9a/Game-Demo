@@ -77,11 +77,14 @@ ServerFormatStats(server *Server, double IntervalSeconds, char *Out, u32 OutSize
 #define ADDRESS_FORMAT "%u.%u.%u.%u:%u"
 #define ADDRESS_ARGS(A) (A).Ip >> 24, ((A).Ip >> 16) & 255, ((A).Ip >> 8) & 255, (A).Ip & 255, (A).Port
 
-// NOTE(zoubir): MapId picks the map (sim/maps/); 0 is the Old Arena
+// NOTE(zoubir): MapId picks the map (sim/maps/); 0 is the Old Arena.
+// Name is what players see in their server list and HUD
 internal bool32
-ServerStart(server *Server, u16 Port, u32 MapId)
+ServerStart(server *Server, u16 Port, u32 MapId, const char *Name)
 {
     *Server = {};
+    snprintf(Server->Clients.ServerName, NET_SERVER_NAME_SIZE, "%s",
+             Name ? Name : SERVER_DEFAULT_NAME);
     Server->Socket = NetOpenSocket(Port);
     GameInit(&Server->Game, MapId);
     Server->Clients.ContentId = GameContentId(&Server->Game);
@@ -105,6 +108,10 @@ ServerAnswerInfo(server *Server, net_address From, net_packet *Request)
     Reply.InfoReply.MapId = Server->Clients.MapId;
     Reply.InfoReply.PlayerCount = (u8)ServerPlayerCount(Server);
     Reply.InfoReply.MaxPlayers = NET_MAX_CLIENTS;
+    for (u32 Index = 0; Index < NET_SERVER_NAME_SIZE; ++Index)
+    {
+        Reply.InfoReply.ServerName[Index] = Server->Clients.ServerName[Index];
+    }
     GameListPlayers(&Server->Game, &Reply.InfoReply);
     ServerSend(Server, From, &Reply);
 }
@@ -126,6 +133,18 @@ ServerReceiveAll(server *Server)
         if (!NetReadPacket(Buffer, Size, &Packet))
         {
             Server->Stats.BadPacketsIn++;
+            // NOTE(zoubir): another build of the game: say so, or its
+            // player only ever sees "no answer"
+            if (NetIsOtherVersion(Buffer, Size) && Size > NET_VERSION_NOTICE_SIZE)
+            {
+                u8 Notice[NET_VERSION_NOTICE_SIZE];
+                NetWriteVersionNotice(Notice);
+                if (NetSendTo(&Server->Socket, From, Notice, sizeof(Notice)))
+                {
+                    Server->Stats.PacketsOut++;
+                    Server->Stats.BytesOut += sizeof(Notice);
+                }
+            }
             continue;
         }
 

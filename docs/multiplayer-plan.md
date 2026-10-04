@@ -23,15 +23,18 @@ Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot car
 | Server loop, client slots, sockets | `server/server.cpp`, `net/connections.*`, `net/socket.*` |
 | What the server's game sends each player | `server/sim_game.cpp`, sounds and deaths through `server/event_relay.cpp` |
 | Client connection | `net/client.*`; the game's session, reconnects and world tick in `client/online.cpp`, settings in `client/online_config.cpp` |
+| Servers by name | `client/server_list.cpp` (the game joins the first row at launch; addresses may be DNS names, resolved by `NetResolveServer` in `net/client.cpp`), ping and players per server in `client/server_browser.cpp`, a server's own name from `server --name` |
+| Version mismatch | a server answers a packet from another protocol version with an 8-byte notice whose format never changes (`NetWriteVersionNotice`, `net/protocol.h`), so the player reads "other version" instead of "not answering" |
 | The server's world on the client | `client/replicas.cpp` (details in `client/replicas/`), smoothing in `client/replica_smoothing.cpp` |
 | Local player prediction | `client/prediction.cpp` |
-| Connect screen, kill feed data | `ui/connect_screen.cpp`, `client/kill_feed.cpp` |
+| Connect screen (server list), kill feed data | `ui/connect_screen.cpp`, `client/kill_feed.cpp` |
 | Bot players (`server --bots N`) | `server/bots.cpp`, kept topped up by `GameKeepBots` in `server/sim_game.cpp` |
 | Live server, deploy, load test, who is online | `deploy/README.md`, `deploy/deploy.sh`, `build\bots.exe`, `build\probe.exe --info` |
 
 ## Next
 
-- [ ] Redeploy vps-eu. It runs an older protocol than main (now GDMG), so current builds are told "server runs a different version". Needs the user's go-ahead.
+- [ ] Redeploy vps-eu. It runs an older protocol than main (now GDMM) and ignores current builds, which show it as "not answering". Builds from GDMM on answer older and newer ones with the version notice. Needs the user's go-ahead.
+- [ ] Give the live server a DNS name and put it in `client/server_list.cpp`, so it can move without a game update.
 - [ ] Draw the kill feed (`AppState->KillFeed`); the UI agent has it.
 - [ ] Split `app_state` into a simulation part and a client part, so the server no longer sees client types. `app.h` changes often; agree it with the other agents first.
 - [ ] Clients send one input packet per frame, so a 144 Hz client sends 144 a second. Capping it at the server tick touches prediction (claimed by the player-abilities agent).

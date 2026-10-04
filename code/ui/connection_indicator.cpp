@@ -1,7 +1,7 @@
-/* Connection indicator: one line under the HUD stats with a coloured dot.
-   Joined, it shows the round trip and any snapshot loss, green when the
-   connection is good, amber when it is getting slow, red when it is bad
-   or the server has gone quiet. Otherwise it shows what the session is
+/* Connection indicator: one line under the HUD stats with signal bars.
+   Joined, it names the server and shows the round trip and any snapshot
+   loss: three green bars when the connection is good, two amber when it
+   is getting slow, one red when it is bad or the server has gone quiet. Otherwise it shows what the session is
    doing (connecting, reconnecting in N s, why it is offline). Nothing
    when playing offline by choice. */
 
@@ -26,8 +26,8 @@ DrawConnectionIndicator(render_context *RenderContext, app_state *AppState,
     float Silence = GetOnlineSilence(Online);
     if (IsOnline(Online) && Silence >= CONNECTION_QUIET_SECONDS)
     {
-        snprintf(Text, sizeof(Text), "Online, nothing from the server for %.1f s",
-                 Silence);
+        snprintf(Text, sizeof(Text), "%s: nothing heard for %.1f s",
+                 GetOnlineServerName(Online), Silence);
     }
     else if (Quality)
     {
@@ -35,12 +35,12 @@ DrawConnectionIndicator(render_context *RenderContext, app_state *AppState,
         int LossPercent = (int)(100.f * Quality->Loss + 0.5f);
         if (LossPercent >= 2)
         {
-            snprintf(Text, sizeof(Text), "Online  %d ms  %d%% lost", Ms,
-                     LossPercent);
+            snprintf(Text, sizeof(Text), "%s   %d ms   %d%% lost",
+                     GetOnlineServerName(Online), Ms, LossPercent);
         }
         else
         {
-            snprintf(Text, sizeof(Text), "Online  %d ms", Ms);
+            snprintf(Text, sizeof(Text), "%s   %d ms", GetOnlineServerName(Online), Ms);
         }
         if (Quality->RoundTripMs < CONNECTION_GOOD_MS &&
             Quality->Loss < CONNECTION_GOOD_LOSS)
@@ -65,10 +65,18 @@ DrawConnectionIndicator(render_context *RenderContext, app_state *AppState,
             UI_COLOR_ACCENT : UI_COLOR_HEALTH;
     }
 
+    // NOTE(zoubir): signal bars: three for good, two for slow, one for bad
+    u32 Bars = (DotColor == UI_COLOR_GOOD) ? 3 : ((DotColor == UI_COLOR_ACCENT) ? 2 : 1);
     float LineHeight = UILineHeight(Font);
-    float Dot = 8.f;
-    DrawFilledRectangle(RenderContext, X, TopY + 0.5f * (LineHeight - Dot),
-                        Dot, Dot, DotColor, 0.f);
-    UIText(RenderContext, Font, X + Dot + UI_GAP_SMALL, TopY, Text,
+    float BarWidth = 4.f;
+    float BarsBottom = TopY + 0.5f * LineHeight + 7.f;
+    for(u32 Index = 0; Index < 3; Index++)
+    {
+        float BarHeight = 5.f + 4.f * (float)Index;
+        u32 Color = Index < Bars ? DotColor : UI_RGBA(0, 0, 0, 120);
+        DrawFilledRectangle(RenderContext, X + (float)Index * (BarWidth + 2.f),
+                            BarsBottom - BarHeight, BarWidth, BarHeight, Color, 0.f);
+    }
+    UIText(RenderContext, Font, X + 3.f * (BarWidth + 2.f) + UI_GAP_SMALL, TopY, Text,
            UI_COLOR_TEXT);
 }

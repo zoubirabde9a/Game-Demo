@@ -17,6 +17,9 @@
 #include "game_api.h" // struct server_game must be complete before this header
 
 #define SERVER_DEFAULT_PORT 27015
+// NOTE(zoubir): unnamed; clients then call it by its name in their server
+// list (client/server_list.cpp), or by its address
+#define SERVER_DEFAULT_NAME ""
 #define SERVER_TICK_RATE 60
 #define SERVER_SNAPSHOT_INTERVAL 3 // 20 snapshots a second
 #define SERVER_STATS_SECONDS 60    // how often server_main logs a stats line
@@ -52,7 +55,7 @@ struct server
 
 // Opens the socket. Port 0 picks a free one (tests use this).
 // MapId picks the map (sim/maps/); 0 is the Old Arena.
-internal bool32 ServerStart(server *Server, u16 Port, u32 MapId = 0);
+internal bool32 ServerStart(server *Server, u16 Port, u32 MapId = 0, const char *Name = 0);
 internal void ServerTick(server *Server);
 // The caller times each ServerTick and reports it here.
 internal void ServerRecordTick(server *Server, double Seconds, bool32 Late);

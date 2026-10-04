@@ -7,6 +7,88 @@
 
 // What the connect screen does: a bad address is refused without a
 // socket, a good one joins, and leaving goes back to the local game.
+// A server's name reaches the clients that join it; a server answers a
+// build with another protocol with the version notice, and a client that
+// gets one stops with WrongVersion instead of waiting for "no answer".
+internal void
+TestServerNameAndVersionNotice()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0, 0, "Named Arena"));
+    net_address Address = {0x7f000001, NetSocketPort(&Server.Socket)};
+    static net_client Client;
+    Check(NetClientConnect(&Client, Address, 1234, Server.Clients.ContentId, "Gary"));
+    for (int Frame = 0; Frame < 120 && Client.State != NetClient_Connected; ++Frame)
+    {
+        NetClientUpdate(&Client, 1.0f / SERVER_TICK_RATE, 0, 0, 0);
+        ServerTick(&Server);
+    }
+    Check(Client.State == NetClient_Connected);
+    Check(strcmp(Client.ServerName, "Named Arena") == 0);
+    NetClientDisconnect(&Client);
+
+    // NOTE: a request from "another build": our bytes with the version
+    // letter changed
+    net_socket Old = NetOpenSocket(0);
+    Check(Old.Open);
+    net_packet Request = {};
+    Request.Header.Type = NetPacket_ConnectRequest;
+    u8 Buffer[NET_MAX_PACKET_SIZE];
+    u32 Size = NetWritePacket(&Request, Buffer, sizeof(Buffer));
+    Buffer[0] = (u8)(Buffer[0] + 1);
+    Check(NetSendTo(&Old, Address, Buffer, Size));
+    u32 Got = 0;
+    net_address From = {};
+    for (int Frame = 0; Frame < 200 && !Got; ++Frame)
+    {
+        ServerTick(&Server);
+        Got = NetReceiveFrom(&Old, &From, Buffer, sizeof(Buffer));
+    }
+    u32 ServerProtocol = 0;
+    Check(NetReadVersionNotice(Buffer, Got, &ServerProtocol));
+    Check(ServerProtocol == NET_PROTOCOL_ID);
+
+    // NOTE: a client joining a server that answers only with the notice
+    net_address OldAddress = {0x7f000001, NetSocketPort(&Old)};
+    Check(NetClientConnect(&Client, OldAddress, 99, 0, "Gary"));
+    NetClientUpdate(&Client, 1.0f / 60.0f, 0, 0, 0);
+    u8 Notice[NET_VERSION_NOTICE_SIZE];
+    NetWriteVersionNotice(Notice);
+    Notice[0] = (u8)(Notice[0] + 1);
+    net_address ClientAddress = {0x7f000001, NetSocketPort(&Client.Socket)};
+    Check(NetSendTo(&Old, ClientAddress, Notice, sizeof(Notice)));
+    for (int Frame = 0; Frame < 200 && Client.State != NetClient_Disconnected; ++Frame)
+    {
+        NetClientUpdate(&Client, 1.0f / 600.0f, 0, 0, 0);
+    }
+    Check(Client.State == NetClient_Disconnected);
+    Check(Client.EndReason == NetEnd_WrongVersion);
+    NetCloseSocket(&Old);
+    ServerStop(&Server);
+}
+
+// Server addresses as players type them: a.b.c.d:port, a host name with
+// or without a port (27015 when left out), and the ones to refuse.
+internal void
+TestResolveServer()
+{
+    Check(NetSocketsStartup());
+    net_address A = {};
+    Check(NetResolveServer("127.0.0.1:27015", &A));
+    Check(A.Ip == 0x7f000001 && A.Port == 27015);
+    Check(NetResolveServer("localhost:1234", &A));
+    Check(A.Ip == 0x7f000001 && A.Port == 1234);
+    Check(NetResolveServer("localhost", &A));
+    Check(A.Port == NET_DEFAULT_PORT);
+    Check(!NetResolveServer("", &A));
+    Check(!NetResolveServer("bad host:80", &A));
+    Check(!NetResolveServer("localhost:0", &A));
+    Check(!NetResolveServer("localhost:65536", &A));
+    Check(!NetResolveServer("localhost:80x", &A));
+    Check(!NetResolveServer(":80", &A));
+    Check(!NetResolveServer("no-such-host.invalid", &A));
+}
+
 internal void
 TestConnectAndLeaveFromTheGame()
 {
@@ -514,6 +596,8 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
 internal void
 RunServerClientTests()
 {
+    TestServerNameAndVersionNotice();
+    TestResolveServer();
     TestClientConnectsAndMoves();
     TestPredictionAgreesWithServer();
     TestConnectAndLeaveFromTheGame();

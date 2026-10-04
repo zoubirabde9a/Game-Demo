@@ -26,6 +26,10 @@ internal void NetCloseSocket(net_socket *Socket);
 // The port the socket is bound to, useful after opening on port 0.
 internal u16 NetSocketPort(net_socket *Socket);
 
+// Looks a host name up in DNS and gives its first IPv4 address. Blocks
+// until the lookup answers or fails.
+internal bool32 NetLookupHost(const char *Host, u32 *Ip);
+
 internal bool32 NetSendTo(net_socket *Socket, net_address To, u8 *Data, u32 Size);
 
 // Returns the size of the datagram read into Buffer, or 0 if none is waiting.

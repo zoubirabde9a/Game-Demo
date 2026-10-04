@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d4cu // "GDML", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d4du // "GDMM", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -32,6 +32,7 @@
 #define NET_MAX_SNAPSHOT_BURSTS 8   // visual bursts seen since the last snapshot
 #define NET_COOLDOWN_COUNT 7        // the viewer's own ability cooldowns
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
+#define NET_SERVER_NAME_SIZE 24     // server name, 23 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
 
@@ -149,9 +150,10 @@ struct net_ability_state
 struct net_connect_request { u32 ClientSalt; u32 ContentId; u32 Cookie; char Name[NET_NAME_SIZE]; };
 struct net_connect_challenge { u32 ClientSalt; u32 Cookie; };
 
-// Padding bytes after the nonce: the largest reply body is 140 bytes
-// (12 + 8 names of up to 1 + 15), so a request is never the smaller one.
-#define NET_INFO_PADDING 144
+// Padding bytes after the nonce: the largest reply body is 164 bytes
+// (12 + a server name of up to 1 + 23 + 8 names of up to 1 + 15), so a
+// request is never the smaller one.
+#define NET_INFO_PADDING 168
 struct net_info_request { u32 Nonce; };
 struct net_info_reply
 {
@@ -160,12 +162,20 @@ struct net_info_reply
     u8 MapId;
     u8 PlayerCount;
     u8 MaxPlayers;
+    char ServerName[NET_SERVER_NAME_SIZE]; // what the server calls itself (server --name)
     u8 NameCount;   // names of the connected players, in slot order
     char Names[NET_MAX_SNAPSHOT_SCORES][NET_NAME_SIZE];
 };
 // NOTE(zoubir): MapId is the server's map_id; the client builds the same
 // ground from it (terrain never crosses the wire)
-struct net_connect_accepted { u32 ClientSalt; u8 PlayerIndex; u32 ServerTick; u8 MapId; };
+struct net_connect_accepted
+{
+    u32 ClientSalt;
+    u8 PlayerIndex;
+    u32 ServerTick;
+    u8 MapId;
+    char ServerName[NET_SERVER_NAME_SIZE]; // shown in the HUD while joined
+};
 struct net_connect_denied { u32 ClientSalt; u8 Reason; };
 
 struct net_input_batch
@@ -272,6 +282,23 @@ internal bool32 NetReadPacket(u8 *Buffer, u32 Size, net_packet *Packet);
 // entity does not fit. Sets *Dropped to how many entities were left out.
 internal u32 NetWriteSnapshotFitting(net_packet *Packet, u8 *Buffer, u32 BufferSize,
                                      u32 *Dropped);
+
+// The version notice: a server answers a packet from another build of
+// this game (same "GDM" id prefix, different last letter) with these 8
+// bytes, its own protocol id then NET_VERSION_NOTICE_MAGIC. The format
+// never changes, so a client of any version can tell "the server runs a
+// different version" from "the server is not answering". It is smaller
+// than any packet that triggers it, so it multiplies nobody's traffic.
+#define NET_VERSION_NOTICE_SIZE 8
+#define NET_VERSION_NOTICE_MAGIC 0x3f524556u // "VER?"
+#define NET_PROTOCOL_FAMILY_MASK 0xffffff00u
+
+// True when Buffer starts with another version's protocol id.
+internal bool32 NetIsOtherVersion(u8 *Buffer, u32 Size);
+// Writes the notice into Buffer (NET_VERSION_NOTICE_SIZE bytes).
+internal void NetWriteVersionNotice(u8 *Buffer);
+// True when Buffer is a version notice; *ServerProtocol gets the sender's id.
+internal bool32 NetReadVersionNotice(u8 *Buffer, u32 Size, u32 *ServerProtocol);
 
 // True if sequence A is newer than B, treating the u16 counter as wrapping.
 internal bool32 NetSequenceNewer(u16 A, u16 B);

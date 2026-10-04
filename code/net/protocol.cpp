@@ -7,6 +7,48 @@
 #define NET_POSITION_STEPS 8.0f // 1/8 unit
 #define NET_VELOCITY_STEPS 4.0f // 1/4 unit per second
 
+internal u32
+NetReadU32At(u8 *Buffer)
+{
+    return (u32)Buffer[0] | ((u32)Buffer[1] << 8) | ((u32)Buffer[2] << 16) | ((u32)Buffer[3] << 24);
+}
+
+internal void
+NetWriteU32At(u8 *Buffer, u32 Value)
+{
+    Buffer[0] = (u8)Value;
+    Buffer[1] = (u8)(Value >> 8);
+    Buffer[2] = (u8)(Value >> 16);
+    Buffer[3] = (u8)(Value >> 24);
+}
+
+internal bool32
+NetIsOtherVersion(u8 *Buffer, u32 Size)
+{
+    if (Size < 4) return false;
+    u32 Id = NetReadU32At(Buffer);
+    return Id != NET_PROTOCOL_ID &&
+        (Id & NET_PROTOCOL_FAMILY_MASK) == (NET_PROTOCOL_ID & NET_PROTOCOL_FAMILY_MASK);
+}
+
+internal void
+NetWriteVersionNotice(u8 *Buffer)
+{
+    NetWriteU32At(Buffer, NET_PROTOCOL_ID);
+    NetWriteU32At(Buffer + 4, NET_VERSION_NOTICE_MAGIC);
+}
+
+internal bool32
+NetReadVersionNotice(u8 *Buffer, u32 Size, u32 *ServerProtocol)
+{
+    if (Size != NET_VERSION_NOTICE_SIZE || NetReadU32At(Buffer + 4) != NET_VERSION_NOTICE_MAGIC)
+    {
+        return false;
+    }
+    *ServerProtocol = NetReadU32At(Buffer);
+    return true;
+}
+
 internal bool32
 NetSequenceNewer(u16 A, u16 B)
 {
@@ -161,6 +203,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
             NetU8(S, &Info->MapId);
             NetU8(S, &Info->PlayerCount);
             NetU8(S, &Info->MaxPlayers);
+            NetName(S, Info->ServerName, NET_SERVER_NAME_SIZE);
             NetU8(S, &Info->NameCount);
             if (Info->NameCount > NET_MAX_SNAPSHOT_SCORES) return false;
             for (u32 Index = 0; Index < Info->NameCount; ++Index)
@@ -175,6 +218,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
             NetU8(S, &P->ConnectAccepted.PlayerIndex);
             NetU32(S, &P->ConnectAccepted.ServerTick);
             NetU8(S, &P->ConnectAccepted.MapId);
+            NetName(S, P->ConnectAccepted.ServerName, NET_SERVER_NAME_SIZE);
         } break;
 
         case NetPacket_ConnectDenied:

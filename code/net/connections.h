@@ -42,6 +42,7 @@ struct net_server_clients
     u32 Secret;    // random per server start; cookies are made from it
     u32 ContentId; // the server build's SimContentId(); clients must match or send 0
     u8 MapId;      // the map the server plays, told to every client it accepts
+    char ServerName[NET_SERVER_NAME_SIZE]; // told to every client it accepts and to info queries
     net_client_slot Slots[NET_MAX_CLIENTS];
 };
 

@@ -33,7 +33,7 @@ enum net_client_end
     NetEnd_ServerClosed,   // the server said goodbye
     NetEnd_LostConnection, // nothing heard from the server for too long
     NetEnd_LeftByChoice,
-    NetEnd_WrongVersion,   // the server runs a build with different content
+    NetEnd_WrongVersion,   // the server runs a build with different content or protocol
 };
 
 struct net_client
@@ -42,6 +42,7 @@ struct net_client
     net_client_end EndReason;
     u8 PlayerIndex;        // our slot on the server, valid once connected
     u8 MapId;              // the server's map_id, valid once connected
+    char ServerName[NET_SERVER_NAME_SIZE]; // what the server calls itself, valid once connected
 
     bool32 HasSnapshot;
     net_snapshot Snapshot; // newest world state from the server
@@ -62,6 +63,12 @@ struct net_client
     u32 RecentInputCount;
     net_input RecentInputs[NET_MAX_INPUTS_PER_PACKET]; // newest first
 };
+
+// Resolves "host:port", "host" (SERVER port 27015) or "a.b.c.d:port" to
+// an address. A host name needs a DNS lookup, which blocks until it
+// answers, so call it when the player asks to connect, not every frame.
+#define NET_DEFAULT_PORT 27015
+internal bool32 NetResolveServer(const char *Text, net_address *Out);
 
 // Opens a socket and starts connecting. Salt should be random per launch.
 // ContentId is SimContentId() for a game client, 0 for a tool.

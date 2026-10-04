@@ -5,7 +5,9 @@
    and runs its own simulation.
 
    The address and name come from the environment or server.txt
-   (online_config.cpp). The connect screen (ui/connect_screen.cpp) calls
+   (online_config.cpp), else the first server in server_list.cpp. An
+   address may be a DNS name; it is looked up when connecting and the
+   answer reused by automatic reconnects. The connect screen (ui/connect_screen.cpp) calls
    OnlineConnect and OnlineDisconnect. When a connection ends for a reason
    worth retrying (server restarted or full, link lost, no answer) the
    session keeps reconnecting by itself, waiting longer each time up to
@@ -30,9 +32,12 @@ enum online_phase
 struct online_session
 {
     bool32 Enabled;
-    // NOTE(zoubir): the last address typed could not be read as a.b.c.d:port
+    // NOTE(zoubir): the last address typed could not be read or looked up
     bool32 BadAddress;
     char AddressText[64];
+    // NOTE(zoubir): what AddressText resolved to, kept for reconnects
+    char ResolvedText[64];
+    net_address Resolved;
     char NameText[NET_NAME_SIZE];
     // NOTE(zoubir): set by OnlineConnect, cleared when the player leaves;
     // while set, a dropped connection is retried
@@ -99,9 +104,22 @@ OnlineConnect(online_session *Online, char *Address, char *Name)
     {
         CopyString(Online->NameText, sizeof(Online->NameText), Name);
     }
-    net_address Server;
-    Online->BadAddress = !NetParseAddress(Online->AddressText, &Server);
-    if (!Online->BadAddress && NetSocketsStartup())
+    net_address Server = Online->Resolved;
+    bool32 Started = NetSocketsStartup();
+    bool32 Known = Online->ResolvedText[0] &&
+        StringsMatchIgnoringCase(Online->ResolvedText, Online->AddressText);
+    if (Started && !Known)
+    {
+        Known = NetResolveServer(Online->AddressText, &Server);
+        if (Known)
+        {
+            Online->Resolved = Server;
+            CopyString(Online->ResolvedText, sizeof(Online->ResolvedText),
+                       Online->AddressText);
+        }
+    }
+    Online->BadAddress = Started && !Known;
+    if (Started && Known)
     {
         u32 Salt = (u32)time(0) ^ (u32)(size_t)Online ^ Online->Client.Salt;
         Online->Enabled = NetClientConnect(&Online->Client, Server, Salt,
@@ -230,13 +248,31 @@ GetOnlinePhase(online_session *Online)
     return Result;
 }
 
+// NOTE(zoubir): what to call the server: its own name once joined, else
+// its name in the server list, else the address as typed
+internal char *
+GetOnlineServerName(online_session *Online)
+{
+    char *Result = (char *)"";
+    if (Online)
+    {
+        server_entry *Entry = FindServerByAddress(Online->AddressText);
+        Result = Entry ? Entry->Name : Online->AddressText;
+        if (IsOnline(Online) && Online->Client.ServerName[0])
+        {
+            Result = Online->Client.ServerName;
+        }
+    }
+    return Result;
+}
+
 internal void
 GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
 {
     Out[0] = 0;
     if (Online && Online->BadAddress)
     {
-        snprintf(Out, OutSize, "Offline: write the address as a.b.c.d:port");
+        snprintf(Out, OutSize, "Offline: cannot find server %s", Online->AddressText);
         return;
     }
     if (!Online || !Online->Enabled)
@@ -248,19 +284,19 @@ GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
     {
         case NetClient_Connecting:
         {
-            snprintf(Out, OutSize, "Connecting to %s", Online->AddressText);
+            snprintf(Out, OutSize, "Connecting to %s", GetOnlineServerName(Online));
         } break;
         case NetClient_Connected:
         {
             if (Online->NameText[0])
             {
                 snprintf(Out, OutSize, "Online at %s as %s",
-                         Online->AddressText, Online->NameText);
+                         GetOnlineServerName(Online), Online->NameText);
             }
             else
             {
                 snprintf(Out, OutSize, "Online at %s as Player %u",
-                         Online->AddressText, Client->PlayerIndex + 1);
+                         GetOnlineServerName(Online), Client->PlayerIndex + 1);
             }
         } break;
         case NetClient_Disconnected:
@@ -390,5 +426,6 @@ GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
 {
     Out[0] = 0;
 }
+internal char *GetOnlineServerName(online_session *Online) { return (char *)""; }
 
 #endif

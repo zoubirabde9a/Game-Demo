@@ -1,10 +1,12 @@
 /* Entry point of the dedicated server.
-   Usage: server [port] [--map <name>] [--bots <count>]
+   Usage: server [port] [--map <name>] [--bots <count>] [--name <server name>]
    Runs ServerTick SERVER_TICK_RATE times a second until Ctrl+C or a
    service stop, then tells every player it is closing and exits 0. The
    map is any map's name or its last word ("keep", "wilds", "ashen
    wastes"); players who join get it in the connect reply. --bots keeps
    that many bot players in the slots no human uses (server/bots.cpp).
+   --name is what players see in the server list and HUD, up to 23
+   characters; without it clients use the name in their own server list.
    Build with build_server.bat (Windows) or build_server.sh (Linux). */
 
 #include <stdio.h>
@@ -20,6 +22,7 @@ main(int ArgCount, char **Args)
     u16 Port = SERVER_DEFAULT_PORT;
     u32 MapId = MapId_Arena;
     u32 Bots = 0;
+    const char *Name = 0;
     for (int Arg = 1; Arg < ArgCount; ++Arg)
     {
         if (strcmp(Args[Arg], "--map") == 0 && Arg + 1 < ArgCount)
@@ -38,6 +41,11 @@ main(int ArgCount, char **Args)
             MapId = Found;
             continue;
         }
+        if (strcmp(Args[Arg], "--name") == 0 && Arg + 1 < ArgCount)
+        {
+            Name = Args[++Arg];
+            continue;
+        }
         if (strcmp(Args[Arg], "--bots") == 0 && Arg + 1 < ArgCount)
         {
             Bots = (u32)atoi(Args[++Arg]);
@@ -47,7 +55,7 @@ main(int ArgCount, char **Args)
         int Parsed = atoi(Args[Arg]);
         if (Parsed <= 0 || Parsed > 65535)
         {
-            fprintf(stderr, "usage: server [port] [--map <name>] [--bots <count>]\n");
+            fprintf(stderr, "usage: server [port] [--map <name>] [--bots <count>] [--name <server name>]\n");
             return 1;
         }
         Port = (u16)Parsed;
@@ -60,7 +68,7 @@ main(int ArgCount, char **Args)
     }
 
     static server Server;
-    if (!ServerStart(&Server, Port, MapId))
+    if (!ServerStart(&Server, Port, MapId, Name))
     {
         fprintf(stderr, "could not open UDP port %u\n", Port);
         return 1;
@@ -69,9 +77,10 @@ main(int ArgCount, char **Args)
     Server.Game.BotTarget = Bots;
     StopSignalInstall();
     // The content id tells which game build this is; clients must match it.
-    printf("server listening on UDP port %u at %d ticks/s, content id %08x, map %s\n",
-           Port, SERVER_TICK_RATE, Server.Clients.ContentId,
-           GetMapDef((map_id)MapId)->Name);
+    printf("server%s%s%s listening on UDP port %u at %d ticks/s, content id %08x, map %s\n",
+           Server.Clients.ServerName[0] ? " \"" : "", Server.Clients.ServerName,
+           Server.Clients.ServerName[0] ? "\"" : "", Port, SERVER_TICK_RATE,
+           Server.Clients.ContentId, GetMapDef((map_id)MapId)->Name);
     fflush(stdout);
 
     double TickSeconds = 1.0 / SERVER_TICK_RATE;
