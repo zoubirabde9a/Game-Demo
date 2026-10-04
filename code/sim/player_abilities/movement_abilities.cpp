@@ -1,5 +1,7 @@
 /* Movement abilities: the keys that move the player at once (dash,
-   blink, slam), as a table. Using one is the same for every row: it needs its
+   blink, slam), as a table. A monster kill takes some or all of each
+   one's cooldown off (KillRefund): dash and slam are ready again at
+   once, blink half way. Using one is the same for every row: it needs its
    key and its cooldown, cuts a swing's or cast's root and an area cast,
    lights DashFlash (while it lasts the player cannot be hurt or shoved,
    IsDodging in entity.cpp, and clients draw the streak from it) and plays
@@ -26,6 +28,9 @@ struct player_movement_ability
 {
     u32 Button;
     float Cooldown;
+    // NOTE(zoubir): share of the cooldown left that a monster kill takes
+    // off, so aggression keeps the player moving
+    float KillRefund;
     float Power;
     player_motion_function *Motion;
 };
@@ -92,13 +97,22 @@ SlamMotion(app_state *AppState, world *World, memory_arena *Arena,
 global_variable player_movement_ability PlayerMovements[PlayerMove_Count] =
 {
     // NOTE(zoubir): Dash (Alt)
-    {PlayerButton_Dash, 0.8f, 650.f, DashMotion},
+    {PlayerButton_Dash, 0.8f, 1.f, 650.f, DashMotion},
     // NOTE(zoubir): Blink (F), as far as the cursor can reach
-    {PlayerButton_Blink, 3.f, PLAYER_AIM_REACH, BlinkMotion},
+    {PlayerButton_Blink, 3.f, 0.5f, PLAYER_AIM_REACH, BlinkMotion},
     // NOTE(zoubir): Slam (C), in the air
-    {PlayerButton_Slam, 2.f, 900.f, SlamMotion},
+    {PlayerButton_Slam, 2.f, 1.f, 900.f, SlamMotion},
 };
 static_assert(PlayerMove_Count <= PLAYER_MOVEMENT_SLOTS, "one cooldown each");
+
+internal void
+RefundOnKill(world_entity *Player)
+{
+    for(u32 Index = 0; Index < PlayerMove_Count; Index++)
+    {
+        Player->MovementCooldowns[Index] *= 1.f - PlayerMovements[Index].KillRefund;
+    }
+}
 
 // NOTE(zoubir): every movement ability's button; they move only the
 // player, so a client predicts them (client/prediction.cpp)

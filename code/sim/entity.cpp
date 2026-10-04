@@ -281,6 +281,10 @@ IsClearOfGround(world_entity *Entity)
 }
 
 // NOTE(zoubir): every hit goes through here so deaths are counted once
+// NOTE(zoubir): a player's kill refunds cooldowns
+// (player_abilities/movement_abilities.cpp, included later)
+internal void RefundOnKill(world_entity *Player);
+
 internal bool32
 DamageEntity(app_state *AppState, world *World,
              world_entity *Target, float Damage, world_entity *Source)
@@ -317,6 +321,10 @@ DamageEntity(app_state *AppState, world *World,
         if (Attacker)
         {
             Attacker->MonsterKills++;
+            if (Attacker->Entity)
+            {
+                RefundOnKill(Attacker->Entity);
+            }
         }
     }
     else if (Target->Type == EntityType_Player)

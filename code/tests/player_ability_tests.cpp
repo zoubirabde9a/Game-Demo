@@ -1153,6 +1153,28 @@ TestBodyPosesFollowMotion()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): killing a monster readies the dash at once and halves
+// the blink's wait
+internal void
+TestMonsterKillRefundsMovement()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {500, 300, 0}, Test.UnitVolume);
+    Monster->MaxHp = Monster->Hp = 1.f;
+    Player->MovementCooldowns[PlayerMove_Dash] = 0.6f;
+    Player->MovementCooldowns[PlayerMove_Blink] = 2.f;
+    DamageEntity(AppState, Test.World, Monster, 10.f, Player);
+    Check(!Monster->IsPresent);
+    Check(Player->MovementCooldowns[PlayerMove_Dash] == 0.f);
+    Check(Absolute(Player->MovementCooldowns[PlayerMove_Blink] - 1.f) < 0.001f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1228,4 +1250,6 @@ RunPlayerAbilityTests()
     TestStoppingFromARunSkids();
     printf("TestBodyPosesFollowMotion\n");
     TestBodyPosesFollowMotion();
+    printf("TestMonsterKillRefundsMovement\n");
+    TestMonsterKillRefundsMovement();
 }
