@@ -10,7 +10,7 @@
 DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
 DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, Window);
-DrawHud(RenderContext, AppState, CameraOffset);
+DrawHud(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawMinimap(RenderContext, AppState, Window->Width);
 DrawControlsPanel(RenderContext, AppState, Input, Window->Height);
 DrawRespawnCountdown(RenderContext, AppState, Window->Width, Window->Height);

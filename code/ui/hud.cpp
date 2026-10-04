@@ -58,10 +58,31 @@ DrawPlayerLabels(render_context *RenderContext, app_state *AppState,
     }
 }
 
+// NOTE(zoubir): a cooldown bar flashes and swells for HUD_PULSE_SECONDS
+// the moment its ability is ready again
+#define HUD_PULSE_SECONDS 0.3f
+
+struct hud_pulses
+{
+    bool32 WasReady[PLAYER_COOLDOWN_COUNT];
+    float Pulse[PLAYER_COOLDOWN_COUNT];
+};
+
 internal void
 DrawHud(render_context *RenderContext, app_state *AppState,
-        v3 CameraOffset)
+        v3 CameraOffset, float DeltaTime)
 {
+    if (!AppState->HudPulses)
+    {
+        AppState->HudPulses = AllocateStruct(&AppState->MemoryArena, hud_pulses);
+        *AppState->HudPulses = {};
+        // NOTE(zoubir): bars that start ready do not flash at launch
+        for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
+        {
+            AppState->HudPulses->WasReady[Index] = true;
+        }
+    }
+    hud_pulses *Pulses = AppState->HudPulses;
     world_entity *Player = GetLocalPlayer(AppState);
     if (!Player || Player->MaxHp <= 0.f)
     {
@@ -102,9 +123,26 @@ DrawHud(render_context *RenderContext, app_state *AppState,
         float *Seconds = PlayerCooldown(Player, Index, &Full);
         float Charge = 1.f - *Seconds / Full;
         bool32 Ready = Charge >= 1.f;
+        if (Ready && !Pulses->WasReady[Index])
+        {
+            Pulses->Pulse[Index] = 1.f;
+        }
+        Pulses->WasReady[Index] = Ready;
+        float Pulse = Pulses->Pulse[Index];
+        Pulses->Pulse[Index] = Maximum(0.f, Pulse - DeltaTime / HUD_PULSE_SECONDS);
         float BarX = X + AbilityIndex * (BarWidth + BarGap);
-        DrawHudBar(RenderContext, BarX, Y, BarWidth, 6.f, Charge,
+        // NOTE(zoubir): the flash: the bar swells and a white frame fades
+        float Swell = 3.f * Pulse;
+        DrawHudBar(RenderContext, BarX - Swell, Y - Swell, BarWidth + 2.f * Swell,
+                   6.f + 2.f * Swell, Charge,
                    Ready ? UI_COLOR_ACCENT : UI_COLOR_DIM);
+        if (Pulse > 0.f)
+        {
+            u32 Flash = ((u32)(255.f * Pulse) << 24) | 0x00FFFFFF;
+            DrawRectangle(RenderContext, BarX - Swell - 1.f, Y - Swell - 1.f,
+                          BarWidth + 2.f * Swell + 2.f, 8.f + 2.f * Swell,
+                          Flash, 0.f);
+        }
         UIText(RenderContext, Small, BarX + 0.5f * BarWidth, Y + 8.f,
                ActionKeyLabel(PlayerCooldownButton(Index)),
                Ready ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED, UIAlign_Center);
