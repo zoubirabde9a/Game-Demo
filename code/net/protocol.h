@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d4bu // "GDMK", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d4cu // "GDML", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -119,10 +119,12 @@ struct net_entity_state
     i16 Health;
     // Sent as 16-bit fixed point: positions to 1/8 unit within +-4096,
     // velocities to 1/4 unit per second within +-8192. Values outside are
-    // clamped. Z and velocity are left out when they are zero (18 bytes an
-    // entity at most, 12 for one standing on the ground). Type fits 6 bits.
+    // clamped. Z and velocity are left out when they are zero, and VelZ
+    // travels with Z (20 bytes an entity at most, 12 for one standing on
+    // the ground). Type fits 6 bits.
     float X, Y, Z; // Z is height above the floor (jumps)
     float VelX, VelY;
+    float VelZ;    // vertical speed, while off the ground
 };
 
 // A monster ability being telegraphed or carried out, so clients can draw

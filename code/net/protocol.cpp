@@ -63,8 +63,15 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     NetI16(S, &E->Health);
     NetFixed16(S, &E->X, NET_POSITION_STEPS);
     NetFixed16(S, &E->Y, NET_POSITION_STEPS);
-    if (TypeAndFlags & NET_ENTITY_HAS_Z) NetFixed16(S, &E->Z, NET_POSITION_STEPS);
-    else E->Z = 0.f;
+    if (TypeAndFlags & NET_ENTITY_HAS_Z)
+    {
+        NetFixed16(S, &E->Z, NET_POSITION_STEPS);
+        NetFixed16(S, &E->VelZ, NET_VELOCITY_STEPS);
+    }
+    else
+    {
+        E->Z = E->VelZ = 0.f;
+    }
     if (TypeAndFlags & NET_ENTITY_MOVING)
     {
         NetFixed16(S, &E->VelX, NET_VELOCITY_STEPS);

@@ -10,11 +10,11 @@
    Movement, facing (the aim toward the cursor), jump and the movement
    abilities (dash, blink, the slam's dive) are predicted: they move only
    the player, so they happen the frame they are pressed. Snapshots carry
-   no vertical speed, jumps spent or a waiting jump press, so each input
-   keeps those as they were after it (predicted_body), and a replay starts
-   from the ones the server last acknowledged rather than from zero (which
-   pulled a jump down between snapshots and refused replayed double
-   jumps). Each recorded input keeps which buttons went down on it, worked
+   the player's vertical speed, so a replay starts from the server's,
+   throws and launches included; they carry no jumps spent, waiting jump
+   press or cast under way, so each input keeps those as they were after
+   it (predicted_body), and a replay starts from the ones the server last
+   acknowledged (without, replayed double jumps were refused). Each recorded input keeps which buttons went down on it, worked
    out the same way the server does, and the cooldowns the server sends
    say whether the movement abilities are ready; UpdatePlayer counts them
    down as it steps, replays included. Area casts are predicted too (the
@@ -42,7 +42,6 @@
 // acknowledged. A new field the player's moves depend on goes here.
 struct predicted_body
 {
-    float VelocityZ;
     u32 JumpsUsed;
     float JumpBuffer;
     float VaultPush;
@@ -56,7 +55,6 @@ inline predicted_body
 SavePredictedBody(world_entity *Player)
 {
     predicted_body Result;
-    Result.VelocityZ = Player->Velocity.Z;
     Result.JumpsUsed = Player->JumpsUsed;
     Result.JumpBuffer = Player->JumpBuffer;
     Result.VaultPush = Player->VaultPush;
@@ -73,7 +71,6 @@ RestorePredictedBody(world_entity *Player, predicted_body *Body)
 {
     if (Player->Position.Z > 0.f)
     {
-        Player->Velocity.Z = Body->VelocityZ;
         Player->JumpsUsed = Body->JumpsUsed;
         Player->JumpBuffer = Body->JumpBuffer;
     }

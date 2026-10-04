@@ -237,7 +237,11 @@ TestOverfullSnapshotIsTrimmed()
     u32 Dropped = 0;
     u32 Size = NetWriteSnapshotFitting(&P, Buffer, sizeof(Buffer), &Dropped);
     Check(Size > 0 && Size <= NET_MAX_PACKET_SIZE);
-    Check(Dropped >= 1 && Dropped <= 2);
+    printf("  overfull snapshot: %u of %u entities left out\n", Dropped,
+           NET_MAX_SNAPSHOT_ENTITIES);
+    // NOTE(zoubir): an airborne entity is 20 bytes since vertical speed
+    // travels with its height (it was 18, and 1 or 2 were left out; now 3)
+    Check(Dropped >= 1 && Dropped <= 4);
     Check(P.Snapshot.Count == NET_MAX_SNAPSHOT_ENTITIES - Dropped);
     static net_packet Out;
     Check(NetReadPacket(Buffer, Size, &Out));
@@ -712,7 +716,7 @@ TestInfoQueryRoundTripsAndIsNotAnAmplifier()
 }
 
 // Height and velocity are left out when zero: a still entity on the ground
-// costs 12 bytes, a jumping, moving one 18, and both read back exactly.
+// costs 12 bytes, a jumping, moving one 20, and both read back exactly.
 internal void
 TestStillEntitiesAreSmaller()
 {
@@ -735,7 +739,7 @@ TestStillEntitiesAreSmaller()
     P.Snapshot.Entities[0].Z = 12.5f;
     P.Snapshot.Entities[0].VelX = -30.25f;
     u32 Moving = NetWritePacket(&P, Buffer, sizeof(Buffer));
-    Check(Moving == Still + 6);
+    Check(Moving == Still + 8);
     Check(NetReadPacket(Buffer, Moving, &Out));
     Check(Out.Snapshot.Entities[0].Z == 12.5f && Out.Snapshot.Entities[0].VelX == -30.25f);
     Check(Out.Snapshot.Entities[0].VelY == 0.f && Out.Snapshot.Entities[0].Type == 4);
@@ -842,8 +846,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d4bu
-#define NET_GOLDEN_LAYOUT 0x0e663f86u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d4cu
+#define NET_GOLDEN_LAYOUT 0x6d15376du
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

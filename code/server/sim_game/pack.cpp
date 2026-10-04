@@ -142,6 +142,7 @@ SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
     E->Z = Entity->Position.Z;
     E->VelX = Entity->Velocity.X;
     E->VelY = Entity->Velocity.Y;
+    E->VelZ = Entity->Velocity.Z;
 
     SimGameWriteAbility(Entity, (u8)(Out->Count - 1), Out);
     SimGameWriteFacing(Entity, (u8)(Out->Count - 1), Out);
