@@ -76,6 +76,10 @@ struct player_slot
 
     player_delayed_input DelayedInput[32];
     u32 DelayedInputCount;
+    // NOTE(zoubir): set while the client steps its own slot to predict it
+    // (client/prediction.cpp): what touches anyone else (a slam's hit)
+    // waits for the server
+    bool32 Predicted;
 };
 
 inline bool32

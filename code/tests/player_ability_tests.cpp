@@ -924,6 +924,31 @@ TestSlamFromTheAir()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a predicted slam dives and lands but leaves the hit to the
+// server
+internal void
+TestPredictedSlamLeavesHitToServer()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *Near = AddTestEntity(&Test, EntityType_Monster,
+                                       {350, 300, 0}, Test.UnitVolume);
+    Near->MaxHp = Near->Hp = 100.f;
+    player_slot *Slot = &AppState->Players[0];
+    Slot->Predicted = true;
+    Slot->Input.Pressed = PlayerButton_Jump;
+    RunPlayerFrames(&Test, 0, 12);
+    Slot->Input.Pressed = PlayerButton_Slam;
+    RunPlayerFrames(&Test, 0, 8);
+    Check(Player->Position.Z == 0.f);
+    Check(Player->PendingLandArea == 0);
+    Check(Near->Hp == 100.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -987,4 +1012,6 @@ RunPlayerAbilityTests()
     TestSwingInTheAirShowsSwing();
     printf("TestSlamFromTheAir\n");
     TestSlamFromTheAir();
+    printf("TestPredictedSlamLeavesHitToServer\n");
+    TestPredictedSlamLeavesHitToServer();
 }

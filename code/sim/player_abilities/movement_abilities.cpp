@@ -100,6 +100,19 @@ global_variable player_movement_ability PlayerMovements[PlayerMove_Count] =
 };
 static_assert(PlayerMove_Count <= PLAYER_MOVEMENT_SLOTS, "one cooldown each");
 
+// NOTE(zoubir): every movement ability's button; they move only the
+// player, so a client predicts them (client/prediction.cpp)
+internal u32
+PlayerMovementButtons()
+{
+    u32 Result = 0;
+    for(u32 Index = 0; Index < PlayerMove_Count; Index++)
+    {
+        Result |= PlayerMovements[Index].Button;
+    }
+    return Result;
+}
+
 internal void
 UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
                      world_entity *Player, player_input *Input,

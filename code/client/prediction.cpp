@@ -7,8 +7,8 @@
    has not applied yet are replayed on top, so the replica lands where the
    server will have it once those inputs arrive.
 
-   Movement, facing (the aim toward the cursor), jump, dash and blink are
-   predicted: they move only the player, so they happen the frame they
+   Movement, facing (the aim toward the cursor), jump and the movement
+   abilities (dash, blink, the slam's dive) are predicted: they move only the player, so they happen the frame they
    are pressed. Snapshots carry no vertical speed, so each input keeps
    the player's vertical speed after it, and a replay starts from the
    one the server last acknowledged rather than from zero (which pulled
@@ -141,12 +141,16 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     Slot->Input.Move = MoveFromNetButtons(Input->Buttons);
     Slot->Input.Aim = Input->Aim;
     Slot->Input.Pressed = ((u32)Input->Pressed >> PLAYER_BUTTON_NET_SHIFT) &
-        (PlayerButton_Jump | PlayerButton_Dash | PlayerButton_Blink);
+        (PlayerButton_Jump | PlayerMovementButtons());
     float AnimationSpeed;
     animation_type AnimationType;
     animation_direction AnimationDirection;
+    // NOTE(zoubir): only for this step, so going back to offline play the
+    // slot acts in full again
+    Slot->Predicted = true;
     UpdatePlayer(Slot, &AppState->World, Arena, Input->DeltaTime, AppState,
                  &AnimationSpeed, &AnimationType, &AnimationDirection);
+    Slot->Predicted = false;
     Input->VelocityZAfter = Player->Velocity.Z;
     Input->JumpsUsedAfter = Player->JumpsUsed;
     Player->AnimationType = AnimationType;

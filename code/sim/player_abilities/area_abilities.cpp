@@ -126,6 +126,10 @@ FireAreaOnLanding(app_state *AppState, world *World, world_entity *Player)
     player_area_ability *Ability =
         &PlayerAreaAbilities[Player->PendingLandArea - 1];
     Player->PendingLandArea = 0;
+    if (AppState->Players[Player->PlayerIndex].Predicted)
+    {
+        return;
+    }
     v2 Aim = GetPlayerAim(Player);
     FireAreaAbility(AppState, World, Player, Ability, Aim);
     EmitBurst(&AppState->Events, Ability->Burst, (u8)Player->PlayerIndex,
