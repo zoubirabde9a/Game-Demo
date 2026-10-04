@@ -314,13 +314,15 @@ DamageEntity(app_state *AppState, world *World,
         Attacker = &AppState->Players[Source->OwnerSlot];
     }
 
+    // NOTE(zoubir): monsters and players alike burst as they die
+    v3 Chest = Target->Position;
+    Chest.Z += 14.f;
+    EmitBurst(&AppState->Events, SimBurst_Death,
+              Attacker ? (u8)(Attacker - AppState->Players) : SIM_NOBODY,
+              Chest);
+
     if (Target->Type == EntityType_Monster)
     {
-        v3 Chest = Target->Position;
-        Chest.Z += 14.f;
-        EmitBurst(&AppState->Events, SimBurst_Death,
-                  Attacker ? (u8)(Attacker - AppState->Players) : SIM_NOBODY,
-                  Chest);
         RecordMonsterDeath(AppState, Target);
         RemoveEntity(World, Target);
         if (Attacker)

@@ -72,6 +72,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Skid, 0.35f, 24.f, 0x00C8D8E0, true, 0.f, BurstPose_None},      // Skid, dust
     {BurstShape_Puff, 0.3f, 9.f, 0x00C8D8E0, true, 0.f, BurstPose_None},        // Step, dust
     {BurstShape_Death, 0.45f, 30.f, 0x00E8F0FF, false, 0.25f, BurstPose_None},  // Death, pale
+    {BurstShape_Column, 0.6f, 30.f, 0x00FFE0A0, false, 0.f, BurstPose_None},    // Spawn, pale blue
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these

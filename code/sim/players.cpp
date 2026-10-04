@@ -197,5 +197,7 @@ UpdateDeadPlayer(player_slot *Slot, world *World, memory_arena *Arena,
     Player->PendingLandArea = 0;
     CheckAndChangeEntityChunk(AppState, World, Arena,
                               OldPosition, Player);
+    EmitBurst(&AppState->Events, SimBurst_Spawn, (u8)Player->PlayerIndex,
+              Player->Position);
     return false;
 }

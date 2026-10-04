@@ -40,7 +40,8 @@ enum sim_burst
     SimBurst_SwingArcFinisher, // a combo's last swing, wider and brighter
     SimBurst_Skid,         // dust kicked forward when a run stops, along Angle
     SimBurst_Step,         // a footstep's dust; clients make these themselves
-    SimBurst_Death,        // a monster bursting as it dies
+    SimBurst_Death,        // a monster or player bursting as it dies
+    SimBurst_Spawn,        // a beam where a player comes back
     SimBurst_Count
 };
 
