@@ -36,10 +36,14 @@ struct player_movement_ability
 };
 
 #define PLAYER_DASH_FLASH_SECONDS 0.15f
+// NOTE(zoubir): the vertical speed an air dash leaves; a little up, so the
+// dash holds its height for a moment against gravity
+#define PLAYER_AIR_DASH_LIFT 120.f
 
 // NOTE(zoubir): a burst of Power speed the way the keys point, or toward
 // the aim when standing; ground drag eases it back to a walk in about a
-// quarter second, about 65 units travelled
+// quarter second, about 65 units travelled. In the air it also stops the
+// fall, so a jump and a dash carry the player level across a gap
 internal bool32
 DashMotion(app_state *AppState, world *World, memory_arena *Arena,
            world_entity *Player, player_input *Input, float DeltaTime,
@@ -52,6 +56,10 @@ DashMotion(app_state *AppState, world *World, memory_arena *Arena,
         Dir = Input->Move * (1.f / SquareRoot(HeldSquared));
     }
     Player->Velocity.XY = Power * Dir;
+    if (!IsOnGround(Player))
+    {
+        Player->Velocity.Z = Maximum(Player->Velocity.Z, PLAYER_AIR_DASH_LIFT);
+    }
     return true;
 }
 

@@ -1229,6 +1229,40 @@ TestAreaEffectsFollowTheirRows()
     }
 }
 
+// NOTE(zoubir): a dash while falling stops the fall, and a jump with a
+// dash at its top lands farther than one without
+internal void
+TestAirDashCarriesFarther()
+{
+    float Landed[2];
+    for(u32 WithDash = 0; WithDash < 2; WithDash++)
+    {
+        test_world Test = CreateTestWorld();
+        app_state *AppState = Test.AppState;
+        AppState->PlayerCollision = Test.UnitVolume;
+        world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                               0, {300, 300, 0});
+        player_slot *Slot = &AppState->Players[0];
+        Slot->Input.Move = V2(1.f, 0.f);
+        Slot->Input.Pressed = PlayerButton_Jump;
+        RunPlayerFrames(&Test, 0, 16);
+        Check(Player->Velocity.Z < 0.f);
+        if (WithDash)
+        {
+            Slot->Input.Pressed = PlayerButton_Dash;
+            RunPlayerFrames(&Test, 0, 1);
+            Check(Player->Velocity.Z > 0.f);
+        }
+        for(u32 Frame = 0; Frame < 120 && Player->Position.Z > 0.f; Frame++)
+        {
+            RunPlayerFrames(&Test, 0, 1);
+        }
+        Landed[WithDash] = Player->Position.X;
+        DestroyTestWorld(&Test);
+    }
+    Check(Landed[1] > Landed[0] + 40.f);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1310,4 +1344,6 @@ RunPlayerAbilityTests()
     TestRespawnIsShielded();
     printf("TestAreaEffectsFollowTheirRows\n");
     TestAreaEffectsFollowTheirRows();
+    printf("TestAirDashCarriesFarther\n");
+    TestAirDashCarriesFarther();
 }
