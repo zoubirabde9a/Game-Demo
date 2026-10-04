@@ -742,6 +742,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 }
 
 #include "monster_tests.cpp"
+#include "sprite_sheet_tests.cpp"
 #include "terrain_tests.cpp"
 #include "collision_tests.cpp"
 #include "online_tests.cpp"
@@ -781,6 +782,7 @@ main()
     RUN(TestSwitchingMapsReusesWorldMemory);
 
     RunMonsterTests();
+    RunSpriteSheetTests();
     RunTerrainTests();
     RunCollisionTests();
     RunOnlineTests();
