@@ -87,7 +87,6 @@ internal bool32 RunPlayerCombo(app_state *AppState, world *World,
                                memory_arena *Arena, world_entity *Player,
                                combo_move Move, player_tick *Tick);
 
-#include "player_abilities/hits.cpp"
 #include "player_abilities/sword.cpp"
 #include "player_abilities/fireball.cpp"
 #include "player_abilities/spawn_actions.cpp"

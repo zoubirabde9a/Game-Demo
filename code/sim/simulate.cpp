@@ -22,6 +22,12 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
         {
             continue;
         }
+        // NOTE(zoubir): a monster in a hit-pause (sim/hit.cpp) skips its
+        // update and animation this tick
+        if (TickHitStop(Entity, DeltaTime))
+        {
+            continue;
+        }
 
         float AnimationSpeed = 1.f;
         animation_type AnimationType = AnimationType_Stand;

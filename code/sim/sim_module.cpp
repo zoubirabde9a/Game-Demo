@@ -26,6 +26,7 @@
 #include "terrain/terrain_module.cpp"
 #include "animations.cpp"
 #include "monster_kinds.cpp"
+#include "hit.cpp"
 #include "impacts.cpp"
 #include "spawn.cpp"
 #include "players.cpp"

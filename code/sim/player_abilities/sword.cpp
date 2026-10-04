@@ -19,7 +19,7 @@
 // SWORD_REACH and SWORD_HALF_ANGLE)
 struct sword_cut
 {
-    player_hit Hit;
+    hit Hit;
     sim_burst Arc;
     float Reach;
     float HalfAngle;
@@ -90,8 +90,8 @@ SwordHit(app_state *AppState, world *World, world_entity *Sword,
     }
     u32 Cut = Sword->ComboStep < SwordCut_Count ? Sword->ComboStep :
         SwordCut_Finisher;
-    ApplyPlayerHit(AppState, World, Target, &SwordCuts[Cut].Hit, Away,
-                   Sword->OwnerSlot, Sword);
+    ApplyHit(AppState, World, Target, &SwordCuts[Cut].Hit, Away,
+             Sword, Sword->OwnerSlot);
 }
 
 // NOTE(zoubir): a sword of cut Cut toward Dir, without touching the chain

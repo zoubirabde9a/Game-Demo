@@ -40,6 +40,31 @@ CountBursts(app_state *AppState, sim_burst Kind)
     return Result;
 }
 
+// NOTE(zoubir): the walking kind with the least (Heaviest false) or most
+// health, which is how heavy it is to throw. Tests that measure a throw
+// use the lightest, which takes a hit's full knockback (hit.cpp
+// KnockbackScale); kind 0 may be heavy
+internal monster_kind
+FindWalkerByWeight(bool32 Heaviest)
+{
+    monster_kind Result = MonsterKind_Count;
+    for(u32 Kind = 0; Kind < MonsterKind_Count; Kind++)
+    {
+        monster_def *Def = GetMonsterDef((monster_kind)Kind);
+        if (Def->FlyHeight > 0.f)
+        {
+            continue;
+        }
+        if (Result == MonsterKind_Count ||
+            (Heaviest ? Def->MaxHp > GetMonsterDef(Result)->MaxHp :
+                        Def->MaxHp < GetMonsterDef(Result)->MaxHp))
+        {
+            Result = (monster_kind)Kind;
+        }
+    }
+    return Result;
+}
+
 // NOTE(zoubir): runs the slot's player for Frames ticks; presses only
 // count on the first
 internal animation_direction
@@ -432,6 +457,7 @@ TestSwordShovesSurvivorAway()
                                              0, {300, 300, 0});
     world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
                                           {330, 300, 0}, Test.UnitVolume);
+    Monster->MonsterKind = FindWalkerByWeight(false);
     Monster->MaxHp = Monster->Hp = 100.f;
     world_entity *Sword = AddSword(AppState, Test.World, &Test.Arena,
                                    {316, 300, 0}, Attacker,
@@ -745,6 +771,7 @@ TestLaunchThrowsUpAndStuns()
     AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
     world_entity *Target = AddTestEntity(&Test, EntityType_Monster,
                                          {370, 300, 0}, Test.UnitVolume);
+    Target->MonsterKind = FindWalkerByWeight(false);
     Target->MaxHp = Target->Hp = 100.f;
     AppState->Players[0].Input.Aim = V2(1.f, 0.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Launch;
@@ -774,6 +801,7 @@ TestDashCutsAreaCast()
                                            0, {300, 300, 0});
     world_entity *Target = AddTestEntity(&Test, EntityType_Monster,
                                          {370, 300, 0}, Test.UnitVolume);
+    Target->MonsterKind = FindWalkerByWeight(false);
     Target->MaxHp = Target->Hp = 100.f;
     AppState->Players[0].Input.Aim = V2(1.f, 0.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Launch;
@@ -847,6 +875,7 @@ TestImpactKillIsThePushers()
     world_entity *Victim = AddTestEntity(&Test, EntityType_Monster,
                                          {350, 300, 0}, Test.UnitVolume);
     float PushDamage = PlayerAreaAbilities[PlayerArea_Push].Hit.Damage;
+    Victim->MonsterKind = FindWalkerByWeight(false);
     Victim->MaxHp = 100.f;
     Victim->Hp = PushDamage + 1.f;
     AppState->Players[0].Input.Aim = V2(1.f, 0.f);
@@ -1078,11 +1107,113 @@ TestSwordJugglesAirborneTarget()
                                          {330, 330, 30}, Test.UnitVolume);
     Grounded->MaxHp = Grounded->Hp = Flying->MaxHp = Flying->Hp = 100.f;
     Flying->Velocity.Z = -100.f;
-    player_hit *Hit = &SwordCuts[SwordCut_First].Hit;
-    ApplyPlayerHit(AppState, Test.World, Grounded, Hit, V2(1.f, 0.f), 0, Attacker);
-    ApplyPlayerHit(AppState, Test.World, Flying, Hit, V2(1.f, 0.f), 0, Attacker);
+    hit *Hit = &SwordCuts[SwordCut_First].Hit;
+    ApplyHit(AppState, Test.World, Grounded, Hit, V2(1.f, 0.f), Attacker, 0);
+    ApplyHit(AppState, Test.World, Flying, Hit, V2(1.f, 0.f), Attacker, 0);
     Check(Grounded->Velocity.Z == 0.f);
-    Check(Flying->Velocity.Z == Hit->AirLift);
+    Check(Flying->Velocity.Z == KnockbackScale(Flying) * Hit->AirLift);
+    Check(Flying->Velocity.Z > 0.f);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): the same slam throws a light monster farther and higher
+// than a heavy one, and both come down and stop
+internal void
+TestHeavyUnitsFlyLess()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    monster_kind Kinds[2] = {FindWalkerByWeight(false), FindWalkerByWeight(true)};
+    Check(Kinds[0] != Kinds[1]);
+    float Distance[2] = {};
+    float Peak[2] = {};
+    for(u32 Index = 0; Index < 2; Index++)
+    {
+        world_entity *Unit = AddTestEntity(&Test, EntityType_Monster,
+                                           {300.f, 300.f + 200.f * Index, 0.f},
+                                           Test.UnitVolume);
+        Unit->MonsterKind = Kinds[Index];
+        Unit->MaxHp = Unit->Hp = 1000.f;
+        hit *Hit = &PlayerAreaAbilities[PlayerArea_Slam].Hit;
+        Check(ApplyHit(AppState, Test.World, Unit, Hit, V2(1.f, 0.f), 0,
+                       SIM_NOBODY));
+        float AnimationSpeed;
+        animation_type AnimationType;
+        animation_direction AnimationDirection;
+        float Dt = Test.Input.DeltaTime;
+        for(u32 Frame = 0; Frame < 120; Frame++)
+        {
+            if (!TickHitStop(Unit, Dt))
+            {
+                UpdateMonster(Unit, Test.World, &Test.Arena, Dt, AppState,
+                              &AnimationSpeed, &AnimationType,
+                              &AnimationDirection);
+            }
+            Unit->StatusTimers[StatusEffect_Stunned] =
+                Maximum(0.f, Unit->StatusTimers[StatusEffect_Stunned] - Dt);
+            Peak[Index] = Maximum(Peak[Index], Unit->Position.Z);
+        }
+        Distance[Index] = Unit->Position.X - 300.f;
+        Check(Unit->Position.Z == 0.f);
+        Check(Length(Unit->Velocity.XY) < 1.f);
+    }
+    Check(Distance[1] < 0.8f * Distance[0]);
+    Check(Peak[1] < Peak[0]);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): a solid hit freezes the monster for a few ticks, never
+// longer than HITSTOP_MAX; another hit right after does not freeze it
+// again until the grace is over. Players never freeze
+internal void
+TestHitStopEnds()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Attacker = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                             0, {300, 300, 0});
+    world_entity *Target = AddTestEntity(&Test, EntityType_Monster,
+                                         {330, 300, 0}, Test.UnitVolume);
+    Target->MaxHp = Target->Hp = 1000.f;
+    hit *Hit = &SwordCuts[SwordCut_Finisher].Hit;
+    float Dt = Test.Input.DeltaTime;
+    ApplyHit(AppState, Test.World, Target, Hit, V2(1.f, 0.f), Attacker, 0);
+    Check(Target->HitStop > 0.f);
+    Check(Attacker->HitStop == 0.f);
+    u32 FrozenTicks = 0;
+    while (TickHitStop(Target, Dt) && FrozenTicks < 1000)
+    {
+        FrozenTicks++;
+    }
+    Check(FrozenTicks > 0);
+    Check(FrozenTicks <= (u32)(HITSTOP_MAX / Dt) + 1);
+    ApplyHit(AppState, Test.World, Target, Hit, V2(1.f, 0.f), Attacker, 0);
+    Check(!TickHitStop(Target, Dt));
+    for(u32 Frame = 0; Frame * Dt < HITSTOP_GRACE + Dt; Frame++)
+    {
+        Check(!TickHitStop(Target, Dt));
+    }
+    Check(Target->HitStop == 0.f);
+    ApplyHit(AppState, Test.World, Target, Hit, V2(1.f, 0.f), Attacker, 0);
+    Check(TickHitStop(Target, Dt));
+
+    // NOTE(zoubir): a monster hitting a player pauses itself, not the player
+    monster_ability Slam = {};
+    Slam.Kind = MonsterAbility_Slam;
+    Slam.Damage = 20.f;
+    Slam.Radius = 80.f;
+    Slam.Knockback = 600.f;
+    Attacker->SpawnShield = 0.f;
+    world_entity *Brute = AddTestEntity(&Test, EntityType_Monster,
+                                        {260, 300, 0}, Test.UnitVolume);
+    Brute->MaxHp = Brute->Hp = 100.f;
+    Check(HurtPlayersInRadius(AppState, Test.World, Brute,
+                              Brute->Position.XY, &Slam) == 1);
+    Check(Attacker->HitStop == 0.f);
+    Check(Brute->HitStop > 0.f);
+    // NOTE(zoubir): and an area hit throws the player up as well as out
+    Check(Attacker->Velocity.Z > 0.f);
+    Check(Attacker->Velocity.X > 0.f);
     DestroyTestWorld(&Test);
 }
 
@@ -1631,6 +1762,10 @@ RunPlayerAbilityTests()
     TestJumpPressedJustBeforeLanding();
     printf("TestSwordJugglesAirborneTarget\n");
     TestSwordJugglesAirborneTarget();
+    printf("TestHeavyUnitsFlyLess\n");
+    TestHeavyUnitsFlyLess();
+    printf("TestHitStopEnds\n");
+    TestHitStopEnds();
     printf("TestStoppingFromARunSkids\n");
     TestStoppingFromARunSkids();
     printf("TestBodyPosesFollowMotion\n");

@@ -177,6 +177,9 @@ struct world_entity
     // NOTE(zoubir): the player slot + 1 that last threw this unit (0 for
     // none), so kills by its impacts are theirs (sim/impacts.cpp)
     u32 ThrownBySlot;
+    // NOTE(zoubir): hit-pause: seconds left frozen after a solid hit while
+    // above 0, the grace before the next while below (sim/hit.cpp)
+    float HitStop;
     // NOTE(zoubir): set each tick from the ground underfoot
     // (sim/terrain_effects.cpp); 0 means 1
     float GroundSpeedScale;

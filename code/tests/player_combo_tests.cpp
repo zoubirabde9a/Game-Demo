@@ -24,6 +24,7 @@ AddComboTestTarget(test_world *Test, v2 At)
 {
     world_entity *Target = AddTestEntity(Test, EntityType_Monster,
                                          V3(At.X, At.Y, 0.f), Test->UnitVolume);
+    Target->MonsterKind = FindWalkerByWeight(false);
     Target->MaxHp = Target->Hp = 1000.f;
     return Target;
 }

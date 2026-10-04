@@ -7,7 +7,8 @@
    Poisoned  slow damage, long
    Slowed    movement acceleration scaled by STATUS_SLOW_SCALE
    Stunned   no moving, attacking or casting; physics still applies, so a
-             stunned unit thrown into the air falls back down */
+             stunned unit thrown into the air falls back down,
+             keeping most of its speed until it lands */
 
 #define STATUS_TICK_SECONDS 0.5f
 #define STATUS_BURN_DPS 8.f
@@ -50,11 +51,22 @@ GetMoveSpeedScale(world_entity *Entity)
     return Result;
 }
 
+// NOTE(zoubir): share of the drag a stunned monster keeps while it is in
+// the air, so a throw carries until it lands and ground friction stops it
+#define THROWN_AIR_FRICTION 0.3f
+
 // NOTE(zoubir): multiplies the drag that slows a unit down; under 1 on ice
+// and for a thrown monster in the air
 inline float
 GetGroundFriction(world_entity *Entity)
 {
     float Result = Entity->GroundFriction > 0.f ? Entity->GroundFriction : 1.f;
+    if (Entity->Type == EntityType_Monster &&
+        HasStatus(Entity, StatusEffect_Stunned) &&
+        Entity->Position.Z > Entity->GroundZ + 2.f)
+    {
+        Result *= THROWN_AIR_FRICTION;
+    }
     return Result;
 }
 

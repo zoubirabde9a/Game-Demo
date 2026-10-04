@@ -24,8 +24,8 @@ struct player_area_ability
     float Reach;
     float Radius;
     float ConeCos;
-    // NOTE(zoubir): what each target in it takes (hits.cpp)
-    player_hit Hit;
+    // NOTE(zoubir): what each target in it takes (sim/hit.cpp)
+    hit Hit;
     // NOTE(zoubir): what clients draw when it lands (events.h), and over
     // the area while it is cast so it can be seen coming (SimBurst_Count
     // for none)
@@ -97,8 +97,8 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
         }
 
         HitCount++;
-        ApplyPlayerHit(AppState, World, Target, &Ability->Hit, Away,
-                       Player->PlayerIndex, Player);
+        ApplyHit(AppState, World, Target, &Ability->Hit, Away,
+                 Player, Player->PlayerIndex);
     }
     return HitCount;
 }

@@ -133,14 +133,14 @@ static_assert(PlayerMove_Count <= PLAYER_MOVEMENT_SLOTS, "one cooldown each");
 // shove on along the dash and a moment's stun, so dashing through a
 // crowd scatters it. Once per unit: the dash's speed into it is gone
 // after the first contact
-global_variable player_hit DashStrikeHit = {10.f, 250.f, 0.f, 120.f, 0.35f, SimBurst_Impact};
+global_variable hit DashStrikeHit = {10.f, 250.f, 0.f, 120.f, 0.35f, SimBurst_Impact};
 
 internal void
 DashStrike(app_state *AppState, world *World, world_entity *Player,
            world_entity *Target, v2 Away)
 {
-    ApplyPlayerHit(AppState, World, Target, &DashStrikeHit, Away,
-                   Player->PlayerIndex, Player);
+    ApplyHit(AppState, World, Target, &DashStrikeHit, Away,
+             Player, Player->PlayerIndex);
 }
 
 internal void

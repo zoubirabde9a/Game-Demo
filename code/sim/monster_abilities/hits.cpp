@@ -1,5 +1,6 @@
-/* Monster hits on players: finding the nearest target, dealing damage
-   (with push and status), the plain bite, and area hits. */
+/* Monster hits on players: finding the nearest target, the plain bite,
+   single and area hits. Each hit lands through ApplyHit (sim/hit.cpp),
+   the same as players' hits. */
 
 internal world_entity *
 FindMonsterTarget(world *World, v2 From, float *DistanceOut)
@@ -29,38 +30,28 @@ FindMonsterTarget(world *World, v2 From, float *DistanceOut)
     return Result;
 }
 
-// NOTE(zoubir): every monster hit on a player goes through here: damage
-// (through DamageEntity, so deaths are counted), push, and the ability's
-// status effect. Source is the monster or shot, which earns no kill credit
+// NOTE(zoubir): every monster hit on a player is an ApplyHit
+// (sim/hit.cpp): damage scaled by the source's elite affix, life steal,
+// the push (Push, a velocity) and Lift, and the ability's status. Source
+// is the monster or shot, which earns no kill credit
 internal void
-DealMonsterDamage(app_state *AppState, world *World, world_entity *Player,
-                  world_entity *Source, float Damage, v2 Push,
-                  status_effect Status, float StatusSeconds)
+HitPlayerWith(app_state *AppState, world *World, world_entity *Player,
+              world_entity *Source, float Damage, v2 Push, float Lift,
+              status_effect Status, float StatusSeconds)
 {
-    if (!Player->IsPresent || Player->Hp <= 0.f)
-    {
-        return;
-    }
-    monster_affix_def *Affix = GetAffix(Source ? Source->EliteAffix : 0);
-    Damage *= Affix->DamageScale;
-    Player->Velocity.XY += Push;
-    ApplyStatus(Player, Status, StatusSeconds);
-    ApplyStatus(Player, Affix->OnHitStatus, Affix->OnHitStatusSeconds);
-    float Dealt = Minimum(Damage, Player->Hp);
-    DamageEntity(AppState, World, Player, Damage, Source);
-    if (Source && Source->Type == EntityType_Monster &&
-        Source->IsPresent && Affix->LifeSteal > 0.f)
-    {
-        Source->Hp = Minimum(Source->MaxHp, Source->Hp + Affix->LifeSteal * Dealt);
-    }
+    float Shove = Length(Push);
+    v2 Away = Shove > 0.f ? Push * (1.f / Shove) : V2(0.f);
+    hit Hit = {Damage, Shove, Lift, Lift, 0.f, SimBurst_Count, Status,
+               StatusSeconds};
+    ApplyHit(AppState, World, Player, &Hit, Away, Source, SIM_NOBODY);
 }
 
 internal void
 HitPlayer(app_state *AppState, world *World, world_entity *Player,
           world_entity *Source, monster_ability *Ability, v2 Push)
 {
-    DealMonsterDamage(AppState, World, Player, Source, Ability->Damage, Push,
-                      Ability->Status, Ability->StatusSeconds);
+    HitPlayerWith(AppState, World, Player, Source, Ability->Damage, Push, 0.f,
+                  Ability->Status, Ability->StatusSeconds);
 }
 
 // NOTE(zoubir): the plain bite every monster has, off AttackInterval
@@ -69,9 +60,15 @@ MonsterBite(app_state *AppState, world *World, world_entity *Monster,
             world_entity *Player)
 {
     monster_def *Def = GetMonsterDef(Monster->MonsterKind);
-    DealMonsterDamage(AppState, World, Player, Monster, Def->AttackDamage,
-                      V2(0.f), StatusEffect_None, 0.f);
+    HitPlayerWith(AppState, World, Player, Monster, Def->AttackDamage,
+                  V2(0.f), 0.f, StatusEffect_None, 0.f);
 }
+
+// NOTE(zoubir): an area hit (slam, mortar, blink, eruption) throws a player
+// up as well as out: AREA_HIT_LIFT_SHARE of its knockback, at most
+// AREA_HIT_MAX_LIFT (a brute's slam lifts 240, a hop of about 18 units)
+#define AREA_HIT_LIFT_SHARE 0.4f
+#define AREA_HIT_MAX_LIFT 320.f
 
 // NOTE(zoubir): hits every player within Radius of Center, pushing them
 // away from it. Returns how many were hit
@@ -98,7 +95,10 @@ HurtPlayersInRadius(app_state *AppState, world *World, world_entity *Source,
         }
         HitCount++;
         v2 Push = Distance > 0.f ? (Ability->Knockback / Distance) * Away : V2(0.f);
-        HitPlayer(AppState, World, Player, Source, Ability, Push);
+        float Lift = Minimum(AREA_HIT_MAX_LIFT,
+                             AREA_HIT_LIFT_SHARE * Ability->Knockback);
+        HitPlayerWith(AppState, World, Player, Source, Ability->Damage, Push,
+                      Lift, Ability->Status, Ability->StatusSeconds);
     }
     return HitCount;
 }
