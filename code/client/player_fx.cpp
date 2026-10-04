@@ -54,5 +54,6 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     DrawBlinkPreview(RenderContext, AppState, CameraOffset);
     DrawAimMarker(RenderContext, AppState, CameraOffset);
     DrawHitNumbers(RenderContext, AppState, &Fx->Hits, CameraOffset);
+    DrawHitCombo(RenderContext, AppState, &Fx->Hits, CameraOffset);
     DrawFxBursts(RenderContext, AppState, CameraOffset, DeltaTime);
 }

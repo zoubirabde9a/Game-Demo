@@ -3,7 +3,12 @@
    it was hit. Read from health alone, so it works the same offline and
    on replicas, with nothing extra sent. Damage over time (burning,
    poison) is added up and shown at most every HIT_NUMBER_GAP seconds per
-   target instead of every frame. Hits on the local player are red. */
+   target instead of every frame. Hits on the local player are red.
+
+   The hit counter: monsters near the local player that lose at least
+   HIT_COMBO_MIN at once count as hits; hits closer together than
+   HIT_COMBO_WINDOW add up, and the count shows over the player's head
+   from the second one, flashing white on each new hit. */
 
 #define MAX_HIT_NUMBERS 64
 #define HIT_NUMBER_SECONDS 0.7f
@@ -12,6 +17,10 @@
 #define HIT_SPARKS 6
 #define HIT_SPARK_SECONDS 0.18f
 #define HIT_SPARK_REACH 14.f
+#define HIT_COMBO_MIN 5.f
+#define HIT_COMBO_WINDOW 1.5f
+#define HIT_COMBO_RANGE 350.f
+#define HIT_COMBO_FLASH_SECONDS 0.15f
 // NOTE(zoubir): health tracking covers every world entity slot
 #define HIT_TRACKED ArrayCount(((world *)0)->Entities)
 
@@ -36,6 +45,10 @@ struct hit_numbers
     float LastHp[HIT_TRACKED];
     float Pending[HIT_TRACKED];
     float Gap[HIT_TRACKED];
+
+    u32 Combo;
+    float ComboLeft;
+    float ComboFlash;
 };
 
 inline bool32
@@ -95,6 +108,15 @@ UpdateHitNumbers(hit_numbers *Fx, app_state *AppState, float DeltaTime)
         {
             Fx->Pending[Index] += Lost;
         }
+        // NOTE(zoubir): damage over time comes in small ticks and is not a hit
+        if (Lost >= HIT_COMBO_MIN && Local && Entity->Type == EntityType_Monster &&
+            LengthSq(Entity->Position.XY - Local->Position.XY) <
+            Square(HIT_COMBO_RANGE))
+        {
+            Fx->Combo = Fx->ComboLeft > 0.f ? Fx->Combo + 1 : 1;
+            Fx->ComboLeft = HIT_COMBO_WINDOW;
+            Fx->ComboFlash = HIT_COMBO_FLASH_SECONDS;
+        }
         Fx->Gap[Index] = Maximum(0.f, Fx->Gap[Index] - DeltaTime);
         if (Fx->Pending[Index] >= 1.f && Fx->Gap[Index] <= 0.f)
         {
@@ -103,6 +125,13 @@ UpdateHitNumbers(hit_numbers *Fx, app_state *AppState, float DeltaTime)
             Fx->Pending[Index] = 0.f;
             Fx->Gap[Index] = HIT_NUMBER_GAP;
         }
+    }
+
+    Fx->ComboLeft = Maximum(0.f, Fx->ComboLeft - DeltaTime);
+    Fx->ComboFlash = Maximum(0.f, Fx->ComboFlash - DeltaTime);
+    if (Fx->ComboLeft <= 0.f)
+    {
+        Fx->Combo = 0;
     }
 
     for(u32 Index = 0; Index < Fx->Count;)
@@ -160,4 +189,27 @@ DrawHitNumbers(render_context *RenderContext, app_state *AppState,
                    Text, Color, UIAlign_Center);
         }
     }
+}
+
+// NOTE(zoubir): the hit count over the local player's head, fading in
+// the last half second of its window
+internal void
+DrawHitCombo(render_context *RenderContext, app_state *AppState,
+             hit_numbers *Fx, v3 CameraOffset)
+{
+    world_entity *Local = GetLocalPlayer(AppState);
+    if (Fx->Combo < 2 || !Local || !Local->IsPresent)
+    {
+        return;
+    }
+    font *Font = AppState->Fonts.Body;
+    float Fade = Minimum(1.f, Fx->ComboLeft / 0.5f);
+    u32 Alpha = (u32)(255.f * Fade);
+    u32 Color = Fx->ComboFlash > 0.f ? UI_RGBA(255, 255, 255, Alpha) :
+        UI_RGBA(255, 200, 80, Alpha);
+    char Text[24];
+    snprintf(Text, sizeof(Text), "%u HITS", Fx->Combo);
+    v2 Head = Local->Position.XY - CameraOffset.XY -
+        V2(0.f, Local->Position.Z + Local->Dimensions.Y + 28.f);
+    UIText(RenderContext, Font, Head.X, Head.Y, Text, Color, UIAlign_Center);
 }

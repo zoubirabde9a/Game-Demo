@@ -1457,6 +1457,44 @@ TestDashStrike()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): hits on monsters near the local player add up while they
+// come quickly; damage-over-time ticks do not count; a pause ends it
+internal void
+TestHitCounter()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    AppState->LocalPlayerIndex = 0;
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {360, 300, 0}, Test.UnitVolume);
+    Monster->MaxHp = Monster->Hp = 1000.f;
+    hit_numbers *Fx = (hit_numbers *)calloc(1, sizeof(hit_numbers));
+    float Dt = 1.f / 60.f;
+    UpdateHitNumbers(Fx, AppState, Dt);
+    for(u32 Hit = 0; Hit < 3; Hit++)
+    {
+        Monster->Hp -= 10.f;
+        UpdateHitNumbers(Fx, AppState, Dt);
+        for(u32 Frame = 0; Frame < 20; Frame++)
+        {
+            UpdateHitNumbers(Fx, AppState, Dt);
+        }
+    }
+    Check(Fx->Combo == 3);
+    Monster->Hp -= 2.f;
+    UpdateHitNumbers(Fx, AppState, Dt);
+    Check(Fx->Combo == 3);
+    for(u32 Frame = 0; Frame < 120; Frame++)
+    {
+        UpdateHitNumbers(Fx, AppState, Dt);
+    }
+    Check(Fx->Combo == 0);
+    free(Fx);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1550,4 +1588,6 @@ RunPlayerAbilityTests()
     TestPredictedCastLeavesHitToServer();
     printf("TestDashStrike\n");
     TestDashStrike();
+    printf("TestHitCounter\n");
+    TestHitCounter();
 }
