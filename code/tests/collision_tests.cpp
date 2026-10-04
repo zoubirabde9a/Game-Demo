@@ -240,6 +240,55 @@ TestUnitInsideWallEdgeWalksOut()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a stunned monster thrown into another passes most of its
+// speed on, stuns it, and both take a little damage
+internal void
+TestThrownUnitKnocksIntoAnother()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Thrown = AddTestEntity(&Test, EntityType_Monster,
+                                         {300, 300, 0}, Test.UnitVolume);
+    world_entity *Struck = AddTestEntity(&Test, EntityType_Monster,
+                                         {340, 300, 0}, Test.UnitVolume);
+    Thrown->MaxHp = Thrown->Hp = Struck->MaxHp = Struck->Hp = 100.f;
+    ApplyStatus(Thrown, StatusEffect_Stunned, 1.f);
+    Thrown->Velocity = V3(750.f, 0.f, 0.f);
+    Walk(&Test, Thrown, {0, 0}, 4);
+    Check(Struck->Velocity.X > 250.f);
+    Check(HasStatus(Struck, StatusEffect_Stunned));
+    Check(Struck->Hp < 100.f && Thrown->Hp < 100.f);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): slammed into a wall it is hurt and bounces off; a player
+// dashing into the same wall is not hurt
+internal void
+TestThrownUnitSlamsIntoWall()
+{
+    test_world Test = CreateTestWorld();
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0},
+                  Test.WallVolume);
+    world_entity *Thrown = AddTestEntity(&Test, EntityType_Monster,
+                                         {360, 300, 0}, Test.UnitVolume);
+    Thrown->MaxHp = Thrown->Hp = 100.f;
+    ApplyStatus(Thrown, StatusEffect_Stunned, 0.2f);
+    Thrown->Velocity = V3(750.f, 0.f, 0.f);
+    Walk(&Test, Thrown, {0, 0}, 4);
+    Check(Thrown->Hp < 100.f);
+    Check(Thrown->Velocity.X < 0.f);
+    Check(Thrown->StatusTimers[StatusEffect_Stunned] > 0.5f);
+
+    world_entity *Dasher = AddTestEntity(&Test, EntityType_Player,
+                                         {340, 400, 0}, Test.UnitVolume);
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 400, 0},
+                  Test.WallVolume);
+    Dasher->MaxHp = Dasher->Hp = 100.f;
+    Dasher->Velocity = V3(750.f, 0.f, 0.f);
+    Walk(&Test, Dasher, {1, 0}, 3);
+    Check(Dasher->Hp == 100.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunCollisionTests()
 {
@@ -267,4 +316,8 @@ RunCollisionTests()
     TestGroundUnderJumpingUnit();
     printf("TestUnitInsideWallEdgeWalksOut\n");
     TestUnitInsideWallEdgeWalksOut();
+    printf("TestThrownUnitKnocksIntoAnother\n");
+    TestThrownUnitKnocksIntoAnother();
+    printf("TestThrownUnitSlamsIntoWall\n");
+    TestThrownUnitSlamsIntoWall();
 }

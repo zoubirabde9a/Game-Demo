@@ -16,6 +16,7 @@ enum burst_shape
     BurstShape_Cone,   // arcs sweeping out along Angle
     BurstShape_Column, // a ground ring with sparks thrown upward
     BurstShape_Puff,   // dust drifting out low and settling
+    BurstShape_Spark,  // a star of sparks flying out from the centre
 };
 
 struct burst_look
@@ -40,6 +41,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Ring, 0.25f, 26.f, 0x00FFFFFF, true},    // AirJump, white
     {BurstShape_Puff, 0.4f, 24.f, 0x0090B0C0, true},     // Land, dust
     {BurstShape_Ring, 0.35f, 90.f, 0x00FFE8B0, false},   // ShockwaveRing, pale blue
+    {BurstShape_Spark, 0.22f, 26.f, 0x0080FFFF, false},  // Impact, pale yellow
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these
@@ -249,6 +251,20 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
                 v2 P = Centre + GroundCircle(Angle, Out) -
                     V2(0.f, Maximum(0.f, Height));
                 DrawFxDot(RenderContext, P, 4.f, Color);
+            }
+        } break;
+
+        case BurstShape_Spark:
+        {
+            for(u32 Dot = 0; Dot < 8; Dot++)
+            {
+                float Angle = 2.f * Pi32 * (Dot + 0.3f * BurstJitter(Dot, 7)) / 8.f;
+                float Out = Look->Radius * EaseOut;
+                v2 Direction = V2(Cos(Angle), Sin(Angle));
+                DrawFxDot(RenderContext, Centre + Out * Direction,
+                          5.f - 3.f * T, Color);
+                DrawFxDot(RenderContext, Centre + 0.6f * Out * Direction,
+                          3.f - 2.f * T, Color);
             }
         } break;
 

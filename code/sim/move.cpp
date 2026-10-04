@@ -174,6 +174,12 @@ CheckOverlapsWith(app_state *AppState, world *World, memory_arena *Arena,
     }
 }
 
+// NOTE(zoubir): a thrown unit hitting something (impacts.cpp, included
+// after the status effects it reads)
+internal float ImpactOnHit(app_state *AppState, world *World,
+                           world_entity *Entity, world_entity *Other,
+                           v3 Normal);
+
 // NOTE(zoubir): what a hit does to the rest of the move. Blocking hits
 // slide along the wall (the part of the move and velocity into it is
 // removed), and a unit that only clipped an edge slips past it
@@ -194,8 +200,14 @@ ResolveMoveHit(app_state *AppState, world *World, memory_arena *Arena,
     }
     if (StopsOnCollision)
     {
+        float Bounce = ImpactOnHit(AppState, World, Entity, Other, Normal);
+        if (!Entity->IsPresent)
+        {
+            return false;
+        }
         Entity->Velocity = Entity->Velocity -
             1.f * DotProduct(Entity->Velocity, Normal) * Normal;
+        Entity->Velocity += Bounce * Normal;
         v3 DeltaLeft = *Delta - AllowedDelta;
         *Delta = DeltaLeft - 1.f * DotProduct(DeltaLeft, Normal) * Normal;
         SlipPastCorner(Entity, Other, Normal, DeltaLeft, Delta);
