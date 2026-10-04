@@ -1165,6 +1165,44 @@ TestHeavyUnitsFlyLess()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): the share of its speed a thrown body passes on to the
+// unit it hits
+internal float
+ImpactTransfer(monster_kind Thrown, monster_kind Struck)
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Body = AddTestEntity(&Test, EntityType_Monster,
+                                       {300, 300, 0}, Test.UnitVolume);
+    world_entity *Other = AddTestEntity(&Test, EntityType_Monster,
+                                        {340, 300, 0}, Test.UnitVolume);
+    Body->MonsterKind = Thrown;
+    Other->MonsterKind = Struck;
+    Body->MaxHp = Body->Hp = Other->MaxHp = Other->Hp = 1000.f;
+    ApplyStatus(Body, StatusEffect_Stunned, 1.f);
+    Body->Velocity = V3(700.f, 0.f, 0.f);
+    ImpactOnHit(Test.AppState, Test.World, Body, Other, V3(-1.f, 0.f, 0.f));
+    float Result = Other->Velocity.X / 700.f;
+    DestroyTestWorld(&Test);
+    return Result;
+}
+
+// NOTE(zoubir): between equal weights a thrown body passes on what it
+// always did; into a heavier unit much less, into a lighter one more
+internal void
+TestThrownWeightCarries()
+{
+    monster_kind Light = FindWalkerByWeight(false);
+    monster_kind Heavy = FindWalkerByWeight(true);
+    float Same = ImpactTransfer(Light, Light);
+    float IntoHeavy = ImpactTransfer(Light, Heavy);
+    float IntoLight = ImpactTransfer(Heavy, Light);
+    printf("  speed passed on: equal %.2f, light into heavy %.2f, "
+           "heavy into light %.2f\n", Same, IntoHeavy, IntoLight);
+    Check(Absolute(Same - IMPACT_TRANSFER) < 0.01f);
+    Check(IntoHeavy < 0.5f * Same);
+    Check(IntoLight > 1.4f * Same && IntoLight < IMPACT_MAX_TRANSFER + 0.01f);
+}
+
 // NOTE(zoubir): a solid hit freezes the monster for a few ticks, never
 // longer than HITSTOP_MAX; another hit right after does not freeze it
 // again until the grace is over. Players never freeze
@@ -1751,6 +1789,8 @@ RunPlayerAbilityTests()
     TestAbilitiesAskForBursts();
     printf("TestImpactKillIsThePushers\n");
     TestImpactKillIsThePushers();
+    printf("TestThrownWeightCarries\n");
+    TestThrownWeightCarries();
     printf("TestWalkCycleFollowsSpeed\n");
     TestWalkCycleFollowsSpeed();
     printf("TestSwingInTheAirShowsSwing\n");

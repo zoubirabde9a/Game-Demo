@@ -2,9 +2,12 @@
    another impact) hits it. MoveEntity calls ImpactOnHit for every
    blocking hit, before the move slides along what it hit.
 
-   - Into another unit: most of the speed passes on to it, it is stunned
-     for a moment, and both take a little damage. A pushed crowd knocks
-     itself apart, each body bowling into the next with less speed.
+   - Into another unit: some of the speed passes on to it, more the
+     heavier the thrown body is than the one it hits (hit.cpp
+     KnockbackScale), so a bat thrown into a brute barely moves it and a
+     brute thrown into bats scatters them. The struck unit is stunned for
+     a moment and both take a little damage. A pushed crowd knocks itself
+     apart, each body bowling into the next with less speed.
    - Into a wall, tree or rock: a slam. Damage, a longer stun, and the
      body bounces back off instead of sliding along.
 
@@ -21,7 +24,12 @@
 // Push throws at 750, a run is 260
 #define IMPACT_MIN_SPEED 260.f
 // NOTE(zoubir): share of the speed into the other unit that it takes on
+// when both weigh the same. It scales with the thrown body's weight over
+// the struck one's, up to IMPACT_MAX_TRANSFER: a bat into the lightest
+// kinds 0.65, into a brute 0.43, into the warlord 0.26; a brute into a bat
+// 0.99, the warlord into anything light 1
 #define IMPACT_TRANSFER 0.65f
+#define IMPACT_MAX_TRANSFER 1.f
 #define IMPACT_UNIT_DAMAGE 6.f
 #define IMPACT_UNIT_STUN 0.5f
 #define IMPACT_WALL_DAMAGE 12.f
@@ -37,7 +45,7 @@
 #define SHOULDER_SHARE 0.6f
 #define SHOULDER_MAX_SPEED 650.f
 // NOTE(zoubir): a dashing player hits what it runs into this fast or
-// faster (a dash leaves at 1300, a run is 260). The dash slows below it
+// faster (a dash leaves at 1440, a run is 260). The dash slows below it
 // about 0.09 s in, so only the dash's first stretch strikes
 #define DASH_STRIKE_SPEED (300.f * PLAYER_MOVE_SCALE)
 
@@ -119,7 +127,9 @@ ImpactOnHit(app_state *AppState, world *World, world_entity *Entity,
     {
         if (!IsDodging(Other))
         {
-            Other->Velocity.XY -= (IMPACT_TRANSFER * Into) * Normal.XY;
+            float Transfer = Minimum(IMPACT_MAX_TRANSFER, IMPACT_TRANSFER *
+                                     KnockbackScale(Other) / KnockbackScale(Entity));
+            Other->Velocity.XY -= (Transfer * Into) * Normal.XY;
             ApplyStatus(Other, StatusEffect_Stunned, IMPACT_UNIT_STUN);
             Other->ThrownBySlot = Entity->ThrownBySlot;
             DamageEntity(AppState, World, Other, IMPACT_UNIT_DAMAGE, Thrower);
