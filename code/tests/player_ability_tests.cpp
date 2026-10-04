@@ -1044,6 +1044,29 @@ TestJumpPressedJustBeforeLanding()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a sword hit on a target in the air knocks it up; the same
+// hit on the ground does not
+internal void
+TestSwordJugglesAirborneTarget()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Attacker = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                             0, {300, 300, 0});
+    world_entity *Grounded = AddTestEntity(&Test, EntityType_Monster,
+                                           {330, 300, 0}, Test.UnitVolume);
+    world_entity *Flying = AddTestEntity(&Test, EntityType_Monster,
+                                         {330, 330, 30}, Test.UnitVolume);
+    Grounded->MaxHp = Grounded->Hp = Flying->MaxHp = Flying->Hp = 100.f;
+    Flying->Velocity.Z = -100.f;
+    player_hit *Hit = &SwordCombo[0].Hit;
+    ApplyPlayerHit(AppState, Test.World, Grounded, Hit, V2(1.f, 0.f), 0, Attacker);
+    ApplyPlayerHit(AppState, Test.World, Flying, Hit, V2(1.f, 0.f), 0, Attacker);
+    Check(Grounded->Velocity.Z == 0.f);
+    Check(Flying->Velocity.Z == Hit->AirLift);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1113,4 +1136,6 @@ RunPlayerAbilityTests()
     TestSwordComboFinisher();
     printf("TestJumpPressedJustBeforeLanding\n");
     TestJumpPressedJustBeforeLanding();
+    printf("TestSwordJugglesAirborneTarget\n");
+    TestSwordJugglesAirborneTarget();
 }

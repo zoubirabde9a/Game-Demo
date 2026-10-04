@@ -23,12 +23,15 @@ struct sword_combo_step
 
 global_variable sword_combo_step SwordCombo[] =
 {
-    {{SWORD_DAMAGE, SWORD_KNOCKBACK, 0.f, 0.f, SimBurst_Count},
+    // NOTE(zoubir): a target already in the air is knocked up a little
+    // instead of only away, so swings can juggle it
+    {{SWORD_DAMAGE, SWORD_KNOCKBACK, 0.f, 220.f, 0.f, SimBurst_Count},
      SimBurst_SwingArc},
-    {{SWORD_DAMAGE, 1.25f * SWORD_KNOCKBACK, 0.f, 0.f, SimBurst_Count},
+    {{SWORD_DAMAGE, 1.25f * SWORD_KNOCKBACK, 0.f, 240.f, 0.f, SimBurst_Count},
      SimBurst_SwingArcBack},
     // NOTE(zoubir): the finisher
-    {{1.4f * SWORD_DAMAGE, 1.8f * SWORD_KNOCKBACK, 300.f, 0.7f, SimBurst_Finisher},
+    {{1.4f * SWORD_DAMAGE, 1.8f * SWORD_KNOCKBACK, 300.f, 340.f, 0.7f,
+      SimBurst_Finisher},
      SimBurst_SwingArcFinisher},
 };
 

@@ -9,6 +9,9 @@ struct player_hit
     // attacker; Lift is the vertical one
     float Shove;
     float Lift;
+    // NOTE(zoubir): the lift instead when the target is already in the air
+    // (thrown, launched, jumping), so hits keep it up: a juggle
+    float AirLift;
     // NOTE(zoubir): a stunned target flying into something is an impact
     // (impacts.cpp), credited to the attacker
     float StunSeconds;
@@ -36,9 +39,11 @@ ApplyPlayerHit(app_state *AppState, world *World, world_entity *Target,
         return false;
     }
     Target->Velocity.XY += Hit->Shove * Away;
-    if (Hit->Lift > 0.f)
+    bool32 Airborne = Target->Position.Z > Target->GroundZ + 2.f;
+    float Lift = Airborne ? Maximum(Hit->Lift, Hit->AirLift) : Hit->Lift;
+    if (Lift > 0.f)
     {
-        Target->Velocity.Z = Hit->Lift;
+        Target->Velocity.Z = Maximum(Target->Velocity.Z, Lift);
     }
     if (Hit->StunSeconds > 0.f)
     {
