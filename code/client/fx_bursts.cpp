@@ -22,6 +22,13 @@ enum burst_shape
     BurstShape_Spark,  // a star of sparks flying out from the centre
 };
 
+enum burst_pose
+{
+    BurstPose_None,
+    BurstPose_Charge,
+    BurstPose_Release,
+};
+
 struct burst_look
 {
     burst_shape Shape;
@@ -33,6 +40,9 @@ struct burst_look
     bool32 Predicted;
     // NOTE(zoubir): 0..1, how hard the screen shakes when it is close
     float Shake;
+    // NOTE(zoubir): what it does to the pose of the player who caused it
+    // (body_pose.cpp): a charge crouches them, a release pops them up
+    burst_pose Pose;
 };
 
 // NOTE(zoubir): one row per sim_burst, in its order; the radii of the
@@ -40,13 +50,13 @@ struct burst_look
 // sim/player_abilities/area_abilities.cpp
 global_variable burst_look BurstLooks[SimBurst_Count] =
 {
-    {BurstShape_Gather, 0.25f, 46.f, 0x00FF90D0, false, 0.f},   // CastGather, violet
-    {BurstShape_Cone, 0.3f, 110.f, 0x00FFE8B0, false, 0.35f},   // PushCone, pale blue
-    {BurstShape_Column, 0.6f, 55.f, 0x0040C0FF, false, 0.6f},   // LaunchColumn, amber
-    {BurstShape_Ring, 0.25f, 26.f, 0x00FFFFFF, true, 0.f},      // AirJump, white
-    {BurstShape_Puff, 0.4f, 24.f, 0x0090B0C0, true, 0.15f},     // Land, dust
-    {BurstShape_Ring, 0.35f, 90.f, 0x00FFE8B0, false, 0.45f},   // ShockwaveRing, pale blue
-    {BurstShape_Spark, 0.22f, 26.f, 0x0080FFFF, false, 0.3f},   // Impact, pale yellow
+    {BurstShape_Gather, 0.25f, 46.f, 0x00FF90D0, false, 0.f, BurstPose_Charge},   // CastGather, violet
+    {BurstShape_Cone, 0.3f, 110.f, 0x00FFE8B0, false, 0.35f, BurstPose_Release},   // PushCone, pale blue
+    {BurstShape_Column, 0.6f, 55.f, 0x0040C0FF, false, 0.6f, BurstPose_Release},   // LaunchColumn, amber
+    {BurstShape_Ring, 0.25f, 26.f, 0x00FFFFFF, true, 0.f, BurstPose_None},      // AirJump, white
+    {BurstShape_Puff, 0.4f, 24.f, 0x0090B0C0, true, 0.15f, BurstPose_None},     // Land, dust
+    {BurstShape_Ring, 0.35f, 90.f, 0x00FFE8B0, false, 0.45f, BurstPose_None},   // ShockwaveRing, pale blue
+    {BurstShape_Spark, 0.22f, 26.f, 0x0080FFFF, false, 0.3f, BurstPose_None},   // Impact, pale yellow
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these
@@ -100,7 +110,8 @@ GetFxBursts(app_state *AppState)
 
 // NOTE(zoubir): a full pool drops the oldest burst
 internal void
-AddBurst(app_state *AppState, sim_burst Kind, v3 Position, float Angle)
+AddBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,
+         float Angle)
 {
     if ((u32)Kind >= SimBurst_Count)
     {
@@ -114,6 +125,12 @@ AddBurst(app_state *AppState, sim_burst Kind, v3 Position, float Angle)
             Fx->Bursts[Index - 1] = Fx->Bursts[Index];
         }
         Fx->Count--;
+    }
+    if (BurstLooks[Kind].Pose != BurstPose_None && Slot < MAX_PLAYERS &&
+        AppState->Players[Slot].Entity)
+    {
+        SetBodyWindup(AppState, AppState->Players[Slot].Entity,
+                      BurstLooks[Kind].Pose == BurstPose_Charge);
     }
     world_entity *Local = GetLocalPlayer(AppState);
     if (Local && BurstLooks[Kind].Shake > 0.f)

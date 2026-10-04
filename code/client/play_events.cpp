@@ -28,7 +28,8 @@ PlaySimEvents(app_state *AppState, float DeltaTime)
         }
         else if (Event->Type == SimEvent_Burst)
         {
-            AddBurst(AppState, Event->Burst, Event->Position, Event->Angle);
+            AddBurst(AppState, Event->Burst, Event->Slot, Event->Position,
+                     Event->Angle);
         }
     }
     Queue->Count = 0;

@@ -10,7 +10,9 @@
    - that same kick upward spins it once around, a somersault toward
      where it is heading;
    - running leans it a little into the way it runs;
-   - losing health flashes it red and jolts it, a short squash.
+   - losing health flashes it red and jolts it, a short squash;
+   - a cast with a wind-up crouches it while it charges and pops it up as
+     it lets go (SetBodyWindup, from the cast's bursts, fx_bursts.cpp).
 
    The sprite keeps its feet where they were; DrawEntity asks
    GetBodyPose for the scale and the angle. Updated once a frame by UpdateBodyPoses,
@@ -38,6 +40,14 @@
 // NOTE(zoubir): a hit's red flash fades over this many seconds
 #define BODY_HIT_FLASH_SECONDS 0.14f
 #define BODY_HIT_SQUASH 0.55f
+// NOTE(zoubir): a cast crouches fully in this long, this deep; letting go
+// pops by this share of how far it crouched. A charge with no release
+// lets go by itself after BODY_WINDUP_MAX_SECONDS (a release lost with
+// its snapshot)
+#define BODY_WINDUP_SECONDS 0.15f
+#define BODY_WINDUP_DEPTH 0.14f
+#define BODY_WINDUP_RELEASE 0.7f
+#define BODY_WINDUP_MAX_SECONDS 0.6f
 
 inline float
 Clamp01(float Value)
@@ -61,6 +71,10 @@ struct body_pose
     float LastHp;
     // NOTE(zoubir): 1 the frame health drops, down to 0
     float Flash;
+    // NOTE(zoubir): 0..1, how far into a cast's crouch, and the seconds
+    // left until it lets go
+    float Windup;
+    float ChargeLeft;
     u32 EntityId;
 };
 
@@ -155,8 +169,31 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
         Pose->Spin = Maximum(0.f, Pose->Spin - DeltaTime / BODY_SPIN_SECONDS);
         Pose->SpeedZ = OnGround ? 0.f : SpeedZ;
         Pose->LastZ = Entity->Position.Z;
+        if (Pose->ChargeLeft > 0.f)
+        {
+            Pose->ChargeLeft -= DeltaTime;
+            Pose->Windup = Minimum(1.f, Pose->Windup + DeltaTime / BODY_WINDUP_SECONDS);
+        }
+        else if (Pose->Windup > 0.f)
+        {
+            Pose->Pop = Maximum(Pose->Pop, BODY_WINDUP_RELEASE * Pose->Windup);
+            Pose->Windup = 0.f;
+        }
         Pose->Squash = Maximum(0.f, Pose->Squash - BODY_POSE_RECOVERY * DeltaTime);
         Pose->Pop = Maximum(0.f, Pose->Pop - BODY_POSE_RECOVERY * DeltaTime);
+    }
+}
+
+// NOTE(zoubir): Entity starts crouching (Charging), or lets go and pops
+internal void
+SetBodyWindup(app_state *AppState, world_entity *Entity, bool32 Charging)
+{
+    u32 Index = (u32)(Entity - AppState->World.Entities);
+    if (AppState->BodyPoses && Index < BODY_POSE_SLOTS &&
+        AppState->BodyPoses->Poses[Index].EntityId == Entity->ID)
+    {
+        AppState->BodyPoses->Poses[Index].ChargeLeft =
+            Charging ? BODY_WINDUP_MAX_SECONDS : 0.f;
     }
 }
 
@@ -180,7 +217,8 @@ GetBodyPose(app_state *AppState, world_entity *Entity)
     float Stretch = BODY_STRETCH_MAX *
         Clamp01(Absolute(Pose->SpeedZ) / BODY_STRETCH_SPEED);
     // NOTE(zoubir): eased, so the squash springs back fast then settles
-    float Squash = BODY_SQUASH_DEPTH * Pose->Squash * Pose->Squash;
+    float Squash = BODY_SQUASH_DEPTH * Pose->Squash * Pose->Squash +
+        BODY_WINDUP_DEPTH * Pose->Windup;
     float Pop = BODY_POP_HEIGHT * Pose->Pop * Pose->Pop;
     Result.Flash = Pose->Flash;
     Result.Scale.Y = 1.f + Stretch + Pop - Squash;
