@@ -211,7 +211,7 @@ TestDashGoesWhereKeysPointElseTowardAim()
     RunPlayerFrames(&Test, 0, 20);
     Check(Still->Position.Y > 340.f);
     Check(Absolute(Still->Position.X - 300.f) < 1.f);
-    Check(Still->DashCooldown > 0.f);
+    Check(Still->MovementCooldowns[PlayerMove_Dash] > 0.f);
 
     // NOTE(zoubir): moving, the keys win over the aim
     AppState->Players[1].Input.Move = V2(-1.f, 0.f);
@@ -235,7 +235,7 @@ TestBlinkLandsAtCursorOrStopsAtWall()
     AppState->Players[0].Input.Pressed = PlayerButton_Blink;
     RunPlayerFrames(&Test, 0, 1);
     Check(Absolute(Blinker->Position.X - 400.f) < 3.f);
-    Check(Blinker->BlinkCooldown > 0.f);
+    Check(Blinker->MovementCooldowns[PlayerMove_Blink] > 0.f);
     Check(Blinker->DashFlash > 0.f);
 
     // NOTE(zoubir): on cooldown, a second press does nothing

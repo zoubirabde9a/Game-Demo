@@ -407,7 +407,8 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
             Own && Own->IsPresent && !IsDeadPlayer(Own))
         {
             ++DashPresses;
-            DashesSeenAtOnce += Own->DashCooldown > 0.9f * PLAYER_DASH_COOLDOWN ? 1 : 0;
+            DashesSeenAtOnce += Own->MovementCooldowns[PlayerMove_Dash] >
+                0.9f * PlayerMovements[PlayerMove_Dash].Cooldown ? 1 : 0;
         }
         if (IsOnline(Online) && Online->Replicas.Active &&
             Online->Replicas.LastAppliedTick != LastTick)

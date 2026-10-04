@@ -1,8 +1,10 @@
 // world_entity fields used only by player entities. Included inside
 // struct world_entity in entity.h. Per-player state that is not about the
 // body in the world (input, score, respawn) lives in player_slot, player.h.
-    // NOTE(zoubir): seconds until the player can dash again
-    float DashCooldown;
+    // NOTE(zoubir): seconds until each movement ability (dash, blink) may
+    // be used again, by player_movement
+#define PLAYER_MOVEMENT_SLOTS 4
+    float MovementCooldowns[PLAYER_MOVEMENT_SLOTS];
     // NOTE(zoubir): unit vector toward the cursor; the body faces it and
     // sword and fireball fly along it, whichever way the player walks
     v2 Aim;
@@ -13,7 +15,6 @@
     float ActionLock;
     // NOTE(zoubir): seconds left on the dash streak clients draw
     float DashFlash;
-    float BlinkCooldown;
     // NOTE(zoubir): seconds until each spawn action (sword, fireball) may
     // start again, by player_action (player.h, included after this)
 #define PLAYER_ACTION_SLOTS 4

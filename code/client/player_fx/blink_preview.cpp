@@ -64,7 +64,7 @@ DrawBlinkPreview(render_context *RenderContext, app_state *AppState,
 {
     world_entity *Player = GetLocalPlayer(AppState);
     if (!Player || !Player->IsPresent || IsDeadPlayer(Player) ||
-        Player->BlinkCooldown > 0.f)
+        Player->MovementCooldowns[PlayerMove_Blink] > 0.f)
     {
         return;
     }

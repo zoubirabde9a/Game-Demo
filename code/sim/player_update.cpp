@@ -14,19 +14,21 @@
       swing or cast roots the player only for its short ActionLock. Then a
       swing's animation finishes while the player walks slower, and a
       cast's is cut by walking (the fireball has already left).
-   5. UsePlayerAbilities: jump, shockwave, dash and blink, each when its
-      key is pressed and its cooldown allows.
+   5. UsePlayerAbilities: jump, the area abilities (shockwave, push,
+      launch) and the movement abilities (dash, blink), each when its key
+      is pressed and its cooldown allows.
    6. PickPlayerAnimation: which animation to play; the body faces the
       aim, not the way it walks.
    7. MovePlayer: acceleration, ground friction and gravity into
       MoveEntity.
 
    Steps 1-3 are in player_update/actions.cpp, 4 and 7 in
-   player_update/movement.cpp, 6 in player_update/animation.cpp. Each
-   ability is one file in player_abilities/, included below: what it does,
-   its numbers, and its cooldown. A new ability is a new file there,
-   one include line, a button in player.h and one call in
-   UsePlayerAbilities or the action queue. */
+   player_update/movement.cpp, 6 in player_update/animation.cpp. The
+   abilities live in player_abilities/, as three tables: area abilities
+   (area_abilities.cpp), spawn actions such as the sword and fireball
+   (spawn_actions.cpp) and movement abilities (movement_abilities.cpp).
+   A new ability is usually a row in one of them, a button in player.h
+   and a key in client/action_keys.cpp. Jump is its own file. */
 
 #define PLAYER_ACCELERATION 56000.f
 
@@ -80,8 +82,7 @@ GetPlayerAim(world_entity *Player)
 #include "player_abilities/spawn_actions.cpp"
 #include "player_abilities/jump.cpp"
 #include "player_abilities/area_abilities.cpp"
-#include "player_abilities/dash.cpp"
-#include "player_abilities/blink.cpp"
+#include "player_abilities/movement_abilities.cpp"
 
 #include "player_update/actions.cpp"
 #include "player_update/movement.cpp"
@@ -95,8 +96,7 @@ UsePlayerAbilities(app_state *AppState, world *World, memory_arena *Arena,
     player_input *Input = &Slot->Input;
     UseJump(AppState, Player, Input, Tick);
     UseAreaAbilities(AppState, World, Player, Input, DeltaTime, Tick);
-    UseDash(AppState, Player, Input, DeltaTime);
-    UseBlink(AppState, World, Arena, Player, Input, DeltaTime);
+    UseMovementAbilities(AppState, World, Arena, Player, Input, DeltaTime);
 }
 
 internal void

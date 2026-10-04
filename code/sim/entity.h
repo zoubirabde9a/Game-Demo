@@ -112,7 +112,6 @@ struct entity_collision_volume_group
     entity_collision_volume *Volumes;
 };
 
-#define PLAYER_DASH_COOLDOWN 0.8f
 // NOTE(zoubir): walking accelerations (PLAYER_ACCELERATION, a monster's
 // Acceleration) are tuned per 1/60 s step; the push is scaled by this, not
 // by the frame time. Scaling by the frame time made speed grow with it:

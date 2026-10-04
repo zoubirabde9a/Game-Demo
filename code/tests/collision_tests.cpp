@@ -404,7 +404,7 @@ TestPlayerNeverStuck(u32 SeedValue)
         }
         else if (Roll == 1)
         {
-            Player->Velocity.XY = PLAYER_DASH_SPEED * Dir;
+            Player->Velocity.XY = PlayerMovements[PlayerMove_Dash].Power * Dir;
         }
         else if (Roll == 2)
         {
