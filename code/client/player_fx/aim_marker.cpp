@@ -7,14 +7,6 @@
 #define AIM_MARKER_START 24.f
 #define AIM_MARKER_SPACING 12.f
 
-// NOTE(zoubir): a square dot centred on P
-inline void
-DrawFxDot(render_context *RenderContext, v2 P, float Size, u32 Color)
-{
-    DrawFilledRectangle(RenderContext, P.X - 0.5f * Size, P.Y - 0.5f * Size,
-                        Size, Size, Color, 0.f);
-}
-
 internal void
 DrawAimMarker(render_context *RenderContext, app_state *AppState,
               v3 CameraOffset)

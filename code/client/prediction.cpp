@@ -185,10 +185,17 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
             Player->Velocity.Z = History->AckedVelocityZ;
             Player->JumpsUsed = History->AckedJumpsUsed;
         }
+        // NOTE(zoubir): every step but the newest was shown on an earlier
+        // frame, so the sounds and bursts it makes again are dropped
+        u32 EventsBefore = AppState->Events.Count;
         for(u32 Index = 0; Index < History->Count && Moved; Index++)
         {
             Moved = PredictLocalStep(AppState, Arena,
                                      GetPredictedInput(History, Index));
+            if (Index + 1 < History->Count)
+            {
+                AppState->Events.Count = EventsBefore;
+            }
         }
     }
     else

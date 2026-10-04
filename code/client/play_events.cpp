@@ -1,5 +1,6 @@
 /* Handles what the simulation reported during the last tick: plays its
-   sounds and adds its kills to the kill feed (kill_feed.cpp), then empties
+   sounds, adds its kills to the kill feed (kill_feed.cpp) and starts its
+   bursts (fx_bursts.cpp), then empties
    the queue for the next tick. Online the queue holds what the server's
    snapshot carried. */
 
@@ -24,6 +25,10 @@ PlaySimEvents(app_state *AppState, float DeltaTime)
         else if (Event->Type == SimEvent_Kill)
         {
             AddToKillFeed(AppState->KillFeed, Event);
+        }
+        else if (Event->Type == SimEvent_Burst)
+        {
+            AddBurst(AppState, Event->Burst, Event->Position, Event->Angle);
         }
     }
     Queue->Count = 0;

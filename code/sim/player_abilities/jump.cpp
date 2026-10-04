@@ -45,6 +45,11 @@ UseJump(app_state *AppState, world_entity *Player, player_input *Input,
         Player->State = EntityState_Jumping;
         Player->Velocity.Z = Tick->Jumping ? PLAYER_AIR_JUMP_SPEED :
             PLAYER_JUMP_SPEED;
+        if (Tick->Jumping)
+        {
+            EmitBurst(&AppState->Events, SimBurst_AirJump,
+                      (u8)Player->PlayerIndex, Player->Position);
+        }
         Player->JumpsUsed++;
         Tick->Jumping = true;
         EmitSound(&AppState->Events, AssetType_ZoubirAudio, Player->Position);

@@ -16,7 +16,9 @@
    - blink preview: where a blink would land, while it is ready
      (player_fx/blink_preview.cpp);
    - fireball trails: embers cooling behind every fireball
-     (player_fx/fireball_trails.cpp).
+     (player_fx/fireball_trails.cpp);
+   - bursts the simulation asks for (casts, Push, Launch, jumps,
+     landings) and stars over stunned heads (fx_bursts.cpp).
 
    Entry point: DrawPlayerAbilityFx, once a frame from app.cpp. */
 
@@ -62,4 +64,5 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     DrawBlinkPreview(RenderContext, AppState, CameraOffset);
     DrawAimMarker(RenderContext, AppState, CameraOffset);
     DrawHitNumbers(RenderContext, AppState, &Fx->Hits, CameraOffset);
+    DrawFxBursts(RenderContext, AppState, CameraOffset, DeltaTime);
 }

@@ -1,8 +1,9 @@
-/* Event relay: what the simulation reported (sounds, player deaths) reaches
+/* Event relay: what the simulation reported (sounds, player deaths,
+   visual bursts) reaches
    the clients through their snapshots. The server has no speakers and no
    screen, so after each tick RelayKeep copies the tick's events into a
    ring; each snapshot then carries, for its player, the events it has not
-   been sent yet: every death, and the sounds that played within
+   been sent yet: every death, and the sounds and bursts within
    RELAY_HEARING_DISTANCE of it. A lost snapshot loses its events; they are
    cosmetic and not resent. */
 
@@ -58,15 +59,17 @@ RelayWrite(event_relay *Relay, u32 Slot, bool32 HasCenter, v2 Center,
 {
     Out->SoundCount = 0;
     Out->KillCount = 0;
+    Out->BurstCount = 0;
     for (u32 Age = RELAY_SIZE; Age > 0; --Age)
     {
         relay_entry *Entry = &Relay->Entries[(Relay->Cursor + RELAY_SIZE - Age) % RELAY_SIZE];
         if (Entry->Tick == 0 || Entry->Tick <= Relay->SentTick[Slot]) continue;
         sim_event *Event = &Entry->Event;
+        bool32 Heard = !HasCenter || LengthSq(Event->Position.XY - Center) <=
+            Square(RELAY_HEARING_DISTANCE);
         if (Event->Type == SimEvent_Sound)
         {
-            if (HasCenter && LengthSq(Event->Position.XY - Center) >
-                Square(RELAY_HEARING_DISTANCE)) continue;
+            if (!Heard) continue;
             if (Out->SoundCount < NET_MAX_SNAPSHOT_SOUNDS)
             {
                 Out->Sounds[Out->SoundCount++] = (u8)Event->Sound;
@@ -80,6 +83,19 @@ RelayWrite(event_relay *Relay, u32 Slot, bool32 HasCenter, v2 Center,
                 Kill->Killer = Event->Killer;
                 Kill->Victim = Event->Victim;
                 Kill->KillerMonster = Event->KillerMonster;
+            }
+        }
+        else if (Event->Type == SimEvent_Burst)
+        {
+            if (Heard && Out->BurstCount < NET_MAX_SNAPSHOT_BURSTS)
+            {
+                net_burst *Burst = &Out->Bursts[Out->BurstCount++];
+                Burst->Kind = (u8)Event->Burst;
+                Burst->Slot = Event->Slot;
+                Burst->Angle = (u8)(i32)(Event->Angle * (128.f / Pi32));
+                Burst->X = Event->Position.X;
+                Burst->Y = Event->Position.Y;
+                Burst->Z = Event->Position.Z;
             }
         }
     }

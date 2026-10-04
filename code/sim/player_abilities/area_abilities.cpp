@@ -28,6 +28,8 @@ struct player_area_ability
     float Shove;
     float Lift;
     float StunSeconds;
+    // NOTE(zoubir): what clients draw when it lands (events.h)
+    sim_burst Burst;
 };
 
 // NOTE(zoubir): walk speed while casting
@@ -37,11 +39,13 @@ global_variable player_area_ability PlayerAreaAbilities[] =
 {
     // NOTE(zoubir): Push (R): a quick wide cone that throws a crowd off
     // the player and apart, out of each other's way
-    {PlayerButton_Push, 0.12f, 2.5f, 0.f, 110.f, 0.34f, 10.f, 750.f, 0.f, 0.3f},
+    {PlayerButton_Push, 0.12f, 2.5f, 0.f, 110.f, 0.34f, 10.f, 750.f, 0.f, 0.3f,
+     SimBurst_PushCone},
     // NOTE(zoubir): Launch (A): a ground burst at the aim that throws
     // everything in it into the air (88 units, almost a second under
     // monster gravity) and stuns it until well after it lands
-    {PlayerButton_Launch, 0.3f, 5.f, 70.f, 55.f, -1.f, 20.f, 60.f, 420.f, 1.6f},
+    {PlayerButton_Launch, 0.3f, 5.f, 70.f, 55.f, -1.f, 20.f, 60.f, 420.f, 1.6f,
+     SimBurst_LaunchColumn},
 };
 #define PLAYER_AREA_ABILITY_COUNT ArrayCount(PlayerAreaAbilities)
 
@@ -126,6 +130,8 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
                 Player->AnimationState.SlotIndex = 0;
                 EmitSound(&AppState->Events, AssetType_FireCast,
                           Player->Position);
+                EmitBurst(&AppState->Events, SimBurst_CastGather,
+                          (u8)Player->PlayerIndex, Player->Position);
                 break;
             }
         }
@@ -142,8 +148,13 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
         player_area_ability *Ability =
             &PlayerAreaAbilities[Player->CastingArea - 1];
         Player->CastingArea = 0;
-        FireAreaAbility(AppState, World, Player, Ability,
-                        Player->CastingDirection);
+        v2 Aim = Player->CastingDirection;
+        FireAreaAbility(AppState, World, Player, Ability, Aim);
+        v3 Centre = Player->Position;
+        Centre.XY += Ability->Reach * Aim;
+        Centre.Z = 0.f;
+        EmitBurst(&AppState->Events, Ability->Burst, (u8)Player->PlayerIndex,
+                  Centre, ATan2(Aim.Y, Aim.X));
         if (Ability->Reach == 0.f)
         {
             Player->ShockwaveFlash = SHOCKWAVE_FLASH_SECONDS;

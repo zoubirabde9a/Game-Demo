@@ -329,6 +329,17 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
             EmitKill(&AppState->Events, Kill->Killer, Kill->Victim,
                      Kill->KillerMonster);
         }
+        for(u32 Index = 0; NewSnapshot && Index < Snapshot->BurstCount; Index++)
+        {
+            net_burst *Burst = &Snapshot->Bursts[Index];
+            if (!IsBurstPredictedHere(Burst->Kind, Burst->Slot,
+                                      Online->Client.PlayerIndex))
+            {
+                EmitBurst(&AppState->Events, (sim_burst)Burst->Kind,
+                          Burst->Slot, V3(Burst->X, Burst->Y, Burst->Z),
+                          (float)Burst->Angle * (Pi32 / 128.f));
+            }
+        }
         PredictLocalPlayer(AppState, Arena, &Online->Prediction, NewSnapshot,
                            Snapshot->InputTick, DeltaTime);
         return;

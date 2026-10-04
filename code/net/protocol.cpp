@@ -247,6 +247,18 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU8(S, &Kill->KillerMonster);
                 if (Kill->Victim >= NET_MAX_SNAPSHOT_SCORES) return false;
             }
+            NetU8(S, &P->Snapshot.BurstCount);
+            if (P->Snapshot.BurstCount > NET_MAX_SNAPSHOT_BURSTS) return false;
+            for (u32 Index = 0; Index < P->Snapshot.BurstCount; ++Index)
+            {
+                net_burst *Burst = &P->Snapshot.Bursts[Index];
+                NetU8(S, &Burst->Kind);
+                NetU8(S, &Burst->Slot);
+                NetU8(S, &Burst->Angle);
+                NetFixed16(S, &Burst->X, NET_POSITION_STEPS);
+                NetFixed16(S, &Burst->Y, NET_POSITION_STEPS);
+                NetFixed16(S, &Burst->Z, NET_POSITION_STEPS);
+            }
         } break;
 
         default: return false;

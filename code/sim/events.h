@@ -1,6 +1,7 @@
 #if !defined(SIM_EVENTS_H)
 /* Simulation events: things the simulation wants the outside world to
-   know about without doing them itself: a sound to play, a player killed.
+   know about without doing them itself: a sound to play, a player killed,
+   a visual burst.
    The client handles them after each tick (client/play_events.cpp); the
    server forwards them to clients in its snapshots. */
 
@@ -16,6 +17,22 @@ enum sim_event_type
     // of the player behind the hit, KillerMonster the monster_kind of a
     // monster that did it, either SIM_NOBODY
     SimEvent_Kill,
+    // NOTE(zoubir): a visual burst (sim_burst) at Position, facing Angle
+    // (radians, from +X), caused by the player in Slot (SIM_NOBODY for
+    // none); clients draw it from their own look table
+    SimEvent_Burst,
+};
+
+// NOTE(zoubir): every burst the simulation can ask for; how each looks is
+// client/fx_bursts.cpp. Fits a byte on the wire.
+enum sim_burst
+{
+    SimBurst_CastGather,   // an area ability's cast starting at a player
+    SimBurst_PushCone,     // Push's cone, from a player along Angle
+    SimBurst_LaunchColumn, // Launch's burst on the ground
+    SimBurst_AirJump,      // a ring under a player's feet, the second jump
+    SimBurst_Land,         // dust where a unit lands hard
+    SimBurst_Count
 };
 
 struct sim_event
@@ -26,6 +43,9 @@ struct sim_event
     u8 Killer;
     u8 Victim;
     u8 KillerMonster;
+    sim_burst Burst;
+    float Angle;
+    u8 Slot;
 };
 
 struct sim_events
@@ -59,6 +79,22 @@ EmitKill(sim_events *Queue, u8 Killer, u8 Victim, u8 KillerMonster)
         Event->Killer = Killer;
         Event->Victim = Victim;
         Event->KillerMonster = KillerMonster;
+    }
+}
+
+inline void
+EmitBurst(sim_events *Queue, sim_burst Burst, u8 Slot, v3 Position,
+          float Angle = 0.f)
+{
+    if (Queue->Count < MAX_SIM_EVENTS)
+    {
+        sim_event *Event = &Queue->Events[Queue->Count++];
+        *Event = {};
+        Event->Type = SimEvent_Burst;
+        Event->Burst = Burst;
+        Event->Position = Position;
+        Event->Angle = Angle;
+        Event->Slot = Slot;
     }
 }
 

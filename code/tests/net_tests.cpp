@@ -115,6 +115,14 @@ FullSnapshot()
         P.Snapshot.Kills[Index].Victim = (u8)(Index + 1);
         P.Snapshot.Kills[Index].KillerMonster = 0xFF;
     }
+    // One burst, for the same reason.
+    P.Snapshot.BurstCount = 1;
+    P.Snapshot.Bursts[0].Kind = 2;
+    P.Snapshot.Bursts[0].Slot = 0xFF;
+    P.Snapshot.Bursts[0].Angle = 200;
+    P.Snapshot.Bursts[0].X = -40.5f;
+    P.Snapshot.Bursts[0].Y = 812.25f;
+    P.Snapshot.Bursts[0].Z = 33.f;
 
     // ...and the longest name.
     P.Snapshot.NameSlot = NET_MAX_SNAPSHOT_SCORES - 1;
@@ -281,6 +289,11 @@ TestFullSnapshotFits()
     Check(Out.Snapshot.KillCount == 1);
     Check(Out.Snapshot.Kills[0].Victim == 1);
     Check(Out.Snapshot.Kills[0].KillerMonster == 0xFF);
+    Check(Out.Snapshot.BurstCount == 1);
+    Check(Out.Snapshot.Bursts[0].Kind == 2 && Out.Snapshot.Bursts[0].Slot == 0xFF);
+    Check(Out.Snapshot.Bursts[0].Angle == 200);
+    Check(Out.Snapshot.Bursts[0].X == -40.5f && Out.Snapshot.Bursts[0].Y == 812.25f);
+    Check(Out.Snapshot.Bursts[0].Z == 33.f);
     Check(Out.Snapshot.Sounds[NET_MAX_SNAPSHOT_SOUNDS - 1] == 200 + NET_MAX_SNAPSHOT_SOUNDS - 1);
     Check(Out.Snapshot.Facings[NET_MAX_SNAPSHOT_FACINGS - 1].Angle ==
           (NET_MAX_SNAPSHOT_FACINGS - 1) * 32 + 1);
@@ -829,8 +842,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d48u
-#define NET_GOLDEN_LAYOUT 0x29d7eccdu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d49u
+#define NET_GOLDEN_LAYOUT 0x452e0f82u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

@@ -789,6 +789,49 @@ TestStunnedPlayerCannotAct()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): how many bursts of Kind the simulation asked for since the
+// queue was last emptied
+internal u32
+CountBursts(app_state *AppState, sim_burst Kind)
+{
+    u32 Result = 0;
+    for(u32 Index = 0; Index < AppState->Events.Count; Index++)
+    {
+        sim_event *Event = &AppState->Events.Events[Index];
+        Result += (Event->Type == SimEvent_Burst && Event->Burst == Kind);
+    }
+    return Result;
+}
+
+// NOTE(zoubir): a second jump, a Launch and the hard landings each ask for
+// their burst once
+internal void
+TestAbilitiesAskForBursts()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    AddTestEntity(&Test, EntityType_Monster, {370, 300, 0}, Test.UnitVolume)
+        ->MaxHp = 1000.f;
+    player_slot *Slot = &AppState->Players[0];
+    AppState->Events.Count = 0;
+    Slot->Input.Aim = V2(1.f, 0.f);
+    Slot->Input.Pressed = PlayerButton_Jump;
+    RunPlayerFrames(&Test, 0, 10);
+    Slot->Input.Pressed = PlayerButton_Jump;
+    RunPlayerFrames(&Test, 0, 70);
+    Check(CountBursts(AppState, SimBurst_AirJump) == 1);
+    Check(CountBursts(AppState, SimBurst_Land) == 1);
+
+    AppState->Events.Count = 0;
+    Slot->Input.Pressed = PlayerButton_Launch;
+    RunPlayerFrames(&Test, 0, 30);
+    Check(CountBursts(AppState, SimBurst_CastGather) == 1);
+    Check(CountBursts(AppState, SimBurst_LaunchColumn) == 1);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -842,4 +885,6 @@ RunPlayerAbilityTests()
     TestDashCutsAreaCast();
     printf("TestStunnedPlayerCannotAct\n");
     TestStunnedPlayerCannotAct();
+    printf("TestAbilitiesAskForBursts\n");
+    TestAbilitiesAskForBursts();
 }

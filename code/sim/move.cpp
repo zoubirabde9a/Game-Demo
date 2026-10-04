@@ -2,6 +2,9 @@
    sliding along walls, applying hits and overlaps, and refreshing the
    ground height under it. Its steps are the functions above it. */
 
+// NOTE(zoubir): falling faster than this when landing raises dust; a
+// jump lands at 340, a step off a boulder at about 200
+#define MOVE_LAND_BURST_SPEED 250.f
 // NOTE(zoubir): how many entities a move can have nearby; crowded map
 // corners hold a few dozen walls per chunk
 #define MOVE_MAX_NEARBY 1024
@@ -284,6 +287,7 @@ MoveEntity(world_entity *Entity, world *World,
 {
     v3 Delta = 0.5f * DDEntity * Square(DeltaTime) + Entity->Velocity * DeltaTime;
     Entity->Velocity = DDEntity * DeltaTime + Entity->Velocity;
+    float FallSpeed = -Entity->Velocity.Z;
 
     world_entity *Nearby[MOVE_MAX_NEARBY];
     for(u32 Iteration = 0; Iteration < 4; Iteration++)
@@ -345,4 +349,12 @@ MoveEntity(world_entity *Entity, world *World,
     }
 
     UpdateGroundZ(AppState, World, Entity);
+    // NOTE(zoubir): a unit that comes down hard and stops raises dust
+    if (FallSpeed > MOVE_LAND_BURST_SPEED && Entity->Velocity.Z == 0.f &&
+        IsWalkingUnit(Entity))
+    {
+        u8 Slot = Entity->Type == EntityType_Player ?
+            (u8)Entity->PlayerIndex : SIM_NOBODY;
+        EmitBurst(&AppState->Events, SimBurst_Land, Slot, Entity->Position);
+    }
 }

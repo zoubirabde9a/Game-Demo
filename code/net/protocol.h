@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d48u // "GDMH", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d49u // "GDMI", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -29,6 +29,7 @@
 #define NET_MAX_SNAPSHOT_FACINGS 8  // front-armoured monsters per snapshot
 #define NET_MAX_SNAPSHOT_SOUNDS 8   // sounds heard since the last snapshot
 #define NET_MAX_SNAPSHOT_KILLS 4    // player deaths since the last snapshot
+#define NET_MAX_SNAPSHOT_BURSTS 8   // visual bursts seen since the last snapshot
 #define NET_COOLDOWN_COUNT 5        // the viewer's own ability cooldowns
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
@@ -194,6 +195,15 @@ struct net_kill
     u8 KillerMonster; // monster kind, 0xFF for none
 };
 
+// A visual burst (sim_burst in sim/events.h) the simulation asked for.
+struct net_burst
+{
+    u8 Kind;
+    u8 Slot;        // player that caused it, 0xFF for none
+    u8 Angle;       // a whole turn in 256 steps, 0 = +X, 64 = +Y
+    float X, Y, Z;
+};
+
 struct net_snapshot
 {
     u32 Tick;
@@ -226,6 +236,10 @@ struct net_snapshot
     // cooldown (0 = ready), for the HUD; abilities run only on the server.
     // Which is which: PlayerCooldown in sim/player_cooldowns.cpp.
     u8 Cooldowns[NET_COOLDOWN_COUNT];
+    // Bursts seen near this player since its previous snapshot; cosmetic,
+    // lost with their snapshot like sounds.
+    u8 BurstCount;
+    net_burst Bursts[NET_MAX_SNAPSHOT_BURSTS];
 };
 
 struct net_packet
