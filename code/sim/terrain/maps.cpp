@@ -306,6 +306,17 @@ GetMapDef(map_id Id)
     return Result;
 }
 
+// NOTE(zoubir): steps of raised ground at a tile of World. A world built
+// without terrain stand-ins (the bare test worlds) has nothing solid there,
+// so it counts as flat, and heights always agree with collision
+inline i32
+WorldElevationAt(world *World, i32 TileX, i32 TileY)
+{
+    i32 Result = World->TerrainColliderCapacity ?
+        ElevationAt(GetMapDef((map_id)World->MapId), TileX, TileY) : 0;
+    return Result;
+}
+
 // NOTE(zoubir): the top of the raised ground under a point of World's map,
 // in world units: its tile's elevation. Props are not ground
 inline float
@@ -314,8 +325,7 @@ GroundHeightAt(world *World, v2 Position)
     i32 TileSize = World->TileWidth ? (i32)World->TileWidth : ARENA_TILE_SIZE;
     i32 TileX = FloorDiv((i32)floorf(Position.X), TileSize);
     i32 TileY = FloorDiv((i32)floorf(Position.Y), TileSize);
-    float Result = (float)ElevationAt(GetMapDef((map_id)World->MapId), TileX, TileY) *
-        ELEVATION_STEP_HEIGHT;
+    float Result = (float)WorldElevationAt(World, TileX, TileY) * ELEVATION_STEP_HEIGHT;
     return Result;
 }
 
@@ -337,7 +347,6 @@ internal float
 HighestGroundAround(world *World, v2 Position, float Reach)
 {
     i32 TileSize = World->TileWidth ? (i32)World->TileWidth : ARENA_TILE_SIZE;
-    map_def *Map = GetMapDef((map_id)World->MapId);
     i32 MinX = FloorDiv((i32)floorf(Position.X - Reach), TileSize);
     i32 MinY = FloorDiv((i32)floorf(Position.Y - Reach), TileSize);
     i32 MaxX = FloorDiv((i32)floorf(Position.X + Reach), TileSize);
@@ -347,7 +356,7 @@ HighestGroundAround(world *World, v2 Position, float Reach)
     {
         for(i32 X = MinX; X <= MaxX; X++)
         {
-            Steps = Maximum(Steps, ElevationAt(Map, X, Y));
+            Steps = Maximum(Steps, WorldElevationAt(World, X, Y));
         }
     }
     float Result = (float)Steps * ELEVATION_STEP_HEIGHT;
