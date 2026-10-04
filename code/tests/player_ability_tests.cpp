@@ -1339,6 +1339,56 @@ TestRunningVaultsBoulders()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): fixes from a review: a blink into a monster shoves it no
+// harder than a dash; an air dash cancels a slam's dive; a stun cuts a
+// cast and drops queued clicks
+internal void
+TestReviewFixes()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *InTheWay = AddTestEntity(&Test, EntityType_Monster,
+                                           {380, 300, 0}, Test.UnitVolume);
+    InTheWay->MaxHp = InTheWay->Hp = 100.f;
+    Slot->Input.Aim = V2(1.f, 0.f);
+    Slot->Input.Pressed = PlayerButton_Blink;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(Length(InTheWay->Velocity.XY) <= SHOULDER_SHARE * SHOULDER_MAX_SPEED + 1.f);
+
+    // NOTE(zoubir): slam, then dash before landing: no hit on landing
+    world_entity *Near = AddTestEntity(&Test, EntityType_Monster,
+                                       {Player->Position.X, 360, 0}, Test.UnitVolume);
+    Near->MaxHp = Near->Hp = 100.f;
+    RunPlayerFrames(&Test, 0, 60);
+    Slot->Input.Pressed = PlayerButton_Jump;
+    RunPlayerFrames(&Test, 0, 12);
+    Slot->Input.Pressed = PlayerButton_Slam;
+    RunPlayerFrames(&Test, 0, 1);
+    Slot->Input.Pressed = PlayerButton_Dash;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(Player->PendingLandArea == 0);
+    RunPlayerFrames(&Test, 0, 60);
+    Check(Near->Hp == 100.f);
+
+    // NOTE(zoubir): a stun cuts a Launch's cast
+    world_entity *Target = AddTestEntity(&Test, EntityType_Monster,
+                                         {Player->Position.X + 70.f, Player->Position.Y, 0},
+                                         Test.UnitVolume);
+    Target->MaxHp = Target->Hp = 100.f;
+    Slot->Input.Pressed = PlayerButton_Launch;
+    RunPlayerFrames(&Test, 0, 2);
+    Check(IsCastingAreaAbility(Player));
+    ApplyStatus(Player, StatusEffect_Stunned, 1.f);
+    RunPlayerFrames(&Test, 0, 30);
+    Check(!IsCastingAreaAbility(Player));
+    Check(Target->Hp == 100.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1426,4 +1476,6 @@ RunPlayerAbilityTests()
     TestStunGroundsFlyers();
     printf("TestRunningVaultsBoulders\n");
     TestRunningVaultsBoulders();
+    printf("TestReviewFixes\n");
+    TestReviewFixes();
 }

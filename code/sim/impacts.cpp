@@ -29,8 +29,11 @@
 // NOTE(zoubir): share of the speed into a wall that bounces back
 #define IMPACT_WALL_BOUNCE 0.35f
 // NOTE(zoubir): share of a player's speed into a unit it walks into that
-// the unit takes on
+// the unit takes on, counting that speed up to a dash's at most: a blink
+// moves at its whole distance in one tick, 9600 a second, and shouldered
+// what it met across the map
 #define SHOULDER_SHARE 0.6f
+#define SHOULDER_MAX_SPEED 650.f
 
 // NOTE(zoubir): the player whose throw this is, or 0
 inline world_entity *
@@ -61,7 +64,12 @@ ImpactOnHit(app_state *AppState, world *World, world_entity *Entity,
             world_entity *Other, v3 Normal)
 {
     float Into = -DotProduct(Entity->Velocity.XY, Normal.XY);
-    if (Normal.Z != 0.f || Into <= 0.f)
+    // NOTE(zoubir): a client replaying its own player's moves leaves what
+    // they do to others to the server; doing it here hurt and shoved the
+    // client's copies of monsters, once per replayed input
+    bool32 Predicted = Entity->Type == EntityType_Player &&
+        AppState->Players[Entity->PlayerIndex].Predicted;
+    if (Normal.Z != 0.f || Into <= 0.f || Predicted)
     {
         return 0.f;
     }
@@ -70,7 +78,8 @@ ImpactOnHit(app_state *AppState, world *World, world_entity *Entity,
         if (Entity->Type == EntityType_Player && IsWalkingUnit(Other) &&
             !IsDodging(Other))
         {
-            Other->Velocity.XY -= (SHOULDER_SHARE * Into) * Normal.XY;
+            Other->Velocity.XY -=
+                (SHOULDER_SHARE * Minimum(Into, SHOULDER_MAX_SPEED)) * Normal.XY;
         }
         return 0.f;
     }

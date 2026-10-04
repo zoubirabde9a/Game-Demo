@@ -94,6 +94,10 @@ struct body_pose
     float ChargeLeft;
     // NOTE(zoubir): seconds this body has been tracked, for the sway
     float Clock;
+    // NOTE(zoubir): the slot held a body last frame. Ids are slot indices
+    // and are reused, so a new body in a freed slot is told apart by the
+    // slot having been empty, not by its id
+    bool32 Tracking;
     u32 EntityId;
 };
 
@@ -141,15 +145,17 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
         body_pose *Pose = &AppState->BodyPoses->Poses[Index];
         if (!HasBodyPose(Entity))
         {
+            Pose->Tracking = false;
             continue;
         }
         v3 Moved = Entity->Position - V3(Pose->LastX, Pose->LastY, Pose->LastZ);
         // NOTE(zoubir): a new entity in a reused slot, or one put somewhere
         // else, starts at rest
-        if (Pose->EntityId != Entity->ID ||
+        if (!Pose->Tracking || Pose->EntityId != Entity->ID ||
             LengthSq(Moved) > Square(BODY_TELEPORT_DISTANCE))
         {
             *Pose = {};
+            Pose->Tracking = true;
             Pose->EntityId = Entity->ID;
             Pose->LastZ = Entity->Position.Z;
             Pose->LastX = Entity->Position.X;
@@ -218,6 +224,7 @@ SetBodyWindup(app_state *AppState, world_entity *Entity, bool32 Charging)
 {
     u32 Index = (u32)(Entity - AppState->World.Entities);
     if (AppState->BodyPoses && Index < BODY_POSE_SLOTS &&
+        AppState->BodyPoses->Poses[Index].Tracking &&
         AppState->BodyPoses->Poses[Index].EntityId == Entity->ID)
     {
         AppState->BodyPoses->Poses[Index].ChargeLeft =
@@ -238,7 +245,7 @@ GetBodyPose(app_state *AppState, world_entity *Entity)
         return Result;
     }
     body_pose *Pose = &AppState->BodyPoses->Poses[Index];
-    if (Pose->EntityId != Entity->ID)
+    if (!Pose->Tracking || Pose->EntityId != Entity->ID)
     {
         return Result;
     }

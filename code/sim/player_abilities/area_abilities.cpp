@@ -108,6 +108,13 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
 internal void
 FireAreaOnLanding(app_state *AppState, world *World, world_entity *Player)
 {
+    // NOTE(zoubir): anything that sends the player up again (an air dash,
+    // a jump, being launched) ends the dive, and with it the hit; it used
+    // to go off on whatever landing came next
+    if (Player->Velocity.Z > 0.f)
+    {
+        Player->PendingLandArea = 0;
+    }
     if (!Player->PendingLandArea || !IsOnGround(Player))
     {
         return;

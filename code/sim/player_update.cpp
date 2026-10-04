@@ -114,6 +114,10 @@ UpdatePlayer(player_slot *Slot, world *World,
     {
         Slot->Input.Move = V2(0.f, 0.f);
         Slot->Input.Pressed = 0;
+        // NOTE(zoubir): a cast winding up and clicks waiting in the queue
+        // are lost too; they used to go off while stunned
+        CancelAreaCast(Player);
+        Slot->DelayedInputCount = 0;
     }
     *AnimationType = AnimationType_Stand;
     *AnimationDirection = Player->AnimationState.LastAnimationDirection;
