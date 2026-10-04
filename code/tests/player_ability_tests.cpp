@@ -1002,6 +1002,48 @@ TestSwordComboFinisher()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): with both jumps spent, a press just before landing jumps
+// on landing; a press long before does not
+internal void
+TestJumpPressedJustBeforeLanding()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    player_slot *Slot = &AppState->Players[0];
+    for(u32 Early = 0; Early < 2; Early++)
+    {
+        Slot->Input.Pressed = PlayerButton_Jump;
+        RunPlayerFrames(&Test, 0, 10);
+        Slot->Input.Pressed = PlayerButton_Jump;
+        RunPlayerFrames(&Test, 0, 1);
+        // NOTE(zoubir): fall until just above the ground
+        u32 Frames = 0;
+        while (Player->Velocity.Z >= 0.f ||
+               Player->Position.Z > (Early ? 60.f : 6.f))
+        {
+            RunPlayerFrames(&Test, 0, 1);
+            Check(++Frames < 200);
+            if (Frames >= 200) break;
+        }
+        Slot->Input.Pressed = PlayerButton_Jump;
+        bool32 JumpedAgain = false;
+        bool32 Landed = false;
+        for(u32 Frame = 0; Frame < 40; Frame++)
+        {
+            RunPlayerFrames(&Test, 0, 1);
+            Landed = Landed || Player->Position.Z == 0.f;
+            JumpedAgain = JumpedAgain || (Landed && Player->Velocity.Z > 0.f);
+        }
+        Check(Landed);
+        Check(JumpedAgain == !Early);
+        RunPlayerFrames(&Test, 0, 60);
+    }
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1069,4 +1111,6 @@ RunPlayerAbilityTests()
     TestPredictedSlamLeavesHitToServer();
     printf("TestSwordComboFinisher\n");
     TestSwordComboFinisher();
+    printf("TestJumpPressedJustBeforeLanding\n");
+    TestJumpPressedJustBeforeLanding();
 }

@@ -346,7 +346,7 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             // first half; dots behind it shrink and fade like a trail
             float Side = Look->Shape == BurstShape_Arc ? 1.f : -1.f;
             float Lead = Minimum(1.f, 2.f * T);
-            float Size = 2.f + Look->Radius / 12.f;
+            float Size = 3.f + Look->Radius / 8.f;
             for(u32 Dot = 0; Dot < 14; Dot++)
             {
                 float Along = (float)Dot / 13.f;

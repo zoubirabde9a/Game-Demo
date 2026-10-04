@@ -19,8 +19,10 @@
     // start again, by player_action (player.h, included after this)
 #define PLAYER_ACTION_SLOTS 4
     float ActionCooldowns[PLAYER_ACTION_SLOTS];
-    // NOTE(zoubir): jumps since the player last stood on something
+    // NOTE(zoubir): jumps since the player last stood on something, and the
+    // seconds a jump press with none left still waits to land (jump.cpp)
     u32 JumpsUsed;
+    float JumpBuffer;
     // NOTE(zoubir): area abilities (player_abilities/area_abilities.cpp):
     // seconds until each may be used again, which one is being cast (its
     // index + 1, 0 for none) and the seconds of cast left

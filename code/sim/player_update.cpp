@@ -95,7 +95,7 @@ UsePlayerAbilities(app_state *AppState, world *World, memory_arena *Arena,
 {
     world_entity *Player = Slot->Entity;
     player_input *Input = &Slot->Input;
-    UseJump(AppState, Player, Input, Tick);
+    UseJump(AppState, Player, Input, DeltaTime, Tick);
     UseAreaAbilities(AppState, World, Player, Input, DeltaTime, Tick);
     UseMovementAbilities(AppState, World, Arena, Player, Input, DeltaTime);
 }
