@@ -29,6 +29,10 @@
 #define BODY_RUSH_SPEED 250.f
 #define BODY_RUSH_FULL_SPEED 600.f
 #define BODY_RUSH_MAX 0.2f
+// NOTE(zoubir): a body that moves farther than this in one frame was put
+// somewhere (a respawn, a map change), not thrown: its pose starts over.
+// A blink is at most 160
+#define BODY_TELEPORT_DISTANCE 200.f
 // NOTE(zoubir): a fall faster than this squashes on landing; the squash is
 // full at BODY_SQUASH_FULL_SPEED
 #define BODY_SQUASH_MIN_SPEED 120.f
@@ -139,8 +143,11 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
         {
             continue;
         }
-        // NOTE(zoubir): a new entity in a reused slot starts at rest
-        if (Pose->EntityId != Entity->ID)
+        v3 Moved = Entity->Position - V3(Pose->LastX, Pose->LastY, Pose->LastZ);
+        // NOTE(zoubir): a new entity in a reused slot, or one put somewhere
+        // else, starts at rest
+        if (Pose->EntityId != Entity->ID ||
+            LengthSq(Moved) > Square(BODY_TELEPORT_DISTANCE))
         {
             *Pose = {};
             Pose->EntityId = Entity->ID;
