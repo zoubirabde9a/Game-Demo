@@ -30,6 +30,75 @@ IsOnGround(world_entity *Player)
     return Result;
 }
 
+// NOTE(zoubir): auto-vault: a player on the ground pushing head-on into
+// something low (a boulder) for PLAYER_VAULT_PUSH jumps over it on its
+// own, as if it had pressed jump. Only solids whose top is within
+// PLAYER_VAULT_HEIGHT of the feet count; walls and trees stay walls
+#define PLAYER_VAULT_PUSH 0.12f
+#define PLAYER_VAULT_HEIGHT 32.f
+// NOTE(zoubir): how far ahead the vault looks, and the speed along the
+// keys below which the player counts as stopped by what is ahead
+#define PLAYER_VAULT_PROBE 4.f
+#define PLAYER_VAULT_STALL_SPEED 20.f
+
+// NOTE(zoubir): the top of the tallest solid just ahead of Player along
+// Dir (a unit vector), or 0 when nothing solid is there
+internal float
+SolidTopAhead(app_state *AppState, world *World, world_entity *Player, v2 Dir)
+{
+    world_entity Probe = *Player;
+    Probe.Position.XY += PLAYER_VAULT_PROBE * Dir;
+    entity_collision_volume *Total = &Probe.Collision->TotalVolume;
+    rectangle3 Box = RectCenterHalfDims(Probe.Position + Total->Offset,
+                                        Total->HalfDims);
+    world_entity *Nearby[64];
+    u32 Count = GatherEntitiesInBox(World, Box, Nearby, ArrayCount(Nearby));
+    float Result = 0.f;
+    for(u32 Index = 0; Index < Count; Index++)
+    {
+        world_entity *Other = Nearby[Index];
+        bool32 Solid = Other->Type == EntityType_StaticObject ||
+            Other->Type == EntityType_Tiled;
+        if (Other->IsPresent && Solid && Other->Collision &&
+            CanCollide(AppState, EntityType_Player, Other->Type) &&
+            EntityOverlap(&Probe, Other))
+        {
+            entity_collision_volume *Theirs = &Other->Collision->TotalVolume;
+            Result = Maximum(Result, Other->Position.Z + Theirs->Offset.Z +
+                             Theirs->HalfDims.Z);
+        }
+    }
+    return Result;
+}
+
+// NOTE(zoubir): after the player's move; queues the vault's jump when the
+// player has been held up by something low enough for long enough
+internal void
+UpdateVault(app_state *AppState, world *World, world_entity *Player,
+            player_tick *Tick, float DeltaTime)
+{
+    v2 Dir = Player->Direction;
+    float DirLength = Length(Dir);
+    bool32 Stalled = Tick->Move && IsOnGround(Player) && DirLength > 0.f &&
+        DotProduct(Player->Velocity.XY, Dir) < PLAYER_VAULT_STALL_SPEED * DirLength;
+    float Top = Stalled ?
+        SolidTopAhead(AppState, World, Player, Dir * (1.f / DirLength)) : 0.f;
+    float Height = Top - Player->Position.Z;
+    if (Height > 1.f && Height <= PLAYER_VAULT_HEIGHT)
+    {
+        Player->VaultPush += DeltaTime;
+        if (Player->VaultPush >= PLAYER_VAULT_PUSH)
+        {
+            Player->VaultPush = 0.f;
+            Player->JumpBuffer = PLAYER_JUMP_BUFFER;
+        }
+    }
+    else
+    {
+        Player->VaultPush = 0.f;
+    }
+}
+
 internal void
 UseJump(app_state *AppState, world_entity *Player, player_input *Input,
         float DeltaTime, player_tick *Tick)

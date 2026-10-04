@@ -44,6 +44,7 @@ struct predicted_body
     float VelocityZ;
     u32 JumpsUsed;
     float JumpBuffer;
+    float VaultPush;
 };
 
 inline predicted_body
@@ -53,6 +54,7 @@ SavePredictedBody(world_entity *Player)
     Result.VelocityZ = Player->Velocity.Z;
     Result.JumpsUsed = Player->JumpsUsed;
     Result.JumpBuffer = Player->JumpBuffer;
+    Result.VaultPush = Player->VaultPush;
     return Result;
 }
 
@@ -62,6 +64,7 @@ RestorePredictedBody(world_entity *Player, predicted_body *Body)
     Player->Velocity.Z = Body->VelocityZ;
     Player->JumpsUsed = Body->JumpsUsed;
     Player->JumpBuffer = Body->JumpBuffer;
+    Player->VaultPush = Body->VaultPush;
 }
 
 struct predicted_input

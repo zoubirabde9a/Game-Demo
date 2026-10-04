@@ -1311,6 +1311,34 @@ TestStunGroundsFlyers()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): running into a boulder vaults it with no jump pressed;
+// running into a wall does not
+internal void
+TestRunningVaultsBoulders()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    SetupCollisionVolumes(AppState, &Test.Arena);
+    AppState->PlayerCollision = Test.UnitVolume;
+    entity_collision_volume_group *Boulder =
+        MakeSimpleGroundedCollisionVolume(&Test.Arena, {13.f, 8.f, 14.f});
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0}, Boulder);
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 600, 0},
+                  AppState->WallCollision);
+    world_entity *Runner = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {330, 300, 0});
+    world_entity *Blocked = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                            1, {330, 600, 0});
+    for(u32 SlotIndex = 0; SlotIndex < 2; SlotIndex++)
+    {
+        AppState->Players[SlotIndex].Input.Move = V2(1.f, 0.f);
+        RunPlayerFrames(&Test, SlotIndex, 150);
+    }
+    Check(Runner->Position.X > 430.f);
+    Check(Blocked->Position.X + 15.f <= 400.f - 16.f + 0.01f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1396,4 +1424,6 @@ RunPlayerAbilityTests()
     TestAirDashCarriesFarther();
     printf("TestStunGroundsFlyers\n");
     TestStunGroundsFlyers();
+    printf("TestRunningVaultsBoulders\n");
+    TestRunningVaultsBoulders();
 }

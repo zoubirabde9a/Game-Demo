@@ -23,6 +23,9 @@
     // seconds a jump press with none left still waits to land (jump.cpp)
     u32 JumpsUsed;
     float JumpBuffer;
+    // NOTE(zoubir): seconds spent pushing into something low enough to
+    // vault (jump.cpp)
+    float VaultPush;
     // NOTE(zoubir): area abilities (player_abilities/area_abilities.cpp):
     // seconds until each may be used again, which one is being cast (its
     // index + 1, 0 for none) and the seconds of cast left

@@ -71,6 +71,7 @@ MovePlayer(app_state *AppState, world *World, memory_arena *Arena,
     float MaxDistance = 10000.f;
     MoveEntity(Player, World, Arena, DeltaTime, AppState, DDPlayer, &MaxDistance);
     FireAreaOnLanding(AppState, World, Player);
+    UpdateVault(AppState, World, Player, Tick, DeltaTime);
 
     // NOTE(zoubir): in the air the jump frames show, unless a swing or a
     // cast is playing: those used to be replaced by the jump frame, so an
