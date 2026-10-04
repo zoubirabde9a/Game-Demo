@@ -2,9 +2,10 @@
    app.dll, the timer, the window, OpenGL, the sound buffer and the game's
    memory (with the platform calls the game uses). */
 
-// NOTE(zoubir): the game runs at a fixed 30 frames a second, whatever the
-// monitor's refresh rate
-#define WIN32_UPDATE_HZ 30
+// NOTE(zoubir): the game runs at a fixed 60 frames a second, whatever the
+// monitor's refresh rate: the server's tick rate, so a client sends one
+// input per server tick. At 30 every moving thing stepped visibly
+#define WIN32_UPDATE_HZ 60
 
 internal void
 Win32GetAppCodePaths(win32_state *state, char *dllPath, char *tempDLLPath)

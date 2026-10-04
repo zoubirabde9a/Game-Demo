@@ -55,8 +55,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     OpenGL->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     OpenGL->glClearColor(1.0f, 0.5f, 0.5f, 1.0f);
 
-    // Input, and the camera on the local player before it moves.
-    // While a screen such as the connect screen is open, keys type into it.
+    // Input. While a screen such as the connect screen is open, keys type
+    // into it.
     bool32 KeysToUi = ConnectScreenTakesInput(AppState);
     player_input *LocalInput = &AppState->Players[AppState->LocalPlayerIndex].Input;
     *LocalInput = KeysToUi ? player_input{} : ReadKeyboardPlayerInput(Input, AppState);
@@ -64,16 +64,17 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     {
         PlaySound(AppState, {AssetType_BattleTheme});
     }
-    v3 CameraOffset = UpdateCamera(AppState, Window);
 
-    // World: run it (locally, or from the server's snapshot), then draw it.
-    render_program TextureProgram = RenderContext->TextureProgram;
-    BeginWorldPass(RenderContext, TransientArena, &AppState->World, Window);
-    DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset, Window);
+    // World: run it (locally, or from the server's snapshot), put the
+    // camera on where the player is now, then draw it.
     app_input ServerInput = InputForServer(Input, LocalInput, KeysToUi);
     UpdateOnlineSession(AppState->Online, &ServerInput, KeysToUi, LocalInput->Aim);
     RunWorldTick(AppState, &AppState->WorldArena, Input->DeltaTime);
     PlaySimEvents(AppState, Input->DeltaTime);
+    v3 CameraOffset = UpdateCamera(AppState, Window, Input, !KeysToUi);
+    render_program TextureProgram = RenderContext->TextureProgram;
+    BeginWorldPass(RenderContext, TransientArena, &AppState->World, Window);
+    DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset, Window);
     DrawWorldEntities(RenderContext, AppState, &AppState->Assets,
                       TextureProgram, CameraOffset);
     RenderFlush(RenderContext);
