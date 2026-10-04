@@ -1107,7 +1107,9 @@ TestBodyPosesFollowMotion()
     float Dt = 1.f / 60.f;
     UpdateBodyPoses(AppState, Dt);
     body_pose_draw Rest = GetBodyPose(AppState, Body);
-    Check(Rest.Scale.X == 1.f && Rest.Scale.Y == 1.f && Rest.Flash == 0.f);
+    // NOTE(zoubir): at rest it only breathes, a little taller at most
+    Check(Rest.Scale.X == 1.f && Rest.Flash == 0.f);
+    Check(Rest.Scale.Y >= 1.f && Rest.Scale.Y <= 1.f + BODY_BREATH_DEPTH + 0.001f);
 
     // NOTE(zoubir): a dash's speed, 10 units a frame
     for(u32 Frame = 0; Frame < 10; Frame++)

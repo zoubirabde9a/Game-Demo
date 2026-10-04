@@ -16,7 +16,9 @@
      it lets go (SetBodyWindup, from the cast's bursts, fx_bursts.cpp);
    - a stun sways it side to side on its feet, dizzy;
    - turning to face another way squeezes it thin for an instant, so the
-     sprite's snap to its new row reads as a turn.
+     sprite's snap to its new row reads as a turn;
+   - standing still on the ground it breathes, a slow rise and settle,
+     each body at its own pace so a crowd does not breathe as one.
 
    The sprite keeps its feet where they were; DrawEntity asks
    GetBodyPose for the scale and the angle. Updated once a frame by UpdateBodyPoses,
@@ -61,6 +63,11 @@
 #define BODY_WINDUP_DEPTH 0.14f
 #define BODY_WINDUP_RELEASE 0.7f
 #define BODY_WINDUP_MAX_SECONDS 0.6f
+// NOTE(zoubir): an idle body's breath: how much taller at the top, breaths
+// a second, and the ground speed under which a body counts as still
+#define BODY_BREATH_DEPTH 0.03f
+#define BODY_BREATH_RATE 0.45f
+#define BODY_STILL_SPEED 10.f
 // NOTE(zoubir): how thin a turn squeezes the body, and how long it lasts
 #define BODY_TURN_SQUEEZE 0.25f
 #define BODY_TURN_SECONDS 0.1f
@@ -279,6 +286,13 @@ GetBodyPose(app_state *AppState, world_entity *Entity)
     Result.Scale.X *= 1.f + Rush;
     Result.Scale.Y /= 1.f + Rush;
     Result.Scale.X *= 1.f - BODY_TURN_SQUEEZE * Pose->Turn;
+    if (Pose->SpeedXY < BODY_STILL_SPEED &&
+        Entity->Position.Z <= Entity->GroundZ + 0.5f)
+    {
+        // NOTE(zoubir): the slot index offsets each body's breath
+        float Phase = 2.f * Pi32 * (BODY_BREATH_RATE * Pose->Clock + 0.37f * Index);
+        Result.Scale.Y *= 1.f + BODY_BREATH_DEPTH * (0.5f + 0.5f * Sin(Phase));
+    }
     if (Pose->Spin > 0.f)
     {
         // NOTE(zoubir): fast out of the kick, settling upright
