@@ -30,7 +30,7 @@
 #define BODY_STRETCH_SPEED 900.f
 #define BODY_STRETCH_MAX 0.16f
 // NOTE(zoubir): ground speed at which a body starts to stretch sideways
-// (a full walk is 93, a dash 650), and where the stretch is full
+// (a full walk is 130, a dash 650), and where the stretch is full
 #define BODY_RUSH_SPEED 250.f
 #define BODY_RUSH_FULL_SPEED 600.f
 #define BODY_RUSH_MAX 0.2f

@@ -10,8 +10,9 @@ SetupAnimationSets(app_state *AppState, memory_arena *ConstantsArena)
         
         animation_set *Set =
             &AppState->ZoubirAnimationSet;
-        // NOTE(zoubir): a player's top walking speed
-        // (PLAYER_ACCELERATION over the drag, about 93)
+        // NOTE(zoubir): the speed at which the walk frames play at their
+        // listed rate; faster walking plays them faster. The top walking
+        // speed is about 130 (PLAYER_ACCELERATION over the drag)
         Set->MoveSpeed = 93.f;
         AddAnimation(Set, ConstantsArena,
                      AnimationType_Move,

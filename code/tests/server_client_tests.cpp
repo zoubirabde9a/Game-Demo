@@ -227,9 +227,11 @@ TestPredictionAgreesWithServer()
     world_entity *Authority = Server.Game.AppState->Players[0].Entity;
     Check(Predicted->Position.X < StartX - 50.0f);
     // Moving, the client is ahead of the server by the inputs in flight.
-    // It is drawn DrawError off that while a correction blends in.
+    // It is drawn DrawError off that while a correction blends in. The
+    // slack is a small share of one tick's walk (about 2.2 at full speed):
+    // where the blend stands at this frame moves with the walk speed.
     v2 DrawError = Client->Online->Prediction.DrawError;
-    Check(Predicted->Position.X - DrawError.X <= Authority->Position.X + 0.01f);
+    Check(Predicted->Position.X - DrawError.X <= Authority->Position.X + 0.1f);
     Check(LengthSq(DrawError) < Square(4.0f));
 
     // Released, both come to rest at the same spot.

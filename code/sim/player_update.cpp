@@ -30,7 +30,7 @@
    A new ability is usually a row in one of them, a button in player.h
    and a key in client/action_keys.cpp. Jump is its own file. */
 
-#define PLAYER_ACCELERATION 56000.f
+#define PLAYER_ACCELERATION 78000.f
 
 // NOTE(zoubir): what one tick of the player decides, handed between steps
 struct player_tick

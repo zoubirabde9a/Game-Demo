@@ -3,7 +3,7 @@
    friction and gravity into MoveEntity. */
 
 // NOTE(zoubir): letting go of the keys faster than this raises a skid;
-// a full walk is about 93
+// a full walk is about 130
 #define PLAYER_SKID_SPEED 70.f
 // NOTE(zoubir): how fast the player walks while a swing finishes
 #define PLAYER_ACTION_MOVE_SCALE 0.7f
