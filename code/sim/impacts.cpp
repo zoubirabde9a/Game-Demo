@@ -84,8 +84,7 @@ ImpactOnHit(app_state *AppState, world *World, world_entity *Entity,
     // doing it here hurt and shoved the client's copies of monsters once
     // per replayed input. Only the player's own bounce off a wall is kept,
     // or a thrown player would stop dead on its own screen
-    bool32 Predicted = Entity->Type == EntityType_Player &&
-        AppState->Players[Entity->PlayerIndex].Predicted;
+    bool32 Predicted = IsPredictedPlayer(AppState, Entity);
     bool32 Thrown = Into >= IMPACT_MIN_SPEED && IsThrownUnit(Entity);
     if (Predicted)
     {

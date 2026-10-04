@@ -4,6 +4,19 @@
    one face of a swept box, EntityOverlap). Which pairs may meet at all is
    collision_rules.cpp. */
 
+// NOTE(zoubir): Entity is a player the client is stepping to predict it
+// (client/prediction.cpp). The client's world holds only replicas: a
+// fireball there has no owner and may already have missed on the server,
+// so whatever a meeting does to health, status or other units is left to
+// the server and arrives with its snapshot. Only the movement is kept.
+inline bool32
+IsPredictedPlayer(app_state *AppState, world_entity *Entity)
+{
+    bool32 Result = Entity->Type == EntityType_Player &&
+        AppState->Players[Entity->PlayerIndex].Predicted;
+    return Result;
+}
+
 internal bool32
 HandleCollision(app_state *AppState, world *World,
                 world_entity *A,
@@ -20,10 +33,15 @@ HandleCollision(app_state *AppState, world *World,
 
     // NOTE(zoubir): fireballs pierce; the caller adds a pass-through rule
     // so each fireball hits each target once. The owner already has one.
+    // A predicted player passes through without the hit: it once took 25
+    // health on its own screen from a fireball the server said missed.
     if (A->Type == EntityType_FireBall &&
         (B->Type == EntityType_Monster || B->Type == EntityType_Player))
     {
-        DamageEntity(AppState, World, B, FIREBALL_DAMAGE, A);
+        if (!IsPredictedPlayer(AppState, B))
+        {
+            DamageEntity(AppState, World, B, FIREBALL_DAMAGE, A);
+        }
         Result = false;
     }
     return Result;
@@ -131,6 +149,11 @@ internal void
 HandleOverlap(app_state *AppState, world *World, memory_arena *Arena,
               world_entity *Entity, world_entity *Region)
 {
+    if (IsPredictedPlayer(AppState, Entity) ||
+        IsPredictedPlayer(AppState, Region))
+    {
+        return;
+    }
     if (Entity->Type == EntityType_Sword)
     {
         SwordHit(AppState, World, Entity, Region);

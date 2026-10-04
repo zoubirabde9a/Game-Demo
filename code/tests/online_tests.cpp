@@ -486,6 +486,48 @@ TestPredictionMovesNowAndReplaysAfterSnapshot()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): walking the local player through a fireball replica must
+// not hurt it on the client: the server decides whether the shot hit, and
+// says so in its snapshot. A replica fireball has no owner, so the
+// player's own shots used to count as well.
+internal void
+TestPredictionTakesNoFireballDamage()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    prediction_history *History =
+        (prediction_history *)calloc(1, sizeof(prediction_history));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+    float Dt = 1.f / 60.f;
+
+    Snapshot->Tick = 1;
+    Snapshot->Count = 2;
+    Snapshot->NameSlot = NET_NO_NAME_SLOT;
+    Snapshot->Entities[0] = SnapshotEntity(3, EntityType_Player, 500, 500, 0);
+    Snapshot->Entities[0].Health = 100;
+    Snapshot->Entities[1] = SnapshotEntity(4, EntityType_FireBall, 520, 500);
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    world_entity *Player = GetLocalPlayer(AppState);
+    Check(Player->Hp == 100.f);
+
+    RecordPredictedInput(History, 1, NetButton_Right, Dt);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
+    for(u32 Tick = 2; Tick <= 40; Tick++)
+    {
+        RecordPredictedInput(History, Tick, NetButton_Right, Dt);
+        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, Dt);
+    }
+    // NOTE(zoubir): it went through the fireball, which does not block
+    Check(Player->Position.X - History->DrawError.X > 540.f);
+    Check(Player->Hp == 100.f);
+
+    free(Snapshot);
+    free(History);
+    free(Table);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 TestReplicaFacingFromSnapshot()
 {
@@ -751,6 +793,8 @@ RunOnlineTests()
     TestPredictionHistory();
     printf("TestPredictionMovesNowAndReplaysAfterSnapshot\n");
     TestPredictionMovesNowAndReplaysAfterSnapshot();
+    printf("TestPredictionTakesNoFireballDamage\n");
+    TestPredictionTakesNoFireballDamage();
     printf("TestPredictionBlendsCorrections\n");
     TestPredictionBlendsCorrections();
     printf("TestReplicasGlideBetweenSnapshots\n");
