@@ -22,7 +22,8 @@ global_variable controls_row ControlsRows[] =
 {
     {"ZQSD",        "Move"},
     {"Mouse",       "Aim; you face the cursor"},
-    {"Left click",  "Fireball at a foe; on the ground, walk there"},
+    {"Left click",  "Walk there; on a foe, fireball"},
+    {"Shift click", "Fireball at the cursor"},
     {"Right click", "Sword: a wide slice that shoves"},
     {"Space",       "Jump, again in the air; clears rocks"},
     {"Alt",         "Dash; dashing through an attack dodges it"},

@@ -27,6 +27,7 @@
 #include "online_quality.cpp"
 #include "action_keys.cpp"
 #include "online.cpp"
+#include "click_move.cpp"
 #include "keyboard_input.cpp"
 #include "camera.cpp"
 #include "draw_tilemap.cpp"

@@ -747,6 +747,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "collision_tests.cpp"
 #include "online_tests.cpp"
 #include "player_ability_tests.cpp"
+#include "click_move_tests.cpp"
 
 #define RUN(Test) printf("%s\n", #Test); Test()
 
@@ -787,6 +788,7 @@ main()
     RunCollisionTests();
     RunOnlineTests();
     RunPlayerAbilityTests();
+    RunClickMoveTests();
 
     printf("%d of %d checks passed\n", TestChecks - TestFailures, TestChecks);
     return TestFailures ? 1 : 0;
