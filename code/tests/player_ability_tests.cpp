@@ -1092,6 +1092,67 @@ TestStoppingFromARunSkids()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): body poses read from motion: a fast sideways move
+// stretches a body long, a hard landing squashes it short, a hit flashes
+// it, and being put far away starts it over at rest
+internal void
+TestBodyPosesFollowMotion()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->BodyPoses = (body_poses *)calloc(1, sizeof(body_poses));
+    world_entity *Body = AddTestEntity(&Test, EntityType_Monster,
+                                       {300, 300, 0}, Test.UnitVolume);
+    Body->MaxHp = Body->Hp = 100.f;
+    float Dt = 1.f / 60.f;
+    UpdateBodyPoses(AppState, Dt);
+    body_pose_draw Rest = GetBodyPose(AppState, Body);
+    Check(Rest.Scale.X == 1.f && Rest.Scale.Y == 1.f && Rest.Flash == 0.f);
+
+    // NOTE(zoubir): a dash's speed, 10 units a frame
+    for(u32 Frame = 0; Frame < 10; Frame++)
+    {
+        Body->Position.X += 10.f;
+        UpdateBodyPoses(AppState, Dt);
+    }
+    body_pose_draw Rush = GetBodyPose(AppState, Body);
+    Check(Rush.Scale.X > 1.1f && Rush.Scale.Y < 0.95f);
+
+    // NOTE(zoubir): falling, then on the ground
+    for(u32 Frame = 0; Frame < 30; Frame++)
+    {
+        UpdateBodyPoses(AppState, Dt);
+    }
+    Body->Position.Z = 40.f;
+    UpdateBodyPoses(AppState, Dt);
+    for(u32 Frame = 0; Frame < 5; Frame++)
+    {
+        Body->Position.Z -= 8.f;
+        UpdateBodyPoses(AppState, Dt);
+    }
+    Body->Position.Z = 0.f;
+    UpdateBodyPoses(AppState, Dt);
+    Check(GetBodyPose(AppState, Body).Scale.Y < 0.95f);
+
+    Body->Hp -= 10.f;
+    UpdateBodyPoses(AppState, Dt);
+    Check(GetBodyPose(AppState, Body).Flash > 0.5f);
+
+    // NOTE(zoubir): put 500 units away: no stretch from it
+    for(u32 Frame = 0; Frame < 60; Frame++)
+    {
+        UpdateBodyPoses(AppState, Dt);
+    }
+    Body->Position.X += 500.f;
+    UpdateBodyPoses(AppState, Dt);
+    UpdateBodyPoses(AppState, Dt);
+    body_pose_draw Moved = GetBodyPose(AppState, Body);
+    Check(Absolute(Moved.Scale.X - 1.f) < 0.01f);
+    free(AppState->BodyPoses);
+    AppState->BodyPoses = 0;
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1165,4 +1226,6 @@ RunPlayerAbilityTests()
     TestSwordJugglesAirborneTarget();
     printf("TestStoppingFromARunSkids\n");
     TestStoppingFromARunSkids();
+    printf("TestBodyPosesFollowMotion\n");
+    TestBodyPosesFollowMotion();
 }
