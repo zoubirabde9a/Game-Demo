@@ -891,6 +891,39 @@ TestSwingInTheAirShowsSwing()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a slam only works in the air; it drives the player down
+// and on landing throws and stuns what is around
+internal void
+TestSlamFromTheAir()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *Near = AddTestEntity(&Test, EntityType_Monster,
+                                       {350, 300, 0}, Test.UnitVolume);
+    Near->MaxHp = Near->Hp = 100.f;
+    player_slot *Slot = &AppState->Players[0];
+    Slot->Input.Pressed = PlayerButton_Slam;
+    RunPlayerFrames(&Test, 0, 2);
+    Check(Player->MovementCooldowns[PlayerMove_Slam] == 0.f);
+
+    Slot->Input.Pressed = PlayerButton_Jump;
+    RunPlayerFrames(&Test, 0, 12);
+    Check(Player->Position.Z > 20.f);
+    Slot->Input.Pressed = PlayerButton_Slam;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(Player->Velocity.Z < -500.f);
+    RunPlayerFrames(&Test, 0, 6);
+    Check(Player->Position.Z == 0.f);
+    Check(Near->Hp < 100.f);
+    Check(HasStatus(Near, StatusEffect_Stunned));
+    Check(Near->Velocity.Z > 0.f && Near->Velocity.X > 0.f);
+    Check(Player->PendingLandArea == 0);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -952,4 +985,6 @@ RunPlayerAbilityTests()
     TestWalkCycleFollowsSpeed();
     printf("TestSwingInTheAirShowsSwing\n");
     TestSwingInTheAirShowsSwing();
+    printf("TestSlamFromTheAir\n");
+    TestSlamFromTheAir();
 }

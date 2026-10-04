@@ -8,28 +8,49 @@ struct action_key
 {
     app_button_state *Key;
     u32 Button;
+    // NOTE(zoubir): what the HUD writes under the button's cooldown bar
+    char *Label;
 };
 
-#define ACTION_KEY_COUNT 8
+#define ACTION_KEY_COUNT 9
 
 internal void
 GetActionKeys(app_input *Input, action_key *Keys)
 {
     action_key Table[ACTION_KEY_COUNT] =
     {
-        {&Input->SpaceButton, PlayerButton_Jump},
-        {&Input->AltButton, PlayerButton_Dash},
-        {&Input->LeftButton, PlayerButton_Cast},
-        {&Input->RightButton, PlayerButton_Attack},
-        {&Input->ButtonE, PlayerButton_Shockwave},
-        {&Input->ButtonF, PlayerButton_Blink},
-        {&Input->ButtonR, PlayerButton_Push},
-        {&Input->ButtonA, PlayerButton_Launch},
+        {&Input->SpaceButton, PlayerButton_Jump, "Space"},
+        {&Input->AltButton, PlayerButton_Dash, "Alt"},
+        {&Input->LeftButton, PlayerButton_Cast, "LMB"},
+        {&Input->RightButton, PlayerButton_Attack, "RMB"},
+        {&Input->ButtonE, PlayerButton_Shockwave, "E"},
+        {&Input->ButtonF, PlayerButton_Blink, "F"},
+        {&Input->ButtonR, PlayerButton_Push, "R"},
+        {&Input->ButtonA, PlayerButton_Launch, "A"},
+        {&Input->ButtonC, PlayerButton_Slam, "C"},
     };
     for(u32 Index = 0; Index < ACTION_KEY_COUNT; Index++)
     {
         Keys[Index] = Table[Index];
     }
+}
+
+// NOTE(zoubir): the key's name for a player_button, "" for none
+internal char *
+ActionKeyLabel(u32 Button)
+{
+    static app_input NoInput;
+    action_key Keys[ACTION_KEY_COUNT];
+    GetActionKeys(&NoInput, Keys);
+    char *Result = (char *)"";
+    for(u32 Index = 0; Index < ACTION_KEY_COUNT; Index++)
+    {
+        if (Keys[Index].Button == Button)
+        {
+            Result = Keys[Index].Label;
+        }
+    }
+    return Result;
 }
 
 // NOTE(zoubir): the player_button bits of the keys pressed this frame

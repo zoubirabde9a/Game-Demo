@@ -28,3 +28,6 @@
     float AreaCooldowns[PLAYER_AREA_ABILITY_SLOTS];
     u32 CastingArea;
     float AreaCastLeft;
+    // NOTE(zoubir): an area ability's row + 1 that fires when the player
+    // lands (a slam), 0 for none
+    u32 PendingLandArea;

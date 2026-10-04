@@ -79,24 +79,34 @@ DrawHud(render_context *RenderContext, app_state *AppState,
     DrawPlayerLabels(RenderContext, AppState, CameraOffset);
 
     // Ability bars under the health bar, one per cooldown in
-    // sim/player_cooldowns.cpp, each with its key below it. A bar fills
-    // back up while recharging and turns the accent colour when ready.
-    char *Keys[PLAYER_COOLDOWN_COUNT] = {"Alt", "F", "E", "R", "A"};
-    u32 AbilityCount = PLAYER_COOLDOWN_COUNT;
+    // sim/player_cooldowns.cpp that has one, each with its key below it
+    // (client/action_keys.cpp). A bar fills back up while recharging and
+    // turns the accent colour when ready.
+    u32 Shown[PLAYER_COOLDOWN_COUNT];
+    u32 AbilityCount = 0;
+    for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
+    {
+        float Full;
+        if (PlayerCooldown(Player, Index, &Full) && Full > 0.f)
+        {
+            Shown[AbilityCount++] = Index;
+        }
+    }
     float BarGap = 10.f;
     float BarWidth = (Width - BarGap * (AbilityCount - 1)) / AbilityCount;
     font *Small = AppState->Fonts.Small;
     for(u32 AbilityIndex = 0; AbilityIndex < AbilityCount; AbilityIndex++)
     {
+        u32 Index = Shown[AbilityIndex];
         float Full;
-        float *Seconds = PlayerCooldown(Player, AbilityIndex, &Full);
-        float Charge = (Seconds && Full > 0.f) ? 1.f - *Seconds / Full : 1.f;
+        float *Seconds = PlayerCooldown(Player, Index, &Full);
+        float Charge = 1.f - *Seconds / Full;
         bool32 Ready = Charge >= 1.f;
         float BarX = X + AbilityIndex * (BarWidth + BarGap);
         DrawHudBar(RenderContext, BarX, Y, BarWidth, 6.f, Charge,
                    Ready ? UI_COLOR_ACCENT : UI_COLOR_DIM);
         UIText(RenderContext, Small, BarX + 0.5f * BarWidth, Y + 8.f,
-               Keys[AbilityIndex],
+               ActionKeyLabel(PlayerCooldownButton(Index)),
                Ready ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED, UIAlign_Center);
     }
     Y += 8.f + UILineHeight(Small) + UI_GAP_SMALL;

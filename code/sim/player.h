@@ -27,6 +27,7 @@ enum player_button
     PlayerButton_Blink = 1 << 5,
     PlayerButton_Push = 1 << 6,
     PlayerButton_Launch = 1 << 7,
+    PlayerButton_Slam = 1 << 8,
 };
 #define PLAYER_BUTTON_NET_SHIFT 4
 

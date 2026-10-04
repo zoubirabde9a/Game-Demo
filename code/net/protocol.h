@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d4au // "GDMJ", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d4bu // "GDMK", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -30,7 +30,7 @@
 #define NET_MAX_SNAPSHOT_SOUNDS 8   // sounds heard since the last snapshot
 #define NET_MAX_SNAPSHOT_KILLS 4    // player deaths since the last snapshot
 #define NET_MAX_SNAPSHOT_BURSTS 8   // visual bursts seen since the last snapshot
-#define NET_COOLDOWN_COUNT 5        // the viewer's own ability cooldowns
+#define NET_COOLDOWN_COUNT 7        // the viewer's own ability cooldowns
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
@@ -70,6 +70,7 @@ enum net_button
     NetButton_Blink     = 1 << 9,
     NetButton_Push      = 1 << 10,
     NetButton_Launch    = 1 << 11,
+    NetButton_Slam      = 1 << 12,
 };
 // The action buttons, Jump onward, are the simulation's player_button bits
 // moved up by PLAYER_BUTTON_NET_SHIFT (sim/player.h); keep the two orders

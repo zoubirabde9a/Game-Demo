@@ -43,6 +43,7 @@ enum player_area
     PlayerArea_Shockwave,
     PlayerArea_Push,
     PlayerArea_Launch,
+    PlayerArea_Slam,
     PlayerArea_Count
 };
 
@@ -61,6 +62,11 @@ global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
     // monster gravity) and stuns it until well after it lands
     {PlayerButton_Launch, 0.3f, 5.f, 70.f, 55.f, -1.f, 20.f, 60.f, 420.f, 1.6f,
      SimBurst_LaunchColumn},
+    // NOTE(zoubir): Slam: no key of its own; the slam's dive
+    // (movement_abilities.cpp) fires it where the player lands. Everything
+    // within 80 units is thrown out and up and stunned
+    {0, 0.f, 0.f, 0.f, 80.f, -1.f, 25.f, 380.f, 260.f, 0.9f,
+     SimBurst_ShockwaveRing},
 };
 #define PLAYER_AREA_ABILITY_COUNT PlayerArea_Count
 static_assert(PlayerArea_Count <= PLAYER_AREA_ABILITY_SLOTS, "one cooldown each");
@@ -106,6 +112,25 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
         Target->ThrownBySlot = Player->PlayerIndex + 1;
     }
     return HitCount;
+}
+
+// NOTE(zoubir): an area ability that fires when the player next lands
+// (PendingLandArea, its row + 1); called after every player move
+internal void
+FireAreaOnLanding(app_state *AppState, world *World, world_entity *Player)
+{
+    if (!Player->PendingLandArea || !IsOnGround(Player))
+    {
+        return;
+    }
+    player_area_ability *Ability =
+        &PlayerAreaAbilities[Player->PendingLandArea - 1];
+    Player->PendingLandArea = 0;
+    v2 Aim = GetPlayerAim(Player);
+    FireAreaAbility(AppState, World, Player, Ability, Aim);
+    EmitBurst(&AppState->Events, Ability->Burst, (u8)Player->PlayerIndex,
+              Player->Position);
+    EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
 }
 
 inline bool32

@@ -26,6 +26,18 @@ PlayerCooldown(world_entity *Player, u32 Index, float *Full)
     return 0;
 }
 
+// NOTE(zoubir): the button whose cooldown Index is
+internal u32
+PlayerCooldownButton(u32 Index)
+{
+    if (Index < PlayerMove_Count)
+    {
+        return PlayerMovements[Index].Button;
+    }
+    u32 Area = Index - PlayerMove_Count;
+    return Area < PLAYER_AREA_ABILITY_COUNT ? PlayerAreaAbilities[Area].Button : 0;
+}
+
 // NOTE(zoubir): a cooldown as one byte, 0..255 of its full length
 inline u8
 CooldownToByte(float Seconds, float Full)

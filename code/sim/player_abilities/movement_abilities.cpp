@@ -1,5 +1,5 @@
 /* Movement abilities: the keys that move the player at once (dash,
-   blink), as a table. Using one is the same for every row: it needs its
+   blink, slam), as a table. Using one is the same for every row: it needs its
    key and its cooldown, cuts a swing's or cast's root and an area cast,
    lights DashFlash (while it lasts the player cannot be hurt or shoved,
    IsDodging in entity.cpp, and clients draw the streak from it) and plays
@@ -7,8 +7,8 @@
    A new one is a row here, a name in player_movement, its motion, a
    button in player.h and a key in client/action_keys.cpp. */
 
-// NOTE(zoubir): moves Player; Power is its row's. Returns false when the
-// player is gone afterwards (a blink into something deadly).
+// NOTE(zoubir): moves Player; Power is its row's. Returns false when it
+// did nothing (a slam on the ground), which keeps the cooldown.
 typedef bool32 player_motion_function(app_state *AppState, world *World,
                                       memory_arena *Arena, world_entity *Player,
                                       player_input *Input, float DeltaTime,
@@ -18,6 +18,7 @@ enum player_movement
 {
     PlayerMove_Dash,
     PlayerMove_Blink,
+    PlayerMove_Slam,
     PlayerMove_Count
 };
 
@@ -67,7 +68,25 @@ BlinkMotion(app_state *AppState, world *World, memory_arena *Arena,
     MoveEntity(Player, World, Arena, DeltaTime, AppState, V3(0.f, 0.f, 0.f),
                &Distance);
     Player->Velocity = Velocity;
-    return Player->IsPresent;
+    return true;
+}
+
+// NOTE(zoubir): from the air only, straight down at Power, most of the
+// sideways speed dropped so it lands where it started; the Slam area row
+// fires on landing (FireAreaOnLanding)
+internal bool32
+SlamMotion(app_state *AppState, world *World, memory_arena *Arena,
+           world_entity *Player, player_input *Input, float DeltaTime,
+           float Power)
+{
+    if (IsOnGround(Player))
+    {
+        return false;
+    }
+    Player->Velocity.XY *= 0.3f;
+    Player->Velocity.Z = -Power;
+    Player->PendingLandArea = PlayerArea_Slam + 1;
+    return true;
 }
 
 global_variable player_movement_ability PlayerMovements[PlayerMove_Count] =
@@ -76,6 +95,8 @@ global_variable player_movement_ability PlayerMovements[PlayerMove_Count] =
     {PlayerButton_Dash, 0.8f, 650.f, DashMotion},
     // NOTE(zoubir): Blink (F), as far as the cursor can reach
     {PlayerButton_Blink, 3.f, PLAYER_AIM_REACH, BlinkMotion},
+    // NOTE(zoubir): Slam (C), in the air
+    {PlayerButton_Slam, 2.f, 900.f, SlamMotion},
 };
 static_assert(PlayerMove_Count <= PLAYER_MOVEMENT_SLOTS, "one cooldown each");
 
@@ -97,6 +118,11 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
         }
         if (!Ability->Motion(AppState, World, Arena, Player, Input, DeltaTime,
                              Ability->Power))
+        {
+            continue;
+        }
+        // NOTE(zoubir): a blink into something deadly removes the player
+        if (!Player->IsPresent)
         {
             return;
         }

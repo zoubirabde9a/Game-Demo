@@ -30,6 +30,7 @@ global_variable controls_row ControlsRows[] =
     {"F",           "Blink to the cursor"},
     {"R",           "Push: throws a crowd off you"},
     {"A",           "Launch: throws foes up, stuns"},
+    {"C",           "Slam down from a jump"},
     {"Tab",         "Scoreboard"},
     {"F4",          "Play: map and server"},
     {"F1",          "Fullscreen"},

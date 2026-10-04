@@ -191,6 +191,10 @@ UpdateDeadPlayer(player_slot *Slot, world *World, memory_arena *Arena,
     Player->Hp = Player->MaxHp;
     Slot->RespawnTimer = 0.f;
     Slot->DelayedInputCount = 0;
+    // NOTE(zoubir): a cast or a slam cut short by death does not go off
+    // at the spawn point
+    Player->CastingArea = 0;
+    Player->PendingLandArea = 0;
     CheckAndChangeEntityChunk(AppState, World, Arena,
                               OldPosition, Player);
     return false;
