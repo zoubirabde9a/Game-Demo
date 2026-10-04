@@ -79,7 +79,7 @@ SweepAgainstEntity(world_entity *Entity, v3 From, v3 Delta,
                    world_entity *Other, float *tMin, v3 *Normal)
 {
     bool32 Hit = false;
-    bool32 BothAreUnits = IsWalkingUnit(Entity) && IsWalkingUnit(Other);
+    bool32 MoverIsUnit = IsWalkingUnit(Entity);
     for(u32 VolumeIndex = 0;
         VolumeIndex < Entity->Collision->VolumesCount;
         VolumeIndex++)
@@ -97,15 +97,16 @@ SweepAgainstEntity(world_entity *Entity, v3 From, v3 Delta,
             v3 Rel = (From + Volume->Offset) -
                 (Other->Position + OtherVolume->Offset);
 
-            // NOTE(zoubir): two units already overlapping (one spawned on
-            // top of the other): every face is "ahead", so the walls below
-            // would trap the mover. Let it move out or along; only a move
-            // that goes deeper is stopped, at its start, with the normal
-            // of the shallowest axis so the slide keeps the rest. Walls
-            // and projectiles keep the face test, so nothing slides out
-            // through a wall it started inside.
+            // NOTE(zoubir): a unit already inside something (spawned on
+            // another unit, or shoved into a wall's edge by a crowd or a
+            // knockback): every face is "ahead", so the walls below would
+            // trap it, and the player froze until separation freed it.
+            // Let it move out or along; only a move that goes deeper is
+            // stopped, at its start, with the normal of the shallowest
+            // axis so the slide keeps the rest. Projectiles keep the face
+            // test.
             v3 Depth = OverlapDepth(MinkowskiDiameter, Rel);
-            if (BothAreUnits &&
+            if (MoverIsUnit &&
                 Depth.X > MOVE_OVERLAP_EPSILON &&
                 Depth.Y > MOVE_OVERLAP_EPSILON &&
                 Depth.Z > MOVE_OVERLAP_EPSILON)

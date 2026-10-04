@@ -218,6 +218,28 @@ TestGroundUnderJumpingUnit()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a unit that ends up a little inside a wall (a crowd
+// shoved it there, or a knockback did) walks out and along the wall; it
+// used to be held by every face of the wall at once
+internal void
+TestUnitInsideWallEdgeWalksOut()
+{
+    test_world Test = CreateTestWorld();
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0},
+                  Test.WallVolume);
+    // NOTE(zoubir): right edge at 386, two units past the wall's left face
+    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
+                                         {371, 300, 0}, Test.UnitVolume);
+    Walk(&Test, Player, {-1, 0}, 30);
+    Check(Player->Position.X < 340.f);
+
+    world_entity *Slider = AddTestEntity(&Test, EntityType_Player,
+                                         {371, 290, 0}, Test.UnitVolume);
+    Walk(&Test, Slider, {0, 1}, 30);
+    Check(Slider->Position.Y > 320.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunCollisionTests()
 {
@@ -243,4 +265,6 @@ RunCollisionTests()
     TestUnitDoesNotSlipFromMiddleOfWall();
     printf("TestGroundUnderJumpingUnit\n");
     TestGroundUnderJumpingUnit();
+    printf("TestUnitInsideWallEdgeWalksOut\n");
+    TestUnitInsideWallEdgeWalksOut();
 }
