@@ -1138,6 +1138,18 @@ TestBodyPosesFollowMotion()
     UpdateBodyPoses(AppState, Dt);
     Check(GetBodyPose(AppState, Body).Flash > 0.5f);
 
+    // NOTE(zoubir): turning squeezes it thin for a moment
+    for(u32 Frame = 0; Frame < 30; Frame++)
+    {
+        UpdateBodyPoses(AppState, Dt);
+    }
+    float Before = GetBodyPose(AppState, Body).Scale.X;
+    Body->AnimationState.LastAnimationDirection =
+        Body->AnimationState.LastAnimationDirection == AnimationDirection_Left ?
+        AnimationDirection_Right : AnimationDirection_Left;
+    UpdateBodyPoses(AppState, Dt);
+    Check(GetBodyPose(AppState, Body).Scale.X < Before - 0.1f);
+
     // NOTE(zoubir): put 500 units away: no stretch from it
     for(u32 Frame = 0; Frame < 60; Frame++)
     {

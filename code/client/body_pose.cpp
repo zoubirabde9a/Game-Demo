@@ -14,7 +14,9 @@
    - losing health flashes it red and jolts it, a short squash;
    - a cast with a wind-up crouches it while it charges and pops it up as
      it lets go (SetBodyWindup, from the cast's bursts, fx_bursts.cpp);
-   - a stun sways it side to side on its feet, dizzy.
+   - a stun sways it side to side on its feet, dizzy;
+   - turning to face another way squeezes it thin for an instant, so the
+     sprite's snap to its new row reads as a turn.
 
    The sprite keeps its feet where they were; DrawEntity asks
    GetBodyPose for the scale and the angle. Updated once a frame by UpdateBodyPoses,
@@ -59,6 +61,9 @@
 #define BODY_WINDUP_DEPTH 0.14f
 #define BODY_WINDUP_RELEASE 0.7f
 #define BODY_WINDUP_MAX_SECONDS 0.6f
+// NOTE(zoubir): how thin a turn squeezes the body, and how long it lasts
+#define BODY_TURN_SQUEEZE 0.25f
+#define BODY_TURN_SECONDS 0.1f
 // NOTE(zoubir): a stunned body's sway, in radians and turns per second
 #define BODY_DIZZY_ANGLE 0.16f
 #define BODY_DIZZY_SPEED 2.2f
@@ -94,6 +99,10 @@ struct body_pose
     float ChargeLeft;
     // NOTE(zoubir): seconds this body has been tracked, for the sway
     float Clock;
+    // NOTE(zoubir): the way it faced last frame, and 1 when it has just
+    // turned, down to 0
+    u32 Facing;
+    float Turn;
     // NOTE(zoubir): the slot held a body last frame. Ids are slot indices
     // and are reused, so a new body in a freed slot is told apart by the
     // slot having been empty, not by its id
@@ -203,6 +212,13 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
         Pose->SpeedZ = OnGround ? 0.f : SpeedZ;
         Pose->LastZ = Entity->Position.Z;
         Pose->Clock += DeltaTime;
+        u32 Facing = (u32)Entity->AnimationState.LastAnimationDirection;
+        if (Facing != Pose->Facing && Pose->Clock > DeltaTime)
+        {
+            Pose->Turn = 1.f;
+        }
+        Pose->Facing = Facing;
+        Pose->Turn = Maximum(0.f, Pose->Turn - DeltaTime / BODY_TURN_SECONDS);
         if (Pose->ChargeLeft > 0.f)
         {
             Pose->ChargeLeft -= DeltaTime;
@@ -262,6 +278,7 @@ GetBodyPose(app_state *AppState, world_entity *Entity)
                                          (BODY_RUSH_FULL_SPEED - BODY_RUSH_SPEED));
     Result.Scale.X *= 1.f + Rush;
     Result.Scale.Y /= 1.f + Rush;
+    Result.Scale.X *= 1.f - BODY_TURN_SQUEEZE * Pose->Turn;
     if (Pose->Spin > 0.f)
     {
         // NOTE(zoubir): fast out of the kick, settling upright
