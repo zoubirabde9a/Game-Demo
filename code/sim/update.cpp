@@ -105,6 +105,10 @@ MonsterWander(world_entity *Entity, app_state *AppState, float DeltaTime)
     return Result;
 }
 
+// NOTE(zoubir): how fast a flyer climbs back to its hover height after a
+// stun dropped it, or sinks to it after being thrown above it
+#define MONSTER_FLYER_CLIMB_SPEED 60.f
+
 // NOTE(zoubir): monsters walk toward the player once it comes within
 // AggroRange, and stop at arm's length so they do not shove it around
 internal void
@@ -193,7 +197,9 @@ UpdateMonster(world_entity *Entity, world *World,
     DDEntity *= Stats->Acceleration * GetMoveSpeedScale(Entity) * ACCELERATION_STEP;
     // Drag
     DDEntity -= (10.f * GetGroundFriction(Entity) * Entity->Velocity);
-    if (Flies)
+    // NOTE(zoubir): a stun grounds a flyer: it falls (or is thrown) like a
+    // walker, then flies back up to its hover height
+    if (Flies && !Stunned)
     {
         // NOTE(zoubir): bob around the hover height, like the familiar
         Entity->tFlying += DeltaTime * 6.f;
@@ -201,7 +207,10 @@ UpdateMonster(world_entity *Entity, world *World,
         {
             Entity->tFlying -= 2.f * Pi32;
         }
-        Entity->Position.Z = Stats->FlyHeight + 4.f * Sin(Entity->tFlying);
+        float Hover = Stats->FlyHeight + 4.f * Sin(Entity->tFlying);
+        float Step = MONSTER_FLYER_CLIMB_SPEED * DeltaTime;
+        float Gap = Hover - Entity->Position.Z;
+        Entity->Position.Z += Gap > Step ? Step : (Gap < -Step ? -Step : Gap);
         DDEntity.Z = 0.f;
         Entity->Velocity.Z = 0.f;
     }

@@ -1263,6 +1263,54 @@ TestAirDashCarriesFarther()
     Check(Landed[1] > Landed[0] + 40.f);
 }
 
+// NOTE(zoubir): a stunned flyer falls to the ground, then climbs back to
+// its hover height once the stun ends
+internal void
+TestStunGroundsFlyers()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    u32 FlyerKind = MonsterKind_Count;
+    for(u32 Kind = 0; Kind < MonsterKind_Count && FlyerKind == MonsterKind_Count; Kind++)
+    {
+        if (GetMonsterStats((monster_kind)Kind)->FlyHeight > 10.f)
+        {
+            FlyerKind = Kind;
+        }
+    }
+    Check(FlyerKind != MonsterKind_Count);
+    if (FlyerKind == MonsterKind_Count)
+    {
+        DestroyTestWorld(&Test);
+        return;
+    }
+    float FlyHeight = GetMonsterStats((monster_kind)FlyerKind)->FlyHeight;
+    world_entity *Flyer = AddTestEntity(&Test, EntityType_Monster,
+                                        {300, 300, FlyHeight}, Test.UnitVolume);
+    Flyer->MonsterKind = (monster_kind)FlyerKind;
+    Flyer->MaxHp = Flyer->Hp = 100.f;
+    ApplyStatus(Flyer, StatusEffect_Stunned, 1.f);
+    float AnimationSpeed;
+    animation_type AnimationType;
+    animation_direction AnimationDirection;
+    float Dt = Test.Input.DeltaTime;
+    for(u32 Frame = 0; Frame < 40; Frame++)
+    {
+        UpdateMonster(Flyer, Test.World, &Test.Arena, Dt, AppState,
+                      &AnimationSpeed, &AnimationType, &AnimationDirection);
+        Flyer->StatusTimers[StatusEffect_Stunned] -= Dt;
+    }
+    Check(Flyer->Position.Z == 0.f);
+    Flyer->StatusTimers[StatusEffect_Stunned] = 0.f;
+    for(u32 Frame = 0; Frame < 90; Frame++)
+    {
+        UpdateMonster(Flyer, Test.World, &Test.Arena, Dt, AppState,
+                      &AnimationSpeed, &AnimationType, &AnimationDirection);
+    }
+    Check(Flyer->Position.Z > FlyHeight - 5.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1346,4 +1394,6 @@ RunPlayerAbilityTests()
     TestAreaEffectsFollowTheirRows();
     printf("TestAirDashCarriesFarther\n");
     TestAirDashCarriesFarther();
+    printf("TestStunGroundsFlyers\n");
+    TestStunGroundsFlyers();
 }
