@@ -3,7 +3,8 @@
    from frame to frame, so it looks the same offline and online, where
    replicas carry no vertical speed:
 
-   - rising or falling fast stretches the body tall and thin;
+   - rising or falling fast stretches the body tall and thin, and moving
+     sideways very fast (a dash, a shove) stretches it long and low;
    - a sudden kick upward in the air (a second jump, a Launch) pops it
      taller still for a moment;
    - landing from a fall squashes it short and wide, springing back;
@@ -23,6 +24,11 @@
 // NOTE(zoubir): vertical speed at which the stretch is full
 #define BODY_STRETCH_SPEED 900.f
 #define BODY_STRETCH_MAX 0.16f
+// NOTE(zoubir): ground speed at which a body starts to stretch sideways
+// (a full walk is 93, a dash 650), and where the stretch is full
+#define BODY_RUSH_SPEED 250.f
+#define BODY_RUSH_FULL_SPEED 600.f
+#define BODY_RUSH_MAX 0.2f
 // NOTE(zoubir): a fall faster than this squashes on landing; the squash is
 // full at BODY_SQUASH_FULL_SPEED
 #define BODY_SQUASH_MIN_SPEED 120.f
@@ -72,6 +78,9 @@ struct body_pose
     float SpinSign;
     float LastX;
     float SpeedX;
+    float LastY;
+    // NOTE(zoubir): ground speed, eased like SpeedX
+    float SpeedXY;
     float LastHp;
     // NOTE(zoubir): 1 the frame health drops, down to 0
     float Flash;
@@ -137,6 +146,7 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
             Pose->EntityId = Entity->ID;
             Pose->LastZ = Entity->Position.Z;
             Pose->LastX = Entity->Position.X;
+            Pose->LastY = Entity->Position.Y;
             Pose->LastHp = Entity->Hp;
         }
         if (Entity->Hp < Pose->LastHp)
@@ -153,6 +163,10 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
         // does not snap the lean
         Pose->SpeedX += (SpeedX - Pose->SpeedX) * Minimum(1.f, 12.f * DeltaTime);
         Pose->LastX = Entity->Position.X;
+        float SpeedY = (Entity->Position.Y - Pose->LastY) / DeltaTime;
+        float SpeedXY = SquareRoot(Square(SpeedX) + Square(SpeedY));
+        Pose->SpeedXY += (SpeedXY - Pose->SpeedXY) * Minimum(1.f, 12.f * DeltaTime);
+        Pose->LastY = Entity->Position.Y;
         bool32 OnGround = Entity->Position.Z <= Entity->GroundZ + 0.5f;
         if (OnGround && Pose->SpeedZ < -BODY_SQUASH_MIN_SPEED)
         {
@@ -230,6 +244,10 @@ GetBodyPose(app_state *AppState, world_entity *Entity)
     Result.Flash = Pose->Flash;
     Result.Scale.Y = 1.f + Stretch + Pop - Squash;
     Result.Scale.X = 1.f / Result.Scale.Y;
+    float Rush = BODY_RUSH_MAX * Clamp01((Pose->SpeedXY - BODY_RUSH_SPEED) /
+                                         (BODY_RUSH_FULL_SPEED - BODY_RUSH_SPEED));
+    Result.Scale.X *= 1.f + Rush;
+    Result.Scale.Y /= 1.f + Rush;
     if (Pose->Spin > 0.f)
     {
         // NOTE(zoubir): fast out of the kick, settling upright
