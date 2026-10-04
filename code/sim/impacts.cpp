@@ -34,6 +34,9 @@
 // what it met across the map
 #define SHOULDER_SHARE 0.6f
 #define SHOULDER_MAX_SPEED 650.f
+// NOTE(zoubir): a dashing player hits what it runs into this fast or
+// faster (a dash leaves at 650, a run is under 100)
+#define DASH_STRIKE_SPEED 300.f
 
 // NOTE(zoubir): the player whose throw this is, or 0
 inline world_entity *
@@ -47,6 +50,11 @@ GetThrower(app_state *AppState, world_entity *Entity)
     }
     return Result;
 }
+
+// NOTE(zoubir): a dashing player running into a unit
+// (player_abilities/movement_abilities.cpp, included later)
+internal void DashStrike(app_state *AppState, world *World, world_entity *Player,
+                         world_entity *Target, v2 Away);
 
 inline bool32
 IsThrownUnit(world_entity *Entity)
@@ -87,6 +95,11 @@ ImpactOnHit(app_state *AppState, world *World, world_entity *Entity,
         {
             Other->Velocity.XY -=
                 (SHOULDER_SHARE * Minimum(Into, SHOULDER_MAX_SPEED)) * Normal.XY;
+            // NOTE(zoubir): a dash into it is a hit as well as a shoulder
+            if (IsDodging(Entity) && Into >= DASH_STRIKE_SPEED)
+            {
+                DashStrike(AppState, World, Entity, Other, -Normal.XY);
+            }
         }
         return 0.f;
     }

@@ -1429,6 +1429,32 @@ TestPredictedCastLeavesHitToServer()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): dashing into a monster hits it once and stuns it; walking
+// into it only shoulders it
+internal void
+TestDashStrike()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 1, {300, 600, 0});
+    world_entity *Dashed = AddTestEntity(&Test, EntityType_Monster,
+                                         {360, 300, 0}, Test.UnitVolume);
+    world_entity *Walked = AddTestEntity(&Test, EntityType_Monster,
+                                         {360, 600, 0}, Test.UnitVolume);
+    Dashed->MaxHp = Dashed->Hp = Walked->MaxHp = Walked->Hp = 100.f;
+    AppState->Players[0].Input.Move = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Dash;
+    RunPlayerFrames(&Test, 0, 10);
+    AppState->Players[1].Input.Move = V2(1.f, 0.f);
+    RunPlayerFrames(&Test, 1, 40);
+    Check(Dashed->Hp == 100.f - DashStrikeHit.Damage);
+    Check(HasStatus(Dashed, StatusEffect_Stunned));
+    Check(Walked->Hp == 100.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1520,4 +1546,6 @@ RunPlayerAbilityTests()
     TestReviewFixes();
     printf("TestPredictedCastLeavesHitToServer\n");
     TestPredictedCastLeavesHitToServer();
+    printf("TestDashStrike\n");
+    TestDashStrike();
 }

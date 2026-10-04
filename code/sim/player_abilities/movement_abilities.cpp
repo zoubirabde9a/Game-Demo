@@ -1,7 +1,7 @@
 /* Movement abilities: the keys that move the player at once (dash,
    blink, slam), as a table. A monster kill takes some or all of each
    one's cooldown off (KillRefund): dash and slam are ready again at
-   once, blink half way. Using one is the same for every row: it needs its
+   once, blink half way. A dash into a unit also hits it (DashStrike). Using one is the same for every row: it needs its
    key and its cooldown, cuts a swing's or cast's root and an area cast,
    lights DashFlash (while it lasts the player cannot be hurt or shoved,
    IsDodging in entity.cpp, and clients draw the streak from it) and plays
@@ -112,6 +112,20 @@ global_variable player_movement_ability PlayerMovements[PlayerMove_Count] =
     {PlayerButton_Slam, 2.f, 1.f, 900.f, SlamMotion},
 };
 static_assert(PlayerMove_Count <= PLAYER_MOVEMENT_SLOTS, "one cooldown each");
+
+// NOTE(zoubir): what a dash does to a unit it runs into: a light hit, a
+// shove on along the dash and a moment's stun, so dashing through a
+// crowd scatters it. Once per unit: the dash's speed into it is gone
+// after the first contact
+global_variable player_hit DashStrikeHit = {10.f, 250.f, 0.f, 120.f, 0.35f, SimBurst_Impact};
+
+internal void
+DashStrike(app_state *AppState, world *World, world_entity *Player,
+           world_entity *Target, v2 Away)
+{
+    ApplyPlayerHit(AppState, World, Target, &DashStrikeHit, Away,
+                   Player->PlayerIndex, Player);
+}
 
 internal void
 RefundOnKill(world_entity *Player)
