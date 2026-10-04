@@ -371,12 +371,19 @@ TestPlayerNeverStuck(u32 SeedValue)
     random_series Series = Seed(SeedValue);
     AddWallRow(&Test, 200.f, 200.f, 20);
     AddWallRow(&Test, 200.f, 840.f, 20);
+    world_entity *Rocks[30];
+    u32 RockCount = 0;
     for(u32 Index = 0; Index < 30; Index++)
     {
         v3 P = {RandomBetween(&Series, 240.f, 820.f),
                 RandomBetween(&Series, 260.f, 780.f), 0.f};
-        AddTestEntity(&Test, EntityType_StaticObject, P,
-                      (Index % 3) ? Boulder : Test.AppState->WallCollision);
+        world_entity *Obstacle =
+            AddTestEntity(&Test, EntityType_StaticObject, P,
+                          (Index % 3) ? Boulder : Test.AppState->WallCollision);
+        if (Index % 3)
+        {
+            Rocks[RockCount++] = Obstacle;
+        }
     }
     world_entity *Monsters[12];
     for(u32 Index = 0; Index < ArrayCount(Monsters); Index++)
@@ -393,14 +400,43 @@ TestPlayerNeverStuck(u32 SeedValue)
     SeparateOverlappingUnits(Test.AppState, Test.World, &Test.Arena);
 
     u32 StuckCount = 0;
+    u32 StoodOnTop = 0;
     for(u32 Step = 0; Step < 400; Step++)
     {
         float Angle = RandomBetween(&Series, 0.f, 2.f * Pi32);
         v2 Dir = V2(Cos(Angle), Sin(Angle));
-        u32 Roll = RandomChoice(&Series, 6);
+        u32 Roll = RandomChoice(&Series, 9);
         if (Roll == 0)
         {
             Player->Velocity.Z = PLAYER_JUMP_SPEED;
+        }
+        else if (Roll == 3)
+        {
+            // NOTE(zoubir): a double jump, high enough to land on a rock
+            Player->Velocity.Z = PLAYER_JUMP_SPEED + PLAYER_AIR_JUMP_SPEED;
+        }
+        else if (Roll == 4 && Player->Position.Z > Player->GroundZ + 1.f)
+        {
+            // NOTE(zoubir): a slam's dive
+            Player->Velocity.XY *= 0.3f;
+            Player->Velocity.Z = -PlayerMovements[PlayerMove_Slam].Power;
+        }
+        else if (Roll == 6)
+        {
+            // NOTE(zoubir): lands on top of a rock, to walk off its edges
+            world_entity *Rock = Rocks[RandomChoice(&Series, RockCount)];
+            entity_collision_volume *Top = &Rock->Collision->TotalVolume;
+            v3 OnTop = Rock->Position;
+            OnTop.Z = Top->Offset.Z + Top->HalfDims.Z + 0.01f;
+            PutBack(&Test, Player, OnTop);
+            Walk(&Test, Player, {0, 0}, 1);
+        }
+        else if (Roll == 5)
+        {
+            // NOTE(zoubir): launched by someone, stunned and flying
+            Player->Velocity.Z = PlayerAreaAbilities[PlayerArea_Launch].Lift;
+            Player->Velocity.XY = 300.f * Dir;
+            ApplyStatus(Player, StatusEffect_Stunned, 0.6f);
         }
         else if (Roll == 1)
         {
@@ -430,6 +466,8 @@ TestPlayerNeverStuck(u32 SeedValue)
             }
             SeparateOverlappingUnits(Test.AppState, Test.World, &Test.Arena);
         }
+        StoodOnTop += (Player->GroundZ > 0.f &&
+                       Player->Position.Z <= Player->GroundZ + 0.5f);
         if (Player->Position.Z <= Player->GroundZ + 0.5f &&
             FreestDirection(&Test, Player, Monsters, ArrayCount(Monsters)) < 2.f)
         {
@@ -443,6 +481,9 @@ TestPlayerNeverStuck(u32 SeedValue)
         }
     }
     Check(StuckCount == 0);
+    Check(StoodOnTop > 5);
+    printf("  seed %u: stood on top of something after %u of 400 steps\n",
+           SeedValue, StoodOnTop);
     DestroyTestWorld(&Test);
 }
 
