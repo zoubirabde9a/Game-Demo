@@ -51,6 +51,10 @@ struct animation_state
 struct animation_set
 {
     animation_slot Animations[AnimationType_Count][AnimationDirection_Count];
+    // NOTE(zoubir): the ground speed the walk cycle was drawn for; the
+    // cycle runs faster or slower with the real speed so the feet do not
+    // slide (MoveCycleRate). 0 keeps it at its drawn pace.
+    float MoveSpeed;
 };
 
 struct cannonical_position

@@ -98,7 +98,8 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
         {
             AdvanceAnimation(&Entity->AnimationState, Entity->AnimationSet,
                              AnimationType, AnimationDirection,
-                             DeltaTime, AnimationSpeed);
+                             DeltaTime,
+                             AnimationSpeed * MoveCycleRate(Entity, AnimationType));
         }
     }
 

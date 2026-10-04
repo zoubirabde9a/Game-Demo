@@ -48,7 +48,8 @@ AdvanceReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
                                  Replica->AnimationSet,
                                  Replica->AnimationType,
                                  Replica->AnimationDirection,
-                                 DeltaTime, 1.f);
+                                 DeltaTime,
+                                 MoveCycleRate(Replica, Replica->AnimationType));
             }
         }
     }

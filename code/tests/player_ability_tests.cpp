@@ -851,6 +851,46 @@ TestImpactKillIsThePushers()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): the walk cycle keeps step with the ground speed, within
+// limits, and only the walk cycle
+internal void
+TestWalkCycleFollowsSpeed()
+{
+    animation_set Set = {};
+    Set.MoveSpeed = 93.f;
+    world_entity Body = {};
+    Body.AnimationSet = &Set;
+    Body.Velocity = V3(93.f, 0.f, 0.f);
+    Check(Absolute(MoveCycleRate(&Body, AnimationType_Move) - 1.f) < 0.01f);
+    Body.Velocity = V3(0.f, 46.5f, 0.f);
+    Check(Absolute(MoveCycleRate(&Body, AnimationType_Move) - 2.f) < 0.01f);
+    Body.Velocity = V3(600.f, 0.f, 0.f);
+    Check(MoveCycleRate(&Body, AnimationType_Move) == 0.5f);
+    Check(MoveCycleRate(&Body, AnimationType_Attack) == 1.f);
+}
+
+// NOTE(zoubir): a swing in the air shows the swing, not the jump frame
+internal void
+TestSwingInTheAirShowsSwing()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    player_slot *Slot = &AppState->Players[0];
+    Slot->Input.Pressed = PlayerButton_Jump;
+    RunPlayerFrames(&Test, 0, 4);
+    Slot->Input.Pressed = PlayerButton_Attack;
+    float AnimationSpeed;
+    animation_type AnimationType;
+    animation_direction AnimationDirection = AnimationDirection_Right;
+    UpdatePlayer(Slot, Test.World, &Test.Arena, Test.Input.DeltaTime, AppState,
+                 &AnimationSpeed, &AnimationType, &AnimationDirection);
+    Check(Slot->Entity->Position.Z > 0.f);
+    Check(AnimationType == AnimationType_Attack);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -908,4 +948,8 @@ RunPlayerAbilityTests()
     TestAbilitiesAskForBursts();
     printf("TestImpactKillIsThePushers\n");
     TestImpactKillIsThePushers();
+    printf("TestWalkCycleFollowsSpeed\n");
+    TestWalkCycleFollowsSpeed();
+    printf("TestSwingInTheAirShowsSwing\n");
+    TestSwingInTheAirShowsSwing();
 }

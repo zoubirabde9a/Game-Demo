@@ -115,6 +115,23 @@ AdvanceAnimation(animation_state *State, animation_set *Set,
     }
 }
 
+// NOTE(zoubir): the SpeedRate (seconds per frame multiplier) that keeps a
+// walk cycle in step with the body's ground speed; 1 for anything else.
+// Slowed to a crawl the feet step slowly, a dash's run-out steps fast.
+internal float
+MoveCycleRate(world_entity *Entity, animation_type Type)
+{
+    float Result = 1.f;
+    animation_set *Set = Entity->AnimationSet;
+    if (Type == AnimationType_Move && Set && Set->MoveSpeed > 0.f)
+    {
+        float Speed = Length(Entity->Velocity.XY);
+        Result = Set->MoveSpeed / Maximum(Speed, 1.f);
+        Result = Minimum(2.5f, Maximum(0.5f, Result));
+    }
+    return Result;
+}
+
 // NOTE(zoubir): drawing side. Texture coordinates of the frame State is
 // on, mirrored for reversed slots; all zero when the slot is empty.
 internal v4

@@ -59,11 +59,16 @@ MovePlayer(app_state *AppState, world *World, memory_arena *Arena,
     float MaxDistance = 10000.f;
     MoveEntity(Player, World, Arena, DeltaTime, AppState, DDPlayer, &MaxDistance);
 
-    if (Player->Velocity.Z > 0.f)
+    // NOTE(zoubir): in the air the jump frames show, unless a swing or a
+    // cast is playing: those used to be replaced by the jump frame, so an
+    // attack in the air had no animation
+    bool32 Acting = *Tick->AnimationType == AnimationType_Attack ||
+        *Tick->AnimationType == AnimationType_Cast;
+    if (!Acting && Player->Velocity.Z > 0.f)
     {
         *Tick->AnimationType = AnimationType_JumpUp;
     }
-    if (Player->Velocity.Z < 0.f)
+    if (!Acting && Player->Velocity.Z < 0.f)
     {
         *Tick->AnimationType = AnimationType_JumpDown;
     }
