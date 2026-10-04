@@ -222,9 +222,42 @@ TestTurningBackSkids()
 }
 
 
+// NOTE(zoubir): how far a standing player slides from a shove, printed so
+// a stagger or a braking change shows its effect. Shoves under a run are
+// braked away by the quick stop (250 slides about 8 units; with drag
+// alone, before the quick stop, it was 25)
+internal void
+TestSmallKnockbackTravel()
+{
+    float Shoves[] = {150.f, 250.f, 500.f};
+    printf("  shove slides:");
+    float Last = 0.f;
+    for(u32 Index = 0; Index < ArrayCount(Shoves); Index++)
+    {
+        test_world Test = CreateTestWorld();
+        app_state *AppState = Test.AppState;
+        AppState->PlayerCollision = Test.UnitVolume;
+        world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                               0, {600, 1000, 0});
+        Player->SpawnShield = 0.f;
+        Test.Input.DeltaTime = FEEL_TICK;
+        hit Hit = {1.f, Shoves[Index], 0.f, 0.f, 0.f, SimBurst_Count};
+        ApplyHit(AppState, Test.World, Player, &Hit, V2(1.f, 0.f), 0, SIM_NOBODY);
+        RunPlayerFrames(&Test, 0, 60);
+        float Slide = Player->Position.X - 600.f;
+        printf(" %.0f: %.1f", Shoves[Index], Slide);
+        Check(Slide > Last);
+        Last = Slide;
+        DestroyTestWorld(&Test);
+    }
+    printf("\n");
+}
+
 internal void
 RunPlayerFeelTests()
 {
+    printf("TestSmallKnockbackTravel\n");
+    TestSmallKnockbackTravel();
     printf("TestRunStartsStopsAndTurnsQuickly\n");
     TestRunStartsStopsAndTurnsQuickly();
     printf("TestGroundKeepsItsTopSpeed\n");
