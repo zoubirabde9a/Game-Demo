@@ -213,10 +213,12 @@ SetupCollisionVolumes(app_state *AppState, memory_arena *ConstantsArena)
         MakeSimpleGroundedCollisionVolume(ConstantsArena, {96.f*0.5f, 76.f*0.5f, 24.f});
     AppState->TreeCollision =
         MakeGroundedTreeCollisionVolume(ConstantsArena);
-    // NOTE(zoubir): four tiles tall, out of reach of a double jump
-    // (jump.cpp); walls were one tile tall, which a double jump clears
+    // NOTE(zoubir): six tiles tall, out of reach of a double jump (68,
+    // jump.cpp) even from the highest raised ground (72,
+    // terrain_kinds.cpp); walls were one tile tall, which a double jump
+    // clears, then four, which a double jump from high ground cleared
     AppState->WallCollision = 
-        MakeSimpleGroundedCollisionVolume(ConstantsArena, {ARENA_TILE_SIZE*.5f, ARENA_TILE_SIZE*.5f, ARENA_TILE_SIZE*2.f});
+        MakeSimpleGroundedCollisionVolume(ConstantsArena, {ARENA_TILE_SIZE*.5f, ARENA_TILE_SIZE*.5f, ARENA_TILE_SIZE*3.f});
     AppState->PlayerCollision = 
         MakeSimpleGroundedCollisionVolume(ConstantsArena, {15, 4, 19.f});
     AppState->FamiliarCollision = 

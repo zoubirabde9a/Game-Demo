@@ -193,8 +193,8 @@ CheckCollisions(server_game *Game)
             }
         }
     }
-    // On infinite maps walls and props are terrain stand-ins, not entities.
-    if (World->Unbounded)
+    // On infinite maps walls and props are terrain stand-ins, not entities,
+    // and on every map raised ground is.
     {
         for (u32 IndexA = 0; IndexA < World->EntityCount; ++IndexA)
         {

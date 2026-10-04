@@ -87,7 +87,51 @@ enum terrain_prop
 
 // NOTE(zoubir): raised ground. A tile's elevation is a whole number of
 // steps (ElevationAt, sim/terrain/maps.cpp); each step lifts the ground
-// ELEVATION_STEP_HEIGHT units. A walking unit climbs one step on its own,
-// a jump (peak 36) clears four, a double jump about eight
+// ELEVATION_STEP_HEIGHT units. Each raised tile is a solid box from the
+// floor up to its top (sim/arena.cpp), so what blocks a unit is only how
+// much higher a tile is than its feet. Climbing, by height difference:
+//   up to ELEVATION_WALK_STEPS         walk up on your own (stairs)
+//   up to ELEVATION_JUMP_STEPS         jump, or push into it to vault
+//   up to ELEVATION_DOUBLE_JUMP_STEPS  double jump
+//   ELEVATION_MAX_STEPS                a wall: nobody climbs it from the floor
+// The jump numbers follow the jump's physics (peak 36, double about 68,
+// player_abilities/jump.cpp); the tests check they still hold
 #define ELEVATION_STEP_HEIGHT 8.f
 #define ELEVATION_MAX_STEPS 9
+#define ELEVATION_WALK_STEPS 1
+#define ELEVATION_JUMP_STEPS 4
+#define ELEVATION_DOUBLE_JUMP_STEPS 8
+
+// NOTE(zoubir): the tallest edge a walking unit steps onto without a jump
+// (MoveEntity, sim/move.cpp, which is compiled before this file): the walk
+// steps and a hair, so a log (10 high) still needs a jump
+inline float
+GetStepUpHeight()
+{
+    float Result = (float)ELEVATION_WALK_STEPS * ELEVATION_STEP_HEIGHT + 1.f;
+    return Result;
+}
+
+// NOTE(zoubir): each prop's solid box, half sizes in world units, sitting
+// on the ground of its tile. Trees are left out: their trunk-only volume
+// is MakeGroundedTreeCollisionVolume (entity.cpp)
+struct terrain_prop_def
+{
+    char *Name;
+    v3 HalfDims;
+};
+
+global_variable terrain_prop_def PropTable[TerrainProp_Count] =
+{
+    {"None",      {0.f, 0.f, 0.f}},
+    {"Tree",      {0.f, 0.f, 0.f}},
+    {"Boulder",   {13.f, 8.f, 14.f}},
+    {"Dead tree", {7.f, 5.f, 30.f}},
+    // NOTE(zoubir): 28 long and 10 high: vaulted, never walked up
+    {"Log",       {14.f, 5.f, 5.f}},
+    // NOTE(zoubir): a whole tile wide and thin, so a row of them is a
+    // fence; 16 high, two steps
+    {"Fence",     {16.f, 2.f, 8.f}},
+    // NOTE(zoubir): 22 high, wide enough to stand on
+    {"Crate",     {11.f, 11.f, 11.f}},
+};

@@ -202,7 +202,8 @@ GetEntityChunkRange(world *World, world_entity *Entity, v3 Position)
 }
 
 // NOTE(zoubir): in sim/arena.cpp; appends stand-ins for the terrain in Box
-// on infinite maps, returns the new count
+// (raised ground, and on infinite maps walls and props too), returns the
+// new count
 internal u32
 GatherTerrainColliders(world *World, rectangle3 Box, world_entity **Out,
                        u32 Count, u32 MaxCount);
@@ -245,10 +246,7 @@ GatherEntitiesInBox(world *World, rectangle3 Box, world_entity **Out,
             }
         }
     }
-    if (World->Unbounded)
-    {
-        Count = GatherTerrainColliders(World, Box, Out, Count, MaxCount);
-    }
+    Count = GatherTerrainColliders(World, Box, Out, Count, MaxCount);
     return Count;
 }
 

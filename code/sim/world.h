@@ -67,14 +67,18 @@ struct world
     // NOTE(zoubir): the map_id this world was built from (sim/maps/);
     // set before InitSimulation, 0 is the Old Arena
     u32 MapId;
-    struct entity_collision_volume_group *BoulderCollision;
-    struct entity_collision_volume_group *DeadTreeCollision;
     struct entity_collision_volume_group *TerrainWallCollision;
-    struct entity_collision_volume_group *TreeCollision;
-    // NOTE(zoubir): infinite maps keep no wall or prop entities. Movement
-    // asks GatherEntitiesInBox for what is nearby, and that fills this
-    // scratch pool with stand-ins for the blocking tiles and props in the
-    // box; they live until the next gather (sim/arena.cpp)
+    // NOTE(zoubir): one per terrain_prop (at least TerrainProp_Count), 0
+    // for none; and one per elevation step count, 0..ELEVATION_MAX_STEPS
+    // (sim/terrain/terrain_kinds.cpp), made once in BuildArena
+    struct entity_collision_volume_group *PropCollision[8];
+    struct entity_collision_volume_group *ElevationCollision[10];
+    // NOTE(zoubir): infinite maps keep no wall or prop entities, and no
+    // map keeps entities for raised ground. Movement asks
+    // GatherEntitiesInBox for what is nearby, and that fills this scratch
+    // pool with stand-ins for the raised tiles in the box, and on infinite
+    // maps the blocking tiles and props too; they live until the next
+    // gather (sim/arena.cpp)
     world_entity *TerrainColliders;
     u32 TerrainColliderCapacity;
     tile_map TileMap;

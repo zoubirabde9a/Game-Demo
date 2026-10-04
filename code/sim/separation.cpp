@@ -122,7 +122,7 @@ SeparationPass(app_state *AppState, world *World, memory_arena *Arena)
             Pushes++;
         }
 
-        if (World->Unbounded && CanCollide(AppState, A->Type, EntityType_StaticObject))
+        if (CanCollide(AppState, A->Type, EntityType_StaticObject))
         {
             entity_collision_volume *Total = &A->Collision->TotalVolume;
             rectangle3 Box = RectCenterHalfDims(A->Position + Total->Offset,
