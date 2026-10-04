@@ -1,7 +1,8 @@
 /* Minimap: the ground around the local player in the top-right corner,
    one texel per tile, with every player as a dot, landmarks as rings
    (client/landmark_pointer.cpp knows which are reached) and the map's
-   name under it. The texture is repainted from TerrainAt and PropAt only when
+   name under it; raised ground is lighter the higher it is. The texture
+   is repainted from TerrainAt, PropAt and ElevationAt only when
    the player steps onto another tile or the map changes, and drawn as one
    quad, so it costs the UI pass a handful of batches. */
 
@@ -50,6 +51,21 @@ struct minimap
     u32 Pixels[MINIMAP_TILES * MINIMAP_TILES];
 };
 
+// NOTE(zoubir): raised ground shows lighter, a sixteenth of the way to
+// white per step, so high ground stands out from the low around it
+inline u32
+LightenByElevation(u32 Color, i32 Steps)
+{
+    u32 Result = Color & 0xFF000000;
+    for(u32 Shift = 0; Shift < 24; Shift += 8)
+    {
+        u32 Channel = (Color >> Shift) & 0xFF;
+        Channel += ((255 - Channel) * (u32)Steps) / 16;
+        Result |= Channel << Shift;
+    }
+    return Result;
+}
+
 // NOTE(zoubir): row 0 of the texture is the top (smallest Y) row of tiles.
 // Past the edge of a bounded map is drawn as empty, not as wall
 internal void
@@ -72,7 +88,8 @@ PaintMinimap(minimap *Minimap, open_gl *OpenGL, map_def *Map)
             {
                 Color = MinimapGroundColors[TerrainAt(Map, X, Y)];
             }
-            Minimap->Pixels[Row * MINIMAP_TILES + Column] = Color;
+            Minimap->Pixels[Row * MINIMAP_TILES + Column] =
+                LightenByElevation(Color, ElevationAt(Map, X, Y));
         }
     }
     if (!Minimap->Texture)
