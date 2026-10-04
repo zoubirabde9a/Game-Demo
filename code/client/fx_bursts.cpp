@@ -25,6 +25,7 @@ enum burst_shape
                        // one way round
     BurstShape_ArcBack, // the same sweep the other way round
     BurstShape_Skid,   // a little dust thrown forward along Angle at the feet
+    BurstShape_Death,  // a flash, then motes rising and spreading as it fades
 };
 
 enum burst_pose
@@ -70,6 +71,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Arc, 0.26f, 46.f, 0x0060E0FF, false, 0.1f, BurstPose_None},    // SwingArcFinisher, gold
     {BurstShape_Skid, 0.35f, 24.f, 0x00C8D8E0, true, 0.f, BurstPose_None},      // Skid, dust
     {BurstShape_Puff, 0.3f, 9.f, 0x00C8D8E0, true, 0.f, BurstPose_None},        // Step, dust
+    {BurstShape_Death, 0.45f, 30.f, 0x00E8F0FF, false, 0.25f, BurstPose_None},  // Death, pale
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these
@@ -403,6 +405,25 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
                 DrawFxDot(RenderContext,
                           Centre + GroundCircle(Angle, Out) - V2(0.f, Rise),
                           6.f - 3.f * T, Color);
+            }
+        } break;
+
+        case BurstShape_Death:
+        {
+            // NOTE(zoubir): a bright core for the first moment
+            if (T < 0.25f)
+            {
+                DrawFxDot(RenderContext, Centre, 18.f * (1.f - 4.f * T) + 4.f,
+                          Color);
+            }
+            for(u32 Dot = 0; Dot < 14; Dot++)
+            {
+                float Angle = 2.f * Pi32 * (Dot + BurstJitter(Dot, 13)) / 14.f;
+                float Out = Look->Radius * EaseOut * (0.4f + 0.6f * BurstJitter(Dot, 14));
+                float Rise = 26.f * T * (0.5f + BurstJitter(Dot, 15));
+                v2 P = Centre + Out * V2(Cos(Angle), 0.6f * Sin(Angle)) -
+                    V2(0.f, Rise);
+                DrawFxDot(RenderContext, P, 5.f - 3.f * T, Color);
             }
         } break;
 

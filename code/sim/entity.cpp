@@ -316,6 +316,11 @@ DamageEntity(app_state *AppState, world *World,
 
     if (Target->Type == EntityType_Monster)
     {
+        v3 Chest = Target->Position;
+        Chest.Z += 14.f;
+        EmitBurst(&AppState->Events, SimBurst_Death,
+                  Attacker ? (u8)(Attacker - AppState->Players) : SIM_NOBODY,
+                  Chest);
         RecordMonsterDeath(AppState, Target);
         RemoveEntity(World, Target);
         if (Attacker)

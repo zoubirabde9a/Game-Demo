@@ -1168,8 +1168,10 @@ TestMonsterKillRefundsMovement()
     Monster->MaxHp = Monster->Hp = 1.f;
     Player->MovementCooldowns[PlayerMove_Dash] = 0.6f;
     Player->MovementCooldowns[PlayerMove_Blink] = 2.f;
+    AppState->Events.Count = 0;
     DamageEntity(AppState, Test.World, Monster, 10.f, Player);
     Check(!Monster->IsPresent);
+    Check(CountBursts(AppState, SimBurst_Death) == 1);
     Check(Player->MovementCooldowns[PlayerMove_Dash] == 0.f);
     Check(Absolute(Player->MovementCooldowns[PlayerMove_Blink] - 1.f) < 0.001f);
     DestroyTestWorld(&Test);
