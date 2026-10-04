@@ -171,6 +171,7 @@ struct render_context
     // for performance only
     bool32 AProgramIsUsed;
     u32 LastUsedProgramID;
+    mat4 *LastProjection;
     u32 CurrentBlend;
 };
 

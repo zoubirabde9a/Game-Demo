@@ -53,7 +53,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
                                         (float)Window->Height, 0.f, 0.f, 100000.f);
     RenderBeginFrame(RenderContext, &ProjectionMatrix, Input->DeltaTime);
     OpenGL->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    OpenGL->glClearColor(1.0f, 0.5f, 0.5f, 1.0f);
+    // NOTE(zoubir): dark, so a window bigger than a small map shows a border
+    OpenGL->glClearColor(0.05f, 0.06f, 0.08f, 1.0f);
 
     // Input. While a screen such as the connect screen is open, keys type
     // into it.
@@ -71,10 +72,18 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     UpdateOnlineSession(AppState->Online, &ServerInput, KeysToUi, LocalInput->Aim);
     RunWorldTick(AppState, &AppState->WorldArena, Input->DeltaTime);
     PlaySimEvents(AppState, Input->DeltaTime);
-    v3 CameraOffset = UpdateCamera(AppState, Window, Input, !KeysToUi);
+    // NOTE(zoubir): the world is drawn zoomed in (client/camera.cpp):
+    // View is the window measured in world units, and WorldProjection
+    // maps it onto the whole window. Screens over it use ProjectionMatrix
+    app_window View = GetWorldView(AppState, Window);
+    mat4 WorldProjection = OrthoMatrix(0.f, (float)Window->Width / AppState->WorldZoom,
+                                       (float)Window->Height / AppState->WorldZoom, 0.f,
+                                       0.f, 100000.f);
+    RenderSetProjection(RenderContext, &WorldProjection);
+    v3 CameraOffset = UpdateCamera(AppState, &View, Input, !KeysToUi);
     render_program TextureProgram = RenderContext->TextureProgram;
-    BeginWorldPass(RenderContext, TransientArena, &AppState->World, Window);
-    DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset, Window);
+    BeginWorldPass(RenderContext, TransientArena, &AppState->World, &View);
+    DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset, &View);
     DrawWorldEntities(RenderContext, AppState, &AppState->Assets,
                       TextureProgram, CameraOffset);
     RenderFlush(RenderContext);

@@ -8,7 +8,8 @@ RenderProgramUse(render_context *RenderContext,
 {
     open_gl *OpenGL = RenderContext->OpenGL;
     if (!RenderContext->AProgramIsUsed ||
-        RenderContext->LastUsedProgramID != Program->ID)
+        RenderContext->LastUsedProgramID != Program->ID ||
+        RenderContext->LastProjection != Program->ProjectionMatrix)
     {
         OpenGL->glUseProgram(Program->ID);
         for(u32 AttribIndex = 0;
@@ -30,8 +31,23 @@ RenderProgramUse(render_context *RenderContext,
         
         RenderContext->AProgramIsUsed = true;
         RenderContext->LastUsedProgramID = Program->ID;
+        RenderContext->LastProjection = Program->ProjectionMatrix;
     }
         
+}
+
+// NOTE(zoubir): what is drawn from now on uses Projection (batches keep
+// the one they were made with). The world draws zoomed, the UI does not:
+// app.cpp switches between the two
+internal void
+RenderSetProjection(render_context *RenderContext, mat4 *Projection)
+{
+    for(u32 Index = 0; Index < Shader_Count; Index++)
+    {
+        RenderContext->Programs[Index].ProjectionMatrix = Projection;
+    }
+    RenderContext->TextureProgram.ProjectionMatrix = Projection;
+    RenderContext->LineProgram.ProjectionMatrix = Projection;
 }
 
 // NOTE(zoubir): once at the top of each frame: every program draws with
@@ -43,12 +59,7 @@ RenderBeginFrame(render_context *RenderContext, mat4 *Projection, float DeltaTim
     RenderContext->Time += DeltaTime;
     UpdateShaderLibrary(RenderContext, DeltaTime);
     RenderContext->AProgramIsUsed = false;
-    for(u32 Index = 0; Index < Shader_Count; Index++)
-    {
-        RenderContext->Programs[Index].ProjectionMatrix = Projection;
-    }
-    RenderContext->TextureProgram.ProjectionMatrix = Projection;
-    RenderContext->LineProgram.ProjectionMatrix = Projection;
+    RenderSetProjection(RenderContext, Projection);
 }
 
 inline void

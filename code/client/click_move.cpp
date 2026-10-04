@@ -38,13 +38,24 @@ struct click_move
 // NOTE(zoubir): client-only; a hot reload of app.dll just drops the walk
 global_variable click_move ClickMove;
 
+// NOTE(zoubir): a world coordinate rounded down to a whole window pixel
+// at Zoom pixels per unit; the camera snaps this way (camera.cpp) so pixel
+// art does not shimmer
+inline float
+SnapToScreenPixel(float World, float Zoom)
+{
+    float Result = floorf(World * Zoom) / Zoom;
+    return Result;
+}
+
 // NOTE(zoubir): the cursor on the ground, in world units; the camera is
 // last frame's, which is what is on screen
 inline v2
 CursorInWorld(app_input *Input, app_state *AppState)
 {
-    v2 Result = V2((float)Input->MouseX + floorf(AppState->CameraOffset.X),
-                   (float)Input->MouseY + floorf(AppState->CameraOffset.Y));
+    float Zoom = AppState->WorldZoom > 0.f ? AppState->WorldZoom : 1.f;
+    v2 Result = V2((float)Input->MouseX / Zoom + SnapToScreenPixel(AppState->CameraOffset.X, Zoom),
+                   (float)Input->MouseY / Zoom + SnapToScreenPixel(AppState->CameraOffset.Y, Zoom));
     return Result;
 }
 

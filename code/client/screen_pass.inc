@@ -7,11 +7,13 @@
 // in .gitattributes), so two agents adding a screen at once both keep
 // theirs without a conflict. Put the logic in your own file and call it
 // from here.
+RenderSetProjection(RenderContext, &WorldProjection); // world overlays below draw zoomed, like the world
 DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
 DrawMonsterCastTells(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawClickMoveMarker(RenderContext, CameraOffset);
-DrawLandmarkPointer(RenderContext, AppState, CameraOffset, Window);
+DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);
+RenderSetProjection(RenderContext, &ProjectionMatrix); // screens below draw in window pixels
 DrawHud(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawAbilityBar(RenderContext, AppState, Input, Window->Width, Window->Height);
 DrawMinimap(RenderContext, AppState, Window->Width);

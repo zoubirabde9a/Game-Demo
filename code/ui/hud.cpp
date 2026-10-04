@@ -35,12 +35,15 @@ DrawPlayerLabels(render_context *RenderContext, app_state *AppState,
         }
         zas_texture_info *Info =
             &GetAssetInfo(&AppState->Assets, Player->Texture)->Texture;
+        // NOTE(zoubir): the world is drawn zoomed; the name is placed in
+        // window pixels so its text stays sharp
+        float Zoom = AppState->WorldZoom > 0.f ? AppState->WorldZoom : 1.f;
         float SpriteTop = Player->Position.Y - CameraOffset.Y -
             Player->Position.Z - Info->Origin.Y * Player->Dimensions.Y;
         char Text[24];
         GetPlayerName(AppState, SlotIndex, Text, sizeof(Text));
-        UIText(RenderContext, Font, Player->Position.X - CameraOffset.X,
-               SpriteTop - 14.f - UILineHeight(Font), Text, UI_COLOR_TEXT,
+        UIText(RenderContext, Font, Zoom * (Player->Position.X - CameraOffset.X),
+               Zoom * (SpriteTop - 14.f) - UILineHeight(Font), Text, UI_COLOR_TEXT,
                UIAlign_Center);
     }
 }

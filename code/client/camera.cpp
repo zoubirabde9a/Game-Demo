@@ -1,6 +1,13 @@
 /* Camera: the screen follows the local player, never showing past the
-   edge of a bounded map (infinite maps have no edge). The result is the
-   top-left corner of the screen in world units, snapped to whole pixels.
+   edge of a bounded map (infinite maps have no edge; a map smaller than
+   the screen sits in its middle). The result is the top-left corner of
+   the screen in world units, snapped to whole window pixels.
+
+   The world is drawn zoomed in: WorldZoom window pixels per world unit,
+   chosen so the screen shows about WORLD_VIEW_HEIGHT units from top to
+   bottom whatever the window size. GetWorldView gives the window measured
+   in world units, which is what the camera, the ground and the world
+   overlays work in; screens over the world stay in window pixels.
 
    The camera eases toward its target instead of jumping to it: each
    frame it closes the same share of the gap per second whatever the
@@ -13,15 +20,52 @@
    Called after the world has moved this frame, so the camera and the
    player it follows are drawn from the same positions. */
 
+// NOTE(zoubir): world units shown from the top of the screen to the bottom
+// (the window used to show its own height, 680 at the default size); the
+// zoom never goes below 1 or above 3
+#define WORLD_VIEW_HEIGHT 520.f
+#define WORLD_ZOOM_MIN 1.f
+#define WORLD_ZOOM_MAX 3.f
 // NOTE(zoubir): share of the gap closed per second, as a rate: higher is
 // tighter. 10 settles in about a third of a second
 #define CAMERA_FOLLOW_RATE 10.f
 // NOTE(zoubir): the lean is this share of the cursor's distance from the
-// screen centre, at most CAMERA_LEAN_MAX pixels
+// screen centre, at most CAMERA_LEAN_MAX world units
 #define CAMERA_LEAN_SHARE 0.12f
-#define CAMERA_LEAN_MAX 70.f
+#define CAMERA_LEAN_MAX 50.f
 // NOTE(zoubir): a target farther than this many screen sizes away is cut to
 #define CAMERA_CUT_SCREENS 0.75f
+
+// NOTE(zoubir): sets AppState->WorldZoom for this frame and returns the
+// window measured in world units
+internal app_window
+GetWorldView(app_state *AppState, app_window *Window)
+{
+    float Zoom = (float)Window->Height / WORLD_VIEW_HEIGHT;
+    Zoom = Maximum(WORLD_ZOOM_MIN, Minimum(WORLD_ZOOM_MAX, Zoom));
+    AppState->WorldZoom = Zoom;
+    app_window Result = *Window;
+    Result.Width = (u32)ceilf((float)Window->Width / Zoom);
+    Result.Height = (u32)ceilf((float)Window->Height / Zoom);
+    return Result;
+}
+
+// NOTE(zoubir): one axis of CenterCamera: centred on Position, kept inside
+// Min..Max, or the whole map centred when the view is wider than it
+inline float
+CenterCameraAxis(float Position, float Min, float Max, float ViewSize)
+{
+    float Result = Position - 0.5f * ViewSize;
+    if (ViewSize >= Max - Min)
+    {
+        Result = Min - 0.5f * (ViewSize - (Max - Min));
+    }
+    else
+    {
+        Result = Maximum(Min, Minimum(Result, Max - ViewSize));
+    }
+    return Result;
+}
 
 inline v3
 CenterCamera(v3 Position, float MinX, float MinY,
@@ -29,28 +73,22 @@ CenterCamera(v3 Position, float MinX, float MinY,
              u32 WindowHeight)
 {
     v3 Result = Position;
-
-    Result.X -= (float)(WindowWidth / 2);
-    Result.Y -= (float)(WindowHeight / 2);
-
-    Result.X = Minimum(Result.X, MaxX - WindowWidth);
-    Result.Y = Minimum(Result.Y, MaxY - WindowHeight);
-
-    Result.X = Maximum(Result.X, MinX);
-    Result.Y = Maximum(Result.Y, MinY);
-
+    Result.X = CenterCameraAxis(Position.X, MinX, MaxX, (float)WindowWidth);
+    Result.Y = CenterCameraAxis(Position.Y, MinY, MaxY, (float)WindowHeight);
     return Result;
 }
 
-// NOTE(zoubir): the push toward the cursor, in pixels
+// NOTE(zoubir): the push toward the cursor, in world units. View is the
+// window in world units; the mouse is in window pixels
 internal v2
-CameraLean(app_input *Input, app_window *Window)
+CameraLean(app_input *Input, app_window *View, float Zoom)
 {
-    v2 FromCentre = V2((float)Input->MouseX - 0.5f * (float)Window->Width,
-                       (float)Input->MouseY - 0.5f * (float)Window->Height);
+    v2 Mouse = V2((float)Input->MouseX / Zoom, (float)Input->MouseY / Zoom);
+    v2 FromCentre = V2(Mouse.X - 0.5f * (float)View->Width,
+                       Mouse.Y - 0.5f * (float)View->Height);
     // NOTE(zoubir): a cursor outside the window (or not moved yet) pulls nothing
-    if (Input->MouseX < 0 || Input->MouseY < 0 ||
-        Input->MouseX > (i32)Window->Width || Input->MouseY > (i32)Window->Height)
+    if (Mouse.X < 0.f || Mouse.Y < 0.f ||
+        Mouse.X > (float)View->Width || Mouse.Y > (float)View->Height)
     {
         FromCentre = V2(0.f, 0.f);
     }
@@ -64,19 +102,21 @@ CameraLean(app_input *Input, app_window *Window)
 }
 
 // NOTE(zoubir): keeps the previous position when there is no local player.
-// Lean is off while a screen holds the mouse
+// Window is the view in world units (GetWorldView). Lean is off while a
+// screen holds the mouse
 internal v3
 UpdateCamera(app_state *AppState, app_window *Window, app_input *Input,
              bool32 Lean)
 {
     world *World = &AppState->World;
     world_entity *Player = GetLocalPlayer(AppState);
+    float Zoom = AppState->WorldZoom > 0.f ? AppState->WorldZoom : 1.f;
     if (Player)
     {
         v3 Focus = Player->Position;
         if (Lean && !IsDeadPlayer(Player))
         {
-            Focus.XY += CameraLean(Input, Window);
+            Focus.XY += CameraLean(Input, Window, Zoom);
         }
         if (World->Unbounded)
         {
@@ -112,9 +152,9 @@ UpdateCamera(app_state *AppState, app_window *Window, app_input *Input,
     // NOTE(zoubir): hits shake the screen (fx_bursts.cpp); added only to
     // what is drawn, never to where the camera is heading
     CameraOffset.XY += GetCameraShake(AppState);
-    // NOTE(zoubir): floor, not a cast, so negative positions snap the
-    // same way as positive ones
-    CameraOffset.X = floorf(CameraOffset.X);
-    CameraOffset.Y = floorf(CameraOffset.Y);
+    // NOTE(zoubir): to whole window pixels, rounding down so negative
+    // positions snap the same way as positive ones
+    CameraOffset.X = SnapToScreenPixel(CameraOffset.X, Zoom);
+    CameraOffset.Y = SnapToScreenPixel(CameraOffset.Y, Zoom);
     return CameraOffset;
 }
