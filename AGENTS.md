@@ -79,12 +79,7 @@ Also build `build.bat release` when you touch headers or `#if` blocks; the relea
 
 To look at what you changed on screen, run `misc\screenshot.bat out.png [frame]` after `build.bat`. It saves the frame the game draws (frame 90 by default) and quits; a desktop capture of the game window comes out white.
 
-If `misc\shell_64.bat` prints "'vswhere.exe' is not recognized" and `cl` or `test.bat` are then not found, your PATH is longer than cmd can hold once Visual Studio appends to it. Start the shell with a short PATH first:
-
-```
-set PATH=C:\WINDOWS\system32;C:\WINDOWS
-call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-```
+The build scripts set up the compiler themselves (`misc\shell_64.bat`) and work from any folder, so there is no shell to prepare first. When PATH is longer than cmd can hold once Visual Studio appends to it, `shell_64.bat` swaps in a short PATH that keeps git and g++.
 
 The live server (vps-eu, see `deploy/README.md`) is an ARM machine. Code the server compiles must not use x86-only things directly: SSE goes through `app_platform.h` (which supplies portable versions on ARM), and tests must build with g++ (no `_putenv_s`-style Windows calls without a fallback). `deploy/deploy.sh vps-eu` builds on it and refuses to go live if the build or the join check fails. Before deploying, `misc\linux_check.ps1` (Docker) builds the server on Linux and runs the network, server and soak tests there under AddressSanitizer.
 

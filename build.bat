@@ -1,5 +1,5 @@
 @echo off
-REM Builds the game into build\. Run misc\shell_64.bat first.
+REM Builds the game into build\. Works from any folder and sets up the compiler if needed.
 REM   build.bat           debug build: asserts on, developer keys, no optimisation
 REM   build.bat release   release build: optimised, asserts and developer keys off
 REM Exits non-zero if any program fails to compile.
@@ -13,8 +13,9 @@ if /i "%1"=="release" (
     set CommonCompilerFlags=-MTd -nologo -Gm- -EHsc- -EHa- -GR- -Od -Oi %Warnings% -DAPP_SLOW=1 -DAPP_DEV=1 -DAPP_WIN32=1 /FC /Z7
 )
 
-if not exist build mkdir build
-pushd build
+call "%~dp0misc\shell_64.bat" || exit /b 1
+if not exist "%~dp0build" mkdir "%~dp0build"
+pushd "%~dp0build"
 del *.pdb > NUL 2> NUL
 set Result=0
 

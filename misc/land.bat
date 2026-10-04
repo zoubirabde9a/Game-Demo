@@ -27,24 +27,8 @@ if errorlevel 1 (
 for /f "delims=" %%d in ('git rev-parse --path-format^=absolute --git-common-dir') do set CommonDir=%%d
 for %%p in ("%CommonDir%\..") do set MainDir=%%~fp
 
-REM A long PATH breaks vcvars ("'vswhere.exe' is not recognized"), so
-REM start from a short one that keeps git. Labels, not a ( ) block: the
-REM ")" in %ProgramFiles(x86)% would end the block early.
-where cl >nul 2>nul
-if not errorlevel 1 goto compiler_ready
-for /f "delims=" %%g in ('where git') do if not defined GitDir set "GitDir=%%~dpg"
-REM g++, when installed, lets test.bat check the code the live server builds
-for /f "delims=" %%g in ('where g++ 2^>nul') do if not defined GccDir set "GccDir=%%~dpg"
-set "PATH=%SystemRoot%\system32;%SystemRoot%;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;%GitDir%;%GccDir%"
-call "%Root%\misc\shell_64.bat" >nul
-REM vcvars may change the current folder
-cd /d "%Root%"
-where cl >nul 2>nul
-if errorlevel 1 (
-    echo land: could not set up the compiler; run misc\shell_64.bat first.
-    exit /b 1
-)
-:compiler_ready
+REM Once here, so test.bat and build.bat below do not each set it up again.
+call "%Root%\misc\shell_64.bat" || exit /b 1
 
 REM Warn (never block) when this branch changes files another agent claimed.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%Root%\misc\claims.ps1" -Base main

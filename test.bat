@@ -1,5 +1,5 @@
 @echo off
-REM Builds and runs every test program in code\tests. Run misc\shell_64.bat first.
+REM Builds and runs every test program in code\tests.
 REM All programs are compiled first (about half a second each), then the
 REM slow ones (simulation, server, soak) run at the same time, each into
 REM build\<name>.log, and their output is printed in order once all are done.
@@ -11,8 +11,9 @@ REM negative code, which "errorlevel 1" treats as success.
 setlocal EnableDelayedExpansion
 set TestFlags=-MTd -nologo -Gm- -EHsc- -GR- -Od -Oi -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DAPP_SLOW=1 -DAPP_DEV=1 -DAPP_WIN32=1 /FC /Z7
 set GameLibs=user32.lib Gdi32.lib Winmm.lib OpenGL32.lib
-if not exist build mkdir build
-pushd build
+call "%~dp0misc\shell_64.bat" || exit /b 1
+if not exist "%~dp0build" mkdir "%~dp0build"
+pushd "%~dp0build"
 set Result=0
 
 cl %TestFlags% ..\code\tests\sim_tests.cpp /link -incremental:no %GameLibs%
