@@ -1177,6 +1177,34 @@ TestMonsterKillRefundsMovement()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a respawned player cannot be hurt for a moment
+internal void
+TestRespawnIsShielded()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    DamageEntity(AppState, Test.World, Player, 1000.f, 0);
+    Check(IsDeadPlayer(Player));
+    for(u32 Frame = 0; Frame < 60 * 4 && IsDeadPlayer(Player); Frame++)
+    {
+        SimulateTick(AppState, &Test.Arena, Test.Input.DeltaTime);
+    }
+    Check(!IsDeadPlayer(Player));
+    float Hp = Player->Hp;
+    DamageEntity(AppState, Test.World, Player, 10.f, 0);
+    Check(Player->Hp == Hp);
+    for(u32 Frame = 0; Frame < 120; Frame++)
+    {
+        SimulateTick(AppState, &Test.Arena, Test.Input.DeltaTime);
+    }
+    DamageEntity(AppState, Test.World, Player, 10.f, 0);
+    Check(Player->Hp == Hp - 10.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1254,4 +1282,6 @@ RunPlayerAbilityTests()
     TestBodyPosesFollowMotion();
     printf("TestMonsterKillRefundsMovement\n");
     TestMonsterKillRefundsMovement();
+    printf("TestRespawnIsShielded\n");
+    TestRespawnIsShielded();
 }

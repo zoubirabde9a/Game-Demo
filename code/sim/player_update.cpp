@@ -121,6 +121,7 @@ UpdatePlayer(player_slot *Slot, world *World,
 
     Player->ActionLock = Maximum(0.f, Player->ActionLock - DeltaTime);
     Player->ComboTimer = Maximum(0.f, Player->ComboTimer - DeltaTime);
+    Player->SpawnShield = Maximum(0.f, Player->SpawnShield - DeltaTime);
     for(u32 Index = 0; Index < PlayerAction_Count; Index++)
     {
         Player->ActionCooldowns[Index] =

@@ -10,6 +10,9 @@
 // NOTE(zoubir): bit the server sets in a player's snapshot Ability (the
 // replica's AbilityIndex) while its dash streak shows
 #define PLAYER_FLASH_DASH 1
+// NOTE(zoubir): the same, while a respawned player is shielded
+#define PLAYER_FLASH_SHIELD 2
+#define PLAYER_SPAWN_SHIELD_SECONDS 1.5f
 // NOTE(zoubir): the cursor distance player_input.Aim can tell apart; the
 // blink range
 #define PLAYER_AIM_REACH 160.f

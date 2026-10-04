@@ -261,11 +261,13 @@ MakeGroundedTreeCollisionVolume(memory_arena *Arena)
 }
 
 // NOTE(zoubir): a player mid-dash or mid-blink (while its streak shows,
-// DashFlash) cannot be hurt or shoved: dashing through an attack dodges it
+// DashFlash) cannot be hurt or shoved: dashing through an attack dodges
+// it. Nor can one just back from the dead (SpawnShield)
 inline bool32
 IsDodging(world_entity *Entity)
 {
-    bool32 Result = Entity->Type == EntityType_Player && Entity->DashFlash > 0.f;
+    bool32 Result = Entity->Type == EntityType_Player &&
+        (Entity->DashFlash > 0.f || Entity->SpawnShield > 0.f);
     return Result;
 }
 

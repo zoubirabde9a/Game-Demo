@@ -129,6 +129,13 @@ GetFxBursts(app_state *AppState)
     return AppState->FxBursts;
 }
 
+internal float
+GetFxClock(app_state *AppState)
+{
+    float Result = AppState->FxBursts ? AppState->FxBursts->Clock : 0.f;
+    return Result;
+}
+
 // NOTE(zoubir): a full pool drops the oldest burst
 internal void
 AddBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,

@@ -195,6 +195,7 @@ UpdateDeadPlayer(player_slot *Slot, world *World, memory_arena *Arena,
     // at the spawn point
     Player->CastingArea = 0;
     Player->PendingLandArea = 0;
+    Player->SpawnShield = PLAYER_SPAWN_SHIELD_SECONDS;
     CheckAndChangeEntityChunk(AppState, World, Arena,
                               OldPosition, Player);
     EmitBurst(&AppState->Events, SimBurst_Spawn, (u8)Player->PlayerIndex,

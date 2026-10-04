@@ -133,7 +133,8 @@ SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
     E->Flash = (Entity->Type == EntityType_Monster && Entity->PhaseFlash > 0.f) ? 1 : 0;
     if (Entity->Type == EntityType_Player)
     {
-        E->Ability = (u8)(Entity->DashFlash > 0.f ? PLAYER_FLASH_DASH : 0);
+        E->Ability = (u8)((Entity->DashFlash > 0.f ? PLAYER_FLASH_DASH : 0) |
+                          (Entity->SpawnShield > 0.f ? PLAYER_FLASH_SHIELD : 0));
     }
     E->Health = (i16)Entity->Hp;
     E->X = Entity->Position.X;
