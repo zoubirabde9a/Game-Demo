@@ -12,7 +12,8 @@
    - running leans it a little into the way it runs;
    - losing health flashes it red and jolts it, a short squash;
    - a cast with a wind-up crouches it while it charges and pops it up as
-     it lets go (SetBodyWindup, from the cast's bursts, fx_bursts.cpp).
+     it lets go (SetBodyWindup, from the cast's bursts, fx_bursts.cpp);
+   - a stun sways it side to side on its feet, dizzy.
 
    The sprite keeps its feet where they were; DrawEntity asks
    GetBodyPose for the scale and the angle. Updated once a frame by UpdateBodyPoses,
@@ -48,6 +49,9 @@
 #define BODY_WINDUP_DEPTH 0.14f
 #define BODY_WINDUP_RELEASE 0.7f
 #define BODY_WINDUP_MAX_SECONDS 0.6f
+// NOTE(zoubir): a stunned body's sway, in radians and turns per second
+#define BODY_DIZZY_ANGLE 0.16f
+#define BODY_DIZZY_SPEED 2.2f
 
 inline float
 Clamp01(float Value)
@@ -75,6 +79,8 @@ struct body_pose
     // left until it lets go
     float Windup;
     float ChargeLeft;
+    // NOTE(zoubir): seconds this body has been tracked, for the sway
+    float Clock;
     u32 EntityId;
 };
 
@@ -169,6 +175,7 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
         Pose->Spin = Maximum(0.f, Pose->Spin - DeltaTime / BODY_SPIN_SECONDS);
         Pose->SpeedZ = OnGround ? 0.f : SpeedZ;
         Pose->LastZ = Entity->Position.Z;
+        Pose->Clock += DeltaTime;
         if (Pose->ChargeLeft > 0.f)
         {
             Pose->ChargeLeft -= DeltaTime;
@@ -233,6 +240,11 @@ GetBodyPose(app_state *AppState, world_entity *Entity)
     {
         float Run = Pose->SpeedX / BODY_LEAN_SPEED;
         Result.Angle = BODY_LEAN_MAX * Minimum(1.f, Maximum(-1.f, Run));
+        if (HasStatus(Entity, StatusEffect_Stunned))
+        {
+            Result.Angle += BODY_DIZZY_ANGLE *
+                Sin(2.f * Pi32 * BODY_DIZZY_SPEED * Pose->Clock);
+        }
         Result.AboutFeet = true;
     }
     return Result;
