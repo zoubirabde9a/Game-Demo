@@ -143,8 +143,11 @@ SweepAgainstEntity(world_entity *Entity, v3 From, v3 Delta,
                 // move. A unit touching a wall can sit a hair inside it
                 // (less than MOVE_OVERLAP_EPSILON); the face it would
                 // leave through then counted as hit at once, and against
-                // a rock on the other side the player could not move at all
-                if (DotProduct(Delta, Wall->Normal) >= 0.f)
+                // a rock on the other side the player could not move at all.
+                // Projectiles keep every face, so a fireball cast from
+                // inside a wall bursts on it instead of flying out the far
+                // side
+                if (MoverIsUnit && DotProduct(Delta, Wall->Normal) >= 0.f)
                 {
                     continue;
                 }
