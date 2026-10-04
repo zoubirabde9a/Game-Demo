@@ -6,10 +6,13 @@
    - rising or falling fast stretches the body tall and thin;
    - a sudden kick upward in the air (a second jump, a Launch) pops it
      taller still for a moment;
-   - landing from a fall squashes it short and wide, springing back.
+   - landing from a fall squashes it short and wide, springing back;
+   - that same kick upward spins it once around, a somersault toward
+     where it is heading;
+   - running leans it a little into the way it runs.
 
    The sprite keeps its feet where they were; DrawEntity asks
-   GetBodyScale for the scale. Updated once a frame by UpdateBodyPoses,
+   GetBodyPose for the scale and the angle. Updated once a frame by UpdateBodyPoses,
    after the world is drawn, so a pose is one frame old, which no one sees. */
 
 #define BODY_POSE_SLOTS 4096
@@ -27,6 +30,10 @@
 #define BODY_POP_HEIGHT 0.22f
 // NOTE(zoubir): per second, how fast squash and pop wear off
 #define BODY_POSE_RECOVERY 7.f
+#define BODY_SPIN_SECONDS 0.32f
+// NOTE(zoubir): radians of lean at full run speed (BODY_LEAN_SPEED)
+#define BODY_LEAN_MAX 0.12f
+#define BODY_LEAN_SPEED 180.f
 
 inline float
 Clamp01(float Value)
@@ -41,7 +48,22 @@ struct body_pose
     float SpeedZ;
     float Squash;
     float Pop;
+    // NOTE(zoubir): 1 at the start of a somersault, down to 0 at its end;
+    // SpinSign is which way it turns
+    float Spin;
+    float SpinSign;
+    float LastX;
+    float SpeedX;
     u32 EntityId;
+};
+
+struct body_pose_draw
+{
+    v2 Scale;
+    float Angle;
+    // NOTE(zoubir): turn about the feet (a lean) rather than the middle (a
+    // somersault)
+    bool32 AboutFeet;
 };
 
 struct body_poses
@@ -85,9 +107,15 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
             *Pose = {};
             Pose->EntityId = Entity->ID;
             Pose->LastZ = Entity->Position.Z;
+            Pose->LastX = Entity->Position.X;
         }
 
         float SpeedZ = (Entity->Position.Z - Pose->LastZ) / DeltaTime;
+        float SpeedX = (Entity->Position.X - Pose->LastX) / DeltaTime;
+        // NOTE(zoubir): eased, a one-frame jolt (a shove, a correction)
+        // does not snap the lean
+        Pose->SpeedX += (SpeedX - Pose->SpeedX) * Minimum(1.f, 12.f * DeltaTime);
+        Pose->LastX = Entity->Position.X;
         bool32 OnGround = Entity->Position.Z <= Entity->GroundZ + 0.5f;
         if (OnGround && Pose->SpeedZ < -BODY_SQUASH_MIN_SPEED)
         {
@@ -98,7 +126,16 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
         if (!OnGround && SpeedZ - Pose->SpeedZ > BODY_POP_KICK)
         {
             Pose->Pop = 1.f;
+            Pose->Spin = 1.f;
+            // NOTE(zoubir): screen Y grows down, so a positive angle turns
+            // clockwise: forward for a body heading right
+            Pose->SpinSign = Pose->SpeedX < 0.f ? -1.f : 1.f;
         }
+        if (OnGround)
+        {
+            Pose->Spin = 0.f;
+        }
+        Pose->Spin = Maximum(0.f, Pose->Spin - DeltaTime / BODY_SPIN_SECONDS);
         Pose->SpeedZ = OnGround ? 0.f : SpeedZ;
         Pose->LastZ = Entity->Position.Z;
         Pose->Squash = Maximum(0.f, Pose->Squash - BODY_POSE_RECOVERY * DeltaTime);
@@ -106,12 +143,13 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
     }
 }
 
-// NOTE(zoubir): width and height multipliers for the sprite; the area
-// stays about the same, so a squash reads as weight, not shrinking
-internal v2
-GetBodyScale(app_state *AppState, world_entity *Entity)
+// NOTE(zoubir): width and height multipliers for the sprite (the area
+// stays about the same, so a squash reads as weight, not shrinking), and
+// its turn in radians
+internal body_pose_draw
+GetBodyPose(app_state *AppState, world_entity *Entity)
 {
-    v2 Result = V2(1.f, 1.f);
+    body_pose_draw Result = {V2(1.f, 1.f), 0.f, false};
     u32 Index = (u32)(Entity - AppState->World.Entities);
     if (!AppState->BodyPoses || Index >= BODY_POSE_SLOTS || !HasBodyPose(Entity))
     {
@@ -127,7 +165,19 @@ GetBodyScale(app_state *AppState, world_entity *Entity)
     // NOTE(zoubir): eased, so the squash springs back fast then settles
     float Squash = BODY_SQUASH_DEPTH * Pose->Squash * Pose->Squash;
     float Pop = BODY_POP_HEIGHT * Pose->Pop * Pose->Pop;
-    Result.Y = 1.f + Stretch + Pop - Squash;
-    Result.X = 1.f / Result.Y;
+    Result.Scale.Y = 1.f + Stretch + Pop - Squash;
+    Result.Scale.X = 1.f / Result.Scale.Y;
+    if (Pose->Spin > 0.f)
+    {
+        // NOTE(zoubir): fast out of the kick, settling upright
+        float Turned = 1.f - Pose->Spin * Pose->Spin;
+        Result.Angle = Pose->SpinSign * 2.f * Pi32 * Turned;
+    }
+    else if (Entity->Position.Z <= Entity->GroundZ + 0.5f)
+    {
+        float Run = Pose->SpeedX / BODY_LEAN_SPEED;
+        Result.Angle = BODY_LEAN_MAX * Minimum(1.f, Maximum(-1.f, Run));
+        Result.AboutFeet = true;
+    }
     return Result;
 }

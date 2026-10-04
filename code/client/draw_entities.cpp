@@ -123,10 +123,19 @@ DrawEntity(render_context *RenderContext,
         Texture = GetTexture(Assets, OpenGL, AppState, Entity->Texture);
         // NOTE(zoubir): squash and stretch about the sprite's origin (its
         // feet), body_pose.cpp
-        v2 Dimensions = Entity->Dimensions * GetBodyScale(AppState, Entity);
+        body_pose_draw Pose = GetBodyPose(AppState, Entity);
+        v2 Dimensions = Entity->Dimensions * Pose.Scale;
         v2 EntityTexturePosition = EntityCameraPosition -
             TextureInfo->Origin * Dimensions;
         EntityTexturePosition.Y -= Entity->Position.Z;
+        if (Pose.AboutFeet)
+        {
+            // NOTE(zoubir): the quad turns about its middle; move it so
+            // the feet stay put
+            float FeetBelowMiddle = (TextureInfo->Origin.Y - 0.5f) * Dimensions.Y;
+            EntityTexturePosition.X += FeetBelowMiddle * Sin(Pose.Angle);
+            EntityTexturePosition.Y += FeetBelowMiddle * (1.f - Cos(Pose.Angle));
+        }
         
         if (Texture)
         {
@@ -143,7 +152,7 @@ DrawEntity(render_context *RenderContext,
                               Dimensions.Y,
                               Entity->Uvs,
                               Color.ColorU32,
-                              Entity->Position.Z);
+                              Entity->Position.Z, Pose.Angle);
             EndBatch(RenderContext);
         }
         {
