@@ -12,12 +12,24 @@
 // click's wait, so steady clicking keeps the chain going
 #define SWORD_COMBO_WINDOW 0.45f
 
-global_variable player_hit SwordCombo[] =
+// NOTE(zoubir): one step of the combo: what it does to each target, and
+// the arc clients draw around the swinger (fx_bursts.cpp), which grows
+// step by step so the chain can be seen building
+struct sword_combo_step
 {
-    {SWORD_DAMAGE, SWORD_KNOCKBACK, 0.f, 0.f, SimBurst_Count},
-    {SWORD_DAMAGE, 1.25f * SWORD_KNOCKBACK, 0.f, 0.f, SimBurst_Count},
+    player_hit Hit;
+    sim_burst Arc;
+};
+
+global_variable sword_combo_step SwordCombo[] =
+{
+    {{SWORD_DAMAGE, SWORD_KNOCKBACK, 0.f, 0.f, SimBurst_Count},
+     SimBurst_SwingArc},
+    {{SWORD_DAMAGE, 1.25f * SWORD_KNOCKBACK, 0.f, 0.f, SimBurst_Count},
+     SimBurst_SwingArcBack},
     // NOTE(zoubir): the finisher
-    {1.4f * SWORD_DAMAGE, 1.8f * SWORD_KNOCKBACK, 300.f, 0.7f, SimBurst_Finisher},
+    {{1.4f * SWORD_DAMAGE, 1.8f * SWORD_KNOCKBACK, 300.f, 0.7f, SimBurst_Finisher},
+     SimBurst_SwingArcFinisher},
 };
 
 // NOTE(zoubir): the survivor is thrown away from the swinger (or the blade
@@ -38,7 +50,7 @@ SwordHit(app_state *AppState, world *World, world_entity *Sword,
     Away = Distance > 0.f ? Away * (1.f / Distance) : Sword->CastingDirection;
     u32 Last = ArrayCount(SwordCombo) - 1;
     u32 Step = Sword->ComboStep < Last ? Sword->ComboStep : Last;
-    ApplyPlayerHit(AppState, World, Target, &SwordCombo[Step], Away,
+    ApplyPlayerHit(AppState, World, Target, &SwordCombo[Step].Hit, Away,
                    Sword->OwnerSlot, Sword);
 }
 
@@ -57,4 +69,6 @@ SpawnSwordSwing(app_state *AppState, world *World, memory_arena *Arena,
                                    Player, DominantFacing(Dir));
     Sword->CastingDirection = Dir;
     Sword->ComboStep = Player->ComboStep;
+    EmitBurst(&AppState->Events, SwordCombo[Player->ComboStep].Arc,
+              (u8)Player->PlayerIndex, Player->Position, ATan2(Dir.Y, Dir.X));
 }

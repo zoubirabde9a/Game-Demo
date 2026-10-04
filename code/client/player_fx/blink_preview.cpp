@@ -27,7 +27,12 @@ IsBlinkSpotBlocked(app_state *AppState, world *World, v2 Position, float Z)
     for(u32 Index = 0; Index < Count; Index++)
     {
         world_entity *Other = Nearby[Index];
-        if (Other->IsPresent && !IsWalkingUnit(Other) &&
+        // NOTE(zoubir): only what stands still; counting everything the
+        // player collides with but units took in the player's own sword
+        // and fireballs, so a swing pulled the ring back to the feet
+        bool32 Solid = Other->Type == EntityType_StaticObject ||
+            Other->Type == EntityType_Tiled;
+        if (Other->IsPresent && Solid &&
             CanCollide(AppState, EntityType_Player, Other->Type) &&
             EntityOverlap(&Probe, Other))
         {

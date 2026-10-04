@@ -176,22 +176,20 @@ TestSwordSwingStartsOneArc()
     AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
     AppState->Players[0].Input.Aim = V2(0.f, -1.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Attack;
+    AppState->Events.Count = 0;
     RunPlayerFrames(&Test, 0, 1);
 
-    sword_arcs Fx = {};
-    float Dt = 1.f / 60.f;
-    UpdateSwordArcs(&Fx, AppState, Dt);
-    UpdateSwordArcs(&Fx, AppState, Dt);
-    Check(Fx.Count == 1);
     // NOTE(zoubir): aimed up, so the arc is centred on -90 degrees
-    Check(Absolute(Fx.Arcs[0].Angle + 0.5f * Pi32) < 0.01f);
-
-    for(u32 Frame = 0; Frame < 30; Frame++)
+    Check(CountBursts(AppState, SimBurst_SwingArc) == 1);
+    sim_event *Arc = 0;
+    for(u32 Index = 0; Index < AppState->Events.Count; Index++)
     {
-        SimulateTick(AppState, &Test.Arena, Dt);
-        UpdateSwordArcs(&Fx, AppState, Dt);
+        if (AppState->Events.Events[Index].Burst == SimBurst_SwingArc)
+        {
+            Arc = &AppState->Events.Events[Index];
+        }
     }
-    Check(Fx.Count == 0);
+    Check(Arc && Absolute(Arc->Angle + 0.5f * Pi32) < 0.01f);
     DestroyTestWorld(&Test);
 }
 
@@ -992,6 +990,10 @@ TestSwordComboFinisher()
     Check(Lifts[0] <= 0.f && Lifts[1] <= 0.f);
     Check(Lifts[2] > 100.f);
     Check(CountBursts(AppState, SimBurst_Finisher) == 1);
+    // NOTE(zoubir): each step draws its own arc
+    Check(CountBursts(AppState, SimBurst_SwingArc) == 1);
+    Check(CountBursts(AppState, SimBurst_SwingArcBack) == 1);
+    Check(CountBursts(AppState, SimBurst_SwingArcFinisher) == 1);
 
     RunPlayerFrames(&Test, 0, 60);
     Slot->Input.Pressed = PlayerButton_Attack;

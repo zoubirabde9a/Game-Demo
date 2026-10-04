@@ -21,6 +21,9 @@ enum burst_shape
     BurstShape_Puff,   // dust drifting out low and settling
     BurstShape_Spark,  // a star of sparks flying out from the centre
     BurstShape_Slash,  // a bright cut across Angle with sparks thrown along it
+    BurstShape_Arc,    // a blade's sweep around the centre, across Angle,
+                       // one way round
+    BurstShape_ArcBack, // the same sweep the other way round
 };
 
 enum burst_pose
@@ -59,6 +62,11 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Ring, 0.35f, 90.f, 0x00FFE8B0, false, 0.45f, BurstPose_None},   // ShockwaveRing, pale blue
     {BurstShape_Spark, 0.22f, 26.f, 0x0080FFFF, false, 0.3f, BurstPose_None},   // Impact, pale yellow
     {BurstShape_Slash, 0.28f, 44.f, 0x00FFFFFF, false, 0.4f, BurstPose_None},  // Finisher, white
+    // NOTE(zoubir): the sword's arcs run a little inside its reach
+    // (SWORD_REACH 46, entity.h) so they sit over what gets hit
+    {BurstShape_Arc, 0.2f, 34.f, 0x00F0FFFF, false, 0.f, BurstPose_None},      // SwingArc, pale
+    {BurstShape_ArcBack, 0.2f, 38.f, 0x00C0FFFF, false, 0.f, BurstPose_None},  // SwingArcBack, warmer
+    {BurstShape_Arc, 0.26f, 46.f, 0x0060E0FF, false, 0.1f, BurstPose_None},    // SwingArcFinisher, gold
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these
@@ -328,6 +336,31 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
                 v2 Direction = V2(Cos(Burst->Angle + Spread), Sin(Burst->Angle + Spread));
                 float Out = Look->Radius * 1.2f * EaseOut * (0.5f + 0.5f * BurstJitter(Dot, 9));
                 DrawFxDot(RenderContext, Centre + Out * Direction, 4.f - 3.f * T, Color);
+            }
+        } break;
+
+        case BurstShape_Arc:
+        case BurstShape_ArcBack:
+        {
+            // NOTE(zoubir): the leading edge sweeps across the arc in the
+            // first half; dots behind it shrink and fade like a trail
+            float Side = Look->Shape == BurstShape_Arc ? 1.f : -1.f;
+            float Lead = Minimum(1.f, 2.f * T);
+            float Size = 2.f + Look->Radius / 12.f;
+            for(u32 Dot = 0; Dot < 14; Dot++)
+            {
+                float Along = (float)Dot / 13.f;
+                float Strength = (1.f - T) * (1.f - (Lead - Along));
+                if (Along > Lead || Strength <= 0.f)
+                {
+                    continue;
+                }
+                float Angle = Burst->Angle +
+                    Side * SWORD_HALF_ANGLE * (2.f * Along - 1.f);
+                v2 P = Centre + Look->Radius * V2(Cos(Angle), Sin(Angle));
+                u32 DotColor = ((u32)(255.f * Strength) << 24) | Look->RGB;
+                DrawFxDot(RenderContext, P, Size * (0.5f + 0.5f * Strength),
+                          DotColor);
             }
         } break;
 

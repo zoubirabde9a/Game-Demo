@@ -35,6 +35,9 @@ enum sim_burst
     SimBurst_ShockwaveRing, // a ring around a player, Shockwave's reach
     SimBurst_Impact,       // sparks where a thrown body hits something
     SimBurst_Finisher,     // a combo's last hit landing, along Angle
+    SimBurst_SwingArc,     // a sword swing around a player, centred on Angle
+    SimBurst_SwingArcBack, // the next swing of a combo, the other way round
+    SimBurst_SwingArcFinisher, // a combo's last swing, wider and brighter
     SimBurst_Count
 };
 
