@@ -131,7 +131,11 @@ UpdateMonster(world_entity *Entity, world *World,
         *AnimationDirection = AnimationDirection_Right;
     }
 
-    if (UpdateMonsterAbilities(Entity, World, Arena, DeltaTime, AppState,
+    // NOTE(zoubir): a stunned monster neither thinks nor uses abilities
+    // (a windup waits), but still falls and slides
+    bool32 Stunned = HasStatus(Entity, StatusEffect_Stunned);
+    if (!Stunned &&
+        UpdateMonsterAbilities(Entity, World, Arena, DeltaTime, AppState,
                                AnimationSpeed, AnimationType,
                                AnimationDirection))
     {
@@ -139,9 +143,9 @@ UpdateMonster(world_entity *Entity, world *World,
     }
 
     v3 DDEntity = {};
-    float DistanceToTarget;
-    world_entity *Target = FindNearestPlayer(AppState, Entity->Position.XY,
-                                             &DistanceToTarget);
+    float DistanceToTarget = 0.f;
+    world_entity *Target = Stunned ? 0 :
+        FindNearestPlayer(AppState, Entity->Position.XY, &DistanceToTarget);
     if (Target)
     {
         v2 ToTarget = Target->Position.XY - Entity->Position.XY;
@@ -175,7 +179,7 @@ UpdateMonster(world_entity *Entity, world *World,
             DDEntity.XY = MonsterWander(Entity, AppState, DeltaTime);
         }
     }
-    else
+    else if (!Stunned)
     {
         DDEntity.XY = MonsterWander(Entity, AppState, DeltaTime);
     }

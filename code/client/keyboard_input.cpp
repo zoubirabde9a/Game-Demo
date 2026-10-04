@@ -1,7 +1,8 @@
 /* Local controls: turns this machine's keyboard and mouse into the
    player_input the simulation understands. ZQSD move (AZERTY layout),
    the mouse cursor aims, right click sword, left click fireball, Space
-   jump, Alt dash, E shockwave, F blink. Holding Tab shows the scoreboard
+   jump, Alt dash, E shockwave, F blink, R push, A launch (the action keys
+   are one table, action_keys.cpp). Holding Tab shows the scoreboard
    (read in app.cpp, it is not a player action). */
 
 // NOTE(zoubir): from the local player to the cursor, in world units, over
@@ -39,11 +40,6 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
     if (Input->ButtonD.EndedDown) { Result.Move.X = 1.f; }
     if (Input->ButtonQ.EndedDown) { Result.Move.X = -1.f; }
 
-    if (Input->RightButton.Pressed) { Result.Pressed |= PlayerButton_Attack; }
-    if (Input->LeftButton.Pressed) { Result.Pressed |= PlayerButton_Cast; }
-    if (Input->SpaceButton.Pressed) { Result.Pressed |= PlayerButton_Jump; }
-    if (Input->AltButton.Pressed) { Result.Pressed |= PlayerButton_Dash; }
-    if (Input->ButtonE.Pressed) { Result.Pressed |= PlayerButton_Shockwave; }
-    if (Input->ButtonF.Pressed) { Result.Pressed |= PlayerButton_Blink; }
+    Result.Pressed = ActionButtonsFromKeys(Input, true);
     return Result;
 }

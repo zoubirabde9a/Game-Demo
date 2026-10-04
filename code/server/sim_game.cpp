@@ -99,12 +99,7 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     if (Held & NetButton_Down) Out->Move.Y += 1.f;
     Out->Aim = V2(Input->AimX, Input->AimY);
 
-    if (Pressed & NetButton_Sword) Out->Pressed |= PlayerButton_Attack;
-    if (Pressed & NetButton_Fireball) Out->Pressed |= PlayerButton_Cast;
-    if (Pressed & NetButton_Jump) Out->Pressed |= PlayerButton_Jump;
-    if (Pressed & NetButton_Dash) Out->Pressed |= PlayerButton_Dash;
-    if (Pressed & NetButton_Shockwave) Out->Pressed |= PlayerButton_Shockwave;
-    if (Pressed & NetButton_Blink) Out->Pressed |= PlayerButton_Blink;
+    Out->Pressed |= (u32)Pressed >> PLAYER_BUTTON_NET_SHIFT;
 }
 
 // Whether another connected player already goes by Name (ignoring case).

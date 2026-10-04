@@ -5,7 +5,9 @@
 
    Burning   fast damage, short
    Poisoned  slow damage, long
-   Slowed    movement acceleration scaled by STATUS_SLOW_SCALE */
+   Slowed    movement acceleration scaled by STATUS_SLOW_SCALE
+   Stunned   no moving, attacking or casting; physics still applies, so a
+             stunned unit thrown into the air falls back down */
 
 #define STATUS_TICK_SECONDS 0.5f
 #define STATUS_BURN_DPS 8.f

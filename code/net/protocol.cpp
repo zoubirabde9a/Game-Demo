@@ -47,7 +47,9 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     NetU8(S, &TypeAndFlags);
     E->Type = TypeAndFlags & NET_ENTITY_TYPE_MASK;
     // Small fields are packed; out-of-range values are cut to their bits.
-    u8 Look = (u8)((E->Facing & 3) | ((E->Animation & 15) << 2) | ((E->Flash & 1) << 6));
+    // Status has a fourth bit, which rides in Look's top bit.
+    u8 Look = (u8)((E->Facing & 3) | ((E->Animation & 15) << 2) | ((E->Flash & 1) << 6) |
+                   (((E->Status >> 3) & 1) << 7));
     NetU8(S, &Look);
     E->Facing = Look & 3;
     E->Animation = (Look >> 2) & 15;
@@ -56,7 +58,7 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     u8 Extra = (u8)((E->Affix & 7) | ((E->Status & 7) << 3) | ((E->Ability & 3) << 6));
     NetU8(S, &Extra);
     E->Affix = Extra & 7;
-    E->Status = (Extra >> 3) & 7;
+    E->Status = (u8)(((Extra >> 3) & 7) | (((Look >> 7) & 1) << 3));
     E->Ability = (Extra >> 6) & 3;
     NetI16(S, &E->Health);
     NetFixed16(S, &E->X, NET_POSITION_STEPS);

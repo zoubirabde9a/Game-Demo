@@ -23,3 +23,10 @@
     float SwingCooldown;
     // NOTE(zoubir): jumps since the player last stood on something
     u32 JumpsUsed;
+    // NOTE(zoubir): area abilities (player_abilities/area_abilities.cpp):
+    // seconds until each may be used again, which one is being cast (its
+    // index + 1, 0 for none) and the seconds of cast left
+#define PLAYER_AREA_ABILITY_SLOTS 4
+    float AreaCooldowns[PLAYER_AREA_ABILITY_SLOTS];
+    u32 CastingArea;
+    float AreaCastLeft;

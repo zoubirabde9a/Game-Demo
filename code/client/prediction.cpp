@@ -140,9 +140,8 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     Slot->Input = {};
     Slot->Input.Move = MoveFromNetButtons(Input->Buttons);
     Slot->Input.Aim = Input->Aim;
-    if (Input->Pressed & NetButton_Jump) Slot->Input.Pressed |= PlayerButton_Jump;
-    if (Input->Pressed & NetButton_Dash) Slot->Input.Pressed |= PlayerButton_Dash;
-    if (Input->Pressed & NetButton_Blink) Slot->Input.Pressed |= PlayerButton_Blink;
+    Slot->Input.Pressed = ((u32)Input->Pressed >> PLAYER_BUTTON_NET_SHIFT) &
+        (PlayerButton_Jump | PlayerButton_Dash | PlayerButton_Blink);
     float AnimationSpeed;
     animation_type AnimationType;
     animation_direction AnimationDirection;

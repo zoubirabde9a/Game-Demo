@@ -27,6 +27,7 @@ UseDash(app_state *AppState, world_entity *Player, player_input *Input,
         }
         Player->Velocity.XY = PLAYER_DASH_SPEED * Dir;
         Player->ActionLock = 0.f;
+        CancelAreaCast(Player);
         Player->DashCooldown = PLAYER_DASH_COOLDOWN;
         Player->DashFlash = PLAYER_DASH_FLASH_SECONDS;
         EmitSound(&AppState->Events, AssetType_Dash, Player->Position);

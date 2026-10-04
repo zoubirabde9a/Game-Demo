@@ -65,12 +65,7 @@ NetButtonsFromKeyboard(app_input *Input)
     if (Input->ButtonD.EndedDown) Result |= NetButton_Right;
     if (Input->ButtonZ.EndedDown) Result |= NetButton_Up;
     if (Input->ButtonS.EndedDown) Result |= NetButton_Down;
-    if (Input->SpaceButton.EndedDown) Result |= NetButton_Jump;
-    if (Input->AltButton.EndedDown) Result |= NetButton_Dash;
-    if (Input->LeftButton.EndedDown) Result |= NetButton_Fireball;
-    if (Input->RightButton.EndedDown) Result |= NetButton_Sword;
-    if (Input->ButtonE.EndedDown) Result |= NetButton_Shockwave;
-    if (Input->ButtonF.EndedDown) Result |= NetButton_Blink;
+    Result |= (u16)(ActionButtonsFromKeys(Input, false) << PLAYER_BUTTON_NET_SHIFT);
     return Result;
 }
 

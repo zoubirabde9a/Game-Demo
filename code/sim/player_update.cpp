@@ -79,6 +79,7 @@ GetPlayerAim(world_entity *Player)
 #include "player_abilities/fireball.cpp"
 #include "player_abilities/jump.cpp"
 #include "player_abilities/shockwave.cpp"
+#include "player_abilities/area_abilities.cpp"
 #include "player_abilities/dash.cpp"
 #include "player_abilities/blink.cpp"
 
@@ -94,6 +95,7 @@ UsePlayerAbilities(app_state *AppState, world *World, memory_arena *Arena,
     player_input *Input = &Slot->Input;
     UseJump(AppState, Player, Input, Tick);
     UseShockwave(AppState, World, Player, Input, DeltaTime);
+    UseAreaAbilities(AppState, World, Player, Input, DeltaTime, Tick);
     UseDash(AppState, Player, Input, DeltaTime);
     UseBlink(AppState, World, Arena, Player, Input, DeltaTime);
 }
@@ -107,6 +109,12 @@ UpdatePlayer(player_slot *Slot, world *World,
              animation_direction *AnimationDirection)
 {
     world_entity *Player = Slot->Entity;
+    // NOTE(zoubir): a stunned player can neither move nor act
+    if (HasStatus(Player, StatusEffect_Stunned))
+    {
+        Slot->Input.Move = V2(0.f, 0.f);
+        Slot->Input.Pressed = 0;
+    }
     *AnimationType = AnimationType_Stand;
     *AnimationDirection = Player->AnimationState.LastAnimationDirection;
     *AnimationSpeedRate = 1.f;

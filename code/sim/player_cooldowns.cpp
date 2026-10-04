@@ -1,10 +1,11 @@
 /* Player cooldowns as a list: the abilities whose cooldown the HUD shows,
    in one fixed order, so the server can send a player its own (snapshot
    Cooldowns[]) and the client can put them back where the HUD reads them.
-   A new ability with a cooldown bar adds a case here (and the protocol's
-   NET_COOLDOWN_COUNT grows). */
+   Area abilities come last, one each, in table order. A new ability with
+   a cooldown bar outside that table adds a case here; either way the
+   protocol's NET_COOLDOWN_COUNT grows. */
 
-#define PLAYER_COOLDOWN_COUNT 3
+#define PLAYER_COOLDOWN_COUNT (3 + PLAYER_AREA_ABILITY_COUNT)
 
 // NOTE(zoubir): the field holding cooldown Index, and its full length
 internal float *
@@ -15,6 +16,12 @@ PlayerCooldown(world_entity *Player, u32 Index, float *Full)
         case 0: *Full = PLAYER_DASH_COOLDOWN; return &Player->DashCooldown;
         case 1: *Full = PLAYER_SHOCKWAVE_COOLDOWN; return &Player->ShockwaveCooldown;
         case 2: *Full = PLAYER_BLINK_COOLDOWN; return &Player->BlinkCooldown;
+    }
+    u32 Area = Index - 3;
+    if (Area < PLAYER_AREA_ABILITY_COUNT)
+    {
+        *Full = PlayerAreaAbilities[Area].Cooldown;
+        return &Player->AreaCooldowns[Area];
     }
     *Full = 0.f;
     return 0;

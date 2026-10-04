@@ -29,7 +29,7 @@
 #define NET_MAX_SNAPSHOT_FACINGS 8  // front-armoured monsters per snapshot
 #define NET_MAX_SNAPSHOT_SOUNDS 8   // sounds heard since the last snapshot
 #define NET_MAX_SNAPSHOT_KILLS 4    // player deaths since the last snapshot
-#define NET_COOLDOWN_COUNT 3        // the viewer's own ability cooldowns
+#define NET_COOLDOWN_COUNT 5        // the viewer's own ability cooldowns
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
@@ -67,7 +67,12 @@ enum net_button
     NetButton_Sword     = 1 << 7,
     NetButton_Shockwave = 1 << 8,
     NetButton_Blink     = 1 << 9,
+    NetButton_Push      = 1 << 10,
+    NetButton_Launch    = 1 << 11,
 };
+// The action buttons, Jump onward, are the simulation's player_button bits
+// moved up by PLAYER_BUTTON_NET_SHIFT (sim/player.h); keep the two orders
+// the same.
 
 enum net_deny_reason
 {
@@ -106,7 +111,7 @@ struct net_entity_state
     u8 Variant;    // which look within the type: monster kind (also for
                    // hazards), shot style, player slot
     u8 Affix;      // 3 bits: elite affix of a monster, shot or hazard
-    u8 Status;     // 3 bits: bit N set while status effect N + 1 is active
+    u8 Status;     // 4 bits: bit N set while status effect N + 1 is active
     u8 Ability;    // 2 bits: AbilityIndex of a monster shot or hazard;
                    // for a player, PLAYER_FLASH_* bits (sim/player.h)
     i16 Health;

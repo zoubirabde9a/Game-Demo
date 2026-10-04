@@ -15,16 +15,21 @@
 // blink range
 #define PLAYER_AIM_REACH 160.f
 
-// NOTE(zoubir): buttons pressed this tick (edge, not held)
+// NOTE(zoubir): buttons pressed this tick (edge, not held). Same order as
+// the network's action buttons (NetButton_Jump onward, net/protocol.h),
+// so one shift turns either into the other (PlayerButtonsFromNet)
 enum player_button
 {
-    PlayerButton_Attack = 1 << 0,
-    PlayerButton_Cast = 1 << 1,
-    PlayerButton_Jump = 1 << 2,
-    PlayerButton_Dash = 1 << 3,
+    PlayerButton_Jump = 1 << 0,
+    PlayerButton_Dash = 1 << 1,
+    PlayerButton_Cast = 1 << 2,
+    PlayerButton_Attack = 1 << 3,
     PlayerButton_Shockwave = 1 << 4,
     PlayerButton_Blink = 1 << 5,
+    PlayerButton_Push = 1 << 6,
+    PlayerButton_Launch = 1 << 7,
 };
+#define PLAYER_BUTTON_NET_SHIFT 4
 
 struct player_input
 {

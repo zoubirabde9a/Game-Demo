@@ -23,6 +23,7 @@ enum status_effect
     StatusEffect_Burning,
     StatusEffect_Poisoned,
     StatusEffect_Slowed,
+    StatusEffect_Stunned,
     StatusEffect_Count
 };
 

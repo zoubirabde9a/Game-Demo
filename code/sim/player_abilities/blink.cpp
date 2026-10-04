@@ -30,6 +30,7 @@ UseBlink(app_state *AppState, world *World, memory_arena *Arena,
     }
     Player->Velocity = Velocity;
     Player->ActionLock = 0.f;
+    CancelAreaCast(Player);
     Player->BlinkCooldown = PLAYER_BLINK_COOLDOWN;
     Player->DashFlash = PLAYER_DASH_FLASH_SECONDS;
     EmitSound(&AppState->Events, AssetType_Dash, Player->Position);

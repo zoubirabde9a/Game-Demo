@@ -686,6 +686,109 @@ TestJumpOverBoulderButNotWall()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): Push waits out its short cast, then throws the monsters
+// in its cone away and apart, leaving the one behind the player alone
+internal void
+TestPushThrowsCrowdApart()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *Upper = AddTestEntity(&Test, EntityType_Monster,
+                                        {360, 280, 0}, Test.UnitVolume);
+    world_entity *Lower = AddTestEntity(&Test, EntityType_Monster,
+                                        {360, 320, 0}, Test.UnitVolume);
+    world_entity *Behind = AddTestEntity(&Test, EntityType_Monster,
+                                         {240, 300, 0}, Test.UnitVolume);
+    Upper->MaxHp = Upper->Hp = Lower->MaxHp = Lower->Hp = 100.f;
+    Behind->MaxHp = Behind->Hp = 100.f;
+    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Push;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(IsCastingAreaAbility(Player));
+    Check(Upper->Hp == 100.f);
+    RunPlayerFrames(&Test, 0, 8);
+    Check(!IsCastingAreaAbility(Player));
+    Check(Upper->Hp < 100.f && Lower->Hp < 100.f);
+    Check(Behind->Hp == 100.f);
+    Check(Upper->Velocity.X > 200.f && Upper->Velocity.Y < 0.f);
+    Check(Lower->Velocity.X > 200.f && Lower->Velocity.Y > 0.f);
+    Check(HasStatus(Upper, StatusEffect_Stunned));
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): Launch throws what stands at the aim into the air and
+// stuns it; a stunned monster stays still where it lands
+internal void
+TestLaunchThrowsUpAndStuns()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    world_entity *Target = AddTestEntity(&Test, EntityType_Monster,
+                                         {370, 300, 0}, Test.UnitVolume);
+    Target->MaxHp = Target->Hp = 100.f;
+    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Launch;
+    RunPlayerFrames(&Test, 0, 20);
+    Check(Target->Hp < 100.f);
+    Check(Target->Velocity.Z > 300.f);
+    Check(HasStatus(Target, StatusEffect_Stunned));
+    float Peak = 0.f;
+    for(u32 Frame = 0; Frame < 60; Frame++)
+    {
+        Walk(&Test, Target, {0, 0}, 1);
+        Peak = Maximum(Peak, Target->Position.Z);
+    }
+    Check(Peak > 60.f);
+    Check(Target->Position.Z == 0.f);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): a dash cuts a cast; nothing is hit and the cooldown stays
+internal void
+TestDashCutsAreaCast()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *Target = AddTestEntity(&Test, EntityType_Monster,
+                                         {370, 300, 0}, Test.UnitVolume);
+    Target->MaxHp = Target->Hp = 100.f;
+    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Launch;
+    RunPlayerFrames(&Test, 0, 2);
+    AppState->Players[0].Input.Aim = V2(-1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Dash;
+    RunPlayerFrames(&Test, 0, 30);
+    Check(Target->Hp == 100.f);
+    Check(Player->AreaCooldowns[1] > 0.f);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): a stunned player ignores its keys until the stun ends
+internal void
+TestStunnedPlayerCannotAct()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    ApplyStatus(Player, StatusEffect_Stunned, 1.f);
+    AppState->Players[0].Input.Move = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Jump;
+    RunPlayerFrames(&Test, 0, 10);
+    Check(Absolute(Player->Position.X - 300.f) < 0.5f);
+    Check(Player->Position.Z == 0.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -731,4 +834,12 @@ RunPlayerAbilityTests()
     TestDoubleJump();
     printf("TestJumpOverBoulderButNotWall\n");
     TestJumpOverBoulderButNotWall();
+    printf("TestPushThrowsCrowdApart\n");
+    TestPushThrowsCrowdApart();
+    printf("TestLaunchThrowsUpAndStuns\n");
+    TestLaunchThrowsUpAndStuns();
+    printf("TestDashCutsAreaCast\n");
+    TestDashCutsAreaCast();
+    printf("TestStunnedPlayerCannotAct\n");
+    TestStunnedPlayerCannotAct();
 }
