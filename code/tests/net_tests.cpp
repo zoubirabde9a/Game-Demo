@@ -177,14 +177,14 @@ TestPackedEntityFields()
     net_entity_state *A = &In.Snapshot.Entities[0];
     A->Facing = 3; A->Animation = 6; A->Affix = 4; A->Status = 5; A->Ability = 2;
     net_entity_state *B = &In.Snapshot.Entities[1];
-    B->Facing = 1; B->Animation = 15; B->Affix = 7; B->Status = 7; B->Ability = 3;
+    B->Facing = 1; B->Animation = 15; B->Affix = 7; B->Status = 15; B->Ability = 3;
     net_packet Out = RoundTrip(&In, 0);
     net_entity_state *OutA = &Out.Snapshot.Entities[0];
     net_entity_state *OutB = &Out.Snapshot.Entities[1];
     Check(OutA->Facing == 3 && OutA->Animation == 6);
     Check(OutA->Affix == 4 && OutA->Status == 5 && OutA->Ability == 2);
     Check(OutB->Facing == 1 && OutB->Animation == 15);
-    Check(OutB->Affix == 7 && OutB->Status == 7 && OutB->Ability == 3);
+    Check(OutB->Affix == 7 && OutB->Status == 15 && OutB->Ability == 3);
 
     // Values wider than their bits are cut, not spilled into neighbours.
     A->Facing = 5; A->Affix = 9; A->Status = 0; A->Ability = 0;
