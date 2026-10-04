@@ -77,6 +77,7 @@ GetPlayerAim(world_entity *Player)
     return Result;
 }
 
+#include "player_abilities/hits.cpp"
 #include "player_abilities/sword.cpp"
 #include "player_abilities/fireball.cpp"
 #include "player_abilities/spawn_actions.cpp"
@@ -119,6 +120,7 @@ UpdatePlayer(player_slot *Slot, world *World,
     *AnimationSpeedRate = 1.f;
 
     Player->ActionLock = Maximum(0.f, Player->ActionLock - DeltaTime);
+    Player->ComboTimer = Maximum(0.f, Player->ComboTimer - DeltaTime);
     for(u32 Index = 0; Index < PlayerAction_Count; Index++)
     {
         Player->ActionCooldowns[Index] =

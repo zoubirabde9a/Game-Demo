@@ -28,6 +28,11 @@
     float AreaCooldowns[PLAYER_AREA_ABILITY_SLOTS];
     u32 CastingArea;
     float AreaCastLeft;
+    // NOTE(zoubir): the sword combo (sword.cpp): which hit of SwordCombo
+    // the last swing was, and the seconds left to swing the next. A sword
+    // entity carries the step it was swung with in ComboStep too
+    u32 ComboStep;
+    float ComboTimer;
     // NOTE(zoubir): an area ability's row + 1 that fires when the player
     // lands (a slam), 0 for none
     u32 PendingLandArea;

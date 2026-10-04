@@ -231,7 +231,7 @@ TestShockwaveHitsOnlyNearbyMonsters()
                                          {300, 300, 0}, Test.UnitVolume);
     world_entity *Weak = AddTestEntity(&Test, EntityType_Monster,
                                        {350, 300, 0}, Test.UnitVolume);
-    Weak->MaxHp = Weak->Hp = PlayerAreaAbilities[PlayerArea_Shockwave].Damage;
+    Weak->MaxHp = Weak->Hp = PlayerAreaAbilities[PlayerArea_Shockwave].Hit.Damage;
     world_entity *Tough = AddTestEntity(&Test, EntityType_Monster,
                                         {300, 360, 0}, Test.UnitVolume);
     Tough->MaxHp = Tough->Hp = 100.f;
@@ -244,7 +244,7 @@ TestShockwaveHitsOnlyNearbyMonsters()
     Check(Hits == 2);
     Check(!Weak->IsPresent);
     Check(Test.AppState->Players[Player->PlayerIndex].MonsterKills == 1);
-    Check(Tough->Hp == 100.f - PlayerAreaAbilities[PlayerArea_Shockwave].Damage);
+    Check(Tough->Hp == 100.f - PlayerAreaAbilities[PlayerArea_Shockwave].Hit.Damage);
     // NOTE(zoubir): thrown away from the player, which is above it
     Check(Tough->Velocity.Y > 0.f);
     Check(Far->Hp == 100.f);
@@ -504,7 +504,7 @@ TestShockwaveHitsOtherPlayersNotSource()
     u32 Hits = FireShockwave(AppState, Test.World, Source);
     Check(Hits == 1);
     Check(Source->Hp == Source->MaxHp);
-    Check(Other->Hp == Other->MaxHp - PlayerAreaAbilities[PlayerArea_Shockwave].Damage);
+    Check(Other->Hp == Other->MaxHp - PlayerAreaAbilities[PlayerArea_Shockwave].Hit.Damage);
     Check(Other->Velocity.X > 0.f);
     DestroyTestWorld(&Test);
 }

@@ -833,7 +833,7 @@ TestImpactKillIsThePushers()
                   Test.WallVolume);
     world_entity *Victim = AddTestEntity(&Test, EntityType_Monster,
                                          {350, 300, 0}, Test.UnitVolume);
-    float PushDamage = PlayerAreaAbilities[PlayerArea_Push].Damage;
+    float PushDamage = PlayerAreaAbilities[PlayerArea_Push].Hit.Damage;
     Victim->MaxHp = 100.f;
     Victim->Hp = PushDamage + 1.f;
     AppState->Players[0].Input.Aim = V2(1.f, 0.f);
@@ -949,6 +949,55 @@ TestPredictedSlamLeavesHitToServer()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): three quick swings are a combo whose last hit throws the
+// target up and stuns it; after a pause the chain starts over
+internal void
+TestSwordComboFinisher()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    player_slot *Slot = &AppState->Players[0];
+    Slot->Input.Aim = V2(1.f, 0.f);
+    float Lifts[3];
+    for(u32 Swing = 0; Swing < 3; Swing++)
+    {
+        world_entity *Target = AddTestEntity(&Test, EntityType_Monster,
+                                             {340, 300, 0}, Test.UnitVolume);
+        Target->MaxHp = Target->Hp = 1000.f;
+        Slot->Input.Pressed = PlayerButton_Attack;
+        RunPlayerFrames(&Test, 0, 1);
+        // NOTE(zoubir): the swing's blade hits on its own update
+        for(u32 Index = 0; Index < Test.World->EntityCount; Index++)
+        {
+            world_entity *Sword = &Test.World->Entities[Index];
+            if (Sword->IsPresent && Sword->Type == EntityType_Sword)
+            {
+                UpdateSword(Sword, Test.World, &Test.Arena, AppState,
+                            Test.Input.DeltaTime);
+            }
+        }
+        Lifts[Swing] = Target->Velocity.Z;
+        RunPlayerFrames(&Test, 0, 11);
+        Check(Player->ComboStep == Swing);
+        if (Swing == 2)
+        {
+            Check(HasStatus(Target, StatusEffect_Stunned));
+        }
+        RemoveEntity(Test.World, Target);
+    }
+    Check(Lifts[0] <= 0.f && Lifts[1] <= 0.f);
+    Check(Lifts[2] > 100.f);
+
+    RunPlayerFrames(&Test, 0, 60);
+    Slot->Input.Pressed = PlayerButton_Attack;
+    RunPlayerFrames(&Test, 0, 2);
+    Check(Player->ComboStep == 0);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1014,4 +1063,6 @@ RunPlayerAbilityTests()
     TestSlamFromTheAir();
     printf("TestPredictedSlamLeavesHitToServer\n");
     TestPredictedSlamLeavesHitToServer();
+    printf("TestSwordComboFinisher\n");
+    TestSwordComboFinisher();
 }

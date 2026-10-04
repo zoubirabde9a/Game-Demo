@@ -434,7 +434,7 @@ TestPlayerNeverStuck(u32 SeedValue)
         else if (Roll == 5)
         {
             // NOTE(zoubir): launched by someone, stunned and flying
-            Player->Velocity.Z = PlayerAreaAbilities[PlayerArea_Launch].Lift;
+            Player->Velocity.Z = PlayerAreaAbilities[PlayerArea_Launch].Hit.Lift;
             Player->Velocity.XY = 300.f * Dir;
             ApplyStatus(Player, StatusEffect_Stunned, 0.6f);
         }

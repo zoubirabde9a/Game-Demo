@@ -24,12 +24,8 @@ struct player_area_ability
     float Reach;
     float Radius;
     float ConeCos;
-    float Damage;
-    // NOTE(zoubir): horizontal speed given to each target, away from the
-    // player; Lift is the vertical one
-    float Shove;
-    float Lift;
-    float StunSeconds;
+    // NOTE(zoubir): what each target in it takes (hits.cpp)
+    player_hit Hit;
     // NOTE(zoubir): what clients draw when it lands (events.h)
     sim_burst Burst;
 };
@@ -51,21 +47,21 @@ global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
 {
     // NOTE(zoubir): Shockwave (E): at once, everything within 90 units
     // takes 40 and is thrown away from the player
-    {PlayerButton_Shockwave, 0.f, 4.f, 0.f, 90.f, -1.f, 40.f, 500.f, 0.f, 0.f,
+    {PlayerButton_Shockwave, 0.f, 4.f, 0.f, 90.f, -1.f, {40.f, 500.f, 0.f, 0.f},
      SimBurst_ShockwaveRing},
     // NOTE(zoubir): Push (R): a quick wide cone that throws a crowd off
     // the player and apart, out of each other's way
-    {PlayerButton_Push, 0.12f, 2.5f, 0.f, 110.f, 0.34f, 10.f, 750.f, 0.f, 0.3f,
+    {PlayerButton_Push, 0.12f, 2.5f, 0.f, 110.f, 0.34f, {10.f, 750.f, 0.f, 0.3f},
      SimBurst_PushCone},
     // NOTE(zoubir): Launch (A): a ground burst at the aim that throws
     // everything in it into the air (88 units, almost a second under
     // monster gravity) and stuns it until well after it lands
-    {PlayerButton_Launch, 0.3f, 5.f, 70.f, 55.f, -1.f, 20.f, 60.f, 420.f, 1.6f,
+    {PlayerButton_Launch, 0.3f, 5.f, 70.f, 55.f, -1.f, {20.f, 60.f, 420.f, 1.6f},
      SimBurst_LaunchColumn},
     // NOTE(zoubir): Slam: no key of its own; the slam's dive
     // (movement_abilities.cpp) fires it where the player lands. Everything
     // within 80 units is thrown out and up and stunned
-    {0, 0.f, 0.f, 0.f, 80.f, -1.f, 25.f, 380.f, 260.f, 0.9f,
+    {0, 0.f, 0.f, 0.f, 80.f, -1.f, {25.f, 380.f, 260.f, 0.9f},
      SimBurst_ShockwaveRing},
 };
 #define PLAYER_AREA_ABILITY_COUNT PlayerArea_Count
@@ -98,18 +94,8 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
         }
 
         HitCount++;
-        if (DamageEntity(AppState, World, Target, Ability->Damage, Player) ||
-            IsDodging(Target))
-        {
-            continue;
-        }
-        Target->Velocity.XY += Ability->Shove * Away;
-        if (Ability->Lift > 0.f)
-        {
-            Target->Velocity.Z = Ability->Lift;
-        }
-        ApplyStatus(Target, StatusEffect_Stunned, Ability->StunSeconds);
-        Target->ThrownBySlot = Player->PlayerIndex + 1;
+        ApplyPlayerHit(AppState, World, Target, &Ability->Hit, Away,
+                       Player->PlayerIndex, Player);
     }
     return HitCount;
 }
