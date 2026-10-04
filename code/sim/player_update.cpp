@@ -66,6 +66,17 @@ DominantFacing(v2 Dir)
     return Result;
 }
 
+// NOTE(zoubir): V as a unit vector, or Fallback when V is too short to
+// have a direction
+inline v2
+NormalizeOr(v2 V, v2 Fallback)
+{
+    float LengthSquared = LengthSq(V);
+    v2 Result = LengthSquared > 0.0001f ?
+        V * (1.f / SquareRoot(LengthSquared)) : Fallback;
+    return Result;
+}
+
 // NOTE(zoubir): the player's aim; before any cursor input, the way it last
 // walked (and Right for a player that never moved)
 inline v2
@@ -74,10 +85,7 @@ GetPlayerAim(world_entity *Player)
     v2 Result = Player->Aim;
     if (LengthSq(Result) < 0.0001f)
     {
-        Result = Player->Direction;
-        float LengthSquared = LengthSq(Result);
-        Result = LengthSquared > 0.0001f ?
-            Result * (1.f / SquareRoot(LengthSquared)) : V2(1.f, 0.f);
+        Result = NormalizeOr(Player->Direction, V2(1.f, 0.f));
     }
     return Result;
 }

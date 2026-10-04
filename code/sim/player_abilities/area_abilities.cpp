@@ -70,27 +70,44 @@ global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
 #define PLAYER_AREA_ABILITY_COUNT PlayerArea_Count
 static_assert(PlayerArea_Count <= PLAYER_AREA_ABILITY_SLOTS, "one cooldown each");
 
-// NOTE(zoubir): the hit, at the end of the cast
+// NOTE(zoubir): whether a player's attack can hit Target: a monster or
+// another living player
+inline bool32
+IsHitTarget(world_entity *Target, world_entity *Player)
+{
+    bool32 Result = Target->IsPresent && Target != Player &&
+        !IsDeadPlayer(Target) &&
+        (Target->Type == EntityType_Monster || Target->Type == EntityType_Player);
+    return Result;
+}
+
+// NOTE(zoubir): the area's centre, on the ground under the player
+inline v3
+AreaCentre(world_entity *Player, player_area_ability *Ability, v2 Aim)
+{
+    v3 Result = Player->Position;
+    Result.XY += Ability->Reach * Aim;
+    Result.Z = Player->GroundZ;
+    return Result;
+}
+
+// NOTE(zoubir): the hit, at the end of the cast or on landing, and what
+// clients see and hear of it. Returns how many it hit
 internal u32
 FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
                 player_area_ability *Ability, v2 Aim)
 {
-    v2 Centre = Player->Position.XY + Ability->Reach * Aim;
+    v3 Centre = AreaCentre(Player, Ability, Aim);
     u32 HitCount = 0;
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Target = &World->Entities[EntityIndex];
-        if (!Target->IsPresent || Target == Player || IsDeadPlayer(Target) ||
-            (Target->Type != EntityType_Monster &&
-             Target->Type != EntityType_Player))
+        if (!IsHitTarget(Target, Player))
         {
             continue;
         }
-        v2 FromPlayer = Target->Position.XY - Player->Position.XY;
-        float FromPlayerLength = Length(FromPlayer);
-        v2 Away = FromPlayerLength > 0.001f ?
-            FromPlayer * (1.f / FromPlayerLength) : Aim;
-        if (Length(Target->Position.XY - Centre) > Ability->Radius ||
+        v2 Away = NormalizeOr(Target->Position.XY - Player->Position.XY, Aim);
+        if (Length(Target->Position.XY - Centre.XY) > Ability->Radius ||
             DotProduct(Away, Aim) < Ability->ConeCos)
         {
             continue;
@@ -100,6 +117,9 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
         ApplyHit(AppState, World, Target, &Ability->Hit, Away,
                  Player, Player->PlayerIndex);
     }
+    EmitBurst(&AppState->Events, Ability->Burst, (u8)Player->PlayerIndex,
+              Centre, ATan2(Aim.Y, Aim.X));
+    EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
     return HitCount;
 }
 
@@ -122,15 +142,10 @@ FireAreaOnLanding(app_state *AppState, world *World, world_entity *Player)
     player_area_ability *Ability =
         &PlayerAreaAbilities[Player->PendingLandArea - 1];
     Player->PendingLandArea = 0;
-    if (AppState->Players[Player->PlayerIndex].Predicted)
+    if (!IsPredictedPlayer(AppState, Player))
     {
-        return;
+        FireAreaAbility(AppState, World, Player, Ability, GetPlayerAim(Player));
     }
-    v2 Aim = GetPlayerAim(Player);
-    FireAreaAbility(AppState, World, Player, Ability, Aim);
-    EmitBurst(&AppState->Events, Ability->Burst, (u8)Player->PlayerIndex,
-              Player->Position);
-    EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
 }
 
 // NOTE(zoubir): every area ability's button (client/prediction.cpp predicts
@@ -173,7 +188,7 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
     // NOTE(zoubir): a client predicting its own player runs the cast (the
     // slowdown, the pose, the cooldown) but leaves the hit and its sounds
     // and bursts to the server, which sends them with its snapshot
-    bool32 Authoritative = !AppState->Players[Player->PlayerIndex].Predicted;
+    bool32 Authoritative = !IsPredictedPlayer(AppState, Player);
     if (!IsCastingAreaAbility(Player))
     {
         for(u32 Index = 0; Index < PLAYER_AREA_ABILITY_COUNT; Index++)
@@ -201,11 +216,9 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
                 if (Ability->Telegraph != SimBurst_Count)
                 {
                     v2 Aim = Player->CastingDirection;
-                    v3 Centre = Player->Position;
-                    Centre.XY += Ability->Reach * Aim;
-                    Centre.Z = 0.f;
                     EmitBurst(&AppState->Events, Ability->Telegraph,
-                              (u8)Player->PlayerIndex, Centre,
+                              (u8)Player->PlayerIndex,
+                              AreaCentre(Player, Ability, Aim),
                               ATan2(Aim.Y, Aim.X));
                 }
                 break;
@@ -227,17 +240,10 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
         player_area_ability *Ability =
             &PlayerAreaAbilities[Player->CastingArea - 1];
         Player->CastingArea = 0;
-        if (!Authoritative)
+        if (Authoritative)
         {
-            return;
+            FireAreaAbility(AppState, World, Player, Ability,
+                            Player->CastingDirection);
         }
-        v2 Aim = Player->CastingDirection;
-        FireAreaAbility(AppState, World, Player, Ability, Aim);
-        v3 Centre = Player->Position;
-        Centre.XY += Ability->Reach * Aim;
-        Centre.Z = 0.f;
-        EmitBurst(&AppState->Events, Ability->Burst, (u8)Player->PlayerIndex,
-                  Centre, ATan2(Aim.Y, Aim.X));
-        EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
     }
 }
