@@ -16,10 +16,12 @@
       cast's is cut by walking (the fireball has already left).
    5. UsePlayerAbilities: jump, the area abilities (shockwave, push,
       launch) and the movement abilities (dash, blink), each when its key
-      is pressed and its cooldown allows.
+      is pressed and its cooldown allows; a dash or blink also takes a
+      press a moment early, and cuts a swing short.
    6. PickPlayerAnimation: which animation to play; the body faces the
       aim, not the way it walks.
-   7. MovePlayer: acceleration, ground friction and gravity into
+   7. MovePlayer: the walk toward the keys (quick to start, stop and
+      turn, player_stats.cpp), the drag on a dash and gravity into
       MoveEntity.
 
    Steps 1-3 are in player_update/actions.cpp, 4 and 7 in
@@ -32,16 +34,13 @@
    also goes through RunPlayerCombo (combos.cpp), which turns some
    orders of moves into combos: dash then attack is a lunge. */
 
-// NOTE(zoubir): top run speed is this over 60 over the drag (movement.cpp),
-// 260. Only the push scales with PLAYER_MOVE_SCALE, not the drag, so the
-// player still reaches full speed and stops in the same time
-#define PLAYER_ACCELERATION (78000.f * PLAYER_MOVE_SCALE)
-
 // NOTE(zoubir): what one tick of the player decides, handed between steps
 struct player_tick
 {
     bool32 Move;
     bool32 Jumping;
+    // NOTE(zoubir): share of the run speed the keys walk at this tick; a
+    // swing finishing or an area cast lowers it
     float Acceleration;
     v3 DDPlayer;
     float *AnimationSpeedRate;
@@ -107,7 +106,49 @@ UsePlayerAbilities(app_state *AppState, world *World, memory_arena *Arena,
     player_input *Input = &Slot->Input;
     UseJump(AppState, World, Arena, Player, Input, DeltaTime, Tick);
     UseAreaAbilities(AppState, World, Player, Input, DeltaTime, Tick);
+
+    // NOTE(zoubir): a dash or blink pressed up to EarlyPressSeconds before
+    // it is ready goes now, and the time it was early is added to its next
+    // cooldown, so a press a moment early is not lost and the pace stays
+    // the same. Nothing waits in between, so prediction has nothing new to
+    // replay
+    float Early[PlayerMove_Count];
+    float Before[PlayerMove_Count];
+    for(u32 Index = 0; Index < PlayerMove_Count; Index++)
+    {
+        float *Cooldown = &Player->MovementCooldowns[Index];
+        Early[Index] = -1.f;
+        float Left = *Cooldown - DeltaTime;
+        if (WasPressed(Input, PlayerMovements[Index].Button) && Left > 0.f &&
+            Left <= PlayerStats.EarlyPressSeconds)
+        {
+            Early[Index] = Left;
+            *Cooldown = 0.f;
+        }
+        Before[Index] = *Cooldown;
+    }
     UseMovementAbilities(AppState, World, Arena, Player, Input, DeltaTime, Tick);
+    bool32 Moved = false;
+    for(u32 Index = 0; Index < PlayerMove_Count; Index++)
+    {
+        float *Cooldown = &Player->MovementCooldowns[Index];
+        // NOTE(zoubir): only a use restarts the cooldown
+        bool32 Used = *Cooldown > Before[Index];
+        Moved |= Used;
+        if (Early[Index] >= 0.f)
+        {
+            *Cooldown = Used ? *Cooldown + Early[Index] : Early[Index];
+        }
+    }
+    // NOTE(zoubir): a dash or blink cuts a swing or cast short: the player
+    // runs out of it at full speed, and the next swing need not wait for
+    // the old one's animation
+    if (Moved && Player->IsPresent &&
+        (Player->State == EntityState_Attacking ||
+         Player->State == EntityState_Casting))
+    {
+        Player->State = EntityState_Standing;
+    }
 }
 
 internal void
@@ -143,7 +184,7 @@ UpdatePlayer(player_slot *Slot, world *World,
             Maximum(0.f, Player->ActionCooldowns[Index] - DeltaTime);
     }
     player_tick Tick = {};
-    Tick.Acceleration = PLAYER_ACCELERATION;
+    Tick.Acceleration = 1.f;
     Tick.AnimationSpeedRate = AnimationSpeedRate;
     Tick.AnimationType = AnimationType;
     Tick.AnimationDirection = AnimationDirection;

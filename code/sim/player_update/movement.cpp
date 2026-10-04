@@ -1,15 +1,12 @@
 /* Player movement: whether the player walks this tick (a swing or cast
-   roots it for a moment), and the physics step: acceleration, ground
-   friction and gravity into MoveEntity. */
+   roots it for a moment), and the physics step: the walk toward the
+   keys' direction, the drag on anything faster than a run, and gravity
+   into MoveEntity. The numbers are in player_stats.cpp. */
 
-// NOTE(zoubir): letting go of the keys faster than this raises a skid;
-// a full walk is about 260
-#define PLAYER_SKID_SPEED (70.f * PLAYER_MOVE_SCALE)
-// NOTE(zoubir): share of its speed the player loses per second on plain
-// ground; speed eases toward the keys' push over 1/PLAYER_DRAG seconds
-#define PLAYER_DRAG 10.f
-// NOTE(zoubir): how fast the player walks while a swing finishes
-#define PLAYER_ACTION_MOVE_SCALE 0.7f
+// NOTE(zoubir): speed past the top walking speed by more than this share
+// counts as carried (a dash, a long jump, a knockback): the drag eases it
+// down instead of the walk taking over at once
+#define PLAYER_CARRY_MARGIN 1.05f
 
 internal void
 UpdatePlayerMoveState(app_state *AppState, world_entity *Player,
@@ -17,7 +14,7 @@ UpdatePlayerMoveState(app_state *AppState, world_entity *Player,
 {
     // NOTE(zoubir): the fireball left when the cast began, so walking cuts
     // the rest of the cast animation; holding fire used to mean walking at
-    // PLAYER_ACTION_MOVE_SCALE in the cast pose for good
+    // ActionWalkScale in the cast pose for good
     if (Player->State == EntityState_Casting && Player->ActionLock <= 0.f &&
         Tick->Move)
     {
@@ -33,7 +30,7 @@ UpdatePlayerMoveState(app_state *AppState, world_entity *Player,
         }
         else if (Tick->Move)
         {
-            Tick->Acceleration *= PLAYER_ACTION_MOVE_SCALE;
+            Tick->Acceleration *= PlayerStats.ActionWalkScale;
         }
     }
     else if (Tick->Move)
@@ -46,7 +43,7 @@ UpdatePlayerMoveState(app_state *AppState, world_entity *Player,
         Player->AnimationState.SlotIndex = 0;
         // NOTE(zoubir): stopping from a run on the ground kicks up a skid
         if (!Tick->Jumping &&
-            LengthSq(Player->Velocity.XY) > Square(PLAYER_SKID_SPEED))
+            LengthSq(Player->Velocity.XY) > Square(PlayerStats.SkidSpeed))
         {
             v2 Heading = Player->Velocity.XY;
             EmitBurst(&AppState->Events, SimBurst_Skid, (u8)Player->PlayerIndex,
@@ -55,24 +52,65 @@ UpdatePlayerMoveState(app_state *AppState, world_entity *Player,
     }
 }
 
+// NOTE(zoubir): the sideways acceleration for this tick. At walking speed
+// the velocity goes straight to the keys' (Push, at most length 1, times
+// TopSpeed) at a capped rate, landing on it exactly rather than easing in;
+// speeding up uses the run-up rate, anything that slows or turns the body
+// the stopping rate. Faster than that the speed is carried: the keys push
+// and the drag pulls, which settles at TopSpeed as before.
+internal v2
+PlayerWalkAcceleration(world_entity *Player, v2 Push, float TopSpeed,
+                       float DragScale, float DeltaTime)
+{
+    v2 Velocity = Player->Velocity.XY;
+    float Friction = GetGroundFriction(Player);
+    float Drag = DragScale * PlayerStats.CarryDrag * Friction;
+    v2 Result;
+    if (Player->LongJump ||
+        LengthSq(Velocity) > Square(PLAYER_CARRY_MARGIN * TopSpeed))
+    {
+        Result = Drag * (TopSpeed * Push - Velocity);
+    }
+    else
+    {
+        v2 Change = TopSpeed * Push - Velocity;
+        float Rate = DotProduct(Change, Velocity) >= 0.f ?
+            PlayerStats.RunSpeed / PlayerStats.RunUpSeconds :
+            PlayerStats.RunSpeed / PlayerStats.StopSeconds;
+        float MaxChange = Friction * Rate * DeltaTime;
+        float ChangeLength = Length(Change);
+        if (ChangeLength > MaxChange)
+        {
+            Change *= MaxChange / ChangeLength;
+        }
+        Result = Change * (1.f / DeltaTime);
+    }
+    return Result;
+}
+
 internal void
 MovePlayer(app_state *AppState, world *World, memory_arena *Arena,
            world_entity *Player, float DeltaTime, player_tick *Tick)
 {
-    v3 DDPlayer = Tick->DDPlayer;
-    float LengthSquared = LengthSq(DDPlayer);
+    v2 Push = Tick->DDPlayer.XY;
+    float LengthSquared = LengthSq(Push);
     if (LengthSquared > 1.f)
     {
-        DDPlayer *= 1.f / SquareRoot(LengthSquared);
+        Push *= 1.f / SquareRoot(LengthSquared);
     }
     // NOTE(zoubir): a long jump (combos.cpp) keeps its speed: the drag is
     // cut, and the keys' push with it so holding them does not speed up
     float DragScale = Player->LongJump ? LONG_JUMP_DRAG_SCALE : 1.f;
-    DDPlayer *= DragScale * Tick->Acceleration * GetMoveSpeedScale(Player) *
-        ACCELERATION_STEP;
-    // Drag
-    DDPlayer -= (DragScale * PLAYER_DRAG * GetGroundFriction(Player) * Player->Velocity);
-    // Gravity
+    // NOTE(zoubir): top speed as it always was, push over drag: slows and
+    // mud lower it, ice keeps it (less push, less drag)
+    float TopSpeed = PlayerStats.RunSpeed * Tick->Acceleration *
+        GetMoveSpeedScale(Player) / GetGroundFriction(Player);
+    v3 DDPlayer = {};
+    if (DeltaTime > 0.f)
+    {
+        DDPlayer.XY = PlayerWalkAcceleration(Player, Push, TopSpeed,
+                                             DragScale, DeltaTime);
+    }
     DDPlayer.Z = -PLAYER_GRAVITY;
 
     float MaxDistance = 10000.f;

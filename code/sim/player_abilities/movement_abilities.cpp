@@ -116,12 +116,12 @@ SlamMotion(app_state *AppState, world *World, memory_arena *Arena,
 
 global_variable player_movement_ability PlayerMovements[PlayerMove_Count] =
 {
-    // NOTE(zoubir): Dash (Alt), leaving at 1300
-    {PlayerButton_Dash, 0.8f, 1.f, 650.f * PLAYER_MOVE_SCALE,
+    // NOTE(zoubir): Dash (Alt), leaving at 1440; Blink (F), as far as the
+    // cursor can reach. Their numbers are in player_stats.cpp
+    {PlayerButton_Dash, PlayerStats.DashCooldown, 1.f, PlayerStats.DashSpeed,
      PLAYER_DASH_FLASH_SECONDS, DashMotion, ComboMove_Dash},
-    // NOTE(zoubir): Blink (F), as far as the cursor can reach
-    {PlayerButton_Blink, 3.f, 0.5f, PLAYER_AIM_REACH, PLAYER_DASH_FLASH_SECONDS,
-     BlinkMotion, ComboMove_Blink},
+    {PlayerButton_Blink, PlayerStats.BlinkCooldown, 0.5f, PlayerStats.BlinkReach,
+     PLAYER_DASH_FLASH_SECONDS, BlinkMotion, ComboMove_Blink},
     // NOTE(zoubir): Slam (C), in the air. Straight down, so it does not
     // scale with PLAYER_MOVE_SCALE: from the top of a double jump it
     // already lands in under a tenth of a second

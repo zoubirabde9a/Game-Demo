@@ -28,6 +28,7 @@
 #include "monster_kinds.cpp"
 #include "hit.cpp"
 #include "impacts.cpp"
+#include "player_stats.cpp"
 #include "spawn.cpp"
 #include "players.cpp"
 #include "arena.cpp"

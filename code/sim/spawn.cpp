@@ -18,7 +18,7 @@ AddPlayer(app_state *AppState,
     Player->Texture = {AssetType_Zoubir};
     Player->ShadowTexture = {AssetType_Shadow};
     Player->Direction = {0, -1};
-    Player->MaxHp = 100.f;
+    Player->MaxHp = PlayerStats.MaxHp;
     Player->Hp = Player->MaxHp;
 //    Player->TextureOrigin = {0.5f, 0.875f};
 

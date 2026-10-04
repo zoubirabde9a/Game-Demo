@@ -13,8 +13,9 @@ SetupAnimationSets(app_state *AppState, memory_arena *ConstantsArena)
         // NOTE(zoubir): the speed at which the walk frames play at their
         // listed rate; faster walking plays them faster. It matches the
         // stride drawn in the frames, so it stays put when the player gets
-        // faster: the top run speed of 260 (PLAYER_ACCELERATION over the
-        // drag) plays them 2.8 times as fast (MoveCycleRate, entity.cpp)
+        // faster: the top run speed of 260 (PlayerStats.RunSpeed,
+        // player_stats.cpp) plays them 2.8 times as fast (MoveCycleRate,
+        // entity.cpp)
         Set->MoveSpeed = 93.f;
         AddAnimation(Set, ConstantsArena,
                      AnimationType_Move,
@@ -81,22 +82,25 @@ SetupAnimationSets(app_state *AppState, memory_arena *ConstantsArena)
 //                Animation->FramesTimeInSeconds[5] = 0.2f;
         }
 
+        // NOTE(zoubir): the skid, about as long as the body takes to stop
+        // from a run and settle (0.07 s, player_stats.cpp); at 0.08 a frame
+        // it played on for a quarter second after the player stood still
         AddAnimation(Set, ConstantsArena,
                      AnimationType_Stop,
                      AnimationDirection_Up,
-                     248, 4, 0.08f);
+                     248, 4, 0.04f);
         AddAnimation(Set, ConstantsArena,
                      AnimationType_Stop,
                      AnimationDirection_Down,
-                     184, 4, 0.08f);
+                     184, 4, 0.04f);
         AddAnimation(Set, ConstantsArena,
                      AnimationType_Stop,
                      AnimationDirection_Right,
-                     216, 4, 0.08f);
+                     216, 4, 0.04f);
         AddAnimation(Set, ConstantsArena,
                      AnimationType_Stop,
                      AnimationDirection_Left,
-                     216, 4, 0.08f, true);
+                     216, 4, 0.04f, true);
         
         AddAnimation(Set, ConstantsArena,
                      AnimationType_JumpUp,

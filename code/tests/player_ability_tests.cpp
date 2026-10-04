@@ -231,9 +231,11 @@ TestDashGoesWhereKeysPointElseTowardAim()
     // NOTE(zoubir): standing still, the dash used to go nowhere
     AppState->Players[0].Input.Aim = V2(0.f, 1.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Dash;
-    // NOTE(zoubir): from a stand it coasts about 125 in a third of a second
-    // (1300 over the drag); before the player got faster it was 62
+    // NOTE(zoubir): from a stand it coasts about 118 in a third of a second
+    // (the drag down to a run, then the skid); before the player got
+    // faster it was 62
     RunPlayerFrames(&Test, 0, 20);
+    printf("  dash from a stand: %.1f\n", Still->Position.Y - 300.f);
     Check(Still->Position.Y > 300.f + 115.f);
     Check(Still->Position.Y < 300.f + 131.f);
     Check(Absolute(Still->Position.X - 300.f) < 1.f);
@@ -243,8 +245,9 @@ TestDashGoesWhereKeysPointElseTowardAim()
     AppState->Players[1].Input.Move = V2(-1.f, 0.f);
     AppState->Players[1].Input.Aim = V2(1.f, 0.f);
     AppState->Players[1].Input.Pressed = PlayerButton_Dash;
-    // NOTE(zoubir): about 187 with the run under it
+    // NOTE(zoubir): about 192 with the run under it
     RunPlayerFrames(&Test, 1, 20);
+    printf("  dash from a run: %.1f\n", 300.f - Runner->Position.X);
     Check(Runner->Position.X < 300.f - 170.f);
     DestroyTestWorld(&Test);
 }
@@ -646,8 +649,8 @@ TestWalkSpeedDoesNotDependOnFrameRate()
     float FastWalked = Fast->Position.X - 300.f;
     printf("  walked in 1 s: %.1f at 30 fps, %.1f at 60 fps\n",
            SlowWalked, FastWalked);
-    // NOTE(zoubir): a 260 run less the tenth of a second it takes to get
-    // up to speed
+    // NOTE(zoubir): a 260 run less half the tenth of a second it takes to
+    // get up to speed (player_stats.cpp)
     Check(FastWalked > 220.f && FastWalked < 250.f);
     Check(Absolute(SlowWalked - FastWalked) < 0.05f * FastWalked);
     DestroyTestWorld(&Test);
