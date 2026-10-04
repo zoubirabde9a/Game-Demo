@@ -143,7 +143,7 @@ TestPlayerWalksDuringSwing()
     Check(Walker->State == EntityState_Attacking);
     float XAfterLock = Walker->Position.X;
     // NOTE(zoubir): a swing used to root the player for its whole
-    // animation; now only for PLAYER_SWING_LOCK
+    // animation; now only for its Lock (spawn_actions.cpp)
     RunPlayerFrames(&Test, 0, 8);
     Check(Walker->Position.X > XAfterLock + 5.f);
     DestroyTestWorld(&Test);

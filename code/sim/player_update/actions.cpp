@@ -1,12 +1,7 @@
-/* Player actions: sword and fireball presses wait in the slot's action
-   queue for the current animation (or the fireball interval), then run.
+/* Player actions: presses of the spawn actions (sword, fireball,
+   spawn_actions.cpp) wait in the slot's action queue for the current
+   animation or their interval, then run.
    Held movement keys are read here too, but never queued. */
-
-// NOTE(zoubir): how long a queued action waits for the current animation;
-// longer than a whole swing (6 frames of 0.03 s, animations.cpp), so a
-// click anywhere in a swing chains the next one. It was 0.15 s, and clicks
-// in a swing's first moments were dropped
-#define PLAYER_ACTION_LINGER 0.25f
 
 internal void
 QueuePlayerActions(player_slot *Slot, player_tick *Tick)
@@ -44,33 +39,28 @@ QueuePlayerActions(player_slot *Slot, player_tick *Tick)
     {
         Player->State = EntityState_Jumping;
     }
-    if (WasPressed(Input, PlayerButton_Attack))
+    for(u32 Index = 0; Index < PlayerAction_Count; Index++)
     {
-        AddPlayerDelayedInput(Slot, PDI_Attack, PLAYER_ACTION_LINGER);
-    }
-    if (WasPressed(Input, PlayerButton_Cast))
-    {
-        // NOTE(zoubir): a click during the fireball interval waits it out
-        AddPlayerDelayedInput(Slot, PDI_Cast,
-                              Maximum(PLAYER_ACTION_LINGER,
-                                      PLAYER_FIREBALL_INTERVAL));
+        player_spawn_action *Action = &PlayerSpawnActions[Index];
+        if (WasPressed(Input, Action->Button))
+        {
+            AddPlayerDelayedInput(Slot, (player_action)Index, Action->Linger);
+        }
     }
 }
 
 internal void
 FinishPlayerActions(world_entity *Player, player_tick *Tick)
 {
-    if (Player->State == EntityState_Attacking &&
-        IsAnimationFinished(Player->AnimationSet, &Player->AnimationState,
-                            AnimationType_Attack, *Tick->AnimationDirection))
+    for(u32 Index = 0; Index < PlayerAction_Count; Index++)
     {
-        Player->State = EntityState_Standing;
-    }
-    if (Player->State == EntityState_Casting &&
-        IsAnimationFinished(Player->AnimationSet, &Player->AnimationState,
-                            AnimationType_Cast, *Tick->AnimationDirection))
-    {
-        Player->State = EntityState_Standing;
+        player_spawn_action *Action = &PlayerSpawnActions[Index];
+        if (Player->State == Action->State &&
+            IsAnimationFinished(Player->AnimationSet, &Player->AnimationState,
+                                Action->Animation, *Tick->AnimationDirection))
+        {
+            Player->State = EntityState_Standing;
+        }
     }
 }
 
@@ -96,30 +86,11 @@ RunPlayerActionQueue(app_state *AppState, world *World, memory_arena *Arena,
             bool32 Consumed = true;
             if (Action->TimeRemaining > 0.f)
             {
-                switch (Action->Type)
+                Consumed = CanStartSpawnAction(Player, Action->Type);
+                if (Consumed)
                 {
-                    case PDI_Attack:
-                    {
-                        Consumed = CanStartSwing(Player);
-                        if (Consumed)
-                        {
-                            StartSwordSwing(AppState, World, Arena, Player,
-                                            GetPlayerAim(Player), Tick);
-                        }
-                    } break;
-                    case PDI_Cast:
-                    {
-                        Consumed = CanCastFireBall(Player);
-                        if (Consumed)
-                        {
-                            CastFireBall(AppState, World, Arena, Player,
-                                         GetPlayerAim(Player), Tick);
-                        }
-                    } break;
-                    default:
-                    {
-                        Consumed = false;
-                    } break;
+                    StartSpawnAction(AppState, World, Arena, Player,
+                                     Action->Type, GetPlayerAim(Player), Tick);
                 }
             }
             if (Consumed)

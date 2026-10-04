@@ -41,18 +41,20 @@ struct player_input
     u32 Pressed;
 };
 
-enum player_delayed_input_type
+// NOTE(zoubir): the rows of PlayerSpawnActions
+// (sim/player_abilities/spawn_actions.cpp)
+enum player_action
 {
-    PDI_Attack,
-    PDI_Cast,
-    PDI_Count
+    PlayerAction_Sword,
+    PlayerAction_FireBall,
+    PlayerAction_Count
 };
 
 // NOTE(zoubir): an action that waits up to TimeRemaining for the current
 // animation to finish, so presses during an attack are not lost
 struct player_delayed_input
 {
-    player_delayed_input_type Type;
+    player_action Type;
     float TimeRemaining;
 };
 
@@ -83,7 +85,7 @@ WasPressed(player_input *Input, u32 Button)
 }
 
 inline void
-AddPlayerDelayedInput(player_slot *Slot, player_delayed_input_type Type,
+AddPlayerDelayedInput(player_slot *Slot, player_action Type,
                       float TimeRemaining)
 {
     if (Slot->DelayedInputCount < ArrayCount(Slot->DelayedInput))

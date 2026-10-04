@@ -9,7 +9,7 @@
    2. FinishPlayerActions: a swing or cast whose animation ended frees
       the player.
    3. RunPlayerActionQueue: the first action that can run now does
-      (StartSwordSwing or CastFireBall).
+      (StartSpawnAction, player_abilities/spawn_actions.cpp).
    4. UpdatePlayerMoveState: moving, or stopping when the keys let go. A
       swing or cast roots the player only for its short ActionLock. Then a
       swing's animation finishes while the player walks slower, and a
@@ -77,6 +77,7 @@ GetPlayerAim(world_entity *Player)
 
 #include "player_abilities/sword.cpp"
 #include "player_abilities/fireball.cpp"
+#include "player_abilities/spawn_actions.cpp"
 #include "player_abilities/jump.cpp"
 #include "player_abilities/area_abilities.cpp"
 #include "player_abilities/dash.cpp"
@@ -118,8 +119,11 @@ UpdatePlayer(player_slot *Slot, world *World,
     *AnimationSpeedRate = 1.f;
 
     Player->ActionLock = Maximum(0.f, Player->ActionLock - DeltaTime);
-    Player->FireBallCooldown = Maximum(0.f, Player->FireBallCooldown - DeltaTime);
-    Player->SwingCooldown = Maximum(0.f, Player->SwingCooldown - DeltaTime);
+    for(u32 Index = 0; Index < PlayerAction_Count; Index++)
+    {
+        Player->ActionCooldowns[Index] =
+            Maximum(0.f, Player->ActionCooldowns[Index] - DeltaTime);
+    }
     player_tick Tick = {};
     Tick.Acceleration = PLAYER_ACCELERATION;
     Tick.AnimationSpeedRate = AnimationSpeedRate;

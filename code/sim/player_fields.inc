@@ -14,10 +14,10 @@
     // NOTE(zoubir): seconds left on the dash streak clients draw
     float DashFlash;
     float BlinkCooldown;
-    // NOTE(zoubir): seconds until the next fireball may leave the hand
-    float FireBallCooldown;
-    // NOTE(zoubir): seconds until the next sword swing may start
-    float SwingCooldown;
+    // NOTE(zoubir): seconds until each spawn action (sword, fireball) may
+    // start again, by player_action (player.h, included after this)
+#define PLAYER_ACTION_SLOTS 4
+    float ActionCooldowns[PLAYER_ACTION_SLOTS];
     // NOTE(zoubir): jumps since the player last stood on something
     u32 JumpsUsed;
     // NOTE(zoubir): area abilities (player_abilities/area_abilities.cpp):

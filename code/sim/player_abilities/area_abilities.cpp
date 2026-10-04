@@ -63,6 +63,7 @@ global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
      SimBurst_LaunchColumn},
 };
 #define PLAYER_AREA_ABILITY_COUNT PlayerArea_Count
+static_assert(PlayerArea_Count <= PLAYER_AREA_ABILITY_SLOTS, "one cooldown each");
 
 // NOTE(zoubir): the hit, at the end of the cast
 internal u32
