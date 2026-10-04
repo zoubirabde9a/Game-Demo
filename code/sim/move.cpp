@@ -139,6 +139,15 @@ SweepAgainstEntity(world_entity *Entity, v3 From, v3 Delta,
             for(u32 WallIndex = 0; WallIndex < ArrayCount(Walls); WallIndex++)
             {
                 test_wall *Wall = &Walls[WallIndex];
+                // NOTE(zoubir): only a face being moved into can stop the
+                // move. A unit touching a wall can sit a hair inside it
+                // (less than MOVE_OVERLAP_EPSILON); the face it would
+                // leave through then counted as hit at once, and against
+                // a rock on the other side the player could not move at all
+                if (DotProduct(Delta, Wall->Normal) >= 0.f)
+                {
+                    continue;
+                }
                 if (TestWall(Wall->X, Wall->Rel.X, Wall->Rel.Y, Wall->Rel.Z,
                              Wall->Delta.X, Wall->Delta.Y, Wall->Delta.Z,
                              tMin, Wall->MinY, Wall->MaxY,

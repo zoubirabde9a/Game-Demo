@@ -9,7 +9,11 @@
      body bounces back off instead of sliding along.
 
    Walking, dashing and anything not stunned never cause impacts, so a
-   player running into a wall is never hurt by it. The damage is credited
+   player running into a wall is never hurt by it. A player who walks or
+   dashes into another unit shoulders it instead: the unit takes on part
+   of the speed the player had into it and moves out of the way on its
+   own move, so a crowd can slow a player down but never pin them (a
+   ring of bodies against a rock used to hold a player for good). The damage is credited
    to the player who threw the body (ThrownBySlot), and a struck unit
    counts as thrown by them too, so a kill down the chain is theirs. */
 
@@ -24,6 +28,9 @@
 #define IMPACT_WALL_STUN 0.9f
 // NOTE(zoubir): share of the speed into a wall that bounces back
 #define IMPACT_WALL_BOUNCE 0.35f
+// NOTE(zoubir): share of a player's speed into a unit it walks into that
+// the unit takes on
+#define SHOULDER_SHARE 0.6f
 
 // NOTE(zoubir): the player whose throw this is, or 0
 inline world_entity *
@@ -54,8 +61,17 @@ ImpactOnHit(app_state *AppState, world *World, world_entity *Entity,
             world_entity *Other, v3 Normal)
 {
     float Into = -DotProduct(Entity->Velocity.XY, Normal.XY);
-    if (Normal.Z != 0.f || Into < IMPACT_MIN_SPEED || !IsThrownUnit(Entity))
+    if (Normal.Z != 0.f || Into <= 0.f)
     {
+        return 0.f;
+    }
+    if (Into < IMPACT_MIN_SPEED || !IsThrownUnit(Entity))
+    {
+        if (Entity->Type == EntityType_Player && IsWalkingUnit(Other) &&
+            !IsDodging(Other))
+        {
+            Other->Velocity.XY -= (SHOULDER_SHARE * Into) * Normal.XY;
+        }
         return 0.f;
     }
 

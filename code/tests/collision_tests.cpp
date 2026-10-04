@@ -289,6 +289,163 @@ TestThrownUnitSlamsIntoWall()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): puts Entity back at Position at rest, keeping its chunk
+internal void
+PutBack(test_world *Test, world_entity *Entity, v3 Position)
+{
+    v3 Old = Entity->Position;
+    Entity->Position = Position;
+    Entity->Velocity = {};
+    CheckAndChangeEntityChunk(Test->AppState, Test->World, &Test->Arena, Old,
+                              Entity);
+}
+
+// NOTE(zoubir): the farthest Entity gets walking a third of a second in
+// any of 8 directions while the Others move as they are pushed; everyone
+// is put back where they were after each try
+internal float
+FreestDirection(test_world *Test, world_entity *Entity,
+                world_entity **Others, u32 OtherCount)
+{
+    float Result = 0.f;
+    v3 Start = Entity->Position;
+    v3 Velocity = Entity->Velocity;
+    v3 OtherStarts[16];
+    Assert(OtherCount <= ArrayCount(OtherStarts));
+    for(u32 Index = 0; Index < OtherCount; Index++)
+    {
+        OtherStarts[Index] = Others[Index]->Position;
+    }
+    for(u32 Dir = 0; Dir < 8; Dir++)
+    {
+        float Angle = 2.f * Pi32 * Dir / 8.f;
+        for(u32 Frame = 0; Frame < 20; Frame++)
+        {
+            Walk(Test, Entity, V2(Cos(Angle), Sin(Angle)), 1);
+            for(u32 Index = 0; Index < OtherCount; Index++)
+            {
+                Walk(Test, Others[Index], {0, 0}, 1);
+            }
+        }
+        Result = Maximum(Result, Length(Entity->Position.XY - Start.XY));
+        PutBack(Test, Entity, Start);
+        for(u32 Index = 0; Index < OtherCount; Index++)
+        {
+            PutBack(Test, Others[Index], OtherStarts[Index]);
+        }
+    }
+    Entity->Velocity = Velocity;
+    return Result;
+}
+
+// NOTE(zoubir): what touches Entity, for a failure report
+internal void
+PrintNeighbours(world *World, world_entity *Entity)
+{
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        world_entity *Other = &World->Entities[Index];
+        v3 Rel = Other->Position - Entity->Position;
+        if (!Other->IsPresent || Other == Entity || !Other->Collision ||
+            Absolute(Rel.X) > 70.f || Absolute(Rel.Y) > 70.f)
+        {
+            continue;
+        }
+        v3 Half = Other->Collision->TotalVolume.HalfDims;
+        printf("    type %d at (%.2f, %.2f, %.2f) half (%.1f, %.1f, %.1f)\n",
+               Other->Type, Other->Position.X, Other->Position.Y,
+               Other->Position.Z, Half.X, Half.Y, Half.Z);
+    }
+}
+
+// NOTE(zoubir): a player among rocks, walls and a crowd, walking, jumping,
+// dashing and being shoved at random, is never left unable to move in
+// every direction (the "sometimes we get stuck" report)
+internal void
+TestPlayerNeverStuck(u32 SeedValue)
+{
+    test_world Test = CreateTestWorld();
+    SetupCollisionVolumes(Test.AppState, &Test.Arena);
+    entity_collision_volume_group *Boulder =
+        MakeSimpleGroundedCollisionVolume(&Test.Arena, {13.f, 8.f, 14.f});
+    random_series Series = Seed(SeedValue);
+    AddWallRow(&Test, 200.f, 200.f, 20);
+    AddWallRow(&Test, 200.f, 840.f, 20);
+    for(u32 Index = 0; Index < 30; Index++)
+    {
+        v3 P = {RandomBetween(&Series, 240.f, 820.f),
+                RandomBetween(&Series, 260.f, 780.f), 0.f};
+        AddTestEntity(&Test, EntityType_StaticObject, P,
+                      (Index % 3) ? Boulder : Test.AppState->WallCollision);
+    }
+    world_entity *Monsters[12];
+    for(u32 Index = 0; Index < ArrayCount(Monsters); Index++)
+    {
+        v3 P = {RandomBetween(&Series, 240.f, 820.f),
+                RandomBetween(&Series, 260.f, 780.f), 0.f};
+        Monsters[Index] = AddTestEntity(&Test, EntityType_Monster, P,
+                                        Test.UnitVolume);
+        Monsters[Index]->MaxHp = Monsters[Index]->Hp = 1.e6f;
+    }
+    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
+                                         {520, 230, 0}, Test.UnitVolume);
+    Player->MaxHp = Player->Hp = 1.e6f;
+    SeparateOverlappingUnits(Test.AppState, Test.World, &Test.Arena);
+
+    u32 StuckCount = 0;
+    for(u32 Step = 0; Step < 400; Step++)
+    {
+        float Angle = RandomBetween(&Series, 0.f, 2.f * Pi32);
+        v2 Dir = V2(Cos(Angle), Sin(Angle));
+        u32 Roll = RandomChoice(&Series, 6);
+        if (Roll == 0)
+        {
+            Player->Velocity.Z = PLAYER_JUMP_SPEED;
+        }
+        else if (Roll == 1)
+        {
+            Player->Velocity.XY = PLAYER_DASH_SPEED * Dir;
+        }
+        else if (Roll == 2)
+        {
+            // NOTE(zoubir): the crowd shoves into the player
+            for(u32 Index = 0; Index < ArrayCount(Monsters); Index++)
+            {
+                v2 ToPlayer = Player->Position.XY - Monsters[Index]->Position.XY;
+                float Distance = Length(ToPlayer);
+                if (Distance > 1.f && Distance < 120.f)
+                {
+                    Monsters[Index]->Velocity.XY = (600.f / Distance) * ToPlayer;
+                    ApplyStatus(Monsters[Index], StatusEffect_Stunned, 0.5f);
+                }
+            }
+        }
+        u32 Frames = 5 + RandomChoice(&Series, 25);
+        for(u32 Frame = 0; Frame < Frames; Frame++)
+        {
+            Walk(&Test, Player, Dir, 1);
+            for(u32 Index = 0; Index < ArrayCount(Monsters); Index++)
+            {
+                Walk(&Test, Monsters[Index], {0, 0}, 1);
+            }
+            SeparateOverlappingUnits(Test.AppState, Test.World, &Test.Arena);
+        }
+        if (Player->Position.Z <= Player->GroundZ + 0.5f &&
+            FreestDirection(&Test, Player, Monsters, ArrayCount(Monsters)) < 2.f)
+        {
+            if (StuckCount++ == 0)
+            {
+                printf("  seed %u: stuck at (%.1f, %.1f, %.1f) after step %u\n",
+                       SeedValue, Player->Position.X, Player->Position.Y,
+                       Player->Position.Z, Step);
+                PrintNeighbours(Test.World, Player);
+            }
+        }
+    }
+    Check(StuckCount == 0);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunCollisionTests()
 {
@@ -320,4 +477,9 @@ RunCollisionTests()
     TestThrownUnitKnocksIntoAnother();
     printf("TestThrownUnitSlamsIntoWall\n");
     TestThrownUnitSlamsIntoWall();
+    printf("TestPlayerNeverStuck\n");
+    for(u32 SeedValue = 1; SeedValue <= 6; SeedValue++)
+    {
+        TestPlayerNeverStuck(SeedValue * 977);
+    }
 }
