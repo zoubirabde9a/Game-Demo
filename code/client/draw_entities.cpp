@@ -1,6 +1,69 @@
 /* Client-side drawing of world entities: tiles, sprites, health bars,
    debug collision boxes, and the animation frame the simulation is on.
-   Reads entity state only; SimulateTick has already run this frame. */
+   Reads entity state only; SimulateTick has already run this frame.
+
+   Every entity sorts by where it stands: its Y plus the height of the
+   ground under it (draw_tilemap.cpp lists the keys raised ground uses),
+   and is never drawn below that ground. */
+
+// NOTE(zoubir): sort keys of the back-to-front world pass, in world units;
+// lower draws first. Flat ground is one batch under everything
+#define FLAT_GROUND_SORT_KEY -1.0e7f
+
+// NOTE(zoubir): the top of a raised tile in row TileY, Height units up
+inline float
+RaisedTopSortKey(i32 TileY, float TileHeight, float Height)
+{
+    float Result = (float)TileY * TileHeight + Height;
+    return Result;
+}
+
+// NOTE(zoubir): a face whose foot is the front edge of row FootTileY, on
+// ground FootHeight up: after the top of the tile it hangs over (it shades
+// that tile), before anyone standing on it
+inline float
+CliffFaceSortKey(i32 FootTileY, float TileHeight, float FootHeight)
+{
+    float Result = (float)FootTileY * TileHeight + FootHeight + 0.25f;
+    return Result;
+}
+
+// NOTE(zoubir): something standing at world Y on ground GroundZ up. The
+// extra step keeps a sprite's feet over the next row's top of the same
+// height, and still under a top one step higher in front of it
+inline float
+StandingSortKey(float Y, float GroundZ)
+{
+    float Result = Y + GroundZ + ELEVATION_STEP_HEIGHT;
+    return Result;
+}
+
+// NOTE(zoubir): height of the map's raised ground under a world point
+internal float
+TerrainHeightAt(world *World, float X, float Y)
+{
+    float Result = 0.f;
+    if (World->TileWidth && World->TileMap.Texture.Type == AssetType_TerrainAtlas)
+    {
+        map_def *Map = GetMapDef((map_id)World->MapId);
+        i32 TileX = FloorDiv((i32)floorf(X), (i32)World->TileWidth);
+        i32 TileY = FloorDiv((i32)floorf(Y), (i32)World->TileHeight);
+        Result = (float)ElevationAt(Map, TileX, TileY) * ELEVATION_STEP_HEIGHT;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): what an entity stands on: the simulation's GroundZ (a
+// crate, a wall top) or the raised ground under it, whichever is higher.
+// Replicas online carry no GroundZ, so the ground has to come from the map
+inline float
+EntityGroundZ(world *World, world_entity *Entity)
+{
+    float Result = Maximum(Entity->GroundZ,
+                           TerrainHeightAt(World, Entity->Position.X,
+                                           Entity->Position.Y));
+    return Result;
+}
 
 internal void
 DrawTileEntity(render_context *RenderContext,
@@ -107,17 +170,25 @@ DrawEntity(render_context *RenderContext,
            world_entity *Entity, v3 CameraOffset)
 {
     open_gl *OpenGL = AppState->OpenGL;
+    world *World = &AppState->World;
     loaded_texture *Texture = 0;
     zas_texture_info *TextureInfo = 0;
     v2 EntityCameraPosition = Entity->Position.XY - CameraOffset.XY;
-    //TODO(zoubir): figure out if we need this check
-    // inside assets
-    float SortingValue =
-        Entity->Position.Y;
-    // NOTE(zoubir): ground patches lie flat, under every standing sprite
+    float GroundZ = EntityGroundZ(World, Entity);
+    // NOTE(zoubir): never drawn sunk into the ground it is over, even
+    // when the simulation has not lifted it there (props on raised tiles)
+    float DrawZ = Maximum(Entity->Position.Z, GroundZ);
+    float SortingValue = StandingSortKey(Entity->Position.Y, GroundZ);
+    // NOTE(zoubir): ground patches lie flat on the ground, under every
+    // standing sprite: with the flat ground, or just over a raised top
     if (Entity->Type == EntityType_MonsterHazard)
     {
-        SortingValue = 0.5f;
+        SortingValue = FLAT_GROUND_SORT_KEY + 1.f;
+        if (GroundZ > 0.f)
+        {
+            i32 TileY = FloorDiv((i32)floorf(Entity->Position.Y), (i32)World->TileHeight);
+            SortingValue = RaisedTopSortKey(TileY, (float)World->TileHeight, GroundZ) + 0.5f;
+        }
     }
     
     if (Entity->Texture.Type)
@@ -130,7 +201,7 @@ DrawEntity(render_context *RenderContext,
         v2 Dimensions = Entity->Dimensions * Pose.Scale;
         v2 EntityTexturePosition = EntityCameraPosition -
             TextureInfo->Origin * Dimensions;
-        EntityTexturePosition.Y -= Entity->Position.Z;
+        EntityTexturePosition.Y -= DrawZ;
         if (Pose.AboutFeet)
         {
             // NOTE(zoubir): the quad turns about its middle; move it so
@@ -168,7 +239,7 @@ DrawEntity(render_context *RenderContext,
                               Dimensions.Y,
                               Entity->Uvs,
                               Color.ColorU32,
-                              Entity->Position.Z, Pose.Angle);
+                              DrawZ, Pose.Angle);
             EndBatch(RenderContext);
         }
         {
@@ -252,13 +323,16 @@ DrawEntity(render_context *RenderContext,
         v2 ShadowDims = {28, 14};
         ColorRGBA8 ShadowColor;
         ShadowColor.ColorU32 = RGBA8_WHITE;
-        if (Entity->Position.Z < 200)
+        // NOTE(zoubir): the shadow lies on the ground under the entity,
+        // raised ground included, and fades and shrinks with the height
+        // above it
+        float Diff = DrawZ - GroundZ;
+        if (Diff < 200.f)
         {
-            float Diff = Entity->Position.Z - Entity->GroundZ;
             ShadowColor.A = (u8)(255 - (Diff) - 55);
             if (Diff > 1.f)
             {
-                ShadowDims *= (1.f - (Entity->Position.Z - Entity->GroundZ) / 200.f);
+                ShadowDims *= (1.f - Diff / 200.f);
             }
         }
         else
@@ -268,12 +342,13 @@ DrawEntity(render_context *RenderContext,
         }
         v2 ShadowPosition = EntityCameraPosition -
             ShadowTextureInfo->Origin * ShadowDims;
-        ShadowPosition.Y -= Entity->GroundZ;
+        ShadowPosition.Y -= GroundZ;
     
         if (ShadowTexture)
         {
+            // NOTE(zoubir): just under its own sprite
             BeginBatch(RenderContext, ShadowTexture->ID,
-                       Entity->Position.Y, TextureProgram);
+                       SortingValue - 0.01f, TextureProgram);
 
                             
             RenderQuadTexture(RenderContext,

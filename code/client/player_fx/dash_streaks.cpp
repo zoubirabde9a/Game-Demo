@@ -174,7 +174,11 @@ DrawDashGhosts(render_context *RenderContext, app_state *AppState,
         P.Y -= Ghost->Position.Z;
         float Life = 1.f - Ghost->Age / DASH_GHOST_SECONDS;
         u32 Color = ((u32)(210.f * Life) << 24) | DASH_GHOST_RGB;
-        BeginBatch(RenderContext, Texture->ID, Ghost->Position.Y - 0.5f,
+        // NOTE(zoubir): just under a player standing in the same spot
+        float Ground = TerrainHeightAt(&AppState->World, Ghost->Position.X,
+                                       Ghost->Position.Y);
+        BeginBatch(RenderContext, Texture->ID,
+                   StandingSortKey(Ghost->Position.Y, Ground) - 0.5f,
                    RenderContext->TextureProgram);
         RenderQuadTexture(RenderContext, P.X, P.Y, Ghost->Dimensions.X,
                           Ghost->Dimensions.Y, Ghost->Uvs, Color,
