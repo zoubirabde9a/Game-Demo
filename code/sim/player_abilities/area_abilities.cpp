@@ -26,8 +26,11 @@ struct player_area_ability
     float ConeCos;
     // NOTE(zoubir): what each target in it takes (hits.cpp)
     player_hit Hit;
-    // NOTE(zoubir): what clients draw when it lands (events.h)
+    // NOTE(zoubir): what clients draw when it lands (events.h), and over
+    // the area while it is cast so it can be seen coming (SimBurst_Count
+    // for none)
     sim_burst Burst;
+    sim_burst Telegraph;
 };
 
 // NOTE(zoubir): walk speed while casting
@@ -48,21 +51,21 @@ global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
     // NOTE(zoubir): Shockwave (E): at once, everything within 90 units
     // takes 40 and is thrown away from the player
     {PlayerButton_Shockwave, 0.f, 4.f, 0.f, 90.f, -1.f, {40.f, 500.f, 0.f, 200.f, 0.f, SimBurst_Count},
-     SimBurst_ShockwaveRing},
+     SimBurst_ShockwaveRing, SimBurst_Count},
     // NOTE(zoubir): Push (R): a quick wide cone that throws a crowd off
     // the player and apart, out of each other's way
     {PlayerButton_Push, 0.12f, 2.5f, 0.f, 110.f, 0.34f, {10.f, 750.f, 0.f, 0.f, 0.3f, SimBurst_Count},
-     SimBurst_PushCone},
+     SimBurst_PushCone, SimBurst_PushMark},
     // NOTE(zoubir): Launch (A): a ground burst at the aim that throws
     // everything in it into the air (88 units, almost a second under
     // monster gravity) and stuns it until well after it lands
     {PlayerButton_Launch, 0.3f, 5.f, 70.f, 55.f, -1.f, {20.f, 60.f, 420.f, 420.f, 1.6f, SimBurst_Count},
-     SimBurst_LaunchColumn},
+     SimBurst_LaunchColumn, SimBurst_LaunchMark},
     // NOTE(zoubir): Slam: no key of its own; the slam's dive
     // (movement_abilities.cpp) fires it where the player lands. Everything
     // within 80 units is thrown out and up and stunned
     {0, 0.f, 0.f, 0.f, 80.f, -1.f, {25.f, 380.f, 260.f, 260.f, 0.9f, SimBurst_Count},
-     SimBurst_ShockwaveRing},
+     SimBurst_ShockwaveRing, SimBurst_Count},
 };
 #define PLAYER_AREA_ABILITY_COUNT PlayerArea_Count
 static_assert(PlayerArea_Count <= PLAYER_AREA_ABILITY_SLOTS, "one cooldown each");
@@ -166,6 +169,16 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
                 {
                     EmitBurst(&AppState->Events, SimBurst_CastGather,
                               (u8)Player->PlayerIndex, Player->Position);
+                }
+                if (Ability->Telegraph != SimBurst_Count)
+                {
+                    v2 Aim = Player->CastingDirection;
+                    v3 Centre = Player->Position;
+                    Centre.XY += Ability->Reach * Aim;
+                    Centre.Z = 0.f;
+                    EmitBurst(&AppState->Events, Ability->Telegraph,
+                              (u8)Player->PlayerIndex, Centre,
+                              ATan2(Aim.Y, Aim.X));
                 }
                 break;
             }

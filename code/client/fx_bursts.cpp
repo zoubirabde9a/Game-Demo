@@ -26,6 +26,9 @@ enum burst_shape
     BurstShape_ArcBack, // the same sweep the other way round
     BurstShape_Skid,   // a little dust thrown forward along Angle at the feet
     BurstShape_Death,  // a flash, then motes rising and spreading as it fades
+    BurstShape_Mark,   // the outline of a ground circle, filling in as it
+                       // nears the hit
+    BurstShape_ConeMark, // the outline of a cone from the centre along Angle
 };
 
 enum burst_pose
@@ -73,6 +76,9 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Puff, 0.3f, 9.f, 0x00C8D8E0, true, 0.f, BurstPose_None},        // Step, dust
     {BurstShape_Death, 0.45f, 30.f, 0x00E8F0FF, false, 0.25f, BurstPose_None},  // Death, pale
     {BurstShape_Column, 0.6f, 30.f, 0x00FFE0A0, false, 0.f, BurstPose_None},    // Spawn, pale blue
+    // NOTE(zoubir): telegraphs last as long as their ability's cast
+    {BurstShape_ConeMark, 0.12f, 110.f, 0x00FFE8B0, false, 0.f, BurstPose_None}, // PushMark, pale blue
+    {BurstShape_Mark, 0.3f, 55.f, 0x0040C0FF, false, 0.f, BurstPose_None},      // LaunchMark, amber
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these
@@ -94,9 +100,11 @@ DrawFxDot(render_context *RenderContext, v2 P, float Size, u32 Color)
 #define SHAKE_FAR 650.f
 #define SHAKE_MAX_PIXELS 14.f
 #define SHAKE_RECOVERY 2.5f
-// NOTE(zoubir): ground circles are drawn this flat, as seen from above at
-// an angle
-#define BURST_GROUND_SQUASH 0.55f
+// NOTE(zoubir): ground circles are drawn this flat. The world's X and Y
+// are the screen's, so hits reach as far up and down as sideways; at
+// 0.55 a ring showed half the reach up and down, and a telegraph would
+// lie about what it hits
+#define BURST_GROUND_SQUASH 1.f
 #define BURST_RING_DOTS 24
 
 struct fx_burst
@@ -432,6 +440,39 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
                 v2 P = Centre + Out * V2(Cos(Angle), 0.6f * Sin(Angle)) -
                     V2(0.f, Rise);
                 DrawFxDot(RenderContext, P, 5.f - 3.f * T, Color);
+            }
+        } break;
+
+        case BurstShape_Mark:
+        {
+            // NOTE(zoubir): the outline holds still while a ring closes in
+            // on it, meeting it as the cast goes off
+            DrawGroundRing(RenderContext, Centre, Look->Radius,
+                           ((u32)(120.f + 120.f * T) << 24) | Look->RGB, 4.f);
+            DrawGroundRing(RenderContext, Centre, Look->Radius * T,
+                           ((u32)(200.f * T) << 24) | Look->RGB, 2.f);
+        } break;
+
+        case BurstShape_ConeMark:
+        {
+            // NOTE(zoubir): the cone's edges and its far arc, PUSH's
+            // ConeCos 0.34 wide (about 70 degrees each side)
+            u32 MarkColor = ((u32)(120.f + 120.f * T) << 24) | Look->RGB;
+            float Half = 1.22f;
+            for(u32 Dot = 0; Dot < 9; Dot++)
+            {
+                float Along = (float)(Dot + 1) / 9.f;
+                for(u32 Side = 0; Side < 2; Side++)
+                {
+                    float Angle = Burst->Angle + (Side ? Half : -Half);
+                    DrawFxDot(RenderContext,
+                              Centre + GroundCircle(Angle, Along * Look->Radius),
+                              4.f, MarkColor);
+                }
+                float ArcAngle = Burst->Angle + Half * (2.f * (float)Dot / 8.f - 1.f);
+                DrawFxDot(RenderContext,
+                          Centre + GroundCircle(ArcAngle, Look->Radius), 4.f,
+                          MarkColor);
             }
         } break;
 

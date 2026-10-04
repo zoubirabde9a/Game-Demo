@@ -42,6 +42,8 @@ enum sim_burst
     SimBurst_Step,         // a footstep's dust; clients make these themselves
     SimBurst_Death,        // a monster or player bursting as it dies
     SimBurst_Spawn,        // a beam where a player comes back
+    SimBurst_PushMark,     // Push's cone on the ground while it is cast
+    SimBurst_LaunchMark,   // Launch's circle on the ground while it is cast
     SimBurst_Count
 };
 
