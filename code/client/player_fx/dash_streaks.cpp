@@ -9,7 +9,8 @@
    on the frame it shows then, is left behind as a tinted ghost that
    fades over DASH_GHOST_SECONDS. */
 
-#define MAX_DASH_DOTS 128
+// NOTE(zoubir): a full blink lays 40 dots, a dash about 15
+#define MAX_DASH_DOTS 256
 #define DASH_STREAK_SPACING 8.f
 #define DASH_STREAK_SECONDS 0.25f
 #define DASH_STREAK_RGB 0x00FFF0D0

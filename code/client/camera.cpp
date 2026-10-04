@@ -27,8 +27,9 @@
 #define WORLD_ZOOM_MIN 1.f
 #define WORLD_ZOOM_MAX 3.f
 // NOTE(zoubir): share of the gap closed per second, as a rate: higher is
-// tighter. 10 settles in about a third of a second
-#define CAMERA_FOLLOW_RATE 10.f
+// tighter. 15 settles in under a quarter second, and a full run (260)
+// trails the camera by about 17 units; at 10 it trailed by 26
+#define CAMERA_FOLLOW_RATE 15.f
 // NOTE(zoubir): the lean is this share of the cursor's distance from the
 // screen centre, at most CAMERA_LEAN_MAX world units
 #define CAMERA_LEAN_SHARE 0.12f

@@ -30,14 +30,15 @@
 #define BODY_STRETCH_SPEED 900.f
 #define BODY_STRETCH_MAX 0.16f
 // NOTE(zoubir): ground speed at which a body starts to stretch sideways
-// (a full walk is 130, a dash 650), and where the stretch is full
-#define BODY_RUSH_SPEED 250.f
-#define BODY_RUSH_FULL_SPEED 600.f
+// (a player's full run is 260, a dash 1300, a Push throws at 750), and
+// where the stretch is full
+#define BODY_RUSH_SPEED 300.f
+#define BODY_RUSH_FULL_SPEED 700.f
 #define BODY_RUSH_MAX 0.2f
 // NOTE(zoubir): a body that moves farther than this in one frame was put
 // somewhere (a respawn, a map change), not thrown: its pose starts over.
-// A blink is at most 160
-#define BODY_TELEPORT_DISTANCE 200.f
+// A blink is at most PLAYER_AIM_REACH (320)
+#define BODY_TELEPORT_DISTANCE 400.f
 // NOTE(zoubir): a fall faster than this squashes on landing; the squash is
 // full at BODY_SQUASH_FULL_SPEED
 #define BODY_SQUASH_MIN_SPEED 120.f

@@ -163,7 +163,12 @@ UpdateClickMove(app_input *Input, app_state *AppState, bool32 KeysMove, v2 *Move
         {
             Walk->StuckTime += Input->DeltaTime;
         }
-        if (Distance < CLICK_MOVE_ARRIVED || Walk->StuckTime > CLICK_MOVE_GIVE_UP)
+        // NOTE(zoubir): the keys let go early by the distance the player
+        // coasts on plain ground (speed over PLAYER_DRAG, 26 at a full
+        // run), so it glides onto the spot instead of past it
+        float Coast = Length(Player->Velocity.XY) * (1.f / PLAYER_DRAG);
+        if (Distance < CLICK_MOVE_ARRIVED + Coast ||
+            Walk->StuckTime > CLICK_MOVE_GIVE_UP)
         {
             Walk->Active = false;
         }
