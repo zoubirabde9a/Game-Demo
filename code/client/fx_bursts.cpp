@@ -74,7 +74,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_ArcBack, 0.2f, 38.f, 0x00C0FFFF, false, 0.f, BurstPose_None},  // SwingArcBack, warmer
     {BurstShape_Arc, 0.26f, 46.f, 0x0060E0FF, false, 0.1f, BurstPose_None},    // SwingArcFinisher, gold
     {BurstShape_Skid, 0.35f, 24.f, 0x00C8D8E0, true, 0.f, BurstPose_None},      // Skid, dust
-    {BurstShape_Puff, 0.3f, 9.f, 0x00C8D8E0, true, 0.f, BurstPose_None},        // Step, dust
+    {BurstShape_Puff, 0.25f, 16.f, 0x0070A0B8, true, 0.f, BurstPose_None},      // Step, earthy dust
     {BurstShape_Death, 0.45f, 30.f, 0x00E8F0FF, false, 0.25f, BurstPose_None},  // Death, pale
     {BurstShape_Column, 0.6f, 30.f, 0x00FFE0A0, false, 0.f, BurstPose_None},    // Spawn, pale blue
     {BurstShape_ConeMark, 0.f, 0.f, 0x00FFE8B0, false, 0.f, BurstPose_None}, // PushMark, pale blue
