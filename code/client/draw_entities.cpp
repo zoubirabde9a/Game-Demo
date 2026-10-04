@@ -307,8 +307,20 @@ UpdateEntityUvs(world_entity *Entity, assets *Assets, app_state *AppState)
         &GetAssetInfo(Assets, Entity->Texture)->Texture;
     if (Texture)
     {
-        Entity->Uvs = GetAnimationUvs(&Entity->AnimationState,
-                                      Entity->AnimationSet,
+        // NOTE(zoubir): a dashing player leans into the dash, hair
+        // streaming (the sheet's take-off frame), instead of running its
+        // walk cycle at full tilt; a swing or cast keeps its own frames
+        animation_state Shown = Entity->AnimationState;
+        bool32 Dashing = Entity->Type == EntityType_Player &&
+            (Entity->DashFlash > 0.f || (Entity->AbilityIndex & PLAYER_FLASH_DASH));
+        if (Dashing && (Shown.CurrentType == AnimationType_Move ||
+                        Shown.CurrentType == AnimationType_Stand ||
+                        Shown.CurrentType == AnimationType_Stop))
+        {
+            Shown.CurrentType = AnimationType_JumpUp;
+            Shown.SlotIndex = 0;
+        }
+        Entity->Uvs = GetAnimationUvs(&Shown, Entity->AnimationSet,
                                       Texture->Width, Texture->Height,
                                       TextureInfo->NumTilesX,
                                       TextureInfo->NumTilesY);
