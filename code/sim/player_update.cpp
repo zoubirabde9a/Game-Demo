@@ -11,7 +11,8 @@
    3. RunPlayerActionQueue: the first action that can run now does
       (StartSpawnAction, player_abilities/spawn_actions.cpp).
    4. UpdatePlayerMoveState: moving, or stopping when the keys let go. A
-      swing or cast roots the player only for its short ActionLock. Then a
+      swing or cast roots the player only for its short ActionLock, a
+      shove's Stagger for a moment (it slides). Then a
       swing's animation finishes while the player walks slower, and a
       cast's is cut by walking (the fireball has already left).
    5. UsePlayerAbilities: jump, the area abilities (shockwave, push,
@@ -142,6 +143,7 @@ UpdatePlayer(player_slot *Slot, world *World,
     *AnimationSpeedRate = 1.f;
 
     Player->ActionLock = Maximum(0.f, Player->ActionLock - DeltaTime);
+    Player->Stagger = Maximum(0.f, Player->Stagger - DeltaTime);
     Player->ComboTimer = Maximum(0.f, Player->ComboTimer - DeltaTime);
     Player->SpawnShield = Maximum(0.f, Player->SpawnShield - DeltaTime);
     AgeComboTrail(Player, DeltaTime);

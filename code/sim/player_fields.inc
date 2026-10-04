@@ -13,6 +13,10 @@
     // NOTE(zoubir): seconds left in which the player cannot walk, set when
     // a swing or cast starts; the rest of the animation can be walked out of
     float ActionLock;
+    // NOTE(zoubir): seconds left of a shove's stagger (hit.cpp): the keys
+    // do not walk and only the carry drag slows the body, so a small shove
+    // slides instead of being braked away. A movement ability ends it
+    float Stagger;
     // NOTE(zoubir): seconds left on the dash streak clients draw
     float DashFlash;
     // NOTE(zoubir): seconds until each spawn action (sword, fireball) may

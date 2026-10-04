@@ -8,10 +8,12 @@
    steal life or add a status), shoves the target away, lifts it (more
    when it is already in the air: a juggle), may stun it and give it a
    status, and draws a burst. Heavy monsters are shoved and lifted less
-   (KnockbackScale). A solid hit freezes the monsters in it for a moment,
-   a hit-pause, so the hit reads (HitStop). The target keeps the hit's
-   direction, whether it was lifted and who hit it for a moment
-   (HitFresh), which clients draw its flinch and tumble from. */
+   (KnockbackScale); a shoved player staggers for a moment, the keys
+   off, so the shove carries (Stagger, player_fields.inc). A solid hit
+   freezes the monsters in it for a moment, a hit-pause, so the hit
+   reads (HitStop). The target keeps the hit's direction, whether it
+   was lifted and who hit it for a moment (HitFresh), which clients draw
+   its flinch and tumble from. */
 
 struct hit
 {
@@ -101,6 +103,9 @@ TickHitStop(world_entity *Entity, float DeltaTime)
     return Frozen;
 }
 
+// NOTE(zoubir): player_stats.cpp, included after this
+internal void StaggerPlayer(world_entity *Player);
+
 // NOTE(zoubir): Hit on Target, thrown along Away (a unit vector), by
 // Source (the attacker, or its sword or shot), on behalf of the player in
 // slot BySlot (SIM_NOBODY for monsters). Returns whether the target
@@ -138,6 +143,10 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
 
     float Scale = KnockbackScale(Target);
     Target->Velocity.XY += (Scale * Hit->Shove) * Away;
+    if (Target->Type == EntityType_Player && Hit->Shove > 0.f)
+    {
+        StaggerPlayer(Target);
+    }
     bool32 Airborne = Target->Position.Z > Target->GroundZ + 2.f;
     float Lift = Airborne ? Maximum(Hit->Lift, Hit->AirLift) : Hit->Lift;
     if (Lift > 0.f)

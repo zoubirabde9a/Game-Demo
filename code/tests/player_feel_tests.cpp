@@ -223,15 +223,15 @@ TestTurningBackSkids()
 
 
 // NOTE(zoubir): how far a standing player slides from a shove, printed so
-// a stagger or a braking change shows its effect. Shoves under a run are
-// braked away by the quick stop (250 slides about 8 units; with drag
-// alone, before the quick stop, it was 25)
+// a stagger or a braking change shows its effect. The stagger (hit.cpp)
+// keeps the quick stop off for a moment, so the slides land near the
+// drag-only ones from before the quick stop (shove / CarryDrag: 15, 25,
+// 50); without it they were 3, 8 and 32. A dash breaks out of a stagger
 internal void
 TestSmallKnockbackTravel()
 {
     float Shoves[] = {150.f, 250.f, 500.f};
     printf("  shove slides:");
-    float Last = 0.f;
     for(u32 Index = 0; Index < ArrayCount(Shoves); Index++)
     {
         test_world Test = CreateTestWorld();
@@ -243,14 +243,39 @@ TestSmallKnockbackTravel()
         Test.Input.DeltaTime = FEEL_TICK;
         hit Hit = {1.f, Shoves[Index], 0.f, 0.f, 0.f, SimBurst_Count};
         ApplyHit(AppState, Test.World, Player, &Hit, V2(1.f, 0.f), 0, SIM_NOBODY);
+        Check(Player->Stagger == PlayerStats.StaggerSeconds);
         RunPlayerFrames(&Test, 0, 60);
         float Slide = Player->Position.X - 600.f;
-        printf(" %.0f: %.1f", Shoves[Index], Slide);
-        Check(Slide > Last);
-        Last = Slide;
+        float DragOnly = Shoves[Index] / PlayerStats.CarryDrag;
+        printf(" %.0f: %.1f (drag only %.0f)", Shoves[Index], Slide, DragOnly);
+        Check(Slide > 0.8f * DragOnly && Slide < 1.05f * DragOnly);
+        Check(Player->Stagger == 0.f);
         DestroyTestWorld(&Test);
     }
     printf("\n");
+
+    // NOTE(zoubir): held keys do not walk out of a stagger, a dash does
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {600, 1000, 0});
+    player_slot *Slot = &AppState->Players[0];
+    Player->SpawnShield = 0.f;
+    Test.Input.DeltaTime = FEEL_TICK;
+    hit Hit = {1.f, 250.f, 0.f, 0.f, 0.f, SimBurst_Count};
+    ApplyHit(AppState, Test.World, Player, &Hit, V2(1.f, 0.f), 0, SIM_NOBODY);
+    Slot->Input.Move = V2(0.f, 1.f);
+    RunPlayerFrames(&Test, 0, 2);
+    Check(Player->Stagger > 0.f);
+    Check(Player->Velocity.X > 150.f && Absolute(Player->Velocity.Y) < 1.f);
+    Slot->Input.Pressed = PlayerButton_Dash;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(Player->Stagger == 0.f);
+    Check(Player->Velocity.Y > 1000.f);
+    RunPlayerFrames(&Test, 0, 40);
+    Check(Absolute(Player->Velocity.Y - PlayerStats.RunSpeed) < 1.f);
+    DestroyTestWorld(&Test);
 }
 
 internal void

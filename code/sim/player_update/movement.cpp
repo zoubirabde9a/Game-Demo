@@ -1,7 +1,7 @@
 /* Player movement: whether the player walks this tick (a swing or cast
-   roots it for a moment), and the physics step: the walk toward the
-   keys' direction, the drag on anything faster than a run, and gravity
-   into MoveEntity. The numbers are in player_stats.cpp. */
+   roots it for a moment, a shove staggers it), and the physics step:
+   the walk toward the keys' direction, the drag on anything faster than
+   a run (or staggered), and gravity into MoveEntity. The numbers are in player_stats.cpp. */
 
 // NOTE(zoubir): speed past the top walking speed by more than this share
 // counts as carried (a dash, a long jump, a knockback): the drag eases it
@@ -12,6 +12,11 @@ internal void
 UpdatePlayerMoveState(app_state *AppState, world_entity *Player,
                       player_tick *Tick)
 {
+    // NOTE(zoubir): a shoved player slides; the keys wait for the stagger
+    if (Player->Stagger > 0.f)
+    {
+        Tick->Move = false;
+    }
     // NOTE(zoubir): the fireball left when the cast began, so walking cuts
     // the rest of the cast animation; holding fire used to mean walking at
     // ActionWalkScale in the cast pose for good
@@ -66,7 +71,7 @@ PlayerWalkAcceleration(world_entity *Player, v2 Push, float TopSpeed,
     float Friction = GetGroundFriction(Player);
     float Drag = DragScale * PlayerStats.CarryDrag * Friction;
     v2 Result;
-    if (Player->LongJump ||
+    if (Player->LongJump || Player->Stagger > 0.f ||
         LengthSq(Velocity) > Square(PLAYER_CARRY_MARGIN * TopSpeed))
     {
         Result = Drag * (TopSpeed * Push - Velocity);
@@ -92,7 +97,9 @@ internal void
 MovePlayer(app_state *AppState, world *World, memory_arena *Arena,
            world_entity *Player, float DeltaTime, player_tick *Tick)
 {
-    v2 Push = Tick->DDPlayer.XY;
+    // NOTE(zoubir): staggered, the keys do not push; a dash this tick has
+    // already ended the stagger (UseMovementAbilities)
+    v2 Push = Player->Stagger > 0.f ? V2(0.f, 0.f) : Tick->DDPlayer.XY;
     float LengthSquared = LengthSq(Push);
     if (LengthSquared > 1.f)
     {

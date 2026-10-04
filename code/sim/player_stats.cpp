@@ -33,6 +33,11 @@ struct player_stats
     float SkidSpeed;
     // NOTE(zoubir): share of the run speed while a swing or cast finishes
     float ActionWalkScale;
+    // NOTE(zoubir): seconds a shove staggers the player (ApplyHit): the
+    // keys do not walk and only CarryDrag slows it, so a shove of 150
+    // slides 12 units instead of 3 (15 with drag alone). Longer gains
+    // little: the drag has taken most of the speed by then
+    float StaggerSeconds;
     float DashSpeed;
     float DashCooldown;
     float BlinkReach;
@@ -65,6 +70,7 @@ global_variable player_stats PlayerStats =
     10.f,                           // CarryDrag
     70.f * PLAYER_MOVE_SCALE,       // SkidSpeed
     0.7f,                           // ActionWalkScale
+    0.2f,                           // StaggerSeconds
     720.f * PLAYER_MOVE_SCALE,      // DashSpeed
     0.8f,                           // DashCooldown
     PLAYER_AIM_REACH,               // BlinkReach
@@ -91,6 +97,14 @@ PlayerStopDistance(world_entity *Player)
         PlayerStats.StopSeconds;
     float Result = Square(Speed) / (2.f * Brake);
     return Result;
+}
+
+// NOTE(zoubir): a shove's stagger (ApplyHit, hit.cpp); a second shove
+// restarts it, never shortens it
+internal void
+StaggerPlayer(world_entity *Player)
+{
+    Player->Stagger = Maximum(Player->Stagger, PlayerStats.StaggerSeconds);
 }
 
 // NOTE(zoubir): whether a press may use an ability with Cooldown seconds

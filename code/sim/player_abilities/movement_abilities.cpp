@@ -190,6 +190,9 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
         // out of it at full speed, and the next swing need not wait for the
         // old one's animation
         Player->ActionLock = 0.f;
+        // NOTE(zoubir): and it breaks out of a shove's stagger, so a dash
+        // is the way out of a crowd's shoves
+        Player->Stagger = 0.f;
         CancelAreaCast(Player);
         if (Player->State == EntityState_Attacking ||
             Player->State == EntityState_Casting)
