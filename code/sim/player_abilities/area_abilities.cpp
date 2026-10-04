@@ -180,9 +180,9 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
         {
             player_area_ability *Ability = &PlayerAreaAbilities[Index];
             if (WasPressed(Input, Ability->Button) &&
-                Player->AreaCooldowns[Index] <= 0.f)
+                CanUseEarly(Player->AreaCooldowns[Index]))
             {
-                Player->AreaCooldowns[Index] = Ability->Cooldown;
+                Player->AreaCooldowns[Index] += Ability->Cooldown;
                 Player->CastingArea = Index + 1;
                 Player->AreaCastLeft = Ability->CastTime;
                 Player->CastingDirection = GetPlayerAim(Player);

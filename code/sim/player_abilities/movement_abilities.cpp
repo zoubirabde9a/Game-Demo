@@ -3,7 +3,8 @@
    one's cooldown off (KillRefund): dash and slam are ready again at
    once, blink half way. A dash into a unit also hits it (DashStrike).
    Using one is the same for every row: it needs its key and its
-   cooldown, cuts a swing's or cast's root and an area cast, lights
+   cooldown (or a press just before it ends, CanUseEarly), cuts a swing,
+   a cast and an area cast short, lights
    DashFlash for its row's FlashSeconds (while it lasts the player cannot
    be hurt or shoved, IsDodging in entity.cpp, and clients draw the
    streak from it), plays the dash sound and then any combo it finishes
@@ -176,7 +177,7 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
         player_movement_ability *Ability = &PlayerMovements[Index];
         float *Cooldown = &Player->MovementCooldowns[Index];
         *Cooldown = Maximum(0.f, *Cooldown - DeltaTime);
-        if (!WasPressed(Input, Ability->Button) || *Cooldown > 0.f ||
+        if (!WasPressed(Input, Ability->Button) || !CanUseEarly(*Cooldown) ||
             DeltaTime <= 0.f)
         {
             continue;
@@ -191,9 +192,17 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
         {
             return;
         }
+        // NOTE(zoubir): it cuts a swing or cast short too: the player runs
+        // out of it at full speed, and the next swing need not wait for the
+        // old one's animation
         Player->ActionLock = 0.f;
         CancelAreaCast(Player);
-        *Cooldown = Ability->Cooldown;
+        if (Player->State == EntityState_Attacking ||
+            Player->State == EntityState_Casting)
+        {
+            Player->State = EntityState_Standing;
+        }
+        *Cooldown += Ability->Cooldown;
         Player->DashFlash = Maximum(Player->DashFlash, Ability->FlashSeconds);
         EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
         RunPlayerCombo(AppState, World, Arena, Player, Ability->Move, Tick);

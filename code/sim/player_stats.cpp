@@ -35,9 +35,10 @@ struct player_stats
     float DashCooldown;
     float BlinkReach;
     float BlinkCooldown;
-    // NOTE(zoubir): seconds before a dash or blink is ready that its key
-    // already works; the time it was early is added to the next cooldown,
-    // so the pace stays the same and a press a moment early is not lost
+    // NOTE(zoubir): seconds before a movement or area ability is ready
+    // that its key already works; the time it was early is added to the
+    // next cooldown, so the pace stays the same and a press a moment early
+    // is not lost (CanUseEarly)
     float EarlyPressSeconds;
 };
 
@@ -66,5 +67,16 @@ PlayerStopDistance(world_entity *Player)
     float Friction = Player->GroundFriction > 0.f ? Player->GroundFriction : 1.f;
     float Brake = Friction * PlayerStats.RunSpeed / PlayerStats.StopSeconds;
     float Result = Square(Speed) / (2.f * Brake);
+    return Result;
+}
+
+// NOTE(zoubir): whether a press may use an ability with Cooldown seconds
+// still to run (counted down this tick): ready, or nearly. The user adds
+// the full cooldown on top of what was left, so nothing waits in between
+// and client prediction has nothing new to replay
+inline bool32
+CanUseEarly(float Cooldown)
+{
+    bool32 Result = Cooldown <= PlayerStats.EarlyPressSeconds;
     return Result;
 }

@@ -1,7 +1,7 @@
 /* Player feel tests: how many ticks the player takes to reach full speed,
    to stop and to turn back, and that presses made a moment early are not
-   lost (a swing clicked during a swing, a dash pressed just before its
-   cooldown ends). They print the numbers, so a tuning change shows its
+   lost (a swing clicked during a swing, a dash or shockwave pressed just
+   before its cooldown ends). They print the numbers, so a tuning change shows its
    effect in the test log. Included by sim_tests.cpp after
    player_ability_tests.cpp, whose helpers it uses. */
 
@@ -112,6 +112,34 @@ TestDashPressedJustEarlyGoes()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): the same for an area ability: the shockwave goes off at
+// once and its next cooldown is that much longer
+internal void
+TestAreaPressedJustEarlyGoes()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 1000, 0});
+    player_slot *Slot = &AppState->Players[0];
+    float *Cooldown = &Player->AreaCooldowns[PlayerArea_Shockwave];
+    float Full = PlayerAreaAbilities[PlayerArea_Shockwave].Cooldown;
+
+    *Cooldown = 0.3f;
+    Slot->Input.Pressed = PlayerButton_Shockwave;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(CountBursts(AppState, SimBurst_ShockwaveRing) == 0);
+    Check(*Cooldown < 0.3f);
+
+    *Cooldown = 0.06f + FEEL_TICK;
+    Slot->Input.Pressed = PlayerButton_Shockwave;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(CountBursts(AppState, SimBurst_ShockwaveRing) == 1);
+    Check(Absolute(*Cooldown - (Full + 0.06f)) < 0.001f);
+    DestroyTestWorld(&Test);
+}
+
 // NOTE(zoubir): a dash in the middle of a swing ends it: the player runs
 // at full speed straight after, and a click swings again once the
 // swing's interval is up instead of waiting for the old animation
@@ -193,6 +221,7 @@ TestTurningBackSkids()
     DestroyTestWorld(&Test);
 }
 
+
 internal void
 RunPlayerFeelTests()
 {
@@ -202,6 +231,8 @@ RunPlayerFeelTests()
     TestGroundKeepsItsTopSpeed();
     printf("TestDashPressedJustEarlyGoes\n");
     TestDashPressedJustEarlyGoes();
+    printf("TestAreaPressedJustEarlyGoes\n");
+    TestAreaPressedJustEarlyGoes();
     printf("TestDashCutsSwingShort\n");
     TestDashCutsSwingShort();
     printf("TestQueuedSwingStartsWhenSwingEnds\n");
