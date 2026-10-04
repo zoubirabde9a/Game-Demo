@@ -1,4 +1,4 @@
 who: agent/maps-relayout
-task: rework the four maps with high ground, stairs and jumpables
-files: code/sim/maps/*, code/sim/terrain/landmarks.cpp (layouts only)
+task: Old Arena relayout (stands, flank hills, stairs, jumpables), ready on branch agent/maps-relayout-arena; lands once .agents/issues/prediction-fireball-damage.md is fixed
+files: code/sim/maps/arena.cpp
 since: 2026-10-04
