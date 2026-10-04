@@ -3,12 +3,30 @@
    set it), dots are laid every DASH_STREAK_SPACING units along the path
    it covered since the last frame, so a blink's jump or a replica's step
    between snapshots reads as one line. Each dot shrinks and fades over
-   DASH_STREAK_SECONDS. */
+   DASH_STREAK_SECONDS.
+
+   Afterimages: every DASH_GHOST_INTERVAL of a dash the player's sprite,
+   on the frame it shows then, is left behind as a tinted ghost that
+   fades over DASH_GHOST_SECONDS. */
 
 #define MAX_DASH_DOTS 128
 #define DASH_STREAK_SPACING 8.f
 #define DASH_STREAK_SECONDS 0.25f
 #define DASH_STREAK_RGB 0x00FFF0D0
+#define MAX_DASH_GHOSTS 24
+#define DASH_GHOST_INTERVAL 0.03f
+#define DASH_GHOST_SECONDS 0.22f
+// NOTE(zoubir): 0x00BBGGRR, a cold blue so ghosts read apart from bodies
+#define DASH_GHOST_RGB 0x00FFE0C0
+
+struct dash_ghost
+{
+    v3 Position;
+    v2 Dimensions;
+    v4 Uvs;
+    asset_id Texture;
+    float Age;
+};
 
 struct dash_dot
 {
@@ -23,7 +41,26 @@ struct dash_streaks
     // NOTE(zoubir): where each slot's player was last frame, while dashing
     bool32 WasOn[MAX_PLAYERS];
     v2 Last[MAX_PLAYERS];
+    dash_ghost Ghosts[MAX_DASH_GHOSTS];
+    u32 GhostCount;
+    // NOTE(zoubir): seconds until each slot's player leaves its next ghost
+    float GhostTimer[MAX_PLAYERS];
 };
+
+// NOTE(zoubir): a full pool skips the ghost; the next one is 0.03 s away
+inline void
+AddDashGhost(dash_streaks *Fx, world_entity *Player)
+{
+    if (Fx->GhostCount < MAX_DASH_GHOSTS && Player->Texture.Type)
+    {
+        dash_ghost *Ghost = &Fx->Ghosts[Fx->GhostCount++];
+        Ghost->Position = Player->Position;
+        Ghost->Dimensions = Player->Dimensions;
+        Ghost->Uvs = Player->Uvs;
+        Ghost->Texture = Player->Texture;
+        Ghost->Age = 0.f;
+    }
+}
 
 inline void
 AddDashDot(dash_streaks *Fx, v2 Position)
@@ -61,6 +98,20 @@ UpdateDashStreaks(dash_streaks *Fx, app_state *AppState, float DeltaTime)
         }
     }
 
+    for(u32 Index = 0; Index < Fx->GhostCount;)
+    {
+        dash_ghost *Ghost = &Fx->Ghosts[Index];
+        Ghost->Age += DeltaTime;
+        if (Ghost->Age >= DASH_GHOST_SECONDS)
+        {
+            *Ghost = Fx->Ghosts[--Fx->GhostCount];
+        }
+        else
+        {
+            Index++;
+        }
+    }
+
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];
@@ -80,8 +131,48 @@ UpdateDashStreaks(dash_streaks *Fx, app_state *AppState, float DeltaTime)
             }
             AddDashDot(Fx, Now);
             Fx->Last[SlotIndex] = Now;
+            Fx->GhostTimer[SlotIndex] -= DeltaTime;
+            if (Fx->GhostTimer[SlotIndex] <= 0.f)
+            {
+                AddDashGhost(Fx, Player);
+                Fx->GhostTimer[SlotIndex] = DASH_GHOST_INTERVAL;
+            }
+        }
+        else
+        {
+            Fx->GhostTimer[SlotIndex] = 0.f;
         }
         Fx->WasOn[SlotIndex] = On;
+    }
+}
+
+// NOTE(zoubir): the sprite as it was, placed as DrawEntity places it
+internal void
+DrawDashGhosts(render_context *RenderContext, app_state *AppState,
+               dash_streaks *Fx, v3 CameraOffset)
+{
+    assets *Assets = &AppState->Assets;
+    for(u32 Index = 0; Index < Fx->GhostCount; Index++)
+    {
+        dash_ghost *Ghost = &Fx->Ghosts[Index];
+        loaded_texture *Texture = GetTexture(Assets, AppState->OpenGL, AppState,
+                                             Ghost->Texture);
+        if (!Texture)
+        {
+            continue;
+        }
+        zas_texture_info *Info = &GetAssetInfo(Assets, Ghost->Texture)->Texture;
+        v2 P = Ghost->Position.XY - CameraOffset.XY -
+            Info->Origin * Ghost->Dimensions;
+        P.Y -= Ghost->Position.Z;
+        float Life = 1.f - Ghost->Age / DASH_GHOST_SECONDS;
+        u32 Color = ((u32)(210.f * Life) << 24) | DASH_GHOST_RGB;
+        BeginBatch(RenderContext, Texture->ID, Ghost->Position.Y - 0.5f,
+                   RenderContext->TextureProgram);
+        RenderQuadTexture(RenderContext, P.X, P.Y, Ghost->Dimensions.X,
+                          Ghost->Dimensions.Y, Ghost->Uvs, Color,
+                          Ghost->Position.Z);
+        EndBatch(RenderContext);
     }
 }
 

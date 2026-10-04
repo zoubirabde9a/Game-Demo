@@ -49,6 +49,7 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     UpdateFireBallTrails(&Fx->Embers, AppState, DeltaTime);
 
     DrawFireBallTrails(RenderContext, &Fx->Embers, CameraOffset);
+    DrawDashGhosts(RenderContext, AppState, &Fx->Dashes, CameraOffset);
     DrawDashStreaks(RenderContext, &Fx->Dashes, CameraOffset);
     DrawBlinkPreview(RenderContext, AppState, CameraOffset);
     DrawAimMarker(RenderContext, AppState, CameraOffset);
