@@ -45,6 +45,18 @@ WriteMapPreview(map_def *Map, i32 MinX, i32 MinY, u32 TilesX, u32 TilesY,
             i32 Y = MinY + (i32)TileY;
             u32 Color = PreviewTerrainColors[TerrainAt(Map, X, Y)];
             terrain_prop Prop = PropAt(Map, X, Y);
+            // NOTE(zoubir): raised ground lighter, a dark lip where it
+            // drops two steps or more to the south (a cliff)
+            i32 Steps = ElevationAt(Map, X, Y);
+            bool32 Cliff = Steps - ElevationAt(Map, X, Y + 1) >= 2;
+            u32 Lifted = 0xFF000000;
+            for(u32 Shift = 0; Shift < 24; Shift += 8)
+            {
+                u32 Channel = (Color >> Shift) & 0xFF;
+                Channel += ((255 - Channel) * (u32)Steps) / 14;
+                Lifted |= Channel << Shift;
+            }
+            Color = Lifted;
             for(u32 PY = 0; PY < Scale; PY++)
             {
                 for(u32 PX = 0; PX < Scale; PX++)
@@ -52,9 +64,16 @@ WriteMapPreview(map_def *Map, i32 MinX, i32 MinY, u32 TilesX, u32 TilesY,
                     u32 Pixel = Color;
                     bool32 Middle = PX >= Scale / 4 && PX < Scale - Scale / 4 &&
                         PY >= Scale / 4 && PY < Scale - Scale / 4;
+                    if (Cliff && PY >= Scale - Scale / 4)
+                    {
+                        Pixel = ART_RGB(30, 26, 24);
+                    }
                     if (Prop != TerrainProp_None && Middle)
                     {
                         Pixel = Prop == TerrainProp_Boulder ? ART_RGB(60, 60, 60) :
+                            Prop == TerrainProp_Crate ? ART_RGB(200, 150, 60) :
+                            Prop == TerrainProp_Fence ? ART_RGB(240, 220, 160) :
+                            Prop == TerrainProp_Log ? ART_RGB(110, 60, 20) :
                             ART_RGB(20, 60, 20);
                     }
                     if (X == 0 && Y == 0)
