@@ -354,6 +354,18 @@ HighestGroundAround(world *World, v2 Position, float Reach)
     return Result;
 }
 
+// NOTE(zoubir): what a hovering entity (flyer, familiar) keeps its height
+// above: the raised ground within a tile, and whatever it is over now (a
+// crate, a log), since it sets its height directly and would sink into it
+inline float
+GetHoverBase(world *World, world_entity *Entity)
+{
+    float Result = Maximum(Entity->GroundZ,
+                           HighestGroundAround(World, Entity->Position.XY,
+                                               (float)World->TileWidth));
+    return Result;
+}
+
 // NOTE(zoubir): the map whose name starts with Name, ignoring case and
 // spaces ("keep", "frostbite", "ashen wastes"); Fallback when none does
 internal map_id

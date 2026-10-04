@@ -214,7 +214,7 @@ UpdateMonster(world_entity *Entity, world *World,
         // NOTE(zoubir): over the highest ground nearby, so a flyer rises
         // before it reaches a cliff and never sinks into one
         float Hover = Stats->FlyHeight + 4.f * Sin(Entity->tFlying) +
-            HighestGroundAround(World, Entity->Position.XY, (float)World->TileWidth);
+            GetHoverBase(World, Entity);
         float Step = MONSTER_FLYER_CLIMB_SPEED * DeltaTime;
         float Gap = Hover - Entity->Position.Z;
         v3 OldPosition = Entity->Position;
@@ -286,7 +286,7 @@ UpdateFamiliar(world_entity *Entity, world *World,
     }
     v3 OldPosition = Entity->Position;
     Entity->Position.Z = 30 + 4.f * Sin(Entity->tFlying) +
-        HighestGroundAround(World, Entity->Position.XY, (float)World->TileWidth);
+        GetHoverBase(World, Entity);
     CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Entity);
     
 #if 0        
