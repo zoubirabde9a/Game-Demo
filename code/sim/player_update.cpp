@@ -78,7 +78,6 @@ GetPlayerAim(world_entity *Player)
 #include "player_abilities/sword.cpp"
 #include "player_abilities/fireball.cpp"
 #include "player_abilities/jump.cpp"
-#include "player_abilities/shockwave.cpp"
 #include "player_abilities/area_abilities.cpp"
 #include "player_abilities/dash.cpp"
 #include "player_abilities/blink.cpp"
@@ -94,7 +93,6 @@ UsePlayerAbilities(app_state *AppState, world *World, memory_arena *Arena,
     world_entity *Player = Slot->Entity;
     player_input *Input = &Slot->Input;
     UseJump(AppState, Player, Input, Tick);
-    UseShockwave(AppState, World, Player, Input, DeltaTime);
     UseAreaAbilities(AppState, World, Player, Input, DeltaTime, Tick);
     UseDash(AppState, Player, Input, DeltaTime);
     UseBlink(AppState, World, Arena, Player, Input, DeltaTime);

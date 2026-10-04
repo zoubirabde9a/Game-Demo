@@ -5,7 +5,7 @@
    a cooldown bar outside that table adds a case here; either way the
    protocol's NET_COOLDOWN_COUNT grows. */
 
-#define PLAYER_COOLDOWN_COUNT (3 + PLAYER_AREA_ABILITY_COUNT)
+#define PLAYER_COOLDOWN_COUNT (2 + PLAYER_AREA_ABILITY_COUNT)
 
 // NOTE(zoubir): the field holding cooldown Index, and its full length
 internal float *
@@ -14,10 +14,9 @@ PlayerCooldown(world_entity *Player, u32 Index, float *Full)
     switch (Index)
     {
         case 0: *Full = PLAYER_DASH_COOLDOWN; return &Player->DashCooldown;
-        case 1: *Full = PLAYER_SHOCKWAVE_COOLDOWN; return &Player->ShockwaveCooldown;
-        case 2: *Full = PLAYER_BLINK_COOLDOWN; return &Player->BlinkCooldown;
+        case 1: *Full = PLAYER_BLINK_COOLDOWN; return &Player->BlinkCooldown;
     }
-    u32 Area = Index - 3;
+    u32 Area = Index - 2;
     if (Area < PLAYER_AREA_ABILITY_COUNT)
     {
         *Full = PlayerAreaAbilities[Area].Cooldown;

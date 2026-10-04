@@ -26,6 +26,20 @@ FindFirstOfType(world *World, entity_type Type)
     return Result;
 }
 
+// NOTE(zoubir): how many bursts of Kind the simulation asked for since the
+// queue was last emptied
+internal u32
+CountBursts(app_state *AppState, sim_burst Kind)
+{
+    u32 Result = 0;
+    for(u32 Index = 0; Index < AppState->Events.Count; Index++)
+    {
+        sim_event *Event = &AppState->Events.Events[Index];
+        Result += (Event->Type == SimEvent_Burst && Event->Burst == Kind);
+    }
+    return Result;
+}
+
 // NOTE(zoubir): runs the slot's player for Frames ticks; presses only
 // count on the first
 internal animation_direction
@@ -135,33 +149,21 @@ TestPlayerWalksDuringSwing()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a shockwave asks clients for one ring, and none while
+// it recharges
 internal void
 TestShockwaveStartsOneRing()
 {
     test_world Test = CreateTestWorld();
     app_state *AppState = Test.AppState;
-    world_entity *Local = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
-                                          0, {300, 300, 0});
-    world_entity *Replica = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
-                                            1, {600, 300, 0});
-    shockwave_rings Fx = {};
-    float Dt = 1.f / 60.f;
-    Local->ShockwaveFlash = SHOCKWAVE_FLASH_SECONDS;
-    UpdateShockwaveRings(&Fx, AppState, Dt);
-    UpdateShockwaveRings(&Fx, AppState, Dt);
-    Check(Fx.Count == 1);
-
-    // NOTE(zoubir): a server's replica carries the flag in AbilityIndex
-    Replica->AbilityIndex = PLAYER_FLASH_SHOCKWAVE;
-    UpdateShockwaveRings(&Fx, AppState, Dt);
-    Check(Fx.Count == 2);
-    Check(Fx.Rings[1].Center.X == 600.f);
-
-    for(u32 Frame = 0; Frame < 60; Frame++)
-    {
-        UpdateShockwaveRings(&Fx, AppState, Dt);
-    }
-    Check(Fx.Count == 0);
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    AppState->Events.Count = 0;
+    AppState->Players[0].Input.Pressed = PlayerButton_Shockwave;
+    RunPlayerFrames(&Test, 0, 2);
+    AppState->Players[0].Input.Pressed = PlayerButton_Shockwave;
+    RunPlayerFrames(&Test, 0, 2);
+    Check(CountBursts(AppState, SimBurst_ShockwaveRing) == 1);
+    Check(CountBursts(AppState, SimBurst_CastGather) == 0);
     DestroyTestWorld(&Test);
 }
 
@@ -767,7 +769,7 @@ TestDashCutsAreaCast()
     AppState->Players[0].Input.Pressed = PlayerButton_Dash;
     RunPlayerFrames(&Test, 0, 30);
     Check(Target->Hp == 100.f);
-    Check(Player->AreaCooldowns[1] > 0.f);
+    Check(Player->AreaCooldowns[PlayerArea_Launch] > 0.f);
     DestroyTestWorld(&Test);
 }
 
@@ -787,20 +789,6 @@ TestStunnedPlayerCannotAct()
     Check(Absolute(Player->Position.X - 300.f) < 0.5f);
     Check(Player->Position.Z == 0.f);
     DestroyTestWorld(&Test);
-}
-
-// NOTE(zoubir): how many bursts of Kind the simulation asked for since the
-// queue was last emptied
-internal u32
-CountBursts(app_state *AppState, sim_burst Kind)
-{
-    u32 Result = 0;
-    for(u32 Index = 0; Index < AppState->Events.Count; Index++)
-    {
-        sim_event *Event = &AppState->Events.Events[Index];
-        Result += (Event->Type == SimEvent_Burst && Event->Burst == Kind);
-    }
-    return Result;
 }
 
 // NOTE(zoubir): a second jump, a Launch and the hard landings each ask for

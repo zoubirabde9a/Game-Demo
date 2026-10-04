@@ -8,9 +8,8 @@
 // NOTE(zoubir): how long a dead player stays out before coming back
 #define PLAYER_RESPAWN_SECONDS 3.f
 // NOTE(zoubir): bit the server sets in a player's snapshot Ability (the
-// replica's AbilityIndex) while its shockwave ring shows
-#define PLAYER_FLASH_SHOCKWAVE 1
-#define PLAYER_FLASH_DASH 2
+// replica's AbilityIndex) while its dash streak shows
+#define PLAYER_FLASH_DASH 1
 // NOTE(zoubir): the cursor distance player_input.Aim can tell apart; the
 // blink range
 #define PLAYER_AIM_REACH 160.f

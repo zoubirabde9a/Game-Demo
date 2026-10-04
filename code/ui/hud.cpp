@@ -81,7 +81,7 @@ DrawHud(render_context *RenderContext, app_state *AppState,
     // Ability bars under the health bar, one per cooldown in
     // sim/player_cooldowns.cpp, each with its key below it. A bar fills
     // back up while recharging and turns the accent colour when ready.
-    char *Keys[PLAYER_COOLDOWN_COUNT] = {"Alt", "E", "F", "R", "A"};
+    char *Keys[PLAYER_COOLDOWN_COUNT] = {"Alt", "F", "E", "R", "A"};
     u32 AbilityCount = PLAYER_COOLDOWN_COUNT;
     float BarGap = 10.f;
     float BarWidth = (Width - BarGap * (AbilityCount - 1)) / AbilityCount;

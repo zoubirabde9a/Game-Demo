@@ -2,8 +2,10 @@
    with different numbers. After a short cast (the player is slowed and
    shows the cast pose), every monster and other player in an area is hit:
    damage, a shove away from the area's centre or along the aim, a kick
-   into the air, and a stun. A new one is a row in PlayerAreaAbilities, a
-   button in player.h and a key in client/keyboard_input.cpp; no code.
+   into the air, and a stun. Shockwave is the instant one: no cast, a ring
+   around the player. A new one is a row in PlayerAreaAbilities (and its
+   name in player_area), a button in player.h and a key in
+   client/action_keys.cpp; no code.
 
    The cast can be cut short by a dash or a blink, which keeps the
    cooldown spent. While it lasts the player keeps the aim it started
@@ -35,8 +37,21 @@ struct player_area_ability
 // NOTE(zoubir): walk speed while casting
 #define PLAYER_AREA_CAST_MOVE_SCALE 0.35f
 
-global_variable player_area_ability PlayerAreaAbilities[] =
+// NOTE(zoubir): the rows of PlayerAreaAbilities, in order
+enum player_area
 {
+    PlayerArea_Shockwave,
+    PlayerArea_Push,
+    PlayerArea_Launch,
+    PlayerArea_Count
+};
+
+global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
+{
+    // NOTE(zoubir): Shockwave (E): at once, everything within 90 units
+    // takes 40 and is thrown away from the player
+    {PlayerButton_Shockwave, 0.f, 4.f, 0.f, 90.f, -1.f, 40.f, 500.f, 0.f, 0.f,
+     SimBurst_ShockwaveRing},
     // NOTE(zoubir): Push (R): a quick wide cone that throws a crowd off
     // the player and apart, out of each other's way
     {PlayerButton_Push, 0.12f, 2.5f, 0.f, 110.f, 0.34f, 10.f, 750.f, 0.f, 0.3f,
@@ -47,7 +62,7 @@ global_variable player_area_ability PlayerAreaAbilities[] =
     {PlayerButton_Launch, 0.3f, 5.f, 70.f, 55.f, -1.f, 20.f, 60.f, 420.f, 1.6f,
      SimBurst_LaunchColumn},
 };
-#define PLAYER_AREA_ABILITY_COUNT ArrayCount(PlayerAreaAbilities)
+#define PLAYER_AREA_ABILITY_COUNT PlayerArea_Count
 
 // NOTE(zoubir): the hit, at the end of the cast
 internal u32
@@ -130,8 +145,11 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
                 Player->AnimationState.SlotIndex = 0;
                 EmitSound(&AppState->Events, AssetType_FireCast,
                           Player->Position);
-                EmitBurst(&AppState->Events, SimBurst_CastGather,
-                          (u8)Player->PlayerIndex, Player->Position);
+                if (Ability->CastTime > 0.f)
+                {
+                    EmitBurst(&AppState->Events, SimBurst_CastGather,
+                              (u8)Player->PlayerIndex, Player->Position);
+                }
                 break;
             }
         }
@@ -141,7 +159,10 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
         return;
     }
 
-    Tick->Acceleration *= PLAYER_AREA_CAST_MOVE_SCALE;
+    if (Player->AreaCastLeft > 0.f)
+    {
+        Tick->Acceleration *= PLAYER_AREA_CAST_MOVE_SCALE;
+    }
     Player->AreaCastLeft -= DeltaTime;
     if (Player->AreaCastLeft <= 0.f)
     {
@@ -155,10 +176,6 @@ UseAreaAbilities(app_state *AppState, world *World, world_entity *Player,
         Centre.Z = 0.f;
         EmitBurst(&AppState->Events, Ability->Burst, (u8)Player->PlayerIndex,
                   Centre, ATan2(Aim.Y, Aim.X));
-        if (Ability->Reach == 0.f)
-        {
-            Player->ShockwaveFlash = SHOCKWAVE_FLASH_SECONDS;
-        }
         EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
     }
 }

@@ -29,8 +29,9 @@ struct burst_look
     bool32 Predicted;
 };
 
-// NOTE(zoubir): one row per sim_burst, in its order; Push's and Launch's
-// radii match their rows in sim/player_abilities/area_abilities.cpp
+// NOTE(zoubir): one row per sim_burst, in its order; the radii of the
+// area abilities' bursts match their rows in
+// sim/player_abilities/area_abilities.cpp
 global_variable burst_look BurstLooks[SimBurst_Count] =
 {
     {BurstShape_Gather, 0.25f, 46.f, 0x00FF90D0, false}, // CastGather, violet
@@ -38,6 +39,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Column, 0.6f, 55.f, 0x0040C0FF, false},  // LaunchColumn, amber
     {BurstShape_Ring, 0.25f, 26.f, 0x00FFFFFF, true},    // AirJump, white
     {BurstShape_Puff, 0.4f, 24.f, 0x0090B0C0, true},     // Land, dust
+    {BurstShape_Ring, 0.35f, 90.f, 0x00FFE8B0, false},   // ShockwaveRing, pale blue
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these

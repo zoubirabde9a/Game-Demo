@@ -213,6 +213,16 @@ TestHazardAimedOffMapLandsOnIt()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): Shockwave's hit, as the area ability table fires it
+internal u32
+FireShockwave(app_state *AppState, world *World, world_entity *Source)
+{
+    u32 Result = FireAreaAbility(AppState, World, Source,
+                                 &PlayerAreaAbilities[PlayerArea_Shockwave],
+                                 V2(1.f, 0.f));
+    return Result;
+}
+
 internal void
 TestShockwaveHitsOnlyNearbyMonsters()
 {
@@ -221,24 +231,23 @@ TestShockwaveHitsOnlyNearbyMonsters()
                                          {300, 300, 0}, Test.UnitVolume);
     world_entity *Weak = AddTestEntity(&Test, EntityType_Monster,
                                        {350, 300, 0}, Test.UnitVolume);
-    Weak->MaxHp = Weak->Hp = SHOCKWAVE_DAMAGE;
+    Weak->MaxHp = Weak->Hp = PlayerAreaAbilities[PlayerArea_Shockwave].Damage;
     world_entity *Tough = AddTestEntity(&Test, EntityType_Monster,
                                         {300, 360, 0}, Test.UnitVolume);
     Tough->MaxHp = Tough->Hp = 100.f;
     world_entity *Far = AddTestEntity(&Test, EntityType_Monster,
-                                      {300 + SHOCKWAVE_RADIUS + 20.f, 300, 0},
+                                      {300 + PlayerAreaAbilities[PlayerArea_Shockwave].Radius + 20.f, 300, 0},
                                       Test.UnitVolume);
     Far->MaxHp = Far->Hp = 100.f;
 
-    u32 Hits = TriggerShockwave(Test.AppState, Test.World, Player);
+    u32 Hits = FireShockwave(Test.AppState, Test.World, Player);
     Check(Hits == 2);
     Check(!Weak->IsPresent);
     Check(Test.AppState->Players[Player->PlayerIndex].MonsterKills == 1);
-    Check(Tough->Hp == 100.f - SHOCKWAVE_DAMAGE);
+    Check(Tough->Hp == 100.f - PlayerAreaAbilities[PlayerArea_Shockwave].Damage);
     // NOTE(zoubir): thrown away from the player, which is above it
     Check(Tough->Velocity.Y > 0.f);
     Check(Far->Hp == 100.f);
-    Check(Player->ShockwaveFlash > 0.f);
     DestroyTestWorld(&Test);
 }
 
@@ -492,10 +501,10 @@ TestShockwaveHitsOtherPlayersNotSource()
                                            0, {300, 300, 0});
     world_entity *Other = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
                                           1, {350, 300, 0});
-    u32 Hits = TriggerShockwave(AppState, Test.World, Source);
+    u32 Hits = FireShockwave(AppState, Test.World, Source);
     Check(Hits == 1);
     Check(Source->Hp == Source->MaxHp);
-    Check(Other->Hp == Other->MaxHp - SHOCKWAVE_DAMAGE);
+    Check(Other->Hp == Other->MaxHp - PlayerAreaAbilities[PlayerArea_Shockwave].Damage);
     Check(Other->Velocity.X > 0.f);
     DestroyTestWorld(&Test);
 }
@@ -544,7 +553,7 @@ TestDeadPlayerIsInertUntilRespawn()
     // NOTE(zoubir): the body neither blocks nor takes more hits
     Walk(&Test, Walker, {1, 0}, 120);
     Check(Walker->Position.X > 430.f);
-    Check(TriggerShockwave(AppState, Test.World, Walker) == 0);
+    Check(FireShockwave(AppState, Test.World, Walker) == 0);
     Check(AppState->Players[0].Deaths == 1);
 
     float DeltaTime = 1.f / 60.f;

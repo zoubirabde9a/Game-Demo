@@ -32,6 +32,7 @@ enum sim_burst
     SimBurst_LaunchColumn, // Launch's burst on the ground
     SimBurst_AirJump,      // a ring under a player's feet, the second jump
     SimBurst_Land,         // dust where a unit lands hard
+    SimBurst_ShockwaveRing, // a ring around a player, Shockwave's reach
     SimBurst_Count
 };
 
