@@ -25,13 +25,14 @@ GetMoveBox(world_entity *Entity, v3 From, v3 Delta)
 }
 
 // NOTE(zoubir): whether Entity's sweep can hit Other at all: not itself,
-// not a dead player's body, and both the type table and any pairwise rule
-// allow it
+// not a dead player's body, not a unit while the mover is phasing (a
+// blink), and both the type table and any pairwise rule allow it
 inline bool32
 CanSweepAgainst(app_state *AppState, world_entity *Entity, world_entity *Other)
 {
     bool32 Result = (Other != Entity &&
                      !IsDeadPlayer(Other) &&
+                     !(Entity->Phasing && IsWalkingUnit(Other)) &&
                      CanCollide(AppState, Entity, Other) &&
                      CanCollide(AppState, Entity->Type, Other->Type));
     return Result;

@@ -69,9 +69,11 @@ DashMotion(app_state *AppState, world *World, memory_arena *Arena,
 }
 
 // NOTE(zoubir): a jump through space to the cursor, at most Power away.
-// It is swept like any move, so it stops at the first wall or unit on
+// It passes through monsters and players (Phasing) but is swept like any
+// move against the rest, so it stops at the first wall, tree or rock on
 // the way (sliding along it) rather than landing inside, and keeps the
-// player's speed
+// player's speed. Landing inside a unit is undone by separation at the
+// end of the tick
 internal bool32
 BlinkMotion(app_state *AppState, world *World, memory_arena *Arena,
             world_entity *Player, player_input *Input, float DeltaTime,
@@ -83,8 +85,10 @@ BlinkMotion(app_state *AppState, world *World, memory_arena *Arena,
     v3 Velocity = Player->Velocity;
     Player->Velocity = V3(0.f, 0.f, 0.f);
     Player->Velocity.XY = (Distance / DeltaTime) * GetPlayerAim(Player);
+    Player->Phasing = true;
     MoveEntity(Player, World, Arena, DeltaTime, AppState, V3(0.f, 0.f, 0.f),
                &Distance);
+    Player->Phasing = false;
     Player->Velocity = Velocity;
     return true;
 }

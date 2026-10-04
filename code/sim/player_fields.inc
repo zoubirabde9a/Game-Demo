@@ -36,6 +36,9 @@
     // NOTE(zoubir): seconds left in which a respawned player cannot be hurt
     // or shoved (players.cpp)
     float SpawnShield;
+    // NOTE(zoubir): set only during a blink's sweep: units do not stop it
+    // (move.cpp CanSweepAgainst)
+    bool32 Phasing;
     // NOTE(zoubir): the sword combo (sword.cpp): which hit of SwordCombo
     // the last swing was, and the seconds left to swing the next. A sword
     // entity carries the step it was swung with in ComboStep too

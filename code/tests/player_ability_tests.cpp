@@ -1518,6 +1518,27 @@ TestHitCounter()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a blink passes through a monster in the way and lands
+// beyond it; a wall still stops it
+internal void
+TestBlinkPassesThroughUnits()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *InTheWay = AddTestEntity(&Test, EntityType_Monster,
+                                           {340, 300, 0}, Test.UnitVolume);
+    InTheWay->MaxHp = InTheWay->Hp = 100.f;
+    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Blink;
+    RunPlayerFrames(&Test, 0, 1);
+    Check(Player->Position.X > 400.f);
+    Check(!Player->Phasing);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1613,4 +1634,6 @@ RunPlayerAbilityTests()
     TestDashStrike();
     printf("TestHitCounter\n");
     TestHitCounter();
+    printf("TestBlinkPassesThroughUnits\n");
+    TestBlinkPassesThroughUnits();
 }
