@@ -58,13 +58,7 @@ DashMotion(app_state *AppState, world *World, memory_arena *Arena,
            world_entity *Player, player_input *Input, float DeltaTime,
            float Power)
 {
-    v2 Dir = GetPlayerAim(Player);
-    float HeldSquared = LengthSq(Input->Move);
-    if (HeldSquared > 0.0001f)
-    {
-        Dir = Input->Move * (1.f / SquareRoot(HeldSquared));
-    }
-    Player->Velocity.XY = Power * Dir;
+    Player->Velocity.XY = Power * NormalizeOr(Input->Move, GetPlayerAim(Player));
     if (!IsOnGround(Player))
     {
         Player->Velocity.Z = Maximum(Player->Velocity.Z, PLAYER_AIR_DASH_LIFT);

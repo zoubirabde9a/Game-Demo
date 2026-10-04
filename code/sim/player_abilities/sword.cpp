@@ -85,14 +85,9 @@ SwordHit(app_state *AppState, world *World, world_entity *Sword,
     {
         From = Swinger->Position.XY;
     }
-    v2 Away = Target->Position.XY - From;
-    float Distance = Length(Away);
-    Away = Distance > 0.f ? Away * (1.f / Distance) : Sword->CastingDirection;
     // NOTE(zoubir): a thrust shoves along itself, not out of its line
-    if (Sword->ComboStep == SwordCut_Lunge)
-    {
-        Away = Sword->CastingDirection;
-    }
+    v2 Away = Sword->ComboStep == SwordCut_Lunge ? Sword->CastingDirection :
+        NormalizeOr(Target->Position.XY - From, Sword->CastingDirection);
     u32 Cut = Sword->ComboStep < SwordCut_Count ? Sword->ComboStep :
         SwordCut_Finisher;
     ApplyHit(AppState, World, Target, &SwordCuts[Cut].Hit, Away,
@@ -121,12 +116,22 @@ SwingSwordCut(app_state *AppState, world *World, memory_arena *Arena,
     return Sword;
 }
 
+// NOTE(zoubir): the swinger steps toward Dir this tick, at
+// SWORD_STEP_SCALE of a run
+#define SWORD_STEP_SCALE 0.6f
+
+inline void
+StepIntoSwing(player_tick *Tick, v2 Dir)
+{
+    Tick->Acceleration *= SWORD_STEP_SCALE;
+    Tick->DDPlayer.XY = Dir;
+}
+
 internal void
 SpawnSwordSwing(app_state *AppState, world *World, memory_arena *Arena,
                 world_entity *Player, v2 Dir, player_tick *Tick)
 {
-    Tick->Acceleration *= 0.6f;
-    Tick->DDPlayer.XY = Dir;
+    StepIntoSwing(Tick, Dir);
     Player->ComboStep = Player->ComboTimer > 0.f ?
         (Player->ComboStep + 1) % SWORD_CHAIN_LENGTH : 0;
     Player->ComboTimer = SWORD_COMBO_WINDOW;

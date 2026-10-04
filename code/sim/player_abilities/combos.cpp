@@ -40,17 +40,25 @@ struct player_combo
     player_combo_function *Fire;
 };
 
-// NOTE(zoubir): Lunge (dash, attack): a long thrust instead of the swing,
-// with no root, so the dash carries the player through what it hits. It
-// counts as the chain's first cut, so two more swings finish the chain
+// NOTE(zoubir): a thrust of Cut instead of the swing, with no root, so
+// the dash carries the player through what it hits. It counts as the
+// chain's first cut, so two more swings finish the chain
+internal void
+SwingThrust(app_state *AppState, world *World, memory_arena *Arena,
+            world_entity *Player, v2 Aim, u32 Cut)
+{
+    SwingSwordCut(AppState, World, Arena, Player, Aim, Cut);
+    Player->ComboStep = SwordCut_First;
+    Player->ComboTimer = SWORD_COMBO_WINDOW;
+    Player->ActionLock = 0.f;
+}
+
+// NOTE(zoubir): Lunge (dash, attack): a long thrust
 internal void
 ComboLunge(app_state *AppState, world *World, memory_arena *Arena,
            world_entity *Player, v2 Aim, player_tick *Tick)
 {
-    SwingSwordCut(AppState, World, Arena, Player, Aim, SwordCut_Lunge);
-    Player->ComboStep = SwordCut_First;
-    Player->ComboTimer = SWORD_COMBO_WINDOW;
-    Player->ActionLock = 0.f;
+    SwingThrust(AppState, World, Arena, Player, Aim, SwordCut_Lunge);
 }
 
 // NOTE(zoubir): Skewer (jump, dash, attack): the lunge from the air,
@@ -59,10 +67,7 @@ internal void
 ComboSkewer(app_state *AppState, world *World, memory_arena *Arena,
             world_entity *Player, v2 Aim, player_tick *Tick)
 {
-    SwingSwordCut(AppState, World, Arena, Player, Aim, SwordCut_Skewer);
-    Player->ComboStep = SwordCut_First;
-    Player->ComboTimer = SWORD_COMBO_WINDOW;
-    Player->ActionLock = 0.f;
+    SwingThrust(AppState, World, Arena, Player, Aim, SwordCut_Skewer);
 }
 
 // NOTE(zoubir): Ambush (blink, attack): the swing after a blink is the
@@ -71,8 +76,7 @@ internal void
 ComboAmbush(app_state *AppState, world *World, memory_arena *Arena,
             world_entity *Player, v2 Aim, player_tick *Tick)
 {
-    Tick->Acceleration *= 0.6f;
-    Tick->DDPlayer.XY = Aim;
+    StepIntoSwing(Tick, Aim);
     SwingSwordCut(AppState, World, Arena, Player, Aim, SwordCut_Finisher);
     Player->ComboStep = SwordCut_Finisher;
     Player->ComboTimer = SWORD_COMBO_WINDOW;
@@ -90,19 +94,12 @@ internal void
 ComboCuttingDash(app_state *AppState, world *World, memory_arena *Arena,
                  world_entity *Player, v2 Aim, player_tick *Tick)
 {
-    v2 Dir = Aim;
-    float Speed = Length(Player->Velocity.XY);
-    if (Speed > 1.f)
-    {
-        Dir = Player->Velocity.XY * (1.f / Speed);
-    }
+    v2 Dir = NormalizeOr(Player->Velocity.XY, Aim);
     v2 Start = Player->Position.XY;
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Target = &World->Entities[EntityIndex];
-        if (!Target->IsPresent || Target == Player || IsDeadPlayer(Target) ||
-            (Target->Type != EntityType_Monster &&
-             Target->Type != EntityType_Player))
+        if (!IsHitTarget(Target, Player))
         {
             continue;
         }
@@ -111,13 +108,11 @@ ComboCuttingDash(app_state *AppState, world *World, memory_arena *Arena,
         v2 Side = To - Along * Dir;
         float Width = Target->Collision ?
             Target->Collision->TotalVolume.HalfDims.X : 0.f;
-        float SideLength = Length(Side);
-        if (SideLength - Width > CUTTING_DASH_RADIUS)
+        if (Length(Side) - Width > CUTTING_DASH_RADIUS)
         {
             continue;
         }
-        v2 Away = SideLength > 0.001f ? Side * (1.f / SideLength) :
-            V2(-Dir.Y, Dir.X);
+        v2 Away = NormalizeOr(Side, V2(-Dir.Y, Dir.X));
         ApplyHit(AppState, World, Target, &CuttingDashHit, Away,
                  Player, Player->PlayerIndex);
     }
@@ -141,9 +136,9 @@ ComboFlameFan(app_state *AppState, world *World, memory_arena *Arena,
     }
 }
 
-// NOTE(zoubir): the least speed a long jump leaves with (a walk is about
-// 260, a dash starts at 1300), and the share of the air drag left until
-// it lands (movement.cpp)
+// NOTE(zoubir): the least speed a long jump leaves with (a run is 260, a
+// dash starts at 1440), and the share of the air drag left until it
+// lands (movement.cpp)
 #define LONG_JUMP_SPEED (380.f * PLAYER_MOVE_SCALE)
 #define LONG_JUMP_DRAG_SCALE 0.2f
 
@@ -153,13 +148,9 @@ internal void
 ComboLongJump(app_state *AppState, world *World, memory_arena *Arena,
               world_entity *Player, v2 Aim, player_tick *Tick)
 {
-    v2 Dir = Aim;
     float Speed = Length(Player->Velocity.XY);
-    if (Speed > 1.f)
-    {
-        Dir = Player->Velocity.XY * (1.f / Speed);
-    }
-    Player->Velocity.XY = Maximum(Speed, LONG_JUMP_SPEED) * Dir;
+    Player->Velocity.XY = Maximum(Speed, LONG_JUMP_SPEED) *
+        NormalizeOr(Player->Velocity.XY, Aim);
     Player->LongJump = true;
 }
 
