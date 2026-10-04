@@ -50,7 +50,7 @@
 #define BODY_STRETCH_SPEED 900.f
 #define BODY_STRETCH_MAX 0.16f
 // NOTE(zoubir): ground speed at which a body starts to stretch sideways
-// (a player's full run is 260, a dash 1300, a Push throws at 750), and
+// (a player's full run is 260, a dash 1440, a Push throws at 750), and
 // where the stretch is full
 #define BODY_RUSH_SPEED 300.f
 #define BODY_RUSH_FULL_SPEED 700.f

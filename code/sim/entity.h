@@ -112,16 +112,14 @@ struct entity_collision_volume_group
     entity_collision_volume *Volumes;
 };
 
-// NOTE(zoubir): walking accelerations (PLAYER_ACCELERATION, a monster's
-// Acceleration) are tuned per 1/60 s step; the push is scaled by this, not
-// by the frame time. Scaling by the frame time made speed grow with it:
-// the 30 fps client walked twice as fast as the 60 Hz server, so online
-// prediction ran ahead and was pulled back at every snapshot
+// NOTE(zoubir): walking accelerations of monsters and other units (an
+// Acceleration; the player's walk is in player_stats.cpp) are tuned per
+// 1/60 s step; the push is scaled by this, not by the frame time.
+// Scaling by the frame time made speed grow with it: the 30 fps client
+// walked twice as fast as the 60 Hz server, so online prediction ran
+// ahead and was pulled back at every snapshot
 #define ACCELERATION_STEP (1.f / 60.f)
 
-#define SWORD_DAMAGE 25.f
-// NOTE(zoubir): speed added to a sword's survivor, away from the swinger
-#define SWORD_KNOCKBACK 280.f
 // NOTE(zoubir): a swing hits what is within SWORD_REACH of the swinger and
 // within SWORD_HALF_ANGLE (about 70 degrees) of the aim, at any angle; the
 // sword entity sits SWORD_OFFSET toward the aim. The client's swing arc is
@@ -129,7 +127,6 @@ struct entity_collision_volume_group
 #define SWORD_REACH 46.f
 #define SWORD_HALF_ANGLE 1.22f
 #define SWORD_OFFSET 16.f
-#define FIREBALL_DAMAGE 25.f
 
 // NOTE(zoubir): monster kinds, abilities and status effects
 #include "monster_types.h"
