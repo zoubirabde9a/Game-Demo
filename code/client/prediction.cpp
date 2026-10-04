@@ -14,7 +14,10 @@
    throws and launches included; they carry no jumps spent, waiting jump
    press or cast under way, so each input keeps those as they were after
    it (predicted_body), and a replay starts from the ones the server last
-   acknowledged (without, replayed double jumps were refused). Each recorded input keeps which buttons went down on it, worked
+   acknowledged (without, replayed double jumps were refused). The combo
+   trail is kept the same way, and attack and cast presses, which only
+   the server runs, still mark it (player_input.ServerPressed), so a
+   predicted dash knows a swing came before it. Each recorded input keeps which buttons went down on it, worked
    out the same way the server does, and the cooldowns the server sends
    say whether the movement abilities are ready; UpdatePlayer counts them
    down as it steps, replays included. Area casts are predicted too (the
@@ -49,6 +52,10 @@ struct predicted_body
     u32 CastingArea;
     float AreaCastLeft;
     v2 CastingDirection;
+    // NOTE(zoubir): the combo trail and a long jump under way (combos.cpp)
+    u32 ComboTrail[PLAYER_COMBO_TRAIL];
+    float ComboTrailAge[PLAYER_COMBO_TRAIL];
+    bool32 LongJump;
 };
 
 inline predicted_body
@@ -61,6 +68,12 @@ SavePredictedBody(world_entity *Player)
     Result.CastingArea = Player->CastingArea;
     Result.AreaCastLeft = Player->AreaCastLeft;
     Result.CastingDirection = Player->CastingDirection;
+    for(u32 Index = 0; Index < PLAYER_COMBO_TRAIL; Index++)
+    {
+        Result.ComboTrail[Index] = Player->ComboTrail[Index];
+        Result.ComboTrailAge[Index] = Player->ComboTrailAge[Index];
+    }
+    Result.LongJump = Player->LongJump;
     return Result;
 }
 
@@ -78,6 +91,12 @@ RestorePredictedBody(world_entity *Player, predicted_body *Body)
     Player->CastingArea = Body->CastingArea;
     Player->AreaCastLeft = Body->AreaCastLeft;
     Player->CastingDirection = Body->CastingDirection;
+    for(u32 Index = 0; Index < PLAYER_COMBO_TRAIL; Index++)
+    {
+        Player->ComboTrail[Index] = Body->ComboTrail[Index];
+        Player->ComboTrailAge[Index] = Body->ComboTrailAge[Index];
+    }
+    Player->LongJump = Body->LongJump;
 }
 
 struct predicted_input
@@ -195,8 +214,9 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     Slot->Input = {};
     Slot->Input.Move = MoveFromNetButtons(Input->Buttons);
     Slot->Input.Aim = Input->Aim;
-    Slot->Input.Pressed = ((u32)Input->Pressed >> PLAYER_BUTTON_NET_SHIFT) &
-        PredictedButtons();
+    u32 Pressed = (u32)Input->Pressed >> PLAYER_BUTTON_NET_SHIFT;
+    Slot->Input.Pressed = Pressed & PredictedButtons();
+    Slot->Input.ServerPressed = Pressed & ~PredictedButtons();
     float AnimationSpeed;
     animation_type AnimationType;
     animation_direction AnimationDirection;

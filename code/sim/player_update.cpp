@@ -28,7 +28,9 @@
    (area_abilities.cpp), spawn actions such as the sword and fireball
    (spawn_actions.cpp) and movement abilities (movement_abilities.cpp).
    A new ability is usually a row in one of them, a button in player.h
-   and a key in client/action_keys.cpp. Jump is its own file. */
+   and a key in client/action_keys.cpp. Jump is its own file. Every move
+   also goes through RunPlayerCombo (combos.cpp), which turns some
+   orders of moves into combos: dash then attack is a lunge. */
 
 #define PLAYER_ACCELERATION 78000.f
 
@@ -77,6 +79,11 @@ GetPlayerAim(world_entity *Player)
     return Result;
 }
 
+// NOTE(zoubir): every move calls it as it starts (combos.cpp, below)
+internal bool32 RunPlayerCombo(app_state *AppState, world *World,
+                               memory_arena *Arena, world_entity *Player,
+                               combo_move Move, player_tick *Tick);
+
 #include "player_abilities/hits.cpp"
 #include "player_abilities/sword.cpp"
 #include "player_abilities/fireball.cpp"
@@ -84,6 +91,7 @@ GetPlayerAim(world_entity *Player)
 #include "player_abilities/jump.cpp"
 #include "player_abilities/area_abilities.cpp"
 #include "player_abilities/movement_abilities.cpp"
+#include "player_abilities/combos.cpp"
 
 #include "player_update/actions.cpp"
 #include "player_update/movement.cpp"
@@ -95,9 +103,9 @@ UsePlayerAbilities(app_state *AppState, world *World, memory_arena *Arena,
 {
     world_entity *Player = Slot->Entity;
     player_input *Input = &Slot->Input;
-    UseJump(AppState, Player, Input, DeltaTime, Tick);
+    UseJump(AppState, World, Arena, Player, Input, DeltaTime, Tick);
     UseAreaAbilities(AppState, World, Player, Input, DeltaTime, Tick);
-    UseMovementAbilities(AppState, World, Arena, Player, Input, DeltaTime);
+    UseMovementAbilities(AppState, World, Arena, Player, Input, DeltaTime, Tick);
 }
 
 internal void
@@ -126,6 +134,7 @@ UpdatePlayer(player_slot *Slot, world *World,
     Player->ActionLock = Maximum(0.f, Player->ActionLock - DeltaTime);
     Player->ComboTimer = Maximum(0.f, Player->ComboTimer - DeltaTime);
     Player->SpawnShield = Maximum(0.f, Player->SpawnShield - DeltaTime);
+    AgeComboTrail(Player, DeltaTime);
     for(u32 Index = 0; Index < PlayerAction_Count; Index++)
     {
         Player->ActionCooldowns[Index] =

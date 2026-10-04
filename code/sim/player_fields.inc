@@ -39,7 +39,7 @@
     // NOTE(zoubir): set only during a blink's sweep: units do not stop it
     // (move.cpp CanSweepAgainst)
     bool32 Phasing;
-    // NOTE(zoubir): the sword combo (sword.cpp): which hit of SwordCombo
+    // NOTE(zoubir): the sword combo (sword.cpp): which cut of SwordCuts
     // the last swing was, and the seconds left to swing the next. A sword
     // entity carries the step it was swung with in ComboStep too
     u32 ComboStep;
@@ -47,3 +47,16 @@
     // NOTE(zoubir): an area ability's row + 1 that fires when the player
     // lands (a slam), 0 for none
     u32 PendingLandArea;
+    // NOTE(zoubir): the combo trail (player_abilities/combos.cpp): the
+    // player's last moves (combo_move), newest first, and the seconds since
+    // each started
+#define PLAYER_COMBO_TRAIL 4
+    u32 ComboTrail[PLAYER_COMBO_TRAIL];
+    float ComboTrailAge[PLAYER_COMBO_TRAIL];
+    // NOTE(zoubir): set by the long jump combo until the player lands: the
+    // air drag is cut so the dash's speed carries (movement.cpp)
+    bool32 LongJump;
+    // NOTE(zoubir): on a sword entity, the slice it hits (update.cpp
+    // IsInSwordSlice), from its cut (sword.cpp SwordCuts)
+    float SwordReach;
+    float SwordHalfAngle;

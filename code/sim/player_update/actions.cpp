@@ -46,6 +46,10 @@ QueuePlayerActions(player_slot *Slot, player_tick *Tick)
         {
             AddPlayerDelayedInput(Slot, (player_action)Index, Action->Linger);
         }
+        else if (Input->ServerPressed & Action->Button)
+        {
+            RecordComboMove(Player, Action->Move);
+        }
     }
 }
 

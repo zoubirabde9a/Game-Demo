@@ -62,14 +62,22 @@ MovePlayer(app_state *AppState, world *World, memory_arena *Arena,
     {
         DDPlayer *= 1.f / SquareRoot(LengthSquared);
     }
-    DDPlayer *= Tick->Acceleration * GetMoveSpeedScale(Player) * ACCELERATION_STEP;
+    // NOTE(zoubir): a long jump (combos.cpp) keeps its speed: the drag is
+    // cut, and the keys' push with it so holding them does not speed up
+    float DragScale = Player->LongJump ? LONG_JUMP_DRAG_SCALE : 1.f;
+    DDPlayer *= DragScale * Tick->Acceleration * GetMoveSpeedScale(Player) *
+        ACCELERATION_STEP;
     // Drag
-    DDPlayer -= (10.f * GetGroundFriction(Player) * Player->Velocity);
+    DDPlayer -= (DragScale * 10.f * GetGroundFriction(Player) * Player->Velocity);
     // Gravity
     DDPlayer.Z = -PLAYER_GRAVITY;
 
     float MaxDistance = 10000.f;
     MoveEntity(Player, World, Arena, DeltaTime, AppState, DDPlayer, &MaxDistance);
+    if (IsOnGround(Player))
+    {
+        Player->LongJump = false;
+    }
     FireAreaOnLanding(AppState, World, Player);
     UpdateVault(AppState, World, Player, Tick, DeltaTime);
 

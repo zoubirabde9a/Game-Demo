@@ -1059,7 +1059,7 @@ TestSwordJugglesAirborneTarget()
                                          {330, 330, 30}, Test.UnitVolume);
     Grounded->MaxHp = Grounded->Hp = Flying->MaxHp = Flying->Hp = 100.f;
     Flying->Velocity.Z = -100.f;
-    player_hit *Hit = &SwordCombo[0].Hit;
+    player_hit *Hit = &SwordCuts[SwordCut_First].Hit;
     ApplyPlayerHit(AppState, Test.World, Grounded, Hit, V2(1.f, 0.f), 0, Attacker);
     ApplyPlayerHit(AppState, Test.World, Flying, Hit, V2(1.f, 0.f), 0, Attacker);
     Check(Grounded->Velocity.Z == 0.f);
@@ -1539,6 +1539,8 @@ TestBlinkPassesThroughUnits()
     DestroyTestWorld(&Test);
 }
 
+#include "player_combo_tests.cpp"
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1636,4 +1638,5 @@ RunPlayerAbilityTests()
     TestHitCounter();
     printf("TestBlinkPassesThroughUnits\n");
     TestBlinkPassesThroughUnits();
+    RunPlayerComboTests();
 }

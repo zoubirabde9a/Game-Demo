@@ -4,7 +4,8 @@
    queue for its turn, and which function makes the thing. Starting one
    is the same for every row (StartSpawnAction); only the spawn differs.
    A new one is a row here, a name in player_action, its spawn function,
-   a button in player.h and a key in client/action_keys.cpp. */
+   a button in player.h and a key in client/action_keys.cpp. A combo
+   that ends in one of these (combos.cpp) spawns instead of its row. */
 
 typedef void player_spawn_function(app_state *AppState, world *World,
                                    memory_arena *Arena, world_entity *Player,
@@ -28,6 +29,8 @@ struct player_spawn_action
     bool32 OnePerAnimation;
     asset_type_id Sound;
     player_spawn_function *Spawn;
+    // NOTE(zoubir): what the combo trail calls it (combos.cpp)
+    combo_move Move;
 };
 
 // NOTE(zoubir): a queued press waits longer than a whole swing (6 frames
@@ -43,13 +46,13 @@ global_variable player_spawn_action PlayerSpawnActions[PlayerAction_Count] =
     // without it every click swung at once
     {PlayerButton_Attack, EntityState_Attacking, AnimationType_Attack,
      0.08f, 0.18f, PLAYER_ACTION_LINGER, true, AssetType_Dash,
-     SpawnSwordSwing},
+     SpawnSwordSwing, ComboMove_Attack},
     // NOTE(zoubir): Fireball (left click), about three a second; with no
     // limit each click restarted the cast animation. A press waits out
     // the whole interval
     {PlayerButton_Cast, EntityState_Casting, AnimationType_Cast,
      0.05f, 0.35f, 0.35f, false, AssetType_FireCast,
-     SpawnFireBall},
+     SpawnFireBall, ComboMove_Cast},
 };
 
 inline bool32
@@ -72,6 +75,10 @@ StartSpawnAction(app_state *AppState, world *World, memory_arena *Arena,
     Player->CastingDirection = Dir;
     Player->AnimationState.SlotIndex = 0;
     *Tick->AnimationType = Action->Animation;
-    Action->Spawn(AppState, World, Arena, Player, Dir, Tick);
+    // NOTE(zoubir): a combo that ends here spawns its own thing instead
+    if (!RunPlayerCombo(AppState, World, Arena, Player, Action->Move, Tick))
+    {
+        Action->Spawn(AppState, World, Arena, Player, Dir, Tick);
+    }
     EmitSound(&AppState->Events, Action->Sound, Player->Position);
 }

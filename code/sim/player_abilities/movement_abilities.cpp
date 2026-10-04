@@ -6,7 +6,8 @@
    cooldown, cuts a swing's or cast's root and an area cast, lights
    DashFlash for its row's FlashSeconds (while it lasts the player cannot
    be hurt or shoved, IsDodging in entity.cpp, and clients draw the
-   streak from it) and plays the dash sound. Only how the body moves differs, one function per row.
+   streak from it), plays the dash sound and then any combo it finishes
+   (combos.cpp). Only how the body moves differs, one function per row.
    A new one is a row here, a name in player_movement, its motion, a
    button in player.h and a key in client/action_keys.cpp. */
 
@@ -38,6 +39,8 @@ struct player_movement_ability
     // streak piles up on one spot, so it lights none
     float FlashSeconds;
     player_motion_function *Motion;
+    // NOTE(zoubir): what the combo trail calls it (combos.cpp)
+    combo_move Move;
 };
 
 #define PLAYER_DASH_FLASH_SECONDS 0.15f
@@ -114,12 +117,13 @@ SlamMotion(app_state *AppState, world *World, memory_arena *Arena,
 global_variable player_movement_ability PlayerMovements[PlayerMove_Count] =
 {
     // NOTE(zoubir): Dash (Alt)
-    {PlayerButton_Dash, 0.8f, 1.f, 650.f, PLAYER_DASH_FLASH_SECONDS, DashMotion},
+    {PlayerButton_Dash, 0.8f, 1.f, 650.f, PLAYER_DASH_FLASH_SECONDS, DashMotion,
+     ComboMove_Dash},
     // NOTE(zoubir): Blink (F), as far as the cursor can reach
     {PlayerButton_Blink, 3.f, 0.5f, PLAYER_AIM_REACH, PLAYER_DASH_FLASH_SECONDS,
-     BlinkMotion},
+     BlinkMotion, ComboMove_Blink},
     // NOTE(zoubir): Slam (C), in the air
-    {PlayerButton_Slam, 2.f, 1.f, 900.f, 0.f, SlamMotion},
+    {PlayerButton_Slam, 2.f, 1.f, 900.f, 0.f, SlamMotion, ComboMove_Slam},
 };
 static_assert(PlayerMove_Count <= PLAYER_MOVEMENT_SLOTS, "one cooldown each");
 
@@ -162,7 +166,7 @@ PlayerMovementButtons()
 internal void
 UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
                      world_entity *Player, player_input *Input,
-                     float DeltaTime)
+                     float DeltaTime, player_tick *Tick)
 {
     Player->DashFlash = Maximum(0.f, Player->DashFlash - DeltaTime);
     for(u32 Index = 0; Index < PlayerMove_Count; Index++)
@@ -190,5 +194,6 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
         *Cooldown = Ability->Cooldown;
         Player->DashFlash = Maximum(Player->DashFlash, Ability->FlashSeconds);
         EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
+        RunPlayerCombo(AppState, World, Arena, Player, Ability->Move, Tick);
     }
 }

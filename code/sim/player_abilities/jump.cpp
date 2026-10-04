@@ -102,8 +102,9 @@ UpdateVault(app_state *AppState, world *World, world_entity *Player,
 }
 
 internal void
-UseJump(app_state *AppState, world_entity *Player, player_input *Input,
-        float DeltaTime, player_tick *Tick)
+UseJump(app_state *AppState, world *World, memory_arena *Arena,
+        world_entity *Player, player_input *Input, float DeltaTime,
+        player_tick *Tick)
 {
     Player->JumpBuffer = Maximum(0.f, Player->JumpBuffer - DeltaTime);
     if (WasPressed(Input, PlayerButton_Jump))
@@ -133,5 +134,6 @@ UseJump(app_state *AppState, world_entity *Player, player_input *Input,
         Player->JumpsUsed++;
         Tick->Jumping = true;
         EmitSound(&AppState->Events, AssetType_ZoubirAudio, Player->Position);
+        RunPlayerCombo(AppState, World, Arena, Player, ComboMove_Jump, Tick);
     }
 }

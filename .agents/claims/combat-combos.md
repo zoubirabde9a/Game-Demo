@@ -1,4 +1,0 @@
-who: agent/combos
-task: combo moves: a short trail of each player's recent moves and a table of combos it can fire (dash then attack is a lunge, attack then dash a cutting dash, and more)
-files: docs/combat-combos.md, code/sim/player_abilities/combos.cpp, code/sim/player_abilities/sword.cpp, code/sim/player_abilities/spawn_actions.cpp, code/sim/player_abilities/movement_abilities.cpp, code/sim/player_abilities/jump.cpp, code/sim/player_update.cpp, code/sim/player_update/*, code/sim/player.h, code/sim/player_fields.inc, code/sim/update.cpp (IsInSwordSlice only), code/sim/events.h (new bursts at the end), code/client/fx_bursts.cpp, code/client/prediction.cpp, code/client/player_fx.cpp, code/client/player_fx/combo_callouts.cpp, code/tests/player_combo_tests.cpp, code/tests/player_ability_tests.cpp
-since: 2026-10-04

@@ -21,17 +21,21 @@ GetSwordDirection(world_entity *Sword)
 }
 
 // NOTE(zoubir): whether any of Other's body is inside the swing's slice:
-// within SWORD_REACH of the swinger and SWORD_HALF_ANGLE of the swing,
-// counting its width (its half size along X) on both
+// within SWORD_REACH of the swinger and SWORD_HALF_ANGLE of the swing
+// (or the sword's own, a combo's thrust), counting its width (its half
+// size along X) on both
 internal bool32
 IsInSwordSlice(world_entity *Sword, world_entity *Other)
 {
+    float Reach = Sword->SwordReach > 0.f ? Sword->SwordReach : SWORD_REACH;
+    float HalfAngle = Sword->SwordHalfAngle > 0.f ? Sword->SwordHalfAngle :
+        SWORD_HALF_ANGLE;
     v2 Dir = GetSwordDirection(Sword);
     v2 Origin = Sword->Position.XY - SWORD_OFFSET * Dir;
     v2 To = Other->Position.XY - Origin;
     float Radius = Other->Collision ? Other->Collision->TotalVolume.HalfDims.X : 0.f;
     float Distance = Length(To);
-    if (Distance - Radius > SWORD_REACH)
+    if (Distance - Radius > Reach)
     {
         return false;
     }
@@ -42,7 +46,7 @@ IsInSwordSlice(world_entity *Sword, world_entity *Other)
     float Cross = To.X * Dir.Y - To.Y * Dir.X;
     float Angle = ATan2(Absolute(Cross), DotProduct(To, Dir));
     float Widen = ATan2(Radius, SquareRoot(Distance * Distance - Radius * Radius));
-    return Angle <= SWORD_HALF_ANGLE + Widen;
+    return Angle <= HalfAngle + Widen;
 }
 
 // NOTE(zoubir): a sword is a short-lived swing that never moves, so
@@ -63,7 +67,7 @@ UpdateSword(world_entity *Sword, world *World, memory_arena *Arena,
     }
 
     v2 Origin = Sword->Position.XY - SWORD_OFFSET * GetSwordDirection(Sword);
-    float Reach = SWORD_REACH + 32.f;
+    float Reach = Maximum(SWORD_REACH, Sword->SwordReach) + 32.f;
     rectangle3 Box = RectMinMax(V3(Origin.X - Reach, Origin.Y - Reach, 0.f),
                                 V3(Origin.X + Reach, Origin.Y + Reach,
                                    Sword->Position.Z + 64.f));

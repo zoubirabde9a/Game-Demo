@@ -10,7 +10,11 @@
    status timers, so they show the same offline and online; and screen
    shake. Each burst adds its Shake to a trauma level, less the farther
    it is from the local player; the camera shakes by trauma squared,
-   which fades within half a second (GetCameraShake). */
+   which fades within half a second (GetCameraShake).
+
+   A burst that belongs to a combo move (sim/player_abilities/combos.cpp)
+   also writes the combo's name over the player who did it, so a combo
+   found by accident can be found again. */
 
 enum burst_shape
 {
@@ -29,6 +33,8 @@ enum burst_shape
     BurstShape_Mark,   // the outline of a ground circle, filling in as it
                        // nears the hit
     BurstShape_ConeMark, // the outline of a cone from the centre along Angle
+    BurstShape_Thrust, // a point shooting out along Angle, its trail fading
+    BurstShape_Spin,   // two blades circling a centre that travels along Angle
 };
 
 enum burst_pose
@@ -80,6 +86,15 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_ConeMark, 0.f, 0.f, 0x00FFE8B0, false, 0.f, BurstPose_None}, // PushMark, pale blue
     {BurstShape_Mark, 0.f, 0.f, 0x0040C0FF, false, 0.f, BurstPose_None},      // LaunchMark, amber
     {BurstShape_Ring, 0.35f, 0.f, 0x0080D0FF, false, 0.5f, BurstPose_None},     // SlamRing, warm
+    // NOTE(zoubir): combo moves; the thrusts are as long as the lunge's
+    // reach (SWORD_LUNGE_REACH, sword.cpp) and the spin as wide as the
+    // cutting dash (CUTTING_DASH_RADIUS, combos.cpp)
+    {BurstShape_Thrust, 0.22f, 84.f, 0x00F0FFFF, false, 0.25f, BurstPose_Release}, // Lunge, pale
+    {BurstShape_Thrust, 0.26f, 84.f, 0x0060E0FF, false, 0.35f, BurstPose_Release}, // Skewer, gold
+    {BurstShape_Spin, 0.3f, 40.f, 0x00C0FFFF, false, 0.2f, BurstPose_None},       // CuttingDash, warm white
+    {BurstShape_Cone, 0.3f, 50.f, 0x0030A0FF, false, 0.15f, BurstPose_Release},   // FlameFan, orange
+    {BurstShape_Puff, 0.4f, 30.f, 0x00C8D8E0, true, 0.f, BurstPose_None},         // LongJump, dust
+    {BurstShape_Gather, 0.3f, 40.f, 0x00FF60B0, false, 0.2f, BurstPose_None},     // Ambush, violet
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these
@@ -116,10 +131,23 @@ struct fx_burst
     float Age;
 };
 
+// NOTE(zoubir): how long a combo's name shows over a player, and how far
+// it rises meanwhile
+#define COMBO_CALLOUT_SECONDS 0.7f
+#define COMBO_CALLOUT_RISE 14.f
+
+struct combo_callout
+{
+    char *Name;
+    float Age;
+};
+
 struct fx_bursts
 {
     fx_burst Bursts[MAX_FX_BURSTS];
     u32 Count;
+    // NOTE(zoubir): the last combo each player slot did; Name 0 for none
+    combo_callout Callouts[MAX_PLAYERS];
     // NOTE(zoubir): seconds since the first draw, for the stun stars' spin
     // and the shake's wobble
     float Clock;
@@ -207,6 +235,12 @@ AddBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,
                                    (SHAKE_FAR - SHAKE_NEAR));
         Fx->Trauma = Minimum(1.f, Fx->Trauma + Near * BurstLooks[Kind].Shake);
     }
+    player_combo *Combo = FindComboByBurst(Kind);
+    if (Combo && Slot < MAX_PLAYERS)
+    {
+        Fx->Callouts[Slot].Name = Combo->Name;
+        Fx->Callouts[Slot].Age = 0.f;
+    }
     fx_burst *Burst = &Fx->Bursts[Fx->Count++];
     Burst->Kind = Kind;
     Burst->Position = Position;
@@ -230,6 +264,15 @@ UpdateFxBursts(app_state *AppState, float DeltaTime)
     fx_bursts *Fx = GetFxBursts(AppState);
     Fx->Clock += DeltaTime;
     Fx->Trauma = Maximum(0.f, Fx->Trauma - SHAKE_RECOVERY * DeltaTime);
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        combo_callout *Callout = &Fx->Callouts[SlotIndex];
+        Callout->Age += DeltaTime;
+        if (Callout->Age >= COMBO_CALLOUT_SECONDS)
+        {
+            Callout->Name = 0;
+        }
+    }
     // NOTE(zoubir): footsteps come from speed alone, so every player gets
     // them, replicas included, without a word from the server
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
@@ -508,6 +551,48 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             }
         } break;
 
+        case BurstShape_Thrust:
+        {
+            // NOTE(zoubir): the point reaches the end in the first third
+            // of the burst; the dots behind it are fainter and smaller
+            v2 Along = V2(Cos(Burst->Angle), Sin(Burst->Angle));
+            v2 Chest = Centre - V2(0.f, 16.f);
+            float Lead = Minimum(1.f, 3.f * T);
+            for(u32 Dot = 0; Dot < 12; Dot++)
+            {
+                float At = (float)Dot / 11.f;
+                if (At > Lead)
+                {
+                    break;
+                }
+                float Strength = (1.f - T) * (0.4f + 0.6f * At / Lead);
+                u32 DotColor = ((u32)(255.f * Strength) << 24) | Look->RGB;
+                DrawFxDot(RenderContext, Chest + At * Area.Radius * Along,
+                          2.f + 4.f * Strength, DotColor);
+            }
+        } break;
+
+        case BurstShape_Spin:
+        {
+            // NOTE(zoubir): the centre runs on with the dash while two
+            // blades turn twice around it, each trailing dots
+            v2 Along = V2(Cos(Burst->Angle), Sin(Burst->Angle));
+            v2 Middle = Centre - V2(0.f, 14.f) +
+                2.f * Area.Radius * EaseOut * Along;
+            for(u32 Blade = 0; Blade < 2; Blade++)
+            {
+                for(u32 Dot = 0; Dot < 7; Dot++)
+                {
+                    float Angle = 4.f * Pi32 * T + Pi32 * Blade - 0.2f * Dot;
+                    float Strength = (1.f - T) * (1.f - Dot / 7.f);
+                    u32 DotColor = ((u32)(255.f * Strength) << 24) | Look->RGB;
+                    DrawFxDot(RenderContext,
+                              Middle + GroundCircle(Angle, 0.8f * Area.Radius),
+                              2.f + 3.f * Strength, DotColor);
+                }
+            }
+        } break;
+
         case BurstShape_Puff:
         {
             for(u32 Dot = 0; Dot < 10; Dot++)
@@ -584,4 +669,25 @@ DrawFxBursts(render_context *RenderContext, app_state *AppState,
         DrawBurst(RenderContext, &Fx->Bursts[Index], CameraOffset);
     }
     DrawStunStars(RenderContext, &AppState->World, CameraOffset, Fx->Clock);
+
+    // NOTE(zoubir): above where the local player's hit count shows
+    // (hit_numbers.cpp), fading in its last third
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        combo_callout *Callout = &Fx->Callouts[SlotIndex];
+        world_entity *Player = AppState->Players[SlotIndex].Entity;
+        if (!Callout->Name || !Player || !Player->IsPresent ||
+            !AppState->Fonts.Body)
+        {
+            continue;
+        }
+        float T = Callout->Age / COMBO_CALLOUT_SECONDS;
+        float Fade = Minimum(1.f, 3.f * (1.f - T));
+        u32 Color = UI_RGBA(255, 236, 170, (u32)(255.f * Fade));
+        v2 Head = Player->Position.XY - CameraOffset.XY -
+            V2(0.f, Player->Position.Z + Player->Dimensions.Y + 44.f +
+               COMBO_CALLOUT_RISE * T);
+        UIText(RenderContext, AppState->Fonts.Body, Head.X, Head.Y,
+               Callout->Name, Color, UIAlign_Center);
+    }
 }

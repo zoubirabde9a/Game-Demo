@@ -43,6 +43,25 @@ struct player_input
     // it is closer); zero keeps the last aim
     v2 Aim;
     u32 Pressed;
+    // NOTE(zoubir): only while the client predicts its own player
+    // (client/prediction.cpp): the presses it leaves to the server
+    // (attacks, casts). They do nothing here but mark the combo trail, so
+    // the client and the server agree on what came before a dash
+    u32 ServerPressed;
+};
+
+// NOTE(zoubir): the moves the combo trail records (player_fields.inc) and
+// combos are made of (player_abilities/combos.cpp). Walking is not one
+enum combo_move
+{
+    ComboMove_None,
+    ComboMove_Jump,
+    ComboMove_Dash,
+    ComboMove_Blink,
+    ComboMove_Slam,
+    ComboMove_Attack,
+    ComboMove_Cast,
+    ComboMove_Count
 };
 
 // NOTE(zoubir): the rows of PlayerSpawnActions

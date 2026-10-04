@@ -45,6 +45,14 @@ enum sim_burst
     SimBurst_PushMark,     // Push's cone on the ground while it is cast
     SimBurst_LaunchMark,   // Launch's circle on the ground while it is cast
     SimBurst_SlamRing,     // a ring where a slam lands
+    // NOTE(zoubir): combo moves (sim/player_abilities/combos.cpp); clients
+    // also write the combo's name over the player for these
+    SimBurst_Lunge,        // a thrust out from a player along Angle
+    SimBurst_Skewer,       // the same from the air, gold
+    SimBurst_CuttingDash,  // a blade spinning along a dash, along Angle
+    SimBurst_FlameFan,     // three fireballs leaving at once
+    SimBurst_LongJump,     // dust kicked back at a long jump's take-off
+    SimBurst_Ambush,       // shadow gathering where a blink lands and swings
     SimBurst_Count
 };
 
