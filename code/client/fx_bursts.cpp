@@ -20,6 +20,7 @@ enum burst_shape
     BurstShape_Column, // a ground ring with sparks thrown upward
     BurstShape_Puff,   // dust drifting out low and settling
     BurstShape_Spark,  // a star of sparks flying out from the centre
+    BurstShape_Slash,  // a bright cut across Angle with sparks thrown along it
 };
 
 enum burst_pose
@@ -57,6 +58,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Puff, 0.4f, 24.f, 0x0090B0C0, true, 0.15f, BurstPose_None},     // Land, dust
     {BurstShape_Ring, 0.35f, 90.f, 0x00FFE8B0, false, 0.45f, BurstPose_None},   // ShockwaveRing, pale blue
     {BurstShape_Spark, 0.22f, 26.f, 0x0080FFFF, false, 0.3f, BurstPose_None},   // Impact, pale yellow
+    {BurstShape_Slash, 0.28f, 44.f, 0x00FFFFFF, false, 0.4f, BurstPose_None},  // Finisher, white
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these
@@ -304,6 +306,28 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
                           5.f - 3.f * T, Color);
                 DrawFxDot(RenderContext, Centre + 0.6f * Out * Direction,
                           3.f - 2.f * T, Color);
+            }
+        } break;
+
+        case BurstShape_Slash:
+        {
+            // NOTE(zoubir): the cut runs across the direction of the hit,
+            // widest early; sparks fly on along the hit
+            v2 Along = V2(Cos(Burst->Angle), Sin(Burst->Angle));
+            v2 Across = V2(-Along.Y, Along.X);
+            float HalfLength = Look->Radius * (0.4f + 0.6f * EaseOut);
+            for(u32 Dot = 0; Dot < 11; Dot++)
+            {
+                float Offset = ((float)Dot / 10.f - 0.5f) * 2.f * HalfLength;
+                float Size = (6.f - 4.f * T) * (1.f - Absolute(Offset) / (HalfLength + 1.f));
+                DrawFxDot(RenderContext, Centre + Offset * Across, Size + 1.f, Color);
+            }
+            for(u32 Dot = 0; Dot < 6; Dot++)
+            {
+                float Spread = (BurstJitter(Dot, 8) - 0.5f) * 1.2f;
+                v2 Direction = V2(Cos(Burst->Angle + Spread), Sin(Burst->Angle + Spread));
+                float Out = Look->Radius * 1.2f * EaseOut * (0.5f + 0.5f * BurstJitter(Dot, 9));
+                DrawFxDot(RenderContext, Centre + Out * Direction, 4.f - 3.f * T, Color);
             }
         } break;
 

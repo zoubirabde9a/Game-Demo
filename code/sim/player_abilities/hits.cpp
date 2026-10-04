@@ -12,6 +12,8 @@ struct player_hit
     // NOTE(zoubir): a stunned target flying into something is an impact
     // (impacts.cpp), credited to the attacker
     float StunSeconds;
+    // NOTE(zoubir): drawn on each target hit; SimBurst_Count for none
+    sim_burst Burst;
 };
 
 // NOTE(zoubir): Hit on Target, thrown along Away (a unit vector), by the
@@ -21,6 +23,13 @@ internal bool32
 ApplyPlayerHit(app_state *AppState, world *World, world_entity *Target,
                player_hit *Hit, v2 Away, u32 BySlot, world_entity *Source)
 {
+    if (Hit->Burst != SimBurst_Count && !IsDodging(Target))
+    {
+        v3 Chest = Target->Position;
+        Chest.Z += 16.f;
+        EmitBurst(&AppState->Events, Hit->Burst, (u8)BySlot, Chest,
+                  ATan2(Away.Y, Away.X));
+    }
     if (DamageEntity(AppState, World, Target, Hit->Damage, Source) ||
         !Target->IsPresent || IsDodging(Target))
     {

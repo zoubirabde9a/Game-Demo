@@ -34,6 +34,7 @@ enum sim_burst
     SimBurst_Land,         // dust where a unit lands hard
     SimBurst_ShockwaveRing, // a ring around a player, Shockwave's reach
     SimBurst_Impact,       // sparks where a thrown body hits something
+    SimBurst_Finisher,     // a combo's last hit landing, along Angle
     SimBurst_Count
 };
 

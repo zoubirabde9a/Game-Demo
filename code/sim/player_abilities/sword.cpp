@@ -14,10 +14,10 @@
 
 global_variable player_hit SwordCombo[] =
 {
-    {SWORD_DAMAGE, SWORD_KNOCKBACK, 0.f, 0.f},
-    {SWORD_DAMAGE, 1.25f * SWORD_KNOCKBACK, 0.f, 0.f},
+    {SWORD_DAMAGE, SWORD_KNOCKBACK, 0.f, 0.f, SimBurst_Count},
+    {SWORD_DAMAGE, 1.25f * SWORD_KNOCKBACK, 0.f, 0.f, SimBurst_Count},
     // NOTE(zoubir): the finisher
-    {1.4f * SWORD_DAMAGE, 1.8f * SWORD_KNOCKBACK, 300.f, 0.7f},
+    {1.4f * SWORD_DAMAGE, 1.8f * SWORD_KNOCKBACK, 300.f, 0.7f, SimBurst_Finisher},
 };
 
 // NOTE(zoubir): the survivor is thrown away from the swinger (or the blade

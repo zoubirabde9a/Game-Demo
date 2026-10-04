@@ -961,6 +961,7 @@ TestSwordComboFinisher()
                                            0, {300, 300, 0});
     player_slot *Slot = &AppState->Players[0];
     Slot->Input.Aim = V2(1.f, 0.f);
+    AppState->Events.Count = 0;
     float Lifts[3];
     for(u32 Swing = 0; Swing < 3; Swing++)
     {
@@ -990,6 +991,7 @@ TestSwordComboFinisher()
     }
     Check(Lifts[0] <= 0.f && Lifts[1] <= 0.f);
     Check(Lifts[2] > 100.f);
+    Check(CountBursts(AppState, SimBurst_Finisher) == 1);
 
     RunPlayerFrames(&Test, 0, 60);
     Slot->Input.Pressed = PlayerButton_Attack;
