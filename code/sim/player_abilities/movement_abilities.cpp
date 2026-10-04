@@ -1,11 +1,12 @@
 /* Movement abilities: the keys that move the player at once (dash,
    blink, slam), as a table. A monster kill takes some or all of each
    one's cooldown off (KillRefund): dash and slam are ready again at
-   once, blink half way. A dash into a unit also hits it (DashStrike). Using one is the same for every row: it needs its
-   key and its cooldown, cuts a swing's or cast's root and an area cast,
-   lights DashFlash (while it lasts the player cannot be hurt or shoved,
-   IsDodging in entity.cpp, and clients draw the streak from it) and plays
-   the dash sound. Only how the body moves differs, one function per row.
+   once, blink half way. A dash into a unit also hits it (DashStrike).
+   Using one is the same for every row: it needs its key and its
+   cooldown, cuts a swing's or cast's root and an area cast, lights
+   DashFlash for its row's FlashSeconds (while it lasts the player cannot
+   be hurt or shoved, IsDodging in entity.cpp, and clients draw the
+   streak from it) and plays the dash sound. Only how the body moves differs, one function per row.
    A new one is a row here, a name in player_movement, its motion, a
    button in player.h and a key in client/action_keys.cpp. */
 
@@ -32,6 +33,10 @@ struct player_movement_ability
     // off, so aggression keeps the player moving
     float KillRefund;
     float Power;
+    // NOTE(zoubir): seconds of DashFlash it lights: the streak, the
+    // afterimages and the dodge. The slam's dive is straight down, where a
+    // streak piles up on one spot, so it lights none
+    float FlashSeconds;
     player_motion_function *Motion;
 };
 
@@ -105,11 +110,12 @@ SlamMotion(app_state *AppState, world *World, memory_arena *Arena,
 global_variable player_movement_ability PlayerMovements[PlayerMove_Count] =
 {
     // NOTE(zoubir): Dash (Alt)
-    {PlayerButton_Dash, 0.8f, 1.f, 650.f, DashMotion},
+    {PlayerButton_Dash, 0.8f, 1.f, 650.f, PLAYER_DASH_FLASH_SECONDS, DashMotion},
     // NOTE(zoubir): Blink (F), as far as the cursor can reach
-    {PlayerButton_Blink, 3.f, 0.5f, PLAYER_AIM_REACH, BlinkMotion},
+    {PlayerButton_Blink, 3.f, 0.5f, PLAYER_AIM_REACH, PLAYER_DASH_FLASH_SECONDS,
+     BlinkMotion},
     // NOTE(zoubir): Slam (C), in the air
-    {PlayerButton_Slam, 2.f, 1.f, 900.f, SlamMotion},
+    {PlayerButton_Slam, 2.f, 1.f, 900.f, 0.f, SlamMotion},
 };
 static_assert(PlayerMove_Count <= PLAYER_MOVEMENT_SLOTS, "one cooldown each");
 
@@ -178,7 +184,7 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
         Player->ActionLock = 0.f;
         CancelAreaCast(Player);
         *Cooldown = Ability->Cooldown;
-        Player->DashFlash = PLAYER_DASH_FLASH_SECONDS;
+        Player->DashFlash = Maximum(Player->DashFlash, Ability->FlashSeconds);
         EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
     }
 }

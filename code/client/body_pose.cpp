@@ -110,6 +110,9 @@ struct body_pose
     // turned, down to 0
     u32 Facing;
     float Turn;
+    // NOTE(zoubir): it was off the ground last frame; a kick upward only
+    // counts in the air, or every jump off the ground somersaulted
+    bool32 Airborne;
     // NOTE(zoubir): the slot held a body last frame. Ids are slot indices
     // and are reused, so a new body in a freed slot is told apart by the
     // slot having been empty, not by its id
@@ -203,7 +206,7 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
                                      (BODY_SQUASH_FULL_SPEED - BODY_SQUASH_MIN_SPEED));
             Pose->Squash = Maximum(Pose->Squash, 0.35f + 0.65f * Hardness);
         }
-        if (!OnGround && SpeedZ - Pose->SpeedZ > BODY_POP_KICK)
+        if (!OnGround && Pose->Airborne && SpeedZ - Pose->SpeedZ > BODY_POP_KICK)
         {
             Pose->Pop = 1.f;
             Pose->Spin = 1.f;
@@ -217,6 +220,7 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
         }
         Pose->Spin = Maximum(0.f, Pose->Spin - DeltaTime / BODY_SPIN_SECONDS);
         Pose->SpeedZ = OnGround ? 0.f : SpeedZ;
+        Pose->Airborne = !OnGround;
         Pose->LastZ = Entity->Position.Z;
         Pose->Clock += DeltaTime;
         u32 Facing = (u32)Entity->AnimationState.LastAnimationDirection;
