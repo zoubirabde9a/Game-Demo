@@ -8,16 +8,17 @@
    server will have it once those inputs arrive.
 
    Movement, facing (the aim toward the cursor), jump and the movement
-   abilities (dash, blink, the slam's dive) are predicted: they move only the player, so they happen the frame they
-   are pressed. Snapshots carry no vertical speed, so each input keeps
-   the player's vertical speed after it, and a replay starts from the
-   one the server last acknowledged rather than from zero (which pulled
-   a jump down between snapshots); the jumps spent go the same way, so a
-   replayed double jump is still allowed. Each recorded input keeps which buttons went down on it,
-   worked out the same way the server does, and the cooldowns the server
-   sends say whether dash and blink are ready; UpdatePlayer counts them
-   down as it steps, replays included. Attacks, shockwaves and jumps
-   change what other players see, so they wait for the server.
+   abilities (dash, blink, the slam's dive) are predicted: they move only
+   the player, so they happen the frame they are pressed. Snapshots carry
+   no vertical speed, jumps spent or a waiting jump press, so each input
+   keeps those as they were after it (predicted_body), and a replay starts
+   from the ones the server last acknowledged rather than from zero (which
+   pulled a jump down between snapshots and refused replayed double
+   jumps). Each recorded input keeps which buttons went down on it, worked
+   out the same way the server does, and the cooldowns the server sends
+   say whether the movement abilities are ready; UpdatePlayer counts them
+   down as it steps, replays included. Attacks and area abilities change
+   what other players see, so they wait for the server.
 
    When the replay lands somewhere other than where the player was drawn a
    frame ago, the difference is kept as DrawError and the player is drawn
@@ -34,6 +35,35 @@
 // correction is under a tenth of its size after 100 ms
 #define PREDICTION_BLEND_RATE 20.f
 
+// NOTE(zoubir): what snapshots do not carry about the local player's body
+// but its prediction needs to replay from: each input keeps it as it was
+// after that input, and a replay starts from the newest the server
+// acknowledged. A new field the player's moves depend on goes here.
+struct predicted_body
+{
+    float VelocityZ;
+    u32 JumpsUsed;
+    float JumpBuffer;
+};
+
+inline predicted_body
+SavePredictedBody(world_entity *Player)
+{
+    predicted_body Result;
+    Result.VelocityZ = Player->Velocity.Z;
+    Result.JumpsUsed = Player->JumpsUsed;
+    Result.JumpBuffer = Player->JumpBuffer;
+    return Result;
+}
+
+inline void
+RestorePredictedBody(world_entity *Player, predicted_body *Body)
+{
+    Player->Velocity.Z = Body->VelocityZ;
+    Player->JumpsUsed = Body->JumpsUsed;
+    Player->JumpBuffer = Body->JumpBuffer;
+}
+
 struct predicted_input
 {
     u32 Tick;
@@ -43,10 +73,8 @@ struct predicted_input
     u16 Pressed;
     v2 Aim;
     float DeltaTime;
-    // NOTE(zoubir): the player's vertical speed and jumps spent once this
-    // input was applied
-    float VelocityZAfter;
-    u32 JumpsUsedAfter;
+    // NOTE(zoubir): the body once this input was applied
+    predicted_body After;
 };
 
 // NOTE(zoubir): a ring of the inputs the server has not acknowledged yet,
@@ -62,10 +90,8 @@ struct prediction_history
     v2 Predicted;
     v2 DrawError;
     u16 LastButtons;
-    // NOTE(zoubir): VelocityZAfter and JumpsUsedAfter of the newest input
-    // the server applied
-    float AckedVelocityZ;
-    u32 AckedJumpsUsed;
+    // NOTE(zoubir): After of the newest input the server applied
+    predicted_body Acked;
 };
 
 // NOTE(zoubir): the server turns held net buttons into a move direction
@@ -115,8 +141,7 @@ DropAcknowledgedInputs(prediction_history *History, u32 InputTick)
     while (History->Count > 0 &&
            GetPredictedInput(History, 0)->Tick <= InputTick)
     {
-        History->AckedVelocityZ = GetPredictedInput(History, 0)->VelocityZAfter;
-        History->AckedJumpsUsed = GetPredictedInput(History, 0)->JumpsUsedAfter;
+        History->Acked = GetPredictedInput(History, 0)->After;
         History->First = (History->First + 1) % MAX_PREDICTED_INPUTS;
         History->Count--;
     }
@@ -151,8 +176,7 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     UpdatePlayer(Slot, &AppState->World, Arena, Input->DeltaTime, AppState,
                  &AnimationSpeed, &AnimationType, &AnimationDirection);
     Slot->Predicted = false;
-    Input->VelocityZAfter = Player->Velocity.Z;
-    Input->JumpsUsedAfter = Player->JumpsUsed;
+    Input->After = SavePredictedBody(Player);
     Player->AnimationType = AnimationType;
     Player->AnimationDirection = AnimationDirection;
     return true;
@@ -186,8 +210,7 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
         DropAcknowledgedInputs(History, InputTick);
         if (Player && Player->Position.Z > 0.f)
         {
-            Player->Velocity.Z = History->AckedVelocityZ;
-            Player->JumpsUsed = History->AckedJumpsUsed;
+            RestorePredictedBody(Player, &History->Acked);
         }
         // NOTE(zoubir): every step but the newest was shown on an earlier
         // frame, so the sounds and bursts it makes again are dropped
