@@ -69,6 +69,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_ArcBack, 0.2f, 38.f, 0x00C0FFFF, false, 0.f, BurstPose_None},  // SwingArcBack, warmer
     {BurstShape_Arc, 0.26f, 46.f, 0x0060E0FF, false, 0.1f, BurstPose_None},    // SwingArcFinisher, gold
     {BurstShape_Skid, 0.35f, 24.f, 0x00C8D8E0, true, 0.f, BurstPose_None},      // Skid, dust
+    {BurstShape_Puff, 0.3f, 9.f, 0x00C8D8E0, true, 0.f, BurstPose_None},        // Step, dust
 };
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these
@@ -80,6 +81,10 @@ DrawFxDot(render_context *RenderContext, v2 P, float Size, u32 Color)
 }
 
 #define MAX_FX_BURSTS 64
+// NOTE(zoubir): a player running faster than this on the ground leaves a
+// puff of dust every FOOTSTEP_SECONDS
+#define FOOTSTEP_SPEED 80.f
+#define FOOTSTEP_SECONDS 0.24f
 // NOTE(zoubir): shake: full within NEAR of the local player, none past
 // FAR; the most the screen moves, in pixels; trauma lost per second
 #define SHAKE_NEAR 150.f
@@ -107,6 +112,7 @@ struct fx_bursts
     // and the shake's wobble
     float Clock;
     float Trauma;
+    float StepTimer[MAX_PLAYERS];
 };
 
 internal fx_bursts *
@@ -175,6 +181,26 @@ UpdateFxBursts(app_state *AppState, float DeltaTime)
     fx_bursts *Fx = GetFxBursts(AppState);
     Fx->Clock += DeltaTime;
     Fx->Trauma = Maximum(0.f, Fx->Trauma - SHAKE_RECOVERY * DeltaTime);
+    // NOTE(zoubir): footsteps come from speed alone, so every player gets
+    // them, replicas included, without a word from the server
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        world_entity *Player = AppState->Players[SlotIndex].Entity;
+        bool32 Running = AppState->Players[SlotIndex].Active && Player &&
+            Player->IsPresent && !IsDeadPlayer(Player) &&
+            Player->Position.Z <= Player->GroundZ + 0.5f &&
+            LengthSq(Player->Velocity.XY) > Square(FOOTSTEP_SPEED);
+        Fx->StepTimer[SlotIndex] -= DeltaTime;
+        if (!Running)
+        {
+            Fx->StepTimer[SlotIndex] = 0.5f * FOOTSTEP_SECONDS;
+        }
+        else if (Fx->StepTimer[SlotIndex] <= 0.f)
+        {
+            Fx->StepTimer[SlotIndex] = FOOTSTEP_SECONDS;
+            AddBurst(AppState, SimBurst_Step, SlotIndex, Player->Position, 0.f);
+        }
+    }
     for(u32 Index = 0; Index < Fx->Count;)
     {
         fx_burst *Burst = &Fx->Bursts[Index];
