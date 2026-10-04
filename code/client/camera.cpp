@@ -15,7 +15,9 @@
    corrections online play makes to the player do not shake the view. It
    also leans a little toward the mouse, so more of the screen lies the
    way the player aims. A respawn or a jump across the map is a cut, not
-   a long pan.
+   a long pan. Hits shake it (fx_bursts.cpp), and a solid hit the local
+   player lands nudges it toward the blow (body_pose.cpp); both move only
+   what is drawn.
 
    Called after the world has moved this frame, so the camera and the
    player it follows are drawn from the same positions. */
@@ -152,7 +154,7 @@ UpdateCamera(app_state *AppState, app_window *Window, app_input *Input,
     v3 CameraOffset = *Camera;
     // NOTE(zoubir): hits shake the screen (fx_bursts.cpp); added only to
     // what is drawn, never to where the camera is heading
-    CameraOffset.XY += GetCameraShake(AppState);
+    CameraOffset.XY += GetCameraShake(AppState) + GetHitNudge(AppState);
     // NOTE(zoubir): to whole window pixels, rounding down so negative
     // positions snap the same way as positive ones
     CameraOffset.X = SnapToScreenPixel(CameraOffset.X, Zoom);

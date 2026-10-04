@@ -1,8 +1,8 @@
 /* Applying a snapshot: one entity's state (position, velocity, health,
-   facing, animation, elite affix, status pips, ability) onto its replica,
-   front-armoured monsters' facings, monsters' wind-ups (for their
-   warnings), and every player's score. Included
-   by replicas.cpp, whose SyncReplicas calls these on each new snapshot. */
+   facing, animation, elite affix, status pips, ability, last hit) onto
+   its replica, front-armoured monsters' facings, monsters' wind-ups (for
+   their warnings), and every player's score. Included by replicas.cpp,
+   whose SyncReplicas calls these on each new snapshot. */
 
 internal void
 ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
@@ -39,6 +39,14 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
         Replica->StatusTimers[Effect] =
             (State->Status & (1 << (Effect - 1))) ? 1.5f : 0.f;
     }
+    // NOTE(zoubir): the last hit while it is fresh (sim/hit.cpp); the
+    // real time left is not sent, so fresh reads as HIT_FRESH_SECONDS.
+    // The hit-pause runs down between snapshots (advance.cpp)
+    Replica->HitFresh = State->Hit ? HIT_FRESH_SECONDS : 0.f;
+    Replica->HitStop = 0.001f * (float)State->HitStop;
+    Replica->HitAngle = (float)State->HitAngle * (2.f * Pi32 / 256.f);
+    Replica->HitBySlot = State->HitBy;
+    Replica->HitThrown = State->HitThrown;
     // NOTE(zoubir): keeps the chunk lists right so RemoveEntity finds it
     CheckAndChangeEntityChunk(AppState, &AppState->World, Arena,
                               OldPosition, Replica);

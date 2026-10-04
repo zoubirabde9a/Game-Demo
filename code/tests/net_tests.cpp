@@ -201,6 +201,24 @@ TestPackedEntityFields()
     Check(Out.Snapshot.Entities[0].Animation == 6);
     Check(Out.Snapshot.Entities[0].Affix == 1);
     Check(Out.Snapshot.Entities[0].Status == 0);
+
+    // NOTE(zoubir): a fresh hit's three bytes go with the unit that has
+    // one; without the bit they are not sent, whatever they hold
+    A->Hit = 1; A->HitStop = 75; A->HitAngle = 200; A->HitBy = 3; A->HitThrown = 1;
+    B->Hit = 0; B->HitStop = 9; B->HitAngle = 9; B->HitBy = 9; B->HitThrown = 1;
+    u32 Size = 0;
+    Out = RoundTrip(&In, &Size);
+    OutA = &Out.Snapshot.Entities[0];
+    OutB = &Out.Snapshot.Entities[1];
+    Check(OutA->Hit == 1 && OutA->HitStop == 75 && OutA->HitAngle == 200);
+    Check(OutA->HitBy == 3 && OutA->HitThrown == 1);
+    Check(OutA->Facing == 1 && OutA->Affix == 1);
+    Check(OutB->Hit == 0 && OutB->HitStop == 0 && OutB->HitAngle == 0);
+    Check(OutB->HitBy == 0 && OutB->HitThrown == 0);
+    A->Hit = 0;
+    u32 SizeWithout = 0;
+    RoundTrip(&In, &SizeWithout);
+    Check(Size == SizeWithout + 3);
 }
 
 internal void
@@ -229,9 +247,13 @@ TestOverfullSnapshotIsTrimmed()
 {
     net_packet P = FullSnapshot();
     P.Snapshot.KillCount = NET_MAX_SNAPSHOT_KILLS;
-    // The worst case: every entity in the air and moving, so none of its
-    // fields is left out.
-    for (u32 Index = 0; Index < NET_MAX_SNAPSHOT_ENTITIES; ++Index) P.Snapshot.Entities[Index].Z = 7.5f;
+    // The worst case: every entity in the air, moving and just hit, so
+    // none of its fields is left out.
+    for (u32 Index = 0; Index < NET_MAX_SNAPSHOT_ENTITIES; ++Index)
+    {
+        P.Snapshot.Entities[Index].Z = 7.5f;
+        P.Snapshot.Entities[Index].Hit = 1;
+    }
     static u8 Buffer[NET_MAX_PACKET_SIZE];
     Check(NetWritePacket(&P, Buffer, sizeof(Buffer)) == 0);
     u32 Dropped = 0;
@@ -240,8 +262,9 @@ TestOverfullSnapshotIsTrimmed()
     printf("  overfull snapshot: %u of %u entities left out\n", Dropped,
            NET_MAX_SNAPSHOT_ENTITIES);
     // NOTE(zoubir): an airborne entity is 20 bytes since vertical speed
-    // travels with its height (it was 18, and 1 or 2 were left out; now 3)
-    Check(Dropped >= 1 && Dropped <= 4);
+    // travels with its height (it was 18, and 1 or 2 were left out; then
+    // 3), 23 with a fresh hit (now 6)
+    Check(Dropped >= 1 && Dropped <= 7);
     Check(P.Snapshot.Count == NET_MAX_SNAPSHOT_ENTITIES - Dropped);
     static net_packet Out;
     Check(NetReadPacket(Buffer, Size, &Out));
@@ -887,8 +910,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d4du
-#define NET_GOLDEN_LAYOUT 0x8b82da3cu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d4eu
+#define NET_GOLDEN_LAYOUT 0x9e6955d5u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

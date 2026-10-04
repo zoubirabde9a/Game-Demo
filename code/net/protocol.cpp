@@ -56,10 +56,12 @@ NetSequenceNewer(u16 A, u16 B)
     return Distance != 0 && Distance < 0x8000;
 }
 
-// NOTE: the type byte keeps the type in its low 6 bits; the top two say
-// whether height and velocity follow. Most things stand on the ground and
-// many stand still, so those 6 bytes are usually left out.
-#define NET_ENTITY_TYPE_MASK 0x3f
+// NOTE: the type byte keeps the type in its low 5 bits; the top three say
+// whether a fresh hit, height and velocity follow. Most things stand on
+// the ground, many stand still and few were just hit, so those 9 bytes
+// are usually left out.
+#define NET_ENTITY_TYPE_MASK 0x1f
+#define NET_ENTITY_HAS_HIT 0x20
 #define NET_ENTITY_HAS_Z 0x40
 #define NET_ENTITY_MOVING 0x80
 
@@ -89,6 +91,10 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
         if (NetNonZero(E->VelX, NET_VELOCITY_STEPS) || NetNonZero(E->VelY, NET_VELOCITY_STEPS))
         {
             TypeAndFlags |= NET_ENTITY_MOVING;
+        }
+        if (E->Hit)
+        {
+            TypeAndFlags |= NET_ENTITY_HAS_HIT;
         }
     }
     NetU8(S, &TypeAndFlags);
@@ -127,6 +133,20 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     else
     {
         E->VelX = E->VelY = 0.f;
+    }
+    E->Hit = (TypeAndFlags & NET_ENTITY_HAS_HIT) ? 1 : 0;
+    if (E->Hit)
+    {
+        NetU8(S, &E->HitStop);
+        NetU8(S, &E->HitAngle);
+        u8 By = (u8)((E->HitBy & 15) | ((E->HitThrown & 1) << 7));
+        NetU8(S, &By);
+        E->HitBy = By & 15;
+        E->HitThrown = (By >> 7) & 1;
+    }
+    else
+    {
+        E->HitStop = E->HitAngle = E->HitBy = E->HitThrown = 0;
     }
 }
 

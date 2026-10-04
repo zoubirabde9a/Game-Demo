@@ -9,7 +9,9 @@
    when it is already in the air: a juggle), may stun it and give it a
    status, and draws a burst. Heavy monsters are shoved and lifted less
    (KnockbackScale). A solid hit freezes the monsters in it for a moment,
-   a hit-pause, so the hit reads (HitStop). */
+   a hit-pause, so the hit reads (HitStop). The target keeps the hit's
+   direction, whether it was lifted and who hit it for a moment
+   (HitFresh), which clients draw its flinch and tumble from. */
 
 struct hit
 {
@@ -48,6 +50,9 @@ struct hit
 #define HITSTOP_PER_DAMAGE 0.003f
 #define HITSTOP_MAX 0.1f
 #define HITSTOP_GRACE 0.15f
+// NOTE(zoubir): how long a target keeps its last hit for clients; longer
+// than a snapshot's gap (3 ticks) so every hit reaches them
+#define HIT_FRESH_SECONDS 0.25f
 
 inline float
 KnockbackScale(world_entity *Entity)
@@ -79,6 +84,7 @@ StartHitStop(world_entity *Entity, float Damage)
 inline bool32
 TickHitStop(world_entity *Entity, float DeltaTime)
 {
+    Entity->HitFresh = Maximum(0.f, Entity->HitFresh - DeltaTime);
     bool32 Frozen = Entity->HitStop > 0.f;
     if (Frozen)
     {
@@ -138,6 +144,10 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
     {
         Target->Velocity.Z = Maximum(Target->Velocity.Z, Scale * Lift);
     }
+    Target->HitAngle = ATan2(Away.Y, Away.X);
+    Target->HitThrown = Lift > 0.f;
+    Target->HitBySlot = BySlot != SIM_NOBODY ? BySlot + 1 : 0;
+    Target->HitFresh = HIT_FRESH_SECONDS;
     ApplyStatus(Target, Hit->Status, Hit->StatusSeconds);
     ApplyStatus(Target, Affix->OnHitStatus, Affix->OnHitStatusSeconds);
     if (Hit->StunSeconds > 0.f)

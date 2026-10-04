@@ -2,8 +2,8 @@
    snapshot says otherwise. Respawn countdowns, replicas gliding to their
    newest position (replica_smoothing.cpp), wind-up warnings filling in, an
    enrage burst playing out, the local player's cooldown bars running down,
-   and animation frames. Included by replicas.cpp; SyncReplicas calls
-   AdvanceReplicas every frame. */
+   a hit-pause running out, and animation frames. Included by
+   replicas.cpp; SyncReplicas calls AdvanceReplicas every frame. */
 
 internal void
 AdvanceReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
@@ -42,7 +42,12 @@ AdvanceReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
                 // between snapshots in prediction (UpdatePlayer counts them
                 // as it steps); counting here as well ran them twice as fast
             }
-            if (Replica->IsPresent && Replica->AnimationSet)
+            // NOTE(zoubir): a monster in a hit-pause holds its frame, as
+            // on the server (sim/hit.cpp)
+            bool32 Frozen = Replica->HitStop > 0.f;
+            Replica->HitStop = Maximum(0.f, Replica->HitStop - DeltaTime);
+            Replica->HitFresh = Maximum(0.f, Replica->HitFresh - DeltaTime);
+            if (Replica->IsPresent && Replica->AnimationSet && !Frozen)
             {
                 AdvanceAnimation(&Replica->AnimationState,
                                  Replica->AnimationSet,

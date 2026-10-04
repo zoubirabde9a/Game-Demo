@@ -465,6 +465,11 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     u32 CooldownsCompared = 0, CooldownsOff = 0, ServerCooling = 0, ClientCooling = 0;
     u32 DashPresses = 0, DashesSeenAtOnce = 0;
     u32 JumpPresses = 0, JumpsSeenAtOnce = 0;
+    // NOTE(zoubir): the last hit (sim/hit.cpp): units hit lately on each
+    // side, and of those on both, how many disagree on the hit's angle,
+    // thrower, lift or hit-pause
+    u32 ServerHits = 0, ClientHits = 0, BothHit = 0, WrongHit = 0;
+    u32 ServerStops = 0, ClientStops = 0, WrongStop = 0;
     app_input Input = {};
     Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
     for (int Frame = 0; Frame < Seconds * SERVER_TICK_RATE; ++Frame)
@@ -533,6 +538,25 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
                 if (!Theirs->IsPresent || !Ours->IsPresent) continue;
                 ++Compared;
                 if (Ours->Type != Theirs->Type) { ++WrongType; continue; }
+                ServerHits += Theirs->HitFresh > 0.f ? 1 : 0;
+                ClientHits += Ours->HitFresh > 0.f ? 1 : 0;
+                ServerStops += Theirs->HitStop > 0.f ? 1 : 0;
+                ClientStops += Ours->HitStop > 0.f ? 1 : 0;
+                if (Theirs->HitFresh > 0.f && Ours->HitFresh > 0.f)
+                {
+                    ++BothHit;
+                    // NOTE(zoubir): the angle travels in 256 steps
+                    float Turn = (Theirs->HitAngle - Ours->HitAngle) / (2.f * Pi32);
+                    Turn -= floorf(Turn + 0.5f);
+                    bool32 SameHit = Absolute(Turn) < 1.5f / 256.f &&
+                        Ours->HitBySlot == Theirs->HitBySlot &&
+                        (Ours->HitThrown != 0) == (Theirs->HitThrown != 0);
+                    WrongHit += SameHit ? 0 : 1;
+                    // NOTE(zoubir): the replica's pause has run down one
+                    // frame since; in milliseconds on the wire
+                    float Stop = Maximum(0.f, Theirs->HitStop);
+                    WrongStop += Absolute(Stop - Ours->HitStop) > 0.02f ? 1 : 0;
+                }
                 if (Theirs->Type == EntityType_Player)
                 {
                     ++Players;
@@ -575,6 +599,14 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     Check(ServerBurrows == 0 || ClientBurrows > 0);
     Check(ServerElites == 0 || ClientElites > 0);
     Check(ServerFlashes == 0 || ClientFlashes > 0);
+    printf("  parity: units hit on server/client %u/%u, %u on both, %u disagree on the hit, "
+           "%u on the pause; paused on server/client %u/%u\n",
+           ServerHits, ClientHits, BothHit, WrongHit, WrongStop, ServerStops, ClientStops);
+    // NOTE(zoubir): a pause lasts a few ticks and lands between snapshots
+    // as often as not, and a short game may see none
+    Check(ServerHits > 0 && ClientHits > 0);
+    Check(ServerStops == 0 || ClientStops > 0);
+    Check(BothHit > 0 && WrongHit * 50 <= BothHit && WrongStop * 50 <= BothHit);
     printf("  parity: own cooldowns %u compared, %u off by over 0.1 s, cooling on server/client %u/%u\n",
            CooldownsCompared, CooldownsOff, ServerCooling, ClientCooling);
     Check(CooldownsCompared > 100 && CooldownsOff == 0);

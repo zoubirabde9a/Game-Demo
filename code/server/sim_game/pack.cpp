@@ -1,10 +1,11 @@
 /* Snapshot packing: how one server entity becomes the fields of a
    net_entity_state (the monster kind or shot style in Variant, status
    effects as bits, facing and ability details for front-armoured and
-   winding-up monsters), which entities are sent at all, and keeping the
-   nearest ones when there are more than fit. The static_asserts fail the
-   build when an enum outgrows its bits on the wire. Included by
-   sim_game.cpp, whose GameWriteSnapshot puts a snapshot together. */
+   winding-up monsters, a unit's last hit while it is fresh), which
+   entities are sent at all, and keeping the nearest ones when there are
+   more than fit. The static_asserts fail the build when an enum outgrows
+   its bits on the wire. Included by sim_game.cpp, whose GameWriteSnapshot
+   puts a snapshot together. */
 
 // NOTE(zoubir): what the client needs beyond the type: the monster's
 // kind or the shot's style (kept in its texture) to pick the sprite, the
@@ -40,7 +41,8 @@ static_assert(AnimationType_Count <= 16, "Animation is 4 bits on the wire");
 static_assert(MonsterAffix_Count <= 8, "Affix is 3 bits on the wire");
 static_assert(StatusEffect_Count - 1 <= 4, "Status is 4 bits on the wire");
 static_assert(MAX_MONSTER_ABILITIES <= 4, "Ability is 2 bits on the wire");
-static_assert(EntityType_Count <= 64, "Type is 6 bits on the wire");
+static_assert(EntityType_Count <= 32, "Type is 5 bits on the wire");
+static_assert(MAX_PLAYERS < 16, "HitBy is 4 bits on the wire");
 
 // NOTE(zoubir): bit N set while status effect N + 1 is running
 inline u8
@@ -122,6 +124,7 @@ internal void
 SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
 {
     net_entity_state *E = &Out->Entities[Out->Count++];
+    *E = {};
     E->Id = Id;
     E->Type = (u8)Entity->Type;
     E->Facing = (u8)Entity->AnimationState.LastAnimationDirection;
@@ -143,6 +146,17 @@ SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
     E->VelX = Entity->Velocity.X;
     E->VelY = Entity->Velocity.Y;
     E->VelZ = Entity->Velocity.Z;
+    // NOTE(zoubir): the hit-pause in milliseconds (only the frozen part,
+    // not the grace after it) and the angle as a whole turn in 256 steps
+    if (Entity->HitFresh > 0.f)
+    {
+        E->Hit = 1;
+        E->HitStop = (u8)Minimum(255, RoundFloatToI32(1000.f * Maximum(0.f, Entity->HitStop)));
+        float Turns = Entity->HitAngle / (2.f * Pi32);
+        E->HitAngle = (u8)(RoundFloatToI32(Turns * 256.f) & 255);
+        E->HitBy = (u8)Entity->HitBySlot;
+        E->HitThrown = Entity->HitThrown ? 1 : 0;
+    }
 
     SimGameWriteAbility(Entity, (u8)(Out->Count - 1), Out);
     SimGameWriteFacing(Entity, (u8)(Out->Count - 1), Out);

@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d4du // "GDMM", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d4eu // "GDMN", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -121,11 +121,18 @@ struct net_entity_state
     // Sent as 16-bit fixed point: positions to 1/8 unit within +-4096,
     // velocities to 1/4 unit per second within +-8192. Values outside are
     // clamped. Z and velocity are left out when they are zero, and VelZ
-    // travels with Z (20 bytes an entity at most, 12 for one standing on
-    // the ground). Type fits 6 bits.
+    // travels with Z (23 bytes an entity at most, 12 for one standing on
+    // the ground). Type fits 5 bits.
     float X, Y, Z; // Z is height above the floor (jumps)
     float VelX, VelY;
     float VelZ;    // vertical speed, while off the ground
+    // The unit's last hit, sent only while it is fresh (sim/hit.cpp,
+    // HitFresh): 3 bytes more for a unit hit in the last quarter second.
+    u8 Hit;        // 1 bit: the hit fields below are sent
+    u8 HitStop;    // hit-pause left, in milliseconds
+    u8 HitAngle;   // the way the hit threw it, a whole turn in 256 steps, 0 = +X
+    u8 HitBy;      // 4 bits: player slot + 1 that landed it, 0 for a monster
+    u8 HitThrown;  // 1 bit: the hit lifted it off its feet
 };
 
 // A monster ability being telegraphed or carried out, so clients can draw

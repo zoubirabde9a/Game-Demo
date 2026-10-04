@@ -180,6 +180,14 @@ struct world_entity
     // NOTE(zoubir): hit-pause: seconds left frozen after a solid hit while
     // above 0, the grace before the next while below (sim/hit.cpp)
     float HitStop;
+    // NOTE(zoubir): the last hit (sim/hit.cpp), for clients to draw: the
+    // way it threw this unit in radians, whether it lifted it, and the
+    // player slot + 1 who landed it (0 for a monster). All of it holds
+    // while HitFresh, the seconds left since the hit, is above 0
+    float HitAngle;
+    bool32 HitThrown;
+    u32 HitBySlot;
+    float HitFresh;
     // NOTE(zoubir): set each tick from the ground underfoot
     // (sim/terrain_effects.cpp); 0 means 1
     float GroundSpeedScale;

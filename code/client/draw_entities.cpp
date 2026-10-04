@@ -391,11 +391,12 @@ DrawEntity(render_context *RenderContext,
 }
 
 // NOTE(zoubir): picks the sprite-sheet frame for the animation the
-// simulation is playing; drawing only, never advances it
+// simulation is playing; drawing only, never advances it. A body frozen
+// by a hit keeps the frame it had (body_pose.cpp)
 internal void
 UpdateEntityUvs(world_entity *Entity, assets *Assets, app_state *AppState)
 {
-    if (!Entity->AnimationSet)
+    if (!Entity->AnimationSet || IsBodyFrozen(AppState, Entity))
     {
         return;
     }

@@ -1,7 +1,7 @@
 /* Online play tests: the client side of a connection, with no network.
    Server address and name settings, replicas built from hand-made
-   snapshots (created, moved, gliding, removed, carrying scores, names and
-   monster details) and prediction of the local player. Included by
+   snapshots (created, moved, gliding, removed, carrying scores, names,
+   monster details and the last hit) and prediction of the local player. Included by
    sim_tests.cpp, which calls RunOnlineTests; the real client against a
    real server is in server_tests.cpp. */
 
@@ -774,6 +774,99 @@ TestEnrageBurstOnline()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a hit's data from the snapshot drives the body: the
+// flinch goes the way the hit threw it, a hit-pause holds it white and
+// still, it tumbles only when the hit lifted it, and a solid hit the
+// local player landed freezes the player an instant and nudges the camera
+internal void
+TestHitsReadFromSnapshots()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->BodyPoses = (body_poses *)calloc(1, sizeof(body_poses));
+    replica_table *Table = (replica_table *)calloc(1, sizeof(replica_table));
+    net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+    float Dt = 1.f / 60.f;
+
+    Snapshot->Tick = 1;
+    Snapshot->Count = 2;
+    Snapshot->NameSlot = NET_NO_NAME_SLOT;
+    Snapshot->Entities[0] = SnapshotEntity(5, EntityType_Player, 500, 500, 0);
+    Snapshot->Entities[1] = SnapshotEntity(4, EntityType_Monster, 600, 500, 0);
+    // NOTE(zoubir): facing right, so the old guess would tip it left, back
+    // from where it faces
+    Snapshot->Entities[1].Facing = AnimationDirection_Right;
+    u32 Tick = 1;
+    for(u32 Frame = 0; Frame < 6; Frame++)
+    {
+        Snapshot->Tick = Tick++;
+        SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+        UpdateBodyPoses(AppState, Dt);
+    }
+    world_entity *Monster = &Test.World->Entities[Table->LocalIndexPlusOne[4] - 1];
+    world_entity *Player = GetLocalPlayer(AppState);
+    Check(Player && !IsBodyFrozen(AppState, Monster));
+
+    // NOTE(zoubir): the local player's sword throws it right (angle 0)
+    // and pauses it 60 ms, in the air but not lifted
+    net_entity_state *Hit = &Snapshot->Entities[1];
+    Hit->Health = 60;
+    Hit->Z = 20.f;
+    Hit->Hit = 1;
+    Hit->HitStop = 60;
+    Hit->HitAngle = 0;
+    Hit->HitBy = 1;
+    Snapshot->Tick = Tick++;
+    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+    UpdateBodyPoses(AppState, Dt);
+    Check(Monster->HitFresh > 0.f && Monster->HitBySlot == 1 && !Monster->HitThrown);
+    Check(Monster->HitStop > 0.04f && Monster->HitStop < 0.06f);
+    Check(IsBodyFrozen(AppState, Monster));
+    body_pose_draw Pose = GetBodyPose(AppState, Monster);
+    Check(Pose.White == 1.f && Pose.Angle > 0.05f);
+    // NOTE(zoubir): the player's pose may come before the monster's in
+    // the frame, so its freeze shows from the next
+    UpdateBodyPoses(AppState, Dt);
+    Check(IsBodyFrozen(AppState, Player));
+    Check(GetHitNudge(AppState).X > 0.5f);
+
+    // NOTE(zoubir): the pause runs out between snapshots; still white
+    // until it does, never tumbling, as the hit did not lift it
+    Hit->Hit = 0;
+    Hit->HitStop = 0;
+    u32 Frozen = 0;
+    for(u32 Frame = 0; Frame < 20; Frame++)
+    {
+        SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+        UpdateBodyPoses(AppState, Dt);
+        Frozen += IsBodyFrozen(AppState, Monster) ? 1 : 0;
+    }
+    Check(Frozen >= 1 && Frozen <= 3);
+    Check(!IsBodyFrozen(AppState, Player));
+    Check(GetHitNudge(AppState).X == 0.f);
+    Check(Absolute(GetBodyPose(AppState, Monster).Angle) < 0.1f);
+
+    // NOTE(zoubir): a hit that lifts it tumbles it, even with no pause
+    Hit->Health = 40;
+    Hit->Hit = 1;
+    Hit->HitThrown = 1;
+    Hit->HitBy = 0;
+    Hit->Z = 30.f;
+    Snapshot->Tick = Tick++;
+    for(u32 Frame = 0; Frame < 10; Frame++)
+    {
+        SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+        UpdateBodyPoses(AppState, Dt);
+    }
+    Check(GetBodyPose(AppState, Monster).Angle > 0.2f);
+
+    free(Snapshot);
+    free(Table);
+    free(AppState->BodyPoses);
+    AppState->BodyPoses = 0;
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunOnlineTests()
 {
@@ -813,4 +906,6 @@ RunOnlineTests()
     TestReplicasShowMonsterWindups();
     printf("TestEnrageBurstOnline\n");
     TestEnrageBurstOnline();
+    printf("TestHitsReadFromSnapshots\n");
+    TestHitsReadFromSnapshots();
 }
