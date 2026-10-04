@@ -3,9 +3,18 @@
    held; otherwise a one-line hint in the bottom-left says how to bring it
    back. Hidden while the connect screen is open (it takes the keys and
    sits on top), and the intro time only runs while playing.
+   The panel stays above the ability bar: in a short window it switches to
+   the small font, moves up toward the HUD lines, then splits into two
+   columns.
    A new key goes in ControlsRows. */
 
 #define CONTROLS_INTRO_SECONDS 10.f
+// NOTE(zoubir): under the HUD's stat lines; CONTROLS_TOP_MIN when the
+// window is too short for that
+#define CONTROLS_TOP 150.f
+#define CONTROLS_TOP_MIN 64.f
+
+internal float AbilityBarPlateTop(u32 WindowHeight);
 
 struct controls_panel
 {
@@ -68,38 +77,52 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
         return;
     }
 
+    float Bottom = AbilityBarPlateTop(WindowHeight) - UI_GAP;
+    float Pad = UI_GAP;
+    float TitleHeight = UILineHeight(AppState->Fonts.Title) + UI_GAP_SMALL;
+    u32 RowCount = ArrayCount(ControlsRows);
     font *Font = AppState->Fonts.Body;
     float RowHeight = UILineHeight(Font) + 4.f;
+    u32 Columns = 1;
+    if (CONTROLS_TOP + Pad + TitleHeight + RowCount * RowHeight + Pad > Bottom)
+    {
+        Font = Small;
+        RowHeight = UILineHeight(Font) + 2.f;
+        if (CONTROLS_TOP_MIN + Pad + TitleHeight + RowCount * RowHeight + Pad > Bottom)
+        {
+            Columns = 2;
+        }
+    }
+    u32 RowsPerColumn = (RowCount + Columns - 1) / Columns;
+    float Height = Pad + TitleHeight + RowsPerColumn * RowHeight + Pad;
     float KeyWidth = 0.f;
     float ActionWidth = 0.f;
-    for(u32 Row = 0; Row < ArrayCount(ControlsRows); Row++)
+    for(u32 Row = 0; Row < RowCount; Row++)
     {
         KeyWidth = Maximum(KeyWidth, UITextWidth(Font, ControlsRows[Row].Key));
         ActionWidth = Maximum(ActionWidth,
                               UITextWidth(Font, ControlsRows[Row].Action));
     }
-    float Pad = UI_GAP;
-    float Width = Pad + KeyWidth + UI_GAP_LARGE + ActionWidth + Pad;
-    float Height = Pad + UILineHeight(AppState->Fonts.Title) + UI_GAP_SMALL +
-        ArrayCount(ControlsRows) * RowHeight + Pad;
-    // NOTE(zoubir): under the HUD's stat lines
+    float ColumnWidth = KeyWidth + UI_GAP_LARGE + ActionWidth;
+    float Width = Pad + Columns * ColumnWidth + (Columns - 1) * UI_GAP_LARGE + Pad;
     float Left = UI_GAP_LARGE;
-    float Top = 150.f;
+    float Top = Maximum(CONTROLS_TOP_MIN,
+                        Minimum(CONTROLS_TOP, Bottom - Height));
     DrawFilledRectangle(RenderContext, Left, Top, Width, Height,
                         UI_COLOR_PANEL, 0.f);
     DrawRectangle(RenderContext, Left, Top, Width, Height, UI_COLOR_BORDER, 0.f);
 
-    float Y = Top + Pad;
-    UIText(RenderContext, AppState->Fonts.Title, Left + Pad, Y, "Controls",
-           UI_COLOR_TEXT);
-    Y += UILineHeight(AppState->Fonts.Title) + UI_GAP_SMALL;
-    float KeyRight = Left + Pad + KeyWidth;
-    for(u32 Row = 0; Row < ArrayCount(ControlsRows); Row++)
+    UIText(RenderContext, AppState->Fonts.Title, Left + Pad, Top + Pad,
+           "Controls", UI_COLOR_TEXT);
+    float RowsTop = Top + Pad + TitleHeight;
+    for(u32 Row = 0; Row < RowCount; Row++)
     {
+        u32 Column = Row / RowsPerColumn;
+        float KeyRight = Left + Pad + Column * (ColumnWidth + UI_GAP_LARGE) + KeyWidth;
+        float Y = RowsTop + (Row % RowsPerColumn) * RowHeight;
         UIText(RenderContext, Font, KeyRight, Y, ControlsRows[Row].Key,
                UI_COLOR_ACCENT, UIAlign_Right);
         UIText(RenderContext, Font, KeyRight + UI_GAP_LARGE, Y,
                ControlsRows[Row].Action, UI_COLOR_TEXT);
-        Y += RowHeight;
     }
 }

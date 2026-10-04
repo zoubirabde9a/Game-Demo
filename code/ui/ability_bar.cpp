@@ -15,6 +15,7 @@
 #define ABILITY_SLOT_GAP 8.f
 #define ABILITY_GROUP_GAP 22.f
 #define ABILITY_BAR_BOTTOM 26.f
+#define ABILITY_PLATE_PAD 12.f
 // NOTE(zoubir): slot_frame.frag fills this share of its quad with the slot
 // and leaves the rest for the glow
 #define ABILITY_SLOT_BOX 0.78f
@@ -125,6 +126,16 @@ DrawAbilityBarHealth(render_context *RenderContext, app_state *AppState,
            UIAlign_Center);
 }
 
+// NOTE(zoubir): the top of the glass plate behind health and slots; other
+// panels stay above it (controls_panel.cpp)
+internal float
+AbilityBarPlateTop(u32 WindowHeight)
+{
+    float SlotTop = (float)WindowHeight - ABILITY_BAR_BOTTOM - ABILITY_SLOT_SIZE;
+    float HealthY = SlotTop - 18.f - ABILITY_HEALTH_HEIGHT;
+    return HealthY - ABILITY_PLATE_PAD;
+}
+
 internal void
 DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *Input,
                u32 WindowWidth, u32 WindowHeight)
@@ -161,8 +172,8 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
     float HealthY = SlotTop - 18.f - ABILITY_HEALTH_HEIGHT;
 
     // NOTE(zoubir): one glass plate behind health and slots
-    float PlatePad = 12.f;
-    float PlateTop = HealthY - PlatePad;
+    float PlatePad = ABILITY_PLATE_PAD;
+    float PlateTop = AbilityBarPlateTop(WindowHeight);
     float PlateHeight = (float)WindowHeight - ABILITY_BAR_BOTTOM + PlatePad - PlateTop;
     float PlateWidth = Width + 2.f * PlatePad;
     DrawUIPanel(RenderContext, Left - PlatePad, PlateTop, PlateWidth, PlateHeight);
