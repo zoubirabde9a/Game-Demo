@@ -211,10 +211,17 @@ UpdateMonster(world_entity *Entity, world *World,
         {
             Entity->tFlying -= 2.f * Pi32;
         }
-        float Hover = Stats->FlyHeight + 4.f * Sin(Entity->tFlying);
+        // NOTE(zoubir): over the highest ground nearby, so a flyer rises
+        // before it reaches a cliff and never sinks into one
+        float Hover = Stats->FlyHeight + 4.f * Sin(Entity->tFlying) +
+            HighestGroundAround(World, Entity->Position.XY, (float)World->TileWidth);
         float Step = MONSTER_FLYER_CLIMB_SPEED * DeltaTime;
         float Gap = Hover - Entity->Position.Z;
+        v3 OldPosition = Entity->Position;
         Entity->Position.Z += Gap > Step ? Step : (Gap < -Step ? -Step : Gap);
+        // NOTE(zoubir): over high ground a flyer can cross into the chunk
+        // above
+        CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Entity);
         DDEntity.Z = 0.f;
         Entity->Velocity.Z = 0.f;
     }
@@ -277,7 +284,10 @@ UpdateFamiliar(world_entity *Entity, world *World,
     {
         Entity->tFlying -= TwoPi;
     }
-    Entity->Position.Z = 30 + 4.f * Sin(Entity->tFlying);
+    v3 OldPosition = Entity->Position;
+    Entity->Position.Z = 30 + 4.f * Sin(Entity->tFlying) +
+        HighestGroundAround(World, Entity->Position.XY, (float)World->TileWidth);
+    CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Entity);
     
 #if 0        
     float DeltaZ = 0.5f * DDEntityZ * Square(DeltaTime) +

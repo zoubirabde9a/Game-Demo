@@ -6,7 +6,8 @@ IsSpawnSpotFree(app_state *AppState, world *World, v3 Position,
                 entity_collision_volume_group *Volume);
 
 // NOTE(zoubir): nearest spot to Desired on rings of 24 units that is inside
-// the arena and clear; Desired itself when every ring is full
+// the arena and clear, standing on the ground there (on top of raised
+// ground); Desired itself when every ring is full
 internal v3
 FindFreeSpotAround(app_state *AppState, world *World, v3 Desired,
                    entity_collision_volume_group *Volume)
@@ -21,7 +22,8 @@ FindFreeSpotAround(app_state *AppState, world *World, v3 Desired,
         for(u32 Step = 0; Step < Steps; Step++)
         {
             float Angle = 2.f * Pi32 * (float)Step / (float)Steps;
-            v3 Spot = Desired + V3(Radius * Cos(Angle), Radius * Sin(Angle), 0.f);
+            v3 Spot = OnGround(World, Desired + V3(Radius * Cos(Angle),
+                                                   Radius * Sin(Angle), 0.f));
             if (!World->Unbounded &&
                 (Spot.X < Margin || Spot.X > Width - Margin ||
                  Spot.Y < Margin || Spot.Y > Height - Margin))
@@ -51,11 +53,11 @@ FindFreePlayerSpot(app_state *AppState, world *World, v3 Desired,
     {
         Self->IsPresent = false;
     }
-    v3 Result = Desired;
+    v3 Result = OnGround(World, Desired);
     entity_collision_volume_group *Volume = AppState->PlayerCollision;
-    if (!IsSpawnSpotFree(AppState, World, Desired, Volume))
+    if (!IsSpawnSpotFree(AppState, World, Result, Volume))
     {
-        Result = FindFreeSpotAround(AppState, World, Desired, Volume);
+        Result = FindFreeSpotAround(AppState, World, Result, Volume);
     }
     if (Self)
     {

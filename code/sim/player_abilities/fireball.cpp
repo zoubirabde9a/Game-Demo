@@ -13,9 +13,12 @@ SpawnFireBall(app_state *AppState, world *World, memory_arena *Arena,
 {
     v2 Start = Player->Position.XY + Dir * V2(32.f, 32.f);
     v2 Velocity = FIREBALL_SPEED * Dir;
+    // NOTE(zoubir): hand height above the raised ground the player is on,
+    // not above its jump, so a shot from a jump still hits who is below
+    float Height = GroundHeightAt(World, Player->Position.XY) + FIREBALL_HAND_HEIGHT;
     world_entity *FireBall =
         AddFireBall(AppState, World, Arena, Player,
-                    V3(Start.X, Start.Y, FIREBALL_HAND_HEIGHT),
+                    V3(Start.X, Start.Y, Height),
                     V3(Velocity.X, Velocity.Y, 0.f));
     FireBall->AnimationSpeed = 1.f;
     FireBall->AnimationType = AnimationType_Move;

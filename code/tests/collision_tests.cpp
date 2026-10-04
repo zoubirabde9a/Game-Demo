@@ -487,9 +487,217 @@ TestPlayerNeverStuck(u32 SeedValue)
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): raised ground, on the test-only elevation from
+// terrain_tests.cpp. Tiles are 32 units, a step 8; the test units are 30
+// wide and walk at about 93 units a second
+
+// NOTE(zoubir): stairs rising one step per tile, from tile 12 up to four
+// steps at tile 15 and on, are walked up without a jump
+internal void
+TestOneStepStairsAreWalkedUp()
+{
+    test_world Test = CreateTestWorld();
+    test_elevation Elevation = BeginTestElevation(&Test);
+    for(i32 Step = 1; Step <= 4; Step++)
+    {
+        SetTestSteps(&Elevation, 11 + Step, 5, Step == 4 ? 25 : 11 + Step, 14, Step);
+    }
+    world_entity *Walker = AddTestEntity(&Test, EntityType_Player, {330, 320, 0},
+                                         Test.UnitVolume);
+    Walk(&Test, Walker, {1, 0}, 240);
+    Check(Walker->Position.X > 15 * 32 + 20.f);
+    Check(Absolute(Walker->Position.Z - 32.f) < 0.1f);
+    Check(Walker->GroundZ == 32.f);
+    // NOTE(zoubir): and back down without a fall
+    Walk(&Test, Walker, {-1, 0}, 240);
+    Check(Walker->Position.X < 12 * 32 - 15.f);
+    Check(Walker->Position.Z < 0.1f);
+    EndTestElevation(&Elevation);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): a ledge three steps up stops a walking unit like a wall
+internal void
+TestThreeStepLedgeBlocksWalking()
+{
+    test_world Test = CreateTestWorld();
+    test_elevation Elevation = BeginTestElevation(&Test);
+    SetTestSteps(&Elevation, 12, 5, 20, 14, 3);
+    world_entity *Walker = AddTestEntity(&Test, EntityType_Player, {300, 320, 0},
+                                         Test.UnitVolume);
+    Walk(&Test, Walker, {1, 0}, 120);
+    Check(Walker->Position.X + 15.f <= 12 * 32 + 0.01f);
+    Check(Walker->Position.X + 15.f > 12 * 32 - 2.f);
+    Check(Walker->Position.Z == 0.f);
+    EndTestElevation(&Elevation);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): on top of a plateau a unit walks across it, over the seams
+// between its tiles, at its height; then off its edge, and falls
+internal void
+TestWalkingAcrossAndOffPlateau()
+{
+    test_world Test = CreateTestWorld();
+    test_elevation Elevation = BeginTestElevation(&Test);
+    SetTestSteps(&Elevation, 8, 5, 20, 14, 3);
+    world_entity *Walker = AddTestEntity(&Test, EntityType_Player, {300, 320, 24.01f},
+                                         Test.UnitVolume);
+    Walk(&Test, Walker, {0.707f, 0.707f}, 150);
+    Check(Walker->Position.X > 380.f && Walker->Position.Y > 390.f);
+    Check(Absolute(Walker->Position.Z - 24.f) < 0.1f);
+    Check(Walker->GroundZ == 24.f);
+    Walk(&Test, Walker, {1, 0}, 300);
+    Check(Walker->Position.X > 21 * 32 + 15.f);
+    Check(Walker->Position.Z == 0.f);
+    Check(Walker->GroundZ == 0.f);
+    EndTestElevation(&Elevation);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): a monster chasing a player up on a cliff three steps high
+// stays at its foot; given stairs, it climbs them
+internal void
+TestMonsterCannotWalkUpCliff()
+{
+    test_world Test = CreateTestWorld();
+    test_elevation Elevation = BeginTestElevation(&Test);
+    SetTestSteps(&Elevation, 12, 5, 20, 14, 3);
+    world_entity *Monster = AddTestMonster(&Test, MonsterKind_Brute, {300, 320, 0});
+    AddPlayerToSlot(Test.AppState, Test.World, &Test.Arena, 0, {580, 320, 0});
+    StepMonster(&Test, Monster, 180);
+    Check(Monster->Position.X + 15.f <= 12 * 32 + 0.01f);
+    Check(Monster->Position.X + 15.f > 12 * 32 - 4.f);
+    Check(Monster->Position.Z == 0.f);
+
+    SetTestSteps(&Elevation, 12, 5, 12, 14, 1);
+    SetTestSteps(&Elevation, 13, 5, 13, 14, 2);
+    StepMonster(&Test, Monster, 180);
+    Check(Monster->Position.X > 14 * 32 + 15.f);
+    Check(Monster->Position.Z > 23.f);
+    EndTestElevation(&Elevation);
+    DestroyTestWorld(&Test);
+}
+
+#define TEST_NO_JUMP 0xFFFFFFFFu
+
+// NOTE(zoubir): the real player tick for slot 0, holding Move and pressing
+// jump on frames FirstJump and SecondJump
+internal void
+RunTestPlayer(test_world *Test, v2 Move, u32 Frames, u32 FirstJump,
+              u32 SecondJump)
+{
+    app_state *AppState = Test->AppState;
+    for(u32 Frame = 0; Frame < Frames; Frame++)
+    {
+        AppState->Players[0].Input.Move = Move;
+        AppState->Players[0].Input.Pressed =
+            (Frame == FirstJump || Frame == SecondJump) ? PlayerButton_Jump : 0;
+        SimulateTick(AppState, &Test->Arena, 1.f / 60.f);
+    }
+}
+
+// NOTE(zoubir): a player pushing into a three-step ledge vaults onto it on
+// its own; six steps need a double jump; nine are a wall
+internal void
+TestPlayerJumpsOntoLedges()
+{
+    i32 Heights[] = {3, 6, 9};
+    for(u32 Index = 0; Index < ArrayCount(Heights); Index++)
+    {
+        i32 Steps = Heights[Index];
+        float Top = Steps * ELEVATION_STEP_HEIGHT;
+        test_world Test = CreateTestWorld();
+        test_elevation Elevation = BeginTestElevation(&Test);
+        SetTestSteps(&Elevation, 12, 5, 20, 14, Steps);
+        world_entity *Player = AddPlayerToSlot(Test.AppState, Test.World, &Test.Arena,
+                                               0, {340, 320, 0});
+        RunTestPlayer(&Test, {1, 0}, 90, TEST_NO_JUMP, TEST_NO_JUMP);
+        if (Steps <= ELEVATION_JUMP_STEPS)
+        {
+            Check(Player->Position.X > 12 * 32 + 15.f);
+            Check(Absolute(Player->Position.Z - Top) < 0.1f);
+        }
+        else
+        {
+            Check(Player->Position.X + 15.f <= 12 * 32 + 0.01f);
+            Check(Player->Position.Z < 0.1f);
+            // NOTE(zoubir): the second press near the top of the first jump
+            RunTestPlayer(&Test, {1, 0}, 90, 0, 12);
+            bool32 Reachable = Steps <= ELEVATION_DOUBLE_JUMP_STEPS;
+            Check(Reachable == (Player->Position.X > 12 * 32 + 15.f));
+            Check(Reachable == (Absolute(Player->Position.Z - Top) < 0.1f));
+            if (!Reachable)
+            {
+                Check(Player->Position.Z < 0.1f);
+            }
+        }
+        EndTestElevation(&Elevation);
+        DestroyTestWorld(&Test);
+    }
+}
+
+// NOTE(zoubir): a log, a fence and a crate stop a walking unit, and a
+// player pushing into one vaults it; a crate holds whoever lands on it
+internal void
+TestPropsAreJumpable()
+{
+    terrain_prop Props[] = {TerrainProp_Log, TerrainProp_Fence, TerrainProp_Crate};
+    for(u32 Index = 0; Index < ArrayCount(Props); Index++)
+    {
+        test_world Test = CreateTestWorld();
+        test_elevation Elevation = BeginTestElevation(&Test);
+        v3 PropAt = {400, 320, 0};
+        world_entity *Prop = AddTerrainProp(Test.AppState, Test.World, &Test.Arena,
+                                            PropAt, Props[Index]);
+        Check(Prop->Texture.Type == AssetType_TerrainProp);
+        Check(Prop->Texture.Index == (u32)Props[Index]);
+        float HalfX = PropTable[Props[Index]].HalfDims.X;
+        float Height = 2.f * PropTable[Props[Index]].HalfDims.Z;
+
+        world_entity *Walker = AddTestEntity(&Test, EntityType_Monster, {300, 320, 0},
+                                             Test.UnitVolume);
+        Walk(&Test, Walker, {1, 0}, 120);
+        Check(Walker->Position.X + 15.f <= PropAt.X - HalfX + 0.01f);
+        RemoveEntity(Test.World, Walker);
+
+        world_entity *Player = AddPlayerToSlot(Test.AppState, Test.World, &Test.Arena,
+                                               0, {340, 320, 0});
+        RunTestPlayer(&Test, {1, 0}, 120, TEST_NO_JUMP, TEST_NO_JUMP);
+        Check(Player->Position.X - 15.f > PropAt.X + HalfX);
+        Check(Player->Position.Z < 0.1f);
+
+        // NOTE(zoubir): dropped onto it, a player stands on a crate
+        if (Props[Index] == TerrainProp_Crate)
+        {
+            v3 Old = Player->Position;
+            Player->Position = PropAt + V3(0, 0, Height + 6.f);
+            Player->Velocity = {};
+            CheckAndChangeEntityChunk(Test.AppState, Test.World, &Test.Arena, Old, Player);
+            RunTestPlayer(&Test, {0, 0}, 30, TEST_NO_JUMP, TEST_NO_JUMP);
+            Check(Player->GroundZ == Height);
+            Check(Absolute(Player->Position.Z - Height) < 0.1f);
+        }
+        EndTestElevation(&Elevation);
+        DestroyTestWorld(&Test);
+    }
+}
+
 internal void
 RunCollisionTests()
 {
+    printf("TestOneStepStairsAreWalkedUp\n");
+    TestOneStepStairsAreWalkedUp();
+    printf("TestThreeStepLedgeBlocksWalking\n");
+    TestThreeStepLedgeBlocksWalking();
+    printf("TestWalkingAcrossAndOffPlateau\n");
+    TestWalkingAcrossAndOffPlateau();
+    printf("TestMonsterCannotWalkUpCliff\n");
+    TestMonsterCannotWalkUpCliff();
+    printf("TestPlayerJumpsOntoLedges\n");
+    TestPlayerJumpsOntoLedges();
+    printf("TestPropsAreJumpable\n");
+    TestPropsAreJumpable();
     printf("TestWallStopsUnit\n");
     TestWallStopsUnit();
     printf("TestUnitSlidesAlongWall\n");

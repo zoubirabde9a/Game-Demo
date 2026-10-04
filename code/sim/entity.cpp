@@ -270,13 +270,14 @@ IsDodging(world_entity *Entity)
 }
 
 // NOTE(zoubir): high enough in a jump to clear ground hazards (bile, webs,
-// embers); a jump spends about 0.4 of its 0.46 s above this
+// embers); a jump spends about 0.4 of its 0.46 s above this. Measured from
+// what the entity stands on, so standing on raised ground is not a jump
 #define CLEARS_GROUND_HEIGHT 8.f
 
 inline bool32
 IsClearOfGround(world_entity *Entity)
 {
-    bool32 Result = Entity->Position.Z > CLEARS_GROUND_HEIGHT;
+    bool32 Result = Entity->Position.Z > Entity->GroundZ + CLEARS_GROUND_HEIGHT;
     return Result;
 }
 

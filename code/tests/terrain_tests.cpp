@@ -905,9 +905,156 @@ TestProceduralElevationMatchesGoldenHashes()
     Check(Wastes == TERRAIN_GOLDEN_WASTES_ELEVATION);
 }
 
+// NOTE(zoubir): a test-only raised ground. For the length of a test the
+// Old Arena's map gets an ElevationLayout of flat '0's, which
+// SetTestSteps raises, and the test world gets the stand-in pool and
+// volumes BuildArena would make; EndTestElevation puts the map back. So
+// the tests here do not depend on what the shipped maps raise
+struct test_elevation
+{
+    map_def *Map;
+    char **SavedLayout;
+    char **Rows;
+};
+
+internal test_elevation
+BeginTestElevation(test_world *Test)
+{
+    test_elevation Result = {};
+    Test->World->MapId = MapId_Arena;
+    Result.Map = GetMapDef(MapId_Arena);
+    Result.SavedLayout = Result.Map->ElevationLayout;
+    Result.Rows = (char **)calloc(Result.Map->Height, sizeof(char *));
+    for(u32 Y = 0; Y < Result.Map->Height; Y++)
+    {
+        Result.Rows[Y] = (char *)calloc(Result.Map->Width + 1, 1);
+        memset(Result.Rows[Y], '0', Result.Map->Width);
+    }
+    Result.Map->ElevationLayout = Result.Rows;
+    BuildTerrainVolumes(Test->AppState, Test->World, &Test->Arena);
+    return Result;
+}
+
+// NOTE(zoubir): raises the tiles MinX..MaxX, MinY..MaxY (inclusive) to Steps
+internal void
+SetTestSteps(test_elevation *Elevation, i32 MinX, i32 MinY, i32 MaxX, i32 MaxY,
+             i32 Steps)
+{
+    for(i32 Y = MinY; Y <= MaxY; Y++)
+    {
+        for(i32 X = MinX; X <= MaxX; X++)
+        {
+            Elevation->Rows[Y][X] = (char)('0' + Steps);
+        }
+    }
+}
+
+internal void
+EndTestElevation(test_elevation *Elevation)
+{
+    Elevation->Map->ElevationLayout = Elevation->SavedLayout;
+    for(u32 Y = 0; Y < Elevation->Map->Height; Y++)
+    {
+        free(Elevation->Rows[Y]);
+    }
+    free(Elevation->Rows);
+}
+
+// NOTE(zoubir): the climbing table in terrain_kinds.cpp promises what a
+// jump and a double jump clear; this holds it to the jump's real physics
+internal void
+TestClimbStepsMatchJumpHeights()
+{
+    float JumpPeak = Square(PLAYER_JUMP_SPEED) / (2.f * PLAYER_GRAVITY);
+    float DoublePeak = JumpPeak + Square(PLAYER_AIR_JUMP_SPEED) / (2.f * PLAYER_GRAVITY);
+    Check(ELEVATION_JUMP_STEPS * ELEVATION_STEP_HEIGHT < JumpPeak);
+    Check((ELEVATION_JUMP_STEPS + 1) * ELEVATION_STEP_HEIGHT > JumpPeak);
+    Check(ELEVATION_DOUBLE_JUMP_STEPS * ELEVATION_STEP_HEIGHT < DoublePeak);
+    Check(ELEVATION_MAX_STEPS * ELEVATION_STEP_HEIGHT > DoublePeak);
+    Check(GetStepUpHeight() >= ELEVATION_WALK_STEPS * ELEVATION_STEP_HEIGHT);
+    Check(GetStepUpHeight() < (ELEVATION_WALK_STEPS + 1) * ELEVATION_STEP_HEIGHT);
+    // NOTE(zoubir): the jumpables all need a jump, and one jump is enough
+    terrain_prop Jumpables[] = {TerrainProp_Log, TerrainProp_Fence, TerrainProp_Crate};
+    for(u32 Index = 0; Index < ArrayCount(Jumpables); Index++)
+    {
+        float Height = 2.f * PropTable[Jumpables[Index]].HalfDims.Z;
+        Check(Height > GetStepUpHeight());
+        Check(Height < PLAYER_VAULT_HEIGHT);
+    }
+}
+
+// NOTE(zoubir): raised ground is part of the terrain fingerprint, so a
+// client and a server with different heights turn each other away
+internal void
+TestElevationChangesTerrainHash()
+{
+    test_world Test = CreateTestWorld();
+    u32 Flat = ComputeTerrainContentHash();
+    u32 FlatRegion = HashTerrainRegion(GetMapDef(MapId_Arena), 0, 0, 32);
+    test_elevation Elevation = BeginTestElevation(&Test);
+    SetTestSteps(&Elevation, 10, 10, 12, 12, 3);
+    Check(ComputeTerrainContentHash() != Flat);
+    Check(HashTerrainRegion(GetMapDef(MapId_Arena), 0, 0, 32) != FlatRegion);
+    EndTestElevation(&Elevation);
+    Check(ComputeTerrainContentHash() == Flat);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): on top of a plateau a unit feels the ground it stands on;
+// at the same height over low ground it is in the air
+internal void
+TestTerrainIsFeltOnHighGround()
+{
+    test_world Test = CreateTestWorld();
+    test_elevation Elevation = BeginTestElevation(&Test);
+    SetTestSteps(&Elevation, 10, 5, 14, 14, 3);
+    world_entity *OnTop = AddTestPlayer(&Test, {12 * 32 + 16, 320, 24.01f});
+    world_entity *InAir = AddTestPlayer(&Test, {20 * 32 + 16, 320, 24.01f});
+    Check(FeelsTerrain(Test.World, OnTop));
+    Check(!FeelsTerrain(Test.World, InAir));
+    EndTestElevation(&Elevation);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): a spawn on a plateau stands on top of it, and nothing
+// spawns inside raised ground
+internal void
+TestSpawnsStandOnHighGround()
+{
+    test_world Test = CreateTestWorld();
+    test_elevation Elevation = BeginTestElevation(&Test);
+    SetTestSteps(&Elevation, 10, 5, 14, 14, 3);
+    v3 Middle = {12 * 32 + 16, 320, 0};
+    Check(!IsSpawnSpotFree(Test.AppState, Test.World, Middle, Test.UnitVolume));
+    v3 Spot = FindFreePlayerSpot(Test.AppState, Test.World, Middle, 0);
+    Check(Spot.X == Middle.X && Spot.Y == Middle.Y);
+    Check(Absolute(Spot.Z - 24.f) < 0.1f);
+    Check(IsSpawnSpotFree(Test.AppState, Test.World, Spot, Test.UnitVolume));
+    // NOTE(zoubir): asked for at the foot of the cliff, where the body
+    // would reach into it, the spawn moves clear of it
+    v3 Foot = {10 * 32 - 5, 320, 0};
+    Check(!IsSpawnSpotFree(Test.AppState, Test.World, Foot, Test.UnitVolume));
+    world_entity *Player = AddTestPlayer(&Test, Foot);
+    v3 Old = Player->Position;
+    Player->Position = FindFreePlayerSpot(Test.AppState, Test.World, Foot, Player);
+    CheckAndChangeEntityChunk(Test.AppState, Test.World, &Test.Arena, Old, Player);
+    Check(Absolute(Player->Position.Z - GroundHeightAt(Test.World, Player->Position.XY)) < 0.1f);
+    Check(!OverlapsTerrain(Test.World, Player));
+    EndTestElevation(&Elevation);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunTerrainTests()
 {
+    printf("TestClimbStepsMatchJumpHeights\n");
+    TestClimbStepsMatchJumpHeights();
+    printf("TestElevationChangesTerrainHash\n");
+    TestElevationChangesTerrainHash();
+    printf("TestTerrainIsFeltOnHighGround\n");
+    TestTerrainIsFeltOnHighGround();
+    printf("TestSpawnsStandOnHighGround\n");
+    TestSpawnsStandOnHighGround();
     printf("TestFindMapByName\n");
     TestFindMapByName();
     printf("TestBuildKeepWorld\n");

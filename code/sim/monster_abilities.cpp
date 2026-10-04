@@ -215,7 +215,10 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
         {
             Entity->tFlying -= 2.f * Pi32;
         }
-        Entity->Position.Z = Def->FlyHeight + 4.f * Sin(Entity->tFlying);
+        v3 OldPosition = Entity->Position;
+        Entity->Position.Z = Def->FlyHeight + 4.f * Sin(Entity->tFlying) +
+            HighestGroundAround(World, Entity->Position.XY, (float)World->TileWidth);
+        CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Entity);
         DDEntity.Z = 0.f;
         Entity->Velocity.Z = 0.f;
     }

@@ -8,9 +8,10 @@ AddMonsterShot(app_state *AppState, world *World, memory_arena *Arena,
 {
     v3 Start = Owner->Position;
     Start.XY += 12.f * Direction;
-    // NOTE(zoubir): hand height, so the shot reads as thrown, and its
-    // shadow shows where it really is
-    Start.Z = Maximum(Owner->Position.Z, 14.f);
+    // NOTE(zoubir): hand height above what the owner stands on (raised
+    // ground too), so the shot reads as thrown, and its shadow shows where
+    // it really is. Flyers throw from where they are
+    Start.Z = Maximum(Owner->Position.Z, Owner->GroundZ + 14.f);
     world_entity *Shot = AddEntity(AppState, World, Arena,
                                    EntityType_MonsterShot, Start,
                                    AppState->FireBallCollision);

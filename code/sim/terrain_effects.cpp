@@ -2,7 +2,8 @@
    Once per tick, every player and walking monster reads the terrain under
    its feet (TerrainAt for the world's map) and takes that kind's speed
    scale, friction, and standing status (lava burns). Flyers and units in
-   the air are untouched. Movement code reads the results through
+   the air are untouched; a unit on raised ground stands on its top
+   (GroundHeightAt). Movement code reads the results through
    GetMoveSpeedScale and GetGroundFriction. */
 
 // NOTE(zoubir): units higher than this off the ground skip terrain
@@ -19,11 +20,12 @@ TerrainUnder(world *World, v3 Position)
 }
 
 inline bool32
-FeelsTerrain(world_entity *Entity)
+FeelsTerrain(world *World, world_entity *Entity)
 {
     bool32 Result = false;
     if (Entity->IsPresent && Entity->Hp > 0.f &&
-        Entity->Position.Z <= TERRAIN_FEET_HEIGHT)
+        Entity->Position.Z <= GroundHeightAt(World, Entity->Position.XY) +
+        TERRAIN_FEET_HEIGHT)
     {
         if (Entity->Type == EntityType_Player)
         {
@@ -48,7 +50,7 @@ UpdateTerrainEffects(world *World)
         world_entity *Entity = &World->Entities[EntityIndex];
         Entity->GroundSpeedScale = 1.f;
         Entity->GroundFriction = 1.f;
-        if (!FeelsTerrain(Entity))
+        if (!FeelsTerrain(World, Entity))
         {
             continue;
         }

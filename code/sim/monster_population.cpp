@@ -84,10 +84,10 @@ IsSpawnSpotFree(app_state *AppState, world *World, v3 Position,
             return false;
         }
     }
-    if (World->Unbounded)
     {
         // NOTE(zoubir): infinite maps keep walls and props as terrain, not
-        // entities; ask for stand-ins around the probe
+        // entities, and every map keeps raised ground that way; ask for
+        // stand-ins around the probe
         entity_collision_volume *Total = &Volume->TotalVolume;
         rectangle3 Box = RectCenterHalfDims(Position + Total->Offset, Total->HalfDims);
         world_entity *Nearby[64];
@@ -227,6 +227,8 @@ SpawnRoamingMonster(app_state *AppState, world *World, memory_arena *Arena,
             Position.X = RandomBetween(&Population->Series, Margin, MapWidth - Margin);
             Position.Y = RandomBetween(&Population->Series, Margin, MapHeight - Margin);
         }
+        // NOTE(zoubir): on top of raised ground, never inside it
+        Position = OnGround(World, Position);
         if (IsFarFromPlayers(World, Position.XY,
                              MONSTER_SPAWN_MIN_PLAYER_DISTANCE) &&
             IsSpawnSpotFree(AppState, World, Position, Volume))
@@ -308,11 +310,10 @@ SplitMonster(app_state *AppState, world *World, memory_arena *Arena,
         v2 Out = V2(Cos(Angle), Sin(Angle));
         v3 Position = Record->Position;
         Position.XY += 20.f * Out;
-        Position.Z = 0.f;
+        Position = OnGround(World, Position);
         if (!IsSpawnSpotFree(AppState, World, Position, Volume))
         {
-            Position = Record->Position;
-            Position.Z = 0.f;
+            Position = OnGround(World, Record->Position);
             if (!IsSpawnSpotFree(AppState, World, Position, Volume))
             {
                 continue;
@@ -442,12 +443,13 @@ AwakenNearbyLandmarks(app_state *AppState, world *World, memory_arena *Arena,
                     monster_def *KindDef = GetMonsterDef(Kind);
                     entity_collision_volume_group *Volume = KindDef->FlyHeight > 0.f ?
                         AppState->BatCollision : AppState->PlayerCollision;
-                    if (!IsSpawnSpotFree(AppState, World, Spots[Guard], Volume))
+                    v3 GuardSpot = OnGround(World, Spots[Guard]);
+                    if (!IsSpawnSpotFree(AppState, World, GuardSpot, Volume))
                     {
                         continue;
                     }
                     world_entity *Monster = SpawnMonster(AppState, World, Arena,
-                                                         Spots[Guard], Kind);
+                                                         GuardSpot, Kind);
                     // NOTE(zoubir): the first guard leads, always an elite
                     if (Guard == 0)
                     {
