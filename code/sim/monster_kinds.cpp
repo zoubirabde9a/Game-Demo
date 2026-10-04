@@ -368,7 +368,13 @@ SetupMonsterAnimationSet(animation_set *Set, memory_arena *Arena,
         };
     for(u32 Row = 0; Row < MonsterRow_Count; Row++)
     {
-        u32 FirstIndex = Row * MONSTER_SHEET_COLUMNS;
+        // NOTE(zoubir): the sheet's rows come out bottom up on the GPU
+        // (art/monster_render.cpp draws row 0 first; GetTextureUvsFromIndex
+        // counts from the other end), so row Row is cell row Count - 1 -
+        // Row. Read top down, a standing monster drew its empty last row
+        // and vanished, walking ones blinked out on two frames of six, and
+        // casts and attacks swapped frames
+        u32 FirstIndex = (MonsterRow_Count - 1 - Row) * MONSTER_SHEET_COLUMNS;
         u32 Count = Def->FrameCounts[Row];
         if (Count == 0)
         {
