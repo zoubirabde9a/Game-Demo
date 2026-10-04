@@ -113,6 +113,16 @@ struct prediction_history
     predicted_body Acked;
 };
 
+// NOTE(zoubir): the player_button bits the client acts on for its own
+// player before the server answers: the jump and every movement and area
+// ability (their effects on others still wait for the server)
+inline u32
+PredictedButtons()
+{
+    u32 Result = PlayerButton_Jump | PlayerMovementButtons() | PlayerAreaButtons();
+    return Result;
+}
+
 // NOTE(zoubir): the server turns held net buttons into a move direction
 // the same way, in GameApplyInput (server/sim_game.cpp)
 inline v2
@@ -185,7 +195,7 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     Slot->Input.Move = MoveFromNetButtons(Input->Buttons);
     Slot->Input.Aim = Input->Aim;
     Slot->Input.Pressed = ((u32)Input->Pressed >> PLAYER_BUTTON_NET_SHIFT) &
-        (PlayerButton_Jump | PlayerMovementButtons() | PlayerAreaButtons());
+        PredictedButtons();
     float AnimationSpeed;
     animation_type AnimationType;
     animation_direction AnimationDirection;

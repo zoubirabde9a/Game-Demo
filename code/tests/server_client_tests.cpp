@@ -418,14 +418,15 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
             // server's (the server has ticked once more since it wrote).
             world_entity *OwnTheirs = Server.Game.AppState->Players[Online->Client.PlayerIndex].Entity;
             world_entity *OwnOurs = Client->Players[Client->LocalPlayerIndex].Entity;
-            // NOTE(zoubir): a predicted dash or blink the server has not had
-            // yet starts its cooldown on the client first; skip those frames
+            // NOTE(zoubir): a predicted press (a dash, a cast) the server has
+            // not had yet starts its cooldown on the client first; skip
+            // those frames
             bool32 PressInFlight = false;
             for (u32 Index = 0; Index < Online->Prediction.Count; ++Index)
             {
-                PressInFlight = PressInFlight ||
-                    (GetPredictedInput(&Online->Prediction, Index)->Pressed &
-                     (NetButton_Dash | NetButton_Blink));
+                u32 Pressed = (u32)GetPredictedInput(&Online->Prediction, Index)->Pressed >>
+                    PLAYER_BUTTON_NET_SHIFT;
+                PressInFlight = PressInFlight || (Pressed & PredictedButtons());
             }
             if (OwnTheirs && OwnOurs && !PressInFlight)
             {
