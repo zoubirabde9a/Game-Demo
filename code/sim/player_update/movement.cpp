@@ -2,11 +2,15 @@
    roots it for a moment), and the physics step: acceleration, ground
    friction and gravity into MoveEntity. */
 
+// NOTE(zoubir): letting go of the keys faster than this raises a skid;
+// a full walk is about 93
+#define PLAYER_SKID_SPEED 70.f
 // NOTE(zoubir): how fast the player walks while a swing finishes
 #define PLAYER_ACTION_MOVE_SCALE 0.7f
 
 internal void
-UpdatePlayerMoveState(world_entity *Player, player_tick *Tick)
+UpdatePlayerMoveState(app_state *AppState, world_entity *Player,
+                      player_tick *Tick)
 {
     // NOTE(zoubir): the fireball left when the cast began, so walking cuts
     // the rest of the cast animation; holding fire used to mean walking at
@@ -37,6 +41,14 @@ UpdatePlayerMoveState(world_entity *Player, player_tick *Tick)
     {
         Player->State = EntityState_Stopping;
         Player->AnimationState.SlotIndex = 0;
+        // NOTE(zoubir): stopping from a run on the ground kicks up a skid
+        if (!Tick->Jumping &&
+            LengthSq(Player->Velocity.XY) > Square(PLAYER_SKID_SPEED))
+        {
+            v2 Heading = Player->Velocity.XY;
+            EmitBurst(&AppState->Events, SimBurst_Skid, (u8)Player->PlayerIndex,
+                      Player->Position, ATan2(Heading.Y, Heading.X));
+        }
     }
 }
 

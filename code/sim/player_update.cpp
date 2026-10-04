@@ -135,7 +135,7 @@ UpdatePlayer(player_slot *Slot, world *World,
     QueuePlayerActions(Slot, &Tick);
     FinishPlayerActions(Player, &Tick);
     RunPlayerActionQueue(AppState, World, Arena, Slot, DeltaTime, &Tick);
-    UpdatePlayerMoveState(Player, &Tick);
+    UpdatePlayerMoveState(AppState, Player, &Tick);
     UsePlayerAbilities(AppState, World, Arena, Slot, DeltaTime, &Tick);
     PickPlayerAnimation(Player, &Tick);
     MovePlayer(AppState, World, Arena, Player, DeltaTime, &Tick);

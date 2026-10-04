@@ -38,6 +38,7 @@ enum sim_burst
     SimBurst_SwingArc,     // a sword swing around a player, centred on Angle
     SimBurst_SwingArcBack, // the next swing of a combo, the other way round
     SimBurst_SwingArcFinisher, // a combo's last swing, wider and brighter
+    SimBurst_Skid,         // dust kicked forward when a run stops, along Angle
     SimBurst_Count
 };
 

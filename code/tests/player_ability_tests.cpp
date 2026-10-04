@@ -1067,6 +1067,31 @@ TestSwordJugglesAirborneTarget()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): letting go after a run raises one skid; a short step none
+internal void
+TestStoppingFromARunSkids()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    player_slot *Slot = &AppState->Players[0];
+    Slot->Input.Move = V2(1.f, 0.f);
+    RunPlayerFrames(&Test, 0, 2);
+    Slot->Input.Move = V2(0.f, 0.f);
+    AppState->Events.Count = 0;
+    RunPlayerFrames(&Test, 0, 30);
+    Check(CountBursts(AppState, SimBurst_Skid) == 0);
+
+    Slot->Input.Move = V2(1.f, 0.f);
+    RunPlayerFrames(&Test, 0, 40);
+    Slot->Input.Move = V2(0.f, 0.f);
+    AppState->Events.Count = 0;
+    RunPlayerFrames(&Test, 0, 5);
+    Check(CountBursts(AppState, SimBurst_Skid) == 1);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunPlayerAbilityTests()
 {
@@ -1138,4 +1163,6 @@ RunPlayerAbilityTests()
     TestJumpPressedJustBeforeLanding();
     printf("TestSwordJugglesAirborneTarget\n");
     TestSwordJugglesAirborneTarget();
+    printf("TestStoppingFromARunSkids\n");
+    TestStoppingFromARunSkids();
 }
