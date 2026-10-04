@@ -184,7 +184,7 @@ TestDashThenJumpGoesLong()
     float Plain = JumpDistance(0);
     float Long = JumpDistance(3);
     Check(Long > 2.f * Plain);
-    Check(Long > Plain + 60.f);
+    Check(Long > Plain + 120.f);
 }
 
 // NOTE(zoubir): jump, dash, attack is the skewer, which beats the lunge

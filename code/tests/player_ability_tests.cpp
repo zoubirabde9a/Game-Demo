@@ -206,8 +206,11 @@ TestDashGoesWhereKeysPointElseTowardAim()
     // NOTE(zoubir): standing still, the dash used to go nowhere
     AppState->Players[0].Input.Aim = V2(0.f, 1.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Dash;
+    // NOTE(zoubir): from a stand it coasts about 125 in a third of a second
+    // (1300 over the drag); before the player got faster it was 62
     RunPlayerFrames(&Test, 0, 20);
-    Check(Still->Position.Y > 340.f);
+    Check(Still->Position.Y > 300.f + 115.f);
+    Check(Still->Position.Y < 300.f + 131.f);
     Check(Absolute(Still->Position.X - 300.f) < 1.f);
     Check(Still->MovementCooldowns[PlayerMove_Dash] > 0.f);
 
@@ -215,8 +218,9 @@ TestDashGoesWhereKeysPointElseTowardAim()
     AppState->Players[1].Input.Move = V2(-1.f, 0.f);
     AppState->Players[1].Input.Aim = V2(1.f, 0.f);
     AppState->Players[1].Input.Pressed = PlayerButton_Dash;
+    // NOTE(zoubir): about 187 with the run under it
     RunPlayerFrames(&Test, 1, 20);
-    Check(Runner->Position.X < 300.f - 60.f);
+    Check(Runner->Position.X < 300.f - 170.f);
     DestroyTestWorld(&Test);
 }
 
@@ -251,6 +255,14 @@ TestBlinkLandsAtCursorOrStopsAtWall()
     RunPlayerFrames(&Test, 1, 1);
     Check(Walled->Position.X > 350.f);
     Check(Walled->Position.X + 15.f <= 384.01f);
+
+    // NOTE(zoubir): the cursor at or past the reach blinks the whole 320
+    world_entity *Far = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                        2, {300, 1100, 0});
+    AppState->Players[2].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[2].Input.Pressed = PlayerButton_Blink;
+    RunPlayerFrames(&Test, 2, 1);
+    Check(Absolute(Far->Position.X - (300.f + 320.f)) < 3.f);
     DestroyTestWorld(&Test);
 }
 
@@ -405,8 +417,9 @@ TestWalkingCutsCastAnimation()
     }
     Check(Caster->State == EntityState_Moving);
     Check(Animation == AnimationType_Move);
-    // NOTE(zoubir): only the short root is lost against a plain walk
-    Check(Walker->Position.X - Caster->Position.X < 8.f);
+    // NOTE(zoubir): only the short root is lost against a plain walk: 0.05 s
+    // of a 260 run is 13 units
+    Check(Walker->Position.X - Caster->Position.X < 16.f);
     DestroyTestWorld(&Test);
 }
 
@@ -607,7 +620,9 @@ TestWalkSpeedDoesNotDependOnFrameRate()
     float FastWalked = Fast->Position.X - 300.f;
     printf("  walked in 1 s: %.1f at 30 fps, %.1f at 60 fps\n",
            SlowWalked, FastWalked);
-    Check(FastWalked > 50.f);
+    // NOTE(zoubir): a 260 run less the tenth of a second it takes to get
+    // up to speed
+    Check(FastWalked > 220.f && FastWalked < 250.f);
     Check(Absolute(SlowWalked - FastWalked) < 0.05f * FastWalked);
     DestroyTestWorld(&Test);
 }
@@ -862,8 +877,12 @@ TestWalkCycleFollowsSpeed()
     Check(Absolute(MoveCycleRate(&Body, AnimationType_Move) - 1.f) < 0.01f);
     Body.Velocity = V3(0.f, 46.5f, 0.f);
     Check(Absolute(MoveCycleRate(&Body, AnimationType_Move) - 2.f) < 0.01f);
-    Body.Velocity = V3(600.f, 0.f, 0.f);
-    Check(MoveCycleRate(&Body, AnimationType_Move) == 0.5f);
+    // NOTE(zoubir): a full run, 260, still keeps step; a dash's 1300 is
+    // past the fastest the frames play
+    Body.Velocity = V3(260.f, 0.f, 0.f);
+    Check(Absolute(MoveCycleRate(&Body, AnimationType_Move) - 93.f / 260.f) < 0.01f);
+    Body.Velocity = V3(1300.f, 0.f, 0.f);
+    Check(MoveCycleRate(&Body, AnimationType_Move) == 0.35f);
     Check(MoveCycleRate(&Body, AnimationType_Attack) == 1.f);
 }
 
@@ -1297,7 +1316,7 @@ TestAirDashCarriesFarther()
         Landed[WithDash] = Player->Position.X;
         DestroyTestWorld(&Test);
     }
-    Check(Landed[1] > Landed[0] + 40.f);
+    Check(Landed[1] > Landed[0] + 80.f);
 }
 
 // NOTE(zoubir): a stunned flyer falls to the ground, then climbs back to

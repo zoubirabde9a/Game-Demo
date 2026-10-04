@@ -3,8 +3,11 @@
    friction and gravity into MoveEntity. */
 
 // NOTE(zoubir): letting go of the keys faster than this raises a skid;
-// a full walk is about 130
-#define PLAYER_SKID_SPEED 70.f
+// a full walk is about 260
+#define PLAYER_SKID_SPEED (70.f * PLAYER_MOVE_SCALE)
+// NOTE(zoubir): share of its speed the player loses per second on plain
+// ground; speed eases toward the keys' push over 1/PLAYER_DRAG seconds
+#define PLAYER_DRAG 10.f
 // NOTE(zoubir): how fast the player walks while a swing finishes
 #define PLAYER_ACTION_MOVE_SCALE 0.7f
 
@@ -68,7 +71,7 @@ MovePlayer(app_state *AppState, world *World, memory_arena *Arena,
     DDPlayer *= DragScale * Tick->Acceleration * GetMoveSpeedScale(Player) *
         ACCELERATION_STEP;
     // Drag
-    DDPlayer -= (DragScale * 10.f * GetGroundFriction(Player) * Player->Velocity);
+    DDPlayer -= (DragScale * PLAYER_DRAG * GetGroundFriction(Player) * Player->Velocity);
     // Gravity
     DDPlayer.Z = -PLAYER_GRAVITY;
 

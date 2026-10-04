@@ -18,7 +18,7 @@
    counts as thrown by them too, so a kill down the chain is theirs. */
 
 // NOTE(zoubir): speed into the surface below which nothing happens; a
-// Push throws at 750, a walk is under 100
+// Push throws at 750, a run is 260
 #define IMPACT_MIN_SPEED 260.f
 // NOTE(zoubir): share of the speed into the other unit that it takes on
 #define IMPACT_TRANSFER 0.65f
@@ -29,14 +29,17 @@
 // NOTE(zoubir): share of the speed into a wall that bounces back
 #define IMPACT_WALL_BOUNCE 0.35f
 // NOTE(zoubir): share of a player's speed into a unit it walks into that
-// the unit takes on, counting that speed up to a dash's at most: a blink
-// moves at its whole distance in one tick, 9600 a second, and shouldered
-// what it met across the map
+// the unit takes on, counting that speed up to SHOULDER_MAX_SPEED at most:
+// a blink moves at its whole distance in one tick, 19200 a second, and
+// shouldered what it met across the map. The cap is half a dash's speed,
+// where it was before the player got faster, so a dash shoves monsters no
+// harder than it did
 #define SHOULDER_SHARE 0.6f
 #define SHOULDER_MAX_SPEED 650.f
 // NOTE(zoubir): a dashing player hits what it runs into this fast or
-// faster (a dash leaves at 650, a run is under 100)
-#define DASH_STRIKE_SPEED 300.f
+// faster (a dash leaves at 1300, a run is 260). The dash slows below it
+// about 0.09 s in, so only the dash's first stretch strikes
+#define DASH_STRIKE_SPEED (300.f * PLAYER_MOVE_SCALE)
 
 // NOTE(zoubir): the player whose throw this is, or 0
 inline world_entity *

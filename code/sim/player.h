@@ -13,9 +13,15 @@
 // NOTE(zoubir): the same, while a respawned player is shielded
 #define PLAYER_FLASH_SHIELD 2
 #define PLAYER_SPAWN_SHIELD_SECONDS 1.5f
+// NOTE(zoubir): how fast and far the player moves against the numbers the
+// moves were first tuned at: run speed, dash, blink, long jump and the
+// speed checks that follow them are written as old number times this. At
+// 2 the player runs at 260 instead of 130 and every move goes twice as
+// far in the same time; jump heights and monsters do not change
+#define PLAYER_MOVE_SCALE 2.f
 // NOTE(zoubir): the cursor distance player_input.Aim can tell apart; the
-// blink range
-#define PLAYER_AIM_REACH 160.f
+// blink range (320)
+#define PLAYER_AIM_REACH (160.f * PLAYER_MOVE_SCALE)
 
 // NOTE(zoubir): buttons pressed this tick (edge, not held). Same order as
 // the network's action buttons (NetButton_Jump onward, net/protocol.h),

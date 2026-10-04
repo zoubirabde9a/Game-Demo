@@ -117,7 +117,9 @@ AdvanceAnimation(animation_state *State, animation_set *Set,
 
 // NOTE(zoubir): the SpeedRate (seconds per frame multiplier) that keeps a
 // walk cycle in step with the body's ground speed; 1 for anything else.
-// Slowed to a crawl the feet step slowly, a dash's run-out steps fast.
+// Slowed to a crawl the feet step slowly, a dash's run-out steps fast. The
+// fast end reaches the player's full run (260 against a MoveSpeed of 93),
+// so its feet do not skate; a frame still lasts more than one tick
 internal float
 MoveCycleRate(world_entity *Entity, animation_type Type)
 {
@@ -127,7 +129,7 @@ MoveCycleRate(world_entity *Entity, animation_type Type)
     {
         float Speed = Length(Entity->Velocity.XY);
         Result = Set->MoveSpeed / Maximum(Speed, 1.f);
-        Result = Minimum(2.5f, Maximum(0.5f, Result));
+        Result = Minimum(2.5f, Maximum(0.35f, Result));
     }
     return Result;
 }

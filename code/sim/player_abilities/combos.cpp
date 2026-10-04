@@ -79,8 +79,8 @@ ComboAmbush(app_state *AppState, world *World, memory_arena *Arena,
 }
 
 // NOTE(zoubir): the cutting dash hits everything within RADIUS of the
-// first LENGTH of the dash's path; a dash covers about 65
-#define CUTTING_DASH_LENGTH 80.f
+// first LENGTH of the dash's path; a dash covers about 130
+#define CUTTING_DASH_LENGTH (80.f * PLAYER_MOVE_SCALE)
 #define CUTTING_DASH_RADIUS 40.f
 global_variable player_hit CuttingDashHit = {18.f, 320.f, 0.f, 220.f, 0.3f, SimBurst_Impact};
 
@@ -142,9 +142,9 @@ ComboFlameFan(app_state *AppState, world *World, memory_arena *Arena,
 }
 
 // NOTE(zoubir): the least speed a long jump leaves with (a walk is about
-// 130, a dash starts at 650), and the share of the air drag left until
+// 260, a dash starts at 1300), and the share of the air drag left until
 // it lands (movement.cpp)
-#define LONG_JUMP_SPEED 380.f
+#define LONG_JUMP_SPEED (380.f * PLAYER_MOVE_SCALE)
 #define LONG_JUMP_DRAG_SCALE 0.2f
 
 // NOTE(zoubir): Long jump (dash, jump): the jump keeps the dash's speed

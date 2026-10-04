@@ -310,11 +310,11 @@ TestPredictionAgreesWithServer()
     Check(Predicted->Position.X < StartX - 50.0f);
     // Moving, the client is ahead of the server by the inputs in flight.
     // It is drawn DrawError off that while a correction blends in. The
-    // slack is a small share of one tick's walk (about 2.2 at full speed):
+    // slack is a small share of one tick's walk (about 4.3 at full speed):
     // where the blend stands at this frame moves with the walk speed.
     v2 DrawError = Client->Online->Prediction.DrawError;
     Check(Predicted->Position.X - DrawError.X <= Authority->Position.X + 0.1f);
-    Check(LengthSq(DrawError) < Square(4.0f));
+    Check(LengthSq(DrawError) < Square(8.0f));
 
     // Released, both come to rest at the same spot.
     Input.ButtonQ.EndedDown = false;

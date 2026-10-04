@@ -32,7 +32,10 @@
    also goes through RunPlayerCombo (combos.cpp), which turns some
    orders of moves into combos: dash then attack is a lunge. */
 
-#define PLAYER_ACCELERATION 78000.f
+// NOTE(zoubir): top run speed is this over 60 over the drag (movement.cpp),
+// 260. Only the push scales with PLAYER_MOVE_SCALE, not the drag, so the
+// player still reaches full speed and stops in the same time
+#define PLAYER_ACCELERATION (78000.f * PLAYER_MOVE_SCALE)
 
 // NOTE(zoubir): what one tick of the player decides, handed between steps
 struct player_tick

@@ -50,7 +50,7 @@ struct player_movement_ability
 
 // NOTE(zoubir): a burst of Power speed the way the keys point, or toward
 // the aim when standing; ground drag eases it back to a walk in about a
-// quarter second, about 65 units travelled. In the air it also stops the
+// quarter second, about 130 units travelled. In the air it also stops the
 // fall, so a jump and a dash carry the player level across a gap
 internal bool32
 DashMotion(app_state *AppState, world *World, memory_arena *Arena,
@@ -116,13 +116,15 @@ SlamMotion(app_state *AppState, world *World, memory_arena *Arena,
 
 global_variable player_movement_ability PlayerMovements[PlayerMove_Count] =
 {
-    // NOTE(zoubir): Dash (Alt)
-    {PlayerButton_Dash, 0.8f, 1.f, 650.f, PLAYER_DASH_FLASH_SECONDS, DashMotion,
-     ComboMove_Dash},
+    // NOTE(zoubir): Dash (Alt), leaving at 1300
+    {PlayerButton_Dash, 0.8f, 1.f, 650.f * PLAYER_MOVE_SCALE,
+     PLAYER_DASH_FLASH_SECONDS, DashMotion, ComboMove_Dash},
     // NOTE(zoubir): Blink (F), as far as the cursor can reach
     {PlayerButton_Blink, 3.f, 0.5f, PLAYER_AIM_REACH, PLAYER_DASH_FLASH_SECONDS,
      BlinkMotion, ComboMove_Blink},
-    // NOTE(zoubir): Slam (C), in the air
+    // NOTE(zoubir): Slam (C), in the air. Straight down, so it does not
+    // scale with PLAYER_MOVE_SCALE: from the top of a double jump it
+    // already lands in under a tenth of a second
     {PlayerButton_Slam, 2.f, 1.f, 900.f, 0.f, SlamMotion, ComboMove_Slam},
 };
 static_assert(PlayerMove_Count <= PLAYER_MOVEMENT_SLOTS, "one cooldown each");
