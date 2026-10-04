@@ -70,7 +70,6 @@ GetGroundFriction(world_entity *Entity)
     return Result;
 }
 
-
 inline float
 StatusDamagePerSecond(world_entity *Entity)
 {

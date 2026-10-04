@@ -909,11 +909,11 @@ TestWalkCycleFollowsSpeed()
     Check(Absolute(MoveCycleRate(&Body, AnimationType_Move) - 1.f) < 0.01f);
     Body.Velocity = V3(0.f, 46.5f, 0.f);
     Check(Absolute(MoveCycleRate(&Body, AnimationType_Move) - 2.f) < 0.01f);
-    // NOTE(zoubir): a full run, 260, still keeps step; a dash's 1300 is
-    // past the fastest the frames play
+    // NOTE(zoubir): a full run, 260, still keeps step; a dash is past the
+    // fastest the frames play
     Body.Velocity = V3(260.f, 0.f, 0.f);
     Check(Absolute(MoveCycleRate(&Body, AnimationType_Move) - 93.f / 260.f) < 0.01f);
-    Body.Velocity = V3(1300.f, 0.f, 0.f);
+    Body.Velocity = V3(PlayerStats.DashSpeed, 0.f, 0.f);
     Check(MoveCycleRate(&Body, AnimationType_Move) == 0.35f);
     Check(MoveCycleRate(&Body, AnimationType_Attack) == 1.f);
 }

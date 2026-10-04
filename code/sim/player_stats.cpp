@@ -87,8 +87,8 @@ internal float
 PlayerStopDistance(world_entity *Player)
 {
     float Speed = Length(Player->Velocity.XY);
-    float Friction = Player->GroundFriction > 0.f ? Player->GroundFriction : 1.f;
-    float Brake = Friction * PlayerStats.RunSpeed / PlayerStats.StopSeconds;
+    float Brake = GetGroundFriction(Player) * PlayerStats.RunSpeed /
+        PlayerStats.StopSeconds;
     float Result = Square(Speed) / (2.f * Brake);
     return Result;
 }

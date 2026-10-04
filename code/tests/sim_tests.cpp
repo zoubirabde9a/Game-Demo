@@ -97,7 +97,8 @@ AddTestEntity(test_world *Test, entity_type Type, v3 Position,
     return Result;
 }
 
-// NOTE(zoubir): same acceleration, drag and gravity as UpdatePlayer
+// NOTE(zoubir): a plain walk with a monster's drag and gravity; the
+// player's own walk is MovePlayer (player_update/movement.cpp)
 internal void
 Walk(test_world *Test, world_entity *Entity, v2 Direction, u32 Frames)
 {
