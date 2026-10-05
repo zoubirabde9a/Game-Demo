@@ -448,6 +448,10 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
     InitSimulation(Client, &Arena, &Constants);
     AddPlayerToSlot(Client, &Client->World, &Arena, 0, PlayerSpawnPosition(&Client->World, 0));
+    // NOTE(zoubir): as in the game, which makes it in MemoryArena: bots
+    // cast time rewinds, and a watcher one freezes is not predicted
+    // (client/rewind_fx/)
+    Client->RewindFx = (rewind_fx *)calloc(1, sizeof(rewind_fx));
     SetEnvironment(ONLINE_ADDRESS_ENV, "");
     Client->Online = StartOnlineSession(&Arena);
     online_session *Online = Client->Online;
@@ -485,18 +489,23 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
         Input.SpaceButton.EndedDown = (Frame % 120) == 45;
         UpdateOnlineSession(Online, &Input);
         RunWorldTick(Client, &Arena, Input.DeltaTime);
+        UpdateRewindFx(Client, Input.DeltaTime);
         // NOTE(zoubir): dash is predicted, so the client's player has already
         // dashed on the frame the key goes down (its cooldown has started;
-        // its speed may not show it, pressed against a wall)
+        // its speed may not show it, pressed against a wall). Not while
+        // stunned, or frozen by a bot's time rewind: then it does neither,
+        // on the server or here
         world_entity *Own = Client->Players[Client->LocalPlayerIndex].Entity;
+        bool32 Held = IsLocalPlayerTimeLocked(Client) ||
+            (Own && HasStatus(Own, StatusEffect_Stunned));
         if ((Frame % 120) == 45 && IsOnline(Online) && Online->Replicas.Active &&
-            Own && Own->IsPresent && !IsDeadPlayer(Own))
+            Own && Own->IsPresent && !IsDeadPlayer(Own) && !Held)
         {
             ++JumpPresses;
             JumpsSeenAtOnce += Own->Velocity.Z > 0.f ? 1 : 0;
         }
         if ((Frame % 90) == 0 && IsOnline(Online) && Online->Replicas.Active &&
-            Own && Own->IsPresent && !IsDeadPlayer(Own))
+            Own && Own->IsPresent && !IsDeadPlayer(Own) && !Held)
         {
             ++DashPresses;
             DashesSeenAtOnce += Own->MovementCooldowns[PlayerMove_Dash] >
@@ -631,6 +640,7 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
 
     NetClientDisconnect(&Online->Client);
     ServerStop(&Server);
+    free(Client->RewindFx);
     free(Arena.Base);
     free(Constants.Base);
     free(Client);
