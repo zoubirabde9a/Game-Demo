@@ -212,13 +212,16 @@ TestSkewerBeatsLunge()
     DestroyTestWorld(&Test);
 }
 
-// NOTE(zoubir): the swing after a blink is the finisher at once
+// NOTE(zoubir): the swing after a blink is the finisher at once; the
+// combo's window starts when the blink lands, not at the press
 internal void
 TestBlinkThenAttackAmbushes()
 {
     test_world Test = CreateTestWorld();
     world_entity *Player = AddComboTestPlayer(&Test);
-    PressFor(&Test, PlayerButton_Blink, 2);
+    PressFor(&Test, PlayerButton_Blink, 0);
+    FinishTestCast(&Test, 0);
+    RunPlayerFrames(&Test, 0, 2);
     world_entity *Target = AddComboTestTarget(&Test, Player->Position.XY +
                                               V2(30.f, 0.f));
     PressFor(&Test, PlayerButton_Attack, 0);

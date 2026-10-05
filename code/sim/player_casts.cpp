@@ -25,6 +25,7 @@ enum player_spell
     PlayerSpell_Push,
     PlayerSpell_Launch,
     PlayerSpell_Slam,
+    PlayerSpell_Blink,
     PlayerSpell_RewindSelf,
     PlayerSpell_RewindBubble,
     PlayerSpell_RewindWorld,
@@ -54,6 +55,9 @@ global_variable player_spell_cast PlayerSpells[PlayerSpell_Count] =
     // NOTE(zoubir): Slam (C): the player hangs in the air, then dives
     // (player_abilities/movement_abilities.cpp)
     {0.25f, 0.35f, true, "Slam"},
+    // NOTE(zoubir): Blink (F): the jump goes to where the cursor is when
+    // the cast ends (player_abilities/movement_abilities.cpp)
+    {0.5f, 0.35f, false, "Blink"},
     // NOTE(zoubir): the time rewinds (time_rewind/rewind_abilities.cpp):
     // the hold and the playback follow the cast
     {0.5f, 0.5f, false, "Rewind"},

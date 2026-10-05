@@ -3,16 +3,17 @@
    one's cooldown off (KillRefund): dash and slam are ready again at
    once, blink half way. A dash into a unit also hits it (DashStrike).
    Using one is the same for every row: it needs its key and its
-   cooldown (or a press just before it ends, CanUseEarly), cuts a swing,
-   a cast and an area cast short, lights
+   cooldown (or a press just before it ends, CanUseEarly) and cuts a
+   swing, a cast and an area cast short. When the body moves it lights
    DashFlash for its row's FlashSeconds (while it lasts the player cannot
    be hurt or shoved, IsDodging in entity.cpp, and clients draw the
    streak from it), plays the dash sound and then any combo it finishes
    (combos.cpp). Only how the body moves differs, one function per row.
-   A row with a Spell winds up first (player_casts.cpp): the press does
-   all of the above and starts the cast, and the motion runs when the
-   cast is done (RunMovementCast). The slam does: the player hangs in the
-   air for a moment before it dives.
+   A row with a Spell winds up first (player_casts.cpp): the press spends
+   the cooldown and starts the cast, and the motion, the flash, the sound
+   and the combo wait for the cast to end (RunMovementCast). The blink
+   takes half a second before it jumps; the slam hangs in the air for a
+   moment before it dives.
    A new one is a row here, a name in player_movement, its motion, a
    button in player.h and a key in client/action_keys.cpp. */
 
@@ -121,7 +122,7 @@ global_variable player_movement_ability PlayerMovements[PlayerMove_Count] =
     {PlayerButton_Dash, PlayerStats.DashCooldown, 1.f, PlayerStats.DashSpeed,
      PLAYER_DASH_FLASH_SECONDS, DashMotion, ComboMove_Dash, PlayerSpell_None, false},
     {PlayerButton_Blink, PlayerStats.BlinkCooldown, 0.5f, PlayerStats.BlinkReach,
-     PLAYER_DASH_FLASH_SECONDS, BlinkMotion, ComboMove_Blink, PlayerSpell_None, false},
+     PLAYER_DASH_FLASH_SECONDS, BlinkMotion, ComboMove_Blink, PlayerSpell_Blink, false},
     // NOTE(zoubir): Slam (C), in the air, after its wind-up. Straight
     // down, so it does not scale with PLAYER_MOVE_SCALE: from the top of a
     // double jump it already lands in under a tenth of a second
@@ -166,6 +167,18 @@ PlayerMovementButtons()
     return Result;
 }
 
+// NOTE(zoubir): the body has just moved: the streak and dodge, the sound
+// and any combo the move finishes
+internal void
+FinishMovement(app_state *AppState, world *World, memory_arena *Arena,
+               world_entity *Player, player_movement_ability *Ability,
+               player_tick *Tick)
+{
+    Player->DashFlash = Maximum(Player->DashFlash, Ability->FlashSeconds);
+    EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
+    RunPlayerCombo(AppState, World, Arena, Player, Ability->Move, Tick);
+}
+
 internal void
 UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
                      world_entity *Player, player_input *Input,
@@ -188,7 +201,7 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
         {
             continue;
         }
-        // NOTE(zoubir): a blink into something deadly removes the player
+        // NOTE(zoubir): a dash into something deadly removes the player
         if (!Player->IsPresent)
         {
             return;
@@ -211,9 +224,10 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
             Player->State = EntityState_Standing;
         }
         *Cooldown += Ability->Cooldown;
-        Player->DashFlash = Maximum(Player->DashFlash, Ability->FlashSeconds);
-        EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
-        RunPlayerCombo(AppState, World, Arena, Player, Ability->Move, Tick);
+        if (Ability->Spell == PlayerSpell_None)
+        {
+            FinishMovement(AppState, World, Arena, Player, Ability, Tick);
+        }
     }
 }
 
@@ -222,15 +236,17 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
 internal void
 RunMovementCast(app_state *AppState, world *World, memory_arena *Arena,
                 world_entity *Player, player_input *Input, float DeltaTime,
-                player_spell Spell)
+                player_spell Spell, player_tick *Tick)
 {
     for(u32 Index = 0; Index < PlayerMove_Count; Index++)
     {
         player_movement_ability *Ability = &PlayerMovements[Index];
-        if (Ability->Spell == Spell)
-        {
+        if (Ability->Spell == Spell &&
             Ability->Motion(AppState, World, Arena, Player, Input, DeltaTime,
-                            Ability->Power);
+                            Ability->Power) &&
+            Player->IsPresent)
+        {
+            FinishMovement(AppState, World, Arena, Player, Ability, Tick);
         }
     }
 }

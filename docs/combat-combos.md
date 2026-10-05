@@ -23,7 +23,7 @@ Combos exist to make fighting feel like one long motion instead of a row of sepa
 | Cutting dash | attack, dash | 0.4 s | The dash spins the blade around the player: everything within 40 units of the dash's path is hit, thrown to the side and stunned for a moment. |
 | Flame fan | dash, cast | 0.35 s | Three fireballs in a 30 degree fan instead of one. |
 | Long jump | dash, jump | 0.3 s | The jump keeps the dash's speed (at least 380) and the air drag drops to a fifth until the player lands, so the jump goes about twice as far. It is the way across a gap. |
-| Ambush | blink, attack | 0.5 s | The swing after a blink is the finisher straight away (the throw up and the stun), whatever the chain was. |
+| Ambush | blink, attack | 0.5 s | The swing after a blink is the finisher straight away (the throw up and the stun), whatever the chain was. The blink counts from when it lands, after its 0.5 s cast. |
 
 ## The system
 

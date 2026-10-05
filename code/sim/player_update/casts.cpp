@@ -10,7 +10,7 @@
 internal void
 FinishPlayerCast(app_state *AppState, world *World, memory_arena *Arena,
                  world_entity *Player, player_input *Input, float DeltaTime,
-                 player_spell Spell)
+                 player_spell Spell, player_tick *Tick)
 {
     bool32 Authoritative = !IsPredictedPlayer(AppState, Player);
     switch(Spell)
@@ -26,9 +26,10 @@ FinishPlayerCast(app_state *AppState, world *World, memory_arena *Arena,
         } break;
 
         case PlayerSpell_Slam:
+        case PlayerSpell_Blink:
         {
             RunMovementCast(AppState, World, Arena, Player, Input, DeltaTime,
-                            Spell);
+                            Spell, Tick);
         } break;
 
         case PlayerSpell_RewindSelf:
@@ -72,6 +73,7 @@ UpdatePlayerCast(app_state *AppState, world *World, memory_arena *Arena,
         // NOTE(zoubir): the slam's dive starts this tick, so it must fall
         Tick->Hover = false;
         CancelPlayerCast(Player);
-        FinishPlayerCast(AppState, World, Arena, Player, Input, DeltaTime, Spell);
+        FinishPlayerCast(AppState, World, Arena, Player, Input, DeltaTime, Spell,
+                         Tick);
     }
 }

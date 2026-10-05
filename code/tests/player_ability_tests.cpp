@@ -85,6 +85,21 @@ RunPlayerFrames(test_world *Test, u32 SlotIndex, u32 Frames)
     return AnimationDirection;
 }
 
+// NOTE(zoubir): runs the slot's player until its wind-up ends (a blink
+// takes 0.5 s, player_casts.cpp); returns the frames it took
+internal u32
+FinishTestCast(test_world *Test, u32 SlotIndex)
+{
+    u32 Frames = 0;
+    while (IsPlayerCasting(Test->AppState->Players[SlotIndex].Entity) &&
+           Frames < 120)
+    {
+        RunPlayerFrames(Test, SlotIndex, 1);
+        Frames++;
+    }
+    return Frames;
+}
+
 internal void
 TestFireBallFliesTowardAim()
 {
@@ -268,8 +283,15 @@ TestBlinkLandsAtCursorOrStopsAtWall()
     AppState->Players[0].Input.Aim = V2(100.f / PLAYER_AIM_REACH, 0.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Blink;
     RunPlayerFrames(&Test, 0, 1);
-    Check(Absolute(Blinker->Position.X - 400.f) < 3.f);
+    // NOTE(zoubir): the press starts a half second wind-up; the cooldown
+    // is spent but the player has not moved or started dodging
+    Check(Blinker->CastSpell == PlayerSpell_Blink);
+    Check(Absolute(Blinker->Position.X - 300.f) < 3.f);
     Check(Blinker->MovementCooldowns[PlayerMove_Blink] > 0.f);
+    Check(Blinker->DashFlash == 0.f);
+    float Seconds = (1 + FinishTestCast(&Test, 0)) * Test.Input.DeltaTime;
+    Check(Absolute(Seconds - 0.5f) < 0.03f);
+    Check(Absolute(Blinker->Position.X - 400.f) < 3.f);
     Check(Blinker->DashFlash > 0.f);
 
     // NOTE(zoubir): on cooldown, a second press does nothing
@@ -285,6 +307,7 @@ TestBlinkLandsAtCursorOrStopsAtWall()
     AppState->Players[1].Input.Aim = V2(1.f, 0.f);
     AppState->Players[1].Input.Pressed = PlayerButton_Blink;
     RunPlayerFrames(&Test, 1, 1);
+    FinishTestCast(&Test, 1);
     Check(Walled->Position.X > 350.f);
     Check(Walled->Position.X + 15.f <= 384.01f);
 
@@ -294,7 +317,30 @@ TestBlinkLandsAtCursorOrStopsAtWall()
     AppState->Players[2].Input.Aim = V2(1.f, 0.f);
     AppState->Players[2].Input.Pressed = PlayerButton_Blink;
     RunPlayerFrames(&Test, 2, 1);
+    FinishTestCast(&Test, 2);
     Check(Absolute(Far->Position.X - (300.f + 320.f)) < 3.f);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): a dash during the blink's wind-up cuts it: no jump, and
+// the blink's cooldown stays spent
+internal void
+TestDashCutsBlinkWindUp()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    AppState->Players[0].Input.Aim = V2(0.f, 1.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Blink;
+    RunPlayerFrames(&Test, 0, 10);
+    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Dash;
+    RunPlayerFrames(&Test, 0, 60);
+    Check(!IsPlayerCasting(Player));
+    Check(Player->Position.Y < 320.f);
+    Check(Player->MovementCooldowns[PlayerMove_Blink] > 0.f);
     DestroyTestWorld(&Test);
 }
 
@@ -1600,6 +1646,7 @@ TestReviewFixes()
     Slot->Input.Aim = V2(1.f, 0.f);
     Slot->Input.Pressed = PlayerButton_Blink;
     RunPlayerFrames(&Test, 0, 1);
+    FinishTestCast(&Test, 0);
     Check(Length(InTheWay->Velocity.XY) <= SHOULDER_SHARE * SHOULDER_MAX_SPEED + 1.f);
 
     // NOTE(zoubir): slam, then dash before landing: no hit on landing
@@ -1740,6 +1787,7 @@ TestBlinkPassesThroughUnits()
     AppState->Players[0].Input.Aim = V2(1.f, 0.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Blink;
     RunPlayerFrames(&Test, 0, 1);
+    FinishTestCast(&Test, 0);
     Check(Player->Position.X > 400.f);
     Check(!Player->Phasing);
     DestroyTestWorld(&Test);
@@ -1766,6 +1814,8 @@ RunPlayerAbilityTests()
     TestDashGoesWhereKeysPointElseTowardAim();
     printf("TestBlinkLandsAtCursorOrStopsAtWall\n");
     TestBlinkLandsAtCursorOrStopsAtWall();
+    printf("TestDashCutsBlinkWindUp\n");
+    TestDashCutsBlinkWindUp();
     printf("TestHitsShowOneNumberEach\n");
     TestHitsShowOneNumberEach();
     printf("TestClickDuringSwingQueuesNextSwing\n");
