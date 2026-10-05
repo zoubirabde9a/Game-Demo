@@ -28,7 +28,7 @@
 #include "online_quality.cpp"
 #include "action_keys.cpp"
 #include "online.cpp"
-#include "click_move.cpp"
+#include "cursor.cpp"
 #include "server_browser.cpp"
 #include "keyboard_input.cpp"
 #include "camera.cpp"

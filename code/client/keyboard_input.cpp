@@ -3,8 +3,8 @@
    the mouse cursor aims, right click sword, left click fireball, Space
    jump, Alt dash, E shockwave, F blink, R push, A launch (the action keys
    are one table, action_keys.cpp). Holding Tab shows the scoreboard
-   (read in app.cpp, it is not a player action). A left click on the
-   ground walks there instead of casting (click_move.cpp). */
+   (read in app.cpp, it is not a player action). While the tile editor
+   (F3) is open the left button paints tiles and does not cast. */
 
 // NOTE(zoubir): from the local player to the cursor, in world units, over
 // PLAYER_AIM_REACH and capped at length 1; the camera is last frame's,
@@ -39,10 +39,9 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
     if (Input->ButtonS.EndedDown) { Result.Move.Y = 1.f; }
     if (Input->ButtonD.EndedDown) { Result.Move.X = 1.f; }
     if (Input->ButtonQ.EndedDown) { Result.Move.X = -1.f; }
-    bool32 KeysMove = Result.Move.X != 0.f || Result.Move.Y != 0.f;
 
     Result.Pressed = ActionButtonsFromKeys(Input, true);
-    if (UpdateClickMove(Input, AppState, KeysMove, &Result.Move))
+    if (AppState->TileEditing)
     {
         Result.Pressed &= ~(u32)PlayerButton_Cast;
     }

@@ -12,7 +12,6 @@ DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
 DrawMonsterCastTells(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawRewindFx(RenderContext, AppState, CameraOffset); // time rewinds' sigils, ghosts and flashes, client/rewind_fx/
-DrawClickMoveMarker(RenderContext, CameraOffset);
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);
 RenderSetProjection(RenderContext, &ProjectionMatrix); // screens below draw in window pixels
 DrawRewindHud(RenderContext, AppState, Window->Width); // tape counter while time runs back, client/rewind_fx/

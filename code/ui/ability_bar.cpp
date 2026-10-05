@@ -162,8 +162,8 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
     float DeltaTime = Input->DeltaTime;
     float Time = RenderContext->Time;
     bool32 Dead = IsDeadPlayer(Player);
-    // NOTE(zoubir): the frame's presses as the player made them, after a
-    // left click that walks (client/click_move.cpp) stopped being a cast
+    // NOTE(zoubir): the frame's presses as the player made them, after the
+    // tile editor's left button stopped being a cast (keyboard_input.cpp)
     u32 Pressed = Dead ? 0 : AppState->Players[AppState->LocalPlayerIndex].Input.Pressed;
 
     float Width = AbilityBarWidth();

@@ -87,18 +87,6 @@ global_variable player_stats PlayerStats =
     0.35f,                          // FireballInterval
 };
 
-// NOTE(zoubir): how far the player slides once the keys let go at its
-// current speed on its current ground; click-to-walk lets go this early
-internal float
-PlayerStopDistance(world_entity *Player)
-{
-    float Speed = Length(Player->Velocity.XY);
-    float Brake = GetGroundFriction(Player) * PlayerStats.RunSpeed /
-        PlayerStats.StopSeconds;
-    float Result = Square(Speed) / (2.f * Brake);
-    return Result;
-}
-
 // NOTE(zoubir): a shove's stagger (ApplyHit, hit.cpp); a second shove
 // restarts it, never shortens it
 internal void
