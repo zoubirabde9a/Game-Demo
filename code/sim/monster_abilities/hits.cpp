@@ -83,7 +83,7 @@ HurtPlayersInRadius(app_state *AppState, world *World, world_entity *Source,
     {
         world_entity *Player = &World->Entities[EntityIndex];
         if (!Player->IsPresent || Player->Type != EntityType_Player ||
-            Player->Hp <= 0.f)
+            Player->Hp <= 0.f || IsJumpingClear(Player))
         {
             continue;
         }

@@ -1771,6 +1771,54 @@ TestHitCounter()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a player high in a jump takes nothing from a monster's
+// area blast, a fireball or another player's shockwave; standing on the
+// ground it takes all three
+internal void
+TestJumpClearsGroundHits()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Caster = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *Jumper = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           1, {360, 300, 0});
+    Caster->SpawnShield = Jumper->SpawnShield = 0.f;
+    world_entity *Brute = AddTestEntity(&Test, EntityType_Monster,
+                                        {420, 300, 0}, Test.UnitVolume);
+    Brute->MaxHp = Brute->Hp = 100.f;
+    monster_ability Slam = {};
+    Slam.Kind = MonsterAbility_Slam;
+    Slam.Damage = 20.f;
+    Slam.Radius = 30.f;
+    Slam.Knockback = 600.f;
+    for(u32 Pass = 0; Pass < 2; Pass++)
+    {
+        bool32 Jumping = Pass == 0;
+        Jumper->MaxHp = Jumper->Hp = 1000.f;
+        Jumper->Velocity = {};
+        Jumper->Position.Z = Jumper->GroundZ + (Jumping ? 30.f : 0.f);
+        Check(IsJumpingClear(Jumper) == Jumping);
+
+        Check(HurtPlayersInRadius(AppState, Test.World, Brute,
+                                  Jumper->Position.XY, &Slam) == (Jumping ? 0u : 1u));
+        Check((Jumper->Hp < 1000.f) == !Jumping);
+
+        float Before = Jumper->Hp;
+        world_entity *FireBall = AddFireBall(AppState, Test.World, &Test.Arena,
+                                             Caster, V3(330.f, 300.f, 30.f),
+                                             V3(600.f, 0.f, 0.f));
+        FireBallHit(AppState, Test.World, FireBall, Jumper);
+        Check((Jumper->Hp < Before) == !Jumping);
+
+        Before = Jumper->Hp;
+        FireAreaAbility(AppState, Test.World, Caster,
+                        &PlayerAreaAbilities[PlayerArea_Shockwave], V2(1.f, 0.f));
+        Check((Jumper->Hp < Before) == !Jumping);
+    }
+    DestroyTestWorld(&Test);
+}
+
 // NOTE(zoubir): a blink passes through a monster in the way and lands
 // beyond it; a wall still stops it
 internal void
@@ -1874,6 +1922,8 @@ RunPlayerAbilityTests()
     TestHeavyUnitsFlyLess();
     printf("TestHitStopEnds\n");
     TestHitStopEnds();
+    printf("TestJumpClearsGroundHits\n");
+    TestJumpClearsGroundHits();
     printf("TestStoppingFromARunSkids\n");
     TestStoppingFromARunSkids();
     printf("TestBodyPosesFollowMotion\n");

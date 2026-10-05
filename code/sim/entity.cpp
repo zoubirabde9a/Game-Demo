@@ -293,6 +293,16 @@ IsAboveShot(world_entity *Player, world_entity *Shot)
     return Result;
 }
 
+// NOTE(zoubir): a player high enough in a jump that what strikes the
+// ground passes under it: monsters' area blasts, fireballs and players'
+// area spells. Swords, bites and charges still reach it
+inline bool32
+IsJumpingClear(world_entity *Entity)
+{
+    bool32 Result = Entity->Type == EntityType_Player && IsClearOfGround(Entity);
+    return Result;
+}
+
 // NOTE(zoubir): every hit goes through here so deaths are counted once
 // NOTE(zoubir): a player's kill refunds cooldowns
 // (player_abilities/movement_abilities.cpp, included later)

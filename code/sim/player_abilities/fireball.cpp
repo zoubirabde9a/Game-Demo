@@ -36,6 +36,12 @@ internal void
 FireBallHit(app_state *AppState, world *World, world_entity *FireBall,
             world_entity *Target)
 {
+    // NOTE(zoubir): it flies on past a player jumping over it, which still
+    // counts as its one pass through that player
+    if (IsJumpingClear(Target))
+    {
+        return;
+    }
     v2 Away = NormalizeOr(FireBall->Velocity.XY,
                           Target->Position.XY - FireBall->Position.XY);
     u32 BySlot = FireBall->HasOwner ? FireBall->OwnerSlot : SIM_NOBODY;
