@@ -29,11 +29,13 @@ Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot car
 | Local player prediction | `client/prediction.cpp` |
 | Connect screen (server list), kill feed data | `ui/connect_screen.cpp`, `client/kill_feed.cpp` |
 | Bot players (`server --bots N`) | `server/bots.cpp`, kept topped up by `GameKeepBots` in `server/sim_game.cpp` |
+| Time rewinds (T, G, V): history, restore, what the snapshot says is frozen | `sim/time_rewind/`, `server/sim_game/rewinds.cpp`, `net_rewind` in `net/protocol.h`; the client's side in `client/rewind_fx/`; design in [time-rewind.md](time-rewind.md) |
+| Replays and determinism | `server --record <file>` (`server/replay.cpp`), `build\replay.exe <file>` (`tools/replay_main.cpp`), the world hash in `sim/world_hash.cpp`, `tests/replay_tests.cpp` |
 | Live server, deploy, load test, who is online | `deploy/README.md`, `deploy/deploy.sh`, `build\bots.exe`, `build\probe.exe --info` |
 
 ## Next
 
-- [ ] Redeploy vps-eu. It runs an older protocol than main (now GDMO) and ignores current builds, which show it as "not answering". Builds from GDMM on answer older and newer ones with the version notice. Needs the user's go-ahead.
+- [ ] Redeploy vps-eu. It runs an older protocol than main (now GDMP) and ignores current builds, which show it as "not answering". Builds from GDMM on answer older and newer ones with the version notice. Needs the user's go-ahead.
 - [ ] Give the live server a DNS name and put it in `client/server_list.cpp`, so it can move without a game update.
 - [ ] Draw the kill feed (`AppState->KillFeed`); the UI agent has it.
 - [ ] Split `app_state` into a simulation part and a client part, so the server no longer sees client types. `app.h` changes often; agree it with the other agents first.
