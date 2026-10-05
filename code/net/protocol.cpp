@@ -213,7 +213,7 @@ internal void
 NetSerializeInput(net_stream *S, net_input *Input)
 {
     NetU32(S, &Input->Tick);
-    NetU16(S, &Input->Buttons);
+    NetU32(S, &Input->Buttons);
     NetUnitFloat(S, &Input->AimX);
     NetUnitFloat(S, &Input->AimY);
 }

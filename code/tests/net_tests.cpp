@@ -950,8 +950,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d51u
-#define NET_GOLDEN_LAYOUT 0xa389e71du
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d52u
+#define NET_GOLDEN_LAYOUT 0xe4b152b4u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -988,7 +988,7 @@ TestWireLayoutIsPinned()
     for (u32 Index = 0; Index < NET_MAX_INPUTS_PER_PACKET; ++Index)
     {
         Packets[4].Input.Inputs[Index].Tick = 100 - Index;
-        Packets[4].Input.Inputs[Index].Buttons = (u16)(0x101 * Index);
+        Packets[4].Input.Inputs[Index].Buttons = 0x10101 * Index;
         Packets[4].Input.Inputs[Index].AimX = 0.25f;
         Packets[4].Input.Inputs[Index].AimY = -0.5f;
     }

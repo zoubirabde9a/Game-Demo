@@ -16,10 +16,10 @@
 
 // NOTE(zoubir): the movement keys a player would hold to go along
 // Direction (8 ways)
-inline u16
+inline u32
 NetButtonsToward(v2 Direction)
 {
-    u16 Result = 0;
+    u32 Result = 0;
     if (Direction.X > 0.38f) Result |= NetButton_Right;
     if (Direction.X < -0.38f) Result |= NetButton_Left;
     if (Direction.Y > 0.38f) Result |= NetButton_Down;
@@ -31,7 +31,7 @@ struct bot_brain
 {
     bool32 Active;
     u32 Random;
-    u16 Held;          // buttons held this tick
+    u32 Held;          // buttons held this tick
     float AttackWait;  // seconds until the next attack
     float WanderLeft;  // seconds until a new wander direction
     v2 Wander;
@@ -77,7 +77,7 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     net_input Input = {};
     Input.Tick = Tick;
     // Buttons are pressed for one tick, then let go, so each one fires once.
-    u16 Held = 0;
+    u32 Held = 0;
     Bot->AttackWait -= Dt;
     Bot->WanderLeft -= Dt;
 

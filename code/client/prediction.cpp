@@ -109,10 +109,10 @@ RestorePredictedBody(world_entity *Player, predicted_body *Body)
 struct predicted_input
 {
     u32 Tick;
-    u16 Buttons;
+    u32 Buttons;
     // NOTE(zoubir): buttons that went down on this input (were not held on
     // the one before), as the server works them out
-    u16 Pressed;
+    u32 Pressed;
     v2 Aim;
     float DeltaTime;
     // NOTE(zoubir): the body once this input was applied
@@ -131,7 +131,7 @@ struct prediction_history
     bool32 HasShown;
     v2 Predicted;
     v2 DrawError;
-    u16 LastButtons;
+    u32 LastButtons;
     // NOTE(zoubir): After of the newest input the server applied
     predicted_body Acked;
 };
@@ -151,7 +151,7 @@ PredictedButtons()
 // NOTE(zoubir): the server turns held net buttons into a move direction
 // the same way, in GameApplyInput (server/sim_game.cpp)
 inline v2
-MoveFromNetButtons(u16 Buttons)
+MoveFromNetButtons(u32 Buttons)
 {
     v2 Result = {};
     if (Buttons & NetButton_Left) Result.X -= 1.f;
@@ -172,7 +172,7 @@ GetPredictedInput(prediction_history *History, u32 Index)
 // NOTE(zoubir): when the history is full the oldest input is dropped; the
 // next snapshot corrects whatever that costs
 internal void
-RecordPredictedInput(prediction_history *History, u32 Tick, u16 Buttons,
+RecordPredictedInput(prediction_history *History, u32 Tick, u32 Buttons,
                      float DeltaTime, v2 Aim = {})
 {
     if (History->Count == MAX_PREDICTED_INPUTS)

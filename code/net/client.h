@@ -78,7 +78,7 @@ internal bool32 NetClientConnect(net_client *Client, net_address Server, u32 Sal
 
 // Reads everything from the server, then sends this frame's input (or a
 // connect retry). Call once per frame with the buttons held this frame.
-internal void NetClientUpdate(net_client *Client, float Dt, u16 Buttons, float AimX, float AimY);
+internal void NetClientUpdate(net_client *Client, float Dt, u32 Buttons, float AimX, float AimY);
 
 // Tells the server we are leaving and closes the socket.
 internal void NetClientDisconnect(net_client *Client);

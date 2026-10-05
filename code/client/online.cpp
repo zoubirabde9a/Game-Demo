@@ -62,15 +62,15 @@ struct online_session
 
 // NOTE(zoubir): the held keys, in the network's button bits. The server
 // turns new presses into actions itself.
-internal u16
+internal u32
 NetButtonsFromKeyboard(app_input *Input)
 {
-    u16 Result = 0;
+    u32 Result = 0;
     if (Input->ButtonQ.EndedDown) Result |= NetButton_Left;
     if (Input->ButtonD.EndedDown) Result |= NetButton_Right;
     if (Input->ButtonZ.EndedDown) Result |= NetButton_Up;
     if (Input->ButtonS.EndedDown) Result |= NetButton_Down;
-    Result |= (u16)(ActionButtonsFromKeys(Input, false) << PLAYER_BUTTON_NET_SHIFT);
+    Result |= ActionButtonsFromKeys(Input, false) << PLAYER_BUTTON_NET_SHIFT;
     return Result;
 }
 
@@ -175,7 +175,7 @@ UpdateOnlineSession(online_session *Online, app_input *Input,
 {
     if (Online && Online->Enabled)
     {
-        u16 Buttons = KeysToUi ? 0 : NetButtonsFromKeyboard(Input);
+        u32 Buttons = KeysToUi ? 0 : NetButtonsFromKeyboard(Input);
         NetClientUpdate(&Online->Client, Input->DeltaTime, Buttons, Aim.X, Aim.Y);
         if (Online->Client.State == NetClient_Connected)
         {

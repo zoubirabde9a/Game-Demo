@@ -16,7 +16,7 @@ struct server_game
 {
     app_state *AppState;
     memory_arena *Arena;
-    u16 HeldButtons[NET_MAX_CLIENTS];
+    u32 HeldButtons[NET_MAX_CLIENTS];
     u32 NameTurn; // which slot's name the next snapshots carry
     u32 LastInputTick[NET_MAX_CLIENTS]; // newest input applied per slot
     // Sounds and deaths on their way to the clients (event_relay.cpp).
@@ -101,8 +101,8 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     player_slot *Player = &Game->AppState->Players[Slot];
     if (!Player->Active) return;
 
-    u16 Held = Input->Buttons;
-    u16 Pressed = Held & ~Game->HeldButtons[Slot];
+    u32 Held = Input->Buttons;
+    u32 Pressed = Held & ~Game->HeldButtons[Slot];
     v2 Move = {};
     if (Held & NetButton_Left) Move.X -= 1.f;
     if (Held & NetButton_Right) Move.X += 1.f;

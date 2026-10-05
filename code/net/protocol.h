@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d51u // "GDMQ", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d52u // "GDMR", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -102,7 +102,7 @@ struct net_header
 struct net_input
 {
     u32 Tick;      // client tick this input was sampled on
-    u16 Buttons;   // net_button bits held down
+    u32 Buttons;   // net_button bits held down
     float AimX;    // aim direction in -1..1, sent at 1/32767 precision
     float AimY;
 };

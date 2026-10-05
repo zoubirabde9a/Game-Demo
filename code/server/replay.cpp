@@ -31,7 +31,7 @@
    build's content id, the map id), then blocks: raw size u32, packed
    size u32, the 5 LZMA properties bytes, the packed bytes. Unpacked, a
    block is whole events, each starting with an op byte:
-     0x10 | slot  input: buttons u16, aim x i16, aim y i16 (1/32767 steps)
+     0x10 | slot  input: buttons u32, aim x i16, aim y i16 (1/32767 steps)
      0x20 | slot  joined
      0x30 | slot  left
      0x40 | slot  named: name 16 bytes
@@ -41,7 +41,7 @@
 #include "../third_party/lzma/lzma.cpp"
 
 #define REPLAY_MAGIC 0x50524447u // "GDRP"
-#define REPLAY_VERSION 2u
+#define REPLAY_VERSION 3u
 #define REPLAY_NAME_SIZE 16
 #define REPLAY_BLOCK_SIZE (64 * 1024)
 #define REPLAY_PACKED_SIZE (REPLAY_BLOCK_SIZE + REPLAY_BLOCK_SIZE / 8 + 1024)
@@ -294,10 +294,10 @@ ReplayWriteEvent(replay_writer *Writer, replay_event *Event)
         i16 AimX = ReplayAimSteps(Event->Input.AimX);
         i16 AimY = ReplayAimSteps(Event->Input.AimY);
         ReplayPutTickRun(Writer);
-        u8 Op[7] = {(u8)(ReplayOp_Input | Slot)};
-        memcpy(Op + 1, &Event->Input.Buttons, 2);
-        memcpy(Op + 3, &AimX, 2);
-        memcpy(Op + 5, &AimY, 2);
+        u8 Op[9] = {(u8)(ReplayOp_Input | Slot)};
+        memcpy(Op + 1, &Event->Input.Buttons, 4);
+        memcpy(Op + 5, &AimX, 2);
+        memcpy(Op + 7, &AimY, 2);
         ReplayPut(Writer, Op, sizeof(Op));
         return;
     }
@@ -522,7 +522,7 @@ ReplayNextEvent(replay_reader *Reader, replay_event *Event)
             {
                 Event->Type = ReplayEvent_Input;
                 i16 AimX = 0, AimY = 0;
-                if (!ReplayTake(Reader, &Event->Input.Buttons, 2) ||
+                if (!ReplayTake(Reader, &Event->Input.Buttons, 4) ||
                     !ReplayTake(Reader, &AimX, 2) || !ReplayTake(Reader, &AimY, 2))
                 {
                     return false;

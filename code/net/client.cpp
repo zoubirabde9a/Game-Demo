@@ -150,7 +150,7 @@ NetClientHandle(net_client *Client, net_packet *Packet)
 }
 
 internal void
-NetClientUpdate(net_client *Client, float Dt, u16 Buttons, float AimX, float AimY)
+NetClientUpdate(net_client *Client, float Dt, u32 Buttons, float AimX, float AimY)
 {
     if (Client->State == NetClient_Disconnected) return;
 
