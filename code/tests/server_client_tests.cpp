@@ -477,6 +477,9 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     // thrower, lift or hit-pause
     u32 ServerHits = 0, ClientHits = 0, BothHit = 0, WrongHit = 0;
     u32 ServerStops = 0, ClientStops = 0, WrongStop = 0;
+    // NOTE(zoubir): players winding up a spell (sim/player_casts.cpp) on
+    // each side, and of those on both, how many show another spell
+    u32 ServerCasts = 0, ClientCasts = 0, BothCast = 0, WrongCast = 0;
     app_input Input = {};
     Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
     for (int Frame = 0; Frame < Seconds * SERVER_TICK_RATE; ++Frame)
@@ -579,6 +582,13 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
                     if ((i16)Ours->Hp != (i16)Theirs->Hp) ++WrongPlayerHp;
                     if (IsDeadPlayer(Ours) != IsDeadPlayer(Theirs)) ++WrongDead;
                     if (Ours->PlayerIndex != Theirs->PlayerIndex) ++WrongSlot;
+                    ServerCasts += IsPlayerCasting(Theirs) ? 1 : 0;
+                    ClientCasts += IsPlayerCasting(Ours) ? 1 : 0;
+                    if (IsPlayerCasting(Theirs) && IsPlayerCasting(Ours))
+                    {
+                        ++BothCast;
+                        WrongCast += Ours->CastSpell != Theirs->CastSpell ? 1 : 0;
+                    }
                     continue;
                 }
                 if (Theirs->Type != EntityType_Monster) continue;
@@ -603,6 +613,10 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     printf("  parity on %s: %u players, wrong health %u, dead %u, slot %u\n",
            GetMapDef((map_id)MapId)->Name, Players, WrongPlayerHp, WrongDead, WrongSlot);
     Check(Players > 100 && WrongPlayerHp == 0 && WrongDead == 0 && WrongSlot == 0);
+    printf("  parity: players casting on server/client %u/%u, %u on both, %u show another spell\n",
+           ServerCasts, ClientCasts, BothCast, WrongCast);
+    Check(ServerCasts == 0 || ClientCasts > 0);
+    Check(WrongCast * 20 <= BothCast);
     printf("  parity: %u compared; wrong type %u, kind %u, affix %u, max hp %u, tint %u; "
            "seen on server/client: wind-ups %u/%u, burrows %u/%u, elites %u/%u, enrage flashes %u/%u\n",
            Compared, WrongType, WrongKind, WrongAffix, WrongMaxHp, WrongTint,

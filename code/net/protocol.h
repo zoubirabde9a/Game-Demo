@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d50u // "GDMP", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d51u // "GDMQ", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -31,6 +31,7 @@
 #define NET_MAX_SNAPSHOT_KILLS 4    // player deaths since the last snapshot
 #define NET_MAX_SNAPSHOT_BURSTS 8   // visual bursts seen since the last snapshot
 #define NET_MAX_SNAPSHOT_REWINDS 4  // time rewinds under way the viewer can see
+#define NET_MAX_SNAPSHOT_CASTS 8    // players winding up a spell (MAX_PLAYERS)
 #define NET_COOLDOWN_COUNT 10       // the viewer's own ability cooldowns
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_SERVER_NAME_SIZE 24     // server name, 23 characters plus the terminator
@@ -203,6 +204,16 @@ struct net_facing
     u8 Angle;
 };
 
+// A player winding up a spell (sim/player_casts.cpp), so every client can
+// draw the cast bar over it. Spell is a player_spell; Done is how much of
+// the wind-up has passed, 0..255.
+struct net_player_cast
+{
+    u8 EntityIndex; // index into net_snapshot.Entities
+    u8 Spell;
+    u8 Done;
+};
+
 // One connected player's score, so every client can show the scoreboard.
 struct net_score
 {
@@ -288,6 +299,9 @@ struct net_snapshot
     // lost snapshot loses nothing: the next one says the same.
     u8 RewindCount;
     net_rewind Rewinds[NET_MAX_SNAPSHOT_REWINDS];
+    // Players in the snapshot winding up a spell.
+    u8 CastCount;
+    net_player_cast Casts[NET_MAX_SNAPSHOT_CASTS];
 };
 
 struct net_packet

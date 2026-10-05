@@ -135,6 +135,16 @@ FullSnapshot()
     P.Snapshot.Rewinds[0].Radius = 160.f;
     P.Snapshot.Rewinds[0].Frozen[0] = 0x81;
     P.Snapshot.Rewinds[0].Frozen[5] = 0x80;
+    // Every player winding up a spell, pointing at the last (farthest)
+    // entities so a trimmed snapshot has to drop them.
+    P.Snapshot.CastCount = NET_MAX_SNAPSHOT_CASTS;
+    for (u32 Index = 0; Index < NET_MAX_SNAPSHOT_CASTS; ++Index)
+    {
+        net_player_cast *Cast = &P.Snapshot.Casts[Index];
+        Cast->EntityIndex = (u8)(NET_MAX_SNAPSHOT_ENTITIES - 1 - Index);
+        Cast->Spell = (u8)(1 + Index % 7);
+        Cast->Done = (u8)(Index * 30 + 5);
+    }
 
     // ...and the longest name.
     P.Snapshot.NameSlot = NET_MAX_SNAPSHOT_SCORES - 1;
@@ -285,11 +295,17 @@ TestOverfullSnapshotIsTrimmed()
     {
         Check(Out.Snapshot.Abilities[Index].EntityIndex < Out.Snapshot.Count);
     }
+    Check(Out.Snapshot.CastCount < NET_MAX_SNAPSHOT_CASTS);
+    for (u32 Index = 0; Index < Out.Snapshot.CastCount; ++Index)
+    {
+        Check(Out.Snapshot.Casts[Index].EntityIndex < Out.Snapshot.Count);
+    }
     // One that already fits is written as it is.
     P = FullSnapshot();
     P.Snapshot.Count = 10;
     P.Snapshot.AbilityCount = 0;
     P.Snapshot.FacingCount = 0;
+    P.Snapshot.CastCount = 0;
     Check(NetWriteSnapshotFitting(&P, Buffer, sizeof(Buffer), &Dropped) > 0);
     Check(Dropped == 0 && P.Snapshot.Count == 10);
 }
@@ -310,6 +326,11 @@ TestFullSnapshotFits()
     Check(Rewind->PhaseLeft > 0.355f && Rewind->PhaseLeft < 0.365f);
     Check(Rewind->X == 512.5f && Rewind->Y == -77.25f && Rewind->Radius == 160.f);
     Check(Rewind->Frozen[0] == 0x81 && Rewind->Frozen[5] == 0x80);
+    Check(Out.Snapshot.CastCount == NET_MAX_SNAPSHOT_CASTS);
+    net_player_cast *LastCast = &Out.Snapshot.Casts[NET_MAX_SNAPSHOT_CASTS - 1];
+    Check(LastCast->EntityIndex == NET_MAX_SNAPSHOT_ENTITIES - NET_MAX_SNAPSHOT_CASTS);
+    Check(LastCast->Spell == 1 + (NET_MAX_SNAPSHOT_CASTS - 1) % 7);
+    Check(LastCast->Done == (NET_MAX_SNAPSHOT_CASTS - 1) * 30 + 5);
     Check(Out.Snapshot.Count == NET_MAX_SNAPSHOT_ENTITIES);
     net_entity_state *Last = &Out.Snapshot.Entities[NET_MAX_SNAPSHOT_ENTITIES - 1];
     Check(Last->Id == 1000 + NET_MAX_SNAPSHOT_ENTITIES - 1);
@@ -929,8 +950,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d50u
-#define NET_GOLDEN_LAYOUT 0x37010f8cu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d51u
+#define NET_GOLDEN_LAYOUT 0xa389e71du
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

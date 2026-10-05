@@ -196,6 +196,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     world *World = &Game->AppState->World;
     Out->Count = 0;
     Out->FacingCount = 0;
+    Out->CastCount = 0;
     Out->InputTick = Game->LastInputTick[ViewerSlot];
     // The viewer's own cooldowns, for its HUD (sim/player_cooldowns.cpp).
     static_assert(PLAYER_COOLDOWN_COUNT == NET_COOLDOWN_COUNT, "one byte per cooldown");

@@ -74,6 +74,22 @@ SimGameWriteFacing(world_entity *Entity, u8 EntityIndex, net_snapshot *Out)
     Facing->Angle = (u8)(RoundFloatToI32(Turns * 256.f) & 255);
 }
 
+// NOTE(zoubir): a player winding up a spell sends which and how far
+// along, so clients draw its cast bar (client/cast_bars.cpp)
+internal void
+SimGameWriteCast(world_entity *Entity, u8 EntityIndex, net_snapshot *Out)
+{
+    if (Entity->Type != EntityType_Player || !IsPlayerCasting(Entity) ||
+        Out->CastCount >= NET_MAX_SNAPSHOT_CASTS)
+    {
+        return;
+    }
+    net_player_cast *Cast = &Out->Casts[Out->CastCount++];
+    Cast->EntityIndex = EntityIndex;
+    Cast->Spell = (u8)Entity->CastSpell;
+    Cast->Done = (u8)RoundFloatToI32(255.f * PlayerCastProgress(Entity));
+}
+
 internal bool32
 SimGameIsSent(world_entity *Entity)
 {
@@ -160,6 +176,7 @@ SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
 
     SimGameWriteAbility(Entity, (u8)(Out->Count - 1), Out);
     SimGameWriteFacing(Entity, (u8)(Out->Count - 1), Out);
+    SimGameWriteCast(Entity, (u8)(Out->Count - 1), Out);
 }
 
 struct sim_game_candidate

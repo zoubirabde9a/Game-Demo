@@ -3,8 +3,7 @@
    warning on the ground.
 
    - while an ability winds up, its name shows over the monster's head
-     above a bar that fills until the hit, blinking white in the last
-     CAST_TELL_HOT of the windup;
+     above a bar that fills until the hit (cast_bars.cpp);
    - motes in the ability's color circle the body and close in on it as
      the windup runs, so a monster gathering power looks it;
    - when the windup ends, a ring bursts out of the body and the name
@@ -18,13 +17,7 @@
    Entry point: DrawMonsterCastTells, once a frame from screen_pass.inc. */
 
 #define CAST_TELL_RELEASE_SECONDS 0.3f
-// NOTE(zoubir): share of the windup, at its end, where the bar blinks
-#define CAST_TELL_HOT 0.25f
 #define CAST_TELL_MOTES 8
-#define CAST_TELL_BAR_HEIGHT 5.f
-#define CAST_TELL_BAR_MIN_WIDTH 40.f
-// NOTE(zoubir): monster sprites keep their feet on the 7/8 line
-#define CAST_TELL_SPRITE_TOP 0.875f
 #define CAST_TELL_TRACKED ArrayCount(((world *)0)->Entities)
 
 struct monster_cast_tells
@@ -66,17 +59,6 @@ GetCastTellAbility(world_entity *Entity, u32 AbilityIndex)
     return Result;
 }
 
-// NOTE(zoubir): the name over the head, with a dark copy one pixel down
-// so it reads on grass and on sand
-internal void
-DrawCastTellName(render_context *RenderContext, font *Font, v2 At,
-                 char *Name, u32 Color, u32 Alpha)
-{
-    UIText(RenderContext, Font, At.X, At.Y + 1.f, Name,
-           UI_RGBA(0, 0, 0, Alpha), UIAlign_Center);
-    UIText(RenderContext, Font, At.X, At.Y, Name, Color, UIAlign_Center);
-}
-
 internal void
 DrawCastTellWindup(render_context *RenderContext, app_state *AppState,
                    world_entity *Entity, monster_ability *Ability,
@@ -85,13 +67,12 @@ DrawCastTellWindup(render_context *RenderContext, app_state *AppState,
     float Progress = Ability->Windup > 0.f ?
         1.f - Entity->AbilityTimer / Ability->Windup : 1.f;
     Progress = ArtClamp01(Progress);
-    bool32 Hot = Progress > 1.f - CAST_TELL_HOT;
-    bool32 Blink = Hot && ((u32)(Clock * 16.f) & 1);
+    bool32 Blink = IsCastBarBlinking(Progress, Clock);
     u32 Color = CastTellColor(Ability->Kind, 255);
 
     // NOTE(zoubir): motes start wide and slow, end tight and fast, and
     // grow as they close in
-    float Height = Entity->Dimensions.Y * CAST_TELL_SPRITE_TOP;
+    float Height = Entity->Dimensions.Y * CAST_BAR_SPRITE_TOP;
     v2 Middle = Feet - V2(0.f, 0.45f * Height);
     float Wide = 0.75f * Maximum(Entity->Dimensions.X, Height);
     float Radius = Wide * (1.f - 0.65f * Progress);
@@ -105,20 +86,8 @@ DrawCastTellWindup(render_context *RenderContext, app_state *AppState,
         v2 P = Middle + Radius * V2(Cos(Angle), 0.55f * Sin(Angle));
         DrawFxDot(RenderContext, P, Size, Blink ? UI_RGBA(255, 255, 255, 255) : MoteColor);
     }
-
-    float Width = Maximum(CAST_TELL_BAR_MIN_WIDTH, 0.7f * Entity->Dimensions.X);
-    float Top = Feet.Y - Height - 18.f;
-    float Left = Feet.X - 0.5f * Width;
-    DrawFilledRectangle(RenderContext, Left - 1.f, Top - 1.f, Width + 2.f,
-                        CAST_TELL_BAR_HEIGHT + 2.f, UI_RGBA(0, 0, 0, 200), 0.f);
-    DrawFilledRectangle(RenderContext, Left, Top, Width * Progress,
-                        CAST_TELL_BAR_HEIGHT,
-                        Blink ? UI_RGBA(255, 255, 255, 255) : Color, 0.f);
-
-    font *Font = AppState->Fonts.Small;
-    DrawCastTellName(RenderContext, Font,
-                     V2(Feet.X, Top - UILineHeight(Font) - 1.f),
-                     Ability->Name, Color, 255);
+    DrawCastBar(RenderContext, AppState, Entity, Feet, Progress, Clock,
+                Ability->Name, Color);
 }
 
 // NOTE(zoubir): a ring thrown out of the body, and the name rising and
@@ -131,7 +100,7 @@ DrawCastTellRelease(render_context *RenderContext, app_state *AppState,
     float T = 1.f - Left / CAST_TELL_RELEASE_SECONDS;
     u32 Alpha = (u32)(255.f * (1.f - T));
     u32 Color = CastTellColor(Ability->Kind, Alpha);
-    float Height = Entity->Dimensions.Y * CAST_TELL_SPRITE_TOP;
+    float Height = Entity->Dimensions.Y * CAST_BAR_SPRITE_TOP;
     v2 Middle = Feet - V2(0.f, 0.45f * Height);
     float Radius = (0.3f + 0.9f * T) * Maximum(Entity->Dimensions.X, Height);
     u32 Dots = 16;
@@ -143,10 +112,9 @@ DrawCastTellRelease(render_context *RenderContext, app_state *AppState,
     }
 
     font *Font = AppState->Fonts.Small;
-    float Top = Feet.Y - Height - 18.f - 10.f * T;
-    DrawCastTellName(RenderContext, Font,
-                     V2(Feet.X, Top - UILineHeight(Font) - 1.f),
-                     Ability->Name, UI_RGBA(255, 255, 255, Alpha), Alpha);
+    float Top = CastBarTop(Entity, Feet) - 10.f * T;
+    DrawCastName(RenderContext, Font, V2(Feet.X, Top - UILineHeight(Font) - 1.f),
+                 Ability->Name, UI_RGBA(255, 255, 255, Alpha), Alpha);
 }
 
 internal void

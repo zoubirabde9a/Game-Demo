@@ -1,7 +1,8 @@
 /* Applying a snapshot: one entity's state (position, velocity, health,
    facing, animation, elite affix, status pips, ability, last hit) onto
    its replica, front-armoured monsters' facings, monsters' wind-ups (for
-   their warnings), and every player's score. Included by replicas.cpp,
+   their warnings), players' casts (for their cast bars), and every
+   player's score. Included by replicas.cpp,
    whose SyncReplicas calls these on each new snapshot. */
 
 internal void
@@ -52,6 +53,18 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
                               OldPosition, Replica);
 }
 
+// NOTE(zoubir): the replica of the snapshot's entity at EntityIndex, 0
+// when it has none
+inline world_entity *
+SnapshotReplica(world *World, replica_table *Table, net_snapshot *Snapshot,
+                u32 EntityIndex)
+{
+    u16 Id = Snapshot->Entities[EntityIndex].Id;
+    world_entity *Result = (Id < MAX_REPLICAS && Table->LocalIndexPlusOne[Id]) ?
+        &World->Entities[Table->LocalIndexPlusOne[Id] - 1] : 0;
+    return Result;
+}
+
 // NOTE(zoubir): front-armoured monsters' facing, a whole turn in 256
 // steps, back into the unit Direction their shell is drawn from
 internal void
@@ -60,11 +73,10 @@ ApplySnapshotFacings(world *World, replica_table *Table, net_snapshot *Snapshot)
     for(u32 Index = 0; Index < Snapshot->FacingCount; Index++)
     {
         net_facing *Facing = &Snapshot->Facings[Index];
-        u16 Id = Snapshot->Entities[Facing->EntityIndex].Id;
-        if (Id < MAX_REPLICAS && Table->LocalIndexPlusOne[Id])
+        world_entity *Replica =
+            SnapshotReplica(World, Table, Snapshot, Facing->EntityIndex);
+        if (Replica)
         {
-            world_entity *Replica =
-                &World->Entities[Table->LocalIndexPlusOne[Id] - 1];
             float Angle = (float)Facing->Angle * (2.f * Pi32 / 256.f);
             Replica->Direction = V2(Cos(Angle), Sin(Angle));
         }
@@ -111,27 +123,23 @@ ApplySnapshotAbilities(world *World, replica_table *Table, net_snapshot *Snapsho
 {
     for(u32 Index = 0; Index < Snapshot->Count; Index++)
     {
-        u16 Id = Snapshot->Entities[Index].Id;
-        if (Id < MAX_REPLICAS && Table->LocalIndexPlusOne[Id])
+        world_entity *Replica = SnapshotReplica(World, Table, Snapshot, Index);
+        if (Replica && Replica->Type == EntityType_Monster)
         {
-            world_entity *Replica = &World->Entities[Table->LocalIndexPlusOne[Id] - 1];
-            if (Replica->Type == EntityType_Monster)
-            {
-                Replica->AbilityPhase = AbilityPhase_Ready;
-                Replica->AbilityPointCount = 0;
-                Replica->Burrowed = false;
-            }
+            Replica->AbilityPhase = AbilityPhase_Ready;
+            Replica->AbilityPointCount = 0;
+            Replica->Burrowed = false;
         }
     }
     for(u32 Index = 0; Index < Snapshot->AbilityCount; Index++)
     {
         net_ability_state *State = &Snapshot->Abilities[Index];
-        u16 Id = Snapshot->Entities[State->EntityIndex].Id;
-        if (Id >= MAX_REPLICAS || !Table->LocalIndexPlusOne[Id])
+        world_entity *Replica =
+            SnapshotReplica(World, Table, Snapshot, State->EntityIndex);
+        if (!Replica)
         {
             continue;
         }
-        world_entity *Replica = &World->Entities[Table->LocalIndexPlusOne[Id] - 1];
         monster_def *Def = (Replica->Type == EntityType_Monster) ?
             GetMonsterDef(Replica->MonsterKind) : 0;
         if (!Def || State->Ability >= Def->AbilityCount ||
@@ -150,6 +158,38 @@ ApplySnapshotAbilities(world *World, replica_table *Table, net_snapshot *Snapsho
         }
         Replica->Burrowed = (State->Phase == AbilityPhase_Active &&
                              Def->Abilities[State->Ability].Kind == MonsterAbility_Burrow);
+    }
+}
+
+// NOTE(zoubir): players winding up a spell (sim/player_casts.cpp), so
+// their cast bars are drawn online as offline. Every player in the
+// snapshot starts as not casting; the listed ones get the spell and the
+// time left. The local player's own cast is predicted (prediction.cpp),
+// which puts its own back over this
+internal void
+ApplySnapshotCasts(world *World, replica_table *Table, net_snapshot *Snapshot)
+{
+    for(u32 Index = 0; Index < Snapshot->Count; Index++)
+    {
+        world_entity *Replica = SnapshotReplica(World, Table, Snapshot, Index);
+        if (Replica && Replica->Type == EntityType_Player)
+        {
+            CancelPlayerCast(Replica);
+        }
+    }
+    for(u32 Index = 0; Index < Snapshot->CastCount; Index++)
+    {
+        net_player_cast *Cast = &Snapshot->Casts[Index];
+        world_entity *Replica =
+            SnapshotReplica(World, Table, Snapshot, Cast->EntityIndex);
+        if (!Replica || Replica->Type != EntityType_Player ||
+            Cast->Spell == PlayerSpell_None || Cast->Spell >= PlayerSpell_Count)
+        {
+            continue;
+        }
+        Replica->CastSpell = Cast->Spell;
+        Replica->CastLeft = PlayerSpells[Cast->Spell].CastTime *
+            (1.f - (float)Cast->Done / 255.f);
     }
 }
 

@@ -13,6 +13,8 @@
      (player_fx/blink_preview.cpp);
    - fireball trails: embers cooling behind every fireball
      (player_fx/fireball_trails.cpp);
+   - cast bars: a bar over every player winding up a spell
+     (cast_bars.cpp);
    - bursts the simulation asks for (sword swings, casts, Shockwave,
      Push, Launch, jumps, landings) and stars over stunned heads (fx_bursts.cpp).
 
@@ -55,5 +57,6 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     DrawAimMarker(RenderContext, AppState, CameraOffset);
     DrawHitNumbers(RenderContext, AppState, &Fx->Hits, CameraOffset);
     DrawHitCombo(RenderContext, AppState, &Fx->Hits, CameraOffset);
+    DrawPlayerCastBars(RenderContext, AppState, CameraOffset);
     DrawFxBursts(RenderContext, AppState, CameraOffset, DeltaTime);
 }

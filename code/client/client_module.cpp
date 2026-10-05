@@ -34,6 +34,7 @@
 #include "camera.cpp"
 #include "draw_tilemap.cpp"
 #include "landmark_pointer.cpp"
+#include "cast_bars.cpp"
 #include "player_fx.cpp"
 #include "rewind_fx/rewind_fx.cpp"
 #include "monster_cast_tells.cpp"

@@ -165,6 +165,7 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
     }
 
     ApplySnapshotFacings(World, Table, Snapshot);
+    ApplySnapshotCasts(World, Table, Snapshot);
     ApplySnapshotAbilities(World, Table, Snapshot);
     player_slot *Own = &AppState->Players[LocalSlot];
     if (Own->Active && Own->Entity && Own->Entity->Type == EntityType_Player)
