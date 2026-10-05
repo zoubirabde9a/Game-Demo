@@ -2,7 +2,8 @@
    one table. Offline play reads new presses from it (keyboard_input.cpp),
    online play sends the held keys as network buttons (online.cpp), which
    are the same bits moved up by PLAYER_BUTTON_NET_SHIFT. A new action is
-   one row here. */
+   one row here. Only the abilities the duel rules play have a key
+   (GameRules, sim/player_stats.cpp). */
 
 struct action_key
 {
@@ -12,7 +13,7 @@ struct action_key
     char *Label;
 };
 
-#define ACTION_KEY_COUNT 12
+#define ACTION_KEY_COUNT 7
 
 internal void
 GetActionKeys(app_input *Input, action_key *Keys)
@@ -22,14 +23,9 @@ GetActionKeys(app_input *Input, action_key *Keys)
         {&Input->SpaceButton, PlayerButton_Jump, "Space"},
         {&Input->AltButton, PlayerButton_Dash, "Alt"},
         {&Input->LeftButton, PlayerButton_Cast, "LMB"},
-        {&Input->RightButton, PlayerButton_Attack, "RMB"},
-        {&Input->ButtonE, PlayerButton_Shockwave, "E"},
+        {&Input->ButtonE, PlayerButton_Shield, "E"},
         {&Input->ButtonF, PlayerButton_Blink, "F"},
-        {&Input->ButtonR, PlayerButton_Push, "R"},
         {&Input->ButtonA, PlayerButton_Launch, "A"},
-        {&Input->ButtonC, PlayerButton_Slam, "C"},
-        {&Input->ButtonT, PlayerButton_RewindSelf, "T"},
-        {&Input->ButtonG, PlayerButton_RewindBubble, "G"},
         {&Input->ButtonV, PlayerButton_RewindWorld, "V"},
     };
     for(u32 Index = 0; Index < ACTION_KEY_COUNT; Index++)

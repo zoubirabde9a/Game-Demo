@@ -48,12 +48,12 @@ global_variable player_spawn_action PlayerSpawnActions[PlayerAction_Count] =
     {PlayerButton_Attack, EntityState_Attacking, AnimationType_Attack,
      PlayerStats.SwordLock, PlayerStats.SwordInterval, PLAYER_ACTION_LINGER,
      true, AssetType_Dash, SpawnSwordSwing, ComboMove_Attack},
-    // NOTE(zoubir): Fireball (left click), about three a second; with no
-    // limit each click restarted the cast animation. A press waits out
-    // the whole interval
+    // NOTE(zoubir): Fireball (left click), one every 6 s. A press waits
+    // only as long as any other, so a click well before it is ready does
+    // not fire seconds later on its own
     {PlayerButton_Cast, EntityState_Casting, AnimationType_Cast,
      PlayerStats.FireballLock, PlayerStats.FireballInterval,
-     PlayerStats.FireballInterval, false, AssetType_FireCast,
+     PLAYER_ACTION_LINGER, false, AssetType_FireCast,
      SpawnFireBall, ComboMove_Cast},
 };
 

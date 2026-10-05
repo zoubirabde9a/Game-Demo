@@ -4,6 +4,8 @@ Three player abilities send things back two seconds, and the server can record a
 
 ## The three rewinds
 
+The duel rules the game plays (`GameRules`, `code/sim/player_stats.cpp`) give only the world rewind a key, V. The other two remain in the code and the tests.
+
 | Key | Ability | What it takes | Cooldown |
 |---|---|---|---|
 | T | Rewind | the caster | 8 s |

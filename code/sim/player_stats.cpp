@@ -72,7 +72,7 @@ global_variable player_stats PlayerStats =
     0.7f,                           // ActionWalkScale
     0.2f,                           // StaggerSeconds
     720.f * PLAYER_MOVE_SCALE,      // DashSpeed
-    0.8f,                           // DashCooldown
+    3.f,                            // DashCooldown
     PLAYER_AIM_REACH,               // BlinkReach
     3.f,                            // BlinkCooldown
     0.1f,                           // EarlyPressSeconds
@@ -84,8 +84,40 @@ global_variable player_stats PlayerStats =
     650.f,                          // FireballSpeed
     420.f,                          // FireballRange
     0.05f,                          // FireballLock
-    0.35f,                          // FireballInterval
+    6.f,                            // FireballInterval
 };
+
+/* Game rules: what kind of match the simulation plays. The game, the
+   server and its bots play the duel rules: players only, one hit kills,
+   and only fireball, launch, blink, dash, jump, the world rewind and the
+   shield. The classic rules (every ability, 100 health) are what most
+   tests were written against; a test program switches to them in main.
+   The other abilities' code stays: a button the rules leave out is
+   dropped before the player update reads it (UpdatePlayer). Whether
+   monsters roam is the map's choice (map_def.MonsterPopulation). */
+
+struct game_rules
+{
+    // NOTE(zoubir): player_button bits that do anything
+    u32 Buttons;
+    float PlayerMaxHp;
+};
+
+global_variable game_rules DuelRules =
+{
+    PlayerButton_Jump | PlayerButton_Dash | PlayerButton_Cast |
+    PlayerButton_Blink | PlayerButton_Launch | PlayerButton_RewindWorld |
+    PlayerButton_Shield,
+    1.f,
+};
+
+global_variable game_rules ClassicRules =
+{
+    PLAYER_ALL_BUTTONS,
+    PlayerStats.MaxHp,
+};
+
+global_variable game_rules GameRules = DuelRules;
 
 // NOTE(zoubir): a shove's stagger (ApplyHit, hit.cpp); a second shove
 // restarts it, never shortens it

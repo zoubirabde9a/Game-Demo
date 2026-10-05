@@ -1,12 +1,20 @@
-/* Monster population: the arena keeps a fixed number of monsters roaming
-   as hazards. When one dies another appears after a short delay, on free
-   ground away from every player. There are no waves or levels. */
+/* Monster population: the map keeps a fixed number of monsters roaming
+   as hazards (map_def.MonsterPopulation, none on the Old Arena). When one
+   dies another appears after a short delay, on free ground away from
+   every player. There are no waves or levels. */
 
-#define MONSTER_POPULATION 10
 #define MONSTER_RESPAWN_SECONDS 2.f
 // NOTE(zoubir): new monsters never appear on top of a player
 #define MONSTER_SPAWN_MIN_PLAYER_DISTANCE 350.f
 #define MONSTER_SPAWN_TRIES 16
+
+// NOTE(zoubir): how many monsters World's map keeps roaming
+inline u32
+MapMonsterPopulation(world *World)
+{
+    u32 Result = GetMapDef((map_id)World->MapId)->MonsterPopulation;
+    return Result;
+}
 
 // NOTE(zoubir): in monster_abilities.cpp, included at the bottom
 internal void

@@ -777,6 +777,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "player_ability_tests.cpp"
 #include "cursor_tests.cpp"
 #include "player_feel_tests.cpp"
+#include "duel_tests.cpp"
 
 #define RUN(Test) printf("%s\n", #Test); Test()
 
@@ -786,6 +787,9 @@ main()
     // NOTE(zoubir): a failed Assert crashes, so print as we go to show
     // which test it was
     setvbuf(stdout, 0, _IONBF, 0);
+    // NOTE(zoubir): these tests were written for every ability and 100
+    // health; duel_tests.cpp checks the duel rules the game plays
+    GameRules = ClassicRules;
 
     RUN(TestFireBallKillsMonsterOnce);
     RUN(TestFireBallShovesMonster);
@@ -820,6 +824,7 @@ main()
     RunPlayerAbilityTests();
     RunCursorTests();
     RunPlayerFeelTests();
+    RunDuelTests();
 
     printf("%d of %d checks passed\n", TestChecks - TestFailures, TestChecks);
     return TestFailures ? 1 : 0;

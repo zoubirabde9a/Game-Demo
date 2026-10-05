@@ -2,10 +2,11 @@
    in one fixed order, so the server can send a player its own (snapshot
    Cooldowns[]) and the client can put them back where the HUD reads them.
    Movement abilities first, then area abilities, then the rewinds
-   (sim/time_rewind/), one each in table order. A row added to any table
-   gets a bar; the protocol's NET_COOLDOWN_COUNT grows with it. */
+   (sim/time_rewind/), then the spawn actions' intervals (sword,
+   fireball), one each in table order. A row added to any table gets a
+   bar; the protocol's NET_COOLDOWN_COUNT grows with it. */
 
-#define PLAYER_COOLDOWN_COUNT (PlayerMove_Count + PLAYER_AREA_ABILITY_COUNT + RewindKind_Count)
+#define PLAYER_COOLDOWN_COUNT (PlayerMove_Count + PLAYER_AREA_ABILITY_COUNT + RewindKind_Count + PlayerAction_Count)
 
 // NOTE(zoubir): the field holding cooldown Index, and its full length
 internal float *
@@ -28,6 +29,12 @@ PlayerCooldown(world_entity *Player, u32 Index, float *Full)
         *Full = RewindAbilities[Rewind].Cooldown;
         return &Player->RewindCooldowns[Rewind];
     }
+    u32 Action = Rewind - RewindKind_Count;
+    if (Action < PlayerAction_Count)
+    {
+        *Full = PlayerSpawnActions[Action].Interval;
+        return &Player->ActionCooldowns[Action];
+    }
     *Full = 0.f;
     return 0;
 }
@@ -46,7 +53,12 @@ PlayerCooldownButton(u32 Index)
         return PlayerAreaAbilities[Area].Button;
     }
     u32 Rewind = Area - PLAYER_AREA_ABILITY_COUNT;
-    return Rewind < RewindKind_Count ? RewindAbilities[Rewind].Button : 0;
+    if (Rewind < RewindKind_Count)
+    {
+        return RewindAbilities[Rewind].Button;
+    }
+    u32 Action = Rewind - RewindKind_Count;
+    return Action < PlayerAction_Count ? PlayerSpawnActions[Action].Button : 0;
 }
 
 // NOTE(zoubir): a cooldown as one byte, 0..255 of its full length

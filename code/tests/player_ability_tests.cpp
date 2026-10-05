@@ -437,8 +437,9 @@ CountPresent(world *World, entity_type Type)
     return Result;
 }
 
-// NOTE(zoubir): two clicks a frame apart give one fireball now and the
-// second once the interval has passed, not two at once
+// NOTE(zoubir): two clicks a frame apart give one fireball, not two at
+// once; the second is dropped, as the 6 s interval is too long to hold a
+// click for (duel_tests.cpp has the next one)
 internal void
 TestFastClicksFireAtSteadyRate()
 {
@@ -453,7 +454,7 @@ TestFastClicksFireAtSteadyRate()
     RunPlayerFrames(&Test, 0, 5);
     Check(CountPresent(Test.World, EntityType_FireBall) == 1);
     RunPlayerFrames(&Test, 0, 20);
-    Check(CountPresent(Test.World, EntityType_FireBall) == 2);
+    Check(CountPresent(Test.World, EntityType_FireBall) == 1);
     DestroyTestWorld(&Test);
 }
 

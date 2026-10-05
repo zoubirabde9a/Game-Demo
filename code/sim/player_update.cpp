@@ -111,6 +111,9 @@ UpdatePlayer(player_slot *Slot, world *World,
              animation_direction *AnimationDirection)
 {
     world_entity *Player = Slot->Entity;
+    // NOTE(zoubir): abilities the match leaves out (GameRules) do nothing
+    Slot->Input.Pressed &= GameRules.Buttons;
+    Slot->Input.ServerPressed &= GameRules.Buttons;
     // NOTE(zoubir): a stunned player can neither move nor act
     if (HasStatus(Player, StatusEffect_Stunned))
     {

@@ -154,7 +154,7 @@ TestJoinMoveAndLeave()
     Check(Reply.ConnectAccepted.PlayerIndex == 0);
 
     Check(TickUntil(&Server, &Client, NetPacket_Snapshot, &Reply));
-    Check(Reply.Snapshot.Count > 1); // the player plus the arena's monsters
+    Check(Reply.Snapshot.Count >= 1); // the player; the Old Arena has no monsters
     Check(Reply.Snapshot.Entities[0].Type == EntityType_Player); // own player first
     Check(Reply.Snapshot.Entities[0].Variant == 0); // a player's Variant is its slot
     Check(Reply.Snapshot.ScoreCount == 1 && Reply.Snapshot.Scores[0].Slot == 0);
@@ -491,7 +491,9 @@ PlayThroughLink(u32 DropPercent, u32 DuplicatePercent, u32 MaxDelayFrames, u32 T
     for (u32 Tap = 0; Tap < Taps; ++Tap)
     {
         FRAME(NetButton_Fireball); // held for a single frame
-        for (int Frame = 0; Frame < SERVER_TICK_RATE / 2; ++Frame) FRAME(0);
+        // a moment past the fireball's interval, so every tap may fire
+        int Wait = (int)(PlayerStats.FireballInterval * SERVER_TICK_RATE) + 6;
+        for (int Frame = 0; Frame < Wait; ++Frame) FRAME(0);
     }
     #undef FRAME
 
@@ -575,6 +577,9 @@ TestStatsCountTrafficAndTicks()
 int
 main()
 {
+    // NOTE(zoubir): written for every ability and 100 health
+    // (sim/player_stats.cpp GameRules)
+    GameRules = ClassicRules;
     if (!NetSocketsStartup())
     {
         printf("server tests: could not start networking\n");

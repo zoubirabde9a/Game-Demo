@@ -17,9 +17,11 @@ TestOnlineAddressAndButtons()
     app_input Input = {};
     Input.ButtonD.EndedDown = true;
     Input.ButtonZ.EndedDown = true;
+    Input.ButtonE.EndedDown = true;
+    // NOTE(zoubir): the sword has no key under the duel rules
     Input.RightButton.EndedDown = true;
-    u16 Buttons = NetButtonsFromKeyboard(&Input);
-    Check(Buttons == (NetButton_Right | NetButton_Up | NetButton_Sword));
+    u32 Buttons = NetButtonsFromKeyboard(&Input);
+    Check(Buttons == (NetButton_Right | NetButton_Up | NetButton_Shield));
 }
 
 internal void

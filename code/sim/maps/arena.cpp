@@ -5,7 +5,8 @@
    jump. A grassy hill on each flank, terrace two steps up and summit
    four, with a stair from the field. Two ponds, fenced paddocks with
    logs, crates on the stands. The map turns onto itself (180 degrees),
-   so both sides play the same. Every monster kind can turn up here. */
+   so both sides play the same. The default map, and players only: no
+   monsters roam here. */
 #if defined(MAP_NAME_PASS)
 MAP(Arena)
 #else
@@ -110,6 +111,7 @@ DefineMap_Arena(map_def *Map)
     Map->Width = 80;
     Map->Height = ArrayCount(ArenaLayout);
     Map->Outside = TerrainKind_StoneWall;
+    Map->MonsterPopulation = 0;
 }
 
 #endif

@@ -1,10 +1,10 @@
-/* Movement abilities: the keys that move the player at once (dash,
-   blink, slam), as a table. A monster kill takes some or all of each
+/* Movement abilities: the keys that act on the player's own body at once
+   (dash, blink, slam, and the shield, which moves nothing), as a table. A monster kill takes some or all of each
    one's cooldown off (KillRefund): dash and slam are ready again at
    once, blink half way. A dash into a unit also hits it (DashStrike).
    Using one is the same for every row: it needs its key and its
-   cooldown (or a press just before it ends, CanUseEarly) and cuts a
-   swing, a cast and an area cast short. When the body moves it lights
+   cooldown (or a press just before it ends, CanUseEarly) and, unless the
+   row KeepsActions, cuts a swing, a cast and an area cast short. When the body moves it lights
    DashFlash for its row's FlashSeconds (while it lasts the player cannot
    be hurt or shoved, IsDodging in entity.cpp, and clients draw the
    streak from it), plays the dash sound and then any combo it finishes
@@ -29,6 +29,7 @@ enum player_movement
     PlayerMove_Dash,
     PlayerMove_Blink,
     PlayerMove_Slam,
+    PlayerMove_Shield,
     PlayerMove_Count
 };
 
@@ -52,6 +53,9 @@ struct player_movement_ability
     player_spell Spell;
     // NOTE(zoubir): the key does nothing on the ground
     bool32 AirOnly;
+    // NOTE(zoubir): a swing, a cast winding up and a shove's stagger go
+    // on as they were
+    bool32 KeepsActions;
 };
 
 #define PLAYER_DASH_FLASH_SECONDS 0.15f
@@ -115,19 +119,35 @@ SlamMotion(app_state *AppState, world *World, memory_arena *Arena,
     return true;
 }
 
+// NOTE(zoubir): Power seconds of the shield respawns already give: no hit,
+// shove or stun lands (IsDodging, entity.cpp), and clients draw the
+// player flickering (draw_entities.cpp)
+internal bool32
+ShieldMotion(app_state *AppState, world *World, memory_arena *Arena,
+             world_entity *Player, player_input *Input, float DeltaTime,
+             float Power)
+{
+    Player->SpawnShield = Maximum(Player->SpawnShield, Power);
+    return true;
+}
+
 global_variable player_movement_ability PlayerMovements[PlayerMove_Count] =
 {
     // NOTE(zoubir): Dash (Alt), leaving at 1440; Blink (F), as far as the
     // cursor can reach. Their numbers are in player_stats.cpp
     {PlayerButton_Dash, PlayerStats.DashCooldown, 1.f, PlayerStats.DashSpeed,
-     PLAYER_DASH_FLASH_SECONDS, DashMotion, ComboMove_Dash, PlayerSpell_None, false},
+     PLAYER_DASH_FLASH_SECONDS, DashMotion, ComboMove_Dash, PlayerSpell_None, false, false},
     {PlayerButton_Blink, PlayerStats.BlinkCooldown, 0.5f, PlayerStats.BlinkReach,
-     PLAYER_DASH_FLASH_SECONDS, BlinkMotion, ComboMove_Blink, PlayerSpell_Blink, false},
+     PLAYER_DASH_FLASH_SECONDS, BlinkMotion, ComboMove_Blink, PlayerSpell_Blink, false, false},
     // NOTE(zoubir): Slam (C), in the air, after its wind-up. Straight
     // down, so it does not scale with PLAYER_MOVE_SCALE: from the top of a
     // double jump it already lands in under a tenth of a second
     {PlayerButton_Slam, 2.f, 1.f, 900.f, 0.f, SlamMotion, ComboMove_Slam,
-     PlayerSpell_Slam, true},
+     PlayerSpell_Slam, true, false},
+    // NOTE(zoubir): Shield (E): 2 s untouchable every 6 s. Kills do not
+    // hurry it, and it is no move in a combo
+    {PlayerButton_Shield, 6.f, 0.f, 2.f, 0.f, ShieldMotion, ComboMove_None,
+     PlayerSpell_None, false, true},
 };
 static_assert(PlayerMove_Count <= PLAYER_MOVEMENT_SLOTS, "one cooldown each");
 
@@ -176,7 +196,10 @@ FinishMovement(app_state *AppState, world *World, memory_arena *Arena,
 {
     Player->DashFlash = Maximum(Player->DashFlash, Ability->FlashSeconds);
     EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
-    RunPlayerCombo(AppState, World, Arena, Player, Ability->Move, Tick);
+    if (Ability->Move != ComboMove_None)
+    {
+        RunPlayerCombo(AppState, World, Arena, Player, Ability->Move, Tick);
+    }
 }
 
 internal void
@@ -206,22 +229,25 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
         {
             return;
         }
-        // NOTE(zoubir): it cuts a swing or cast short too: the player runs
-        // out of it at full speed, and the next swing need not wait for the
-        // old one's animation
-        Player->ActionLock = 0.f;
-        // NOTE(zoubir): and it breaks out of a shove's stagger, so a dash
-        // is the way out of a crowd's shoves
-        Player->Stagger = 0.f;
-        CancelPlayerCast(Player);
-        if (Ability->Spell != PlayerSpell_None)
+        if (!Ability->KeepsActions)
         {
-            StartPlayerCast(Player, Ability->Spell, GetPlayerAim(Player));
-        }
-        if (Player->State == EntityState_Attacking ||
-            Player->State == EntityState_Casting)
-        {
-            Player->State = EntityState_Standing;
+            // NOTE(zoubir): it cuts a swing or cast short too: the player
+            // runs out of it at full speed, and the next swing need not
+            // wait for the old one's animation
+            Player->ActionLock = 0.f;
+            // NOTE(zoubir): and it breaks out of a shove's stagger, so a
+            // dash is the way out of a crowd's shoves
+            Player->Stagger = 0.f;
+            CancelPlayerCast(Player);
+            if (Ability->Spell != PlayerSpell_None)
+            {
+                StartPlayerCast(Player, Ability->Spell, GetPlayerAim(Player));
+            }
+            if (Player->State == EntityState_Attacking ||
+                Player->State == EntityState_Casting)
+            {
+                Player->State = EntityState_Standing;
+            }
         }
         *Cooldown += Ability->Cooldown;
         if (Ability->Spell == PlayerSpell_None)

@@ -56,6 +56,9 @@ struct map_def
 
     // NOTE(zoubir): multiplies each monster kind's SpawnWeight on this map
     float MonsterWeight[MonsterKind_Count];
+    // NOTE(zoubir): monsters kept roaming (monster_population.cpp); 0 for
+    // a map of players only
+    u32 MonsterPopulation;
 };
 
 /* Layout legend for bounded maps. Each character is ground, plus at most
@@ -225,11 +228,15 @@ InSpawnClearing(i32 X, i32 Y)
     return Result;
 }
 
+// NOTE(zoubir): monsters a map keeps roaming unless it says otherwise
+#define MAP_MONSTER_POPULATION 10
+
 inline void
 DefaultMapDef(map_def *Map)
 {
     ZeroSize(Map, sizeof(*Map));
     Map->Outside = TerrainKind_StoneWall;
+    Map->MonsterPopulation = MAP_MONSTER_POPULATION;
     for(u32 Kind = 0; Kind < MonsterKind_Count; Kind++)
     {
         Map->MonsterWeight[Kind] = 1.f;

@@ -34,7 +34,7 @@ InitSimulation(app_state *AppState, memory_arena *MemoryArena,
     SetupCollisionTable(AppState);
 
     AppState->Monsters =
-        CreateMonsterPopulation(MemoryArena, MONSTER_POPULATION, 1337);
+        CreateMonsterPopulation(MemoryArena, MapMonsterPopulation(&AppState->World), 1337);
     FillMonsterPopulation(AppState, &AppState->World, MemoryArena,
                           AppState->Monsters);
 }
@@ -66,7 +66,7 @@ RebuildWorldForMap(app_state *AppState, memory_arena *Arena, u32 MapId)
     AppState->World.MapId = MapId < MapId_Count ? MapId : MapId_Arena;
     BuildArena(AppState, Arena);
     AppState->Monsters =
-        CreateMonsterPopulation(Arena, MONSTER_POPULATION, 1337);
+        CreateMonsterPopulation(Arena, MapMonsterPopulation(&AppState->World), 1337);
     // NOTE(zoubir): it lived in Arena; the next tick makes a new one
     AppState->Rewind = 0;
 }

@@ -231,7 +231,8 @@ internal void
 TestSnapshotCarriesMonsterWindup()
 {
     static server_game Game;
-    GameInit(&Game);
+    // NOTE(zoubir): the default map, the Old Arena, has no monsters
+    GameInit(&Game, MapId_Keep);
     GamePlayerJoined(&Game, 0);
 
     world *World = &Game.AppState->World;

@@ -450,7 +450,8 @@ TestHistoryStaysInOrder()
     GameShutdown(&Game);
 }
 
-// Online, a real client casts a self rewind while holding a walk key: once
+// Online, a real client casts a world rewind (V, the one rewind the duel
+// rules give a key) while holding a walk key: once
 // it sees the hold its own player stops where the server froze it (no
 // prediction walks it on), the playback runs, and afterwards prediction
 // and the server agree again.
@@ -486,12 +487,12 @@ TestOnlineRewindFreezesThePlayer()
     Check(IsOnline(Client->Online));
     for (int Frame = 0; Frame < 20; ++Frame) REWIND_FRAME();
 
-    // NOTE: walking left the whole time; T pressed after a second
+    // NOTE: walking left the whole time; V pressed after a second
     Input.ButtonQ.EndedDown = true;
     for (int Frame = 0; Frame < 60; ++Frame) REWIND_FRAME();
-    Input.ButtonT.EndedDown = true;
+    Input.ButtonV.EndedDown = true;
     REWIND_FRAME();
-    Input.ButtonT.EndedDown = false;
+    Input.ButtonV.EndedDown = false;
 
     rewind_fx_cast *Seen = &Client->RewindFx->Casts[0];
     world_entity *Authority = Server.Game.AppState->Players[0].Entity;

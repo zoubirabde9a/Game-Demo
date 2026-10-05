@@ -404,22 +404,22 @@ internal void
 TestPlayOverBadConnection()
 {
     // Baseline over a clean link, so the bad-link numbers have something to match.
-    link_result Clean = PlayThroughLink(0, 0, 0, 10);
+    link_result Clean = PlayThroughLink(0, 0, 0, 4);
     Check(Clean.Connected && Clean.StayedConnected);
     Check(Clean.MovedRight > 50.0f);
-    Check(Clean.Fireballs == 10);
+    Check(Clean.Fireballs == 4);
 
     // A quarter of packets lost each way, some doubled, delays up to 100 ms
     // that reorder packets. Every tap must still cast exactly one fireball:
     // each input packet repeats the last 8 inputs, and the server applies
     // each input tick once.
-    link_result Bad = PlayThroughLink(25, 10, 6, 10);
-    printf("  bad link: %u dropped, %u duplicated; moved %.0f (clean %.0f), %u of 10 fireballs\n",
+    link_result Bad = PlayThroughLink(25, 10, 6, 4);
+    printf("  bad link: %u dropped, %u duplicated; moved %.0f (clean %.0f), %u of 4 fireballs\n",
            Bad.Dropped, Bad.Duplicated, Bad.MovedRight, Clean.MovedRight, Bad.Fireballs);
     Check(Bad.Dropped > 50 && Bad.Duplicated > 10);
     Check(Bad.Connected && Bad.StayedConnected);
     Check(Bad.MovedRight > 0.8f * Clean.MovedRight);
-    Check(Bad.Fireballs == 10);
+    Check(Bad.Fireballs == 4);
 }
 
 // Online parity: what the client's replicas show must match the server's
@@ -471,6 +471,8 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     // its prediction replays from the snapshot's
     u32 StaggersCompared = 0, StaggersOff = 0, ServerStaggered = 0, ClientStaggered = 0;
     u32 DashPresses = 0, DashesSeenAtOnce = 0;
+    // NOTE(zoubir): a press a moment after the dash is ready again
+    int DashEvery = (int)(PlayerMovements[PlayerMove_Dash].Cooldown * SERVER_TICK_RATE) + 10;
     u32 JumpPresses = 0, JumpsSeenAtOnce = 0;
     // NOTE(zoubir): the last hit (sim/hit.cpp): units hit lately on each
     // side, and of those on both, how many disagree on the hit's angle,
@@ -484,9 +486,9 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
     for (int Frame = 0; Frame < Seconds * SERVER_TICK_RATE; ++Frame)
     {
-        // The watcher dashes and shockwaves now and then, so its cooldown
+        // The watcher dashes and shields now and then, so its cooldown
         // bars have something to show.
-        Input.AltButton.EndedDown = (Frame % 90) < 2;
+        Input.AltButton.EndedDown = (Frame % DashEvery) < 2;
         Input.ButtonE.EndedDown = (Frame % 300) < 2;
         // NOTE(zoubir): and jumps, so its own jump arc can be compared
         Input.SpaceButton.EndedDown = (Frame % 120) == 45;
@@ -507,7 +509,7 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
             ++JumpPresses;
             JumpsSeenAtOnce += Own->Velocity.Z > 0.f ? 1 : 0;
         }
-        if ((Frame % 90) == 0 && IsOnline(Online) && Online->Replicas.Active &&
+        if ((Frame % DashEvery) == 0 && IsOnline(Online) && Online->Replicas.Active &&
             Own && Own->IsPresent && !IsDeadPlayer(Own) && !Held)
         {
             ++DashPresses;
@@ -645,7 +647,8 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     Check(StaggersCompared > 100 && StaggersOff == 0);
     Check(ServerStaggered == 0 || ClientStaggered > 0);
     printf("  dash presses %u, dashing on the press frame %u\n", DashPresses, DashesSeenAtOnce);
-    Check(DashPresses > 3 && DashesSeenAtOnce >= DashPresses - 1);
+    // NOTE(zoubir): a 3 s dash gives a 15 s game only a couple of presses
+    Check(DashPresses >= 2 && DashesSeenAtOnce >= DashPresses - 1);
     // NOTE(zoubir): jump is predicted too: rising on the press frame
     printf("  jump presses %u, rising on the press frame %u\n",
            JumpPresses, JumpsSeenAtOnce);

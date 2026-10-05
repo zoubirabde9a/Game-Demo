@@ -950,8 +950,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d52u
-#define NET_GOLDEN_LAYOUT 0xe4b152b4u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d53u
+#define NET_GOLDEN_LAYOUT 0xfdd99c4cu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

@@ -41,7 +41,10 @@ enum player_button
     PlayerButton_RewindSelf = 1 << 9,
     PlayerButton_RewindBubble = 1 << 10,
     PlayerButton_RewindWorld = 1 << 11,
+    // NOTE(zoubir): a moment of invulnerability (movement_abilities.cpp)
+    PlayerButton_Shield = 1 << 12,
 };
+#define PLAYER_ALL_BUTTONS ((u32)(PlayerButton_Shield << 1) - 1)
 #define PLAYER_BUTTON_NET_SHIFT 4
 
 struct player_input

@@ -481,6 +481,8 @@ TestRandomPlaySoak()
     InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
     InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)),
                     Megabytes(1));
+    // NOTE(zoubir): a map with monsters; the Old Arena has none
+    AppState->World.MapId = MapId_Keep;
     InitSimulation(AppState, &Arena, &Constants);
     for(u32 Slot = 0; Slot < 4; Slot++)
     {
