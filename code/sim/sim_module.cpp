@@ -21,6 +21,7 @@
 #include "entity.cpp"
 #include "collision.cpp"
 #include "corner_slip.cpp"
+#include "wall_glide.cpp"
 #include "move.cpp"
 #include "collision_rules.cpp"
 #include "terrain/terrain_module.cpp"

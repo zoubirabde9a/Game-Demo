@@ -81,6 +81,32 @@ TestUnitSlidesPastTileSeams()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a player dashing into a wall at a slant keeps the dash's
+// speed along it (wall_glide.cpp); straight at it, the wall stops them
+internal void
+TestPlayerGlidesAlongWall()
+{
+    test_world Test = CreateTestWorld();
+    AddWallRow(&Test, 300.f, 300.f, 12);
+    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
+                                         {340, 300 - 16 - 4 - 2, 0},
+                                         Test.UnitVolume);
+    Player->Velocity = {700.f, 700.f, 0.f};
+    float MaxDistance = 10000.f;
+    MoveEntity(Player, Test.World, &Test.Arena, Test.Input.DeltaTime,
+               Test.AppState, {}, &MaxDistance);
+    Check(Player->Velocity.X > 980.f);
+    Check(Player->Velocity.Y < 0.01f);
+    Check(Player->Position.Y + 4.f <= 300.f - 16.f + 0.01f);
+
+    Player->Velocity = {0.f, 900.f, 0.f};
+    MaxDistance = 10000.f;
+    MoveEntity(Player, Test.World, &Test.Arena, Test.Input.DeltaTime,
+               Test.AppState, {}, &MaxDistance);
+    Check(Length(Player->Velocity.XY) < 1.f);
+    DestroyTestWorld(&Test);
+}
+
 // NOTE(zoubir): driving into an inside corner stops there; it neither
 // passes through nor shakes
 internal void
@@ -706,6 +732,8 @@ RunCollisionTests()
     TestUnitsDoNotPassThroughEachOther();
     printf("TestUnitSlidesPastTileSeams\n");
     TestUnitSlidesPastTileSeams();
+    printf("TestPlayerGlidesAlongWall\n");
+    TestPlayerGlidesAlongWall();
     printf("TestUnitStopsInCorner\n");
     TestUnitStopsInCorner();
     printf("TestLongPushStaysOutsideWall\n");

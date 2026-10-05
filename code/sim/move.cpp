@@ -206,9 +206,10 @@ internal float ImpactOnHit(app_state *AppState, world *World,
 
 // NOTE(zoubir): what a hit does to the rest of the move. Blocking hits
 // slide along the wall (the part of the move and velocity into it is
-// removed), and a unit that only clipped an edge slips past it
-// (corner_slip.cpp); pass-through hits (fireball into monster) get a rule so the
-// pair stops colliding, and the rest of the move carries on. Returns false
+// removed), a player keeps their speed along it (wall_glide.cpp), and a
+// unit that only clipped an edge slips past it (corner_slip.cpp);
+// pass-through hits (fireball into monster) get a rule so the pair stops
+// colliding, and the rest of the move carries on. Returns false
 // when the hit removed Entity itself.
 internal bool32
 ResolveMoveHit(app_state *AppState, world *World, memory_arena *Arena,
@@ -229,11 +230,16 @@ ResolveMoveHit(app_state *AppState, world *World, memory_arena *Arena,
         {
             return false;
         }
+        v3 Velocity = Entity->Velocity;
         Entity->Velocity = Entity->Velocity -
             1.f * DotProduct(Entity->Velocity, Normal) * Normal;
-        Entity->Velocity += Bounce * Normal;
         v3 DeltaLeft = *Delta - AllowedDelta;
         *Delta = DeltaLeft - 1.f * DotProduct(DeltaLeft, Normal) * Normal;
+        if (Bounce == 0.f)
+        {
+            GlideAlongWall(Entity, Normal, Velocity, DeltaLeft, Delta);
+        }
+        Entity->Velocity += Bounce * Normal;
         SlipPastCorner(Entity, Other, Normal, DeltaLeft, Delta);
     }
     else
