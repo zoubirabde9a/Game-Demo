@@ -81,8 +81,8 @@ global_variable player_stats PlayerStats =
     0.08f,                          // SwordLock
     0.18f,                          // SwordInterval
     25.f,                           // FireballDamage
-    450.f,                          // FireballSpeed
-    300.f,                          // FireballRange
+    650.f,                          // FireballSpeed
+    420.f,                          // FireballRange
     0.05f,                          // FireballLock
     0.35f,                          // FireballInterval
 };

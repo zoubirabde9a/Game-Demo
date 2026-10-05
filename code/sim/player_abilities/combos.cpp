@@ -85,7 +85,7 @@ ComboAmbush(app_state *AppState, world *World, memory_arena *Arena,
 // NOTE(zoubir): the cutting dash hits everything within RADIUS of the
 // first LENGTH of the dash's path; a dash covers about 130
 #define CUTTING_DASH_LENGTH (80.f * PLAYER_MOVE_SCALE)
-#define CUTTING_DASH_RADIUS 40.f
+#define CUTTING_DASH_RADIUS 56.f
 global_variable hit CuttingDashHit = {18.f, 320.f, 0.f, 220.f, 0.3f, SimBurst_Impact};
 
 // NOTE(zoubir): Cutting dash (attack, dash): the blade spins around the

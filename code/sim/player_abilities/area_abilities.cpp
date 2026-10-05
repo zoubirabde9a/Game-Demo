@@ -48,23 +48,25 @@ enum player_area
 
 global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
 {
-    // NOTE(zoubir): Shockwave (E): at once, everything within 90 units
-    // takes 40 and is thrown away from the player
-    {PlayerButton_Shockwave, 0.f, 4.f, 0.f, 90.f, -1.f, {40.f, 500.f, 0.f, 200.f, 0.f, SimBurst_Count},
+    // NOTE(zoubir): Shockwave (E): at once, everything within 120 units
+    // takes 40 and is thrown away from the player. The areas are sized
+    // against the sword's reach (64, entity.h): each covers well past it
+    {PlayerButton_Shockwave, 0.f, 4.f, 0.f, 120.f, -1.f, {40.f, 500.f, 0.f, 200.f, 0.f, SimBurst_Count},
      SimBurst_ShockwaveRing, SimBurst_Count},
     // NOTE(zoubir): Push (R): a quick wide cone that throws a crowd off
     // the player and apart, out of each other's way
-    {PlayerButton_Push, 0.12f, 2.5f, 0.f, 110.f, 0.34f, {10.f, 750.f, 0.f, 0.f, 0.3f, SimBurst_Count},
+    {PlayerButton_Push, 0.12f, 2.5f, 0.f, 150.f, 0.34f, {10.f, 750.f, 0.f, 0.f, 0.3f, SimBurst_Count},
      SimBurst_PushCone, SimBurst_PushMark},
     // NOTE(zoubir): Launch (A): a ground burst at the aim that throws
     // everything in it into the air (88 units, almost a second under
-    // monster gravity) and stuns it until well after it lands
-    {PlayerButton_Launch, 0.3f, 5.f, 70.f, 55.f, -1.f, {20.f, 60.f, 420.f, 420.f, 1.6f, SimBurst_Count},
+    // monster gravity) and stuns it until well after it lands. A circle of
+    // 75 whose middle is 90 out, so it reaches from the player's feet
+    {PlayerButton_Launch, 0.3f, 5.f, 90.f, 75.f, -1.f, {20.f, 60.f, 420.f, 420.f, 1.6f, SimBurst_Count},
      SimBurst_LaunchColumn, SimBurst_LaunchMark},
     // NOTE(zoubir): Slam: no key of its own; the slam's dive
     // (movement_abilities.cpp) fires it where the player lands. Everything
-    // within 80 units is thrown out and up and stunned
-    {0, 0.f, 0.f, 0.f, 80.f, -1.f, {25.f, 380.f, 260.f, 260.f, 0.9f, SimBurst_Count},
+    // within 110 units is thrown out and up and stunned
+    {0, 0.f, 0.f, 0.f, 110.f, -1.f, {25.f, 380.f, 260.f, 260.f, 0.9f, SimBurst_Count},
      SimBurst_SlamRing, SimBurst_Count},
 };
 #define PLAYER_AREA_ABILITY_COUNT PlayerArea_Count
