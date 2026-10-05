@@ -329,6 +329,32 @@ TestStunEndsTheCast()
     GameShutdown(&Game);
 }
 
+// The cast is the caster's player cast (sim/player_casts.cpp), so the
+// cast pose and bar show it; a dash cuts it, which ends the rewind, and
+// the cooldown stays spent.
+internal void
+TestDashEndsTheCast()
+{
+    static server_game Game;
+    app_state *AppState = StartQuietRewindGame(&Game);
+    GamePlayerJoined(&Game, 0);
+    world_entity *Player = AppState->Players[0].Entity;
+    for (u32 Tick = 0; Tick < 66; ++Tick)
+    {
+        HoldForRewindTest(&Game, 0, (u16)(Tick == 60 ? NetButton_RewindBubble : 0));
+        GameTick(&Game, REWIND_TEST_DT);
+    }
+    Check(RewindCastOf(&Game, 0)->Phase == RewindPhase_Cast);
+    Check(Player->CastSpell == PlayerSpell_RewindBubble);
+    Check(Absolute(RewindCastOf(&Game, 0)->PhaseLeft - Player->CastLeft) < 0.0001f);
+    HoldForRewindTest(&Game, 0, NetButton_Dash);
+    GameTick(&Game, REWIND_TEST_DT);
+    Check(!IsPlayerCasting(Player));
+    Check(RewindCastOf(&Game, 0)->Phase == RewindPhase_None);
+    Check(Player->RewindCooldowns[RewindKind_Bubble] > 0.f);
+    GameShutdown(&Game);
+}
+
 // The snapshot carries the rewind, with the caster's own entity marked
 // frozen, and it survives the wire.
 internal void
@@ -500,6 +526,7 @@ RunRewindTests()
     TestBubbleTakesWhatIsInside();
     TestWorldRewindBringsBackTheDead();
     TestStunEndsTheCast();
+    TestDashEndsTheCast();
     TestSnapshotSaysWhatIsFrozen();
     TestHistoryStaysInOrder();
 }

@@ -1,4 +1,29 @@
-/* Player slots: joining, finding players, and respawning them. */
+/* Player slots: joining, finding players, respawning them, and the
+   player's aim. */
+
+// NOTE(zoubir): V as a unit vector, or Fallback when V is too short to
+// have a direction
+inline v2
+NormalizeOr(v2 V, v2 Fallback)
+{
+    float LengthSquared = LengthSq(V);
+    v2 Result = LengthSquared > 0.0001f ?
+        V * (1.f / SquareRoot(LengthSquared)) : Fallback;
+    return Result;
+}
+
+// NOTE(zoubir): the player's aim; before any cursor input, the way it last
+// walked (and Right for a player that never moved)
+inline v2
+GetPlayerAim(world_entity *Player)
+{
+    v2 Result = Player->Aim;
+    if (LengthSq(Result) < 0.0001f)
+    {
+        Result = NormalizeOr(Player->Direction, V2(1.f, 0.f));
+    }
+    return Result;
+}
 
 // NOTE(zoubir): in monster_population.cpp, included after this file
 internal bool32
@@ -195,7 +220,7 @@ UpdateDeadPlayer(player_slot *Slot, world *World, memory_arena *Arena,
     Slot->DelayedInputCount = 0;
     // NOTE(zoubir): a cast or a slam cut short by death does not go off
     // at the spawn point
-    Player->CastingArea = 0;
+    CancelPlayerCast(Player);
     Player->PendingLandArea = 0;
     Player->SpawnShield = PLAYER_SPAWN_SHIELD_SECONDS;
     CheckAndChangeEntityChunk(AppState, World, Arena,

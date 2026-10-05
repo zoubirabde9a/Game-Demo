@@ -29,7 +29,7 @@ PickPlayerAnimation(world_entity *Player, player_tick *Tick)
     v2 Facing = GetPlayerAim(Player);
     if (Player->State == EntityState_Attacking ||
         Player->State == EntityState_Casting ||
-        IsCastingAreaAbility(Player))
+        IsPlayerCasting(Player))
     {
         Facing = Player->CastingDirection;
     }
@@ -45,7 +45,7 @@ PickPlayerAnimation(world_entity *Player, player_tick *Tick)
         *Tick->AnimationType = AnimationType_Attack;
     }
     else if (Player->State == EntityState_Casting ||
-             IsCastingAreaAbility(Player))
+             IsPlayerCasting(Player))
     {
         *Tick->AnimationType = AnimationType_Cast;
     }

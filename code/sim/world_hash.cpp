@@ -60,8 +60,8 @@ HashWorldEntity(u32 Hash, world_entity *Entity)
     Hash = HashWorldValue(Hash, Entity->ActionCooldowns);
     Hash = HashWorldValue(Hash, Entity->JumpsUsed);
     Hash = HashWorldValue(Hash, Entity->AreaCooldowns);
-    Hash = HashWorldValue(Hash, Entity->CastingArea);
-    Hash = HashWorldValue(Hash, Entity->AreaCastLeft);
+    Hash = HashWorldValue(Hash, Entity->CastSpell);
+    Hash = HashWorldValue(Hash, Entity->CastLeft);
     Hash = HashWorldValue(Hash, Entity->SpawnShield);
     Hash = HashWorldValue(Hash, Entity->ComboStep);
     Hash = HashWorldValue(Hash, Entity->ComboTimer);

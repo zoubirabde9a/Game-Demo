@@ -12,7 +12,7 @@ Three player abilities send things back two seconds, and the server can record a
 
 Each one runs the same three phases:
 
-1. **Cast, 0.5 s.** The caster winds up and can still walk. A stun, a death, or being frozen by someone else's rewind ends it, and the cooldown stays spent.
+1. **Cast, 0.5 s.** The caster winds up at half walking speed, in the cast pose, with a cast bar overhead. It is the same wind-up every spell with a cast time uses (`code/sim/player_casts.cpp`), so whatever cuts a cast ends the rewind: a dash, a blink, a stun, a death, or being frozen by someone else's rewind. The cooldown stays spent.
 2. **Hold, 0.5 s.** What the rewind takes freezes in place. Outside a bubble the world goes on around it. A world rewind stops everything, and ends any other rewind under way.
 3. **Playback, 0.5 s.** The frozen things run backwards through the last two seconds at four times the speed, frame by frame. They land exactly where they were two seconds before the hold began, with the health, speed, status effects, cooldowns and animation they had then.
 
@@ -26,7 +26,7 @@ A bubble also unmakes what came into being inside it during those two seconds (a
 - **Restore** (`rewind_restore.cpp`): copies records back and re-files the entities in the world's chunk lists. A world restore also removes what did not exist then, rebuilds the free list, and copies back the monster population's bookkeeping.
 - **Phases and keys** (`rewind_abilities.cpp`), wired into `SimulateTick` (`code/sim/simulate.cpp`).
 
-Online, the server runs all of it. Each snapshot carries the rewinds under way near the player (`net_rewind`, 13 bytes each, protocol `GDMP`), with a bit per snapshot entity saying which are frozen. The client:
+Online, the server runs all of it. Each snapshot carries the rewinds under way near the player (`net_rewind`, 13 bytes each), with a bit per snapshot entity saying which are frozen. The client:
 
 - stops predicting its own player while it is frozen, so the player stays exactly where the server put it (`client/prediction.cpp`);
 - keeps its own trail of where every moving thing was drawn, 60 times a second (`client/rewind_fx/rewind_trails.cpp`), and plays a frozen thing's playback from that trail. Snapshots come 20 times a second; the trail has every frame the player saw, so the backwards run is as smooth as the forwards one was. The server's restored state arrives as the playback ends, where the trail already put it.
@@ -49,7 +49,7 @@ The simulation's random numbers come from the monster population's seeded series
 - `HashWorldState` (`code/sim/world_hash.cpp`) fingerprints the state the simulation decides: values, never pointers.
 - `server --record match.replay` writes every call the server makes into its game (joins, names, leaves, each input, each tick) with the world hash after every tick (`code/server/replay.cpp`). Bots are recorded as the inputs they produce, so a replay needs no bot code.
 - `build\replay.exe match.replay` plays it back through a fresh game and checks every tick's hash. It prints the first tick where the match went another way, or "every tick matched" (exit code 0).
-- `tests/replay_tests.cpp` runs the same 25-second match (two scripted players, six bots, all three rewinds) twice side by side and compares every tick, replays a recording from memory and from a file, and checks that one changed input is caught at the tick it changes things.
+- `tests/replay_tests.cpp` runs the same 25-second match (two scripted players, six bots, all three rewinds) twice side by side and compares every tick, replays a recording from memory and from a file, and checks that changed inputs are caught at the first tick they change things.
 
 Replays are exact on the build that recorded them. Across builds they hold while the rules do; the content id in the file says which build made it. The Linux server and replay tool build with `-ffp-contract=off` so g++ does not fuse multiply-adds on ARM, which would round differently from x86. Floats from the C library's `sinf`, `cosf` and `atan2f` can still differ between Windows and Linux, so a replay recorded on the Linux server should be checked with the Linux `build/replay`.
 

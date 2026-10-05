@@ -174,21 +174,25 @@ TestPlayerWalksDuringSwing()
     DestroyTestWorld(&Test);
 }
 
-// NOTE(zoubir): a shockwave asks clients for one ring, and none while
-// it recharges
+// NOTE(zoubir): a shockwave winds up, then asks clients for one ring,
+// and none while it recharges
 internal void
 TestShockwaveStartsOneRing()
 {
     test_world Test = CreateTestWorld();
     app_state *AppState = Test.AppState;
-    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
     AppState->Events.Count = 0;
     AppState->Players[0].Input.Pressed = PlayerButton_Shockwave;
     RunPlayerFrames(&Test, 0, 2);
+    Check(Player->CastSpell == PlayerSpell_Shockwave);
+    Check(CountBursts(AppState, SimBurst_ShockwaveRing) == 0);
+    RunPlayerFrames(&Test, 0, 30);
     AppState->Players[0].Input.Pressed = PlayerButton_Shockwave;
-    RunPlayerFrames(&Test, 0, 2);
+    RunPlayerFrames(&Test, 0, 30);
     Check(CountBursts(AppState, SimBurst_ShockwaveRing) == 1);
-    Check(CountBursts(AppState, SimBurst_CastGather) == 0);
+    Check(CountBursts(AppState, SimBurst_CastGather) == 1);
     DestroyTestWorld(&Test);
 }
 
@@ -751,10 +755,10 @@ TestPushThrowsCrowdApart()
     AppState->Players[0].Input.Aim = V2(1.f, 0.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Push;
     RunPlayerFrames(&Test, 0, 1);
-    Check(IsCastingAreaAbility(Player));
+    Check(IsPlayerCasting(Player));
     Check(Upper->Hp == 100.f);
-    RunPlayerFrames(&Test, 0, 8);
-    Check(!IsCastingAreaAbility(Player));
+    RunPlayerFrames(&Test, 0, 14);
+    Check(!IsPlayerCasting(Player));
     Check(Upper->Hp < 100.f && Lower->Hp < 100.f);
     Check(Behind->Hp == 100.f);
     Check(Upper->Velocity.X > 200.f && Upper->Velocity.Y < 0.f);
@@ -778,7 +782,7 @@ TestLaunchThrowsUpAndStuns()
     Target->MaxHp = Target->Hp = 100.f;
     AppState->Players[0].Input.Aim = V2(1.f, 0.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Launch;
-    RunPlayerFrames(&Test, 0, 20);
+    RunPlayerFrames(&Test, 0, 30);
     Check(Target->Hp < 100.f);
     Check(Target->Velocity.Z > 300.f);
     Check(HasStatus(Target, StatusEffect_Stunned));
@@ -940,8 +944,9 @@ TestSwingInTheAirShowsSwing()
     DestroyTestWorld(&Test);
 }
 
-// NOTE(zoubir): a slam only works in the air; it drives the player down
-// and on landing throws and stuns what is around
+// NOTE(zoubir): a slam only works in the air; the player hangs there while
+// it winds up, then it drives the player down and on landing throws and
+// stuns what is around
 internal void
 TestSlamFromTheAir()
 {
@@ -963,6 +968,16 @@ TestSlamFromTheAir()
     Check(Player->Position.Z > 20.f);
     Slot->Input.Pressed = PlayerButton_Slam;
     RunPlayerFrames(&Test, 0, 1);
+    Check(Player->CastSpell == PlayerSpell_Slam);
+    float Height = Player->Position.Z;
+    RunPlayerFrames(&Test, 0, 10);
+    Check(IsPlayerCasting(Player));
+    Check(Absolute(Player->Position.Z - Height) < 0.01f);
+    Check(Near->Hp == 100.f);
+    for(u32 Frame = 0; Frame < 30 && IsPlayerCasting(Player); Frame++)
+    {
+        RunPlayerFrames(&Test, 0, 1);
+    }
     Check(Player->Velocity.Z < -500.f);
     RunPlayerFrames(&Test, 0, 6);
     Check(Player->Position.Z == 0.f);
@@ -991,7 +1006,7 @@ TestPredictedSlamLeavesHitToServer()
     Slot->Input.Pressed = PlayerButton_Jump;
     RunPlayerFrames(&Test, 0, 12);
     Slot->Input.Pressed = PlayerButton_Slam;
-    RunPlayerFrames(&Test, 0, 8);
+    RunPlayerFrames(&Test, 0, 25);
     Check(Player->Position.Z == 0.f);
     Check(Player->PendingLandArea == 0);
     Check(Near->Hp == 100.f);
@@ -1443,7 +1458,7 @@ TestAreaEffectsFollowTheirRows()
     player_area_ability *Slam = &PlayerAreaAbilities[PlayerArea_Slam];
     burst_area PushMark = BurstArea(SimBurst_PushMark);
     Check(PushMark.Radius == Push->Radius);
-    Check(PushMark.Seconds == Push->CastTime);
+    Check(PushMark.Seconds == PlayerSpells[Push->Spell].CastTime);
     Check(Absolute(Cos(PushMark.HalfAngle) - Push->ConeCos) < 0.001f);
     Check(BurstArea(SimBurst_LaunchMark).Radius == Launch->Radius);
     Check(BurstArea(SimBurst_LaunchColumn).Radius == Launch->Radius);
@@ -1609,10 +1624,10 @@ TestReviewFixes()
     Target->MaxHp = Target->Hp = 100.f;
     Slot->Input.Pressed = PlayerButton_Launch;
     RunPlayerFrames(&Test, 0, 2);
-    Check(IsCastingAreaAbility(Player));
+    Check(IsPlayerCasting(Player));
     ApplyStatus(Player, StatusEffect_Stunned, 1.f);
     RunPlayerFrames(&Test, 0, 30);
-    Check(!IsCastingAreaAbility(Player));
+    Check(!IsPlayerCasting(Player));
     Check(Target->Hp == 100.f);
     DestroyTestWorld(&Test);
 }
@@ -1636,9 +1651,9 @@ TestPredictedCastLeavesHitToServer()
     Slot->Input.Pressed = PlayerButton_Launch;
     AppState->Events.Count = 0;
     RunPlayerFrames(&Test, 0, 2);
-    Check(IsCastingAreaAbility(Player));
+    Check(IsPlayerCasting(Player));
     RunPlayerFrames(&Test, 0, 30);
-    Check(!IsCastingAreaAbility(Player));
+    Check(!IsPlayerCasting(Player));
     Check(Target->Hp == 100.f);
     Check(CountBursts(AppState, SimBurst_LaunchColumn) == 0);
     Check(CountBursts(AppState, SimBurst_LaunchMark) == 0);

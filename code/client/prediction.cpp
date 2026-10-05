@@ -22,9 +22,10 @@
    predicted dash knows a swing came before it. Each recorded input keeps which buttons went down on it, worked
    out the same way the server does, and the cooldowns the server sends
    say whether the movement abilities are ready; UpdatePlayer counts them
-   down as it steps, replays included. Area casts are predicted too (the
-   slowdown and the pose), but their hits, and attacks, change what other
-   players see, so they wait for the server.
+   down as it steps, replays included. Every wind-up (sim/player_casts.cpp:
+   area abilities, the slam, the rewinds) is predicted too, the slowdown,
+   the pose and the cast bar, but what it does to others when it ends,
+   and attacks, wait for the server.
 
    When the replay lands somewhere other than where the player was drawn a
    frame ago, the difference is kept as DrawError and the player is drawn
@@ -54,9 +55,9 @@ struct predicted_body
     u32 JumpsUsed;
     float JumpBuffer;
     float VaultPush;
-    // NOTE(zoubir): an area cast under way (area_abilities.cpp)
-    u32 CastingArea;
-    float AreaCastLeft;
+    // NOTE(zoubir): a cast under way (sim/player_casts.cpp)
+    u32 CastSpell;
+    float CastLeft;
     v2 CastingDirection;
     // NOTE(zoubir): the combo trail and a long jump under way (combos.cpp)
     u32 ComboTrail[PLAYER_COMBO_TRAIL];
@@ -71,8 +72,8 @@ SavePredictedBody(world_entity *Player)
     Result.JumpsUsed = Player->JumpsUsed;
     Result.JumpBuffer = Player->JumpBuffer;
     Result.VaultPush = Player->VaultPush;
-    Result.CastingArea = Player->CastingArea;
-    Result.AreaCastLeft = Player->AreaCastLeft;
+    Result.CastSpell = Player->CastSpell;
+    Result.CastLeft = Player->CastLeft;
     Result.CastingDirection = Player->CastingDirection;
     for(u32 Index = 0; Index < PLAYER_COMBO_TRAIL; Index++)
     {
@@ -94,8 +95,8 @@ RestorePredictedBody(world_entity *Player, predicted_body *Body)
         Player->JumpBuffer = Body->JumpBuffer;
     }
     Player->VaultPush = Body->VaultPush;
-    Player->CastingArea = Body->CastingArea;
-    Player->AreaCastLeft = Body->AreaCastLeft;
+    Player->CastSpell = Body->CastSpell;
+    Player->CastLeft = Body->CastLeft;
     Player->CastingDirection = Body->CastingDirection;
     for(u32 Index = 0; Index < PLAYER_COMBO_TRAIL; Index++)
     {
@@ -136,12 +137,14 @@ struct prediction_history
 };
 
 // NOTE(zoubir): the player_button bits the client acts on for its own
-// player before the server answers: the jump and every movement and area
-// ability (their effects on others still wait for the server)
+// player before the server answers: the jump, every movement and area
+// ability and the rewinds' wind-ups (their effects on others still wait
+// for the server)
 inline u32
 PredictedButtons()
 {
-    u32 Result = PlayerButton_Jump | PlayerMovementButtons() | PlayerAreaButtons();
+    u32 Result = PlayerButton_Jump | PlayerMovementButtons() | PlayerAreaButtons() |
+        PlayerRewindButtons();
     return Result;
 }
 

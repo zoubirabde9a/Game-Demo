@@ -186,7 +186,7 @@ BurstArea(sim_burst Kind)
         if (Ability->Burst == Kind || Ability->Telegraph == Kind)
         {
             if (Result.Radius == 0.f) Result.Radius = Ability->Radius;
-            if (Result.Seconds == 0.f) Result.Seconds = Ability->CastTime;
+            if (Result.Seconds == 0.f) Result.Seconds = PlayerSpells[Ability->Spell].CastTime;
             Result.HalfAngle = acosf(Ability->ConeCos);
             break;
         }

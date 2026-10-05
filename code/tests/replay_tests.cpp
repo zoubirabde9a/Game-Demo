@@ -124,12 +124,14 @@ TestReplayPlaysBackTheSameMatch()
     Check(Result.FinalHash == FinalHash);
     Check(Result.ContentId == SimContentId());
 
-    // NOTE: turn one of slot 0's walks around half way through: the replay
-    // must notice, at or after that tick, never before
+    // NOTE: turn slot 0's walks around from half way through: the replay
+    // must notice, at or after the first changed tick, never before. Every
+    // walk from there, not one: slot 0 may be dead for a while, and a
+    // single changed walk then changes nothing
     u32 Ticks = 0;
     u32 At = 16;
     u32 Changed = 0;
-    while (At < Writer.Used && !Changed)
+    while (At < Writer.Used)
     {
         u8 Type = Memory[At];
         u32 Size = Type == ReplayEvent_Tick ? 9 : Type == ReplayEvent_Named ? 18 :
@@ -141,7 +143,7 @@ TestReplayPlaysBackTheSameMatch()
             memcpy(&Buttons, Memory + At + 6, sizeof(Buttons));
             Buttons ^= (u16)(NetButton_Left | NetButton_Right);
             memcpy(Memory + At + 6, &Buttons, sizeof(Buttons));
-            Changed = Ticks + 1;
+            Changed = Changed ? Changed : Ticks + 1;
         }
         At += Size;
     }

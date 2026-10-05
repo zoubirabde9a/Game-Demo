@@ -119,6 +119,11 @@ MovePlayer(app_state *AppState, world *World, memory_arena *Arena,
                                              DragScale, DeltaTime);
     }
     DDPlayer.Z = -PLAYER_GRAVITY;
+    if (Tick->Hover)
+    {
+        Player->Velocity.Z = 0.f;
+        DDPlayer.Z = 0.f;
+    }
 
     float MaxDistance = 10000.f;
     MoveEntity(Player, World, Arena, DeltaTime, AppState, DDPlayer, &MaxDistance);

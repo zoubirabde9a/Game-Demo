@@ -31,6 +31,7 @@
 #include "impacts.cpp"
 #include "player_stats.cpp"
 #include "spawn.cpp"
+#include "player_casts.cpp"
 #include "players.cpp"
 #include "arena.cpp"
 #include "monster_population.cpp"

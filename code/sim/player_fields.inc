@@ -31,12 +31,13 @@
     // vault (jump.cpp)
     float VaultPush;
     // NOTE(zoubir): area abilities (player_abilities/area_abilities.cpp):
-    // seconds until each may be used again, which one is being cast (its
-    // index + 1, 0 for none) and the seconds of cast left
+    // seconds until each may be used again
 #define PLAYER_AREA_ABILITY_SLOTS 4
     float AreaCooldowns[PLAYER_AREA_ABILITY_SLOTS];
-    u32 CastingArea;
-    float AreaCastLeft;
+    // NOTE(zoubir): the spell winding up (player_spell, player_casts.cpp),
+    // PlayerSpell_None for none, and the seconds of it left
+    u32 CastSpell;
+    float CastLeft;
     // NOTE(zoubir): seconds left in which a respawned player cannot be hurt
     // or shoved (players.cpp)
     float SpawnShield;

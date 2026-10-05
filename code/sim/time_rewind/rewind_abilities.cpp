@@ -1,9 +1,11 @@
 /* Rewind abilities: the three keys, and each rewind's way from the press
    to the end of its playback.
 
-   Cast (REWIND_CAST_SECONDS): the caster winds up and may still walk.
-   Being stunned, killed or frozen by someone else's rewind ends it, and
-   the cooldown stays spent.
+   Cast (REWIND_CAST_SECONDS): the caster's wind-up, a player cast like
+   any other spell's (sim/player_casts.cpp): the caster walks slower and
+   shows the cast pose. Whatever cuts the cast (a dash, a blink, a stun,
+   death, being frozen by someone else's rewind) ends the rewind, and the
+   cooldown stays spent.
 
    Hold (REWIND_HOLD_SECONDS): what the rewind takes is frozen: the
    caster alone, everything within the bubble around the caster, or the
@@ -15,6 +17,16 @@
    at the cursor, which runs from the hold's start back REWIND_SECONDS at
    REWIND_PLAYBACK_SPEED. The last tick lands exactly on the frame
    REWIND_SECONDS back, and what was frozen goes on from there. */
+
+// NOTE(zoubir): the wind-up each rewind_kind casts (sim/player_casts.cpp)
+inline player_spell
+RewindSpell(rewind_kind Kind)
+{
+    player_spell Result = (player_spell)(PlayerSpell_RewindSelf + Kind);
+    return Result;
+}
+static_assert(PlayerSpell_RewindSelf + RewindKind_Count == PlayerSpell_Count,
+              "one spell per rewind, in rewind_kind order");
 
 global_variable rewind_ability RewindAbilities[RewindKind_Count] =
 {
@@ -53,9 +65,9 @@ IsTimeLocked(app_state *AppState, world_entity *Entity)
     return Result;
 }
 
-// NOTE(zoubir): called from UsePlayerAbilities (player_update.cpp). Only
-// the authority starts a rewind; a client predicting its own player
-// leaves it to the server
+// NOTE(zoubir): called from UsePlayerAbilities (player_update.cpp). A
+// client predicting its own player runs the wind-up (the slowdown and the
+// pose) but leaves the rewind itself to the server
 internal void
 UseRewindAbilities(app_state *AppState, world_entity *Player,
                    player_input *Input, float DeltaTime)
@@ -66,13 +78,14 @@ UseRewindAbilities(app_state *AppState, world_entity *Player,
             Maximum(0.f, Player->RewindCooldowns[Index] - DeltaTime);
     }
     time_rewind *Rewind = AppState->Rewind;
-    if (!Rewind || IsPredictedPlayer(AppState, Player) ||
-        Player->PlayerIndex >= MAX_PLAYERS)
+    bool32 Predicted = IsPredictedPlayer(AppState, Player);
+    if ((!Rewind && !Predicted) || Player->PlayerIndex >= MAX_PLAYERS ||
+        IsPlayerCasting(Player))
     {
         return;
     }
-    rewind_cast *Cast = &Rewind->Casts[Player->PlayerIndex];
-    if (Cast->Phase != RewindPhase_None)
+    rewind_cast *Cast = Predicted ? 0 : &Rewind->Casts[Player->PlayerIndex];
+    if (Cast && Cast->Phase != RewindPhase_None)
     {
         return;
     }
@@ -83,6 +96,12 @@ UseRewindAbilities(app_state *AppState, world_entity *Player,
             CanUseEarly(Player->RewindCooldowns[Index]))
         {
             Player->RewindCooldowns[Index] += Ability->Cooldown;
+            StartPlayerCast(Player, RewindSpell((rewind_kind)Index),
+                            GetPlayerAim(Player));
+            if (!Cast)
+            {
+                break;
+            }
             Cast->Kind = (rewind_kind)Index;
             Cast->Phase = RewindPhase_Cast;
             Cast->PhaseLeft = REWIND_CAST_SECONDS;
@@ -91,6 +110,22 @@ UseRewindAbilities(app_state *AppState, world_entity *Player,
             Cast->AffectedCount = 0;
             EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
             break;
+        }
+    }
+}
+
+// NOTE(zoubir): the caster's wind-up is done (player_update/casts.cpp);
+// UpdateRewindCast starts the hold later this tick
+internal void
+FinishRewindWindUp(app_state *AppState, world_entity *Player, rewind_kind Kind)
+{
+    time_rewind *Rewind = AppState->Rewind;
+    if (Rewind && Player->PlayerIndex < MAX_PLAYERS)
+    {
+        rewind_cast *Cast = &Rewind->Casts[Player->PlayerIndex];
+        if (Cast->Phase == RewindPhase_Cast && Cast->Kind == Kind)
+        {
+            Cast->PhaseLeft = 0.f;
         }
     }
 }
@@ -197,27 +232,37 @@ UpdateRewindCast(app_state *AppState, time_rewind *Rewind, world *World,
     }
     player_slot *Slot = &AppState->Players[SlotIndex];
     world_entity *Caster = Slot->Active ? Slot->Entity : 0;
-    Cast->PhaseLeft -= DeltaTime;
     switch(Cast->Phase)
     {
+        // NOTE(zoubir): the caster's own cast counts the wind-up down
+        // (player_update/casts.cpp); PhaseLeft follows it for the clients'
+        // sigil, and FinishRewindWindUp sets it to 0 when it is done
         case RewindPhase_Cast:
         {
-            if (!Caster || !Caster->IsPresent || IsDeadPlayer(Caster) ||
-                HasStatus(Caster, StatusEffect_Stunned) ||
+            bool32 Casting = Caster && Caster->IsPresent &&
+                Caster->CastSpell == (u32)RewindSpell(Cast->Kind);
+            if (Caster && Cast->PhaseLeft <= 0.f)
+            {
+                BeginRewindHold(AppState, Rewind, World, Cast, Caster);
+                break;
+            }
+            if (!Casting || IsDeadPlayer(Caster) ||
                 IsTimeLocked(AppState, Caster))
             {
+                if (Casting)
+                {
+                    CancelPlayerCast(Caster);
+                }
                 EndRewindCast(Rewind, Cast);
                 break;
             }
             Cast->Centre = Caster->Position;
-            if (Cast->PhaseLeft <= 0.f)
-            {
-                BeginRewindHold(AppState, Rewind, World, Cast, Caster);
-            }
+            Cast->PhaseLeft = Caster->CastLeft;
         } break;
 
         case RewindPhase_Hold:
         {
+            Cast->PhaseLeft -= DeltaTime;
             if (Cast->PhaseLeft <= 0.f)
             {
                 Cast->Phase = RewindPhase_Playback;
@@ -228,6 +273,7 @@ UpdateRewindCast(app_state *AppState, time_rewind *Rewind, world *World,
 
         case RewindPhase_Playback:
         {
+            Cast->PhaseLeft -= DeltaTime;
             bool32 Done = Cast->PhaseLeft <= 0.f;
             float Shown = REWIND_PLAYBACK_SECONDS - Maximum(0.f, Cast->PhaseLeft);
             Cast->Cursor = Done ? Cast->HoldClock - REWIND_SECONDS :

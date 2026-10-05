@@ -23,9 +23,10 @@ enum rewind_phase
 
 // NOTE(zoubir): how far back a rewind goes, and the three phases. The
 // playback shows the REWIND_SECONDS of history at REWIND_PLAYBACK_SPEED,
-// so it lasts REWIND_SECONDS / REWIND_PLAYBACK_SPEED
+// so it lasts REWIND_SECONDS / REWIND_PLAYBACK_SPEED. The cast is the
+// caster's wind-up (sim/player_casts.cpp), the same for all three
 #define REWIND_SECONDS 2.f
-#define REWIND_CAST_SECONDS 0.5f
+#define REWIND_CAST_SECONDS (PlayerSpells[PlayerSpell_RewindSelf].CastTime)
 #define REWIND_HOLD_SECONDS 0.5f
 #define REWIND_PLAYBACK_SPEED 4.f
 #define REWIND_PLAYBACK_SECONDS (REWIND_SECONDS / REWIND_PLAYBACK_SPEED)

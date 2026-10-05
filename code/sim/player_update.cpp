@@ -16,10 +16,11 @@
       swing's animation finishes while the player walks slower, and a
       cast's is cut by walking (the fireball has already left).
    5. UsePlayerAbilities: jump, the area abilities (shockwave, push,
-      launch) and the movement abilities (dash, blink, slam), each when
-      its key is pressed and its cooldown allows, or is about to
-      (CanUseEarly, player_stats.cpp); a movement ability cuts a swing
-      short.
+      launch), the movement abilities (dash, blink, slam) and the
+      rewinds, each when its key is pressed and its cooldown allows, or
+      is about to (CanUseEarly, player_stats.cpp); a movement ability
+      cuts a swing short. Then the cast under way (UpdatePlayerCast): the
+      spells with a wind-up go off when it ends (sim/player_casts.cpp).
    6. PickPlayerAnimation: which animation to play; the body faces the
       aim, not the way it walks.
    7. MovePlayer: the walk toward the keys (quick to start, stop and
@@ -27,7 +28,8 @@
       MoveEntity.
 
    Steps 1-3 are in player_update/actions.cpp, 4 and 7 in
-   player_update/movement.cpp, 6 in player_update/animation.cpp. The
+   player_update/movement.cpp, the cast in player_update/casts.cpp, 6 in
+   player_update/animation.cpp. The
    abilities live in player_abilities/, as three tables: area abilities
    (area_abilities.cpp), spawn actions such as the sword and fireball
    (spawn_actions.cpp) and movement abilities (movement_abilities.cpp).
@@ -44,6 +46,8 @@ struct player_tick
     // NOTE(zoubir): share of the run speed the keys walk at this tick; a
     // swing finishing or an area cast lowers it
     float Acceleration;
+    // NOTE(zoubir): a cast holds the player's height (the slam's wind-up)
+    bool32 Hover;
     v3 DDPlayer;
     float *AnimationSpeedRate;
     animation_type *AnimationType;
@@ -67,30 +71,6 @@ DominantFacing(v2 Dir)
     return Result;
 }
 
-// NOTE(zoubir): V as a unit vector, or Fallback when V is too short to
-// have a direction
-inline v2
-NormalizeOr(v2 V, v2 Fallback)
-{
-    float LengthSquared = LengthSq(V);
-    v2 Result = LengthSquared > 0.0001f ?
-        V * (1.f / SquareRoot(LengthSquared)) : Fallback;
-    return Result;
-}
-
-// NOTE(zoubir): the player's aim; before any cursor input, the way it last
-// walked (and Right for a player that never moved)
-inline v2
-GetPlayerAim(world_entity *Player)
-{
-    v2 Result = Player->Aim;
-    if (LengthSq(Result) < 0.0001f)
-    {
-        Result = NormalizeOr(Player->Direction, V2(1.f, 0.f));
-    }
-    return Result;
-}
-
 // NOTE(zoubir): every move calls it as it starts (combos.cpp, below)
 internal bool32 RunPlayerCombo(app_state *AppState, world *World,
                                memory_arena *Arena, world_entity *Player,
@@ -106,6 +86,7 @@ internal bool32 RunPlayerCombo(app_state *AppState, world *World,
 
 #include "player_update/actions.cpp"
 #include "player_update/movement.cpp"
+#include "player_update/casts.cpp"
 #include "player_update/animation.cpp"
 
 internal void
@@ -115,9 +96,10 @@ UsePlayerAbilities(app_state *AppState, world *World, memory_arena *Arena,
     world_entity *Player = Slot->Entity;
     player_input *Input = &Slot->Input;
     UseJump(AppState, World, Arena, Player, Input, DeltaTime, Tick);
-    UseAreaAbilities(AppState, World, Player, Input, DeltaTime, Tick);
+    UseAreaAbilities(AppState, Player, Input, DeltaTime);
     UseMovementAbilities(AppState, World, Arena, Player, Input, DeltaTime, Tick);
     UseRewindAbilities(AppState, Player, Input, DeltaTime);
+    UpdatePlayerCast(AppState, World, Arena, Player, Input, DeltaTime, Tick);
 }
 
 internal void
@@ -136,7 +118,7 @@ UpdatePlayer(player_slot *Slot, world *World,
         Slot->Input.Pressed = 0;
         // NOTE(zoubir): a cast winding up and clicks waiting in the queue
         // are lost too; they used to go off while stunned
-        CancelAreaCast(Player);
+        CancelPlayerCast(Player);
         Slot->DelayedInputCount = 0;
     }
     *AnimationType = AnimationType_Stand;

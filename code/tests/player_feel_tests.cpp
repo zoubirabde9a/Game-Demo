@@ -112,8 +112,8 @@ TestDashPressedJustEarlyGoes()
     DestroyTestWorld(&Test);
 }
 
-// NOTE(zoubir): the same for an area ability: the shockwave goes off at
-// once and its next cooldown is that much longer
+// NOTE(zoubir): the same for an area ability: the shockwave starts its
+// cast at once and its next cooldown is that much longer
 internal void
 TestAreaPressedJustEarlyGoes()
 {
@@ -129,13 +129,13 @@ TestAreaPressedJustEarlyGoes()
     *Cooldown = 0.3f;
     Slot->Input.Pressed = PlayerButton_Shockwave;
     RunPlayerFrames(&Test, 0, 1);
-    Check(CountBursts(AppState, SimBurst_ShockwaveRing) == 0);
+    Check(!IsPlayerCasting(Player));
     Check(*Cooldown < 0.3f);
 
     *Cooldown = 0.06f + FEEL_TICK;
     Slot->Input.Pressed = PlayerButton_Shockwave;
     RunPlayerFrames(&Test, 0, 1);
-    Check(CountBursts(AppState, SimBurst_ShockwaveRing) == 1);
+    Check(Player->CastSpell == PlayerSpell_Shockwave);
     Check(Absolute(*Cooldown - (Full + 0.06f)) < 0.001f);
     DestroyTestWorld(&Test);
 }
