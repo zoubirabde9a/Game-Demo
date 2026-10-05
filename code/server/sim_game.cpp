@@ -25,7 +25,20 @@ struct server_game
     // (bots.cpp).
     u32 BotTarget;
     bot_brain Bots[MAX_PLAYERS];
+    // While set, every call below is written to it (server/replay.cpp).
+    struct replay_writer *Replay;
 };
+
+#include "replay.cpp"
+
+// Starts writing every call into the game to Writer, from the game as it
+// is now: call it right after GameInit, before anyone joins.
+internal void
+GameStartReplay(server_game *Game, replay_writer *Writer)
+{
+    Game->Replay = Writer;
+    ReplayWriteHeader(Writer, SimContentId(), Game->AppState->World.MapId);
+}
 
 internal void
 GameInit(server_game *Game, u32 MapId)
@@ -62,6 +75,7 @@ GameShutdown(server_game *Game)
 internal void
 GamePlayerJoined(server_game *Game, u32 Slot)
 {
+    ReplayWriteSlotEvent(Game->Replay, ReplayEvent_Joined, Slot);
     Game->Bots[Slot].Active = false;
     RelayJoined(&Game->Relay, Slot);
     app_state *AppState = Game->AppState;
@@ -75,6 +89,7 @@ GamePlayerJoined(server_game *Game, u32 Slot)
 internal void
 GamePlayerLeft(server_game *Game, u32 Slot)
 {
+    ReplayWriteSlotEvent(Game->Replay, ReplayEvent_Left, Slot);
     RemovePlayerFromSlot(Game->AppState, &Game->AppState->World, Slot);
     Game->HeldButtons[Slot] = 0;
     Game->LastInputTick[Slot] = 0;
@@ -85,6 +100,7 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
 {
     player_slot *Player = &Game->AppState->Players[Slot];
     if (!Player->Active) return;
+    ReplayWriteInput(Game->Replay, Slot, Input);
 
     u16 Held = Input->Buttons;
     u16 Pressed = Held & ~Game->HeldButtons[Slot];
@@ -128,6 +144,7 @@ SimGameNameTaken(server_game *Game, u32 Slot, char *Name)
 internal void
 GamePlayerNamed(server_game *Game, u32 Slot, char *Name)
 {
+    ReplayWriteNamed(Game->Replay, Slot, Name);
     char *Out = Game->AppState->Players[Slot].Name;
     u32 Size = sizeof(Game->AppState->Players[Slot].Name);
     u32 Length = 0;
@@ -151,6 +168,10 @@ GameTick(server_game *Game, float Dt)
 {
     app_state *AppState = Game->AppState;
     SimulateTick(AppState, Game->Arena, Dt);
+    if (Game->Replay)
+    {
+        ReplayWriteTick(Game->Replay, Dt, HashWorldState(AppState));
+    }
     Game->NameTurn = (Game->NameTurn + 1) % MAX_PLAYERS;
 
     // Presses fire once; movement stays until the next input changes it.

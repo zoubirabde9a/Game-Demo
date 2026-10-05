@@ -42,3 +42,4 @@
 #include "simulate.cpp"
 #include "setup.cpp"
 #include "player_cooldowns.cpp"
+#include "world_hash.cpp"

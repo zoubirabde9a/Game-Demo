@@ -52,11 +52,12 @@ REM broken code: say so and skip, rather than failing everyone's land.
 echo int main() { return 0; } > gcc_works.cpp
 g++ %GccRelease% gcc_works.cpp > gcc_works.log 2>&1
 if %errorlevel% neq 0 goto broken_gcc
-set Slow=%Slow% gcc_server gcc_probe gcc_bots gcc_net_tests gcc_sim_tests gcc_server_tests gcc_soak_tests
-for %%t in (gcc_server gcc_probe gcc_bots gcc_net_tests gcc_sim_tests gcc_server_tests gcc_soak_tests) do del /q %%t.code 2>nul
+set Slow=%Slow% gcc_server gcc_probe gcc_bots gcc_replay gcc_net_tests gcc_sim_tests gcc_server_tests gcc_soak_tests
+for %%t in (gcc_server gcc_probe gcc_bots gcc_replay gcc_net_tests gcc_sim_tests gcc_server_tests gcc_soak_tests) do del /q %%t.code 2>nul
 start "" /b cmd /v:on /c "g++ %GccRelease% ..\code\server\server_main.cpp > gcc_server.log 2>&1 & echo ^!errorlevel^! > gcc_server.code"
 start "" /b cmd /v:on /c "g++ %GccRelease% ..\code\server\probe_main.cpp > gcc_probe.log 2>&1 & echo ^!errorlevel^! > gcc_probe.code"
 start "" /b cmd /v:on /c "g++ %GccRelease% ..\code\tools\bots_main.cpp > gcc_bots.log 2>&1 & echo ^!errorlevel^! > gcc_bots.code"
+start "" /b cmd /v:on /c "g++ %GccRelease% ..\code\tools\replay_main.cpp > gcc_replay.log 2>&1 & echo ^!errorlevel^! > gcc_replay.code"
 for %%t in (net_tests sim_tests server_tests soak_tests) do start "" /b cmd /v:on /c "g++ %GccDebug% ..\code\tests\%%t.cpp > gcc_%%t.log 2>&1 & echo ^!errorlevel^! > gcc_%%t.code"
 goto gcc_started
 :no_gcc
