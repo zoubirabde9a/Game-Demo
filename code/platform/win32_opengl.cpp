@@ -78,6 +78,12 @@ Win32LoadOpenglFunctions(open_gl *OpenGL)
     GetOpenglFunction(glDetachShader);
     GetOpenglFunction(glUniform1f);
     GetOpenglFunction(glUniform2f);
+    GetOpenglFunction(glGenFramebuffers);
+    GetOpenglFunction(glBindFramebuffer);
+    GetOpenglFunction(glFramebufferTexture2D);
+    GetOpenglFunction(glCheckFramebufferStatus);
+    GetOpenglFunction(glUniform4fv);
+    GetOpenglFunction(glGetIntegerv);
 }
 
 #define WGL_DRAW_TO_WINDOW_ARB                  0x2001

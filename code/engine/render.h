@@ -89,6 +89,8 @@ enum shader_id
     Shader_Glow,          // soft round light, usually drawn additive
     Shader_Ring,          // thin bright ring, usually drawn additive
     Shader_Panel,         // rounded translucent panel with a lit top edge
+    Shader_TimeWarp,      // the time rewinds' post-process over the world
+    Shader_TimeSigil,     // a clock face of light under a rewind's caster
     Shader_Count
 };
 

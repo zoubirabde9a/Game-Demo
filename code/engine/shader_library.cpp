@@ -40,6 +40,8 @@ global_variable shader_def ShaderDefs[Shader_Count] =
     {"glow", "shaders/fx/quad.vert", "shaders/fx/glow.frag", 3, true},
     {"ring", "shaders/fx/quad.vert", "shaders/fx/ring.frag", 3, true},
     {"panel", "shaders/fx/quad.vert", "shaders/fx/panel.frag", 3, true},
+    {"time warp", "shaders/fx/quad.vert", "shaders/fx/time_warp.frag", 3, true},
+    {"time sigil", "shaders/fx/quad.vert", "shaders/fx/time_sigil.frag", 3, true},
 };
 
 global_variable char *ShaderAttributes[] =

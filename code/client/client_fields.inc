@@ -15,5 +15,6 @@
     struct hud_pulses *HudPulses; // cooldown bars flashing as they come ready, ui/hud.cpp
     struct monster_cast_tells *CastTells; // what monsters are casting, client/monster_cast_tells.cpp
     struct ability_bar *AbilityBar; // health and ability slots at the bottom, ui/ability_bar.cpp
+    struct rewind_fx *RewindFx; // time rewinds' trails, post-process and overlays, client/rewind_fx/
     float WorldZoom; // window pixels per world unit, client/camera.cpp
     bool32 CameraPlaced; // the camera has been put on the player once; until then it cuts, client/camera.cpp

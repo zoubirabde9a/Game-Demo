@@ -32,7 +32,11 @@
    correction slides in over ~100 ms instead of snapping. Movement and
    collision always run from the predicted position; the offset is added
    back only after them. A jump longer than PREDICTION_SNAP_DISTANCE (a
-   respawn) snaps. */
+   respawn) snaps.
+
+   While a time rewind has frozen the player (sim/time_rewind/), nothing
+   is predicted: the replica stays where the server, and the rewind's
+   playback (client/rewind_fx/), put it. */
 
 #define MAX_PREDICTED_INPUTS 128
 // NOTE(zoubir): a correction farther than this is a teleport, not an error
@@ -246,6 +250,9 @@ SetLocalPlayerXY(app_state *AppState, memory_arena *Arena,
                               OldPosition, Player);
 }
 
+// NOTE(zoubir): in client/rewind_fx/rewind_fx.cpp, included later
+internal bool32 IsLocalPlayerTimeLocked(app_state *AppState);
+
 // NOTE(zoubir): call after SyncReplicas. On a new snapshot the replica
 // sits where the server had it, so replay every input it has not applied;
 // otherwise move it by this frame's input, the newest in the history.
@@ -256,11 +263,12 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     world_entity *Player = Slot->Entity;
-    bool32 Moved = true;
+    bool32 Frozen = IsLocalPlayerTimeLocked(AppState);
+    bool32 Moved = !Frozen;
     if (NewSnapshot)
     {
         DropAcknowledgedInputs(History, InputTick);
-        if (Player)
+        if (Player && !Frozen)
         {
             RestorePredictedBody(Player, &History->Acked);
         }
@@ -281,11 +289,11 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
     {
         // NOTE(zoubir): last frame drew the player DrawError off its
         // predicted position; step from the predicted one
-        if (Player && History->HasShown)
+        if (Player && History->HasShown && !Frozen)
         {
             SetLocalPlayerXY(AppState, Arena, Player, History->Predicted);
         }
-        if (History->Count > 0)
+        if (History->Count > 0 && !Frozen)
         {
             Moved = PredictLocalStep(AppState, Arena,
                                      GetPredictedInput(History, History->Count - 1));

@@ -14,6 +14,7 @@
 #include "push.cpp"
 #include "launch.cpp"
 #include "slam.cpp"
+#include "rewind.cpp"
 
 // NOTE(zoubir): pixels per icon in the texture; the bar draws them at
 // about 36, so they are always scaled down and stay crisp

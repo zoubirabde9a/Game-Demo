@@ -12,7 +12,7 @@ struct action_key
     char *Label;
 };
 
-#define ACTION_KEY_COUNT 9
+#define ACTION_KEY_COUNT 12
 
 internal void
 GetActionKeys(app_input *Input, action_key *Keys)
@@ -28,6 +28,9 @@ GetActionKeys(app_input *Input, action_key *Keys)
         {&Input->ButtonR, PlayerButton_Push, "R"},
         {&Input->ButtonA, PlayerButton_Launch, "A"},
         {&Input->ButtonC, PlayerButton_Slam, "C"},
+        {&Input->ButtonT, PlayerButton_RewindSelf, "T"},
+        {&Input->ButtonG, PlayerButton_RewindBubble, "G"},
+        {&Input->ButtonV, PlayerButton_RewindWorld, "V"},
     };
     for(u32 Index = 0; Index < ACTION_KEY_COUNT; Index++)
     {

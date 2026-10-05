@@ -72,6 +72,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     UpdateOnlineSession(AppState->Online, &ServerInput, KeysToUi, LocalInput->Aim);
     RunWorldTick(AppState, &AppState->WorldArena, Input->DeltaTime);
     PlaySimEvents(AppState, Input->DeltaTime);
+    UpdateRewindFx(AppState, Input->DeltaTime);
     // NOTE(zoubir): the world is drawn zoomed in (client/camera.cpp):
     // View is the window measured in world units, and WorldProjection
     // maps it onto the whole window. Screens over it use ProjectionMatrix
@@ -82,11 +83,16 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     RenderSetProjection(RenderContext, &WorldProjection);
     v3 CameraOffset = UpdateCamera(AppState, &View, Input, !KeysToUi);
     render_program TextureProgram = RenderContext->TextureProgram;
+    // NOTE(zoubir): while a time rewind shows, the world is drawn into a
+    // texture and put on the window through its shader (client/rewind_fx/)
+    BeginTimeWarp(RenderContext, AppState);
     BeginWorldPass(RenderContext, TransientArena, &AppState->World, &View);
     DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset, &View);
     DrawWorldEntities(RenderContext, AppState, &AppState->Assets,
                       TextureProgram, CameraOffset);
     RenderFlush(RenderContext);
+    EndTimeWarp(RenderContext, AppState, TransientArena, &ProjectionMatrix,
+                CameraOffset, Window);
 
     // Screens over the world.
     ui_context *UIContext = AppState->UIContext;

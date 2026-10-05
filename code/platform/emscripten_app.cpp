@@ -188,6 +188,12 @@ WebLoadOpenglFunctions(open_gl *OpenGL)
     GetOpenglFunction(glDetachShader);    
     GetOpenglFunction(glUniform1f);
     GetOpenglFunction(glUniform2f);
+    GetOpenglFunction(glGenFramebuffers);
+    GetOpenglFunction(glBindFramebuffer);
+    GetOpenglFunction(glFramebufferTexture2D);
+    GetOpenglFunction(glCheckFramebufferStatus);
+    GetOpenglFunction(glUniform4fv);
+    GetOpenglFunction(glGetIntegerv);
 }
 
 internal app_button_state *

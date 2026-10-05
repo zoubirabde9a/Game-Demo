@@ -322,6 +322,10 @@ GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
     }
 }
 
+// NOTE(zoubir): in client/rewind_fx/rewind_fx.cpp, included later
+internal void ReadRewindsFromSnapshot(app_state *AppState, replica_table *Replicas,
+                                      net_snapshot *Snapshot);
+
 // NOTE(zoubir): the frame's one world update. Online the server's
 // snapshot drives the world; offline the local simulation does. Switches
 // between the two when the connection comes up or ends.
@@ -376,6 +380,12 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
                           (float)Burst->Angle * (Pi32 / 128.f));
             }
         }
+        // NOTE(zoubir): before prediction, which leaves a player a time
+        // rewind froze where the server has it (client/rewind_fx/)
+        if (NewSnapshot)
+        {
+            ReadRewindsFromSnapshot(AppState, &Online->Replicas, Snapshot);
+        }
         PredictLocalPlayer(AppState, Arena, &Online->Prediction, NewSnapshot,
                            Snapshot->InputTick, DeltaTime);
         return;
@@ -384,6 +394,8 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
     {
         LeaveReplicaWorld(AppState, Arena, &Online->Replicas);
         Online->Prediction = {};
+        // NOTE(zoubir): the history was of the world before the server's
+        ResetTimeRewind(AppState->Rewind);
     }
     SimulateTick(AppState, Arena, DeltaTime);
 }

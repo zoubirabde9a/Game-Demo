@@ -19,3 +19,4 @@
 #include "render/shapes.cpp"
 #include "render/text.cpp"
 #include "render/textures.cpp"
+#include "render/render_target.cpp"

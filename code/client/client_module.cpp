@@ -35,5 +35,6 @@
 #include "draw_tilemap.cpp"
 #include "landmark_pointer.cpp"
 #include "player_fx.cpp"
+#include "rewind_fx/rewind_fx.cpp"
 #include "monster_cast_tells.cpp"
 #include "startup.cpp"

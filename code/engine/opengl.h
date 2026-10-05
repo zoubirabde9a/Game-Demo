@@ -141,6 +141,28 @@ typedef void type_glGetProgramInfoLog(GLuint Program,
 typedef void type_glDeleteProgram(GLuint Program);
 typedef void type_glDetachShader(GLuint Program,
                                  GLuint Shader);
+// NOTE(zoubir): drawing into a texture (engine/render/render_target.cpp)
+#ifndef GL_FRAMEBUFFER
+#define GL_FRAMEBUFFER                    0x8D40
+#endif
+#ifndef GL_COLOR_ATTACHMENT0
+#define GL_COLOR_ATTACHMENT0              0x8CE0
+#endif
+#ifndef GL_FRAMEBUFFER_COMPLETE
+#define GL_FRAMEBUFFER_COMPLETE           0x8CD5
+#endif
+typedef void type_glGenFramebuffers(GLsizei N, GLuint *Framebuffers);
+typedef void type_glBindFramebuffer(GLenum Target, GLuint Framebuffer);
+typedef void type_glFramebufferTexture2D(GLenum Target, GLenum Attachment,
+                                         GLenum TextureTarget, GLuint Texture,
+                                         GLint Level);
+typedef GLenum type_glCheckFramebufferStatus(GLenum Target);
+typedef void type_glUniform4fv(GLint Location, GLsizei Count,
+                               const GLfloat *Value);
+#ifndef GL_VIEWPORT
+#define GL_VIEWPORT                       0x0BA2
+#endif
+typedef void type_glGetIntegerv(GLenum Name, GLint *Data);
 
 #if 1
 typedef void type_glGenTextures(GLsizei N,
@@ -220,6 +242,12 @@ struct open_gl
     OpenGLFunction(glDetachShader);
     OpenGLFunction(glUniform1f);
     OpenGLFunction(glUniform2f);
+    OpenGLFunction(glGenFramebuffers);
+    OpenGLFunction(glBindFramebuffer);
+    OpenGLFunction(glFramebufferTexture2D);
+    OpenGLFunction(glCheckFramebufferStatus);
+    OpenGLFunction(glUniform4fv);
+    OpenGLFunction(glGetIntegerv);
 
 };
 #endif

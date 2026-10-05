@@ -403,9 +403,98 @@ TestHistoryStaysInOrder()
     GameShutdown(&Game);
 }
 
+// Online, a real client casts a self rewind while holding a walk key: once
+// it sees the hold its own player stops where the server froze it (no
+// prediction walks it on), the playback runs, and afterwards prediction
+// and the server agree again.
+internal void
+TestOnlineRewindFreezesThePlayer()
+{
+    static server Server;
+    Check(ServerStart(&Server, 0));
+    ClearMonsters(&Server);
+
+    app_state *Client = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(48);
+    memory_arena Arena, Constants;
+    InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    InitSimulation(Client, &Arena, &Constants);
+    AddPlayerToSlot(Client, &Client->World, &Arena, 0, PlayerSpawnPosition(&Client->World, 0));
+    // NOTE: the game makes it in MemoryArena, which this client has not
+    Client->RewindFx = (rewind_fx *)calloc(1, sizeof(rewind_fx));
+    char Address[32];
+    snprintf(Address, sizeof(Address), "127.0.0.1:%u", NetSocketPort(&Server.Socket));
+    SetEnvironment(ONLINE_ADDRESS_ENV, Address);
+    Client->Online = StartOnlineSession(&Arena);
+    SetEnvironment(ONLINE_ADDRESS_ENV, "");
+
+    app_input Input = {};
+    Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
+    #define REWIND_FRAME() do { UpdateOnlineSession(Client->Online, &Input); \
+                                RunWorldTick(Client, &Arena, Input.DeltaTime); \
+                                UpdateRewindFx(Client, Input.DeltaTime); \
+                                ServerTick(&Server); } while (0)
+    for (int Frame = 0; Frame < 120 && !IsOnline(Client->Online); ++Frame) REWIND_FRAME();
+    Check(IsOnline(Client->Online));
+    for (int Frame = 0; Frame < 20; ++Frame) REWIND_FRAME();
+
+    // NOTE: walking left the whole time; T pressed after a second
+    Input.ButtonQ.EndedDown = true;
+    for (int Frame = 0; Frame < 60; ++Frame) REWIND_FRAME();
+    Input.ButtonT.EndedDown = true;
+    REWIND_FRAME();
+    Input.ButtonT.EndedDown = false;
+
+    rewind_fx_cast *Seen = &Client->RewindFx->Casts[0];
+    world_entity *Authority = Server.Game.AppState->Players[0].Entity;
+    bool32 SawLocked = false;
+    bool32 SawPlayback = false;
+    float FrozenX = 0.f;
+    float WorstDrift = 0.f;
+    u32 LockedFrames = 0;
+    for (int Frame = 0; Frame < 150; ++Frame)
+    {
+        REWIND_FRAME();
+        world_entity *Predicted = GetLocalPlayer(Client);
+        if (Seen->Active && Seen->Phase == RewindPhase_Hold && IsLocalPlayerTimeLocked(Client))
+        {
+            if (!SawLocked)
+            {
+                FrozenX = Predicted->Position.X;
+            }
+            SawLocked = true;
+            LockedFrames++;
+            WorstDrift = Maximum(WorstDrift, Absolute(Predicted->Position.X - FrozenX));
+        }
+        SawPlayback = SawPlayback || (Seen->Active && Seen->Phase == RewindPhase_Playback);
+    }
+    printf("  online rewind: frozen %u frames, drifted %.2f with the key held\n",
+           LockedFrames, WorstDrift);
+    Check(SawLocked && LockedFrames >= 20);
+    Check(WorstDrift < 1.f);
+    Check(SawPlayback);
+    Check(!IsLocalPlayerTimeLocked(Client));
+    // NOTE: walking again, and in step with the server once it stops
+    Input.ButtonQ.EndedDown = false;
+    for (int Frame = 0; Frame < 60; ++Frame) REWIND_FRAME();
+    #undef REWIND_FRAME
+    world_entity *Predicted = GetLocalPlayer(Client);
+    Check(Absolute(Predicted->Position.X - Authority->Position.X) < 1.f);
+    Check(Absolute(Predicted->Position.Y - Authority->Position.Y) < 1.f);
+
+    NetClientDisconnect(&Client->Online->Client);
+    ServerStop(&Server);
+    free(Client->RewindFx);
+    free(Arena.Base);
+    free(Constants.Base);
+    free(Client);
+}
+
 internal void
 RunRewindTests()
 {
+    TestOnlineRewindFreezesThePlayer();
     TestSelfRewindGoesBackTwoSeconds();
     TestFrozenTakesNoHits();
     TestBubbleTakesWhatIsInside();
