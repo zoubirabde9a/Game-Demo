@@ -121,11 +121,13 @@ struct entity_collision_volume_group
 #define ACCELERATION_STEP (1.f / 60.f)
 
 // NOTE(zoubir): a swing hits what is within SWORD_REACH of the swinger and
-// within SWORD_HALF_ANGLE (about 70 degrees) of the aim, at any angle; the
+// within SWORD_HALF_ANGLE (about 83 degrees) of the aim, at any angle; the
 // sword entity sits SWORD_OFFSET toward the aim. The client's swing arc is
-// drawn from the same numbers
-#define SWORD_REACH 46.f
-#define SWORD_HALF_ANGLE 1.22f
+// drawn from the same numbers. At 46 and 70 degrees the blade reached
+// barely past a body touching the player, and a monster a step to the side
+// or a step ahead was missed
+#define SWORD_REACH 64.f
+#define SWORD_HALF_ANGLE 1.45f
 #define SWORD_OFFSET 16.f
 
 // NOTE(zoubir): monster kinds, abilities and status effects

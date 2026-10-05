@@ -1,7 +1,8 @@
 /* Sword (right click): a swing toward the aim that hits each thing in its
    slice once (UpdateSword, update.cpp; reach and width in entity.h). The
-   player steps a little that way. A plain cut's damage, shove and timing
-   are in player_stats.cpp.
+   player steps a little that way, and on the ground is carried a short
+   way after what the cut shoved (SWORD_STEP_SPEED). A plain cut's damage,
+   shove and timing are in player_stats.cpp.
 
    Swings chain into a combo: a swing that starts within
    SWORD_COMBO_WINDOW of the last one takes the next cut of the chain
@@ -39,10 +40,14 @@ enum sword_cut_index
 };
 #define SWORD_CHAIN_LENGTH 3
 
-// NOTE(zoubir): the lunge's thrust: about twice the reach in a narrow
+// NOTE(zoubir): the lunge's thrust: well past the reach in a narrow
 // slice, so it hits what the dash is carrying the player into
-#define SWORD_LUNGE_REACH 84.f
+#define SWORD_LUNGE_REACH 100.f
 #define SWORD_LUNGE_HALF_ANGLE 0.45f
+// NOTE(zoubir): the finisher sweeps further and wider than a plain cut, so
+// the end of a chain catches what the first two cuts shoved away
+#define SWORD_FINISHER_REACH 80.f
+#define SWORD_FINISHER_HALF_ANGLE 1.75f
 
 // NOTE(zoubir): a cut's damage and shove as multiples of a plain cut's
 // (player_stats.cpp)
@@ -59,7 +64,7 @@ global_variable sword_cut SwordCuts[SwordCut_Count] =
      SimBurst_SwingArcBack, 0.f, 0.f},
     // NOTE(zoubir): the finisher
     {{CUT_DAMAGE(1.4f), CUT_SHOVE(1.8f), 300.f, 340.f, 0.7f, SimBurst_Finisher},
-     SimBurst_SwingArcFinisher, 0.f, 0.f},
+     SimBurst_SwingArcFinisher, SWORD_FINISHER_REACH, SWORD_FINISHER_HALF_ANGLE},
     // NOTE(zoubir): Lunge (dash, attack): harder, and a long shove along
     // the thrust
     {{CUT_DAMAGE(1.5f), CUT_SHOVE(2.f), 0.f, 240.f, 0.2f, SimBurst_Impact},
@@ -119,6 +124,13 @@ SwingSwordCut(app_state *AppState, world *World, memory_arena *Arena,
 // NOTE(zoubir): the swinger steps toward Dir this tick, at
 // SWORD_STEP_SCALE of a run
 #define SWORD_STEP_SCALE 0.6f
+// NOTE(zoubir): a plain cut on the ground also carries the swinger toward
+// the aim at least this fast, eased off by the carry drag, so a chain follows a monster the cuts shove (a plain cut's shove
+// is 280) instead of swinging at the air it left
+#define SWORD_STEP_SPEED 300.f
+
+// NOTE(zoubir): in jump.cpp, included later
+inline bool32 IsOnGround(world_entity *Player);
 
 inline void
 StepIntoSwing(player_tick *Tick, v2 Dir)
@@ -132,6 +144,11 @@ SpawnSwordSwing(app_state *AppState, world *World, memory_arena *Arena,
                 world_entity *Player, v2 Dir, player_tick *Tick)
 {
     StepIntoSwing(Tick, Dir);
+    float Along = DotProduct(Player->Velocity.XY, Dir);
+    if (IsOnGround(Player) && Along < SWORD_STEP_SPEED)
+    {
+        Player->Velocity.XY += (SWORD_STEP_SPEED - Along) * Dir;
+    }
     Player->ComboStep = Player->ComboTimer > 0.f ?
         (Player->ComboStep + 1) % SWORD_CHAIN_LENGTH : 0;
     Player->ComboTimer = SWORD_COMBO_WINDOW;
