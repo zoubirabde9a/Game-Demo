@@ -1,6 +1,6 @@
 /* Fireball (left click): a piercing shot along the aim at any angle,
    hitting each target once (HandleCollision, collision.cpp, calls
-   FireBallHit). Its numbers are in player_stats.cpp and its timing row
+   FireBallHit, which lands FireBallHitRow through ApplyHit). Its numbers are in player_stats.cpp and its timing row
    in spawn_actions.cpp: a click sooner than the interval waits in the
    action queue and fires when it may, so fast clicking gives a steady
    stream rather than a spray. */
@@ -25,9 +25,19 @@ SpawnFireBall(app_state *AppState, world *World, memory_arena *Arena,
     FireBall->AnimationDirection = DominantFacing(Dir);
 }
 
+// NOTE(zoubir): what a fireball does to each target it passes through,
+// through ApplyHit like every other attack: a shove along its flight, a
+// spark and the flinch and hit-pause that come with a hit. It used to take
+// health and nothing else, so a fireball landed without a reaction
+global_variable hit FireBallHitRow =
+    {PlayerStats.FireballDamage, 200.f, 0.f, 120.f, 0.f, SimBurst_Impact};
+
 internal void
 FireBallHit(app_state *AppState, world *World, world_entity *FireBall,
             world_entity *Target)
 {
-    DamageEntity(AppState, World, Target, PlayerStats.FireballDamage, FireBall);
+    v2 Away = NormalizeOr(FireBall->Velocity.XY,
+                          Target->Position.XY - FireBall->Position.XY);
+    u32 BySlot = FireBall->HasOwner ? FireBall->OwnerSlot : SIM_NOBODY;
+    ApplyHit(AppState, World, Target, &FireBallHitRow, Away, FireBall, BySlot);
 }

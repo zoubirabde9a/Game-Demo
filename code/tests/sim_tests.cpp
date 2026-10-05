@@ -141,6 +141,33 @@ TestFireBallKillsMonsterOnce()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a fireball that does not kill lands as a hit: it shoves
+// the monster along its flight and leaves the flinch for clients
+internal void
+TestFireBallShovesMonster()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {400, 300, 0}, Test.UnitVolume);
+    Monster->MaxHp = Monster->Hp = 1000.f;
+    world_entity *FireBall = AddTestEntity(&Test, EntityType_FireBall,
+                                           {300, 300, 0},
+                                           Test.FireBallVolume);
+    FireBall->Velocity = {450, 0, 0};
+    FireBall->HasOwner = true;
+    FireBall->OwnerSlot = 2;
+    for(u32 Frame = 0; Frame < 20 && Monster->HitFresh == 0.f; Frame++)
+    {
+        float MaxDistance = 10000.f;
+        MoveEntity(FireBall, Test.World, &Test.Arena, Test.Input.DeltaTime,
+                   Test.AppState, {}, &MaxDistance);
+    }
+    Check(Monster->Hp < 1000.f);
+    Check(Monster->Velocity.X > 50.f);
+    Check(Monster->HitFresh > 0.f);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 TestMonsterDyingMidMoveLeavesNoGhost()
 {
@@ -761,6 +788,7 @@ main()
     setvbuf(stdout, 0, _IONBF, 0);
 
     RUN(TestFireBallKillsMonsterOnce);
+    RUN(TestFireBallShovesMonster);
     RUN(TestMonsterDyingMidMoveLeavesNoGhost);
     RUN(TestRemovedSlotIsReused);
     RUN(TestRemovingEntityPastMapEdgeFreesItOnce);
