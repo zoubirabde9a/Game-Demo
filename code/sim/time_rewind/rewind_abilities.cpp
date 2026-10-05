@@ -65,6 +65,16 @@ IsTimeLocked(app_state *AppState, world_entity *Entity)
     return Result;
 }
 
+// NOTE(zoubir): can take no damage, shove or stun: frozen by a rewind, or
+// anything while a world rewind holds the world (entity.cpp, hit.cpp)
+internal bool32
+IsRewindInvulnerable(app_state *AppState, world_entity *Entity)
+{
+    bool32 Result = IsTimeLocked(AppState, Entity) ||
+        (AppState->Rewind && AppState->Rewind->WorldFrozen);
+    return Result;
+}
+
 // NOTE(zoubir): called from UsePlayerAbilities (player_update.cpp). A
 // client predicting its own player runs the wind-up (the slowdown and the
 // pose) but leaves the rewind itself to the server
@@ -187,6 +197,9 @@ BeginRewindHold(app_state *AppState, time_rewind *Rewind, world *World,
 
         case RewindKind_Bubble:
         {
+            // NOTE(zoubir): the caster first, so it is taken (and cannot be
+            // hurt) however crowded the bubble is
+            TakeIntoRewind(Rewind, Cast, Caster);
             for(u32 ID = 0; ID < World->EntityCount; ID++)
             {
                 world_entity *Entity = &World->Entities[ID];

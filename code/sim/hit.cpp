@@ -115,7 +115,7 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
          hit *Hit, v2 Away, world_entity *Source, u32 BySlot)
 {
     // NOTE(zoubir): nor is a unit a rewind froze thrown (sim/time_rewind/)
-    if (!Target->IsPresent || Target->Hp <= 0.f || IsTimeLocked(AppState, Target))
+    if (!Target->IsPresent || Target->Hp <= 0.f || IsRewindInvulnerable(AppState, Target))
     {
         return false;
     }

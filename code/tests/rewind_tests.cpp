@@ -129,9 +129,12 @@ TestSelfRewindGoesBackTwoSeconds()
     GameShutdown(&Game);
 }
 
-// What a rewind froze is outside time: hits neither hurt nor shove it.
+// The caster is invulnerable for the whole ability, the freeze and the
+// playback, in all three rewinds: on every one of those ticks a lethal
+// blow, a shove and a stun change nothing, and it lands alive with the
+// health it had two seconds before.
 internal void
-TestFrozenTakesNoHits()
+TestCasterInvulnerableThroughTheRewind(u16 Button)
 {
     static server_game Game;
     app_state *AppState = StartQuietRewindGame(&Game);
@@ -139,19 +142,37 @@ TestFrozenTakesNoHits()
     world_entity *Player = AppState->Players[0].Entity;
     for (u32 Tick = 0; Tick < 200 && RewindCastOf(&Game, 0)->Phase != RewindPhase_Hold; ++Tick)
     {
-        HoldForRewindTest(&Game, 0, (u16)(Tick == 60 ? NetButton_RewindSelf : 0));
+        HoldForRewindTest(&Game, 0, (u16)(Tick == 60 ? Button : 0));
         GameTick(&Game, REWIND_TEST_DT);
     }
     Check(RewindCastOf(&Game, 0)->Phase == RewindPhase_Hold);
-    Check(IsTimeLocked(AppState, Player));
     float Hp = Player->Hp;
-    Check(!DamageEntity(AppState, &AppState->World, Player, 500.f, 0));
     hit Shove = {10.f, 900.f, 300.f, 0.f, 1.f, SimBurst_Count};
-    ApplyHit(AppState, &AppState->World, Player, &Shove, V2(1.f, 0.f), 0, SIM_NOBODY);
-    Check(Player->Hp == Hp);
-    Check(Player->Velocity.X == 0.f && Player->Velocity.Z == 0.f);
-    Check(!HasStatus(Player, StatusEffect_Stunned));
+    u32 Ticks = 0;
+    bool32 Hurt = false;
+    for (; Ticks < 200 && RewindCastOf(&Game, 0)->Phase != RewindPhase_None; ++Ticks)
+    {
+        v3 Velocity = Player->Velocity;
+        bool32 Killed = DamageEntity(AppState, &AppState->World, Player, 5000.f, 0);
+        ApplyHit(AppState, &AppState->World, Player, &Shove, V2(1.f, 0.f), 0, SIM_NOBODY);
+        Hurt = Hurt || Killed || Player->Hp != Hp || HasStatus(Player, StatusEffect_Stunned) ||
+            Player->Velocity.X != Velocity.X || Player->Velocity.Z != Velocity.Z;
+        HoldForRewindTest(&Game, 0, 0);
+        GameTick(&Game, REWIND_TEST_DT);
+    }
+    // NOTE: half a second of freeze, half a second of playback
+    Check(Ticks >= 55 && Ticks < 200);
+    Check(!Hurt);
+    Check(Player->Hp > 0.f && Player->Hp == Hp);
     GameShutdown(&Game);
+}
+
+internal void
+TestFrozenTakesNoHits()
+{
+    TestCasterInvulnerableThroughTheRewind((u16)NetButton_RewindSelf);
+    TestCasterInvulnerableThroughTheRewind((u16)NetButton_RewindBubble);
+    TestCasterInvulnerableThroughTheRewind((u16)NetButton_RewindWorld);
 }
 
 // A bubble takes what is inside it when it closes: the player inside

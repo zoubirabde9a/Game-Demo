@@ -299,6 +299,7 @@ IsAboveShot(world_entity *Player, world_entity *Shot)
 internal void RefundOnKill(world_entity *Player);
 // NOTE(zoubir): in sim/time_rewind/rewind_abilities.cpp, included later
 internal bool32 IsTimeLocked(app_state *AppState, world_entity *Entity);
+internal bool32 IsRewindInvulnerable(app_state *AppState, world_entity *Entity);
 
 internal bool32
 DamageEntity(app_state *AppState, world *World,
@@ -308,7 +309,7 @@ DamageEntity(app_state *AppState, world *World,
     // further hits that frame do not count as more kills. A unit frozen
     // by a rewind is outside time and takes nothing
     if (!Target->IsPresent || Target->Hp <= 0.f || IsDodging(Target) ||
-        IsTimeLocked(AppState, Target))
+        IsRewindInvulnerable(AppState, Target))
     {
         return false;
     }
