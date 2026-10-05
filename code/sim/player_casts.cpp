@@ -26,6 +26,10 @@ enum player_spell
     PlayerSpell_Launch,
     PlayerSpell_Slam,
     PlayerSpell_Blink,
+    PlayerSpell_FrostNova,
+    PlayerSpell_GravityWell,
+    // NOTE(zoubir): the rewinds stay last, in rewind_kind order
+    // (time_rewind/rewind_abilities.cpp RewindSpell)
     PlayerSpell_RewindSelf,
     PlayerSpell_RewindBubble,
     PlayerSpell_RewindWorld,
@@ -58,6 +62,10 @@ global_variable player_spell_cast PlayerSpells[PlayerSpell_Count] =
     // NOTE(zoubir): Blink (F): the jump goes to where the cursor is when
     // the cast ends (player_abilities/movement_abilities.cpp)
     {0.5f, 0.35f, false, "Blink"},
+    // NOTE(zoubir): Frost Nova (G) and Gravity Well (T), area abilities
+    // only the talent tree unlocks
+    {0.25f, 0.35f, false, "Frost Nova"},
+    {0.35f, 0.35f, false, "Gravity Well"},
     // NOTE(zoubir): the time rewinds (time_rewind/rewind_abilities.cpp):
     // the hold and the playback follow the cast
     {0.5f, 0.5f, false, "Rewind"},

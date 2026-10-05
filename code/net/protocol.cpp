@@ -325,6 +325,11 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU16(S, &Score->Kills);
                 NetU16(S, &Score->Deaths);
                 NetU16(S, &Score->MonsterKills);
+                // NOTE(zoubir): the level in 7 bits, the ward in the top one
+                u8 LevelAndWard = (u8)((Score->Level & 0x7f) | ((Score->Ward & 1) << 7));
+                NetU8(S, &LevelAndWard);
+                Score->Level = LevelAndWard & 0x7f;
+                Score->Ward = LevelAndWard >> 7;
                 if (Score->Slot >= NET_MAX_SNAPSHOT_SCORES) return false;
             }
             NetU8(S, &P->Snapshot.NameSlot);
@@ -351,6 +356,20 @@ NetSerializePacket(net_stream *S, net_packet *P)
             for (u32 Index = 0; Index < NET_COOLDOWN_COUNT; ++Index)
             {
                 NetU8(S, &P->Snapshot.Cooldowns[Index]);
+            }
+            NetU16(S, &P->Snapshot.Xp);
+            for (u32 Index = 0; Index < NET_TALENT_COUNT; Index += 4)
+            {
+                u8 Packed = 0;
+                for (u32 Part = 0; Part < 4 && Index + Part < NET_TALENT_COUNT; ++Part)
+                {
+                    Packed |= (u8)((P->Snapshot.TalentRanks[Index + Part] & 3) << (2 * Part));
+                }
+                NetU8(S, &Packed);
+                for (u32 Part = 0; Part < 4 && Index + Part < NET_TALENT_COUNT; ++Part)
+                {
+                    P->Snapshot.TalentRanks[Index + Part] = (Packed >> (2 * Part)) & 3;
+                }
             }
             NetU8(S, &P->Snapshot.Stagger);
             NetU8(S, &P->Snapshot.KillCount);

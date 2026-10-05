@@ -110,7 +110,8 @@ MovePlayer(app_state *AppState, world *World, memory_arena *Arena,
     float DragScale = Player->LongJump ? LONG_JUMP_DRAG_SCALE : 1.f;
     // NOTE(zoubir): top speed as it always was, push over drag: slows and
     // mud lower it, ice keeps it (less push, less drag)
-    float TopSpeed = PlayerStats.RunSpeed * Tick->Acceleration *
+    float TopSpeed = PlayerStats.RunSpeed * RunSpeedScale(AppState, Player) *
+        Tick->Acceleration *
         GetMoveSpeedScale(Player) / GetGroundFriction(Player);
     v3 DDPlayer = {};
     if (DeltaTime > 0.f)

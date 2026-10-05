@@ -45,5 +45,26 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
     {
         Result.Pressed &= ~(u32)PlayerButton_Cast;
     }
+    // NOTE(zoubir): a click on the talent panel is the panel's
+    if (TalentPanelHasMouse(AppState, Input))
+    {
+        Result.Pressed &= ~(u32)(PlayerButton_Cast | PlayerButton_Attack);
+    }
+    // NOTE(zoubir): offline the local simulation spends the points the
+    // panel asked for; online they go in the held buttons (online.cpp)
+    if (!IsOnline(AppState->Online))
+    {
+        Result.Learn = TakeOfflineTalentRequest(AppState);
+    }
+#if APP_DEV
+    // NOTE(zoubir): F6, offline in developer builds: the experience to the
+    // next level, to try the talent tree without playing for it
+    player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
+    if (Input->ButtonF6.Pressed && !IsOnline(AppState->Online) && Slot->Active &&
+        Slot->Level < PLAYER_MAX_LEVEL)
+    {
+        AwardXp(AppState, Slot, XpToReach(Slot->Level + 1) - Slot->Xp);
+    }
+#endif
     return Result;
 }

@@ -34,5 +34,10 @@ InputForServer(app_input *Input, app_state *AppState)
     {
         Result.LeftButton = {};
     }
+    if (TalentPanelHasMouse(AppState, Input))
+    {
+        Result.LeftButton = {};
+        Result.RightButton = {};
+    }
     return Result;
 }

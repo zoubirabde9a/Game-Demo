@@ -778,6 +778,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "cursor_tests.cpp"
 #include "player_feel_tests.cpp"
 #include "duel_tests.cpp"
+#include "progression_tests.cpp"
 
 #define RUN(Test) printf("%s\n", #Test); Test()
 
@@ -825,6 +826,7 @@ main()
     RunCursorTests();
     RunPlayerFeelTests();
     RunDuelTests();
+    RunProgressionTests();
 
     printf("%d of %d checks passed\n", TestChecks - TestFailures, TestChecks);
     return TestFailures ? 1 : 0;

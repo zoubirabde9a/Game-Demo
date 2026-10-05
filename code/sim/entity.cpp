@@ -307,6 +307,13 @@ IsJumpingClear(world_entity *Entity)
 // NOTE(zoubir): a player's kill refunds cooldowns
 // (player_abilities/movement_abilities.cpp, included later)
 internal void RefundOnKill(world_entity *Player);
+// NOTE(zoubir): in sim/progression/, included later: what a kill earns,
+// the ward taking a hit, and how long a dead player waits
+internal void AwardKill(app_state *AppState, player_slot *Killer,
+                        world_entity *Target);
+internal bool32 WardTakesHit(app_state *AppState, world_entity *Target,
+                             float Damage);
+inline float RespawnSeconds(player_slot *Slot);
 // NOTE(zoubir): in sim/time_rewind/rewind_abilities.cpp, included later
 internal bool32 IsTimeLocked(app_state *AppState, world_entity *Entity);
 internal bool32 IsRewindInvulnerable(app_state *AppState, world_entity *Entity);
@@ -325,6 +332,10 @@ DamageEntity(app_state *AppState, world *World,
     }
 
     Damage = ModifyIncomingDamage(Target, Source, Damage);
+    if (WardTakesHit(AppState, Target, Damage))
+    {
+        return false;
+    }
     Target->Hp -= Damage;
     if (Target->Hp > 0.f)
     {
@@ -360,17 +371,19 @@ DamageEntity(app_state *AppState, world *World,
             {
                 RefundOnKill(Attacker->Entity);
             }
+            AwardKill(AppState, Attacker, Target);
         }
     }
     else if (Target->Type == EntityType_Player)
     {
         player_slot *Victim = &AppState->Players[Target->PlayerIndex];
         Victim->Deaths++;
-        Victim->RespawnTimer = PLAYER_RESPAWN_SECONDS;
+        Victim->RespawnTimer = RespawnSeconds(Victim);
         Target->Velocity = {};
         if (Attacker && Attacker != Victim)
         {
             Attacker->Kills++;
+            AwardKill(AppState, Attacker, Target);
         }
         u8 KillerMonster = (Source && Source->Type == EntityType_Monster) ?
             (u8)Source->MonsterKind : SIM_NOBODY;

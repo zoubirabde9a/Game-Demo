@@ -69,7 +69,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     // World: run it (locally, or from the server's snapshot), put the
     // camera on where the player is now, then draw it.
     app_input ServerInput = InputForServer(Input, AppState);
-    UpdateOnlineSession(AppState->Online, &ServerInput, KeysToUi, LocalInput->Aim);
+    UpdateOnlineSession(AppState->Online, &ServerInput, KeysToUi, LocalInput->Aim,
+                        OnlineTalentBits(AppState, Input->DeltaTime));
     RunWorldTick(AppState, &AppState->WorldArena, Input->DeltaTime);
     PlaySimEvents(AppState, Input->DeltaTime);
     UpdateRewindFx(AppState, Input->DeltaTime);

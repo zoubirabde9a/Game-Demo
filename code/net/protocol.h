@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d53u // "GDMS", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d54u // "GDMT", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -32,7 +32,8 @@
 #define NET_MAX_SNAPSHOT_BURSTS 8   // visual bursts seen since the last snapshot
 #define NET_MAX_SNAPSHOT_REWINDS 4  // time rewinds under way the viewer can see
 #define NET_MAX_SNAPSHOT_CASTS 8    // players winding up a spell (MAX_PLAYERS)
-#define NET_COOLDOWN_COUNT 13       // the viewer's own ability cooldowns
+#define NET_COOLDOWN_COUNT 15       // the viewer's own ability cooldowns
+#define NET_TALENT_COUNT 21         // the viewer's own talent ranks (sim/progression/talents.cpp)
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_SERVER_NAME_SIZE 24     // server name, 23 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
@@ -78,10 +79,20 @@ enum net_button
     NetButton_RewindBubble = 1 << 14,
     NetButton_RewindWorld  = 1 << 15,
     NetButton_Shield       = 1 << 16,
+    NetButton_FrostNova    = 1 << 17,
+    NetButton_GravityWell  = 1 << 18,
 };
 // The action buttons, Jump onward, are the simulation's player_button bits
 // moved up by PLAYER_BUTTON_NET_SHIFT (sim/player.h); keep the two orders
 // the same.
+//
+// Bits NET_LEARN_SHIFT and up are not a button but a number: the talent
+// the player is spending a point on, its talent_id + 1, or 0. The client
+// holds it for a few inputs and lets go; the server spends a point each
+// time it changes to something other than 0 (sim_game.cpp), so a lost
+// input loses nothing and a replay spends the same points.
+#define NET_LEARN_SHIFT 24
+#define NET_LEARN_MASK 0x1fu
 
 enum net_deny_reason
 {
@@ -222,6 +233,8 @@ struct net_score
     u16 Kills;        // other players killed
     u16 Deaths;
     u16 MonsterKills;
+    u8 Level;         // sim/progression/experience.cpp
+    u8 Ward;          // 1 bit: the Ward talent's charge is up
 };
 
 struct net_kill
@@ -288,6 +301,10 @@ struct net_snapshot
     // cooldown (0 = ready), for the HUD; abilities run only on the server.
     // Which is which: PlayerCooldown in sim/player_cooldowns.cpp.
     u8 Cooldowns[NET_COOLDOWN_COUNT];
+    // The viewer's own experience and talent ranks (sim/progression/),
+    // each rank 0..3 and sent in 2 bits. Everyone's level is in Scores.
+    u16 Xp;
+    u8 TalentRanks[NET_TALENT_COUNT];
     // The viewer's own stagger from a shove (sim/hit.cpp), 0..255 of
     // PlayerStats.StaggerSeconds; its prediction replays from it, or every
     // shove would be braked away on the client and pulled back.

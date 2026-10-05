@@ -25,6 +25,9 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
     }
     AdvanceRewindClock(Rewind, DeltaTime);
     UpdateTerrainEffects(World);
+    // NOTE(zoubir): experience, and the talents asked for this tick, take
+    // effect before anyone moves (sim/progression/)
+    UpdateProgression(AppState, DeltaTime);
 
     // NOTE(zoubir): entities added during the tick (fireballs, swords,
     // respawned monsters) wait for the next one

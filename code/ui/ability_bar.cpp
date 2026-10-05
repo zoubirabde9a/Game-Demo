@@ -1,9 +1,15 @@
-/* Ability bar: the player's health and abilities, centred at the bottom of
-   the screen. Each slot shows its icon (ability_icons/), its key, and
-   while recharging a dark clock sweep with the seconds left. A slot that
-   comes ready flashes a ring of light; pressing a key squeezes its slot,
-   and pressing one still recharging shakes it red. Hovering a slot names
-   the ability and its cooldown.
+/* Ability bar: the player's health, experience and abilities, centred at
+   the bottom of the screen. Each slot shows its icon (ability_icons/), its
+   key, its level as pips along its foot, and while recharging a dark
+   clock sweep with the seconds left. Only abilities the player has show:
+   one the talent tree unlocks (sim/progression/talents.cpp) appears with
+   a flash. A slot that comes ready flashes a ring of light; pressing a
+   key squeezes its slot, and pressing one still recharging shakes it red.
+   Hovering a slot names the ability, its level and its cooldown.
+
+   Experience runs as a thin strip between health and the slots, with the
+   level badge left of the plate and the talent button right of it
+   (talent_panel/xp_bar.cpp).
 
    The slots and their order are icon_list.inc. Cooldowns come from
    sim/player_cooldowns.cpp, which online play fills from the server, so
@@ -20,6 +26,9 @@
 // and leaves the rest for the glow
 #define ABILITY_SLOT_BOX 0.78f
 #define ABILITY_HEALTH_HEIGHT 18.f
+// NOTE(zoubir): from the health bar's foot to the slots' top, the XP
+// strip in the middle
+#define ABILITY_HEALTH_GAP 30.f
 #define ABILITY_PULSE_SECONDS 0.45f
 #define ABILITY_PRESS_SECONDS 0.16f
 #define ABILITY_DENIED_SECONDS 0.3f
@@ -35,13 +44,24 @@ struct ability_bar
     float Press[ABILITY_SLOT_DEF_COUNT];  // 1 when pressed, fading to 0
     float Denied[ABILITY_SLOT_DEF_COUNT]; // 1 when pressed while recharging
     float HealthTrail;                    // share of health the trail shows
+    bool32 WasShown[ABILITY_SLOT_DEF_COUNT]; // the player had it last frame
 };
+
+// NOTE(zoubir): whether slot Def shows: a gap never does, an ability once
+// the player has it
+inline bool32
+IsAbilitySlotShown(player_slot *Slot, ability_slot_def *Def)
+{
+    bool32 Result = Def->Paint && AbilityLevel(Slot, Def->Button) > 0;
+    return Result;
+}
 
 // NOTE(zoubir): share of Button's cooldown still to run (0 = ready) and
 // its seconds; when two cooldowns share a button the longer one counts.
 // False when the button has no cooldown at all
 internal bool32
-AbilityCooldownLeft(world_entity *Player, u32 Button, float *Share, float *Seconds,
+AbilityCooldownLeft(app_state *AppState, world_entity *Player, u32 Button,
+                    float *Share, float *Seconds,
                     float *FullOut = 0)
 {
     bool32 Result = false;
@@ -50,7 +70,7 @@ AbilityCooldownLeft(world_entity *Player, u32 Button, float *Share, float *Secon
     for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
     {
         float Full;
-        float *Left = PlayerCooldown(Player, Index, &Full);
+        float *Left = PlayerCooldown(AppState, Player, Index, &Full);
         if (Left && Full > 0.f && PlayerCooldownButton(Index) == Button)
         {
             Result = true;
@@ -69,20 +89,36 @@ AbilityCooldownLeft(world_entity *Player, u32 Button, float *Share, float *Secon
     return Result;
 }
 
+// NOTE(zoubir): the room before the next shown slot: none for the first,
+// a group's gap after a gap entry, the slot gap otherwise. First and Gap
+// carry from one call to the next across the list
 inline float
-AbilityBarWidth()
+AbilitySlotSpacing(bool32 *First, bool32 *Gap)
+{
+    float Result = *First ? 0.f : (*Gap ? ABILITY_GROUP_GAP : ABILITY_SLOT_GAP);
+    *First = false;
+    *Gap = false;
+    return Result;
+}
+
+inline float
+AbilityBarWidth(player_slot *Slot)
 {
     float Width = 0.f;
     bool32 First = true;
+    bool32 Gap = false;
     for(u32 Index = 0; Index < ABILITY_SLOT_DEF_COUNT; Index++)
     {
-        if (!AbilitySlotDefs[Index].Paint)
+        ability_slot_def *Def = &AbilitySlotDefs[Index];
+        if (!Def->Paint)
         {
-            Width += ABILITY_GROUP_GAP - ABILITY_SLOT_GAP;
+            Gap = true;
             continue;
         }
-        Width += (First ? 0.f : ABILITY_SLOT_GAP) + ABILITY_SLOT_SIZE;
-        First = false;
+        if (IsAbilitySlotShown(Slot, Def))
+        {
+            Width += AbilitySlotSpacing(&First, &Gap) + ABILITY_SLOT_SIZE;
+        }
     }
     return Width;
 }
@@ -132,7 +168,7 @@ internal float
 AbilityBarPlateTop(u32 WindowHeight)
 {
     float SlotTop = (float)WindowHeight - ABILITY_BAR_BOTTOM - ABILITY_SLOT_SIZE;
-    float HealthY = SlotTop - 18.f - ABILITY_HEALTH_HEIGHT;
+    float HealthY = SlotTop - ABILITY_HEALTH_GAP - ABILITY_HEALTH_HEIGHT;
     return HealthY - ABILITY_PLATE_PAD;
 }
 
@@ -159,6 +195,9 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         AppState->AbilityBar = New;
     }
     ability_bar *Bar = AppState->AbilityBar;
+    player_slot *LocalSlot = &AppState->Players[AppState->LocalPlayerIndex];
+    xp_bar *Xp = GetXpBar(AppState);
+    TrackExperience(AppState, Xp, Input->DeltaTime);
     float DeltaTime = Input->DeltaTime;
     float Time = RenderContext->Time;
     bool32 Dead = IsDeadPlayer(Player);
@@ -166,10 +205,12 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
     // tile editor's left button stopped being a cast (keyboard_input.cpp)
     u32 Pressed = Dead ? 0 : AppState->Players[AppState->LocalPlayerIndex].Input.Pressed;
 
-    float Width = AbilityBarWidth();
+    // NOTE(zoubir): never narrower than this, so health and experience
+    // stay readable with few abilities
+    float Width = Maximum(AbilityBarWidth(LocalSlot), 5.f * ABILITY_SLOT_SIZE);
     float Left = 0.5f * ((float)WindowWidth - Width);
     float SlotTop = (float)WindowHeight - ABILITY_BAR_BOTTOM - ABILITY_SLOT_SIZE;
-    float HealthY = SlotTop - 18.f - ABILITY_HEALTH_HEIGHT;
+    float HealthY = SlotTop - ABILITY_HEALTH_GAP - ABILITY_HEALTH_HEIGHT;
 
     // NOTE(zoubir): one glass plate behind health and slots
     float PlatePad = ABILITY_PLATE_PAD;
@@ -179,12 +220,30 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
     DrawUIPanel(RenderContext, Left - PlatePad, PlateTop, PlateWidth, PlateHeight);
     DrawAbilityBarHealth(RenderContext, AppState, Bar, Player, Left, HealthY, Width,
                          DeltaTime);
+    DrawXpStrip(RenderContext, AppState, Left,
+                HealthY + ABILITY_HEALTH_HEIGHT + 0.5f * (ABILITY_HEALTH_GAP - XP_STRIP_HEIGHT) - 2.f,
+                Width);
+    Xp->PlateX = Left - PlatePad;
+    Xp->PlateY = PlateTop;
+    Xp->PlateWidth = PlateWidth;
+    Xp->PlateHeight = PlateHeight;
+    float PlateMiddle = PlateTop + 0.5f * PlateHeight;
+    DrawLevelBadge(RenderContext, AppState, Left - PlatePad - 14.f - 0.5f * XP_BADGE_SIZE,
+                   PlateMiddle);
+    talent_panel *TalentPanel = GetTalentPanel(AppState);
+    if (DrawTalentPointsButton(RenderContext, AppState, Input,
+                               Left + Width + PlatePad + 14.f, PlateMiddle,
+                               TalentPanel->Open))
+    {
+        ToggleTalentPanel(AppState);
+    }
 
     font *Small = AppState->Fonts.Small;
     font *Strong = AppState->Fonts.Strong ? AppState->Fonts.Strong : AppState->Fonts.Body;
     float QuadSize = ABILITY_SLOT_SIZE / ABILITY_SLOT_BOX;
-    float X = Left;
+    float X = Left + 0.5f * (Width - AbilityBarWidth(LocalSlot));
     bool32 First = true;
+    bool32 Gap = false;
     i32 Hovered = -1;
     float HoveredX = 0.f;
     for(u32 Index = 0; Index < ABILITY_SLOT_DEF_COUNT; Index++)
@@ -192,16 +251,26 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         ability_slot_def *Def = &AbilitySlotDefs[Index];
         if (!Def->Paint)
         {
-            X += ABILITY_GROUP_GAP - ABILITY_SLOT_GAP;
+            Gap = true;
             continue;
         }
-        X += First ? 0.f : ABILITY_SLOT_GAP;
-        First = false;
+        bool32 Shown = IsAbilitySlotShown(LocalSlot, Def);
+        if (Shown && !Bar->WasShown[Index])
+        {
+            // NOTE(zoubir): just unlocked: it arrives with the ready flash
+            Bar->Pulse[Index] = 1.f;
+        }
+        Bar->WasShown[Index] = Shown;
+        if (!Shown)
+        {
+            continue;
+        }
+        X += AbilitySlotSpacing(&First, &Gap);
         float SlotX = X;
         X += ABILITY_SLOT_SIZE;
 
         float Share, Seconds;
-        bool32 HasCooldown = AbilityCooldownLeft(Player, Def->Button, &Share, &Seconds);
+        bool32 HasCooldown = AbilityCooldownLeft(AppState, Player, Def->Button, &Share, &Seconds);
         bool32 Ready = Share <= 0.f;
         if (Ready && !Bar->WasReady[Index])
         {
@@ -295,6 +364,32 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         UIText(RenderContext, Small, KeyX + 4.f, KeyY, Key,
                Ready ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED);
 
+        // NOTE(zoubir): the level as diamonds along the slot's foot, gold
+        // for each level held (sim/progression/talents.cpp)
+        u32 Talent = TalentForButton(Def->Button);
+        if (Talent < Talent_Count)
+        {
+            u32 MaxLevel = TalentDefs[Talent].MaxLevel;
+            u32 Level = TalentLevel(LocalSlot, Talent);
+            float Pip = 6.f;
+            float PipGap = 3.f;
+            float PipsWidth = (float)MaxLevel * Pip + (float)(MaxLevel - 1) * PipGap;
+            float PipY = CentreY + 0.5f * Slot - 1.f;
+            u32 Under = UI_RGBA(6, 7, 10, 230);
+            for(u32 Rank = 0; Rank < MaxLevel; Rank++)
+            {
+                v2 P = V2(CentreX - 0.5f * PipsWidth + (float)Rank * (Pip + PipGap) + 0.5f * Pip,
+                          PipY);
+                u32 Color = Rank < Level ? UI_RGBA(255, 206, 90, 255) : UI_RGBA(20, 22, 30, 240);
+                float H = 0.5f * Pip + 1.f;
+                DrawFilledQuad(RenderContext, P - V2(0.f, H), P + V2(H, 0.f), P + V2(0.f, H),
+                               P - V2(H, 0.f), Under, Under, Under, Under, RenderBlend_Alpha);
+                H = 0.5f * Pip;
+                DrawFilledQuad(RenderContext, P - V2(0.f, H), P + V2(H, 0.f), P + V2(0.f, H),
+                               P - V2(H, 0.f), Color, Color, Color, Color, RenderBlend_Alpha);
+            }
+        }
+
         if (IsMouseOnRectangle(Input->MouseX, Input->MouseY, SlotX, SlotTop,
                                ABILITY_SLOT_SIZE, ABILITY_SLOT_SIZE))
         {
@@ -307,15 +402,23 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
     {
         ability_slot_def *Def = &AbilitySlotDefs[Hovered];
         float Share, Seconds, Full = 0.f;
-        char Text[64];
-        if (AbilityCooldownLeft(Player, Def->Button, &Share, &Seconds, &Full))
+        char Text[96];
+        char Level[24] = "";
+        u32 Talent = TalentForButton(Def->Button);
+        if (Talent < Talent_Count)
         {
-            snprintf(Text, sizeof(Text), "%s  (%s)  %.1f s cooldown", Def->Name,
-                     ActionKeyLabel(Def->Button), Full);
+            snprintf(Level, sizeof(Level), "  level %u/%u", TalentLevel(LocalSlot, Talent),
+                     TalentDefs[Talent].MaxLevel);
+        }
+        if (AbilityCooldownLeft(AppState, Player, Def->Button, &Share, &Seconds, &Full))
+        {
+            snprintf(Text, sizeof(Text), "%s  (%s)%s  %.1f s cooldown", Def->Name,
+                     ActionKeyLabel(Def->Button), Level, Full);
         }
         else
         {
-            snprintf(Text, sizeof(Text), "%s  (%s)", Def->Name, ActionKeyLabel(Def->Button));
+            snprintf(Text, sizeof(Text), "%s  (%s)%s", Def->Name, ActionKeyLabel(Def->Button),
+                     Level);
         }
         font *Body = AppState->Fonts.Body;
         float TipWidth = UITextWidth(Body, Text) + 24.f;

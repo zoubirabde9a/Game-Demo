@@ -53,6 +53,13 @@ enum sim_burst
     SimBurst_FlameFan,     // three fireballs leaving at once
     SimBurst_LongJump,     // dust kicked back at a long jump's take-off
     SimBurst_Ambush,       // shadow gathering where a blink lands and swings
+    // NOTE(zoubir): talents (sim/progression/) and their abilities
+    SimBurst_FrostNova,    // ice bursting out around a player
+    SimBurst_GravityWell,  // a vortex collapsing on its centre
+    SimBurst_GravityMark,  // Gravity Well's circle while it is cast
+    SimBurst_WardBreak,    // a player's ward shattering as it takes a hit
+    SimBurst_LevelUp,      // a player reaching a new level
+    SimBurst_TalentLearned, // a player spending a talent point
     SimBurst_Count
 };
 

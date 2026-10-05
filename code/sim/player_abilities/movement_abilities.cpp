@@ -218,9 +218,13 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
         {
             continue;
         }
+        // NOTE(zoubir): a level bought in the talent tree speeds a dash
+        // and lengthens the shield (sim/progression/talents.cpp)
+        float Power = Ability->Power *
+            PlayerPowerScale(AppState, Player, Ability->Button);
         if (Ability->Spell == PlayerSpell_None &&
             !Ability->Motion(AppState, World, Arena, Player, Input, DeltaTime,
-                             Ability->Power))
+                             Power))
         {
             continue;
         }
@@ -249,7 +253,8 @@ UseMovementAbilities(app_state *AppState, world *World, memory_arena *Arena,
                 Player->State = EntityState_Standing;
             }
         }
-        *Cooldown += Ability->Cooldown;
+        *Cooldown += Ability->Cooldown *
+            PlayerCooldownScale(AppState, Player, Ability->Button);
         if (Ability->Spell == PlayerSpell_None)
         {
             FinishMovement(AppState, World, Arena, Player, Ability, Tick);
@@ -269,7 +274,8 @@ RunMovementCast(app_state *AppState, world *World, memory_arena *Arena,
         player_movement_ability *Ability = &PlayerMovements[Index];
         if (Ability->Spell == Spell &&
             Ability->Motion(AppState, World, Arena, Player, Input, DeltaTime,
-                            Ability->Power) &&
+                            Ability->Power *
+                            PlayerPowerScale(AppState, Player, Ability->Button)) &&
             Player->IsPresent)
         {
             FinishMovement(AppState, World, Arena, Player, Ability, Tick);

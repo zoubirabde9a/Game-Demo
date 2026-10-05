@@ -7,12 +7,16 @@
 
    The brain is small on purpose: chase the nearest living player or
    monster in sight, swing the sword up close, throw fireballs from range,
-   dash now and then, and wander when nothing is near. Included by
-   sim_game.cpp; GameKeepBots runs it every tick. */
+   dash now and then, and wander when nothing is near. It earns experience
+   like anyone and spends each point on a random talent it may take, then
+   uses Frost Nova, Shockwave and Gravity Well once it has them. Included
+   by sim_game.cpp; GameKeepBots runs it every tick. */
 
 #define BOT_SIGHT 700.f
 #define BOT_SWORD_RANGE 70.f
 #define BOT_FIREBALL_RANGE 380.f
+// NOTE(zoubir): how long a bot sits on a new talent point before spending it
+#define BOT_LEARN_SECONDS 1.5f
 
 // NOTE(zoubir): the movement keys a player would hold to go along
 // Direction (8 ways)
@@ -35,6 +39,7 @@ struct bot_brain
     float AttackWait;  // seconds until the next attack
     float WanderLeft;  // seconds until a new wander direction
     v2 Wander;
+    float LearnWait;   // seconds until it spends a talent point it has
 };
 
 inline u32
@@ -68,6 +73,24 @@ BotFindTarget(app_state *AppState, world_entity *Self)
         }
     }
     return Best;
+}
+
+// NOTE(zoubir): a talent Slot may put a point into, picked at random, as
+// the held buttons' talent field (net/protocol.h); 0 for none
+internal u32
+BotPickTalent(bot_brain *Bot, player_slot *Slot)
+{
+    u32 Result = 0;
+    u32 Start = BotRandom(Bot) % Talent_Count;
+    for (u32 Step = 0; Step < Talent_Count && !Result; ++Step)
+    {
+        u32 Talent = (Start + Step) % Talent_Count;
+        if (CanLearnTalent(Slot, Talent) == TalentRefusal_None)
+        {
+            Result = (Talent + 1) << NET_LEARN_SHIFT;
+        }
+    }
+    return Result;
 }
 
 // NOTE(zoubir): one tick of a bot's thinking, as the input a client would send
@@ -114,6 +137,16 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         {
             Held |= NetButton_RewindBubble;
         }
+        // NOTE(zoubir): the talent tree's area spells, which do nothing
+        // until it has them
+        if (Distance < 110.f && BotRandom(Bot) % 90 == 0)
+        {
+            Held |= (BotRandom(Bot) & 1) ? NetButton_FrostNova : NetButton_Shockwave;
+        }
+        if (Distance > 120.f && Distance < 260.f && BotRandom(Bot) % 150 == 0)
+        {
+            Held |= NetButton_GravityWell;
+        }
     }
     else
     {
@@ -128,9 +161,22 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         Held |= NetButtonsToward(Direction);
     }
 
+    // A point to spend goes into the talent field for one tick; the field
+    // is empty the next, so the server sees each as new.
+    player_slot *Slot = Self ? &AppState->Players[Self->PlayerIndex] : 0;
+    Bot->LearnWait -= Dt;
+    if (Slot && TalentPointsLeft(Slot) > 0 && Bot->LearnWait <= 0.f &&
+        !(Bot->Held >> NET_LEARN_SHIFT))
+    {
+        Held |= BotPickTalent(Bot, Slot);
+        Bot->LearnWait = BOT_LEARN_SECONDS;
+    }
+
     // A press needs the button up the tick before; drop repeats.
     Held &= ~(Bot->Held & (NetButton_Sword | NetButton_Fireball | NetButton_Dash |
-                           NetButton_RewindSelf | NetButton_RewindBubble));
+                           NetButton_RewindSelf | NetButton_RewindBubble |
+                           NetButton_FrostNova | NetButton_Shockwave |
+                           NetButton_GravityWell));
     Bot->Held = Held;
     Input.Buttons = Held;
     Input.AimX = Direction.X;

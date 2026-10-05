@@ -102,7 +102,12 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     if (!Player->Active) return;
 
     u32 Held = Input->Buttons;
-    u32 Pressed = Held & ~Game->HeldButtons[Slot];
+    u32 LearnBits = NET_LEARN_MASK << NET_LEARN_SHIFT;
+    u32 Pressed = Held & ~Game->HeldButtons[Slot] & ~LearnBits;
+    // NOTE(zoubir): the talent field (net/protocol.h) spends a point each
+    // time it changes to a talent
+    u32 Learn = (Held >> NET_LEARN_SHIFT) & NET_LEARN_MASK;
+    u32 LearnBefore = (Game->HeldButtons[Slot] >> NET_LEARN_SHIFT) & NET_LEARN_MASK;
     v2 Move = {};
     if (Held & NetButton_Left) Move.X -= 1.f;
     if (Held & NetButton_Right) Move.X += 1.f;
@@ -131,6 +136,10 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     Out->Move = Move;
     Out->Aim = Aim;
     Out->Pressed |= (u32)Pressed >> PLAYER_BUTTON_NET_SHIFT;
+    if (Learn && Learn != LearnBefore)
+    {
+        Out->Learn = Learn;
+    }
 }
 
 // Whether another connected player already goes by Name (ignoring case).
@@ -219,10 +228,19 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     for (u32 Index = 0; Index < NET_COOLDOWN_COUNT; ++Index)
     {
         float Full = 0.f;
-        float *Seconds = Own ? PlayerCooldown(Own, Index, &Full) : 0;
+        float *Seconds = Own ? PlayerCooldown(Game->AppState, Own, Index, &Full) : 0;
         Out->Cooldowns[Index] = Seconds ? CooldownToByte(*Seconds, Full) : 0;
     }
     Out->Stagger = Own ? CooldownToByte(Own->Stagger, PlayerStats.StaggerSeconds) : 0;
+    // The viewer's experience and talents, for its HUD and talent panel;
+    // the ranks also make its prediction use the same cooldowns.
+    static_assert(Talent_Count == NET_TALENT_COUNT, "one rank per talent");
+    player_slot *Progress = &Game->AppState->Players[ViewerSlot];
+    Out->Xp = (u16)Minimum(Progress->Xp, 0xffffu);
+    for (u32 Index = 0; Index < NET_TALENT_COUNT; ++Index)
+    {
+        Out->TalentRanks[Index] = Progress->Ranks[Index];
+    }
     Out->AbilityCount = 0;
 
     // The viewer's own player goes first so it is never cut off by the
@@ -275,6 +293,8 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
         Score->Kills = (u16)Player->Kills;
         Score->Deaths = (u16)Player->Deaths;
         Score->MonsterKills = (u16)Player->MonsterKills;
+        Score->Level = (u8)Player->Level;
+        Score->Ward = (Player->Ranks[Talent_Ward] && Player->WardReady) ? 1 : 0;
     }
 
     SimGameWriteRewinds(Game, First != 0, Center, Out);

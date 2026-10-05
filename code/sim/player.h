@@ -43,8 +43,12 @@ enum player_button
     PlayerButton_RewindWorld = 1 << 11,
     // NOTE(zoubir): a moment of invulnerability (movement_abilities.cpp)
     PlayerButton_Shield = 1 << 12,
+    // NOTE(zoubir): the two abilities only the talent tree gives
+    // (area_abilities.cpp, progression/talents.cpp)
+    PlayerButton_FrostNova = 1 << 13,
+    PlayerButton_GravityWell = 1 << 14,
 };
-#define PLAYER_ALL_BUTTONS ((u32)(PlayerButton_Shield << 1) - 1)
+#define PLAYER_ALL_BUTTONS ((u32)(PlayerButton_GravityWell << 1) - 1)
 #define PLAYER_BUTTON_NET_SHIFT 4
 
 struct player_input
@@ -61,6 +65,10 @@ struct player_input
     // (attacks, casts). They do nothing here but mark the combo trail, so
     // the client and the server agree on what came before a dash
     u32 ServerPressed;
+    // NOTE(zoubir): a talent to spend a point on this tick, its talent_id
+    // + 1, 0 for none (progression/talents.cpp). The server reads it from
+    // spare bits of the held buttons (NET_LEARN_SHIFT, net/protocol.h)
+    u32 Learn;
 };
 
 // NOTE(zoubir): the moves the combo trail records (player_fields.inc) and
@@ -115,6 +123,8 @@ struct player_slot
     // (client/prediction.cpp): what touches anyone else (a slam's hit)
     // waits for the server
     bool32 Predicted;
+    // NOTE(zoubir): experience, level and talents (sim/progression/)
+#include "progression/progression_fields.inc"
 };
 
 inline bool32

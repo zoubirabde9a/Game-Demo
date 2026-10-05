@@ -99,6 +99,12 @@ HashWorldState(app_state *AppState)
         Hash = HashWorldValue(Hash, Slot->MonsterKills);
         Hash = HashWorldValue(Hash, Slot->RespawnTimer);
         Hash = HashWorldValue(Hash, Slot->DelayedInputCount);
+        Hash = HashWorldValue(Hash, Slot->Xp);
+        Hash = HashWorldValue(Hash, Slot->WardReady);
+        for(u32 Talent = 0; Talent < TALENT_SLOTS; Talent++)
+        {
+            Hash = HashWorldValue(Hash, Slot->Ranks[Talent]);
+        }
     }
     if (AppState->Monsters)
     {

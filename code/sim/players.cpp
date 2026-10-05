@@ -101,6 +101,7 @@ AddPlayerToSlot(app_state *AppState, world *World, memory_arena *Arena,
     player_slot *Slot = &AppState->Players[SlotIndex];
     *Slot = {};
     Slot->Active = true;
+    Slot->Level = 1;
     Slot->SpawnPosition = SpawnPosition;
     Slot->Entity = AddPlayer(AppState, World, Arena,
                              FindFreePlayerSpot(AppState, World, SpawnPosition, 0));
@@ -192,6 +193,10 @@ FindNearestPlayer(app_state *AppState, v2 Position, float *OutDistance)
     return Result;
 }
 
+// NOTE(zoubir): the shield a respawn gives (progression/talents.cpp,
+// included after this)
+inline float RespawnShieldSeconds(player_slot *Slot);
+
 // NOTE(zoubir): the player entity is never removed. While dead it waits
 // out RespawnTimer (deaths are counted in DamageEntity), then goes back to
 // its slot's spawn point with full health, so slot pointers never dangle.
@@ -222,7 +227,7 @@ UpdateDeadPlayer(player_slot *Slot, world *World, memory_arena *Arena,
     // at the spawn point
     CancelPlayerCast(Player);
     Player->PendingLandArea = 0;
-    Player->SpawnShield = PLAYER_SPAWN_SHIELD_SECONDS;
+    Player->SpawnShield = RespawnShieldSeconds(Slot);
     CheckAndChangeEntityChunk(AppState, World, Arena,
                               OldPosition, Player);
     EmitBurst(&AppState->Events, SimBurst_Spawn, (u8)Player->PlayerIndex,

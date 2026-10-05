@@ -463,6 +463,10 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     world *ClientWorld = &Client->World;
     u32 Compared = 0, WrongType = 0, WrongKind = 0, WrongAffix = 0, WrongMaxHp = 0, WrongTint = 0;
     u32 Players = 0, WrongPlayerHp = 0, WrongDead = 0, WrongSlot = 0;
+    // NOTE(zoubir): levels and wards (sim/progression/) reach every
+    // client through the scores; the watcher's own experience and ranks
+    // through its snapshot
+    u32 WrongLevel = 0, WrongWard = 0, ServerLevelUps = 0, OwnCompared = 0, WrongOwn = 0;
     u32 ServerWindups = 0, ClientWindups = 0, ServerBurrows = 0, ClientBurrows = 0;
     u32 ServerElites = 0, ClientElites = 0, ServerFlashes = 0, ClientFlashes = 0;
     u32 LastTick = 0;
@@ -539,8 +543,8 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
                 for (u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; ++Index)
                 {
                     float Full;
-                    float Theirs = *PlayerCooldown(OwnTheirs, Index, &Full);
-                    float Ours = *PlayerCooldown(OwnOurs, Index, &Full);
+                    float Theirs = *PlayerCooldown(Server.Game.AppState, OwnTheirs, Index, &Full);
+                    float Ours = *PlayerCooldown(Client, OwnOurs, Index, &Full);
                     ++CooldownsCompared;
                     if (Theirs - Ours > 0.1f || Ours - Theirs > 0.1f) ++CooldownsOff;
                     ServerCooling += Theirs > 0.f ? 1 : 0;
@@ -584,6 +588,22 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
                     if ((i16)Ours->Hp != (i16)Theirs->Hp) ++WrongPlayerHp;
                     if (IsDeadPlayer(Ours) != IsDeadPlayer(Theirs)) ++WrongDead;
                     if (Ours->PlayerIndex != Theirs->PlayerIndex) ++WrongSlot;
+                    player_slot *OurSlot = &Client->Players[Ours->PlayerIndex];
+                    player_slot *TheirSlot = &Server.Game.AppState->Players[Theirs->PlayerIndex];
+                    WrongLevel += OurSlot->Level != TheirSlot->Level ? 1 : 0;
+                    ServerLevelUps += TheirSlot->Level > 1 ? 1 : 0;
+                    bool32 TheirWard = TheirSlot->WardReady && TheirSlot->Ranks[Talent_Ward];
+                    WrongWard += (OurSlot->WardReady != 0) != (TheirWard != 0) ? 1 : 0;
+                    if (Ours->PlayerIndex == Client->LocalPlayerIndex)
+                    {
+                        ++OwnCompared;
+                        bool32 Same = OurSlot->Xp == TheirSlot->Xp;
+                        for (u32 Talent = 0; Talent < Talent_Count; ++Talent)
+                        {
+                            Same = Same && OurSlot->Ranks[Talent] == TheirSlot->Ranks[Talent];
+                        }
+                        WrongOwn += Same ? 0 : 1;
+                    }
                     ServerCasts += IsPlayerCasting(Theirs) ? 1 : 0;
                     ClientCasts += IsPlayerCasting(Ours) ? 1 : 0;
                     if (IsPlayerCasting(Theirs) && IsPlayerCasting(Ours))
@@ -615,6 +635,15 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     printf("  parity on %s: %u players, wrong health %u, dead %u, slot %u\n",
            GetMapDef((map_id)MapId)->Name, Players, WrongPlayerHp, WrongDead, WrongSlot);
     Check(Players > 100 && WrongPlayerHp == 0 && WrongDead == 0 && WrongSlot == 0);
+    printf("  parity: players past level 1 on the server %u; wrong level %u, ward %u; "
+           "own experience and ranks off %u of %u\n",
+           ServerLevelUps, WrongLevel, WrongWard, WrongOwn, OwnCompared);
+    // NOTE(zoubir): the server ticks once after the snapshot it compares
+    // against, so a level, a ward or the trickle of experience may move
+    // in between now and then
+    Check(ServerLevelUps > 0);
+    Check(WrongLevel * 50 <= Players && WrongWard * 50 <= Players);
+    Check(OwnCompared > 100 && WrongOwn * 3 <= OwnCompared);
     printf("  parity: players casting on server/client %u/%u, %u on both, %u show another spell\n",
            ServerCasts, ClientCasts, BothCast, WrongCast);
     Check(ServerCasts == 0 || ClientCasts > 0);

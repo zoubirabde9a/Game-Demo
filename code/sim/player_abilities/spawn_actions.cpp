@@ -54,7 +54,7 @@ global_variable player_spawn_action PlayerSpawnActions[PlayerAction_Count] =
     {PlayerButton_Cast, EntityState_Casting, AnimationType_Cast,
      PlayerStats.FireballLock, PlayerStats.FireballInterval,
      PLAYER_ACTION_LINGER, false, AssetType_FireCast,
-     SpawnFireBall, ComboMove_Cast},
+     CastFireBall, ComboMove_Cast},
 };
 
 inline bool32
@@ -73,7 +73,8 @@ StartSpawnAction(app_state *AppState, world *World, memory_arena *Arena,
     player_spawn_action *Action = &PlayerSpawnActions[Index];
     Player->State = Action->State;
     Player->ActionLock = Action->Lock;
-    Player->ActionCooldowns[Index] = Action->Interval;
+    Player->ActionCooldowns[Index] = Action->Interval *
+        PlayerCooldownScale(AppState, Player, Action->Button);
     Player->CastingDirection = Dir;
     Player->AnimationState.SlotIndex = 0;
     *Tick->AnimationType = Action->Animation;

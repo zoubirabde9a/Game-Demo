@@ -32,7 +32,7 @@
     float VaultPush;
     // NOTE(zoubir): area abilities (player_abilities/area_abilities.cpp):
     // seconds until each may be used again
-#define PLAYER_AREA_ABILITY_SLOTS 4
+#define PLAYER_AREA_ABILITY_SLOTS 6
     float AreaCooldowns[PLAYER_AREA_ABILITY_SLOTS];
     // NOTE(zoubir): the spell winding up (player_spell, player_casts.cpp),
     // PlayerSpell_None for none, and the seconds of it left

@@ -105,7 +105,8 @@ UseRewindAbilities(app_state *AppState, world_entity *Player,
         if (WasPressed(Input, Ability->Button) &&
             CanUseEarly(Player->RewindCooldowns[Index]))
         {
-            Player->RewindCooldowns[Index] += Ability->Cooldown;
+            Player->RewindCooldowns[Index] += Ability->Cooldown *
+                PlayerCooldownScale(AppState, Player, Ability->Button);
             StartPlayerCast(Player, RewindSpell((rewind_kind)Index),
                             GetPlayerAim(Player));
             if (!Cast)

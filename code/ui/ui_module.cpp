@@ -16,5 +16,8 @@
 #include "minimap.cpp"
 #include "controls_panel.cpp"
 #include "ability_icons/ability_icons.cpp"
+#include "talent_panel/talent_icons.cpp"
+#include "talent_panel/xp_bar.cpp"
+#include "talent_panel/talent_panel.cpp"
 #include "ability_bar.cpp"
 #include "shader_errors.cpp"

@@ -38,6 +38,8 @@ global_variable controls_row ControlsRows[] =
     {"F",           "Blink to the cursor after 0.5 s"},
     {"A",           "Launch: throws foes up, stuns"},
     {"V",           "Rewind the whole world"},
+    {"N",           "Talents: spend a point each level"},
+    {"G T W R C",   "Talent abilities, once unlocked"},
     {"Tab",         "Scoreboard"},
     {"F4",          "Play: map and server"},
     {"F1",          "Fullscreen"},

@@ -12,7 +12,10 @@ SpawnFireBall(app_state *AppState, world *World, memory_arena *Arena,
               world_entity *Player, v2 Dir, player_tick *Tick)
 {
     v2 Start = Player->Position.XY + 32.f * Dir;
-    v2 Velocity = PlayerStats.FireballSpeed * Dir;
+    // NOTE(zoubir): Swift Flames (sim/progression/talents.cpp) speeds it,
+    // and it flies as long, so it goes farther too
+    float Scale = FireballSpeedScale(AppState, Player);
+    v2 Velocity = Scale * PlayerStats.FireballSpeed * Dir;
     // NOTE(zoubir): hand height above the raised ground the player is on,
     // not above its jump, so a shot from a jump still hits who is below
     float Height = GroundHeightAt(World, Player->Position.XY) + FIREBALL_HAND_HEIGHT;
@@ -20,9 +23,31 @@ SpawnFireBall(app_state *AppState, world *World, memory_arena *Arena,
         AddFireBall(AppState, World, Arena, Player,
                     V3(Start.X, Start.Y, Height),
                     V3(Velocity.X, Velocity.Y, 0.f));
+    FireBall->DistanceRemaining *= Scale;
     FireBall->AnimationSpeed = 1.f;
     FireBall->AnimationType = AnimationType_Move;
     FireBall->AnimationDirection = DominantFacing(Dir);
+}
+
+// NOTE(zoubir): the fireball key's spawn (spawn_actions.cpp): one along
+// the aim, or with Twin Flame (sim/progression/talents.cpp) two, a little
+// either side of it
+internal void
+CastFireBall(app_state *AppState, world *World, memory_arena *Arena,
+             world_entity *Player, v2 Dir, player_tick *Tick)
+{
+    if (!PlayerTalentRank(AppState, Player, Talent_TwinFlame))
+    {
+        SpawnFireBall(AppState, World, Arena, Player, Dir, Tick);
+        return;
+    }
+    for(int Side = -1; Side <= 1; Side += 2)
+    {
+        float Angle = (float)Side * TALENT_TWIN_FLAME_SPREAD;
+        v2 Turned = V2(Dir.X * Cos(Angle) - Dir.Y * Sin(Angle),
+                       Dir.X * Sin(Angle) + Dir.Y * Cos(Angle));
+        SpawnFireBall(AppState, World, Arena, Player, Turned, Tick);
+    }
 }
 
 // NOTE(zoubir): what a fireball does to each target it passes through,

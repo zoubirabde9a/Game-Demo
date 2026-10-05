@@ -101,6 +101,8 @@ ApplySnapshotScores(app_state *AppState, net_snapshot *Snapshot)
             Slot->Kills = Score->Kills;
             Slot->Deaths = Score->Deaths;
             Slot->MonsterKills = Score->MonsterKills;
+            Slot->Level = Score->Level;
+            Slot->WardReady = Score->Ward;
         }
     }
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
@@ -193,16 +195,29 @@ ApplySnapshotCasts(world *World, replica_table *Table, net_snapshot *Snapshot)
     }
 }
 
+// NOTE(zoubir): the local player's experience and talents, which only the
+// server changes. Before ApplyOwnTimers: the ranks set the cooldowns'
+// full lengths, and prediction unlocks and levels abilities from them
+internal void
+ApplyOwnProgression(player_slot *Own, net_snapshot *Snapshot)
+{
+    Own->Xp = Snapshot->Xp;
+    for(u32 Index = 0; Index < NET_TALENT_COUNT; Index++)
+    {
+        Own->Ranks[Index] = Snapshot->TalentRanks[Index];
+    }
+}
+
 // NOTE(zoubir): the local player's own cooldowns, which only the server
 // runs, put where the HUD reads them, and its stagger, which only the
 // server's hits start; prediction replays both from here
 internal void
-ApplyOwnTimers(world_entity *Local, net_snapshot *Snapshot)
+ApplyOwnTimers(app_state *AppState, world_entity *Local, net_snapshot *Snapshot)
 {
     for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
     {
         float Full;
-        float *Seconds = PlayerCooldown(Local, Index, &Full);
+        float *Seconds = PlayerCooldown(AppState, Local, Index, &Full);
         if (Seconds) *Seconds = CooldownFromByte(Snapshot->Cooldowns[Index], Full);
     }
     Local->Stagger = CooldownFromByte(Snapshot->Stagger, PlayerStats.StaggerSeconds);

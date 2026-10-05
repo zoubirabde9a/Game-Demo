@@ -8,9 +8,10 @@
 
 #define PLAYER_COOLDOWN_COUNT (PlayerMove_Count + PLAYER_AREA_ABILITY_COUNT + RewindKind_Count + PlayerAction_Count)
 
-// NOTE(zoubir): the field holding cooldown Index, and its full length
+// NOTE(zoubir): the field holding cooldown Index, and its full length at
+// the ability's level (sim/progression/talents.cpp)
 internal float *
-PlayerCooldown(world_entity *Player, u32 Index, float *Full)
+PlayerCooldownAtBase(world_entity *Player, u32 Index, float *Full)
 {
     if (Index < PlayerMove_Count)
     {
@@ -62,6 +63,14 @@ PlayerCooldownButton(u32 Index)
 }
 
 // NOTE(zoubir): a cooldown as one byte, 0..255 of its full length
+internal float *
+PlayerCooldown(app_state *AppState, world_entity *Player, u32 Index, float *Full)
+{
+    float *Result = PlayerCooldownAtBase(Player, Index, Full);
+    *Full *= PlayerCooldownScale(AppState, Player, PlayerCooldownButton(Index));
+    return Result;
+}
+
 inline u8
 CooldownToByte(float Seconds, float Full)
 {

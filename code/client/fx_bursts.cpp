@@ -37,6 +37,12 @@ enum burst_shape
     BurstShape_ConeMark, // the outline of a cone from the centre along Angle
     BurstShape_Thrust, // a point shooting out along Angle, its trail fading
     BurstShape_Spin,   // two blades circling a centre that travels along Angle
+    // NOTE(zoubir): the talent tree's (fx_bursts/talent_bursts.cpp)
+    BurstShape_FrostNova, // frost spreading out with a crown of ice spikes
+    BurstShape_Vortex, // arms spiralling in on the centre, then a flash
+    BurstShape_Shatter, // a six-sided shell breaking into shards
+    BurstShape_LevelUp, // a pillar of light and climbing sparks
+    BurstShape_Learned, // motes swirling up to gather over the head
 };
 
 enum burst_pose
@@ -97,7 +103,16 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Cone, 0.3f, 50.f, 0x0030A0FF, false, 0.15f, BurstPose_Release},   // FlameFan, orange
     {BurstShape_Puff, 0.4f, 30.f, 0x00C8D8E0, true, 0.f, BurstPose_None},         // LongJump, dust
     {BurstShape_Gather, 0.3f, 40.f, 0x00FF60B0, false, 0.2f, BurstPose_None},     // Ambush, violet
+    // NOTE(zoubir): the talent tree's: its two abilities take their reach
+    // and cast time from their area rows
+    {BurstShape_FrostNova, 0.55f, 0.f, 0x00FFE696, false, 0.35f, BurstPose_Release}, // FrostNova, ice
+    {BurstShape_Vortex, 0.5f, 0.f, 0x00FF5AAA, false, 0.3f, BurstPose_Release},      // GravityWell, violet
+    {BurstShape_Mark, 0.f, 0.f, 0x00FF5AAA, false, 0.f, BurstPose_None},             // GravityMark, violet
+    {BurstShape_Shatter, 0.45f, 22.f, 0x006ED7FF, false, 0.2f, BurstPose_None},      // WardBreak, gold
+    {BurstShape_LevelUp, 1.1f, 40.f, 0x0050C8FF, false, 0.f, BurstPose_None},        // LevelUp, gold
+    {BurstShape_Learned, 0.7f, 34.f, 0x008CE6FF, false, 0.f, BurstPose_None},        // TalentLearned, pale gold
 };
+static_assert(ArrayCount(BurstLooks) == SimBurst_Count, "one look per burst");
 
 // NOTE(zoubir): a square dot centred on P; every player effect is drawn in these
 inline void
@@ -333,6 +348,7 @@ DrawGroundRing(render_context *RenderContext, v2 Centre, float Radius,
 
 #include "fx_bursts/bands.cpp"
 #include "fx_bursts/sword_arc.cpp"
+#include "fx_bursts/talent_bursts.cpp"
 
 internal void
 DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
@@ -565,6 +581,31 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
                               2.f + 3.f * Strength, DotColor);
                 }
             }
+        } break;
+
+        case BurstShape_FrostNova:
+        {
+            DrawFrostNovaBurst(RenderContext, Centre, Area.Radius, T, Look->RGB);
+        } break;
+
+        case BurstShape_Vortex:
+        {
+            DrawGravityWellBurst(RenderContext, Centre, Area.Radius, T, Look->RGB);
+        } break;
+
+        case BurstShape_Shatter:
+        {
+            DrawWardBreakBurst(RenderContext, Centre, Area.Radius, T, Look->RGB);
+        } break;
+
+        case BurstShape_LevelUp:
+        {
+            DrawLevelUpBurst(RenderContext, Centre, Area.Radius, T, Look->RGB);
+        } break;
+
+        case BurstShape_Learned:
+        {
+            DrawTalentLearnedBurst(RenderContext, Centre, Area.Radius, T, Look->RGB);
         } break;
 
         case BurstShape_Puff:

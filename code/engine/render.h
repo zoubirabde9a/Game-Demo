@@ -91,6 +91,9 @@ enum shader_id
     Shader_Panel,         // rounded translucent panel with a lit top edge
     Shader_TimeWarp,      // the time rewinds' post-process over the world
     Shader_TimeSigil,     // a clock face of light under a rewind's caster
+    Shader_TalentNode,    // a talent's round medallion: locked, open or full
+    Shader_XpBar,         // the experience bar's track and liquid fill
+    Shader_TalentBackdrop, // a talent branch's glowing column
     Shader_Count
 };
 

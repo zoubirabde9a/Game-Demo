@@ -7,8 +7,10 @@
    GAME_SCREENSHOT_KEYS scripts the keys, so a shot can show an action:
    space-separated From[-To]:Key, holding Key from frame From to To (just
    From when there is no To). Key is a letter, _ for Space, < and > for
-   the left and right mouse buttons, Alt, or F4 (which closes the Play
-   screen offline shots open on). M:X,Y puts the mouse at X,Y in the window.
+   the left and right mouse buttons, Alt, or F1 to F9 (F4 closes the Play
+   screen offline shots open on; F6 gives a level in developer builds).
+   M:X,Y puts the mouse at X,Y in the window; From:@X,Y moves it there
+   from frame From on, so one shot can click several places.
    "2:F4 5-90:D 40:A M:900,400" closes the Play screen, walks right,
    launches at frame 40 and aims to the right of the middle.
 
@@ -40,6 +42,8 @@ struct win32_scripted_key
     u32 From;
     u32 To;
     char Key[4];
+    // NOTE(zoubir): for a mouse move (Key "@"), where to
+    i32 MouseX, MouseY;
 };
 
 struct win32_screenshot
@@ -75,7 +79,19 @@ Win32ParseScriptedKeys(win32_screenshot *Shot, char *Text)
             Key.From = (u32)strtoul(Text, &Text, 10);
             Key.To = Key.From;
             if (*Text == '-') Key.To = (u32)strtoul(Text + 1, &Text, 10);
-            if (*Text == ':' && Text[1])
+            if (*Text == ':' && Text[1] == '@')
+            {
+                Text += 2;
+                Key.Key[0] = '@';
+                Key.MouseX = (i32)strtol(Text, &Text, 10);
+                if (*Text == ',') Text++;
+                Key.MouseY = (i32)strtol(Text, &Text, 10);
+                if (Shot->KeyCount < ArrayCount(Shot->Keys))
+                {
+                    Shot->Keys[Shot->KeyCount++] = Key;
+                }
+            }
+            else if (*Text == ':' && Text[1])
             {
                 Text++;
                 for(u32 Index = 0; Index < 3 && *Text && *Text != ' '; Index++)
@@ -96,7 +112,7 @@ internal app_button_state *
 Win32ScriptedButton(app_input *Input, char *Name)
 {
     char Key = Name[0];
-    if (Key == 'F' && Name[1] == '4') return &Input->ButtonF4;
+    if (Key == 'F' && Name[1] >= '1' && Name[1] <= '9') return &Input->FButtons[Name[1] - '1'];
     if (Key == 'A' && Name[1] == 'l') return &Input->AltButton;
     if (Key >= 'a' && Key <= 'z') Key = (char)(Key - 'a' + 'A');
     if (Key >= 'A' && Key <= 'Z') return &Input->AlphaButtons[Key - 'A'];
@@ -115,7 +131,8 @@ Win32ApplyScriptedKeys(win32_screenshot *Shot, app_input *Input)
     for(u32 Index = 0; Index < Shot->KeyCount; Index++)
     {
         win32_scripted_key *Key = &Shot->Keys[Index];
-        app_button_state *Button = Win32ScriptedButton(Input, Key->Key);
+        app_button_state *Button = Key->Key[0] == '@' ? 0 :
+            Win32ScriptedButton(Input, Key->Key);
         if (Button && Frame >= Key->From && Frame <= Key->To)
         {
             Button->EndedDown = true;
@@ -126,6 +143,17 @@ Win32ApplyScriptedKeys(win32_screenshot *Shot, app_input *Input)
     {
         Input->MouseX = Shot->MouseX;
         Input->MouseY = Shot->MouseY;
+    }
+    u32 LatestMove = 0;
+    for(u32 Index = 0; Index < Shot->KeyCount; Index++)
+    {
+        win32_scripted_key *Key = &Shot->Keys[Index];
+        if (Key->Key[0] == '@' && Frame >= Key->From && Key->From >= LatestMove)
+        {
+            LatestMove = Key->From;
+            Input->MouseX = Key->MouseX;
+            Input->MouseY = Key->MouseY;
+        }
     }
 }
 

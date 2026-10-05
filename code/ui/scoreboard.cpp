@@ -1,5 +1,5 @@
 /* Match screens: the scoreboard shown while Tab is held (every player's
-   kills, deaths and monster kills, best first) and the respawn countdown
+   level, kills, deaths and monster kills, best first) and the respawn countdown
    shown while the local player is dead. */
 
 
@@ -44,20 +44,20 @@ DrawScoreboard(render_context *RenderContext, app_state *AppState,
     u32 Count = RankPlayers(AppState, Order);
 
     float RowHeight = 30.f;
-    float Width = 460.f;
+    float Width = 520.f;
     float Height = RowHeight * (Count + 1) + 24.f;
     float Left = 0.5f * ((float)WindowWidth - Width);
     float Top = 0.5f * ((float)WindowHeight - Height);
     // NOTE(zoubir): the name is left-aligned, the numbers right-aligned
     // on these edges so digits line up
-    float Columns[] = {Left + UI_GAP_LARGE, Left + 280.f, Left + 360.f,
+    float Columns[] = {Left + UI_GAP_LARGE, Left + 270.f, Left + 330.f, Left + 410.f,
                        Left + Width - UI_GAP_LARGE};
 
     DrawFilledRectangle(RenderContext, Left, Top, Width, Height,
                         UI_COLOR_PANEL, 0.f);
     DrawRectangle(RenderContext, Left, Top, Width, Height, UI_COLOR_BORDER, 0.f);
 
-    char *Headers[] = {"Player", "Kills", "Deaths", "Mobs"};
+    char *Headers[] = {"Player", "Level", "Kills", "Deaths", "Mobs"};
     float Y = Top + 12.f;
     for(u32 Column = 0; Column < ArrayCount(Headers); Column++)
     {
@@ -83,7 +83,8 @@ DrawScoreboard(render_context *RenderContext, app_state *AppState,
             GetPlayerName(AppState, SlotIndex, Text, sizeof(Text));
         }
         UIText(RenderContext, Font, Columns[0], Y, Text, Color);
-        u32 Values[] = {Slot->Kills, Slot->Deaths, Slot->MonsterKills};
+        u32 Values[] = {Slot->Level ? Slot->Level : 1, Slot->Kills, Slot->Deaths,
+                        Slot->MonsterKills};
         for(u32 Column = 0; Column < ArrayCount(Values); Column++)
         {
             snprintf(Text, sizeof(Text), "%u", Values[Column]);

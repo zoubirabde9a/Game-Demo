@@ -92,6 +92,13 @@ FullSnapshot()
         Score->Kills = (u16)(Index * 3);
         Score->Deaths = 65535;
         Score->MonsterKills = (u16)(1000 + Index);
+        Score->Level = (u8)(Index * 2 + 1);
+        Score->Ward = Index & 1;
+    }
+    P.Snapshot.Xp = 4321;
+    for (u8 Index = 0; Index < NET_TALENT_COUNT; ++Index)
+    {
+        P.Snapshot.TalentRanks[Index] = (u8)(Index % 4);
     }
 
     // ...and every facing slot...
@@ -350,6 +357,13 @@ TestFullSnapshotFits()
     Check(LastScore->Kills == 3 * (NET_MAX_SNAPSHOT_SCORES - 1));
     Check(LastScore->Deaths == 65535);
     Check(LastScore->MonsterKills == 1000 + NET_MAX_SNAPSHOT_SCORES - 1);
+    Check(LastScore->Level == 2 * (NET_MAX_SNAPSHOT_SCORES - 1) + 1);
+    Check(LastScore->Ward == ((NET_MAX_SNAPSHOT_SCORES - 1) & 1));
+    Check(Out.Snapshot.Xp == 4321);
+    for (u32 Index = 0; Index < NET_TALENT_COUNT; ++Index)
+    {
+        Check(Out.Snapshot.TalentRanks[Index] == Index % 4);
+    }
     Check(Out.Snapshot.NameSlot == NET_MAX_SNAPSHOT_SCORES - 1);
     Check(Out.Snapshot.FacingCount == NET_MAX_SNAPSHOT_FACINGS);
     Check(Out.Snapshot.SoundCount == NET_MAX_SNAPSHOT_SOUNDS);
@@ -950,8 +964,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d53u
-#define NET_GOLDEN_LAYOUT 0xfdd99c4cu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d54u
+#define NET_GOLDEN_LAYOUT 0x4928dd76u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

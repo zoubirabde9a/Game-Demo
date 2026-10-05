@@ -170,7 +170,8 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
     player_slot *Own = &AppState->Players[LocalSlot];
     if (Own->Active && Own->Entity && Own->Entity->Type == EntityType_Player)
     {
-        ApplyOwnTimers(Own->Entity, Snapshot);
+        ApplyOwnProgression(Own, Snapshot);
+        ApplyOwnTimers(AppState, Own->Entity, Snapshot);
     }
     ApplySnapshotScores(AppState, Snapshot);
     if (Snapshot->NameSlot < MAX_PLAYERS)

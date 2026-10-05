@@ -18,6 +18,8 @@ FinishPlayerCast(app_state *AppState, world *World, memory_arena *Arena,
         case PlayerSpell_Shockwave:
         case PlayerSpell_Push:
         case PlayerSpell_Launch:
+        case PlayerSpell_FrostNova:
+        case PlayerSpell_GravityWell:
         {
             if (Authoritative)
             {

@@ -171,11 +171,13 @@ StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0)
 // holds nothing. Aim is the unit vector toward the cursor (zero: no change).
 internal void
 UpdateOnlineSession(online_session *Online, app_input *Input,
-                    bool32 KeysToUi = false, v2 Aim = {})
+                    bool32 KeysToUi = false, v2 Aim = {}, u32 LearnBits = 0)
 {
     if (Online && Online->Enabled)
     {
-        u32 Buttons = KeysToUi ? 0 : NetButtonsFromKeyboard(Input);
+        // NOTE(zoubir): LearnBits is the talent field
+        // (client/talent_requests.cpp), sent even while a screen has the keys
+        u32 Buttons = (KeysToUi ? 0 : NetButtonsFromKeyboard(Input)) | LearnBits;
         NetClientUpdate(&Online->Client, Input->DeltaTime, Buttons, Aim.X, Aim.Y);
         if (Online->Client.State == NetClient_Connected)
         {
@@ -418,7 +420,7 @@ StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0)
 
 internal void
 UpdateOnlineSession(online_session *Online, app_input *Input,
-                    bool32 KeysToUi = false, v2 Aim = {}) {}
+                    bool32 KeysToUi = false, v2 Aim = {}, u32 LearnBits = 0) {}
 internal void OnlineDisconnect(online_session *Online) {}
 internal bool32
 OnlineConnect(online_session *Online, char *Address, char *Name)

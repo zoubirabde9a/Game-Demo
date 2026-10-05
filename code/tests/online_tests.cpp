@@ -18,10 +18,11 @@ TestOnlineAddressAndButtons()
     Input.ButtonD.EndedDown = true;
     Input.ButtonZ.EndedDown = true;
     Input.ButtonE.EndedDown = true;
-    // NOTE(zoubir): the sword has no key under the duel rules
+    // NOTE(zoubir): the sword's key is sent whether or not the talent tree
+    // has unlocked it; the simulation decides (sim/progression/talents.cpp)
     Input.RightButton.EndedDown = true;
     u32 Buttons = NetButtonsFromKeyboard(&Input);
-    Check(Buttons == (NetButton_Right | NetButton_Up | NetButton_Shield));
+    Check(Buttons == (NetButton_Right | NetButton_Up | NetButton_Shield | NetButton_Sword));
 }
 
 internal void

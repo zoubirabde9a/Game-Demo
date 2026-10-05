@@ -24,8 +24,14 @@ ScriptedReplayInput(u32 Slot, u32 Tick)
     if ((Tick + Slot * 11) % 130 == 0) Buttons |= NetButton_Dash;
     if (Tick == 300 + Slot * 40) Buttons |= NetButton_RewindSelf;
     if (Tick == 620 + Slot * 50) Buttons |= NetButton_RewindBubble;
-    if (Slot == 0 && Tick == 1000) Buttons |= NetButton_RewindWorld;
-    Input.Buttons = (u16)Buttons;
+    // NOTE: three tries, a second and a half apart, in case the first finds
+    // the player stunned or frozen by a bot's spell; the cooldown keeps
+    // it to one world rewind
+    if (Slot == 0 && (Tick == 1000 || Tick == 1090 || Tick == 1180))
+    {
+        Buttons |= NetButton_RewindWorld;
+    }
+    Input.Buttons = Buttons;
     Input.AimX = (Tick % 120 < 60) ? 1.f : -0.6f;
     Input.AimY = (Tick % 90 < 45) ? 0.3f : -0.8f;
     return Input;

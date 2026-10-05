@@ -322,9 +322,57 @@ TestBotsFillFreeSlots()
     GameShutdown(&Game);
 }
 
+// A talent asked for in the held buttons' talent field is spent once,
+// however many inputs repeat it, and again only after the field lets go;
+// the viewer's snapshot carries its experience and ranks, and everyone's
+// level.
+internal void
+TestTalentFieldSpendsPoints()
+{
+    static server_game Game;
+    GameInit(&Game);
+    app_state *AppState = Game.AppState;
+    GamePlayerJoined(&Game, 0);
+    GamePlayerJoined(&Game, 1);
+    player_slot *Slot = &AppState->Players[0];
+    AwardXp(AppState, Slot, XpToReach(4));
+    Check(TalentPointsLeft(Slot) == 3);
+
+    u32 Ask = (u32)(Talent_Shield + 1) << NET_LEARN_SHIFT;
+    net_input Input = {};
+    for (u32 Repeat = 0; Repeat < 4; ++Repeat)
+    {
+        Input.Tick = Repeat + 1;
+        Input.Buttons = Ask;
+        GameApplyInput(&Game, 0, &Input);
+        GameTick(&Game, 1.f / 60.f);
+    }
+    Check(Slot->Ranks[Talent_Shield] == 1);
+    Input.Tick = 10;
+    Input.Buttons = 0;
+    GameApplyInput(&Game, 0, &Input);
+    GameTick(&Game, 1.f / 60.f);
+    Input.Tick = 11;
+    Input.Buttons = Ask;
+    GameApplyInput(&Game, 0, &Input);
+    GameTick(&Game, 1.f / 60.f);
+    Check(Slot->Ranks[Talent_Shield] == 2);
+    // NOTE(zoubir): the field is no button press
+    Check(Slot->Entity->MovementCooldowns[PlayerMove_Shield] == 0.f);
+
+    static net_snapshot Out;
+    Out = {};
+    GameWriteSnapshot(&Game, 0, &Out);
+    Check(Out.Xp == Slot->Xp);
+    Check(Out.TalentRanks[Talent_Shield] == 2);
+    Check(Out.ScoreCount == 2 && Out.Scores[0].Level == 4 && Out.Scores[1].Level == 1);
+    GameShutdown(&Game);
+}
+
 internal void
 RunServerGameTests()
 {
+    TestTalentFieldSpendsPoints();
     TestSnapshotPrefersWhatIsNear();
     TestSoundsReachPlayersNearby();
     TestKillsReachEveryone();

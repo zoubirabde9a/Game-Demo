@@ -28,6 +28,9 @@ struct player_area_ability
     // for none)
     sim_burst Burst;
     sim_burst Telegraph;
+    // NOTE(zoubir): the shove pulls toward the area's centre instead of
+    // throwing away from the player
+    bool32 Pull;
 };
 
 // NOTE(zoubir): the rows of PlayerAreaAbilities, in order
@@ -37,6 +40,8 @@ enum player_area
     PlayerArea_Push,
     PlayerArea_Launch,
     PlayerArea_Slam,
+    PlayerArea_FrostNova,
+    PlayerArea_GravityWell,
     PlayerArea_Count
 };
 
@@ -62,6 +67,18 @@ global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
     // within 110 units is thrown out and up and stunned
     {0, PlayerSpell_None, 0.f, 0.f, 110.f, -1.f, {25.f, 380.f, 260.f, 260.f, 0.9f, SimBurst_Count},
      SimBurst_SlamRing, SimBurst_Count},
+    // NOTE(zoubir): Frost Nova (G): everything within 130 units is frozen
+    // in place for 0.9 s, then slowed for 2.5 s. No damage, so in a duel
+    // it sets up the kill rather than making it
+    {PlayerButton_FrostNova, PlayerSpell_FrostNova, 9.f, 0.f, 130.f, -1.f,
+     {0.f, 60.f, 0.f, 0.f, 0.9f, SimBurst_Count, StatusEffect_Slowed, 2.5f},
+     SimBurst_FrostNova, SimBurst_Count},
+    // NOTE(zoubir): Gravity Well (T): a circle of 120 whose middle is 170
+    // out along the aim; everything in it is pulled to the middle and held
+    // for half a second, bunched up for a fireball
+    {PlayerButton_GravityWell, PlayerSpell_GravityWell, 10.f, 170.f, 120.f, -1.f,
+     {0.f, 1100.f, 0.f, 0.f, 0.5f, SimBurst_Count},
+     SimBurst_GravityWell, SimBurst_GravityMark, true},
 };
 #define PLAYER_AREA_ABILITY_COUNT PlayerArea_Count
 static_assert(PlayerArea_Count <= PLAYER_AREA_ABILITY_SLOTS, "one cooldown each");
@@ -103,10 +120,19 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
             continue;
         }
         v2 Away = NormalizeOr(Target->Position.XY - Player->Position.XY, Aim);
-        if (Length(Target->Position.XY - Centre.XY) > Ability->Radius ||
+        float FromCentre = Length(Target->Position.XY - Centre.XY);
+        if (FromCentre > Ability->Radius ||
             DotProduct(Away, Aim) < Ability->ConeCos)
         {
             continue;
+        }
+        if (Ability->Pull)
+        {
+            // NOTE(zoubir): a shove that ends near the middle: the drag
+            // takes most of it within a few units, so the speed scales
+            // with how far out the target stands
+            Away = NormalizeOr(Centre.XY - Target->Position.XY, -Aim);
+            Away *= Minimum(1.f, FromCentre / Ability->Radius);
         }
 
         HitCount++;
@@ -179,7 +205,8 @@ UseAreaAbilities(app_state *AppState, world_entity *Player,
         {
             continue;
         }
-        Player->AreaCooldowns[Index] += Ability->Cooldown;
+        Player->AreaCooldowns[Index] += Ability->Cooldown *
+            PlayerCooldownScale(AppState, Player, Ability->Button);
         v2 Aim = GetPlayerAim(Player);
         StartPlayerCast(Player, Ability->Spell, Aim);
         // NOTE(zoubir): a client predicting its own player runs the cast

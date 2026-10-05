@@ -129,6 +129,12 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
 
     monster_affix_def *Affix = GetAffix(Source ? Source->EliteAffix : 0);
     float Damage = Hit->Damage * Affix->DamageScale;
+    // NOTE(zoubir): a ward (sim/progression/talents.cpp) takes the whole
+    // hit, the shove and the stun with it
+    if (!IsDodging(Target) && WardTakesHit(AppState, Target, Damage))
+    {
+        return false;
+    }
     float HpBefore = Target->Hp;
     bool32 Killed = DamageEntity(AppState, World, Target, Damage, Source);
     float Dealt = HpBefore - Maximum(0.f, Target->Hp);

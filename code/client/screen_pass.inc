@@ -11,15 +11,18 @@ RenderSetProjection(RenderContext, &WorldProjection); // world overlays below dr
 DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
 DrawMonsterCastTells(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
+DrawWardShells(RenderContext, AppState, CameraOffset); // the Ward talent's shell round players, client/talent_fx.cpp
 DrawRewindFx(RenderContext, AppState, CameraOffset); // time rewinds' sigils, ghosts and flashes, client/rewind_fx/
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);
 RenderSetProjection(RenderContext, &ProjectionMatrix); // screens below draw in window pixels
 DrawRewindHud(RenderContext, AppState, Window->Width); // tape counter while time runs back, client/rewind_fx/
 DrawHud(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawAbilityBar(RenderContext, AppState, Input, Window->Width, Window->Height);
+DrawXpOverlays(RenderContext, AppState, Window->Width, Window->Height); // XP gains and the level-up banner, ui/talent_panel/xp_bar.cpp
 DrawMinimap(RenderContext, AppState, Window->Width);
 DrawControlsPanel(RenderContext, AppState, Input, Window->Height);
 DrawRespawnCountdown(RenderContext, AppState, Window->Width, Window->Height);
+DrawTalentPanel(RenderContext, AppState, Input, Window->Width, Window->Height); // the talent tree (N), ui/talent_panel/
 if (Input->TabButton.EndedDown) DrawScoreboard(RenderContext, AppState, Window->Width, Window->Height);
 DoTileEditor(RenderContext, AppState, UIContext, Input, Window, TextureProgram, CameraOffset);
 DoConnectScreen(RenderContext, AppState, UIContext, Input, Window->Width, Window->Height);
