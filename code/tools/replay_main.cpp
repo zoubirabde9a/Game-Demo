@@ -45,6 +45,15 @@ main(int ArgCount, char **Args)
         return 1;
     }
 
+    u32 Header[2] = {};
+    memcpy(Header, Data, Size >= 8 ? 8 : 0);
+    if (Header[0] == REPLAY_MAGIC && Header[1] != REPLAY_VERSION)
+    {
+        printf("replay: written in format %u; this build reads format %u\n",
+               Header[1], REPLAY_VERSION);
+        free(Data);
+        return 1;
+    }
     static server_game Game;
     replay_result Result = PlayReplay(&Game, Data, (u32)Size);
     free(Data);

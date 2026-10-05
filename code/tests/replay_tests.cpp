@@ -2,7 +2,7 @@
    by tick (sim/world_hash.cpp), with bots fighting, monsters spawning and
    all three time rewinds going off; a match recorded into memory
    (server/replay.cpp) plays back to the same hash on every tick; and a
-   recording with one input changed is caught at the tick it changes
+   recording with its inputs changed is caught at the tick they change
    things. Included by server_tests.cpp, which calls RunReplayTests. */
 
 #define REPLAY_TEST_TICKS 1500
@@ -93,14 +93,23 @@ TestSameInputsGiveTheSameWorld()
     GameShutdown(&B);
 }
 
-// A match recorded into memory replays to the same hash on every tick;
-// one input changed in the recording is caught.
+// NOTE: a writer is 2 MB of LZMA scratch and buffers; cleared in place,
+// since "Writer = {}" would build the empty one on the stack first
+internal void
+ClearReplayWriter(replay_writer *Writer)
+{
+    memset(Writer, 0, sizeof(*Writer));
+}
+
+// A match recorded into memory replays to the same hash on every tick,
+// small (the lean layout, packed); one input changed in the recording is
+// caught.
 internal void
 TestReplayPlaysBackTheSameMatch()
 {
     static replay_writer Writer;
     static u8 Memory[4 * 1024 * 1024];
-    Writer = {};
+    ClearReplayWriter(&Writer);
     Writer.Memory = Memory;
     Writer.Capacity = sizeof(Memory);
     static server_game Recorded;
@@ -112,9 +121,15 @@ TestReplayPlaysBackTheSameMatch()
     }
     u32 FinalHash = HashWorldState(Recorded.AppState);
     GameShutdown(&Recorded);
-    Check(!Writer.Failed);
+    ReplayFlush(&Writer);
+    Check(!Writer.Failed && !Writer.Full);
     Check(Writer.Ticks == REPLAY_TEST_TICKS);
-    printf("  replay: %u ticks in %u bytes\n", Writer.Ticks, Writer.Used);
+    float PerHour = (float)Writer.Used * (3600.f * 60.f / (float)REPLAY_TEST_TICKS);
+    printf("  replay: %u ticks in %u bytes, %.2f MB an hour at this pace\n",
+           Writer.Ticks, Writer.Used, PerHour / (1024.f * 1024.f));
+    // NOTE: eight players fighting; the old uncompressed layout made 29.6
+    // MB an hour, this one about 4.6
+    Check(PerHour < 8.f * 1024.f * 1024.f);
 
     static server_game Played;
     replay_result Result = PlayReplay(&Played, Memory, Writer.Used);
@@ -124,40 +139,48 @@ TestReplayPlaysBackTheSameMatch()
     Check(Result.FinalHash == FinalHash);
     Check(Result.ContentId == SimContentId());
 
-    // NOTE: turn slot 0's walks around from half way through: the replay
-    // must notice, at or after the first changed tick, never before. Every
-    // walk from there, not one: slot 0 may be dead for a while, and a
-    // single changed walk then changes nothing
+    // NOTE: the same recording read back and written again with slot 0's
+    // walks turned around from half way: the replay must notice, at or
+    // after the first changed tick, never before. Every walk from there,
+    // not one: slot 0 may be dead for a while, and one walk then changes
+    // nothing
+    static replay_reader Reader;
+    static replay_writer Changed;
+    static u8 ChangedMemory[4 * 1024 * 1024];
+    ClearReplayWriter(&Changed);
+    Changed.Memory = ChangedMemory;
+    Changed.Capacity = sizeof(ChangedMemory);
+    Check(ReplayOpen(&Reader, Memory, Writer.Used));
+    ReplayWriteHeader(&Changed, Reader.ContentId, Reader.MapId);
+    replay_event Event;
     u32 Ticks = 0;
-    u32 At = 16;
-    u32 Changed = 0;
-    while (At < Writer.Used)
+    u32 FirstChanged = 0;
+    while (ReplayNextEvent(&Reader, &Event))
     {
-        u8 Type = Memory[At];
-        u32 Size = Type == ReplayEvent_Tick ? 9 : Type == ReplayEvent_Named ? 18 :
-            Type == ReplayEvent_Input ? 16 : 2;
-        if (Type == ReplayEvent_Tick) ++Ticks;
-        if (Type == ReplayEvent_Input && Memory[At + 1] == 0 && Ticks > REPLAY_TEST_TICKS / 2)
+        Ticks += Event.Type == ReplayEvent_Tick ? 1 : 0;
+        if (Event.Type == ReplayEvent_Input && Event.Slot == 0 && Ticks > REPLAY_TEST_TICKS / 2 &&
+            (Event.Input.Buttons & (NetButton_Left | NetButton_Right)))
         {
-            u16 Buttons;
-            memcpy(&Buttons, Memory + At + 6, sizeof(Buttons));
-            Buttons ^= (u16)(NetButton_Left | NetButton_Right);
-            memcpy(Memory + At + 6, &Buttons, sizeof(Buttons));
-            Changed = Changed ? Changed : Ticks + 1;
+            Event.Input.Buttons ^= (u16)(NetButton_Left | NetButton_Right);
+            FirstChanged = FirstChanged ? FirstChanged : Ticks + 1;
         }
-        At += Size;
+        ReplayWriteEvent(&Changed, &Event);
     }
-    Check(Changed > 0);
-    Result = PlayReplay(&Played, Memory, Writer.Used);
+    ReplayFlush(&Changed);
+    Check(!Reader.Failed && Ticks == REPLAY_TEST_TICKS);
+    Check(FirstChanged > 0);
+    Result = PlayReplay(&Played, ChangedMemory, Changed.Used);
     Check(Result.Readable);
     Check(Result.Mismatches > 0);
-    Check(Result.FirstMismatch >= Changed);
-    // NOTE: a recording cut short is unreadable past the cut, not wrong
-    Result = PlayReplay(&Played, Memory, Writer.Used / 2 + 3);
-    Check(!Result.Readable || Result.Ticks < REPLAY_TEST_TICKS);
+    Check(Result.FirstMismatch >= FirstChanged);
+    // NOTE: a recording cut short (a crash) plays up to its last whole
+    // block and says it was cut
+    Result = PlayReplay(&Played, Memory, Writer.Used - 7);
+    Check(!Result.Readable && Result.Ticks < REPLAY_TEST_TICKS);
+    Check(Result.Mismatches == 0);
 }
 
-// The same through a file, as server --record writes it: a buffer at a
+// The same through a file, as server --record writes it: a block at a
 // time, then read back whole and played.
 internal void
 TestReplayFileRoundTrip()
@@ -168,7 +191,7 @@ TestReplayFileRoundTrip()
 #endif
     const char *Path = "replay_tests.tmp";
     static replay_writer Writer;
-    Writer = {};
+    ClearReplayWriter(&Writer);
     Writer.File = fopen(Path, "wb");
 #if defined(_MSC_VER)
 #pragma warning(pop)
@@ -206,10 +229,53 @@ TestReplayFileRoundTrip()
         fclose(File);
     }
     remove(Path);
+    Check(Size == Writer.Used);
     static server_game Played;
     replay_result Result = PlayReplay(&Played, Memory, Size);
     Check(Result.Readable && Result.Ticks == Ticks && Result.Mismatches == 0);
     Check(Result.MapId == MapId_Wilds);
+}
+
+// A recording stops at its cap: the file stays under it, and what it
+// holds, whole blocks from the start, still plays back without a mismatch.
+internal u32
+RecordReplayTestMatch(replay_writer *Writer, u8 *Memory, u32 Capacity, u32 Cap, u32 Ticks)
+{
+    ClearReplayWriter(Writer);
+    Writer->Memory = Memory;
+    Writer->Capacity = Capacity;
+    Writer->Cap = Cap;
+    static server_game Recorded;
+    GameInit(&Recorded, MapId_Arena);
+    GameStartReplay(&Recorded, Writer);
+    for (u32 Tick = 0; Tick < Ticks; ++Tick)
+    {
+        StepReplayTestGame(&Recorded, Tick);
+    }
+    ReplayFlush(Writer);
+    GameShutdown(&Recorded);
+    return Writer->Used;
+}
+
+internal void
+TestReplayStopsAtItsCap()
+{
+    static replay_writer Writer;
+    static u8 Memory[4 * 1024 * 1024];
+    // NOTE: long enough for several blocks of about half a minute each
+    u32 Ticks = 60 * 120;
+    u32 Whole = RecordReplayTestMatch(&Writer, Memory, sizeof(Memory), 0, Ticks);
+    Check(!Writer.Full && Writer.Used > 3 * 1024);
+    u32 Cap = Whole * 2 / 3;
+    RecordReplayTestMatch(&Writer, Memory, sizeof(Memory), Cap, Ticks);
+    Check(Writer.Full && !Writer.Failed);
+    Check(Writer.Used <= Cap && Writer.Used > 0);
+    static server_game Played;
+    replay_result Result = PlayReplay(&Played, Memory, Writer.Used);
+    printf("  replay cap: %u of %u bytes kept, %u of %u ticks\n", Writer.Used, Whole,
+           Result.Ticks, Ticks);
+    Check(Result.Readable && Result.Ticks > 0 && Result.Ticks < Ticks);
+    Check(Result.Mismatches == 0);
 }
 
 internal void
@@ -218,4 +284,5 @@ RunReplayTests()
     TestSameInputsGiveTheSameWorld();
     TestReplayPlaysBackTheSameMatch();
     TestReplayFileRoundTrip();
+    TestReplayStopsAtItsCap();
 }

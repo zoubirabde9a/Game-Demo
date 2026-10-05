@@ -1,6 +1,6 @@
 /* Entry point of the dedicated server.
    Usage: server [port] [--map <name>] [--bots <count>] [--name <server name>]
-                 [--record <file>]
+                 [--record <file>] [--record-cap <MB>]
    Runs ServerTick SERVER_TICK_RATE times a second until Ctrl+C or a
    service stop, then tells every player it is closing and exits 0. The
    map is any map's name or its last word ("keep", "wilds", "ashen
@@ -9,7 +9,9 @@
    --name is what players see in the server list and HUD, up to 23
    characters; without it clients use the name in their own server list.
    --record writes the whole match to a replay file, which build\replay.exe
-   plays back and checks (server/replay.cpp).
+   plays back and checks (server/replay.cpp): about 4.6 MB an hour with 8
+   players. It stops at --record-cap megabytes (30 by default, about six
+   and a half full hours) and says so.
    Build with build_server.bat (Windows) or build_server.sh (Linux). */
 
 #include <stdio.h>
@@ -27,11 +29,19 @@ main(int ArgCount, char **Args)
     u32 Bots = 0;
     const char *Name = 0;
     const char *RecordPath = 0;
+    u32 RecordCapMegabytes = REPLAY_DEFAULT_CAP / (1024 * 1024);
     for (int Arg = 1; Arg < ArgCount; ++Arg)
     {
         if (strcmp(Args[Arg], "--record") == 0 && Arg + 1 < ArgCount)
         {
             RecordPath = Args[++Arg];
+            continue;
+        }
+        if (strcmp(Args[Arg], "--record-cap") == 0 && Arg + 1 < ArgCount)
+        {
+            int Megabytes = atoi(Args[++Arg]);
+            RecordCapMegabytes = (Megabytes > 0 && Megabytes < 4000) ? (u32)Megabytes :
+                RecordCapMegabytes;
             continue;
         }
         if (strcmp(Args[Arg], "--map") == 0 && Arg + 1 < ArgCount)
@@ -64,7 +74,7 @@ main(int ArgCount, char **Args)
         int Parsed = atoi(Args[Arg]);
         if (Parsed <= 0 || Parsed > 65535)
         {
-            fprintf(stderr, "usage: server [port] [--map <name>] [--bots <count>] [--name <server name>] [--record <file>]\n");
+            fprintf(stderr, "usage: server [port] [--map <name>] [--bots <count>] [--name <server name>] [--record <file>] [--record-cap <MB>]\n");
             return 1;
         }
         Port = (u16)Parsed;
@@ -100,8 +110,10 @@ main(int ArgCount, char **Args)
             fprintf(stderr, "could not write the replay to %s\n", RecordPath);
             return 1;
         }
+        Recorder.Cap = RecordCapMegabytes * 1024 * 1024;
         GameStartReplay(&Server.Game, &Recorder);
     }
+    bool32 SaidFull = false;
     StopSignalInstall();
     // The content id tells which game build this is; clients must match it.
     printf("server%s%s%s listening on UDP port %u at %d ticks/s, content id %08x, map %s\n",
@@ -132,6 +144,12 @@ main(int ArgCount, char **Args)
             ServerLog(&Server, "%s", Line);
             LastStats = Now;
         }
+        if (Recorder.Full && !SaidFull)
+        {
+            ServerLog(&Server, "replay: reached its %u MB cap after %u ticks; no longer recording",
+                      RecordCapMegabytes, Recorder.Ticks);
+            SaidFull = true;
+        }
 
         if (NextTick > Now) ClockSleep(NextTick - Now);
     }
@@ -142,7 +160,9 @@ main(int ArgCount, char **Args)
     {
         ReplayFlush(&Recorder);
         fclose(Recorder.File);
-        printf("replay: %u ticks written to %s%s\n", Recorder.Ticks, RecordPath,
+        printf("replay: %u ticks, %.1f MB written to %s%s%s\n", Recorder.Ticks,
+               Recorder.Used / (1024.0 * 1024.0), RecordPath,
+               Recorder.Full ? " (stopped at the cap)" : "",
                Recorder.Failed ? " (some failed to write)" : "");
     }
     NetSocketsShutdown();

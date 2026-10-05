@@ -16,9 +16,20 @@ Each one runs the same three phases:
 2. **Hold, 0.5 s.** What the rewind takes freezes in place. Outside a bubble the world goes on around it. A world rewind stops everything, and ends any other rewind under way.
 3. **Playback, 0.5 s.** The frozen things run backwards through the last two seconds at four times the speed, frame by frame. They land exactly where they were two seconds before the hold began, with the health, speed, status effects, cooldowns and animation they had then.
 
-What a rewind holds is outside time: it skips its update, takes no damage or shoves, and passes through units and walls (nothing it does during playback is new, it only retraces). If something stands where it lands, it goes to the nearest free spot instead.
+What a rewind holds is outside time: it skips its update, takes no damage, shove or stun, and passes through units and walls (nothing it does during playback is new, it only retraces). Everyone a rewind takes, the caster first (a bubble always takes its caster, however crowded), is invulnerable from the start of the hold to the landing; while a world rewind holds, nothing at all can be hurt. The cast is not protected: a stun, a dash or a death there ends the rewind. If something stands where it lands, it goes to the nearest free spot instead.
 
 A bubble also unmakes what came into being inside it during those two seconds (a fireball, a summoned monster). A world rewind brings back monsters killed in those two seconds and puts the monster spawner's timers and random numbers back too, so what follows is what would have followed then. Scores and rewind cooldowns are never rewound: a kill that happened still counts, and nobody can trade a rewind back and forth.
+
+## Memory
+
+| What | Size |
+|---|---|
+| History, per simulation (the server, or the game offline) | 6.1 MB: 8192 entity copies of 712 bytes, 128 frame headers, the freeze table |
+| Trails, per game client | 2.4 MB: 192 entities x 256 samples |
+| Post-process texture, per game client | window width x height x 4 bytes (8.3 MB at 1920x1080), made at the first rewind |
+| Replay recorder, server with `--record` only | 2.2 MB |
+
+All of it is reserved once and reused: the history and the trails are rings that overwrite their oldest entries, and they are dropped when the map changes or the client goes online or offline.
 
 ## How it works
 
@@ -49,6 +60,9 @@ The simulation's random numbers come from the monster population's seeded series
 - `HashWorldState` (`code/sim/world_hash.cpp`) fingerprints the state the simulation decides: values, never pointers.
 - `server --record match.replay` writes every call the server makes into its game (joins, names, leaves, each input, each tick) with the world hash after every tick (`code/server/replay.cpp`). Bots are recorded as the inputs they produce, so a replay needs no bot code.
 - `build\replay.exe match.replay` plays it back through a fresh game and checks every tick's hash. It prints the first tick where the match went another way, or "every tick matched" (exit code 0).
+- Size: about 4 to 5 MB an hour with 8 players fighting (measured: 4.9 MB/h on a live 8-bot server). An input is written only when it changes what the game keeps, aims at the wire's 16-bit precision, ticks in runs, and the whole stream is LZMA-compressed (`code/third_party/lzma`, public domain) in 64 KB blocks of about half a minute each. Each block goes to disk when full, so a crash loses at most that. The uncompressed first layout made 29.6 MB/h; LZMA alone on it 7.9, the lean layout alone 7.4, both 4.6 (zlib instead of LZMA: 5.3).
+- `--record-cap <MB>` (30 by default, about six full hours) stops the recording at that size and says so. A replay rebuilds the match from the server's first tick, so it cannot drop its oldest part to stay under a cap; a rolling recording would need periodic world snapshots.
+- Memory: the recorder holds about 2.2 MB (a 64 KB block, its packed copy, and 2 MB of fixed scratch for LZMA, which needs 1.3 MB to pack a block); nothing is allocated while it runs.
 - `tests/replay_tests.cpp` runs the same 25-second match (two scripted players, six bots, all three rewinds) twice side by side and compares every tick, replays a recording from memory and from a file, and checks that changed inputs are caught at the first tick they change things.
 
 Replays are exact on the build that recorded them. Across builds they hold while the rules do; the content id in the file says which build made it. The Linux server and replay tool build with `-ffp-contract=off` so g++ does not fuse multiply-adds on ARM, which would round differently from x86. Floats from the C library's `sinf`, `cosf` and `atan2f` can still differ between Windows and Linux, so a replay recorded on the Linux server should be checked with the Linux `build/replay`.

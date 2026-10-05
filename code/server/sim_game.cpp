@@ -100,21 +100,36 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
 {
     player_slot *Player = &Game->AppState->Players[Slot];
     if (!Player->Active) return;
-    ReplayWriteInput(Game->Replay, Slot, Input);
 
     u16 Held = Input->Buttons;
     u16 Pressed = Held & ~Game->HeldButtons[Slot];
-    Game->HeldButtons[Slot] = Held;
-
-    Game->LastInputTick[Slot] = Input->Tick;
+    v2 Move = {};
+    if (Held & NetButton_Left) Move.X -= 1.f;
+    if (Held & NetButton_Right) Move.X += 1.f;
+    if (Held & NetButton_Up) Move.Y -= 1.f;
+    if (Held & NetButton_Down) Move.Y += 1.f;
+    // NOTE(zoubir): at the wire's precision whoever sent it: a client's aim
+    // already is, a bot's is rounded here, so a replay's 16-bit aims
+    // (replay.cpp) give back exactly what the game used
+    v2 Aim = V2((float)ReplayAimSteps(Input->AimX) / 32767.0f,
+                (float)ReplayAimSteps(Input->AimY) / 32767.0f);
     player_input *Out = &Player->Input;
-    Out->Move = {};
-    if (Held & NetButton_Left) Out->Move.X -= 1.f;
-    if (Held & NetButton_Right) Out->Move.X += 1.f;
-    if (Held & NetButton_Up) Out->Move.Y -= 1.f;
-    if (Held & NetButton_Down) Out->Move.Y += 1.f;
-    Out->Aim = V2(Input->AimX, Input->AimY);
+    // NOTE(zoubir): an input that changes nothing the game keeps (most
+    // repeat the last) is left out of a replay. Asked of the game, not of
+    // the last input: a stun zeroes the move, and the next same input then
+    // does change it
+    bool32 ChangesGame = Held != Game->HeldButtons[Slot] ||
+        Move.X != Out->Move.X || Move.Y != Out->Move.Y ||
+        Aim.X != Out->Aim.X || Aim.Y != Out->Aim.Y;
+    if (ChangesGame)
+    {
+        ReplayWriteInput(Game->Replay, Slot, Input);
+    }
 
+    Game->HeldButtons[Slot] = Held;
+    Game->LastInputTick[Slot] = Input->Tick;
+    Out->Move = Move;
+    Out->Aim = Aim;
     Out->Pressed |= (u32)Pressed >> PLAYER_BUTTON_NET_SHIFT;
 }
 
