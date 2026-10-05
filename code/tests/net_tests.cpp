@@ -124,6 +124,17 @@ FullSnapshot()
     P.Snapshot.Bursts[0].X = -40.5f;
     P.Snapshot.Bursts[0].Y = 812.25f;
     P.Snapshot.Bursts[0].Z = 33.f;
+    // One rewind, for the same reason.
+    P.Snapshot.RewindCount = 1;
+    P.Snapshot.Rewinds[0].Slot = 6;
+    P.Snapshot.Rewinds[0].Kind = 1;
+    P.Snapshot.Rewinds[0].Phase = 2;
+    P.Snapshot.Rewinds[0].PhaseLeft = 0.36f;
+    P.Snapshot.Rewinds[0].X = 512.5f;
+    P.Snapshot.Rewinds[0].Y = -77.25f;
+    P.Snapshot.Rewinds[0].Radius = 160.f;
+    P.Snapshot.Rewinds[0].Frozen[0] = 0x81;
+    P.Snapshot.Rewinds[0].Frozen[5] = 0x80;
 
     // ...and the longest name.
     P.Snapshot.NameSlot = NET_MAX_SNAPSHOT_SCORES - 1;
@@ -293,6 +304,12 @@ TestFullSnapshotFits()
     Check(Out.Snapshot.Tick == 123456);
     Check(Out.Snapshot.InputTick == 0xfedcba98);
     Check(Out.Snapshot.Stagger == 0x5a);
+    Check(Out.Snapshot.RewindCount == 1);
+    net_rewind *Rewind = &Out.Snapshot.Rewinds[0];
+    Check(Rewind->Slot == 6 && Rewind->Kind == 1 && Rewind->Phase == 2);
+    Check(Rewind->PhaseLeft > 0.355f && Rewind->PhaseLeft < 0.365f);
+    Check(Rewind->X == 512.5f && Rewind->Y == -77.25f && Rewind->Radius == 160.f);
+    Check(Rewind->Frozen[0] == 0x81 && Rewind->Frozen[5] == 0x80);
     Check(Out.Snapshot.Count == NET_MAX_SNAPSHOT_ENTITIES);
     net_entity_state *Last = &Out.Snapshot.Entities[NET_MAX_SNAPSHOT_ENTITIES - 1];
     Check(Last->Id == 1000 + NET_MAX_SNAPSHOT_ENTITIES - 1);
@@ -912,8 +929,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d4fu
-#define NET_GOLDEN_LAYOUT 0x501dfc77u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d50u
+#define NET_GOLDEN_LAYOUT 0x37010f8cu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

@@ -92,6 +92,9 @@ struct app_state
     // NOTE(zoubir): filled by SimulateTick, drained by whoever runs it
     sim_events Events;
     struct monster_population *Monsters;
+    // NOTE(zoubir): the last seconds of the world and the rewinds under
+    // way, sim/time_rewind/; made by the first SimulateTick
+    struct time_rewind *Rewind;
     // NOTE(zoubir): one pointer per client feature (online session, kill
     // feed, screens, effects); add a new one there, not here
 #include "client/client_fields.inc"

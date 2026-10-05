@@ -150,6 +150,45 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     }
 }
 
+// Slot, kind and phase share a byte. Frozen bits past the snapshot's
+// entities (left out to make it fit) read as clear.
+internal bool32
+NetSerializeRewind(net_stream *S, net_rewind *R, u16 EntityCount)
+{
+    u8 Head = (u8)((R->Slot & 7) | ((R->Kind & 3) << 3) | ((R->Phase & 3) << 5));
+    NetU8(S, &Head);
+    R->Slot = Head & 7;
+    R->Kind = (Head >> 3) & 3;
+    R->Phase = (Head >> 5) & 3;
+    u8 Left = 0;
+    if (S->Writing)
+    {
+        float Steps = R->PhaseLeft * 250.f + 0.5f;
+        Left = (u8)(Steps <= 0.f ? 0 : (Steps >= 255.f ? 255 : Steps));
+    }
+    NetU8(S, &Left);
+    R->PhaseLeft = (float)Left / 250.f;
+    NetFixed16(S, &R->X, NET_POSITION_STEPS);
+    NetFixed16(S, &R->Y, NET_POSITION_STEPS);
+    u8 Radius = 0;
+    if (S->Writing)
+    {
+        float Steps = R->Radius * 0.5f + 0.5f;
+        Radius = (u8)(Steps <= 0.f ? 0 : (Steps >= 255.f ? 255 : Steps));
+    }
+    NetU8(S, &Radius);
+    R->Radius = 2.f * (float)Radius;
+    for (u32 Index = 0; Index < ArrayCount(R->Frozen); ++Index)
+    {
+        NetU8(S, &R->Frozen[Index]);
+    }
+    for (u32 Bit = EntityCount; Bit < 8 * ArrayCount(R->Frozen); ++Bit)
+    {
+        R->Frozen[Bit / 8] &= (u8)~(1u << (Bit % 8));
+    }
+    return R->Phase != 0;
+}
+
 // Returns false if the ability points at an entity the snapshot does not hold.
 internal bool32
 NetSerializeAbility(net_stream *S, net_ability_state *A, u16 EntityCount)
@@ -335,6 +374,12 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetFixed16(S, &Burst->X, NET_POSITION_STEPS);
                 NetFixed16(S, &Burst->Y, NET_POSITION_STEPS);
                 NetFixed16(S, &Burst->Z, NET_POSITION_STEPS);
+            }
+            NetU8(S, &P->Snapshot.RewindCount);
+            if (P->Snapshot.RewindCount > NET_MAX_SNAPSHOT_REWINDS) return false;
+            for (u32 Index = 0; Index < P->Snapshot.RewindCount; ++Index)
+            {
+                if (!NetSerializeRewind(S, &P->Snapshot.Rewinds[Index], P->Snapshot.Count)) return false;
             }
         } break;
 

@@ -67,4 +67,6 @@ RebuildWorldForMap(app_state *AppState, memory_arena *Arena, u32 MapId)
     BuildArena(AppState, Arena);
     AppState->Monsters =
         CreateMonsterPopulation(Arena, MONSTER_POPULATION, 1337);
+    // NOTE(zoubir): it lived in Arena; the next tick makes a new one
+    AppState->Rewind = 0;
 }

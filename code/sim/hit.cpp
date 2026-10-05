@@ -114,7 +114,8 @@ internal bool32
 ApplyHit(app_state *AppState, world *World, world_entity *Target,
          hit *Hit, v2 Away, world_entity *Source, u32 BySlot)
 {
-    if (!Target->IsPresent || Target->Hp <= 0.f)
+    // NOTE(zoubir): nor is a unit a rewind froze thrown (sim/time_rewind/)
+    if (!Target->IsPresent || Target->Hp <= 0.f || IsTimeLocked(AppState, Target))
     {
         return false;
     }

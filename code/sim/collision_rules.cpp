@@ -112,7 +112,10 @@ CanCollide(app_state *AppState, world_entity *A,
 {
     bool32 Result = false;
 
-    if(A != B)
+    // NOTE(zoubir): what a time rewind holds is outside time: it neither
+    // blocks nor is blocked while it is frozen or runs back (IsTimeLocked,
+    // sim/time_rewind/)
+    if(A != B && !IsTimeLocked(AppState, A) && !IsTimeLocked(AppState, B))
     {
         if(A->ID > B->ID)
         {

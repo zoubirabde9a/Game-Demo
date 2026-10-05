@@ -36,6 +36,7 @@
 #include "monster_population.cpp"
 #include "terrain_effects.cpp"
 #include "update.cpp"
+#include "time_rewind/time_rewind.cpp"
 #include "player_update.cpp"
 #include "separation.cpp"
 #include "simulate.cpp"

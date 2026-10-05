@@ -37,6 +37,10 @@ enum player_button
     PlayerButton_Push = 1 << 6,
     PlayerButton_Launch = 1 << 7,
     PlayerButton_Slam = 1 << 8,
+    // NOTE(zoubir): the three time rewinds (sim/time_rewind/)
+    PlayerButton_RewindSelf = 1 << 9,
+    PlayerButton_RewindBubble = 1 << 10,
+    PlayerButton_RewindWorld = 1 << 11,
 };
 #define PLAYER_BUTTON_NET_SHIFT 4
 

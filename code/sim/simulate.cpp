@@ -8,6 +8,22 @@ internal void
 SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
 {
     world *World = &AppState->World;
+    if (!AppState->Rewind)
+    {
+        AppState->Rewind = CreateTimeRewind(Arena);
+    }
+    time_rewind *Rewind = AppState->Rewind;
+    // NOTE(zoubir): a world rewind holding or playing back stops
+    // everything else (sim/time_rewind/). A frame it puts back may have
+    // been taken while another rewind ran a body through someone, so the
+    // units are still pulled apart after it
+    if (Rewind->WorldFrozen)
+    {
+        UpdateRewinds(AppState, Rewind, World, Arena, DeltaTime);
+        SeparateOverlappingUnits(AppState, World, Arena);
+        return;
+    }
+    AdvanceRewindClock(Rewind, DeltaTime);
     UpdateTerrainEffects(World);
 
     // NOTE(zoubir): entities added during the tick (fireballs, swords,
@@ -25,6 +41,11 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
         // NOTE(zoubir): a monster in a hit-pause (sim/hit.cpp) skips its
         // update and animation this tick
         if (TickHitStop(Entity, DeltaTime))
+        {
+            continue;
+        }
+        // NOTE(zoubir): frozen by a rewind, which moves it itself
+        if (IsTimeLocked(AppState, Entity))
         {
             continue;
         }
@@ -117,7 +138,15 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
                                 DeltaTime);
     }
 
+    // NOTE(zoubir): the rewinds move what they froze, and put it back at
+    // the end of a playback, where something else may stand by now
+    UpdateRewinds(AppState, Rewind, World, Arena, DeltaTime);
+
     // NOTE(zoubir): last, so nothing that moved or spawned this tick is
-    // left inside a wall or another unit
+    // left inside a wall or another unit (what a rewind still holds is
+    // outside time and blocks nothing, collision_rules.cpp)
     SeparateOverlappingUnits(AppState, World, Arena);
+
+    // NOTE(zoubir): then the tick goes into the history
+    RecordRewindHistory(AppState, Rewind, World, DeltaTime);
 }

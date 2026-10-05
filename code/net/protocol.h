@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d4fu // "GDMO", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d50u // "GDMP", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
@@ -30,7 +30,8 @@
 #define NET_MAX_SNAPSHOT_SOUNDS 8   // sounds heard since the last snapshot
 #define NET_MAX_SNAPSHOT_KILLS 4    // player deaths since the last snapshot
 #define NET_MAX_SNAPSHOT_BURSTS 8   // visual bursts seen since the last snapshot
-#define NET_COOLDOWN_COUNT 7        // the viewer's own ability cooldowns
+#define NET_MAX_SNAPSHOT_REWINDS 4  // time rewinds under way the viewer can see
+#define NET_COOLDOWN_COUNT 10       // the viewer's own ability cooldowns
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_SERVER_NAME_SIZE 24     // server name, 23 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
@@ -72,6 +73,9 @@ enum net_button
     NetButton_Push      = 1 << 10,
     NetButton_Launch    = 1 << 11,
     NetButton_Slam      = 1 << 12,
+    NetButton_RewindSelf   = 1 << 13,
+    NetButton_RewindBubble = 1 << 14,
+    NetButton_RewindWorld  = 1 << 15,
 };
 // The action buttons, Jump onward, are the simulation's player_button bits
 // moved up by PLAYER_BUTTON_NET_SHIFT (sim/player.h); keep the two orders
@@ -224,6 +228,22 @@ struct net_burst
     float X, Y, Z;
 };
 
+// A time rewind under way (sim/time_rewind/), so clients can draw its
+// cast, its freeze and its playback, and leave a frozen local player
+// where the server puts it. 13 bytes.
+struct net_rewind
+{
+    u8 Slot;        // 3 bits: the caster's player slot
+    u8 Kind;        // 2 bits: rewind_kind
+    u8 Phase;       // 2 bits: rewind_phase, never None
+    float PhaseLeft; // seconds left in the phase, sent in 4 ms steps up to 1.02 s
+    float X, Y;     // the caster's feet, or the bubble's centre once it holds
+    float Radius;   // the bubble's, sent in 2-unit steps up to 510
+    // Bit N set: the snapshot's entity N is frozen by this rewind. A world
+    // rewind freezes everything and sets none.
+    u8 Frozen[(NET_MAX_SNAPSHOT_ENTITIES + 7) / 8];
+};
+
 struct net_snapshot
 {
     u32 Tick;
@@ -264,6 +284,10 @@ struct net_snapshot
     // lost with their snapshot like sounds.
     u8 BurstCount;
     net_burst Bursts[NET_MAX_SNAPSHOT_BURSTS];
+    // Rewinds under way near this player (all of a world rewind's), so a
+    // lost snapshot loses nothing: the next one says the same.
+    u8 RewindCount;
+    net_rewind Rewinds[NET_MAX_SNAPSHOT_REWINDS];
 };
 
 struct net_packet

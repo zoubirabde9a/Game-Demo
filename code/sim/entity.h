@@ -196,6 +196,8 @@ struct world_entity
 #include "monster_fields.inc"
     // NOTE(zoubir): player-only state (ability cooldowns)
 #include "player_fields.inc"
+    // NOTE(zoubir): the time rewind's fields (sim/time_rewind/)
+#include "time_rewind/rewind_fields.inc"
     // NOTE(zoubir): which player_slot owns this player entity
     u32 PlayerIndex;
     // NOTE(zoubir): swords and fireballs remember the slot that made them,

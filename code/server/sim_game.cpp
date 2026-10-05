@@ -166,6 +166,8 @@ GameTick(server_game *Game, float Dt)
 // NOTE(zoubir): packing single entities into wire fields, and keeping
 // the nearest; GameWriteSnapshot below assembles the snapshot
 #include "sim_game/pack.cpp"
+// NOTE(zoubir): the time rewinds under way, with which entities each froze
+#include "sim_game/rewinds.cpp"
 
 internal void
 GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
@@ -238,6 +240,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
         Score->MonsterKills = (u16)Player->MonsterKills;
     }
 
+    SimGameWriteRewinds(Game, First != 0, Center, Out);
     RelayWrite(&Game->Relay, ViewerSlot, First != 0, Center, Out);
 }
 

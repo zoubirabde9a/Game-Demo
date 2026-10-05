@@ -103,6 +103,17 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
             }
         }
         if (BotRandom(Bot) % 400 == 0) Held |= NetButton_Dash;
+        // NOTE(zoubir): badly hurt, a bot may rewind itself to before the
+        // hits; up close, now and then, it rewinds the fight around it.
+        // Never the whole world: on a live server that is the players' call
+        if (Self->Hp < 0.35f * Self->MaxHp && BotRandom(Bot) % 60 == 0)
+        {
+            Held |= NetButton_RewindSelf;
+        }
+        if (Distance < BOT_SWORD_RANGE * 2.f && BotRandom(Bot) % 900 == 0)
+        {
+            Held |= NetButton_RewindBubble;
+        }
     }
     else
     {
@@ -118,7 +129,8 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     }
 
     // A press needs the button up the tick before; drop repeats.
-    Held &= ~(Bot->Held & (NetButton_Sword | NetButton_Fireball | NetButton_Dash));
+    Held &= ~(Bot->Held & (NetButton_Sword | NetButton_Fireball | NetButton_Dash |
+                           NetButton_RewindSelf | NetButton_RewindBubble));
     Bot->Held = Held;
     Input.Buttons = Held;
     Input.AimX = Direction.X;

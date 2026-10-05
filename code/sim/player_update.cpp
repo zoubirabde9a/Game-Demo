@@ -117,6 +117,7 @@ UsePlayerAbilities(app_state *AppState, world *World, memory_arena *Arena,
     UseJump(AppState, World, Arena, Player, Input, DeltaTime, Tick);
     UseAreaAbilities(AppState, World, Player, Input, DeltaTime, Tick);
     UseMovementAbilities(AppState, World, Arena, Player, Input, DeltaTime, Tick);
+    UseRewindAbilities(AppState, Player, Input, DeltaTime);
 }
 
 internal void

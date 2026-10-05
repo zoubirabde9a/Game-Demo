@@ -302,6 +302,10 @@ RandomButtons(soak_random *R, u16 Held, u32 Heading)
     if (Chance(R, 10)) Result |= NetButton_Push;
     if (Chance(R, 12)) Result |= NetButton_Launch;
     if (Chance(R, 8)) Result |= NetButton_Slam;
+    // NOTE(zoubir): the time rewinds (sim/time_rewind/), the world one rarely
+    if (Chance(R, 30)) Result |= NetButton_RewindSelf;
+    if (Chance(R, 40)) Result |= NetButton_RewindBubble;
+    if (Chance(R, 600)) Result |= NetButton_RewindWorld;
     return Result;
 }
 

@@ -297,14 +297,18 @@ IsAboveShot(world_entity *Player, world_entity *Shot)
 // NOTE(zoubir): a player's kill refunds cooldowns
 // (player_abilities/movement_abilities.cpp, included later)
 internal void RefundOnKill(world_entity *Player);
+// NOTE(zoubir): in sim/time_rewind/rewind_abilities.cpp, included later
+internal bool32 IsTimeLocked(app_state *AppState, world_entity *Entity);
 
 internal bool32
 DamageEntity(app_state *AppState, world *World,
              world_entity *Target, float Damage, world_entity *Source)
 {
     // NOTE(zoubir): a dead player waits for respawn with Hp <= 0, so
-    // further hits that frame do not count as more kills
-    if (!Target->IsPresent || Target->Hp <= 0.f || IsDodging(Target))
+    // further hits that frame do not count as more kills. A unit frozen
+    // by a rewind is outside time and takes nothing
+    if (!Target->IsPresent || Target->Hp <= 0.f || IsDodging(Target) ||
+        IsTimeLocked(AppState, Target))
     {
         return false;
     }
