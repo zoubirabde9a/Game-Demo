@@ -23,7 +23,22 @@ Three branches of four tiers. A tier opens once you have spent 2 points per tier
 | 3 | Frost Nova, Twin Flame | Push, Slam | Gravity Well, Rewind Bubble |
 | 4 | Pyre | Momentum | Second Wind |
 
-**Abilities have levels 1 to 3.** The six the duel starts with (fireball, launch, dash, blink, shield, world rewind) are level 1 for free. The rest are locked until a point unlocks them at level 1, and their key does nothing before that. Each level after the first takes 15% off the cooldown: 6 s, 5.1 s, 4.2 s. Dash also gets 10% faster per level and the shield lasts 0.5 s longer.
+**Abilities have levels 1 to 3.** The six the duel starts with (fireball, launch, dash, blink, shield, world rewind) are level 1 for free. The rest are locked until a point unlocks them at level 1, and their key does nothing before that. Each level after the first takes 15% off the cooldown (6 s, 5.1 s, 4.2 s) and adds the ability's own perk:
+
+| Ability | Each level after the first |
+|---|---|
+| Fireball | +8% speed and range |
+| Launch | +0.25 s stun |
+| Shockwave | +15% shove, +0.15 s stun |
+| Frost Nova | +0.2 s freeze, +0.75 s slow |
+| Dash | +10% speed |
+| Push | +15% shove |
+| Slam | +0.2 s stun |
+| Shield | +0.5 s untouchable |
+| Gravity Well | +0.15 s hold |
+| Blink, Sword, the rewinds | cooldown only |
+
+**Reset.** The talent panel's Reset button, clicked twice, gives every point back. The abilities those points unlocked lock again.
 
 **New abilities.** Frost Nova (G) freezes everyone within 130 units for 0.9 s, then slows them for 2.5 s. Gravity Well (T) pulls everyone in a circle 170 units out along your aim into its centre and holds them for half a second. Neither deals damage: they set up a fireball.
 
@@ -42,7 +57,10 @@ Experience and talents live on the player slot, not the entity, so a time rewind
 ## On screen
 
 - **Ability bar:** shows only the abilities you have, with level pips along each slot's foot. A thin gold experience strip runs under health. The level badge is on the left, with a ring filling toward the next level. On the right is the talent button, which shows "+N" and pulses while points wait.
-- **Talent panel (N, or click the button):** the three branches as glowing columns. A node breathes in its branch's colour when a point can go in and turns gold when maxed. Hover a node to see what it does, its cooldown now and at the next level, and why it can't take a point yet. Click to spend. The game keeps running behind the panel; only clicks on the panel stay with it.
+- **Talent panel (N, or click the button):** the three branches as glowing columns, with your stats down the right: points, run speed, fireball speed and range, respawn, ward, and every ability you have with its level and cooldown. A node breathes in its branch's colour when a point can go in and turns gold when maxed. A ring round it fills with its ranks, and light runs down the links into tiers you have opened. Hover a node to see its numbers now and at the next rank (stun, slow, shove, speed, cooldown) and why it can't take a point yet. Click to spend. A refused click shakes the node and the footer says why. The game keeps running behind the panel; only clicks on the panel stay with it.
+- **Upgrade hints:** an ability bar slot that can take a point carries a gold "+". Clicking it opens the tree with that talent pulsing. Clicks on the ability bar never fire a fireball.
+- **Unlocks:** a new ability arrives on the bar with a flash and an "unlocked" toast that names its key.
+- **Frost Nova's marks:** a slowed unit walks on a ring of frost with flakes rising off it. A frozen one stands in a block of ice. Both are drawn from the status the server already sends, so they show online too.
 - **Feedback:** "+100 XP" rises from the strip on a kill. Reaching a level shows a banner and a pillar of light on the player that everyone sees. Other players' names carry a gold level chip, and the scoreboard (Tab) has a level column.
 - **F6** (developer builds, offline only) grants the experience to the next level, for trying the tree.
 
