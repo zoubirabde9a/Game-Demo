@@ -11,7 +11,7 @@ RenderSetProjection(RenderContext, &WorldProjection); // world overlays below dr
 DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
 DrawMonsterCastTells(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
-DrawWardShells(RenderContext, AppState, CameraOffset); // the Ward talent's shell round players, client/talent_fx.cpp
+DrawTalentFx(RenderContext, AppState, CameraOffset); // frost on slowed and frozen units, the Ward talent's shell, client/talent_fx.cpp
 DrawRewindFx(RenderContext, AppState, CameraOffset); // time rewinds' sigils, ghosts and flashes, client/rewind_fx/
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);
 RenderSetProjection(RenderContext, &ProjectionMatrix); // screens below draw in window pixels

@@ -27,6 +27,9 @@ struct talent_requests
     // zero width while it is closed
     float PanelX, PanelY, PanelWidth, PanelHeight;
     bool32 PanelOpen;
+    // NOTE(zoubir): the ability bar's plate with its badge and button,
+    // last frame (ui/ability_bar.cpp): clicks there are not casts either
+    float BarX, BarY, BarWidth, BarHeight;
 };
 
 internal talent_requests *
@@ -47,6 +50,17 @@ RequestTalent(app_state *AppState, u32 Talent)
     if (Requests->Count < TALENT_REQUEST_QUEUE && Talent < Talent_Count)
     {
         Requests->Queue[Requests->Count++] = Talent + 1;
+    }
+}
+
+// NOTE(zoubir): every point back (sim/progression/talents.cpp ResetTalents)
+internal void
+RequestTalentReset(app_state *AppState)
+{
+    talent_requests *Requests = GetTalentRequests(AppState);
+    if (Requests->Count < TALENT_REQUEST_QUEUE)
+    {
+        Requests->Queue[Requests->Count++] = TALENT_LEARN_RESET;
     }
 }
 
@@ -108,16 +122,25 @@ OnlineTalentBits(app_state *AppState, float DeltaTime)
     return Result;
 }
 
-// NOTE(zoubir): the mouse is over the open talent panel, so its buttons
-// are the panel's and not the player's
+inline bool32
+MouseInBox(app_input *Input, float X, float Y, float Width, float Height)
+{
+    bool32 Result = (float)Input->MouseX >= X && (float)Input->MouseY >= Y &&
+        (float)Input->MouseX < X + Width && (float)Input->MouseY < Y + Height;
+    return Result;
+}
+
+// NOTE(zoubir): the mouse is over the open talent panel or the ability
+// bar, so its buttons are the screen's and not the player's
 internal bool32
 TalentPanelHasMouse(app_state *AppState, app_input *Input)
 {
     talent_requests *Requests = AppState->TalentRequests;
-    bool32 Result = Requests && Requests->PanelOpen &&
-        (float)Input->MouseX >= Requests->PanelX &&
-        (float)Input->MouseY >= Requests->PanelY &&
-        (float)Input->MouseX < Requests->PanelX + Requests->PanelWidth &&
-        (float)Input->MouseY < Requests->PanelY + Requests->PanelHeight;
+    bool32 Result = Requests &&
+        ((Requests->PanelOpen &&
+          MouseInBox(Input, Requests->PanelX, Requests->PanelY, Requests->PanelWidth,
+                     Requests->PanelHeight)) ||
+         MouseInBox(Input, Requests->BarX, Requests->BarY, Requests->BarWidth,
+                    Requests->BarHeight));
     return Result;
 }

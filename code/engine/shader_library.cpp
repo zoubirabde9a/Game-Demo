@@ -45,6 +45,7 @@ global_variable shader_def ShaderDefs[Shader_Count] =
     {"talent node", "shaders/fx/quad.vert", "shaders/fx/talent_node.frag", 3, true},
     {"xp bar", "shaders/fx/quad.vert", "shaders/fx/xp_bar.frag", 3, true},
     {"talent backdrop", "shaders/fx/quad.vert", "shaders/fx/talent_backdrop.frag", 3, true},
+    {"talent arc", "shaders/fx/quad.vert", "shaders/fx/talent_arc.frag", 3, true},
 };
 
 global_variable char *ShaderAttributes[] =

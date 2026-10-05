@@ -26,6 +26,7 @@
 // ones (the trickle) only move the bar
 #define XP_GAIN_SHOWN 5
 #define LEVEL_BANNER_SECONDS 3.2f
+#define XP_TOAST_SECONDS 2.8f
 #define XP_COLOR UI_RGBA(255, 196, 70, 255)
 
 struct xp_gain
@@ -46,6 +47,11 @@ struct xp_bar
     float ShownShare;
     float BannerAge;
     u32 BannerLevel;
+    // NOTE(zoubir): "Frost Nova unlocked", over the ability bar for a moment
+    // after the talent tree gives an ability (ability_bar.cpp)
+    char Toast[64];
+    u32 ToastAccent;
+    float ToastAge;
     // NOTE(zoubir): the ability bar's plate last frame, which the badge,
     // the button and the gains are placed around
     float PlateX, PlateY, PlateWidth, PlateHeight;
@@ -60,6 +66,7 @@ GetXpBar(app_state *AppState)
         AppState->XpBar = AllocateStruct(&AppState->MemoryArena, xp_bar);
         *AppState->XpBar = {};
         AppState->XpBar->BannerAge = LEVEL_BANNER_SECONDS;
+        AppState->XpBar->ToastAge = XP_TOAST_SECONDS;
     }
     return AppState->XpBar;
 }
@@ -118,6 +125,7 @@ TrackExperience(app_state *AppState, xp_bar *Bar, float DeltaTime)
     float Share = LevelProgress(Slot->Xp);
     Bar->ShownShare += (Share - Bar->ShownShare) * Minimum(1.f, 6.f * DeltaTime);
     Bar->BannerAge += DeltaTime;
+    Bar->ToastAge += DeltaTime;
     for(u32 Index = 0; Index < XP_GAINS; Index++)
     {
         Bar->Gains[Index].Age += DeltaTime;
@@ -164,19 +172,10 @@ DrawLevelBadge(render_context *RenderContext, app_state *AppState,
     DrawShaderQuad(RenderContext, Shader_TalentNode, CentreX - 0.5f * Quad,
                    CentreY - 0.5f * Quad, Quad, Quad,
                    WithAlpha(XP_COLOR, 0.5f + 0.5f * Banner));
-    // NOTE(zoubir): the ring toward the next level, as dots round the rim
-    u32 Dots = 28;
-    float Share = Bar->ShownShare;
-    for(u32 Dot = 0; Dot < Dots; Dot++)
-    {
-        float Angle = -0.5f * Pi32 + 2.f * Pi32 * (float)Dot / (float)Dots;
-        v2 P = V2(CentreX, CentreY) + (0.5f * Size + 5.f) * V2(Cos(Angle), Sin(Angle));
-        bool32 Lit = (float)Dot / (float)Dots < Share;
-        u32 Color = Lit ? XP_COLOR : UI_RGBA(60, 60, 72, 220);
-        float DotSize = Lit ? 4.f : 3.f;
-        DrawFilledRectangle(RenderContext, P.X - 0.5f * DotSize, P.Y - 0.5f * DotSize,
-                            DotSize, DotSize, Color, 0.f);
-    }
+    // NOTE(zoubir): the ring toward the next level (talent_arc.frag)
+    float Arc = Size * 1.22f;
+    DrawShaderQuad(RenderContext, Shader_TalentArc, CentreX - 0.5f * Arc, CentreY - 0.5f * Arc,
+                   Arc, Arc, WithAlpha(XP_COLOR, Bar->ShownShare));
     if (Banner > 0.f)
     {
         float Ring = Size * (1.f + 1.2f * (1.f - Banner));
@@ -267,6 +266,16 @@ DrawTalentPointsButton(render_context *RenderContext, app_state *AppState,
     return Result;
 }
 
+// NOTE(zoubir): an ability just unlocked, said over the ability bar
+internal void
+ShowUnlockToast(app_state *AppState, char *Name, char *Key, u32 Accent)
+{
+    xp_bar *Bar = GetXpBar(AppState);
+    snprintf(Bar->Toast, sizeof(Bar->Toast), "%s unlocked  -  %s", Name, Key);
+    Bar->ToastAccent = Accent;
+    Bar->ToastAge = 0.f;
+}
+
 // NOTE(zoubir): the gains rising from the strip and the level-up banner
 internal void
 DrawXpOverlays(render_context *RenderContext, app_state *AppState,
@@ -292,6 +301,29 @@ DrawXpOverlays(render_context *RenderContext, app_state *AppState,
         float X = Bar->StripX + 0.5f * Bar->StripWidth + 70.f * (float)(Index % 3) - 70.f;
         float Y = Bar->PlateY - 20.f - XP_GAIN_RISE * (1.f - (1.f - T) * (1.f - T)) * Pop;
         UIText(RenderContext, Font, X, Y, Text, WithAlpha(XP_COLOR, Fade), UIAlign_Center);
+    }
+
+    if (Bar->ToastAge < XP_TOAST_SECONDS && Bar->Toast[0] && Bar->PlateWidth > 0.f)
+    {
+        float In = Clamp01(Bar->ToastAge / 0.2f);
+        float Out = Clamp01((XP_TOAST_SECONDS - Bar->ToastAge) / 0.5f);
+        float Alpha = In * Out;
+        font *Body = AppState->Fonts.Body;
+        float Width = UITextWidth(Strong, Bar->Toast) + 40.f;
+        float Height = UILineHeight(Strong) + 16.f;
+        float X = Bar->PlateX + 0.5f * Bar->PlateWidth - 0.5f * Width;
+        float Y = Bar->PlateY - Height - 52.f - 8.f * (1.f - In);
+        DrawShaderQuad(RenderContext, Shader_Glow, X - 30.f, Y - 20.f, Width + 60.f, Height + 40.f,
+                       WithAlpha(Bar->ToastAccent, 0.4f * Alpha), RenderBlend_Additive);
+        if (Alpha > 0.05f)
+        {
+            DrawFilledRectangle(RenderContext, X + 4.f, Y + 4.f, Width - 8.f, Height - 8.f,
+                                WithAlpha(UI_RGBA(8, 9, 14, 255), 0.9f * Alpha), 0.f);
+            DrawUIPanel(RenderContext, X, Y, Width, Height, Bar->ToastAccent);
+        }
+        UIText(RenderContext, Strong, X + 0.5f * Width, Y + 8.f, Bar->Toast,
+               WithAlpha(UI_COLOR_TEXT, Alpha), UIAlign_Center);
+        (void)Body;
     }
 
     // NOTE(zoubir): the talent panel says the same, and the banner would

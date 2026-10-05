@@ -45,6 +45,7 @@ struct ability_bar
     float Denied[ABILITY_SLOT_DEF_COUNT]; // 1 when pressed while recharging
     float HealthTrail;                    // share of health the trail shows
     bool32 WasShown[ABILITY_SLOT_DEF_COUNT]; // the player had it last frame
+    bool32 ShownSeen; // WasShown holds a real frame, so a new slot is an unlock
 };
 
 // NOTE(zoubir): whether slot Def shows: a gap never does, an ability once
@@ -258,7 +259,12 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         if (Shown && !Bar->WasShown[Index])
         {
             // NOTE(zoubir): just unlocked: it arrives with the ready flash
+            // and a word over the bar
             Bar->Pulse[Index] = 1.f;
+            if (Bar->ShownSeen)
+            {
+                ShowUnlockToast(AppState, Def->Name, ActionKeyLabel(Def->Button), Def->Accent);
+            }
         }
         Bar->WasShown[Index] = Shown;
         if (!Shown)
@@ -390,13 +396,45 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
             }
         }
 
-        if (IsMouseOnRectangle(Input->MouseX, Input->MouseY, SlotX, SlotTop,
-                               ABILITY_SLOT_SIZE, ABILITY_SLOT_SIZE))
+        // NOTE(zoubir): a point can go into it: a gold plus on its
+        // top-right corner, and a click opens the tree on it
+        bool32 SlotHot = IsMouseOnRectangle(Input->MouseX, Input->MouseY, SlotX, SlotTop,
+                                            ABILITY_SLOT_SIZE, ABILITY_SLOT_SIZE);
+        if (Talent < Talent_Count && CanLearnTalent(LocalSlot, Talent) == TalentRefusal_None)
+        {
+            float Beat = 0.5f + 0.5f * Sin(5.f * Time + (float)Index);
+            float BadgeX = CentreX + 0.5f * Slot - 4.f;
+            float BadgeY = CentreY - 0.5f * Slot + 4.f;
+            float Glow = 26.f;
+            DrawShaderQuad(RenderContext, Shader_Glow, BadgeX - 0.5f * Glow, BadgeY - 0.5f * Glow,
+                           Glow, Glow, WithAlpha(XP_COLOR, 0.5f + 0.4f * Beat),
+                           RenderBlend_Additive);
+            DrawFilledRectangle(RenderContext, BadgeX - 7.f, BadgeY - 7.f, 14.f, 14.f,
+                                UI_RGBA(40, 28, 6, 240), 0.f);
+            DrawRectangle(RenderContext, BadgeX - 7.f, BadgeY - 7.f, 14.f, 14.f, XP_COLOR, 0.f);
+            DrawFilledRectangle(RenderContext, BadgeX - 4.f, BadgeY - 1.f, 8.f, 2.f,
+                                UI_RGBA(255, 230, 150, 255), 0.f);
+            DrawFilledRectangle(RenderContext, BadgeX - 1.f, BadgeY - 4.f, 2.f, 8.f,
+                                UI_RGBA(255, 230, 150, 255), 0.f);
+            if (SlotHot && Input->LeftButton.Pressed)
+            {
+                ShowTalentInPanel(AppState, Talent);
+            }
+        }
+        if (SlotHot)
         {
             Hovered = (i32)Index;
             HoveredX = CentreX;
         }
     }
+    Bar->ShownSeen = true;
+    // NOTE(zoubir): clicks on the plate are the bar's, not a fireball
+    // (client/talent_requests.cpp)
+    talent_requests *Requests = GetTalentRequests(AppState);
+    Requests->BarX = Left - PlatePad - 14.f - XP_BADGE_SIZE;
+    Requests->BarY = PlateTop;
+    Requests->BarWidth = PlateWidth + 2.f * (14.f + XP_BADGE_SIZE);
+    Requests->BarHeight = PlateHeight;
 
     if (Hovered >= 0)
     {

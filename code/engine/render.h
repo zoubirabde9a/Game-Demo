@@ -94,6 +94,7 @@ enum shader_id
     Shader_TalentNode,    // a talent's round medallion: locked, open or full
     Shader_XpBar,         // the experience bar's track and liquid fill
     Shader_TalentBackdrop, // a talent branch's glowing column
+    Shader_TalentArc,     // a progress ring filling clockwise from the top
     Shader_Count
 };
 
