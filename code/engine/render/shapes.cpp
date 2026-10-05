@@ -1,6 +1,6 @@
 /* Adding to a pass: single vertices, textured quads (straight or
-   rotated), glyph quads, outlined and filled rectangles, and opening and
-   closing a textured batch. */
+   rotated), glyph quads, outlined and filled rectangles, filled
+   four-cornered shapes, and opening and closing a textured batch. */
 
 inline void
 RenderVertex(render_context *RenderContext, render_vertex *Vertex)
@@ -198,6 +198,35 @@ DrawFilledRectangle(render_context *RenderContext, float X, float Y,
         // NOTE(zoubir): read after drawing, which may have flushed
         RenderContext->AllocatedBatches[RenderContext->BatchCount - 1].Type =
             RENDER_BATCH_TYPE_FILLED_RECTANGLE;
+    }
+}
+
+// NOTE(zoubir): a filled four-cornered shape, corners given in order round
+// it, each with its own colour blended across the inside; for strips of
+// effects that bend (a blade's sweep)
+internal void
+DrawFilledQuad(render_context *RenderContext, v2 P0, v2 P1, v2 P2, v2 P3,
+               u32 C0, u32 C1, u32 C2, u32 C3,
+               u32 Blend = RenderBlend_Alpha)
+{
+    RenderMakeRoom(RenderContext, 4, true);
+    render_vertex *Verticies =
+        &RenderContext->AllocatedVerticies[RenderContext->VertexCount];
+    if (RenderContext->RendererType == RENDERER_TYPE_BATCH)
+    {
+        render_batch *NewBatch =
+            &RenderContext->AllocatedBatches[RenderContext->BatchCount];
+        NewBatch->Verticies = Verticies;
+        NewBatch->SortingValue = 0.f;
+        NewBatch->Program = RenderContext->LineProgram;
+        NewBatch->Type = RENDER_BATCH_TYPE_FILLED_RECTANGLE;
+        NewBatch->Blend = Blend;
+        RenderVertex(RenderContext, P0.X, P0.Y, 0.f, C0);
+        RenderVertex(RenderContext, P1.X, P1.Y, 0.f, C1);
+        RenderVertex(RenderContext, P2.X, P2.Y, 0.f, C2);
+        RenderVertex(RenderContext, P3.X, P3.Y, 0.f, C3);
+        NewBatch->VertexCount = 4;
+        RenderContext->BatchCount++;
     }
 }
 
