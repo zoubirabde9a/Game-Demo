@@ -10,8 +10,14 @@
    others (sword, shockwave, push, slam, the self and bubble rewinds, and
    Frost Nova and Gravity Well, which only exist here) are locked until a
    point unlocks them at level 1. Each level after the first takes
-   TALENT_COOLDOWN_PER_LEVEL off the cooldown, and adds PowerPerLevel to
-   what its row's Power is (dash speed, shield seconds).
+   TALENT_COOLDOWN_PER_LEVEL off the cooldown and adds the talent's
+   per-level perks: dash speed and shield time (PowerPerLevel), longer
+   stuns and slows and harder shoves on area spells (AbilityLevelHit),
+   faster, farther fireballs.
+
+   A point spent is not for good: the talent field's TALENT_LEARN_RESET
+   gives every point back (ResetTalents), so a player can try another
+   build.
 
    A passive changes one thing, by rank:
    Swift Flames  fireballs fly faster and farther
@@ -32,6 +38,9 @@
 // NOTE(zoubir): share of an ability's cooldown each level after the first
 // takes off: 6 s at level 1 is 5.1 at 2 and 4.2 at 3
 #define TALENT_COOLDOWN_PER_LEVEL 0.15f
+// NOTE(zoubir): player_input.Learn's value that resets every talent; the
+// talent field is 5 bits (NET_LEARN_MASK), and talents use 1..Talent_Count
+#define TALENT_LEARN_RESET 31
 
 enum talent_branch
 {
@@ -87,57 +96,66 @@ struct talent_def
     u32 MaxLevel;
     // NOTE(zoubir): the ability's player_button; 0 for a passive
     u32 Button;
-    // NOTE(zoubir): share added to the ability row's Power per level
-    // after the first
+    // NOTE(zoubir): what each level after the first adds: a share of the
+    // ability row's Power (dash speed, shield seconds), seconds of stun
+    // and of status on an area hit, a share of its shove, and a share of
+    // the fireball's speed and range
     float PowerPerLevel;
+    float StunPerLevel;
+    float StatusPerLevel;
+    float ShovePerLevel;
+    float SpeedPerLevel;
 };
 
 global_variable talent_def TalentDefs[Talent_Count] =
 {
-    {"Fireball", "A piercing bolt along the aim", "-15% cooldown",
-     TalentBranch_Fire, 0, 0, 3, PlayerButton_Cast, 0.f},
+    // NOTE(zoubir): name, summary, what a rank adds; branch, tier, column,
+    // most levels, button; then per level after the first: power, stun
+    // seconds, status seconds, shove share, fireball speed share
+    {"Fireball", "A piercing bolt along the aim", "-15% cooldown, +8% speed and range",
+     TalentBranch_Fire, 0, 0, 3, PlayerButton_Cast, 0.f, 0.f, 0.f, 0.f, 0.08f},
     {"Swift Flames", "Fireballs fly faster and farther", "+15% fireball speed and range",
-     TalentBranch_Fire, 0, 1, 2, 0, 0.f},
-    {"Launch", "Throws everything at the aim into the air", "-15% cooldown",
-     TalentBranch_Fire, 1, 0, 3, PlayerButton_Launch, 0.f},
-    {"Shockwave", "Blasts everything around you away", "-15% cooldown",
-     TalentBranch_Fire, 1, 1, 3, PlayerButton_Shockwave, 0.f},
-    {"Frost Nova", "Freezes everyone near you, then slows them", "-15% cooldown",
-     TalentBranch_Fire, 2, 0, 3, PlayerButton_FrostNova, 0.f},
+     TalentBranch_Fire, 0, 1, 2, 0},
+    {"Launch", "Throws everything at the aim into the air", "-15% cooldown, +0.25 s stun",
+     TalentBranch_Fire, 1, 0, 3, PlayerButton_Launch, 0.f, 0.25f},
+    {"Shockwave", "Blasts everything around you away", "-15% cooldown, +15% shove, +0.15 s stun",
+     TalentBranch_Fire, 1, 1, 3, PlayerButton_Shockwave, 0.f, 0.15f, 0.f, 0.15f},
+    {"Frost Nova", "Freezes everyone near you, then slows them", "-15% cooldown, +0.2 s freeze, +0.75 s slow",
+     TalentBranch_Fire, 2, 0, 3, PlayerButton_FrostNova, 0.f, 0.2f, 0.75f},
     {"Twin Flame", "Each cast throws two fireballs", "a second fireball",
-     TalentBranch_Fire, 2, 1, 1, 0, 0.f},
+     TalentBranch_Fire, 2, 1, 1, 0},
     {"Pyre", "Killing a player makes the fireball ready at once", "fireball reset on a kill",
-     TalentBranch_Fire, 3, 0, 1, 0, 0.f},
+     TalentBranch_Fire, 3, 0, 1, 0},
 
     {"Dash", "A burst of speed", "-15% cooldown, +10% speed",
      TalentBranch_Motion, 0, 0, 3, PlayerButton_Dash, 0.1f},
     {"Fleet Foot", "You run faster", "+6% run speed",
-     TalentBranch_Motion, 0, 1, 2, 0, 0.f},
+     TalentBranch_Motion, 0, 1, 2, 0},
     {"Blink", "Jumps through space to the cursor", "-15% cooldown",
-     TalentBranch_Motion, 1, 0, 3, PlayerButton_Blink, 0.f},
+     TalentBranch_Motion, 1, 0, 3, PlayerButton_Blink},
     {"Sword", "Three-cut combo on right click", "-15% swing interval",
-     TalentBranch_Motion, 1, 1, 3, PlayerButton_Attack, 0.f},
-    {"Push", "A wide cone that throws a crowd back", "-15% cooldown",
-     TalentBranch_Motion, 2, 0, 3, PlayerButton_Push, 0.f},
-    {"Slam", "Dive from the air and blast where you land", "-15% cooldown",
-     TalentBranch_Motion, 2, 1, 3, PlayerButton_Slam, 0.f},
+     TalentBranch_Motion, 1, 1, 3, PlayerButton_Attack},
+    {"Push", "A wide cone that throws a crowd back", "-15% cooldown, +15% shove",
+     TalentBranch_Motion, 2, 0, 3, PlayerButton_Push, 0.f, 0.f, 0.f, 0.15f},
+    {"Slam", "Dive from the air and blast where you land", "-15% cooldown, +0.2 s stun",
+     TalentBranch_Motion, 2, 1, 3, PlayerButton_Slam, 0.f, 0.2f},
     {"Momentum", "A player kill readies dash and slam, halves blink", "movement reset on a kill",
-     TalentBranch_Motion, 3, 0, 1, 0, 0.f},
+     TalentBranch_Motion, 3, 0, 1, 0},
 
     {"Shield", "A moment in which nothing lands", "-15% cooldown, +0.5 s shield",
      TalentBranch_Guard, 0, 0, 3, PlayerButton_Shield, 0.25f},
     {"Ward", "A charge that takes one hit whole", "recharges sooner",
-     TalentBranch_Guard, 0, 1, 2, 0, 0.f},
+     TalentBranch_Guard, 0, 1, 2, 0},
     {"World Rewind", "Everyone goes back 2 seconds", "-15% cooldown",
-     TalentBranch_Guard, 1, 0, 3, PlayerButton_RewindWorld, 0.f},
+     TalentBranch_Guard, 1, 0, 3, PlayerButton_RewindWorld},
     {"Rewind", "You go back to where you were 2 seconds ago", "-15% cooldown",
-     TalentBranch_Guard, 1, 1, 3, PlayerButton_RewindSelf, 0.f},
-    {"Gravity Well", "Pulls everyone at the aim into one spot", "-15% cooldown",
-     TalentBranch_Guard, 2, 0, 3, PlayerButton_GravityWell, 0.f},
+     TalentBranch_Guard, 1, 1, 3, PlayerButton_RewindSelf},
+    {"Gravity Well", "Pulls everyone at the aim into one spot", "-15% cooldown, +0.15 s hold",
+     TalentBranch_Guard, 2, 0, 3, PlayerButton_GravityWell, 0.f, 0.15f},
     {"Rewind Bubble", "Everything around you goes back 2 seconds", "-15% cooldown",
-     TalentBranch_Guard, 2, 1, 3, PlayerButton_RewindBubble, 0.f},
+     TalentBranch_Guard, 2, 1, 3, PlayerButton_RewindBubble},
     {"Second Wind", "Back from death in half the time, shielded longer", "faster respawn",
-     TalentBranch_Guard, 3, 0, 1, 0, 0.f},
+     TalentBranch_Guard, 3, 0, 1, 0},
 };
 
 global_variable char *TalentBranchNames[TalentBranch_Count] =
@@ -341,6 +359,46 @@ PlayerPowerScale(app_state *AppState, world_entity *Player, u32 Button)
     return Result;
 }
 
+// NOTE(zoubir): levels Player has bought past the first in Button's
+// ability, 0 for none
+internal float
+ExtraAbilityLevels(app_state *AppState, world_entity *Player, u32 Button, u32 *Talent)
+{
+    player_slot *Slot = TalentSlotOf(AppState, Player);
+    *Talent = TalentForButton(Button);
+    float Result = 0.f;
+    if (Slot && *Talent < Talent_Count)
+    {
+        u32 Level = TalentLevel(Slot, *Talent);
+        Result = Level > 1 ? (float)(Level - 1) : 0.f;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): Hit as Player's level of Button's ability lands it:
+// longer stuns and statuses, harder shoves
+internal hit
+AbilityLevelHit(app_state *AppState, world_entity *Player, u32 Button, hit *Hit)
+{
+    hit Result = *Hit;
+    u32 Talent;
+    float Extra = ExtraAbilityLevels(AppState, Player, Button, &Talent);
+    if (Extra > 0.f)
+    {
+        talent_def *Def = &TalentDefs[Talent];
+        if (Result.StunSeconds > 0.f)
+        {
+            Result.StunSeconds += Def->StunPerLevel * Extra;
+        }
+        if (Result.StatusSeconds > 0.f)
+        {
+            Result.StatusSeconds += Def->StatusPerLevel * Extra;
+        }
+        Result.Shove *= 1.f + Def->ShovePerLevel * Extra;
+    }
+    return Result;
+}
+
 // NOTE(zoubir): a passive's rank on the player behind Player, 0 for none
 inline u32
 PlayerTalentRank(app_state *AppState, world_entity *Player, u32 Talent)
@@ -350,11 +408,15 @@ PlayerTalentRank(app_state *AppState, world_entity *Player, u32 Talent)
     return Result;
 }
 
+// NOTE(zoubir): Swift Flames' ranks and the fireball's own levels
 inline float
 FireballSpeedScale(app_state *AppState, world_entity *Player)
 {
-    float Result = 1.f + TALENT_SWIFT_FLAMES_SCALE *
-        (float)PlayerTalentRank(AppState, Player, Talent_SwiftFlames);
+    u32 Talent;
+    float Extra = ExtraAbilityLevels(AppState, Player, PlayerButton_Cast, &Talent);
+    float Result = (1.f + TALENT_SWIFT_FLAMES_SCALE *
+                    (float)PlayerTalentRank(AppState, Player, Talent_SwiftFlames)) *
+        (1.f + TalentDefs[Talent_Fireball].SpeedPerLevel * Extra);
     return Result;
 }
 
@@ -406,6 +468,29 @@ WardTakesHit(app_state *AppState, world_entity *Target, float Damage)
         Result = true;
     }
     return Result;
+}
+
+// NOTE(zoubir): every point back: ranks to nothing, the abilities they
+// unlocked locked again, the ward gone. Cooldowns under way stay
+internal void
+ResetTalents(app_state *AppState, u32 SlotIndex)
+{
+    player_slot *Slot = &AppState->Players[SlotIndex];
+    if (!Slot->Active || TalentPointsSpent(Slot) == 0)
+    {
+        return;
+    }
+    for(u32 Talent = 0; Talent < TALENT_SLOTS; Talent++)
+    {
+        Slot->Ranks[Talent] = 0;
+    }
+    Slot->WardReady = false;
+    Slot->WardRecharge = 0.f;
+    if (Slot->Entity && Slot->Entity->IsPresent)
+    {
+        EmitBurst(&AppState->Events, SimBurst_TalentLearned, (u8)SlotIndex,
+                  Slot->Entity->Position);
+    }
 }
 
 // NOTE(zoubir): one point into Talent, if it may take one; returns

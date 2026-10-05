@@ -112,6 +112,11 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
 {
     v3 Centre = AreaCentre(Player, Ability, Aim);
     u32 HitCount = 0;
+    // NOTE(zoubir): the ability's level stuns and slows longer and shoves
+    // harder (sim/progression/talents.cpp); the slam's row has no key of
+    // its own, its level is the slam's
+    u32 Button = Ability->Button ? Ability->Button : (u32)PlayerButton_Slam;
+    hit LeveledHit = AbilityLevelHit(AppState, Player, Button, &Ability->Hit);
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Target = &World->Entities[EntityIndex];
@@ -136,7 +141,7 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
         }
 
         HitCount++;
-        ApplyHit(AppState, World, Target, &Ability->Hit, Away,
+        ApplyHit(AppState, World, Target, &LeveledHit, Away,
                  Player, Player->PlayerIndex);
     }
     EmitBurst(&AppState->Events, Ability->Burst, (u8)Player->PlayerIndex,

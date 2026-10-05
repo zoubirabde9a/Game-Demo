@@ -39,11 +39,15 @@ UpdateProgression(app_state *AppState, float DeltaTime)
             Slot->XpClock -= XP_CLOCK_STEP;
             AwardXp(AppState, Slot, 1);
         }
-        if (Slot->Input.Learn)
+        if (Slot->Input.Learn == TALENT_LEARN_RESET)
+        {
+            ResetTalents(AppState, SlotIndex);
+        }
+        else if (Slot->Input.Learn)
         {
             LearnTalent(AppState, SlotIndex, Slot->Input.Learn - 1);
-            Slot->Input.Learn = 0;
         }
+        Slot->Input.Learn = 0;
         if (Slot->Ranks[Talent_Ward] && !Slot->WardReady)
         {
             Slot->WardRecharge -= DeltaTime;

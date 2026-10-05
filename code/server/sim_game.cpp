@@ -235,6 +235,8 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     // The viewer's experience and talents, for its HUD and talent panel;
     // the ranks also make its prediction use the same cooldowns.
     static_assert(Talent_Count == NET_TALENT_COUNT, "one rank per talent");
+    static_assert(TALENT_LEARN_RESET <= NET_LEARN_MASK && TALENT_LEARN_RESET > Talent_Count,
+                  "the reset fits the talent field and is no talent");
     player_slot *Progress = &Game->AppState->Players[ViewerSlot];
     Out->Xp = (u16)Minimum(Progress->Xp, 0xffffu);
     for (u32 Index = 0; Index < NET_TALENT_COUNT; ++Index)

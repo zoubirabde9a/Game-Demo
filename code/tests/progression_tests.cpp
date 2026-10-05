@@ -302,6 +302,65 @@ TestKillAndDeathTalents()
     GameRules = ClassicRules;
 }
 
+// NOTE(zoubir): a level bought past the first lengthens Frost Nova's
+// freeze and slow, shoves harder with Push and speeds the fireball; the
+// first level adds nothing
+internal void
+TestAbilityLevelPerks()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    player_slot *Slot = &AppState->Players[0];
+    hit *Nova = &PlayerAreaAbilities[PlayerArea_FrostNova].Hit;
+    hit Base = AbilityLevelHit(AppState, Player, PlayerButton_FrostNova, Nova);
+    Check(Base.StunSeconds == Nova->StunSeconds && Base.StatusSeconds == Nova->StatusSeconds);
+    Slot->Ranks[Talent_FrostNova] = 2;
+    hit Top = AbilityLevelHit(AppState, Player, PlayerButton_FrostNova, Nova);
+    Check(Absolute(Top.StunSeconds - (Nova->StunSeconds + 0.4f)) < 0.001f);
+    Check(Absolute(Top.StatusSeconds - (Nova->StatusSeconds + 1.5f)) < 0.001f);
+
+    hit *Push = &PlayerAreaAbilities[PlayerArea_Push].Hit;
+    Slot->Ranks[Talent_Push] = 1;
+    Check(Absolute(AbilityLevelHit(AppState, Player, PlayerButton_Push, Push).Shove -
+                   1.15f * Push->Shove) < 0.01f);
+
+    Check(FireballSpeedScale(AppState, Player) == 1.f);
+    Slot->Ranks[Talent_Fireball] = 1;
+    Slot->Ranks[Talent_SwiftFlames] = 2;
+    Check(Absolute(FireballSpeedScale(AppState, Player) - 1.08f * 1.3f) < 0.001f);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): the reset gives every point back and locks what the
+// points unlocked
+internal void
+TestTalentReset()
+{
+    GameRules = DuelRules;
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    player_slot *Slot = &AppState->Players[0];
+    GiveTestXp(&Test, 0, XpToReach(6));
+    Check(LearnTalent(AppState, 0, Talent_Fireball));
+    Check(LearnTalent(AppState, 0, Talent_SwiftFlames));
+    Check(LearnTalent(AppState, 0, Talent_Shockwave));
+    Check(LearnTalent(AppState, 0, Talent_Ward));
+    Check(TalentPointsLeft(Slot) == 1);
+    Check(PlayerAllowedButtons(Slot) & PlayerButton_Shockwave);
+    Slot->Input.Learn = TALENT_LEARN_RESET;
+    UpdateProgression(AppState, Test.Input.DeltaTime);
+    Check(TalentPointsSpent(Slot) == 0);
+    Check(TalentPointsLeft(Slot) == 5);
+    Check((PlayerAllowedButtons(Slot) & PlayerButton_Shockwave) == 0);
+    Check(!Slot->WardReady);
+    Check(TalentLevel(Slot, Talent_Fireball) == 1);
+    DestroyTestWorld(&Test);
+    GameRules = ClassicRules;
+}
+
 #define PROGRESSION_TEST(Test) printf("%s\n", #Test); Test()
 
 internal void
@@ -315,4 +374,6 @@ RunProgressionTests()
     PROGRESSION_TEST(TestFrostNovaAndGravityWell);
     PROGRESSION_TEST(TestWardTakesOneHit);
     PROGRESSION_TEST(TestKillAndDeathTalents);
+    PROGRESSION_TEST(TestAbilityLevelPerks);
+    PROGRESSION_TEST(TestTalentReset);
 }
