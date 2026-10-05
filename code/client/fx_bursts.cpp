@@ -4,7 +4,9 @@
    they come straight from the local simulation's events; online from the
    snapshot (online.cpp), except the ones the local player's prediction
    already made (Predicted below), which would show twice. How each looks
-   is one row of BurstLooks; drawing is a handful of shapes.
+   is one row of BurstLooks; drawing is a handful of shapes, made of
+   square dots and filled bands (fx_bursts/bands.cpp); the sword's swing
+   is its own file (fx_bursts/sword_arc.cpp).
 
    Also here: stars circling the head of anyone stunned, read from the
    status timers, so they show the same offline and online; and screen
@@ -91,7 +93,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     // cutting dash (CUTTING_DASH_RADIUS, combos.cpp)
     {BurstShape_Thrust, 0.22f, SWORD_LUNGE_REACH, 0x00F0FFFF, false, 0.25f, BurstPose_Release}, // Lunge, pale
     {BurstShape_Thrust, 0.26f, SWORD_LUNGE_REACH, 0x0060E0FF, false, 0.35f, BurstPose_Release}, // Skewer, gold
-    {BurstShape_Spin, 0.3f, 40.f, 0x00C0FFFF, false, 0.2f, BurstPose_None},       // CuttingDash, warm white
+    {BurstShape_Spin, 0.3f, CUTTING_DASH_RADIUS, 0x00C0FFFF, false, 0.2f, BurstPose_None},       // CuttingDash, warm white
     {BurstShape_Cone, 0.3f, 50.f, 0x0030A0FF, false, 0.15f, BurstPose_Release},   // FlameFan, orange
     {BurstShape_Puff, 0.4f, 30.f, 0x00C8D8E0, true, 0.f, BurstPose_None},         // LongJump, dust
     {BurstShape_Gather, 0.3f, 40.f, 0x00FF60B0, false, 0.2f, BurstPose_None},     // Ambush, violet
@@ -329,104 +331,8 @@ DrawGroundRing(render_context *RenderContext, v2 Centre, float Radius,
     }
 }
 
-// NOTE(zoubir): a sword's sweep (BurstShape_Arc): the blade's tip races
-// across the slice in the first SWING_SWEEP of the burst, easing out,
-// leaving a crescent behind it: a glow thickest at the tip that fades
-// toward the middle of the swing and in to the swinger, and a bright rim
-// on the outside, where the cut hits. Once the tip is across, the tail
-// runs after it and the crescent thins away; sparks fly off the far end.
-// Drawn at chest height over the slice the sim hits (IsInSwordSlice)
-#define SWING_SWEEP 0.45f
-#define SWING_SEGMENTS 20
-#define SWING_CHEST 12.f
-
-internal void
-DrawSwordArc(render_context *RenderContext, fx_burst *Burst, v2 Feet,
-             float Radius, float T)
-{
-    burst_look *Look = &BurstLooks[Burst->Kind];
-    bool32 Finisher = Burst->Kind == SimBurst_SwingArcFinisher;
-    float HalfAngle = Finisher ? SWORD_FINISHER_HALF_ANGLE : SWORD_HALF_ANGLE;
-    float Side = Look->Shape == BurstShape_Arc ? 1.f : -1.f;
-    float Width = (Finisher ? 0.7f : 0.55f) * Radius;
-    v2 Centre = Feet - V2(0.f, SWING_CHEST);
-
-    float Sweep = Clamp01(T / SWING_SWEEP);
-    float Lead = 1.f - Square(1.f - Sweep);
-    float Tail = Square(Clamp01((T - 0.2f) / 0.8f));
-    float Fade = 1.f - Square(Clamp01((T - SWING_SWEEP) / (1.f - SWING_SWEEP)));
-    if (Lead - Tail <= 0.001f)
-    {
-        return;
-    }
-
-    // NOTE(zoubir): Along 0..1 across the slice, in the swing's direction
-    v2 Outer[SWING_SEGMENTS + 1];
-    v2 Inner[SWING_SEGMENTS + 1];
-    v2 RimIn[SWING_SEGMENTS + 1];
-    v2 RimOut[SWING_SEGMENTS + 1];
-    float Strength[SWING_SEGMENTS + 1];
-    for(u32 Index = 0; Index <= SWING_SEGMENTS; Index++)
-    {
-        float U = (float)Index / SWING_SEGMENTS;
-        float Along = Tail + U * (Lead - Tail);
-        float Angle = Burst->Angle + Side * HalfAngle * (2.f * Along - 1.f);
-        v2 Out = V2(Cos(Angle), Sin(Angle));
-        // NOTE(zoubir): the blade's tip swells out a little while it moves
-        float Swell = 1.f + 0.06f * U * (1.f - Sweep);
-        float Thickness = Width * (0.2f + 0.8f * U) * (0.4f + 0.6f * Fade);
-        Outer[Index] = Centre + Radius * Swell * Out;
-        Inner[Index] = Centre + (Radius * Swell - Thickness) * Out;
-        RimOut[Index] = Centre + (Radius * Swell + 1.5f) * Out;
-        RimIn[Index] = Centre + (Radius * Swell - 3.f) * Out;
-        Strength[Index] = Fade * (0.25f + 0.75f * U);
-    }
-    for(u32 Index = 0; Index < SWING_SEGMENTS; Index++)
-    {
-        u32 A = (u32)(220.f * Strength[Index]);
-        u32 B = (u32)(220.f * Strength[Index + 1]);
-        DrawFilledQuad(RenderContext, Inner[Index], Outer[Index],
-                       Outer[Index + 1], Inner[Index + 1],
-                       Look->RGB, (A << 24) | Look->RGB,
-                       (B << 24) | Look->RGB, Look->RGB,
-                       RenderBlend_Additive);
-        u32 RimA = (u32)(255.f * Strength[Index]);
-        u32 RimB = (u32)(255.f * Strength[Index + 1]);
-        DrawFilledQuad(RenderContext, RimIn[Index], RimOut[Index],
-                       RimOut[Index + 1], RimIn[Index + 1],
-                       (RimA << 24) | 0x00FFFFFF, (RimA << 24) | 0x00FFFFFF,
-                       (RimB << 24) | 0x00FFFFFF, (RimB << 24) | 0x00FFFFFF);
-    }
-
-    // NOTE(zoubir): a flare on the tip while it sweeps
-    v2 Tip = Outer[SWING_SEGMENTS];
-    if (Sweep < 1.f)
-    {
-        float Flare = (Finisher ? 8.f : 6.f) * (1.f - 0.5f * Sweep);
-        DrawFxDot(RenderContext, Tip, Flare, 0xFFFFFFFF);
-    }
-
-    // NOTE(zoubir): sparks thrown on from the end of the sweep, along it
-    float SparkT = Clamp01((T - SWING_SWEEP) / (1.f - SWING_SWEEP));
-    if (T >= SWING_SWEEP && SparkT < 1.f)
-    {
-        float EndAngle = Burst->Angle + Side * HalfAngle;
-        v2 End = Centre + Radius * V2(Cos(EndAngle), Sin(EndAngle));
-        v2 Onward = Side * V2(-Sin(EndAngle), Cos(EndAngle));
-        v2 Out = V2(Cos(EndAngle), Sin(EndAngle));
-        u32 Count = Finisher ? 8 : 5;
-        for(u32 Spark = 0; Spark < Count; Spark++)
-        {
-            float Speed = 0.35f * Radius * (0.6f + 0.8f * BurstJitter(Spark, 16));
-            float Spread = (BurstJitter(Spark, 17) - 0.3f) * 0.9f;
-            v2 Direction = NormalizeOr(Onward + Spread * Out, Onward);
-            float Ease = 1.f - Square(1.f - SparkT);
-            u32 Alpha = (u32)(255.f * (1.f - SparkT));
-            DrawFxDot(RenderContext, End + Speed * Ease * Direction,
-                      4.f - 2.f * SparkT, (Alpha << 24) | Look->RGB);
-        }
-    }
-}
+#include "fx_bursts/bands.cpp"
+#include "fx_bursts/sword_arc.cpp"
 
 internal void
 DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
@@ -455,34 +361,35 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
 
         case BurstShape_Ring:
         {
-            DrawGroundRing(RenderContext, Centre,
-                           Area.Radius * (0.3f + 0.7f * EaseOut), Color);
+            float Front = Area.Radius * (0.3f + 0.7f * EaseOut);
+            DrawWaveFront(RenderContext, Centre, 0.f, 2.f * Pi32, Front,
+                          Maximum(3.f, 0.4f * Area.Radius * (1.f - T)),
+                          1.f - T * T, Look->RGB);
         } break;
 
         case BurstShape_Cone:
         {
-            // NOTE(zoubir): three arcs racing out, the front one biggest
-            for(u32 Arc = 0; Arc < 3; Arc++)
+            // NOTE(zoubir): a wave racing out across the cone, with a
+            // fainter one behind it; Area.HalfAngle is its area row's, or
+            // a fixed spread for a look of its own
+            float Half = Area.HalfAngle < Pi32 ? Area.HalfAngle : 1.2f;
+            v2 Chest = Centre - V2(0.f, 16.f);
+            for(u32 Wave = 0; Wave < 2; Wave++)
             {
-                float Reach = Area.Radius * EaseOut * (1.f - 0.18f * Arc);
-                for(u32 Dot = 0; Dot < 9; Dot++)
-                {
-                    float Spread = ((float)Dot / 8.f - 0.5f) * 2.4f;
-                    float Angle = Burst->Angle + Spread;
-                    v2 Offset = Reach * V2(Cos(Angle), Sin(Angle));
-                    DrawFxDot(RenderContext, Centre + Offset - V2(0.f, 16.f),
-                              4.f - Arc, Color);
-                }
+                float Front = Area.Radius * EaseOut * (1.f - 0.25f * Wave);
+                DrawWaveFront(RenderContext, Chest, Burst->Angle - Half,
+                              Burst->Angle + Half, Front,
+                              0.35f * Area.Radius * (1.f - 0.5f * T),
+                              (1.f - T * T) * (1.f - 0.5f * Wave), Look->RGB);
             }
         } break;
 
         case BurstShape_Column:
         {
-            DrawGroundRing(RenderContext, Centre,
-                           Area.Radius * (0.5f + 0.5f * EaseOut), Color);
-            DrawGroundRing(RenderContext, Centre,
-                           Area.Radius * 0.6f * (0.5f + 0.5f * EaseOut), Color,
-                           2.f);
+            DrawWaveFront(RenderContext, Centre, 0.f, 2.f * Pi32,
+                          Area.Radius * (0.5f + 0.5f * EaseOut),
+                          0.5f * Area.Radius * (1.f - T), 1.f - T * T,
+                          Look->RGB);
             // NOTE(zoubir): a beam shooting up out of the ground, gone in
             // the first half
             float Beam = Clamp01(1.f - 2.f * T);
@@ -582,12 +489,13 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
 
         case BurstShape_Mark:
         {
-            // NOTE(zoubir): the outline holds still while a ring closes in
-            // on it, meeting it as the cast goes off
+            // NOTE(zoubir): the outline holds still while the ground inside
+            // it fills from the middle, filled as the cast goes off
+            DrawArcBand(RenderContext, Centre, 0.f, 2.f * Pi32, 0.f,
+                        Area.Radius * T, FxColor(0.1f, Look->RGB),
+                        FxColor(0.35f * T, Look->RGB), RenderBlend_Alpha);
             DrawGroundRing(RenderContext, Centre, Area.Radius,
                            ((u32)(120.f + 120.f * T) << 24) | Look->RGB, 4.f);
-            DrawGroundRing(RenderContext, Centre, Area.Radius * T,
-                           ((u32)(200.f * T) << 24) | Look->RGB, 2.f);
         } break;
 
         case BurstShape_ConeMark:
@@ -596,6 +504,10 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
             // area row
             u32 MarkColor = ((u32)(120.f + 120.f * T) << 24) | Look->RGB;
             float Half = Area.HalfAngle;
+            DrawArcBand(RenderContext, Centre, Burst->Angle - Half,
+                        Burst->Angle + Half, 0.f, Area.Radius * T,
+                        FxColor(0.1f, Look->RGB), FxColor(0.35f * T, Look->RGB),
+                        RenderBlend_Alpha);
             for(u32 Dot = 0; Dot < 9; Dot++)
             {
                 float Along = (float)(Dot + 1) / 9.f;
