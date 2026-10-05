@@ -286,6 +286,42 @@ TestThrownUnitKnocksIntoAnother()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a monster knocked back by a hit but not stunned bumps:
+// it passes speed to the one it runs into, which is knocked in turn, and
+// bounces off a wall, with no damage or stun either way
+internal void
+TestKnockedUnitBumps()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Knocked = AddTestEntity(&Test, EntityType_Monster,
+                                          {300, 300, 0}, Test.UnitVolume);
+    world_entity *Struck = AddTestEntity(&Test, EntityType_Monster,
+                                         {340, 300, 0}, Test.UnitVolume);
+    Knocked->MaxHp = Knocked->Hp = Struck->MaxHp = Struck->Hp = 100.f;
+    Knocked->HitFresh = 0.25f;
+    Knocked->Velocity = V3(300.f, 0.f, 0.f);
+    Walk(&Test, Knocked, {0, 0}, 4);
+    Check(Struck->Velocity.X > 100.f);
+    Check(Struck->HitFresh > 0.f);
+    Check(!HasStatus(Struck, StatusEffect_Stunned));
+    Check(Struck->Hp == 100.f && Knocked->Hp == 100.f);
+    DestroyTestWorld(&Test);
+
+    Test = CreateTestWorld();
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0},
+                  Test.WallVolume);
+    Knocked = AddTestEntity(&Test, EntityType_Monster, {360, 300, 0},
+                            Test.UnitVolume);
+    Knocked->MaxHp = Knocked->Hp = 100.f;
+    Knocked->HitFresh = 0.25f;
+    Knocked->Velocity = V3(300.f, 0.f, 0.f);
+    Walk(&Test, Knocked, {0, 0}, 4);
+    Check(Knocked->Velocity.X < 0.f);
+    Check(Knocked->Hp == 100.f);
+    Check(!HasStatus(Knocked, StatusEffect_Stunned));
+    DestroyTestWorld(&Test);
+}
+
 // NOTE(zoubir): slammed into a wall it is hurt and bounces off; a player
 // dashing into the same wall is not hurt
 internal void
@@ -752,6 +788,8 @@ RunCollisionTests()
     TestUnitInsideWallEdgeWalksOut();
     printf("TestThrownUnitKnocksIntoAnother\n");
     TestThrownUnitKnocksIntoAnother();
+    printf("TestKnockedUnitBumps\n");
+    TestKnockedUnitBumps();
     printf("TestThrownUnitSlamsIntoWall\n");
     TestThrownUnitSlamsIntoWall();
     printf("TestPlayerNeverStuck\n");

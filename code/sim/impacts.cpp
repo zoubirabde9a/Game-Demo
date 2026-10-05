@@ -11,8 +11,15 @@
    - Into a wall, tree or rock: a slam. Damage, a longer stun, and the
      body bounces back off instead of sliding along.
 
-   Walking, dashing and anything not stunned never cause impacts, so a
-   player running into a wall is never hurt by it. A player who walks or
+   A body knocked back but not stunned (a monster hit in the last
+   HIT_FRESH_SECONDS, a player still staggering from a shove) bumps
+   instead, once it moves BUMP_MIN_SPEED or faster: it bounces off walls
+   and passes part of its speed to a unit it runs into, which is knocked
+   in turn, so a cut or a fireball sends a monster bowling into the one
+   behind it. A bump does no damage and no stun.
+
+   Walking and dashing never cause impacts, so a player running into a
+   wall is never hurt by it. A player who walks or
    dashes into another unit shoulders it instead: the unit takes on part
    of the speed the player had into it and moves out of the way on its
    own move, so a crowd can slow a player down but never pin them (a
@@ -44,6 +51,13 @@
 // harder than it did
 #define SHOULDER_SHARE 0.6f
 #define SHOULDER_MAX_SPEED 650.f
+// NOTE(zoubir): a knocked body bumps from this speed into the surface (a
+// sword cut shoves at 280, a fireball at 200, a run is 260 but a runner
+// is not knocked); share of that speed a wall gives back, and share a
+// unit of the same weight takes on, scaled by weight like an impact's
+#define BUMP_MIN_SPEED 160.f
+#define BUMP_WALL_BOUNCE 0.5f
+#define BUMP_TRANSFER 0.6f
 // NOTE(zoubir): a dashing player hits what it runs into this fast or
 // faster (a dash leaves at 1440, a run is 260). The dash slows below it
 // about 0.09 s in, so only the dash's first stretch strikes
@@ -75,6 +89,48 @@ IsThrownUnit(world_entity *Entity)
     return Result;
 }
 
+// NOTE(zoubir): knocked back by a hit and not yet walking again. A player
+// counts by its stagger, which snapshots carry, so its own prediction
+// bounces where the server does
+inline bool32
+IsKnockedUnit(world_entity *Entity)
+{
+    bool32 Result = IsWalkingUnit(Entity) &&
+        (Entity->Type == EntityType_Player ? Entity->Stagger > 0.f :
+         Entity->HitFresh > 0.f);
+    return Result;
+}
+
+// NOTE(zoubir): Entity, knocked, ran into Other at Into: the bump.
+// Returns the bounce
+internal float
+BumpOnHit(world_entity *Entity, world_entity *Other, v3 Normal, float Into)
+{
+    float Bounce = 0.f;
+    if (!IsWalkingUnit(Other))
+    {
+        Bounce = BUMP_WALL_BOUNCE * Into;
+    }
+    else if (!IsDodging(Other))
+    {
+        float Transfer = Minimum(IMPACT_MAX_TRANSFER, BUMP_TRANSFER *
+                                 KnockbackScale(Other) / KnockbackScale(Entity));
+        Other->Velocity.XY -= (Transfer * Into) * Normal.XY;
+        if (Other->Type == EntityType_Player)
+        {
+            StaggerPlayer(Other);
+        }
+        else
+        {
+            // NOTE(zoubir): clients draw its flinch from these
+            Other->HitFresh = Maximum(Other->HitFresh, HIT_FRESH_SECONDS);
+            Other->HitAngle = ATan2(-Normal.Y, -Normal.X);
+            Other->HitThrown = false;
+        }
+    }
+    return Bounce;
+}
+
 // NOTE(zoubir): Entity moving with its velocity hit Other through the face
 // with Normal (pointing back at Entity). Returns the velocity Entity should
 // keep along Normal instead of stopping dead (a bounce), usually 0.
@@ -94,9 +150,20 @@ ImpactOnHit(app_state *AppState, world *World, world_entity *Entity,
     // or a thrown player would stop dead on its own screen
     bool32 Predicted = IsPredictedPlayer(AppState, Entity);
     bool32 Thrown = Into >= IMPACT_MIN_SPEED && IsThrownUnit(Entity);
+    bool32 Knocked = !Thrown && Into >= BUMP_MIN_SPEED && IsKnockedUnit(Entity);
     if (Predicted)
     {
-        return (Thrown && !IsWalkingUnit(Other)) ? IMPACT_WALL_BOUNCE * Into : 0.f;
+        float Bounce = 0.f;
+        if (!IsWalkingUnit(Other))
+        {
+            Bounce = Thrown ? IMPACT_WALL_BOUNCE * Into :
+                Knocked ? BUMP_WALL_BOUNCE * Into : 0.f;
+        }
+        return Bounce;
+    }
+    if (Knocked)
+    {
+        return BumpOnHit(Entity, Other, Normal, Into);
     }
     if (!Thrown)
     {
