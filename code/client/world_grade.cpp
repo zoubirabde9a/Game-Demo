@@ -1,6 +1,7 @@
 /* World grade: the post-process the world goes through every frame
-   (build/shaders/fx/world_grade.frag): a soft glow round bright pixels and
-   a colour grade. The world pass draws into a texture
+   (build/shaders/fx/world_grade.frag): the coloured light of fireballs and
+   lava (world_lights.cpp), a soft glow round bright pixels and a colour
+   grade. The world pass draws into a texture
    (engine/render/render_target.cpp) between BeginWorldGrade and
    EndWorldGrade, which then puts it on the window through the shader;
    overlays and the HUD draw after, ungraded.
@@ -17,11 +18,13 @@ struct world_grade
 {
     render_target Target;
     bool32 Capturing;
+    world_lights Lights;
 };
 
 // NOTE(zoubir): app.cpp, before the world pass and after BeginTimeWarp
 internal bool32
-BeginWorldGrade(render_context *RenderContext, app_state *AppState)
+BeginWorldGrade(render_context *RenderContext, app_state *AppState,
+                v3 CameraOffset, app_window *View, app_window *Window)
 {
     if (!AppState->WorldGrade)
     {
@@ -34,6 +37,11 @@ BeginWorldGrade(render_context *RenderContext, app_state *AppState)
         RenderContext->TextureProgram.ID;
     Grade->Capturing = !RewindCaptures && HasShader &&
         BeginRenderTarget(RenderContext, &Grade->Target);
+    if (Grade->Capturing)
+    {
+        GatherWorldLights(AppState, CameraOffset, View, (float)Window->Height,
+                          &Grade->Lights);
+    }
     return Grade->Capturing;
 }
 
@@ -61,6 +69,17 @@ EndWorldGrade(render_context *RenderContext, app_state *AppState,
                            WORLD_GRADE_GLOW, WORLD_GRADE_STRENGTH};
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "Screen"),
                              1, Screen);
+        world_lights *Lights = &Grade->Lights;
+        float LightCount[4] = {(float)Lights->Count, 0.f, 0.f, 0.f};
+        OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "LightCount"),
+                             1, LightCount);
+        if (Lights->Count)
+        {
+            OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "LightSpot"),
+                                 Lights->Count, Lights->Spot);
+            OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "LightColor"),
+                                 Lights->Count, Lights->Color);
+        }
         // NOTE(zoubir): the flush sends P and Time again on its own use
         RenderContext->AProgramIsUsed = false;
     }

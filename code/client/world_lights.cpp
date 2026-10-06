@@ -1,0 +1,140 @@
+/* World lights: the coloured light that fireballs, monster shots, kunai and
+   lava throw on the ground and the bodies near them. Gathered once a frame
+   into a short list in window pixels; the world grade shader
+   (build/shaders/fx/world_grade.frag) brightens and tints every pixel
+   within reach of each one, so a fireball lights the grass it flies over.
+
+   Moving things come first, then lava. Lava is summed over blocks of
+   WORLD_LIGHT_LAVA_BLOCK tiles aligned to the map, so a block's light stays
+   put while the camera moves and only its edge ones come and go. */
+
+#define WORLD_LIGHTS_MAX 32
+#define WORLD_LIGHT_LAVA_BLOCK 3
+
+struct world_lights
+{
+    u32 Count;
+    // NOTE(zoubir): per light, x and y in window pixels from the bottom
+    // left (as gl_FragCoord), radius in window pixels, strength
+    float Spot[4 * WORLD_LIGHTS_MAX];
+    // NOTE(zoubir): per light, r g b and a flicker (0 steady, 1 fire)
+    float Color[4 * WORLD_LIGHTS_MAX];
+};
+
+struct world_light_look
+{
+    float Radius;   // world units
+    float Strength;
+    v3 Color;
+    float Flicker;
+};
+
+// NOTE(zoubir): one row per kind of thing that gives light
+global_variable world_light_look FireballLight = {130.f, 0.8f, {1.0f, 0.55f, 0.22f}, 1.f};
+global_variable world_light_look MonsterShotLight = {90.f, 0.7f, {1.0f, 0.45f, 0.55f}, 0.5f};
+global_variable world_light_look KunaiLight = {45.f, 0.35f, {0.70f, 0.85f, 1.0f}, 0.f};
+global_variable world_light_look LavaLight = {120.f, 0.55f, {1.0f, 0.42f, 0.12f}, 1.f};
+
+internal void
+AddWorldLight(world_lights *Lights, v3 CameraOffset, float Zoom,
+              float WindowHeight, v2 WorldXY, float Z,
+              world_light_look Look, float StrengthScale)
+{
+    if (Lights->Count >= WORLD_LIGHTS_MAX)
+    {
+        return;
+    }
+    u32 Index = 4 * Lights->Count++;
+    Lights->Spot[Index + 0] = (WorldXY.X - CameraOffset.X) * Zoom;
+    Lights->Spot[Index + 1] = WindowHeight - (WorldXY.Y - CameraOffset.Y - Z) * Zoom;
+    Lights->Spot[Index + 2] = Look.Radius * Zoom;
+    Lights->Spot[Index + 3] = Look.Strength * StrengthScale;
+    Lights->Color[Index + 0] = Look.Color.X;
+    Lights->Color[Index + 1] = Look.Color.Y;
+    Lights->Color[Index + 2] = Look.Color.Z;
+    Lights->Color[Index + 3] = Look.Flicker;
+}
+
+// NOTE(zoubir): View is the window in world units (GetWorldView); lights
+// past its edge by more than their radius are left out
+internal void
+GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
+                  float WindowHeight, world_lights *Lights)
+{
+    Lights->Count = 0;
+    world *World = &AppState->World;
+    float Zoom = AppState->WorldZoom;
+    float Margin = 160.f;
+    v2 Min = CameraOffset.XY - V2(Margin, Margin);
+    v2 Max = CameraOffset.XY + V2((float)View->Width + Margin,
+                                  (float)View->Height + Margin);
+
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (!Entity->IsPresent)
+        {
+            continue;
+        }
+        world_light_look *Look = 0;
+        switch(Entity->Type)
+        {
+            case EntityType_FireBall: Look = &FireballLight; break;
+            case EntityType_MonsterShot: Look = &MonsterShotLight; break;
+            case EntityType_Kunai: Look = &KunaiLight; break;
+            default: break;
+        }
+        v2 P = Entity->Position.XY;
+        if (Look && P.X > Min.X && P.X < Max.X && P.Y > Min.Y && P.Y < Max.Y)
+        {
+            // NOTE(zoubir): halfway down to the ground, since most of
+            // what it lights is the ground under it
+            AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
+                          0.5f * Entity->Position.Z, *Look, 1.f);
+        }
+    }
+
+    if (World->TileWidth == 0 || World->TileMap.Texture.Type != AssetType_TerrainAtlas)
+    {
+        return;
+    }
+    map_def *Map = GetMapDef((map_id)World->MapId);
+    i32 Tile = (i32)World->TileWidth;
+    i32 Block = WORLD_LIGHT_LAVA_BLOCK;
+    i32 MinBlockX = FloorDiv(FloorDiv((i32)floorf(Min.X), Tile), Block);
+    i32 MinBlockY = FloorDiv(FloorDiv((i32)floorf(Min.Y), Tile), Block);
+    i32 MaxBlockX = FloorDiv(FloorDiv((i32)floorf(Max.X), Tile), Block);
+    i32 MaxBlockY = FloorDiv(FloorDiv((i32)floorf(Max.Y), Tile), Block);
+    for(i32 BlockY = MinBlockY; BlockY <= MaxBlockY; BlockY++)
+    {
+        for(i32 BlockX = MinBlockX; BlockX <= MaxBlockX; BlockX++)
+        {
+            v2 Sum = {};
+            u32 LavaTiles = 0;
+            for(i32 Y = BlockY * Block; Y < (BlockY + 1) * Block; Y++)
+            {
+                for(i32 X = BlockX * Block; X < (BlockX + 1) * Block; X++)
+                {
+                    if (!World->Unbounded &&
+                        (X < 0 || Y < 0 || X >= (i32)World->NumTilesX ||
+                         Y >= (i32)World->NumTilesY))
+                    {
+                        continue;
+                    }
+                    if (TerrainAt(Map, X, Y) == TerrainKind_Lava)
+                    {
+                        Sum += V2((X + 0.5f) * Tile, (Y + 0.5f) * Tile);
+                        LavaTiles++;
+                    }
+                }
+            }
+            if (LavaTiles)
+            {
+                float Share = (float)LavaTiles / (float)(Block * Block);
+                AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight,
+                              Sum * (1.f / (float)LavaTiles), 0.f, LavaLight,
+                              0.4f + 0.6f * Share);
+            }
+        }
+    }
+}

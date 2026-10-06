@@ -96,7 +96,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     BeginTimeWarp(RenderContext, AppState);
     // NOTE(zoubir): otherwise into a texture for the glow and colour grade
     // (client/world_grade.cpp)
-    BeginWorldGrade(RenderContext, AppState);
+    BeginWorldGrade(RenderContext, AppState, CameraOffset, &View, Window);
     BeginWorldPass(RenderContext, TransientArena, &AppState->World, &View);
     DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset, &View);
     DrawWorldEntities(RenderContext, AppState, &AppState->Assets,

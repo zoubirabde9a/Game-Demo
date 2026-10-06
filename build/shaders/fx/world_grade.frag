@@ -9,8 +9,12 @@
 //          shadows and warm highlights, so the ground stops looking flat
 //   dither: under one step of 8-bit noise, so the vignette and the glow
 //          fade without bands
+//   lights: fireballs, shots and lava (client/world_lights.cpp) brighten
+//          and tint what is near them, the albedo times the light, so
+//          dark grass turns warm instead of grey
 // Uniforms: Screen = texture width, height in pixels, glow strength, grade
-// strength (both 0..1).
+// strength (both 0..1). LightSpot[i] = x, y, radius (window pixels),
+// strength; LightColor[i] = r, g, b, flicker; LightCount.x = how many.
 
 VARYING vec4 fragmentColor;
 VARYING vec2 fragmentUV;
@@ -18,6 +22,30 @@ VARYING vec2 fragmentUV;
 uniform sampler2D WorldTexture;
 uniform vec4 Screen;
 uniform float Time;
+
+#define MAX_LIGHTS 32
+uniform vec4 LightSpot[MAX_LIGHTS];
+uniform vec4 LightColor[MAX_LIGHTS];
+uniform vec4 LightCount;
+
+// NOTE(zoubir): the light every source throws on this pixel; a smooth
+// (1 - d^2)^2 falloff that reaches zero at the radius, and fire wavers
+vec3 Lights(vec2 Pixel)
+{
+    vec3 Sum = vec3(0.0);
+    for (int Index = 0; Index < MAX_LIGHTS; Index++)
+    {
+        if (float(Index) >= LightCount.x) break;
+        vec4 Spot = LightSpot[Index];
+        vec4 Color = LightColor[Index];
+        vec2 Away = (Pixel - Spot.xy) / Spot.z;
+        float Near = max(1.0 - dot(Away, Away), 0.0);
+        float Waver = 1.0 + Color.w * 0.12 *
+            sin(Time * 13.0 + float(Index) * 2.3) * sin(Time * 7.1 + float(Index));
+        Sum += Color.rgb * (Spot.w * Waver * Near * Near);
+    }
+    return Sum;
+}
 
 vec3 World(vec2 Pixel)
 {
@@ -49,6 +77,8 @@ void main()
 {
     vec2 Pixel = gl_FragCoord.xy;
     vec3 C = World(Pixel);
+    vec3 Light = Lights(Pixel);
+    C = C * (1.0 + 1.1 * Light) + 0.06 * Light;
 
     // NOTE(zoubir): the rings scale with the screen's height, so the glow
     // covers the same part of the world at any resolution
