@@ -9,19 +9,28 @@
    in world units, which is what the camera, the ground and the world
    overlays work in; screens over the world stay in window pixels.
 
-   The camera eases toward its target instead of jumping to it: each
-   frame it closes the same share of the gap per second whatever the
-   frame rate (CAMERA_FOLLOW_RATE), so uneven frames and the small
-   corrections online play makes to the player do not shake the view. It
-   also leans a little toward the mouse, so more of the screen lies the
-   way the player aims, and runs a little ahead of a moving player, so a
-   run shows more of what it heads into than what it left. While the
-   player is dead it drifts toward whoever killed it, so the killer is in
-   view through the countdown. A respawn or a jump across the map is a
-   cut, not
-   a long pan. Hits shake it (fx_bursts.cpp), and a solid hit the local
-   player lands nudges it toward the blow (body_pose.cpp); both move only
-   what is drawn.
+   The camera is a critically damped spring pulled toward its target: it
+   speeds up and slows down without a jolt, never overshoots on its own,
+   and moves the same at any frame rate. The target is the player plus a
+   look offset (CameraLook) that eases on its own, slower clock: a lean
+   toward the mouse, so more of the screen lies the way the player aims;
+   a lead ahead of a moving player, so a run shows more of what it heads
+   into; and, while the player is dead, a drift toward whoever killed it.
+   Easing the offset means starting, stopping and flicking the mouse glide
+   the view instead of yanking it.
+
+   Near the edge of a bounded map the target does not stop dead at the
+   limit: over the last CAMERA_EDGE_SOFT units it slows down evenly and
+   comes to rest exactly on the edge (SoftClampAxis), so running into a
+   wall eases the view in. The drawn view, shake included, never shows
+   past the edge.
+
+   A respawn or a jump across the map is a cut, not a long pan. Hits
+   shake it (fx_bursts.cpp), and a solid hit the local player lands
+   nudges it toward the blow (body_pose.cpp); both move only what is
+   drawn. Online, the player's Position is already smooth (prediction
+   handles corrections), so the camera adds no smoothing of its own for
+   them.
 
    Called after the world has moved this frame, so the camera and the
    player it follows are drawn from the same positions. */
@@ -32,17 +41,20 @@
 #define WORLD_VIEW_HEIGHT 520.f
 #define WORLD_ZOOM_MIN 1.f
 #define WORLD_ZOOM_MAX 3.f
-// NOTE(zoubir): share of the gap closed per second, as a rate: higher is
-// tighter. 15 settles in under a quarter second, and a full run (260)
-// trails the camera by about 17 units; at 10 it trailed by 26
-#define CAMERA_FOLLOW_RATE 15.f
+// NOTE(zoubir): the spring's smoothing time in seconds: it covers most of
+// a gap in about twice this. A full run (260) trails the target by about
+// 23 units, which the lead more than makes up
+#define CAMERA_SMOOTH_SECONDS 0.09f
+// NOTE(zoubir): share of the gap the look offset (lean, lead, killer
+// drift) closes per second, as a rate: 6 settles in about half a second
+#define CAMERA_LOOK_RATE 6.f
 // NOTE(zoubir): the lean is this share of the cursor's distance from the
 // screen centre, at most CAMERA_LEAN_MAX world units
 #define CAMERA_LEAN_SHARE 0.12f
 #define CAMERA_LEAN_MAX 50.f
 // NOTE(zoubir): the camera aims this many seconds ahead of a moving
-// player, at most CAMERA_LEAD_MAX units: a full run (260) leads by 31, so
-// the easing's 17-unit trail turns into a small lead. Dashes hit the cap
+// player, at most CAMERA_LEAD_MAX units: a full run (260) leads by 31.
+// Dashes hit the cap
 #define CAMERA_LEAD_SECONDS 0.12f
 #define CAMERA_LEAD_MAX 40.f
 // NOTE(zoubir): while the local player is dead the camera drifts this
@@ -50,8 +62,15 @@
 // CAMERA_KILLER_MAX units, so the killer is in view for the countdown
 #define CAMERA_KILLER_SHARE 0.5f
 #define CAMERA_KILLER_MAX 220.f
+// NOTE(zoubir): the target starts slowing this many units before a map
+// edge and rests on the edge this many units past it (at most a quarter
+// of the room the camera has on that axis)
+#define CAMERA_EDGE_SOFT 64.f
 // NOTE(zoubir): a target farther than this many screen sizes away is cut to
 #define CAMERA_CUT_SCREENS 0.75f
+// NOTE(zoubir): longest frame the spring steps in one go, so a hitch does
+// not throw the view
+#define CAMERA_MAX_STEP 0.1f
 
 // NOTE(zoubir): sets AppState->WorldZoom for this frame and returns the
 // window measured in world units
@@ -67,31 +86,136 @@ GetWorldView(app_state *AppState, app_window *Window)
     return Result;
 }
 
-// NOTE(zoubir): one axis of CenterCamera: centred on Position, kept inside
-// Min..Max, or the whole map centred when the view is wider than it
-inline float
-CenterCameraAxis(float Position, float Min, float Max, float ViewSize)
+// NOTE(zoubir): where the camera's top-left corner may go. On an infinite
+// map Bounded is false and Min/Max mean nothing. A map narrower than the
+// view has Min == Max, the corner that centres it
+struct camera_bounds
 {
-    float Result = Position - 0.5f * ViewSize;
-    if (ViewSize >= Max - Min)
+    bool32 Bounded;
+    v2 Min;
+    v2 Max;
+};
+
+inline void
+CameraBoundsAxis(float MapSize, float ViewSize, float *Min, float *Max)
+{
+    if (ViewSize >= MapSize)
     {
-        Result = Min - 0.5f * (ViewSize - (Max - Min));
+        *Min = *Max = -0.5f * (ViewSize - MapSize);
     }
     else
     {
-        Result = Maximum(Min, Minimum(Result, Max - ViewSize));
+        *Min = 0.f;
+        *Max = MapSize - ViewSize;
+    }
+}
+
+internal camera_bounds
+GetCameraBounds(world *World, app_window *View)
+{
+    camera_bounds Result = {};
+    Result.Bounded = !World->Unbounded;
+    if (Result.Bounded)
+    {
+        float MapWidth = (float)(World->NumTilesX * World->TileWidth);
+        float MapHeight = (float)(World->NumTilesY * World->TileHeight);
+        CameraBoundsAxis(MapWidth, (float)View->Width, &Result.Min.X, &Result.Max.X);
+        CameraBoundsAxis(MapHeight, (float)View->Height, &Result.Min.Y, &Result.Max.Y);
     }
     return Result;
 }
 
-inline v3
-CenterCamera(v3 Position, float MinX, float MinY,
-             float MaxX, float MaxY, u32 WindowWidth,
-             u32 WindowHeight)
+// NOTE(zoubir): Position kept inside Min..Max, but eased: it follows
+// Position exactly until CAMERA_EDGE_SOFT units from a limit, then slows
+// evenly (a parabola, so its speed has no corner) and rests on the limit
+// once Position is CAMERA_EDGE_SOFT units past it
+inline float
+SoftClampAxis(float Position, float Min, float Max)
 {
-    v3 Result = Position;
-    Result.X = CenterCameraAxis(Position.X, MinX, MaxX, (float)WindowWidth);
-    Result.Y = CenterCameraAxis(Position.Y, MinY, MaxY, (float)WindowHeight);
+    if (Max <= Min)
+    {
+        return Min;
+    }
+    float Soft = Minimum(CAMERA_EDGE_SOFT, 0.25f * (Max - Min));
+    float Result = Position;
+    if (Position > Max - Soft)
+    {
+        float Past = Position - (Max - Soft);
+        Result = Past >= 2.f * Soft ? Max :
+            Max - Soft + Past - Past * Past / (4.f * Soft);
+    }
+    else if (Position < Min + Soft)
+    {
+        float Past = (Min + Soft) - Position;
+        Result = Past >= 2.f * Soft ? Min :
+            Min + Soft - Past + Past * Past / (4.f * Soft);
+    }
+    return Result;
+}
+
+inline v2
+SoftClampCamera(camera_bounds *Bounds, v2 Corner)
+{
+    v2 Result = Corner;
+    if (Bounds->Bounded)
+    {
+        Result.X = SoftClampAxis(Corner.X, Bounds->Min.X, Bounds->Max.X);
+        Result.Y = SoftClampAxis(Corner.Y, Bounds->Min.Y, Bounds->Max.Y);
+    }
+    return Result;
+}
+
+// NOTE(zoubir): Corner kept inside the bounds with a hard stop; Velocity,
+// if given, loses the part that pushed past. An axis where the map is
+// narrower than the view is left alone: its border shows anyway, and
+// shake there should still show
+inline v2
+HardClampCamera(camera_bounds *Bounds, v2 Corner, v2 *Velocity = 0)
+{
+    v2 Result = Corner;
+    for(u32 Axis = 0; Bounds->Bounded && Axis < 2; Axis++)
+    {
+        float Min = Bounds->Min.Data[Axis];
+        float Max = Bounds->Max.Data[Axis];
+        if (Max <= Min)
+        {
+            continue;
+        }
+        float Clamped = Maximum(Min, Minimum(Result.Data[Axis], Max));
+        if (Velocity && Clamped != Result.Data[Axis])
+        {
+            Velocity->Data[Axis] = 0.f;
+        }
+        Result.Data[Axis] = Clamped;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): one step of a critically damped spring of smoothing time
+// CAMERA_SMOOTH_SECONDS (the closed form from Game Programming Gems 4,
+// "Critically Damped Ease-In/Ease-Out Smoothing"): stable at any step
+inline float
+SpringAxis(float Current, float Target, float *Velocity, float DeltaTime)
+{
+    float Omega = 2.f / CAMERA_SMOOTH_SECONDS;
+    float X = Omega * DeltaTime;
+    float Decay = 1.f / (1.f + X + 0.48f * X * X + 0.235f * X * X * X);
+    float Change = Current - Target;
+    float Temp = (*Velocity + Omega * Change) * DeltaTime;
+    *Velocity = (*Velocity - Omega * Temp) * Decay;
+    float Result = Target + (Change + Temp) * Decay;
+    return Result;
+}
+
+inline v2
+CapLength(v2 Value, float Max)
+{
+    v2 Result = Value;
+    float Size = Length(Value);
+    if (Size > Max)
+    {
+        Result = (Max / Size) * Value;
+    }
     return Result;
 }
 
@@ -109,18 +233,10 @@ CameraLean(app_input *Input, app_window *View, float Zoom)
     {
         FromCentre = V2(0.f, 0.f);
     }
-    v2 Result = CAMERA_LEAN_SHARE * FromCentre;
-    float Size = Length(Result);
-    if (Size > CAMERA_LEAN_MAX)
-    {
-        Result = (CAMERA_LEAN_MAX / Size) * Result;
-    }
+    v2 Result = CapLength(CAMERA_LEAN_SHARE * FromCentre, CAMERA_LEAN_MAX);
     return Result;
 }
 
-// NOTE(zoubir): keeps the previous position when there is no local player.
-// Window is the view in world units (GetWorldView). Lean is off while a
-// screen holds the mouse
 // NOTE(zoubir): the live player who landed the local player's latest
 // death (client/kill_feed.cpp), or 0 for a monster, the world or none
 internal world_entity *
@@ -145,75 +261,93 @@ LocalKiller(app_state *AppState)
     return 0;
 }
 
+// NOTE(zoubir): where the look offset is heading this frame: lean and
+// lead while alive, the drift toward the killer while dead. Lean is off
+// while a screen holds the mouse
+internal v2
+CameraLookTarget(app_state *AppState, world_entity *Player, app_window *View,
+                 app_input *Input, bool32 Lean, float Zoom)
+{
+    v2 Result = {};
+    if (IsDeadPlayer(Player))
+    {
+        world_entity *Killer = LocalKiller(AppState);
+        if (Killer)
+        {
+            Result = CapLength(CAMERA_KILLER_SHARE * (Killer->Position.XY - Player->Position.XY),
+                               CAMERA_KILLER_MAX);
+        }
+    }
+    else
+    {
+        if (Lean)
+        {
+            Result += CameraLean(Input, View, Zoom);
+        }
+        Result += CapLength(CAMERA_LEAD_SECONDS * Player->Velocity.XY, CAMERA_LEAD_MAX);
+    }
+    return Result;
+}
+
+// NOTE(zoubir): keeps heading for the previous target when there is no
+// local player. Window is the view in world units (GetWorldView)
 internal v3
 UpdateCamera(app_state *AppState, app_window *Window, app_input *Input,
              bool32 Lean)
 {
-    world *World = &AppState->World;
     world_entity *Player = GetLocalPlayer(AppState);
     float Zoom = AppState->WorldZoom > 0.f ? AppState->WorldZoom : 1.f;
+    float DeltaTime = Maximum(0.f, Minimum(Input->DeltaTime, CAMERA_MAX_STEP));
+    camera_bounds Bounds = GetCameraBounds(&AppState->World, Window);
+    v2 HalfView = V2(0.5f * (float)Window->Width, 0.5f * (float)Window->Height);
+    v3 *Camera = &AppState->CameraOffset;
+
+    bool32 Cut = !AppState->CameraPlaced;
     if (Player)
     {
-        v3 Focus = Player->Position;
-        if (Lean && !IsDeadPlayer(Player))
+        v2 LookTarget = CameraLookTarget(AppState, Player, Window, Input, Lean, Zoom);
+        // NOTE(zoubir): judged on where the camera would go with the look
+        // already there, so a respawn far away cuts straight to it
+        v2 Settled = SoftClampCamera(&Bounds, Player->Position.XY + LookTarget - HalfView);
+        float CutDistance = CAMERA_CUT_SCREENS * (float)Maximum(Window->Width, Window->Height);
+        if (Length(Settled - Camera->XY) > CutDistance)
         {
-            Focus.XY += CameraLean(Input, Window, Zoom);
+            Cut = true;
         }
-        world_entity *Killer = IsDeadPlayer(Player) ? LocalKiller(AppState) : 0;
-        if (Killer)
+        if (Cut)
         {
-            v2 Toward = CAMERA_KILLER_SHARE * (Killer->Position.XY - Player->Position.XY);
-            float Reach = Length(Toward);
-            if (Reach > CAMERA_KILLER_MAX)
-            {
-                Toward = (CAMERA_KILLER_MAX / Reach) * Toward;
-            }
-            Focus.XY += Toward;
-        }
-        if (!IsDeadPlayer(Player))
-        {
-            v2 Lead = CAMERA_LEAD_SECONDS * Player->Velocity.XY;
-            float LeadSize = Length(Lead);
-            if (LeadSize > CAMERA_LEAD_MAX)
-            {
-                Lead = (CAMERA_LEAD_MAX / LeadSize) * Lead;
-            }
-            Focus.XY += Lead;
-        }
-        if (World->Unbounded)
-        {
-            AppState->TargetCamera = Focus;
-            AppState->TargetCamera.X -= (float)(Window->Width / 2);
-            AppState->TargetCamera.Y -= (float)(Window->Height / 2);
+            AppState->CameraLook = LookTarget;
         }
         else
         {
-            float ArenaWidth = (float)(World->NumTilesX * World->TileWidth);
-            float ArenaHeight = (float)(World->NumTilesY * World->TileHeight);
-            AppState->TargetCamera = CenterCamera(Focus, 0.f, 0.f,
-                                                  ArenaWidth, ArenaHeight,
-                                                  Window->Width, Window->Height);
+            float Share = 1.f - expf(-CAMERA_LOOK_RATE * DeltaTime);
+            AppState->CameraLook += Share * (LookTarget - AppState->CameraLook);
         }
+        v2 Corner = SoftClampCamera(&Bounds, Player->Position.XY + AppState->CameraLook - HalfView);
+        AppState->TargetCamera = V3(Corner.X, Corner.Y, Player->Position.Z);
     }
 
-    v3 *Camera = &AppState->CameraOffset;
-    v3 Gap = AppState->TargetCamera - *Camera;
-    float CutDistance = CAMERA_CUT_SCREENS * (float)Maximum(Window->Width, Window->Height);
-    if (!AppState->CameraPlaced || Length(Gap.XY) > CutDistance)
+    if (Cut)
     {
         *Camera = AppState->TargetCamera;
+        AppState->CameraVelocity = V2(0.f, 0.f);
         AppState->CameraPlaced = true;
     }
     else
     {
-        float Share = 1.f - expf(-CAMERA_FOLLOW_RATE * Input->DeltaTime);
-        *Camera += Share * Gap;
+        v2 *Velocity = &AppState->CameraVelocity;
+        Camera->X = SpringAxis(Camera->X, AppState->TargetCamera.X, &Velocity->X, DeltaTime);
+        Camera->Y = SpringAxis(Camera->Y, AppState->TargetCamera.Y, &Velocity->Y, DeltaTime);
+        Camera->Z = AppState->TargetCamera.Z;
+        Camera->XY = HardClampCamera(&Bounds, Camera->XY, Velocity);
     }
 
     v3 CameraOffset = *Camera;
     // NOTE(zoubir): hits shake the screen (fx_bursts.cpp); added only to
-    // what is drawn, never to where the camera is heading
+    // what is drawn, never to where the camera is heading, and kept off
+    // the dark past the map's edge
     CameraOffset.XY += GetCameraShake(AppState) + GetHitNudge(AppState);
+    CameraOffset.XY = HardClampCamera(&Bounds, CameraOffset.XY);
     // NOTE(zoubir): to whole window pixels, rounding down so negative
     // positions snap the same way as positive ones
     CameraOffset.X = SnapToScreenPixel(CameraOffset.X, Zoom);

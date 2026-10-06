@@ -18,6 +18,8 @@
     struct rewind_fx *RewindFx; // time rewinds' trails, post-process and overlays, client/rewind_fx/
     float WorldZoom; // window pixels per world unit, client/camera.cpp
     bool32 CameraPlaced; // the camera has been put on the player once; until then it cuts, client/camera.cpp
+    v2 CameraVelocity; // world units per second, the camera spring's speed, client/camera.cpp
+    v2 CameraLook; // eased lean, lead and killer drift added to the player, client/camera.cpp
     struct talent_requests *TalentRequests; // talents clicked, on their way to the simulation, client/talent_requests.cpp
     struct talent_panel *TalentPanel; // the talent tree screen (N), ui/talent_panel/
     struct xp_bar *XpBar; // experience bar, level badge and level-up banner, ui/talent_panel/xp_bar.cpp
