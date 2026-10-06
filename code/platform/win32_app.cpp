@@ -1,3 +1,8 @@
+/* The Windows game: the executable that opens the window, loads the game
+   code (app.dll, reloaded when it is rebuilt), and runs it once a frame
+   with input, sound and OpenGL. The parts are in win32/, included below
+   in the order they depend on each other; this file keeps Win32RunFrame,
+   one frame, and WinMain, startup and the frame loop. */
 
 #include <malloc.h>
 #include <windows.h>

@@ -15,6 +15,8 @@
 #    entry points (code/app.cpp, platform/*_app.cpp, server/*_main.cpp and
 #    the files directly in tests/ and tools/). A file nothing includes is
 #    dead code that still costs a reader's time.
+# 5. Every .cpp and .inc outside third_party/ starts with a comment
+#    saying what it is for, so a reader can stop at the top of the file.
 param([string]$Root = (Split-Path -Parent $PSScriptRoot))
 $Root = [System.IO.Path]::GetFullPath($Root)
 
@@ -92,6 +94,15 @@ foreach ($File in $Sources) {
         $Name -match '^code/(tests|tools)/[^/]*\.cpp$'
     if (-not $EntryPoint -and -not $Included.ContainsKey($File.FullName.ToLowerInvariant())) {
         $Failures.Add("${Name}: nothing includes it; add it to its module's list or delete it")
+    }
+}
+
+# 5. A comment at the top of every file.
+foreach ($File in $Sources) {
+    if ($File.Extension -eq '.h') { continue }
+    $First = Get-Content $File.FullName | Where-Object { $_.Trim() -ne '' } | Select-Object -First 1
+    if ($First -notmatch '^\s*(/\*|//)') {
+        $Failures.Add("$(RelativePath $File.FullName): start the file with a comment saying what it is for")
     }
 }
 
