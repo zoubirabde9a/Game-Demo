@@ -16,6 +16,11 @@ if not exist "%~dp0build" mkdir "%~dp0build"
 pushd "%~dp0build"
 set Result=0
 
+REM The layout rules (docs/architecture-plan.md): module summaries, no client
+REM code in what the server compiles, files under 600 lines.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0misc\layout_check.ps1"
+if %errorlevel% neq 0 set Result=1
+
 cl %TestFlags% ..\code\tests\sim_tests.cpp /link -incremental:no %GameLibs%
 if %errorlevel% neq 0 goto failed
 cl %TestFlags% ..\code\tests\net_tests.cpp /link -incremental:no

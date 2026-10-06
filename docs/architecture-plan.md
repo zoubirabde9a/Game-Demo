@@ -26,3 +26,11 @@ Rules for every step:
   - [x] 7d. `sim/entity.cpp` (701 to 297 lines) keeps animation, flags, collision volumes and `DamageEntity`. `sim/collision.cpp` (139) holds what happens when two entities meet (`HandleCollision`, `HandleOverlap`, `TestWall`, `EntityOverlap`); `sim/move.cpp` (273) holds `MoveEntity` and its steps. Both are included right after `entity.cpp`, so the code keeps its order; joined back together the three files match the old one line for line.
   - [x] 7e. `engine/asset.cpp` (577 to 165 lines) keeps the calls the game makes (`GetTexture`, `GetAudio`, `LoadOpenglTexturesFromQueue`, `InitializeAssets`); the rest moved to `engine/asset/` in the same order: `memory_and_upload.cpp`, `load.cpp`, `eviction.cpp`, `generated.cpp` (45 to 225 lines). With the includes expanded, the code matches the old file line for line.
   - Stay whole: `engine/random.h` (mostly a table of random numbers), `engine/math.h` (about 50 small vector and rectangle helpers, each a few lines), the test files (lists of independent cases), `tools/test_asset_builder.cpp` (a separate build tool), `platform/emscripten_app.cpp` (the whole web entry point, about 12 functions), `client/replicas.cpp` (412 lines, one job: mirroring the server's snapshot, already summarised, with smoothing in its own file). Files at or just over 400 lines in `art/` and `sim/` monsters and terrain belong to the monster agent's claims and are left to it.
+
+## Keeping it this way
+
+`misc/layout_check.ps1` runs at the start of `test.bat`, so `misc\land.bat` refuses to land a change that breaks these rules:
+
+- every `*_module.cpp` starts with a `/* */` summary;
+- code the dedicated server compiles (`sim/`, `net/`, `server/`, `engine/engine_core.cpp`) includes nothing from `client/`, `ui/`, `art/` or `platform/`;
+- no source file outside `tests/` and `third_party/` passes 600 lines. Five files were already longer; the script lists each with its current size as a ceiling it may not grow past. Split a file rather than raising a number.
