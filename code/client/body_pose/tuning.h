@@ -72,6 +72,15 @@
 #define BODY_WINDUP_DEPTH 0.14f
 #define BODY_WINDUP_RELEASE 0.7f
 #define BODY_WINDUP_MAX_SECONDS 0.6f
+// NOTE(zoubir): a sword swing throws the body into the cut: it snaps
+// over toward the aim by up to SWING_LEAN and stretches out along it by
+// SWING_STRETCH in the first SWING_SNAP of SWING_SECONDS, then eases
+// back; a finisher by SWING_FINISHER times as much
+#define BODY_SWING_SECONDS 0.28f
+#define BODY_SWING_SNAP 0.15f
+#define BODY_SWING_LEAN 0.3f
+#define BODY_SWING_STRETCH 0.16f
+#define BODY_SWING_FINISHER 1.6f
 // NOTE(zoubir): an idle body's breath: how much taller at the top, breaths
 // a second, and the ground speed under which a body counts as still
 #define BODY_BREATH_DEPTH 0.03f

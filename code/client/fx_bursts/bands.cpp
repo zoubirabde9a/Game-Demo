@@ -1,6 +1,7 @@
 /* Filled bands for the bursts (fx_bursts.cpp): DrawArcBand, a band
-   between two radii over a range of angles, and DrawWaveFront, the
-   growing front of a ring or cone built from two of them. */
+   between two radii over a range of angles, DrawWaveFront, the growing
+   front of a ring or cone built from two of them, and DrawFxStroke, a
+   tapered straight stroke. */
 
 #define ARC_BAND_SEGMENTS_PER_TURN 48
 
@@ -53,4 +54,24 @@ DrawWaveFront(render_context *RenderContext, v2 Centre, float From, float To,
     DrawArcBand(RenderContext, Centre, From, To, Front - 2.5f, Front + 1.f,
                 FxColor(Alpha, 0x00FFFFFF), FxColor(Alpha, 0x00FFFFFF),
                 RenderBlend_Alpha);
+}
+
+// NOTE(zoubir): a straight stroke from A to B, WidthA wide at A and WidthB
+// at B (0 for a point), shading from ColorA to ColorB: a streak, a blade,
+// a cut
+internal void
+DrawFxStroke(render_context *RenderContext, v2 A, v2 B, float WidthA,
+             float WidthB, u32 ColorA, u32 ColorB,
+             u32 Blend = RenderBlend_Additive)
+{
+    v2 Along = B - A;
+    float Length = SquareRoot(LengthSq(Along));
+    if (Length < 0.001f)
+    {
+        return;
+    }
+    v2 Across = V2(-Along.Y, Along.X) * (0.5f / Length);
+    DrawFilledQuad(RenderContext, A - WidthA * Across, B - WidthB * Across,
+                   B + WidthB * Across, A + WidthA * Across,
+                   ColorA, ColorB, ColorB, ColorA, Blend);
 }

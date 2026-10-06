@@ -176,6 +176,12 @@ DrawEntity(render_context *RenderContext,
            assets *Assets,
            world_entity *Entity, v3 CameraOffset)
 {
+    // NOTE(zoubir): a swing's blade and its trail are drawn by its burst
+    // (fx_bursts/sword_arc.cpp); the sword entity is only its hitbox
+    if (Entity->Type == EntityType_Sword)
+    {
+        return;
+    }
     open_gl *OpenGL = AppState->OpenGL;
     world *World = &AppState->World;
     loaded_texture *Texture = 0;
@@ -263,23 +269,22 @@ DrawEntity(render_context *RenderContext,
             if (Pose.White > 0.f)
             {
                 // NOTE(zoubir): the first frames of a hit add the sprite
-                // over itself as light, twice, which washes it near white
+                // over itself as light, which washes it pale but keeps its
+                // shading, so the cut drawn over it (fx_bursts.cpp) shows.
+                // Twice washed it to a flat white blob that hid the cut
                 BeginBatch(RenderContext, Texture->ID,
                            SortingValue + 0.001f, TextureProgram);
                 RenderContext->AllocatedBatches[RenderContext->BatchCount].Blend =
                     RenderBlend_Additive;
                 u32 Light = ((u32)(255.f * Pose.White) << 24) | 0x00FFFFFF;
-                for(u32 Pass = 0; Pass < 2; Pass++)
-                {
-                    RenderQuadTexture(RenderContext,
-                                      EntityTexturePosition.X,
-                                      EntityTexturePosition.Y,
-                                      Dimensions.X,
-                                      Dimensions.Y,
-                                      Entity->Uvs,
-                                      Light,
-                                      DrawZ, Pose.Angle);
-                }
+                RenderQuadTexture(RenderContext,
+                                  EntityTexturePosition.X,
+                                  EntityTexturePosition.Y,
+                                  Dimensions.X,
+                                  Dimensions.Y,
+                                  Entity->Uvs,
+                                  Light,
+                                  DrawZ, Pose.Angle);
                 EndBatch(RenderContext);
             }
         }

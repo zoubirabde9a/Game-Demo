@@ -68,6 +68,7 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
         }
         Pose->Flash = Maximum(0.f, Pose->Flash - DeltaTime / BODY_HIT_FLASH_SECONDS);
         Pose->Flinch = Maximum(0.f, Pose->Flinch - DeltaTime / BODY_FLINCH_SECONDS);
+        Pose->Swing = Maximum(0.f, Pose->Swing - DeltaTime / BODY_SWING_SECONDS);
         Pose->KnockLeft = Maximum(0.f, Pose->KnockLeft - DeltaTime);
 
         // NOTE(zoubir): eased, a one-frame jolt (a shove, a correction)

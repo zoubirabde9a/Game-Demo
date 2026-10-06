@@ -27,6 +27,9 @@
    - the local player landing a solid hit freezes its own sprite for an
      instant and nudges the camera toward the blow (GetHitNudge, read by
      camera.cpp); its movement is not touched;
+   - swinging the sword throws it into the cut: it snaps over toward
+     the aim and stretches out along it, then eases back (SetBodySwing,
+     from the swing's burst);
    - a cast with a wind-up crouches it while it charges and pops it up as
      it lets go (SetBodyWindup, from the cast's bursts, fx_bursts.cpp);
    - a stun sways it side to side on its feet, dizzy;
@@ -94,6 +97,11 @@ struct body_pose
     // left until it lets go
     float Windup;
     float ChargeLeft;
+    // NOTE(zoubir): 1 as a sword swing starts, down to 0; the lean and
+    // stretch it throws the body into (SetBodySwing)
+    float Swing;
+    float SwingLean;
+    v2 SwingStretch;
     // NOTE(zoubir): seconds this body has been tracked, for the sway
     float Clock;
     // NOTE(zoubir): seconds to its next puff of dust
@@ -283,6 +291,30 @@ SetBodyWindup(app_state *AppState, world_entity *Entity, bool32 Charging)
     }
 }
 
+// NOTE(zoubir): Entity swings its sword toward Angle, sweeping the Side
+// way round (+1 or -1): it leans toward the aim when the aim is to one
+// side, else the way the blade goes, and stretches along the aim
+internal void
+SetBodySwing(app_state *AppState, world_entity *Entity, float Angle,
+             float Side, bool32 Finisher)
+{
+    u32 Index = (u32)(Entity - AppState->World.Entities);
+    if (!AppState->BodyPoses || Index >= BODY_POSE_SLOTS ||
+        !AppState->BodyPoses->Poses[Index].Tracking ||
+        AppState->BodyPoses->Poses[Index].EntityId != Entity->ID)
+    {
+        return;
+    }
+    body_pose *Pose = &AppState->BodyPoses->Poses[Index];
+    float Strength = Finisher ? BODY_SWING_FINISHER : 1.f;
+    float Sideways = Cos(Angle);
+    float Lean = Absolute(Sideways) > 0.35f ? Sideways : 0.5f * Side;
+    Pose->Swing = 1.f;
+    Pose->SwingLean = Strength * BODY_SWING_LEAN * Lean;
+    Pose->SwingStretch = Strength * BODY_SWING_STRETCH *
+        V2(Absolute(Sideways), 0.6f * Absolute(Sin(Angle)));
+}
+
 // NOTE(zoubir): width and height multipliers for the sprite (the area
 // stays about the same, so a squash reads as weight, not shrinking), its
 // turn in radians and its flash
@@ -317,6 +349,13 @@ GetBodyPose(app_state *AppState, world_entity *Entity)
     Result.Scale.X *= 1.f + Rush;
     Result.Scale.Y /= 1.f + Rush;
     Result.Scale.X *= 1.f - BODY_TURN_SQUEEZE * Pose->Turn;
+    // NOTE(zoubir): a swing snaps in, then eases out
+    float Swung = 1.f - Pose->Swing;
+    float Swing = Pose->Swing <= 0.f ? 0.f : Swung < BODY_SWING_SNAP ?
+        Swung / BODY_SWING_SNAP :
+        Square(1.f - (Swung - BODY_SWING_SNAP) / (1.f - BODY_SWING_SNAP));
+    Result.Scale.X *= 1.f + Swing * (Pose->SwingStretch.X - 0.5f * Pose->SwingStretch.Y);
+    Result.Scale.Y *= 1.f + Swing * (Pose->SwingStretch.Y - 0.5f * Pose->SwingStretch.X);
     bool32 OnGround = !Pose->Airborne;
     if (Pose->SpeedXY < BODY_STILL_SPEED && OnGround)
     {
@@ -325,7 +364,7 @@ GetBodyPose(app_state *AppState, world_entity *Entity)
         Result.Scale.Y *= 1.f + BODY_BREATH_DEPTH * (0.5f + 0.5f * Sin(Phase));
     }
     // NOTE(zoubir): the flinch snaps over with the blow and eases back
-    float Angle = Pose->Tilt +
+    float Angle = Pose->Tilt + Swing * Pose->SwingLean +
         Weight * Pose->FlinchSign * BODY_FLINCH_ANGLE * Pose->Flinch * Pose->Flinch;
     if (Pose->Spin > 0.f)
     {

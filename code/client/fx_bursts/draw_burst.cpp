@@ -116,23 +116,52 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
 
         case BurstShape_Slash:
         {
-            // NOTE(zoubir): the cut runs across the direction of the hit,
-            // widest early; sparks fly on along the hit
+            // NOTE(zoubir): a cut drawn across the hit at a slant, racing
+            // from one end to the other in the first fifth, widest in its
+            // middle, then thinning away; a flash of light under it and
+            // sparks flying on along the hit, falling as they go
             v2 Along = V2(Cos(Burst->Angle), Sin(Burst->Angle));
-            v2 Across = V2(-Along.Y, Along.X);
-            float HalfLength = Area.Radius * (0.4f + 0.6f * EaseOut);
-            for(u32 Dot = 0; Dot < 11; Dot++)
+            float Slant = Burst->Angle + 0.5f * Pi32 + 0.6f;
+            v2 Across = V2(Cos(Slant), Sin(Slant));
+            float Drawn = Clamp01(T / 0.2f);
+            float HalfLength = Area.Radius * (1.f + 0.25f * EaseOut);
+            float Width = 7.f * (1.f - T) + 1.f;
+            v2 Start = Centre - HalfLength * Across;
+            v2 Middle = Centre + HalfLength * (2.f * Minimum(Drawn, 0.5f) - 1.f) * Across;
+            v2 End = Centre + HalfLength * (2.f * Drawn - 1.f) * Across;
+            // NOTE(zoubir): faint, the body's own hit flash (body_pose.cpp)
+            // already washes it white
+            float Flash = 1.6f * Area.Radius;
+            DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 0.5f * Flash,
+                           Centre.Y - 0.5f * Flash, Flash, Flash,
+                           FxColor(0.45f * Square(1.f - T), Look->RGB), RenderBlend_Additive);
+            float CutAlpha = 1.f - T * T;
+            for(u32 Pass = 0; Pass < 2; Pass++)
             {
-                float Offset = ((float)Dot / 10.f - 0.5f) * 2.f * HalfLength;
-                float Size = (6.f - 4.f * T) * (1.f - Absolute(Offset) / (HalfLength + 1.f));
-                DrawFxDot(RenderContext, Centre + Offset * Across, Size + 1.f, Color);
+                // NOTE(zoubir): a wide coloured glow, then the white core
+                float Wide = Pass == 0 ? 2.5f * Width : Width;
+                u32 RGB = Pass == 0 ? Look->RGB : 0x00FFFFFF;
+                u32 Blend = Pass == 0 ? RenderBlend_Additive : RenderBlend_Alpha;
+                float MiddleWidth = Wide * (Drawn < 0.5f ? 2.f * Drawn : 1.f);
+                DrawFxStroke(RenderContext, Start, Middle, 0.f, MiddleWidth,
+                             FxColor(CutAlpha, RGB), FxColor(CutAlpha, RGB), Blend);
+                if (Drawn > 0.5f)
+                {
+                    DrawFxStroke(RenderContext, Middle, End, Wide,
+                                 Wide * 2.f * (1.f - Drawn), FxColor(CutAlpha, RGB),
+                                 FxColor(CutAlpha, RGB), Blend);
+                }
             }
-            for(u32 Dot = 0; Dot < 6; Dot++)
+            for(u32 Dot = 0; Dot < 7; Dot++)
             {
-                float Spread = (BurstJitter(Dot, 8) - 0.5f) * 1.2f;
+                float Spread = (BurstJitter(Dot, 8) - 0.5f) * 1.4f;
                 v2 Direction = V2(Cos(Burst->Angle + Spread), Sin(Burst->Angle + Spread));
-                float Out = Area.Radius * 1.2f * EaseOut * (0.5f + 0.5f * BurstJitter(Dot, 9));
-                DrawFxDot(RenderContext, Centre + Out * Direction, 4.f - 3.f * T, Color);
+                float Out = Area.Radius * 1.6f * EaseOut * (0.4f + 0.6f * BurstJitter(Dot, 9));
+                v2 P = Centre + Out * Direction + V2(0.f, 30.f * T * T);
+                float Trail = 8.f * (1.f - T);
+                u32 RGB = Dot & 1 ? 0x00FFFFFF : Look->RGB;
+                DrawFxStroke(RenderContext, P - Trail * Direction, P, 0.f,
+                             3.f - 2.f * T, FxColor(0.f, RGB), FxColor(CutAlpha, RGB));
             }
         } break;
 

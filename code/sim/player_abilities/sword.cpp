@@ -58,9 +58,9 @@ global_variable sword_cut SwordCuts[SwordCut_Count] =
 {
     // NOTE(zoubir): a target already in the air is knocked up a little
     // instead of only away, so swings can juggle it
-    {{CUT_DAMAGE(1.f), CUT_SHOVE(1.f), 0.f, 220.f, 0.f, SimBurst_Count},
+    {{CUT_DAMAGE(1.f), CUT_SHOVE(1.f), 0.f, 220.f, 0.f, SimBurst_SwordHit},
      SimBurst_SwingArc, 0.f, 0.f},
-    {{CUT_DAMAGE(1.f), CUT_SHOVE(1.25f), 0.f, 240.f, 0.f, SimBurst_Count},
+    {{CUT_DAMAGE(1.f), CUT_SHOVE(1.25f), 0.f, 240.f, 0.f, SimBurst_SwordHit},
      SimBurst_SwingArcBack, 0.f, 0.f},
     // NOTE(zoubir): the finisher
     {{CUT_DAMAGE(1.4f), CUT_SHOVE(1.8f), 300.f, 340.f, 0.7f, SimBurst_Finisher},

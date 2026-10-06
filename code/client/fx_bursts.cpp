@@ -85,9 +85,9 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Slash, 0.28f, 44.f, 0x00FFFFFF, false, 0.4f, BurstPose_None},  // Finisher, white
     // NOTE(zoubir): the sword's arcs: their outer edge is the reach the
     // cut hits at (entity.h, sword.cpp)
-    {BurstShape_Arc, 0.24f, SWORD_REACH, 0x00F0FFFF, false, 0.08f, BurstPose_None},      // SwingArc, pale
-    {BurstShape_ArcBack, 0.24f, SWORD_REACH, 0x00C0FFFF, false, 0.1f, BurstPose_None},   // SwingArcBack, warmer
-    {BurstShape_Arc, 0.32f, SWORD_FINISHER_REACH, 0x0060E0FF, false, 0.2f, BurstPose_None}, // SwingArcFinisher, gold
+    {BurstShape_Arc, 0.3f, SWORD_REACH, 0x00FFD8A0, false, 0.08f, BurstPose_None},      // SwingArc, steel blue
+    {BurstShape_ArcBack, 0.3f, SWORD_REACH, 0x00FFF0A0, false, 0.1f, BurstPose_None},   // SwingArcBack, ice
+    {BurstShape_Arc, 0.4f, SWORD_FINISHER_REACH, 0x0030B8FF, false, 0.25f, BurstPose_None}, // SwingArcFinisher, gold
     {BurstShape_Skid, 0.35f, 24.f, 0x00C8D8E0, true, 0.f, BurstPose_None},      // Skid, dust
     {BurstShape_Puff, 0.25f, 16.f, 0x0070A0B8, true, 0.f, BurstPose_None},      // Step, earthy dust
     {BurstShape_Death, 0.45f, 30.f, 0x00E8F0FF, false, 0.25f, BurstPose_None},  // Death, pale
@@ -113,6 +113,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_LevelUp, 1.1f, 40.f, 0x0050C8FF, false, 0.f, BurstPose_None},        // LevelUp, gold
     {BurstShape_Learned, 0.7f, 34.f, 0x008CE6FF, false, 0.f, BurstPose_None},        // TalentLearned, pale gold
     {BurstShape_Slash, 0.3f, 30.f, 0x00FFE070, false, 0.25f, BurstPose_None},        // KunaiReflect, sky blue
+    {BurstShape_Slash, 0.22f, 22.f, 0x00FFE0B0, false, 0.08f, BurstPose_None},       // SwordHit, steel blue
 };
 static_assert(ArrayCount(BurstLooks) == SimBurst_Count, "one look per burst");
 
@@ -247,6 +248,16 @@ AddBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,
     {
         SetBodyWindup(AppState, AppState->Players[Slot].Entity,
                       BurstLooks[Kind].Pose == BurstPose_Charge);
+    }
+    if (BurstLooks[Kind].Shape == BurstShape_Arc ||
+        BurstLooks[Kind].Shape == BurstShape_ArcBack)
+    {
+        if (Slot < MAX_PLAYERS && AppState->Players[Slot].Entity)
+        {
+            SetBodySwing(AppState, AppState->Players[Slot].Entity, Angle,
+                         BurstLooks[Kind].Shape == BurstShape_Arc ? 1.f : -1.f,
+                         Kind == SimBurst_SwingArcFinisher);
+        }
     }
     world_entity *Local = GetLocalPlayer(AppState);
     if (Local && BurstLooks[Kind].Shake > 0.f)
