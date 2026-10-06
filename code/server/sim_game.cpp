@@ -142,6 +142,18 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     }
 }
 
+// No input from the slot's client arrived for this tick (input_queue.cpp):
+// its player waits instead of repeating the last one, so the server walks
+// it exactly the steps its client predicted.
+internal void
+GameHoldPlayer(server_game *Game, u32 Slot)
+{
+    player_slot *Player = &Game->AppState->Players[Slot];
+    if (!Player->Active) return;
+    ReplayWriteSlotEvent(Game->Replay, ReplayEvent_Held, Slot);
+    Player->WaitingForInput = true;
+}
+
 // Whether another connected player already goes by Name (ignoring case).
 internal bool32
 SimGameNameTaken(server_game *Game, u32 Slot, char *Name)

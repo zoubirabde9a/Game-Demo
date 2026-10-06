@@ -14,9 +14,9 @@ struct online_quality
     float RoundTripMs;
     // NOTE(zoubir): 0..1, over the last full window
     float Loss;
-    // NOTE(zoubir): average seconds between the inputs we send. One goes
-    // out per frame, so input frames are not 1/60 s each: at 144 fps they
-    // are 7 ms, and counting them as 16.7 ms made the round trip 2.4 times
+    // NOTE(zoubir): average seconds between the inputs we send: one a
+    // server tick (online_pacing.cpp). It was one a frame once, 7 ms at
+    // 144 fps, and counting those as 16.7 ms made the round trip 2.4 times
     // too long
     float FrameSeconds;
 
@@ -35,7 +35,7 @@ ResetOnlineQuality(online_quality *Quality)
     *Quality = {};
 }
 
-// NOTE(zoubir): every frame an input is sent, with that frame's length
+// NOTE(zoubir): every input sent, with the time it covers
 internal void
 NoteOnlineFrame(online_quality *Quality, float DeltaTime)
 {

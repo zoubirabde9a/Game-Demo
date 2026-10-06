@@ -573,6 +573,7 @@ TestStatsCountTrafficAndTicks()
 #include "server_client_tests.cpp"
 #include "rewind_tests.cpp"
 #include "replay_tests.cpp"
+#include "motion_tests.cpp"
 
 int
 main()
@@ -592,6 +593,7 @@ main()
     RunServerGameTests();
     RunRewindTests();
     RunReplayTests();
+    RunMotionTests();
     TestSnapshotsAcknowledgeInputs();
     TestPlayerNamesReachEveryone();
     TestNinthClientIsTurnedAway();

@@ -483,8 +483,8 @@ TestRejectsBadPackets()
     Buffer[4] = NetPacket_Snapshot;
 
     // Entity count above the limit. Count sits after the 13-byte header,
-    // the 4-byte tick and the 4-byte input tick.
-    Buffer[21] = (u8)(NET_MAX_SNAPSHOT_ENTITIES + 1);
+    // the 4-byte tick, the 4-byte input tick and the 1-byte input buffered.
+    Buffer[22] = (u8)(NET_MAX_SNAPSHOT_ENTITIES + 1);
     Check(!NetReadPacket(Buffer, Size, &Out));
 
     // Input batches must hold 1..NET_MAX_INPUTS_PER_PACKET inputs.
@@ -964,8 +964,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d54u
-#define NET_GOLDEN_LAYOUT 0x4928dd76u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d55u
+#define NET_GOLDEN_LAYOUT 0xfd3babeeu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

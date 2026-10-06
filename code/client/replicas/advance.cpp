@@ -1,6 +1,6 @@
 /* Between snapshots, every frame: what runs on its own until the next
-   snapshot says otherwise. Respawn countdowns, replicas gliding to their
-   newest position (replica_smoothing.cpp), wind-up warnings filling in, an
+   snapshot says otherwise. Respawn countdowns, replicas moving between
+   their snapshots (replica_smoothing.cpp), wind-up warnings filling in, an
    enrage burst playing out, players' cast bars filling in, the local
    player's cooldown bars running down, a hit-pause running out, and
    animation frames. Included by replicas.cpp; SyncReplicas calls
@@ -19,7 +19,7 @@ AdvanceReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
             Slot->RespawnTimer = Maximum(0.f, Slot->RespawnTimer - DeltaTime);
         }
     }
-    AdvanceSmoothing(&Table->Smoothing, DeltaTime);
+    AdvanceSmoothing(&Table->Smoothing, DeltaTime, (float)NET_TICK_RATE);
     for(u32 Id = 0; Id < MAX_REPLICAS; Id++)
     {
         if (Table->LocalIndexPlusOne[Id])

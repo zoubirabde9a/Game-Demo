@@ -28,7 +28,7 @@ TestOnlineAddressAndButtons()
 internal void
 TestOnlineSessionStartsOnlyWithAnAddress()
 {
-    memory_index Size = Megabytes(1);
+    memory_index Size = Megabytes(8);
     memory_arena Arena;
     InitializeArena(&Arena, (memory_index *)calloc(1, Size), Size);
 
@@ -78,10 +78,12 @@ SnapshotEntity(u16 Id, entity_type Type, float X, float Y, u8 Variant = 0)
     return Result;
 }
 
-// NOTE(zoubir): other units glide to each snapshot over one interval
-// instead of jumping; the local player and long jumps do not glide
+// NOTE(zoubir): another unit walking at an even speed is drawn moving the
+// same distance every frame, a little behind the newest snapshot, even
+// when one snapshot arrives a frame late; the local player is left where
+// the snapshot puts it, and a respawn across the map snaps
 internal void
-TestReplicasGlideBetweenSnapshots()
+TestReplicasMoveEvenlyBetweenSnapshots()
 {
     test_world Test = CreateTestWorld();
     app_state *AppState = Test.AppState;
@@ -89,41 +91,52 @@ TestReplicasGlideBetweenSnapshots()
     net_snapshot *Snapshot = (net_snapshot *)calloc(1, sizeof(net_snapshot));
     float Dt = 1.f / 60.f;
 
-    Snapshot->Tick = 1;
+    // NOTE(zoubir): a snapshot every 3 server ticks, 3 frames apart at 60
+    // fps; the other unit walks 30 units a snapshot, 10 a frame
     Snapshot->Count = 2;
     Snapshot->Entities[0] = SnapshotEntity(5, EntityType_Player, 500, 500, 0);
     Snapshot->Entities[1] = SnapshotEntity(6, EntityType_Player, 800, 500, 1);
-    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    world_entity *Other =
-        &Test.World->Entities[Table->LocalIndexPlusOne[6] - 1];
-    Check(Other->Position.X == 800.f);
-
-    // NOTE(zoubir): 3 frames between snapshots, as at 20 Hz and 60 fps
-    for(u32 Tick = 2; Tick <= 4; Tick++)
+    Snapshot->Entities[1].VelX = 600.f;
+    world_entity *Other = 0;
+    float Last = 0.f;
+    float WorstStep = 0.f, BestStep = 1000.f;
+    for(u32 Round = 0; Round < 30; Round++)
     {
-        Snapshot->Tick = Tick;
-        SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-        SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-        SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+        // NOTE(zoubir): round 20's snapshot is a frame late
+        bool32 Late = (Round == 20);
+        for(u32 Frame = 0; Frame < 3; Frame++)
+        {
+            if (Frame == (Late ? 1u : 0u))
+            {
+                Snapshot->Tick = 3 * (Round + 1);
+                Snapshot->Entities[0].X = 500.f + 30.f * (float)Round;
+                Snapshot->Entities[1].X = 800.f + 30.f * (float)Round;
+            }
+            SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
+            Other = &Test.World->Entities[Table->LocalIndexPlusOne[6] - 1];
+            Check(GetLocalPlayer(AppState)->Position.X == Snapshot->Entities[0].X);
+            if (Round >= 10)
+            {
+                float Step = Other->Position.X - Last;
+                WorstStep = Maximum(WorstStep, Step);
+                BestStep = Minimum(BestStep, Step);
+                // NOTE(zoubir): drawn behind the newest snapshot, except
+                // while waiting for the late one, when it carries on at its
+                // velocity a little past it
+                Check(Late || Other->Position.X < Snapshot->Entities[1].X);
+            }
+            Last = Other->Position.X;
+        }
     }
-    Snapshot->Tick = 5;
-    Snapshot->Entities[0].X = 530.f;
-    Snapshot->Entities[1].X = 830.f;
-    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    Check(GetLocalPlayer(AppState)->Position.X == 530.f);
-    Check(Other->Position.X > 805.f && Other->Position.X < 815.f);
-    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    Check(Other->Position.X > 815.f && Other->Position.X < 825.f);
-    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    Check(Other->Position.X > 829.f && Other->Position.X <= 830.f);
-    SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    Check(Other->Position.X == 830.f);
+    printf("  a replica walking 10 a frame moved %.1f to %.1f a frame\n",
+           BestStep, WorstStep);
+    Check(BestStep > 8.f && WorstStep < 12.f);
 
     // NOTE(zoubir): a respawn across the arena snaps
-    Snapshot->Tick = 6;
-    Snapshot->Entities[1].X = 830.f + 2.f * REPLICA_SNAP_DISTANCE;
+    Snapshot->Tick += 3;
+    Snapshot->Entities[1].X += 2.f * REPLICA_SNAP_DISTANCE;
     SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    Check(Other->Position.X == 830.f + 2.f * REPLICA_SNAP_DISTANCE);
+    Check(Other->Position.X == Snapshot->Entities[1].X);
 
     free(Snapshot);
     free(Table);
@@ -387,7 +400,7 @@ TestPredictionBlendsCorrections()
     Snapshot->Entities[0] = SnapshotEntity(3, EntityType_Player, 500, 500, 0);
     Snapshot->Entities[0].Health = 100;
     SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, 0, 1.f, Dt);
     world_entity *Player = GetLocalPlayer(AppState);
     Check(Player->Position.X == 500.f);
 
@@ -395,20 +408,20 @@ TestPredictionBlendsCorrections()
     Snapshot->Tick = 2;
     Snapshot->Entities[0].X = 480.f;
     SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, 0, 1.f, Dt);
     Check(Player->Position.X > 490.f);
     Check(Player->Position.X < 500.f);
     float Previous = Player->Position.X;
     for(u32 Frame = 0; Frame < 6; Frame++)
     {
-        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, Dt);
+        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, 0, 1.f, Dt);
         Check(Player->Position.X < Previous);
         Previous = Player->Position.X;
     }
     Check(Player->Position.X < 482.f);
     for(u32 Frame = 0; Frame < 30; Frame++)
     {
-        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, Dt);
+        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, 0, 1.f, Dt);
     }
     Check(Player->Position.X == 480.f);
     Check(History->DrawError.X == 0.f);
@@ -417,7 +430,7 @@ TestPredictionBlendsCorrections()
     Snapshot->Tick = 3;
     Snapshot->Entities[0].X = 480.f + 10.f * PREDICTION_SNAP_DISTANCE;
     SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, 0, 1.f, Dt);
     Check(Player->Position.X == 480.f + 10.f * PREDICTION_SNAP_DISTANCE);
 
     free(Snapshot);
@@ -447,13 +460,13 @@ TestPredictionMovesNowAndReplaysAfterSnapshot()
 
     // NOTE(zoubir): holding right moves the player on the very first frame
     RecordPredictedInput(History, 1, NetButton_Right, Dt);
-    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, 1, 1.f, Dt);
     float AfterOne = Player->Position.X;
     Check(AfterOne > 500.f);
     for(u32 Tick = 2; Tick <= 10; Tick++)
     {
         RecordPredictedInput(History, Tick, NetButton_Right, Dt);
-        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, Dt);
+        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, 1, 1.f, Dt);
     }
     Check(Player->Position.X > AfterOne);
     Check(Player->Position.Y == 500.f);
@@ -464,7 +477,7 @@ TestPredictionMovesNowAndReplaysAfterSnapshot()
     Snapshot->InputTick = 10;
     Snapshot->Entities[0].X = 530.f;
     SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    PredictLocalPlayer(AppState, &Test.Arena, History, true, 10, Dt);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 10, 0, 1.f, Dt);
     Check(History->Count == 0);
     Check(Player->Position.X - History->DrawError.X == 530.f);
 
@@ -477,7 +490,7 @@ TestPredictionMovesNowAndReplaysAfterSnapshot()
     Snapshot->Tick = 3;
     Snapshot->Entities[0].X = 540.f;
     SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-    PredictLocalPlayer(AppState, &Test.Arena, History, true, 10, Dt);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 10, 5, 1.f, Dt);
     Check(History->Count == 5);
     float Predicted = Player->Position.X - History->DrawError.X;
     Check(Predicted > 540.f);
@@ -519,7 +532,7 @@ TestPredictionReplaysAStagger()
             RecordPredictedInput(History, Tick, NetButton_Left, Dt);
         }
         SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
-        PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
+        PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, 5, 1.f, Dt);
         world_entity *Player = GetLocalPlayer(AppState);
         Speeds[Staggered] = Player->Velocity.X;
         if (Staggered)
@@ -565,11 +578,11 @@ TestPredictionTakesNoFireballDamage()
     Check(Player->Hp == 100.f);
 
     RecordPredictedInput(History, 1, NetButton_Right, Dt);
-    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, Dt);
+    PredictLocalPlayer(AppState, &Test.Arena, History, true, 0, 1, 1.f, Dt);
     for(u32 Tick = 2; Tick <= 40; Tick++)
     {
         RecordPredictedInput(History, Tick, NetButton_Right, Dt);
-        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, Dt);
+        PredictLocalPlayer(AppState, &Test.Arena, History, false, 0, 1, 1.f, Dt);
     }
     // NOTE(zoubir): it went through the fireball, which does not block
     Check(Player->Position.X - History->DrawError.X > 540.f);
@@ -946,7 +959,7 @@ RunOnlineTests()
     printf("TestPredictionBlendsCorrections\n");
     TestPredictionBlendsCorrections();
     printf("TestReplicasGlideBetweenSnapshots\n");
-    TestReplicasGlideBetweenSnapshots();
+    TestReplicasMoveEvenlyBetweenSnapshots();
     printf("TestReplicaFacingFromSnapshot\n");
     TestReplicaFacingFromSnapshot();
     printf("TestRespawnCountdownOnline\n");

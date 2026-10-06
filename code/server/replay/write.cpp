@@ -199,7 +199,9 @@ ReplayWriteEvent(replay_writer *Writer, replay_event *Event)
     }
     else
     {
-        u8 Op = (u8)((Event->Type == ReplayEvent_Joined ? ReplayOp_Joined : ReplayOp_Left) | Slot);
+        u8 Kind = (u8)(Event->Type == ReplayEvent_Joined ? ReplayOp_Joined :
+                       (Event->Type == ReplayEvent_Held ? ReplayOp_Held : ReplayOp_Left));
+        u8 Op = (u8)(Kind | Slot);
         ReplayPut(Writer, &Op, 1);
     }
 }

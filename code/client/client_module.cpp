@@ -26,6 +26,7 @@
 #include "server_list.cpp"
 #include "online_config.cpp"
 #include "online_quality.cpp"
+#include "online_pacing.cpp"
 #include "action_keys.cpp"
 #include "talent_requests.cpp"
 #include "online.cpp"

@@ -150,7 +150,7 @@ NetClientHandle(net_client *Client, net_packet *Packet)
 }
 
 internal void
-NetClientUpdate(net_client *Client, float Dt, u32 Buttons, float AimX, float AimY)
+NetClientPoll(net_client *Client, float Dt)
 {
     if (Client->State == NetClient_Disconnected) return;
 
@@ -176,9 +176,9 @@ NetClientUpdate(net_client *Client, float Dt, u32 Buttons, float AimX, float Aim
         }
     }
 
-    net_packet Out = {};
     if (Client->State == NetClient_Connecting)
     {
+        net_packet Out = {};
         Client->SecondsConnecting += Dt;
         Client->RetryTimer -= Dt;
         if (Client->SecondsConnecting >= NET_CONNECT_GIVE_UP)
@@ -204,30 +204,51 @@ NetClientUpdate(net_client *Client, float Dt, u32 Buttons, float AimX, float Aim
         if (Client->SecondsSinceHeard >= NET_CLIENT_TIMEOUT)
         {
             NetClientEnd(Client, NetEnd_LostConnection);
-            return;
         }
-
-        // Shift the history down and put this frame's input first.
-        u32 Keep = Client->RecentInputCount < NET_MAX_INPUTS_PER_PACKET ?
-            Client->RecentInputCount : NET_MAX_INPUTS_PER_PACKET - 1;
-        for (u32 Index = Keep; Index > 0; --Index)
-        {
-            Client->RecentInputs[Index] = Client->RecentInputs[Index - 1];
-        }
-        net_input *Newest = &Client->RecentInputs[0];
-        Newest->Tick = ++Client->InputTick;
-        Newest->Buttons = Buttons;
-        Newest->AimX = AimX;
-        Newest->AimY = AimY;
-        Client->RecentInputCount = Keep + 1;
-
-        Out.Input.Count = (u8)Client->RecentInputCount;
-        for (u32 Index = 0; Index < Client->RecentInputCount; ++Index)
-        {
-            Out.Input.Inputs[Index] = Client->RecentInputs[Index];
-        }
-        NetClientSend(Client, &Out, NetPacket_Input);
     }
+}
+
+internal u32
+NetClientQueueInput(net_client *Client, u32 Buttons, float AimX, float AimY)
+{
+    if (Client->State != NetClient_Connected) return 0;
+    // Shift the history down and put this input first.
+    u32 Keep = Client->RecentInputCount < NET_MAX_INPUTS_PER_PACKET ?
+        Client->RecentInputCount : NET_MAX_INPUTS_PER_PACKET - 1;
+    for (u32 Index = Keep; Index > 0; --Index)
+    {
+        Client->RecentInputs[Index] = Client->RecentInputs[Index - 1];
+    }
+    net_input *Newest = &Client->RecentInputs[0];
+    Newest->Tick = ++Client->InputTick;
+    Newest->Buttons = Buttons;
+    Newest->AimX = AimX;
+    Newest->AimY = AimY;
+    Client->RecentInputCount = Keep + 1;
+    Client->InputsUnsent++;
+    return Newest->Tick;
+}
+
+internal void
+NetClientFlushInputs(net_client *Client)
+{
+    if (Client->State != NetClient_Connected || !Client->InputsUnsent) return;
+    net_packet Out = {};
+    Out.Input.Count = (u8)Client->RecentInputCount;
+    for (u32 Index = 0; Index < Client->RecentInputCount; ++Index)
+    {
+        Out.Input.Inputs[Index] = Client->RecentInputs[Index];
+    }
+    NetClientSend(Client, &Out, NetPacket_Input);
+    Client->InputsUnsent = 0;
+}
+
+internal void
+NetClientUpdate(net_client *Client, float Dt, u32 Buttons, float AimX, float AimY)
+{
+    NetClientPoll(Client, Dt);
+    NetClientQueueInput(Client, Buttons, AimX, AimY);
+    NetClientFlushInputs(Client);
 }
 
 internal void

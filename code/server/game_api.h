@@ -21,6 +21,9 @@ internal void GamePlayerNamed(server_game *Game, u32 Slot, char *Name);
 internal void GamePlayerLeft(server_game *Game, u32 Slot);
 // Inputs arrive oldest first and are never repeated.
 internal void GameApplyInput(server_game *Game, u32 Slot, net_input *Input);
+// No input from the slot's client arrived in time for this tick: its
+// player stands the tick out instead of repeating the last input.
+internal void GameHoldPlayer(server_game *Game, u32 Slot);
 internal void GameTick(server_game *Game, float Dt);
 // Fills Out with the entities the player in ViewerSlot should see.
 internal void GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out);

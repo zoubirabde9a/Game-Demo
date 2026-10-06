@@ -27,13 +27,17 @@
    the pose and the cast bar, but what it does to others when it ends,
    and attacks, wait for the server.
 
-   When the replay lands somewhere other than where the player was drawn a
-   frame ago, the difference is kept as DrawError and the player is drawn
-   that far off its predicted position, shrinking each frame, so a
-   correction slides in over ~100 ms instead of snapping. Movement and
-   collision always run from the predicted position; the offset is added
-   back only after them. A jump longer than PREDICTION_SNAP_DISTANCE (a
-   respawn) snaps.
+   Inputs are one server tick each (client/online_pacing.cpp), so the
+   player steps NET_TICK_RATE times a second like on the server, and each
+   frame draws it between its two newest steps by how far the frame stands
+   between ticks, on a curve that keeps the velocity of each
+   (MotionCurve, replica_smoothing.cpp). When a replay puts the newest input shown last frame
+   somewhere other than where it was shown, the difference is kept as
+   DrawError and the player is drawn that far off, shrinking each frame,
+   so a correction slides in over ~100 ms instead of snapping. Movement
+   and collision always run from the predicted position; the blend and
+   the offset are added only after them. A jump longer than
+   PREDICTION_SNAP_DISTANCE (a respawn) snaps.
 
    While a time rewind has frozen the player (sim/time_rewind/), nothing
    is predicted: the replica stays where the server, and the rewind's
@@ -42,8 +46,8 @@
 #define MAX_PREDICTED_INPUTS 128
 // NOTE(zoubir): a correction farther than this is a teleport, not an error
 #define PREDICTION_SNAP_DISTANCE (4.f * ARENA_TILE_SIZE)
-// NOTE(zoubir): share of DrawError removed per second; at 60 fps a
-// correction is under a tenth of its size after 100 ms
+// NOTE(zoubir): DrawError shrinks by e to this power a second, whatever
+// the frame rate: a correction is an eighth of its size after 100 ms
 #define PREDICTION_BLEND_RATE 20.f
 
 // NOTE(zoubir): what snapshots do not carry about the local player's body
@@ -126,10 +130,14 @@ struct prediction_history
     predicted_input Inputs[MAX_PREDICTED_INPUTS];
     u32 First;
     u32 Count;
-    // NOTE(zoubir): last frame's predicted position; the player was drawn
-    // DrawError away from it
+    // NOTE(zoubir): where the newest step put the player (Predicted, after
+    // input ShownTick) and the one before (Before); last frame drew the
+    // player between them, DrawError away
     bool32 HasShown;
-    v2 Predicted;
+    v3 Predicted;
+    v3 Before;
+    v3 BeforeVelocity;
+    u32 ShownTick;
     v2 DrawError;
     u32 LastButtons;
     // NOTE(zoubir): After of the newest input the server applied
@@ -241,33 +249,50 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     return true;
 }
 
-// NOTE(zoubir): moves the local player's drawn position, keeping the
-// world's chunk lists right
-internal void
-SetLocalPlayerXY(app_state *AppState, memory_arena *Arena,
-                 world_entity *Player, v2 XY)
-{
-    v3 OldPosition = Player->Position;
-    Player->Position.XY = XY;
-    CheckAndChangeEntityChunk(AppState, &AppState->World, Arena,
-                              OldPosition, Player);
-}
-
 // NOTE(zoubir): in client/rewind_fx/rewind_fx.cpp, included later
 internal bool32 IsLocalPlayerTimeLocked(app_state *AppState);
 
-// NOTE(zoubir): call after SyncReplicas. On a new snapshot the replica
-// sits where the server had it, so replay every input it has not applied;
-// otherwise move it by this frame's input, the newest in the history.
+// NOTE(zoubir): puts the local player at its newest predicted position,
+// undoing last frame's blend between steps and correction offset
+internal void
+ReturnToPredicted(app_state *AppState, memory_arena *Arena,
+                  prediction_history *History, world_entity *Player)
+{
+    if (Player && History->HasShown)
+    {
+        v3 OldPosition = Player->Position;
+        Player->Position = History->Predicted;
+        CheckAndChangeEntityChunk(AppState, &AppState->World, Arena,
+                                  OldPosition, Player);
+    }
+}
+
+// NOTE(zoubir): call after SyncReplicas. NewSteps is how many inputs this
+// frame recorded (the newest in the history), each one tick long. On a new
+// snapshot the replica sits where the server had it, so every input the
+// server has not applied is replayed; otherwise only the new ones are
+// stepped. Blend (0..1) is how far the frame stands between the last tick
+// and the next: the player is drawn that far from its second-newest step
+// to its newest, so it moves every frame though it steps once a tick.
 internal void
 PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
                    prediction_history *History, bool32 NewSnapshot,
-                   u32 InputTick, float DeltaTime)
+                   u32 InputTick, u32 NewSteps, float Blend, float DeltaTime)
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     world_entity *Player = Slot->Entity;
     bool32 Frozen = IsLocalPlayerTimeLocked(AppState);
     bool32 Moved = !Frozen;
+    NewSteps = Minimum(NewSteps, History->Count);
+    // NOTE(zoubir): where last frame's newest step put the player, and the
+    // input that was, to compare with the replay of that same input
+    bool32 HadShown = History->HasShown;
+    v3 ShownBefore = History->Predicted;
+    u32 ShownTick = History->ShownTick;
+    v3 Before = History->Before;
+    v3 BeforeVelocity = History->BeforeVelocity;
+    v3 ReplayedAtShown = {};
+    bool32 FoundShown = false;
     if (NewSnapshot)
     {
         DropAcknowledgedInputs(History, InputTick);
@@ -275,31 +300,48 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
         {
             RestorePredictedBody(Player, &History->Acked);
         }
-        // NOTE(zoubir): every step but the newest was shown on an earlier
-        // frame, so the sounds and bursts it makes again are dropped
-        u32 EventsBefore = AppState->Events.Count;
-        for(u32 Index = 0; Index < History->Count && Moved; Index++)
+        if (Player)
         {
-            Moved = PredictLocalStep(AppState, Arena,
-                                     GetPredictedInput(History, Index));
-            if (Index + 1 < History->Count)
+            Before = Player->Position;
+            BeforeVelocity = Player->Velocity;
+            if (InputTick >= ShownTick)
+            {
+                ReplayedAtShown = Player->Position;
+                FoundShown = true;
+            }
+        }
+        // NOTE(zoubir): the steps shown on earlier frames make their sounds
+        // and bursts again; only the new steps' are kept
+        u32 EventsBefore = AppState->Events.Count;
+        u32 FirstNew = History->Count - NewSteps;
+        for(u32 Index = 0; Index < History->Count && Moved && Player; Index++)
+        {
+            predicted_input *Input = GetPredictedInput(History, Index);
+            Before = Player->Position;
+            BeforeVelocity = Player->Velocity;
+            Moved = PredictLocalStep(AppState, Arena, Input);
+            if (Index < FirstNew)
             {
                 AppState->Events.Count = EventsBefore;
+            }
+            if (Input->Tick == ShownTick)
+            {
+                ReplayedAtShown = Player->Position;
+                FoundShown = true;
             }
         }
     }
     else
     {
-        // NOTE(zoubir): last frame drew the player DrawError off its
-        // predicted position; step from the predicted one
-        if (Player && History->HasShown && !Frozen)
+        if (!Frozen)
         {
-            SetLocalPlayerXY(AppState, Arena, Player, History->Predicted);
+            ReturnToPredicted(AppState, Arena, History, Player);
         }
-        if (History->Count > 0 && !Frozen)
+        for(u32 Index = History->Count - NewSteps; Index < History->Count && Moved && Player && !Frozen; Index++)
         {
-            Moved = PredictLocalStep(AppState, Arena,
-                                     GetPredictedInput(History, History->Count - 1));
+            Before = Player->Position;
+            BeforeVelocity = Player->Velocity;
+            Moved = PredictLocalStep(AppState, Arena, GetPredictedInput(History, Index));
         }
     }
 
@@ -310,25 +352,54 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
         return;
     }
 
-    v2 Predicted = Player->Position.XY;
-    if (NewSnapshot)
+    v3 Predicted = Player->Position;
+    v3 PredictedVelocity = Player->Velocity;
+    if (!HadShown)
     {
-        History->DrawError = History->HasShown ?
-            (History->Predicted + History->DrawError) - Predicted :
-            V2(0.f, 0.f);
-        if (LengthSq(History->DrawError) >
-            Square(PREDICTION_SNAP_DISTANCE))
+        Before = Predicted;
+        BeforeVelocity = PredictedVelocity;
+    }
+    // NOTE(zoubir): the error is how far the replay of the input last shown
+    // lands from where it was shown, not the newest step against the old
+    // one; comparing those counted this frame's own walk as a correction
+    if (NewSnapshot && HadShown && FoundShown)
+    {
+        History->DrawError += ShownBefore.XY - ReplayedAtShown.XY;
+        if (LengthSq(History->DrawError) > Square(PREDICTION_SNAP_DISTANCE))
         {
             History->DrawError = {};
+            Before = Predicted;
+            BeforeVelocity = PredictedVelocity;
         }
     }
-    float Keep = 1.f - PREDICTION_BLEND_RATE * DeltaTime;
-    History->DrawError *= (Keep > 0.f) ? Keep : 0.f;
+    History->DrawError *= expf(-PREDICTION_BLEND_RATE * DeltaTime);
     if (LengthSq(History->DrawError) < Square(0.01f))
     {
         History->DrawError = {};
     }
-    SetLocalPlayerXY(AppState, Arena, Player, Predicted + History->DrawError);
+    // NOTE(zoubir): a step longer than a snap (a respawn, a blink) is not
+    // blended across
+    if (LengthSq(Predicted.XY - Before.XY) > Square(PREDICTION_SNAP_DISTANCE))
+    {
+        Before = Predicted;
+        BeforeVelocity = PredictedVelocity;
+    }
+    v3 Shown = MotionCurve(Before, BeforeVelocity, Predicted, PredictedVelocity,
+                           1.f / (float)NET_TICK_RATE, Blend);
+    Shown.XY += History->DrawError;
+    v3 OldPosition = Player->Position;
+    Player->Position = Shown;
+    CheckAndChangeEntityChunk(AppState, &AppState->World, Arena, OldPosition, Player);
     History->Predicted = Predicted;
+    History->Before = Before;
+    History->BeforeVelocity = BeforeVelocity;
+    if (History->Count > 0)
+    {
+        History->ShownTick = GetPredictedInput(History, History->Count - 1)->Tick;
+    }
+    else
+    {
+        History->ShownTick = InputTick;
+    }
     History->HasShown = true;
 }

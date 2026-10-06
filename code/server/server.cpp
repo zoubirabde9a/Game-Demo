@@ -9,6 +9,7 @@
 #include "../net/client.cpp" // not used by the server itself; compiled here so tests can drive both ends
 #include "game_api.h"
 #include "sim_game.cpp" // the game implementation; must come before server.h
+#include "input_queue.cpp" // inputs waiting for their tick; also before server.h
 #include "server.h"
 
 internal void
@@ -159,6 +160,7 @@ ServerReceiveAll(server *Server)
         {
             case NetReceive_Joined:
             {
+                ClearInputQueue(&Server->InputQueues[Result.SlotIndex]);
                 GamePlayerJoined(&Server->Game, Result.SlotIndex);
                 GamePlayerNamed(&Server->Game, Result.SlotIndex, Result.Name);
                 ServerLog(Server, "player %u joined from " ADDRESS_FORMAT " (%u/%u)", Result.SlotIndex,
@@ -172,6 +174,7 @@ ServerReceiveAll(server *Server)
             } break;
             case NetReceive_Left:
             {
+                ClearInputQueue(&Server->InputQueues[Result.SlotIndex]);
                 GamePlayerLeft(&Server->Game, Result.SlotIndex);
                 ServerLog(Server, "player %u left (%u/%u)", Result.SlotIndex,
                           ServerPlayerCount(Server), NET_MAX_CLIENTS);
@@ -180,7 +183,7 @@ ServerReceiveAll(server *Server)
             {
                 for (u32 Index = 0; Index < Result.NewInputCount; ++Index)
                 {
-                    GameApplyInput(&Server->Game, Result.SlotIndex, &Result.NewInputs[Index]);
+                    PushInput(&Server->InputQueues[Result.SlotIndex], &Result.NewInputs[Index]);
                 }
             } break;
             default: break;
@@ -201,6 +204,8 @@ ServerSendSnapshots(server *Server)
         NetServerStampHeader(Slot, &Packet, NetPacket_Snapshot);
         Packet.Snapshot.Tick = Server->Tick;
         GameWriteSnapshot(&Server->Game, Index, &Packet.Snapshot);
+        u32 Waiting = Server->InputQueues[Index].Count;
+        Packet.Snapshot.InputBuffered = (u8)(Waiting < 255 ? Waiting : 255);
         if (Packet.Snapshot.Count == NET_MAX_SNAPSHOT_ENTITIES) Server->Stats.CappedSnapshots++;
         // A busy moment can fill every list at once; then the farthest
         // entities wait for the next snapshot rather than the whole
@@ -227,6 +232,7 @@ ServerTick(server *Server)
     {
         if (Server->Clients.Slots[Index].Connected) ConnectedSlots |= 1u << Index;
     }
+    ApplyQueuedInputs(&Server->Game, Server->InputQueues, NET_MAX_CLIENTS, ConnectedSlots);
     GameKeepBots(&Server->Game, ConnectedSlots, Dt);
     GameTick(&Server->Game, Dt);
     Server->Tick++;
@@ -237,6 +243,7 @@ ServerTick(server *Server)
     {
         if (TimedOut & (1u << Index))
         {
+            ClearInputQueue(&Server->InputQueues[Index]);
             GamePlayerLeft(&Server->Game, Index);
             ServerLog(Server, "player %u timed out (%u/%u)", Index, ServerPlayerCount(Server), NET_MAX_CLIENTS);
         }

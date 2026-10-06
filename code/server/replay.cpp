@@ -6,6 +6,9 @@
    same calls to a fresh game rebuilds the match tick by tick, and the
    hashes prove it did, or name the first tick where it did not.
 
+   A player held for a tick because its input had not arrived
+   (server/input_queue.cpp) is recorded too, since it changes the world.
+
    Bots are recorded like humans: what they decide arrives as inputs, so
    a replay needs no bot code. Rewinds are part of the simulation and
    replay like everything else.
@@ -36,6 +39,7 @@
      0x30 | slot  left
      0x40 | slot  named: name 16 bytes
      0x50         seconds per tick from here on: f32
+     0x60 | slot  held: no input for the slot this tick, its player waits
      0x80 | n     n ticks (1..127), then n world hashes u32
 
    This file holds the format and what both sides share; writing is
@@ -44,7 +48,7 @@
 #include "../third_party/lzma/lzma.cpp"
 
 #define REPLAY_MAGIC 0x50524447u // "GDRP"
-#define REPLAY_VERSION 3u
+#define REPLAY_VERSION 4u
 #define REPLAY_NAME_SIZE 16
 #define REPLAY_BLOCK_SIZE (64 * 1024)
 #define REPLAY_PACKED_SIZE (REPLAY_BLOCK_SIZE + REPLAY_BLOCK_SIZE / 8 + 1024)
@@ -62,6 +66,7 @@ enum replay_op
     ReplayOp_Left = 0x30,
     ReplayOp_Named = 0x40,
     ReplayOp_Seconds = 0x50,
+    ReplayOp_Held = 0x60,
     ReplayOp_Ticks = 0x80,
 };
 
@@ -72,6 +77,7 @@ enum replay_event_type
     ReplayEvent_Left,
     ReplayEvent_Input,
     ReplayEvent_Tick,
+    ReplayEvent_Held,
 };
 
 // NOTE(zoubir): one call into the game, as written and as read back

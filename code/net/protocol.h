@@ -19,9 +19,13 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d54u // "GDMT", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d55u // "GDMU", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
+// The server's ticks a second. Each net_input is one tick's worth: the
+// client sends one per tick, whatever its frame rate, and the server
+// applies one per tick.
+#define NET_TICK_RATE 60
 #define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
 #define NET_MAX_SNAPSHOT_ABILITIES 8 // monsters winding up or striking at once
 #define NET_MAX_ABILITY_POINTS 4    // matches MAX_ABILITY_POINTS in entity.h
@@ -275,6 +279,9 @@ struct net_snapshot
     // Newest net_input.Tick from this client that the server had applied
     // when it wrote the snapshot; the client replays its inputs after it.
     u32 InputTick;
+    // This client's inputs that had arrived but were still waiting for
+    // their tick; the client paces its inputs to keep one or two waiting.
+    u8 InputBuffered;
     u16 Count;
     net_entity_state Entities[NET_MAX_SNAPSHOT_ENTITIES];
     u8 AbilityCount;

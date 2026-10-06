@@ -142,6 +142,7 @@ ReplayNextEvent(replay_reader *Reader, replay_event *Event)
             }
             case ReplayOp_Joined: Event->Type = ReplayEvent_Joined; return true;
             case ReplayOp_Left: Event->Type = ReplayEvent_Left; return true;
+            case ReplayOp_Held: Event->Type = ReplayEvent_Held; return true;
             case ReplayOp_Named:
             {
                 Event->Type = ReplayEvent_Named;
@@ -207,6 +208,7 @@ PlayReplay(server_game *Game, u8 *Data, u32 Size)
         {
             case ReplayEvent_Joined: GamePlayerJoined(Game, Event.Slot); break;
             case ReplayEvent_Left: GamePlayerLeft(Game, Event.Slot); break;
+            case ReplayEvent_Held: GameHoldPlayer(Game, Event.Slot); break;
             case ReplayEvent_Named: GamePlayerNamed(Game, Event.Slot, Event.Name); break;
             case ReplayEvent_Input:
             {

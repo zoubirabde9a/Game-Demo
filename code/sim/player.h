@@ -123,6 +123,9 @@ struct player_slot
     // (client/prediction.cpp): what touches anyone else (a slam's hit)
     // waits for the server
     bool32 Predicted;
+    // NOTE(zoubir): online, no input for this tick arrived from the
+    // player's client (server/input_queue.cpp), so the player waits it out
+    bool32 WaitingForInput;
     // NOTE(zoubir): experience, level and talents (sim/progression/)
 #include "progression/progression_fields.inc"
 };

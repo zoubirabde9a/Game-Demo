@@ -37,7 +37,8 @@ ScriptedReplayInput(u32 Slot, u32 Tick)
     return Input;
 }
 
-// NOTE: two scripted players and six bots on the arena, monsters and all
+// NOTE: two scripted players and six bots on the arena, monsters and all;
+// one of the players' inputs is sometimes late
 internal void
 StepReplayTestGame(server_game *Game, u32 Tick)
 {
@@ -54,6 +55,13 @@ StepReplayTestGame(server_game *Game, u32 Tick)
     GameKeepBots(Game, 3u, REPLAY_TEST_DT);
     for (u32 Slot = 0; Slot < 2; ++Slot)
     {
+        // NOTE: slot 1's input is late every seventh tick, so the server
+        // holds it (server/input_queue.cpp) and gets it next tick
+        if (Slot == 1 && Tick % 7 == 3)
+        {
+            GameHoldPlayer(Game, Slot);
+            continue;
+        }
         net_input Input = ScriptedReplayInput(Slot, Tick);
         GameApplyInput(Game, Slot, &Input);
     }
@@ -179,6 +187,31 @@ TestReplayPlaysBackTheSameMatch()
     Check(Result.Readable);
     Check(Result.Mismatches > 0);
     Check(Result.FirstMismatch >= FirstChanged);
+    // NOTE: the held ticks are part of the match: without them the
+    // replay parts from the recording
+    static replay_writer Unheld;
+    static u8 UnheldMemory[4 * 1024 * 1024];
+    ClearReplayWriter(&Unheld);
+    Unheld.Memory = UnheldMemory;
+    Unheld.Capacity = sizeof(UnheldMemory);
+    Check(ReplayOpen(&Reader, Memory, Writer.Used));
+    ReplayWriteHeader(&Unheld, Reader.ContentId, Reader.MapId);
+    u32 Holds = 0;
+    while (ReplayNextEvent(&Reader, &Event))
+    {
+        if (Event.Type == ReplayEvent_Held)
+        {
+            Holds++;
+            continue;
+        }
+        ReplayWriteEvent(&Unheld, &Event);
+    }
+    ReplayFlush(&Unheld);
+    Check(Holds > 100);
+    Result = PlayReplay(&Played, UnheldMemory, Unheld.Used);
+    Check(Result.Readable);
+    Check(Result.Mismatches > 0);
+
     // NOTE: a recording cut short (a crash) plays up to its last whole
     // block and says it was cut
     Result = PlayReplay(&Played, Memory, Writer.Used - 7);

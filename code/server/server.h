@@ -3,8 +3,9 @@
 /* The dedicated server. It owns one UDP socket and the client table, and
    runs the game at a fixed SERVER_TICK_RATE. Each ServerTick:
 
-     1. reads every waiting datagram and answers joins, leaves and inputs
-     2. advances the game by one tick
+     1. reads every waiting datagram, answers joins and leaves, and queues
+        inputs (input_queue.cpp)
+     2. applies each client's next input and advances the game by one tick
      3. every SERVER_SNAPSHOT_INTERVAL ticks, sends each client a snapshot
      4. frees clients that have gone quiet
 
@@ -20,7 +21,7 @@
 // NOTE(zoubir): unnamed; clients then call it by its name in their server
 // list (client/server_list.cpp), or by its address
 #define SERVER_DEFAULT_NAME ""
-#define SERVER_TICK_RATE 60
+#define SERVER_TICK_RATE NET_TICK_RATE
 #define SERVER_SNAPSHOT_INTERVAL 3 // 20 snapshots a second
 #define SERVER_STATS_SECONDS 60    // how often server_main logs a stats line
 // Packets read per tick at most. Eight players send a few each; a flood
@@ -47,6 +48,7 @@ struct server
 {
     net_socket Socket;
     net_server_clients Clients;
+    server_input_queue InputQueues[NET_MAX_CLIENTS]; // input_queue.cpp
     server_game Game;
     u32 Tick;
     bool32 Logging; // print joins, leaves, timeouts and stats to stdout

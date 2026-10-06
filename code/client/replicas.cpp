@@ -5,7 +5,8 @@
    matched by the server's entity Id. Replicas are created when an Id
    appears, moved every snapshot, and removed when the Id disappears.
 
-   Between snapshots replicas glide rather than jump
+   Replicas are drawn a little behind the server, between snapshots,
+   rather than jumping to each
    (replica_smoothing.cpp). How a replica is built for each entity type
    is replicas/spawn.cpp; how a snapshot's fields land on it is
    replicas/apply.cpp. This file is the table and the flow.
@@ -134,7 +135,7 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
     world *World = &AppState->World;
     Table->LastAppliedTick = Snapshot->Tick;
     AppState->LocalPlayerIndex = LocalSlot;
-    BeginSmoothedSnapshot(&Table->Smoothing);
+    BeginSmoothedSnapshot(&Table->Smoothing, Snapshot->Tick);
     for(u32 Index = 0; Index < Snapshot->Count; Index++)
     {
         net_entity_state *State = &Snapshot->Entities[Index];
@@ -147,8 +148,8 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
             GetOrSpawnReplica(AppState, Arena, Table, State);
         if (Replica)
         {
-            // NOTE(zoubir): a reused replica glides from where it is
-            // drawn; the local player is left to prediction
+            // NOTE(zoubir): a reused replica is drawn a little in the past,
+            // between its snapshots; the local player is left to prediction
             v3 Drawn = Replica->Position;
             bool32 Reused = (LocalBefore == Replica->ID + 1);
             bool32 IsLocalPlayer = (State->Type == EntityType_Player &&
@@ -157,8 +158,8 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
             ApplyStateToReplica(AppState, Arena, Replica, State);
             StartEnrageBurst(Table, Replica, State);
             SetSmoothingTarget(AppState, Arena, &Table->Smoothing,
-                               State->Id, Replica, Drawn,
-                               Reused && !IsLocalPlayer);
+                               State->Id, Snapshot->Tick, Replica, Drawn,
+                               Reused, IsLocalPlayer);
             Table->SeenTick[State->Id] = Snapshot->Tick;
             BindPlayerSlot(AppState, Replica, State, WasDead);
         }
@@ -204,7 +205,7 @@ SyncReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
     if (!Table->Active)
     {
         ClearMovingEntities(AppState);
-        *Table = {};
+        ZeroSize(Table, sizeof(*Table));
         Table->Active = true;
     }
     if (Snapshot->Tick != Table->LastAppliedTick)
@@ -222,7 +223,7 @@ LeaveReplicaWorld(app_state *AppState, memory_arena *Arena,
                   replica_table *Table)
 {
     ClearMovingEntities(AppState);
-    *Table = {};
+    ZeroSize(Table, sizeof(*Table));
     world *World = &AppState->World;
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {

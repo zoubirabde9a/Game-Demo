@@ -64,7 +64,17 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
             case EntityType_Player:
             {
                 player_slot *Slot = GetPlayerSlot(AppState, Entity);
+                bool32 Waiting = Slot->WaitingForInput;
+                Slot->WaitingForInput = false;
                 if (UpdateDeadPlayer(Slot, World, Arena, AppState, DeltaTime))
+                {
+                    Animates = false;
+                    break;
+                }
+                // NOTE(zoubir): its client's input for this tick is late
+                // (server/input_queue.cpp): it stands this tick out, as
+                // the client, which never stepped without an input, has it
+                if (Waiting)
                 {
                     Animates = false;
                     break;

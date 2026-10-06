@@ -1,5 +1,6 @@
 /* Online session: when a server address is set, the client connects to
-   the dedicated server, sends the keys held each frame, and keeps the
+   the dedicated server, sends the keys held once per server tick
+   (online_pacing.cpp), and keeps the
    newest snapshot in Online->Client.Snapshot; RunWorldTick then draws the
    world from it instead of simulating. With no address it stays offline
    and runs its own simulation.
@@ -52,6 +53,13 @@ struct online_session
     prediction_history Prediction;
     // NOTE(zoubir): round trip and loss, client/online_quality.cpp
     online_quality Quality;
+    // NOTE(zoubir): when inputs go out, one per tick, client/online_pacing.cpp
+    online_pacing Pacing;
+    // NOTE(zoubir): buttons held on any frame since the last tick, so a tap
+    // shorter than a tick still reaches the server; and the ticks this
+    // frame made, for prediction
+    u32 HeldSinceTick;
+    u32 NewTicks;
 #if !COMPILER_EMSCRIPTEN
     net_client Client;
 #endif
@@ -96,6 +104,9 @@ OnlineConnect(online_session *Online, char *Address, char *Name)
     Online->Reconnects = 0;
     Online->KeepTrying = true;
     ResetOnlineQuality(&Online->Quality);
+    ResetOnlinePacing(&Online->Pacing);
+    Online->HeldSinceTick = 0;
+    Online->NewTicks = 0;
     if (Address != Online->AddressText)
     {
         CopyString(Online->AddressText, sizeof(Online->AddressText), Address);
@@ -148,7 +159,7 @@ internal online_session *
 StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0)
 {
     online_session *Online = AllocateStruct(Arena, online_session);
-    *Online = {};
+    ZeroSize(Online, sizeof(*Online));
     if (!ReadOnlineConfig(Online->AddressText, sizeof(Online->AddressText),
                           Online->NameText, sizeof(Online->NameText)) &&
         DefaultAddress)
@@ -177,15 +188,29 @@ UpdateOnlineSession(online_session *Online, app_input *Input,
     {
         // NOTE(zoubir): LearnBits is the talent field
         // (client/talent_requests.cpp), sent even while a screen has the keys
-        u32 Buttons = (KeysToUi ? 0 : NetButtonsFromKeyboard(Input)) | LearnBits;
-        NetClientUpdate(&Online->Client, Input->DeltaTime, Buttons, Aim.X, Aim.Y);
+        u32 Held = KeysToUi ? 0 : NetButtonsFromKeyboard(Input);
+        NetClientPoll(&Online->Client, Input->DeltaTime);
+        Online->NewTicks = 0;
         if (Online->Client.State == NetClient_Connected)
         {
             Online->Reconnects = 0;
             Online->ReconnectIn = 0.f;
-            NoteOnlineFrame(&Online->Quality, Input->DeltaTime);
-            RecordPredictedInput(&Online->Prediction, Online->Client.InputTick,
-                                 Buttons, Input->DeltaTime, Aim);
+            Online->HeldSinceTick |= Held;
+            u32 Ticks = AdvanceOnlinePacing(&Online->Pacing, Input->DeltaTime);
+            for(u32 Index = 0; Index < Ticks; Index++)
+            {
+                u32 Buttons = (Index == 0 ? Online->HeldSinceTick : Held) | LearnBits;
+                u32 Tick = NetClientQueueInput(&Online->Client, Buttons, Aim.X, Aim.Y);
+                NoteOnlineFrame(&Online->Quality, ONLINE_TICK_SECONDS);
+                RecordPredictedInput(&Online->Prediction, Tick, Buttons,
+                                     ONLINE_TICK_SECONDS, Aim);
+            }
+            if (Ticks)
+            {
+                Online->HeldSinceTick = 0;
+            }
+            Online->NewTicks = Ticks;
+            NetClientFlushInputs(&Online->Client);
         }
         else if (WillReconnect(Online))
         {
@@ -344,14 +369,18 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
             Online->Client.MapId != AppState->World.MapId)
         {
             RebuildWorldForMap(AppState, Arena, Online->Client.MapId);
-            Online->Replicas = {};
+            ZeroSize(&Online->Replicas, sizeof(Online->Replicas));
         }
         bool32 NewSnapshot = !Online->Replicas.Active ||
             Snapshot->Tick != Online->Replicas.LastAppliedTick;
         if (NewSnapshot)
         {
+            // NOTE(zoubir): inputs waiting on the server already arrived,
+            // so they are not part of the round trip
             RecordSnapshotQuality(&Online->Quality, Snapshot->Tick,
-                                  Online->Client.InputTick, Snapshot->InputTick);
+                                  Online->Client.InputTick,
+                                  Snapshot->InputTick + Snapshot->InputBuffered);
+            NotePacingSnapshot(&Online->Pacing, Snapshot->InputBuffered);
         }
         SyncReplicas(AppState, Arena, &Online->Replicas, Snapshot, DeltaTime,
                      Online->Client.PlayerIndex);
@@ -389,7 +418,8 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
             ReadRewindsFromSnapshot(AppState, &Online->Replicas, Snapshot);
         }
         PredictLocalPlayer(AppState, Arena, &Online->Prediction, NewSnapshot,
-                           Snapshot->InputTick, DeltaTime);
+                           Snapshot->InputTick, Online->NewTicks,
+                           OnlinePacingBlend(&Online->Pacing), DeltaTime);
         return;
     }
     if (Online && Online->Replicas.Active)
@@ -414,7 +444,7 @@ internal online_session *
 StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0)
 {
     online_session *Online = AllocateStruct(Arena, online_session);
-    *Online = {};
+    ZeroSize(Online, sizeof(*Online));
     return Online;
 }
 
