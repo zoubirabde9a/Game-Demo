@@ -223,6 +223,18 @@ TestPackedEntityFields()
     Check(OutB->Facing == 1 && OutB->Animation == 15);
     Check(OutB->Affix == 7 && OutB->Status == 15 && OutB->Ability == 3);
 
+    // NOTE(zoubir): every status bit (falling, rooted, ...) survives, and
+    // the second status byte is sent only when one of its bits is set
+    B->Status = 0x7ff;
+    u8 Buffer[NET_MAX_PACKET_SIZE];
+    u32 WithMore = NetWritePacket(&In, Buffer, sizeof(Buffer));
+    Out = RoundTrip(&In, 0);
+    Check(Out.Snapshot.Entities[1].Status == 0x7ff);
+    B->Status = 7;
+    u32 WithoutMore = NetWritePacket(&In, Buffer, sizeof(Buffer));
+    Check(WithMore == WithoutMore + 1);
+    B->Status = 15;
+
     // Values wider than their bits are cut, not spilled into neighbours.
     A->Facing = 5; A->Affix = 9; A->Status = 0; A->Ability = 0;
     Out = RoundTrip(&In, 0);
@@ -987,8 +999,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d56u
-#define NET_GOLDEN_LAYOUT 0x2e97b15cu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d57u
+#define NET_GOLDEN_LAYOUT 0x00000000u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

@@ -772,6 +772,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "monster_tests.cpp"
 #include "sprite_sheet_tests.cpp"
 #include "terrain_tests.cpp"
+#include "hazard_tests.cpp"
 #include "collision_tests.cpp"
 #include "online_tests.cpp"
 #include "player_ability_tests.cpp"
@@ -821,6 +822,7 @@ main()
     RunMonsterTests();
     RunSpriteSheetTests();
     RunTerrainTests();
+    RunHazardTests();
     RunCollisionTests();
     RunOnlineTests();
     RunPlayerAbilityTests();
