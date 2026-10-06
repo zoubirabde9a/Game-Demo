@@ -170,7 +170,9 @@ TestReplicasFollowSnapshots()
     Check(Test.World->Entities[OfflinePlayer->ID].Type != EntityType_Player ||
           Test.World->Entities[OfflinePlayer->ID].Position.X == 500.f);
     world_entity *Local = GetLocalPlayer(AppState);
-    Check(Local && Local->Position.X == 500.f && Local->Hp == 80.f);
+    // NOTE(zoubir): a player's health comes in hundredths
+    Check(Local && Local->Position.X == 500.f &&
+          Absolute(Local->Hp - 80.f / NET_PLAYER_HEALTH_STEPS) < 0.0001f);
     world_entity *Monster =
         &Test.World->Entities[Table->LocalIndexPlusOne[9] - 1];
     Check(Monster->Type == EntityType_Monster);
@@ -571,7 +573,7 @@ TestPredictionTakesNoFireballDamage()
     Snapshot->Count = 2;
     Snapshot->NameSlot = NET_NO_NAME_SLOT;
     Snapshot->Entities[0] = SnapshotEntity(3, EntityType_Player, 500, 500, 0);
-    Snapshot->Entities[0].Health = 100;
+    Snapshot->Entities[0].Health = (i16)(100.f * NET_PLAYER_HEALTH_STEPS);
     Snapshot->Entities[1] = SnapshotEntity(4, EntityType_FireBall, 520, 500);
     SyncReplicas(AppState, &Test.Arena, Table, Snapshot, Dt, 0);
     world_entity *Player = GetLocalPlayer(AppState);

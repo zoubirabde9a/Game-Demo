@@ -191,19 +191,35 @@ TestMonsterWalksAroundPit()
     DestroyTestWorld(&Test);
 }
 
-// NOTE(zoubir): under the duel's one-point health a burn takes as long to
-// kill as at 100, not one tick
+// NOTE(zoubir): a player who keeps burning dies in
+// STATUS_PLAYER_BURN_SECONDS whatever its health, not in one tick at one
+// point of health nor in 12 s at 100
 internal void
-TestDuelPlayersBurnAtTheSamePace()
+TestPlayersBurnToDeathInFourSeconds()
 {
-    test_world Test = CreateTestWorld();
-    world_entity *Player = AddTestPlayer(&Test, ArenaTileCenter(25, 8));
-    Player->MaxHp = Player->Hp = 1.f;
-    ApplyStatus(Player, StatusEffect_Burning, 2.f);
-    StepGround(&Test, 60);
-    Check(Player->Hp > 0.f && Player->Hp < 1.f);
-    Check(Player->Hp > 1.f - 3.f * STATUS_BURN_DPS * STATUS_TICK_SECONDS / STATUS_PLAYER_HEALTH);
-    DestroyTestWorld(&Test);
+    float Healths[3] = {1.f, 75.f, 100.f};
+    for(u32 Index = 0; Index < ArrayCount(Healths); Index++)
+    {
+        test_world Test = CreateTestWorld();
+        world_entity *Player = AddTestPlayer(&Test, ArenaTileCenter(25, 8));
+        Player->MaxHp = Player->Hp = Healths[Index];
+        u32 Frames = 0;
+        while (Frames < (u32)(3.6f / Test.Input.DeltaTime))
+        {
+            ApplyStatus(Player, StatusEffect_Burning, 1.f);
+            StepGround(&Test, 1);
+            Frames++;
+        }
+        Check(Player->Hp > 0.f && Player->Hp < 0.2f * Player->MaxHp);
+        while (Frames < (u32)(4.1f / Test.Input.DeltaTime))
+        {
+            ApplyStatus(Player, StatusEffect_Burning, 1.f);
+            StepGround(&Test, 1);
+            Frames++;
+        }
+        Check(Player->Hp <= 0.f);
+        DestroyTestWorld(&Test);
+    }
 }
 
 #define HAZARD_TEST(Test) printf("%s\n", #Test); Test()
@@ -222,5 +238,5 @@ RunHazardTests()
     HAZARD_TEST(TestHasteLiftsSlowAndSpeedsUp);
     HAZARD_TEST(TestBleedHurtsMoreWhenMoving);
     HAZARD_TEST(TestMonsterWalksAroundPit);
-    HAZARD_TEST(TestDuelPlayersBurnAtTheSamePace);
+    HAZARD_TEST(TestPlayersBurnToDeathInFourSeconds);
 }

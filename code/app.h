@@ -95,6 +95,7 @@ struct app_state
     // NOTE(zoubir): the last seconds of the world and the rewinds under
     // way, sim/time_rewind/; made by the first SimulateTick
     struct time_rewind *Rewind;
+#include "sim/round_fields.inc"
     // NOTE(zoubir): one pointer per client feature (online session, kill
     // feed, screens, effects); add a new one there, not here
 #include "client/client_fields.inc"

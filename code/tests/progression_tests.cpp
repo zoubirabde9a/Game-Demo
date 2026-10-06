@@ -40,7 +40,10 @@ TestLevelCurve()
 internal void
 TestKillsAndTimeGiveXp()
 {
+    // NOTE(zoubir): without the round break's level for everyone
+    // (round_break.cpp), which would hide what a kill pays
     GameRules = DuelRules;
+    GameRules.RoundBreaks = false;
     test_world Test = CreateTestWorld();
     app_state *AppState = Test.AppState;
     world_entity *Killer = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
@@ -50,7 +53,7 @@ TestKillsAndTimeGiveXp()
     player_slot *KillerSlot = &AppState->Players[0];
     Check(KillerSlot->Level == 1 && KillerSlot->Xp == 0);
     Victim->SpawnShield = 0.f;
-    DamageEntity(AppState, Test.World, Victim, 10.f, Killer);
+    DamageEntity(AppState, Test.World, Victim, Victim->MaxHp, Killer);
     Check(Victim->Hp <= 0.f);
     Check(KillerSlot->Xp == XP_PLAYER_KILL);
     Check(KillerSlot->Level == 2);
@@ -228,8 +231,8 @@ TestFrostNovaAndGravityWell()
     DestroyTestWorld(&Test);
 }
 
-// NOTE(zoubir): a ward takes one hit whole, then the next kills; it comes
-// back after its rank's seconds
+// NOTE(zoubir): a ward takes one hit whole, then the next ones hurt; it
+// comes back after its rank's seconds
 internal void
 TestWardTakesOneHit()
 {
@@ -248,7 +251,7 @@ TestWardTakesOneHit()
     world_entity *FireBall = AddFireBall(AppState, Test.World, &Test.Arena, Caster,
                                          V3(330.f, 300.f, 30.f), V3(600.f, 0.f, 0.f));
     FireBallHit(AppState, Test.World, FireBall, Target);
-    Check(Target->Hp == 1.f);
+    Check(Target->Hp == Target->MaxHp);
     Check(!Slot->WardReady);
     Check(Length(Target->Velocity.XY) == 0.f);
 
@@ -263,9 +266,9 @@ TestWardTakesOneHit()
     }
     Check(Slot->WardReady);
     FireBallHit(AppState, Test.World, FireBall, Target);
-    Check(Target->Hp == 1.f);
+    Check(Target->Hp == Target->MaxHp);
     FireBallHit(AppState, Test.World, FireBall, Target);
-    Check(Target->Hp <= 0.f);
+    Check(Target->Hp < Target->MaxHp && Target->Hp > 0.f);
     DestroyTestWorld(&Test);
     GameRules = ClassicRules;
 }
@@ -275,7 +278,10 @@ TestWardTakesOneHit()
 internal void
 TestKillAndDeathTalents()
 {
+    // NOTE(zoubir): without the round break, whose wait would hide the
+    // shorter respawn (round_break.cpp)
     GameRules = DuelRules;
+    GameRules.RoundBreaks = false;
     test_world Test = CreateTestWorld();
     app_state *AppState = Test.AppState;
     world_entity *Killer = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
@@ -288,7 +294,7 @@ TestKillAndDeathTalents()
     VictimSlot->Ranks[Talent_SecondWind] = 1;
     Killer->ActionCooldowns[PlayerAction_FireBall] = 5.f;
     Victim->SpawnShield = 0.f;
-    DamageEntity(AppState, Test.World, Victim, 10.f, Killer);
+    DamageEntity(AppState, Test.World, Victim, Victim->MaxHp, Killer);
     Check(Killer->ActionCooldowns[PlayerAction_FireBall] == 0.f);
     Check(Absolute(VictimSlot->RespawnTimer - 0.5f * PLAYER_RESPAWN_SECONDS) < 0.001f);
     for(u32 Tick = 0; Tick < 120 && IsDeadPlayer(Victim); Tick++)

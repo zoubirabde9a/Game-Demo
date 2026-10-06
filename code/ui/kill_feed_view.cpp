@@ -106,14 +106,16 @@ DrawDeathPlate(render_context *RenderContext, app_state *AppState,
     float CentreX = X + 0.5f * Width;
     UIText(RenderContext, Title, CentreX, Y + UI_GAP, Text, UI_COLOR_TEXT, UIAlign_Center);
 
-    float Seconds = Maximum(0.f, Slot->RespawnTimer);
+    // NOTE(zoubir): during a round break the respawn waits for it to end
+    // (sim/round_break.cpp); online the client only knows the break's
+    float Seconds = Maximum(0.f, Maximum(Slot->RespawnTimer, AppState->RoundBreak));
     snprintf(Text, sizeof(Text), "Back in %.0f", Maximum(1.f, Seconds + 0.5f));
     float TextY = Y + UI_GAP + UILineHeight(Title) + UI_GAP_SMALL;
     UIText(RenderContext, Body, CentreX, TextY, Text, UI_COLOR_TEXT_MUTED, UIAlign_Center);
 
     // NOTE(zoubir): fills toward the respawn; the full length is the
     // player's own respawn time (Second Wind shortens it)
-    float Full = RespawnSeconds(Slot);
+    float Full = AppState->RoundBreak > 0.f ? ROUND_BREAK_SECONDS : RespawnSeconds(Slot);
     float Share = Full > 0.f ? Clamp01(1.f - Seconds / Full) : 1.f;
     float BarX = X + UI_GAP_LARGE;
     float BarWidth = Width - 2.f * UI_GAP_LARGE;

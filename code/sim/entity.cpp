@@ -313,6 +313,9 @@ internal void AwardKill(app_state *AppState, player_slot *Killer,
 internal bool32 WardTakesHit(app_state *AppState, world_entity *Target,
                              float Damage);
 inline float RespawnSeconds(player_slot *Slot);
+// NOTE(zoubir): in sim/round_break.cpp, included later: a player's death
+// ends the round
+internal void StartRoundBreak(app_state *AppState, player_slot *Victim);
 // NOTE(zoubir): in sim/time_rewind/rewind_abilities.cpp, included later
 internal bool32 IsTimeLocked(app_state *AppState, world_entity *Entity);
 internal bool32 IsRewindInvulnerable(app_state *AppState, world_entity *Entity);
@@ -395,6 +398,7 @@ KillEntity(app_state *AppState, world *World, world_entity *Target,
         player_slot *Victim = &AppState->Players[Target->PlayerIndex];
         Victim->Deaths++;
         Victim->RespawnTimer = RespawnSeconds(Victim);
+        StartRoundBreak(AppState, Victim);
         Target->Velocity = {};
         if (Attacker && Attacker != Victim)
         {

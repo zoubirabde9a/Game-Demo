@@ -113,8 +113,9 @@ UpdatePlayer(player_slot *Slot, world *World,
 {
     world_entity *Player = Slot->Entity;
     // NOTE(zoubir): abilities the match leaves out (GameRules) and the
-    // talent tree has not unlocked do nothing
-    u32 Allowed = PlayerAllowedButtons(Slot);
+    // talent tree has not unlocked do nothing, nor does any but jump
+    // during the break between rounds
+    u32 Allowed = PlayerAllowedButtons(Slot) & RoundBreakButtons(AppState);
     Slot->Input.Pressed &= Allowed;
     Slot->Input.ServerPressed &= Allowed;
     // NOTE(zoubir): a rooted player cannot walk; a stunned or falling one

@@ -123,6 +123,7 @@ FullSnapshot()
         P.Snapshot.Kills[Index].KillerMonster = 0xFF;
     }
     P.Snapshot.Stagger = 0x5a;
+    P.Snapshot.RoundBreak = 0x63;
     // One burst, for the same reason.
     P.Snapshot.BurstCount = 1;
     P.Snapshot.Bursts[0].Kind = 2;
@@ -339,6 +340,7 @@ TestFullSnapshotFits()
     Check(Out.Snapshot.Tick == 123456);
     Check(Out.Snapshot.InputTick == 0xfedcba98);
     Check(Out.Snapshot.Stagger == 0x5a);
+    Check(Out.Snapshot.RoundBreak == 0x63);
     Check(Out.Snapshot.RewindCount == 1);
     net_rewind *Rewind = &Out.Snapshot.Rewinds[0];
     Check(Rewind->Slot == 6 && Rewind->Kind == 1 && Rewind->Phase == 2);
@@ -999,8 +1001,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d57u
-#define NET_GOLDEN_LAYOUT 0xd5a794f7u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d58u
+#define NET_GOLDEN_LAYOUT 0x9bc566bau
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

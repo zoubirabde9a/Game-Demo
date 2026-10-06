@@ -28,6 +28,9 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
     // NOTE(zoubir): experience, and the talents asked for this tick, take
     // effect before anyone moves (sim/progression/)
     UpdateProgression(AppState, DeltaTime);
+    // NOTE(zoubir): the break after a death, when nobody fights
+    // (sim/round_break.cpp)
+    UpdateRoundBreak(AppState, DeltaTime);
 
     // NOTE(zoubir): entities added during the tick (fireballs, swords,
     // respawned monsters) wait for the next one

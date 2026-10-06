@@ -66,6 +66,9 @@ struct talent_panel
     // NOTE(zoubir): seconds left in which a second click on Reset resets
     float ResetArmed;
     float Clock;
+    // NOTE(zoubir): the round break opened it (round_break_view.cpp), so
+    // the break's end closes it
+    bool32 OpenedForBreak;
 };
 
 internal talent_panel *

@@ -23,6 +23,7 @@
 #include "talent_panel/talent_panel.cpp"
 #include "ability_health.cpp"
 #include "ability_bar.cpp"
+#include "round_break_view.cpp"
 #include "status_strip.cpp"
 #include "cast_mode_toggle.cpp"
 #include "shader_errors.cpp"

@@ -23,6 +23,10 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
         ApplyEliteAffix(Replica, State->Affix);
     }
     Replica->Hp = (float)State->Health;
+    if (Replica->Type == EntityType_Player)
+    {
+        Replica->Hp /= NET_PLAYER_HEALTH_STEPS;
+    }
     if (State->Facing < AnimationDirection_Count)
     {
         Replica->AnimationDirection = (animation_direction)State->Facing;

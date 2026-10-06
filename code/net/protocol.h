@@ -19,7 +19,10 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d57u // "GDMW", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d58u // "GDMX", change it whenever the layout changes
+// A player's health is sent in hundredths: the duel gives a player one
+// point, and burns take fractions of it, which whole points would hide.
+#define NET_PLAYER_HEALTH_STEPS 100.f
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 // The server's ticks a second. Each net_input is one tick's worth: the
@@ -139,7 +142,7 @@ struct net_entity_state
     u16 Status;    // 11 bits: bit N set while status effect N + 1 is active
     u8 Ability;    // 2 bits: AbilityIndex of a monster shot or hazard;
                    // for a player, PLAYER_FLASH_* bits (sim/player.h)
-    i16 Health;
+    i16 Health;    // a player's in 1/NET_PLAYER_HEALTH_STEPS of a point
     // Sent as 16-bit fixed point: positions to 1/8 unit within +-4096,
     // velocities to 1/4 unit per second within +-8192. Values outside are
     // clamped. Z and velocity are left out when they are zero, and VelZ
@@ -321,6 +324,9 @@ struct net_snapshot
     // PlayerStats.StaggerSeconds; its prediction replays from it, or every
     // shove would be braked away on the client and pulled back.
     u8 Stagger;
+    // The break between rounds (sim/round_break.cpp): tenths of a second
+    // left, 0 while a round is played. The same for every viewer.
+    u8 RoundBreak;
     // The viewer's own player exactly: position and velocity as floats.
     // Entities are sent rounded to 1/8 unit, and a prediction replayed
     // from a rounded start went round a wall's corner the other way from

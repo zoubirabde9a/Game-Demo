@@ -596,10 +596,10 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
                 if (Theirs->Type == EntityType_Player)
                 {
                     ++Players;
-                    // NOTE(zoubir): sent rounded up while alive (pack.cpp)
-                    i16 Sent = (Theirs->Hp > 0.f) ?
-                        (i16)CeilFloatToUInt32(Theirs->Hp) : (i16)Theirs->Hp;
-                    if ((i16)Ours->Hp != Sent) ++WrongPlayerHp;
+                    // NOTE(zoubir): sent in hundredths, rounded up while
+                    // alive (SimGameHealth, pack.cpp)
+                    float Sent = (float)SimGameHealth(Theirs) / NET_PLAYER_HEALTH_STEPS;
+                    if (Absolute(Ours->Hp - Sent) > 0.001f) ++WrongPlayerHp;
                     if (IsDeadPlayer(Ours) != IsDeadPlayer(Theirs)) ++WrongDead;
                     if (Ours->PlayerIndex != Theirs->PlayerIndex) ++WrongSlot;
                     player_slot *OurSlot = &Client->Players[Ours->PlayerIndex];

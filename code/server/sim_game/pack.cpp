@@ -134,6 +134,23 @@ SimGameWriteAbility(world_entity *Entity, u8 EntityIndex, net_snapshot *Out)
     }
 }
 
+// NOTE(zoubir): health as it goes on the wire: a player's in
+// hundredths, rounded up while alive (a burn takes fractions off the
+// duel's one point, and a live player sent as 0 read as dead on the
+// client while the server never respawned it); others' in whole points
+inline i16
+SimGameHealth(world_entity *Entity)
+{
+    float Hp = Entity->Hp;
+    if (Entity->Type == EntityType_Player)
+    {
+        Hp *= NET_PLAYER_HEALTH_STEPS;
+    }
+    Hp = Minimum(Hp, 32767.f);
+    i16 Result = (Hp > 0.f) ? (i16)CeilFloatToUInt32(Hp) : (i16)Hp;
+    return Result;
+}
+
 // NOTE(zoubir): one entity's record, plus its ability windup and facing
 // entries, which point back at it by its index in the snapshot
 internal void
@@ -155,11 +172,7 @@ SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
         E->Ability = (u8)((Entity->DashFlash > 0.f ? PLAYER_FLASH_DASH : 0) |
                           (Entity->SpawnShield > 0.f ? PLAYER_FLASH_SHIELD : 0));
     }
-    // NOTE(zoubir): rounded up while alive: a burn takes fractions off the
-    // duel's one-point health, and 0.4 sent as 0 read as dead on the
-    // client while the server, seeing it alive, never respawned it
-    E->Health = (Entity->Hp > 0.f) ? (i16)CeilFloatToUInt32(Entity->Hp) :
-        (i16)Entity->Hp;
+    E->Health = SimGameHealth(Entity);
     E->X = Entity->Position.X;
     E->Y = Entity->Position.Y;
     E->Z = Entity->Position.Z;

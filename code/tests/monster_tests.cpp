@@ -480,7 +480,8 @@ TestBurnDamagesInTicksThenStops()
     // NOTE(zoubir): no tick before half a second
     Check(Player->Hp == 100.f);
     StepWorld(&Test, 180);
-    float Tick = STATUS_BURN_DPS * STATUS_TICK_SECONDS;
+    // NOTE(zoubir): a player burns to death in STATUS_PLAYER_BURN_SECONDS
+    float Tick = Player->MaxHp / STATUS_PLAYER_BURN_SECONDS * STATUS_TICK_SECONDS;
     Check(Player->Hp <= 100.f - 3.f * Tick);
     Check(Player->Hp >= 100.f - 4.f * Tick);
     Check(!HasStatus(Player, StatusEffect_Burning));

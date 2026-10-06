@@ -244,6 +244,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
         Out->Cooldowns[Index] = Seconds ? CooldownToByte(*Seconds, Full) : 0;
     }
     Out->Stagger = Own ? CooldownToByte(Own->Stagger, PlayerStats.StaggerSeconds) : 0;
+    Out->RoundBreak = (u8)Minimum(255u, CeilFloatToUInt32(10.f * Game->AppState->RoundBreak));
     // The viewer's own body unrounded, for its prediction (net/protocol.h),
     // and the point the other positions are sent from
     Out->HasOwnBody = (Own && Own->IsPresent) ? 1 : 0;

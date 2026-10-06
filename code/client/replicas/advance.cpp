@@ -1,5 +1,5 @@
 /* Between snapshots, every frame: what runs on its own until the next
-   snapshot says otherwise. Respawn countdowns, replicas moving between
+   snapshot says otherwise. Respawn countdowns and the round break's, replicas moving between
    their snapshots (replica_smoothing.cpp), wind-up warnings filling in, an
    enrage burst playing out, players' cast bars filling in, the local
    player's cooldown bars running down, a hit-pause running out, and
@@ -11,6 +11,7 @@ AdvanceReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
                 float DeltaTime, u32 LocalSlot)
 {
     world *World = &AppState->World;
+    AppState->RoundBreak = Maximum(0.f, AppState->RoundBreak - DeltaTime);
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];

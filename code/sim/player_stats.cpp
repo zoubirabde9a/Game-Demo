@@ -88,7 +88,8 @@ global_variable player_stats PlayerStats =
 };
 
 /* Game rules: what kind of match the simulation plays. The game, the
-   server and its bots play the duel rules: players only, one hit kills,
+   server and its bots play the duel rules: players only, 75 health (three
+   fireballs), a break between rounds after every death (round_break.cpp),
    and only fireball, launch, blink, dash, jump, the world rewind and the
    shield. The classic rules (every ability, 100 health) are what most
    tests were written against; a test program switches to them in main.
@@ -101,6 +102,8 @@ struct game_rules
     // NOTE(zoubir): player_button bits that do anything
     u32 Buttons;
     float PlayerMaxHp;
+    // NOTE(zoubir): a death starts the break between rounds
+    bool32 RoundBreaks;
 };
 
 global_variable game_rules DuelRules =
@@ -108,13 +111,15 @@ global_variable game_rules DuelRules =
     PlayerButton_Jump | PlayerButton_Dash | PlayerButton_Cast |
     PlayerButton_Blink | PlayerButton_Launch | PlayerButton_RewindWorld |
     PlayerButton_Shield,
-    1.f,
+    75.f,
+    true,
 };
 
 global_variable game_rules ClassicRules =
 {
     PLAYER_ALL_BUTTONS,
     PlayerStats.MaxHp,
+    false,
 };
 
 global_variable game_rules GameRules = DuelRules;

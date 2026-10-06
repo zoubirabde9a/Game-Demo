@@ -72,7 +72,8 @@ TestArmoredMonstersSendFacing()
 }
 
 // A player burned below the duel's one point of health is still alive,
-// and must not reach the client as 0, which reads as dead there.
+// and must not reach the client as 0, which reads as dead there. It goes
+// in hundredths, so the client's health bar shows the burn.
 internal void
 TestLivePlayerNeverSentAsDead()
 {
@@ -81,15 +82,18 @@ TestLivePlayerNeverSentAsDead()
     world_entity Player = {};
     Player.Type = EntityType_Player;
     Player.MaxHp = 1.f;
-    Player.Hp = 0.44f;
+    Player.Hp = 0.5f;
     SimGameWriteEntity(&Player, 3, &Out);
-    Check(Out.Entities[0].Health == 1);
+    Check(Out.Entities[0].Health == 50);
     Player.Hp = 0.f;
     SimGameWriteEntity(&Player, 4, &Out);
     Check(Out.Entities[1].Health == 0);
     Player.Hp = 73.f;
     SimGameWriteEntity(&Player, 5, &Out);
-    Check(Out.Entities[2].Health == 73);
+    Check(Out.Entities[2].Health == 7300);
+    Player.Hp = 0.0001f;
+    SimGameWriteEntity(&Player, 6, &Out);
+    Check(Out.Entities[3].Health == 1);
 }
 
 // A fireball cast is heard by the caster and by players near it, once,

@@ -168,6 +168,9 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
     ApplySnapshotFacings(World, Table, Snapshot);
     ApplySnapshotCasts(World, Table, Snapshot);
     ApplySnapshotAbilities(World, Table, Snapshot);
+    // NOTE(zoubir): prediction holds back the same keys as the server
+    // during it, and the HUD counts it down (sim/round_break.cpp)
+    AppState->RoundBreak = 0.1f * (float)Snapshot->RoundBreak;
     player_slot *Own = &AppState->Players[LocalSlot];
     if (Own->Active && Own->Entity && Own->Entity->Type == EntityType_Player)
     {
