@@ -1,6 +1,6 @@
 /* Controls panel: every key and what it does, on the left under the HUD.
-   Shows for the first CONTROLS_INTRO_SECONDS of play and whenever H is
-   held; otherwise a one-line hint in the bottom-left says how to bring it
+   Shows for the first CONTROLS_INTRO_SECONDS of play, fading out over
+   the last CONTROLS_FADE_SECONDS, and whenever H is held; otherwise a one-line hint in the bottom-left says how to bring it
    back. Hidden while the connect screen is open (it takes the keys and
    sits on top), and the intro time only runs while playing.
    The panel stays above the ability bar: in a short window it switches to
@@ -9,6 +9,8 @@
    A new key goes in ControlsRows. */
 
 #define CONTROLS_INTRO_SECONDS 10.f
+// NOTE(zoubir): the intro fades out over its last this-many seconds
+#define CONTROLS_FADE_SECONDS 1.f
 // NOTE(zoubir): under the HUD's stat lines; CONTROLS_TOP_MIN when the
 // window is too short for that
 #define CONTROLS_TOP 150.f
@@ -76,6 +78,8 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
         return;
     }
 
+    float Fade = Input->ButtonH.EndedDown ? 1.f :
+        Clamp01((CONTROLS_INTRO_SECONDS - Panel->SecondsShown) / CONTROLS_FADE_SECONDS);
     float Bottom = AbilityBarPlateTop(WindowHeight) - UI_GAP;
     float Pad = UI_GAP;
     float TitleHeight = UILineHeight(AppState->Fonts.Title) + UI_GAP_SMALL;
@@ -107,12 +111,13 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
     float Left = UI_GAP_LARGE;
     float Top = Maximum(CONTROLS_TOP_MIN,
                         Minimum(CONTROLS_TOP, Bottom - Height));
-    DrawFilledRectangle(RenderContext, Left, Top, Width, Height,
-                        UI_COLOR_PANEL, 0.f);
-    DrawRectangle(RenderContext, Left, Top, Width, Height, UI_COLOR_BORDER, 0.f);
+    u32 PanelColor = WithAlpha(UI_COLOR_PANEL, Fade * (float)(UI_COLOR_PANEL >> 24) / 255.f);
+    DrawFilledRectangle(RenderContext, Left, Top, Width, Height, PanelColor, 0.f);
+    DrawRectangle(RenderContext, Left, Top, Width, Height,
+                  WithAlpha(UI_COLOR_BORDER, Fade), 0.f);
 
     UIText(RenderContext, AppState->Fonts.Title, Left + Pad, Top + Pad,
-           "Controls", UI_COLOR_TEXT);
+           "Controls", WithAlpha(UI_COLOR_TEXT, Fade));
     float RowsTop = Top + Pad + TitleHeight;
     for(u32 Row = 0; Row < RowCount; Row++)
     {
@@ -120,8 +125,8 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
         float KeyRight = Left + Pad + Column * (ColumnWidth + UI_GAP_LARGE) + KeyWidth;
         float Y = RowsTop + (Row % RowsPerColumn) * RowHeight;
         UIText(RenderContext, Font, KeyRight, Y, ControlsRows[Row].Key,
-               UI_COLOR_ACCENT, UIAlign_Right);
+               WithAlpha(UI_COLOR_ACCENT, Fade), UIAlign_Right);
         UIText(RenderContext, Font, KeyRight + UI_GAP_LARGE, Y,
-               ControlsRows[Row].Action, UI_COLOR_TEXT);
+               ControlsRows[Row].Action, WithAlpha(UI_COLOR_TEXT, Fade));
     }
 }
