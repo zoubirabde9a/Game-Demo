@@ -3,14 +3,15 @@
    when the player is hurt. A hit, the killing one included, flashes it
    (strength from the share of health lost), and below
    SCREEN_EDGE_LOW_HEALTH of full health it pulses, faster the closer
-   the player is to dying. Drawn in window
-   pixels under the HUD (screen_pass.inc). The shader is
+   the player is to dying. A kill the local player lands flashes it
+   gold. Drawn in window pixels under the HUD (screen_pass.inc). The shader is
    build/shaders/fx/screen_edge.frag; when it fails to build this draws
    nothing rather than a solid sprite quad. */
 
 #define SCREEN_EDGE_LOW_HEALTH 0.35f
 // NOTE(zoubir): a hit's flash fades over this many seconds
 #define SCREEN_EDGE_HURT_SECONDS 0.45f
+#define SCREEN_EDGE_KILL_SECONDS 0.6f
 
 internal void
 DrawScreenEdge(render_context *RenderContext, app_state *AppState,
@@ -52,8 +53,28 @@ DrawScreenEdge(render_context *RenderContext, app_state *AppState,
                                        DeltaTime / SCREEN_EDGE_HURT_SECONDS);
     Tint = Maximum(Tint, 0.55f * AppState->ScreenEdgeHurt * AppState->ScreenEdgeHurt);
 
+    // NOTE(zoubir): a player kill by the local player flashes the edge
+    // gold; when it is brighter than the red, the edge is gold
+    player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
+    if (AppState->ScreenEdgeLastKills && Slot->Kills + 1 > AppState->ScreenEdgeLastKills)
+    {
+        AppState->ScreenEdgeKill = 1.f;
+    }
+    // NOTE(zoubir): stored one higher, so 0 means "not seen yet" and the
+    // first frame (or a reconnect with kills already counted) does not flash
+    AppState->ScreenEdgeLastKills = Slot->Kills + 1;
+    AppState->ScreenEdgeKill = Maximum(0.f, AppState->ScreenEdgeKill -
+                                       DeltaTime / SCREEN_EDGE_KILL_SECONDS);
+    float Gold = 0.45f * AppState->ScreenEdgeKill * AppState->ScreenEdgeKill;
+
+    u32 RGB = (0x18 << 16) | (0x10 << 8) | 0xD0;
+    if (Gold > Tint)
+    {
+        Tint = Gold;
+        RGB = (0x30 << 16) | (0xC8 << 8) | 0xF0;
+    }
     u32 Alpha = (u32)(255.f * Minimum(1.f, Tint));
-    u32 Color = (Alpha << 24) | (0x18 << 16) | (0x10 << 8) | 0xD0;
+    u32 Color = (Alpha << 24) | RGB;
     DrawShaderQuad(RenderContext, Shader_ScreenEdge, 0.f, 0.f,
                    (float)Width, (float)Height, Color);
 }
