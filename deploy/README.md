@@ -17,6 +17,22 @@ What the machine needs: Ubuntu or Debian on x86 or ARM, ssh access as root or a 
 
 Run `misc\linux_check.ps1` (needs Docker). It builds the server with `build_server.sh` in a Linux container, as the deploy does, and runs the network, server and soak tests there under AddressSanitizer. The content id it prints must match the Windows build's. About a minute and a half.
 
+## Downloads and automatic updates
+
+Players download one file, `GameDemo.exe` (the launcher), from https://game.sindansolutions.com. It installs the game into `%LOCALAPPDATA%\GameDemo`, adds desktop and Start menu shortcuts, and starts the game. While the game runs, the launcher reads `manifest.txt` from that site every 10 seconds. When the version in it changes, the launcher downloads the files that changed into a new folder while the game keeps running, then closes the game and opens it again on the new build. The launcher replaces itself too, the next time it starts. Code: `code/platform/launcher_app.cpp`.
+
+`deploy/deploy.sh` publishes the game as part of every deploy when it runs from Git Bash on Windows (Visual Studio builds the game): it builds the release game and launcher from the same commit as the server (`deploy/package_client.sh`), and after the server passes both join checks it uploads them (`deploy/publish_client.sh`). If the server check fails, nothing is published and players stay on the old build. Measured locally: a running game was on the new build 6 seconds after the manifest changed.
+
+| Task | Command |
+|---|---|
+| Set up the download site (once per machine) | `deploy/setup_downloads.sh vps-eu game.sindansolutions.com`. The DNS A record must point at the machine first. It starts the `game-demo-web` file server container and adds one site block to the shared Caddy (`/opt/work-app/deploy/Caddyfile`, backup next to it) |
+| Publish the game again without a server deploy | `deploy/package_client.sh` then `deploy/publish_client.sh vps-eu`. Only from the commit the server runs, or players get a build the server turns away |
+| Which game build is live | `curl -s https://game.sindansolutions.com/manifest.txt \| head -2` |
+| Roll the game back | `ls /opt/game-demo/web/manifests`, then `cp /opt/game-demo/web/manifests/<name>.txt /opt/game-demo/web/manifest.txt`. Roll the server back to the same release, or players cannot join |
+| Test the launcher against a local copy | serve `build/client_package` (`python -m http.server 8765`) and run `GameDemo.exe --url http://127.0.0.1:8765/ --dir C:\test\gamedemo` |
+
+The launcher is not code-signed, so Windows SmartScreen warns on first run ("More info", then "Run anyway"). A code-signing certificate would remove that.
+
 ## Testing a live server from your computer
 
 Build the tools with `build_server.bat` (Windows) or `build_server.sh`. The content id is in the server's first log line, `journalctl -u game-demo | grep listening`; a game client from the same commit has the same one.

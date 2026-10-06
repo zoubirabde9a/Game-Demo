@@ -28,3 +28,5 @@ build/gcc_*.code
 build/gcc_works.*
 # webuild.bat copies these from build/shaders/fx
 web/shaders/fx/
+build/client_src/
+build/client_package/

@@ -31,6 +31,7 @@ Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot car
 | Bot players (`server --bots N`) | `server/bots.cpp`, kept topped up by `GameKeepBots` in `server/sim_game.cpp` |
 | Time rewinds (T, G, V): history, restore, what the snapshot says is frozen | `sim/time_rewind/`, `server/sim_game/rewinds.cpp`, `net_rewind` in `net/protocol.h`; the client's side in `client/rewind_fx/`; design in [time-rewind.md](time-rewind.md) |
 | Replays and determinism | `server --record <file>` (`server/replay.cpp`), `build\replay.exe <file>` (`tools/replay_main.cpp`), the world hash in `sim/world_hash.cpp`, `tests/replay_tests.cpp` |
+| Launcher and automatic game updates | `platform/launcher_app.cpp` (parts in `platform/launcher/`), `deploy/package_client.sh`, `deploy/publish_client.sh`, `deploy/setup_downloads.sh`; how it works in `deploy/README.md` |
 | Live server, deploy, load test, who is online | `deploy/README.md`, `deploy/deploy.sh`, `build\bots.exe`, `build\probe.exe --info` |
 
 ## Next

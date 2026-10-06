@@ -89,7 +89,8 @@ InstallVersion(launcher_paths *Paths, manifest *New, char *ManifestText,
     {
         Total += New->Files[Index].Size;
     }
-    LauncherSetStatus(Status, L"Downloading the new version", Total, Show);
+    LauncherSetStatus(Status, OldVersion[0] ? L"Downloading the new version" : L"Downloading the game",
+                      Total, Show);
 
     manifest *Old = 0;
     wchar_t OldFolder[LAUNCHER_PATH_COUNT] = {};
