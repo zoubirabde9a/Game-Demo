@@ -36,3 +36,4 @@ Rules for every step:
 - no source file outside `tests/` and `third_party/` passes 500 lines (600 until 2026-10-06). A few files were already longer; the script lists each with its current size as a ceiling it may not grow past. Split a file rather than raising a number.
 - every source file is included by another, except the programs' entry points (`code/app.cpp`, `platform/*_app.cpp`, `server/*_main.cpp`, the files directly in `tests/` and `tools/`). A file nothing includes is dead code.
 - every `.cpp` and `.inc` outside `third_party/` starts with a comment saying what it is for.
+- no `#if 0` blocks: code switched off for good is deleted, since git keeps it.

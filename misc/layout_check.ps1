@@ -17,6 +17,8 @@
 #    dead code that still costs a reader's time.
 # 5. Every .cpp and .inc outside third_party/ starts with a comment
 #    saying what it is for, so a reader can stop at the top of the file.
+# 6. No #if 0 blocks. Code switched off for good is deleted (git keeps
+#    it); a debug view someone wants back goes behind a named #define.
 param([string]$Root = (Split-Path -Parent $PSScriptRoot))
 $Root = [System.IO.Path]::GetFullPath($Root)
 
@@ -116,6 +118,17 @@ foreach ($File in $Sources) {
     elseif (($Lines -join "`n") -match '\$File: \$' -and
             $Name -notin @('code/sim/world.cpp', 'code/sim/world.h')) {
         $Failures.Add("${Name}: replace the empty `$File: `$ banner with a comment saying what the file is for")
+    }
+}
+
+# 6. Disabled blocks.
+foreach ($File in $Sources) {
+    $LineNumber = 0
+    foreach ($Line in Get-Content $File.FullName) {
+        $LineNumber++
+        if ($Line -match '^\s*#\s*if\s+0(\s|$)') {
+            $Failures.Add("$(RelativePath $File.FullName):${LineNumber}: #if 0 block; delete code that is switched off for good")
+        }
     }
 }
 
