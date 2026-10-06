@@ -1,5 +1,6 @@
 /* Client-side drawing of world entities: tiles, sprites, health bars,
-   debug collision boxes, and the animation frame the simulation is on.
+   the ground rings under players, and the animation frame the
+   simulation is on.
    Reads entity state only; SimulateTick has already run this frame.
 
    Every entity sorts by where it stands: its Y plus the height of the
@@ -135,32 +136,8 @@ DrawTileEntity(render_context *RenderContext,
         
         EndBatch(RenderContext);
         
-#if 0
-        for(u32 VolumeIndex = 0;
-            VolumeIndex < Entity->Collision->VolumesCount;
-            VolumeIndex++)
-        {
-            entity_collision_volume *Volume =
-                Entity->Collision->Volumes + VolumeIndex;
-            
-        v2 CollisionRectPosition = EntityCameraPosition -
-            Volume->HalfDims.XY;
-        CollisionRectPosition.Y -= Entity->Position.Z -
-            Volume->HalfDims.Z + Volume->Offset.Z;
-    
-        DrawRectangle3D(RenderContext,
-                        CollisionRectPosition.X,
-                        CollisionRectPosition.Y,
-                        Volume->HalfDims.X * 2,
-                        Volume->HalfDims.Y * 2,
-                        Volume->HalfDims.Z * 2,
-                        RGBA8_RED, SortingValue);
-        }
-    #endif
     }
 }
-// NOTE(zoubir): seconds of effects drawn so far (fx_bursts.cpp, later)
-internal float GetFxClock(app_state *AppState);
 
 // NOTE(zoubir): a gold ring on the ground under the local player, so it
 // finds itself at a glance in a crowd of look-alike players, and a fainter
@@ -299,62 +276,12 @@ DrawEntity(render_context *RenderContext,
                               1,
                               RGBA8_WHITE, SortingValue);
             }
-#if 0
-            DrawRectangle(RenderContext,
-                          EntityTexturePosition.X,
-                          EntityTexturePosition.Y,
-                          Entity->Dimensions.X,
-                          Entity->Dimensions.Y,
-                          RGBA8_WHITE, SortingValue);
-#endif
 
         
-#if 0
-            entity_collision_volume *Volume =
-                &Entity->Collision->TotalVolume;
-            
-            v2 CollisionRectPosition = EntityCameraPosition -
-                Volume->HalfDims.XY;
-            CollisionRectPosition.Y -= Entity->Position.Z -
-                Volume->HalfDims.Z +
-                Volume->Offset.Z;
-    
-            DrawRectangle3D(RenderContext,
-                            CollisionRectPosition.X,
-                            CollisionRectPosition.Y,
-                            Volume->HalfDims.X * 2,
-                            Volume->HalfDims.Y * 2,
-                            Volume->HalfDims.Z * 2,
-                            RGBA8_RED, SortingValue);
-#endif
         }
 
     }
     
-#if 0        
-    for(u32 VolumeIndex = 0;
-        VolumeIndex < Entity->Collision->VolumesCount;
-        VolumeIndex++)
-    {
-        entity_collision_volume *Volume =
-            Entity->Collision->Volumes + VolumeIndex;
-            
-        v2 CollisionRectPosition = EntityCameraPosition -
-            Volume->HalfDims.XY;
-        CollisionRectPosition.Y -= Entity->Position.Z -
-            Volume->HalfDims.Z +
-            Volume->Offset.Z;
-    
-        DrawRectangle3D(RenderContext,
-                        CollisionRectPosition.X,
-                        CollisionRectPosition.Y,
-                        Volume->HalfDims.X * 2,
-                        Volume->HalfDims.Y * 2,
-                        Volume->HalfDims.Z * 2,
-                        RGBA8_RED, SortingValue);
-    }
-        
-#endif
             
     loaded_texture *ShadowTexture = 0;
     zas_texture_info *ShadowTextureInfo = 0;
