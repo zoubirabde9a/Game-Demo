@@ -116,6 +116,16 @@ StartClient(app_state *AppState, transient_state *TransientState,
 #pragma warning(disable: 4996) // getenv: read once at startup, never kept
 #endif
     AppState->World.MapId = FindMapByName(getenv("GAME_MAP"), MapId_Arena);
+#if APP_DEV
+    // NOTE(zoubir): GAME_RULES=classic plays offline with every ability
+    // unlocked, so a scripted screenshot can show the sword without
+    // spending talent points first
+    char *Rules = getenv("GAME_RULES");
+    if (Rules && strcmp(Rules, "classic") == 0)
+    {
+        GameRules = ClassicRules;
+    }
+#endif
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
