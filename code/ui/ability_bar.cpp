@@ -333,6 +333,15 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
                            CentreY - 0.5f * Quad, Quad, Quad,
                            WithAlpha(Def->Accent, 0.5f * Press), RenderBlend_Additive);
         }
+        // NOTE(zoubir): the ability standard cast is aiming
+        // (client/cast_targeting.cpp) glows until it is cast or cancelled
+        if (AppState->CastTargeting && AppState->CastTargeting->Aiming == Def->Button)
+        {
+            DrawShaderQuad(RenderContext, Shader_Glow, CentreX - 0.5f * Quad,
+                           CentreY - 0.5f * Quad, Quad, Quad,
+                           WithAlpha(Def->Accent, 0.4f + 0.15f * Sin(Time * 8.f)),
+                           RenderBlend_Additive);
+        }
         if (!Ready)
         {
             DrawShaderQuad(RenderContext, Shader_CooldownSweep, CentreX - 0.5f * Quad,

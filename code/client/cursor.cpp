@@ -39,5 +39,6 @@ InputForServer(app_input *Input, app_state *AppState)
         Result.LeftButton = {};
         Result.RightButton = {};
     }
+    FilterCastKeys(&Result, AppState);
     return Result;
 }

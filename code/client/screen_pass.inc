@@ -11,6 +11,7 @@ RenderSetProjection(RenderContext, &WorldProjection); // world overlays below dr
 DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
 DrawMonsterCastTells(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
+DrawCastPreview(RenderContext, AppState, CameraOffset); // range and area of the ability being aimed or wound up, client/cast_targeting/previews.cpp
 DrawTalentFx(RenderContext, AppState, CameraOffset); // frost on slowed and frozen units, the Ward talent's shell, client/talent_fx.cpp
 DrawRewindFx(RenderContext, AppState, CameraOffset); // time rewinds' sigils, ghosts and flashes, client/rewind_fx/
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);
@@ -20,6 +21,7 @@ DrawScreenEdge(RenderContext, AppState, Window->Width, Window->Height, Input->De
 DrawRewindHud(RenderContext, AppState, Window->Width); // tape counter while time runs back, client/rewind_fx/
 DrawHud(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawAbilityBar(RenderContext, AppState, Input, Window->Width, Window->Height);
+DoCastModeToggle(RenderContext, AppState, Input, Window->Width); // quick cast checkbox at the top, ui/cast_mode_toggle.cpp
 DrawXpOverlays(RenderContext, AppState, Window->Width, Window->Height); // XP gains and the level-up banner, ui/talent_panel/xp_bar.cpp
 DrawMinimap(RenderContext, AppState, Window->Width);
 DrawKillFeed(RenderContext, AppState, Window->Width); // recent kills under the minimap, ui/kill_feed_view.cpp

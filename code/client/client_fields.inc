@@ -28,3 +28,4 @@
     float ScreenEdgeClock; // seconds, drives the low-health pulse, client/screen_edge.cpp
     u32 ScreenEdgeLastKills; // the local player's kills last frame plus one (0: not seen yet), client/screen_edge.cpp
     float ScreenEdgeKill; // gold flash at the screen edge after a kill, 1 fading to 0, client/screen_edge.cpp
+    struct cast_targeting *CastTargeting; // quick or standard cast, and the ability being aimed, client/cast_targeting.cpp

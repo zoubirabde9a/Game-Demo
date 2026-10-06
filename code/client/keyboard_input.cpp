@@ -2,7 +2,9 @@
    player_input the simulation understands. ZQSD move (AZERTY layout),
    the mouse cursor aims, right click sword, left click fireball, Space
    jump, Alt dash, E shockwave, F blink, R push, A launch (the action keys
-   are one table, action_keys.cpp). Holding Tab shows the scoreboard
+   are one table, action_keys.cpp). In standard cast mode an area
+   ability's key aims it first and a left click casts it
+   (cast_targeting.cpp). Holding Tab shows the scoreboard
    (read in app.cpp, it is not a player action). While the tile editor
    (F3) is open the left button paints tiles and does not cast. */
 
@@ -40,7 +42,10 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
     if (Input->ButtonD.EndedDown) { Result.Move.X = 1.f; }
     if (Input->ButtonQ.EndedDown) { Result.Move.X = -1.f; }
 
-    Result.Pressed = ActionButtonsFromKeys(Input, true);
+    // NOTE(zoubir): standard cast holds an aimed ability back until it is
+    // confirmed (cast_targeting.cpp); quick cast passes the keys through
+    UpdateCastTargeting(Input, AppState);
+    Result.Pressed = FilterCastButtons(AppState, ActionButtonsFromKeys(Input, true));
     if (AppState->TileEditing)
     {
         Result.Pressed &= ~(u32)PlayerButton_Cast;
