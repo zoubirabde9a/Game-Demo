@@ -26,7 +26,6 @@ $MaxLines = 500
 $Ceilings = @{
     'code/engine/random.h'                  = 604  # mostly a table of random numbers
     'code/engine/math.h'                    = 648  # about 50 small vector helpers
-    'code/art/terrain_art.cpp'              = 945  # claimed by the terrain agent
     'code/art/monster_render.cpp'           = 502  # claimed by the monster agent
     'code/sim/terrain/maps.cpp'             = 514  # claimed by the terrain agent
     'code/client/draw_tilemap.cpp'          = 521  # claimed by the terrain agent
