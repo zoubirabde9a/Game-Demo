@@ -162,6 +162,30 @@ DrawTileEntity(render_context *RenderContext,
 // NOTE(zoubir): seconds of effects drawn so far (fx_bursts.cpp, later)
 internal float GetFxClock(app_state *AppState);
 
+// NOTE(zoubir): a gold ring on the ground under the local player, so it
+// finds itself at a glance in a crowd of look-alike players. Drawn with
+// the ring shader on a flat quad (an ellipse), sorted just under the
+// shadow, so every sprite covers it
+#define SELF_MARKER_WIDTH 44.f
+#define SELF_MARKER_HEIGHT 22.f
+
+internal void
+DrawSelfMarker(render_context *RenderContext, v2 Feet, float SortingValue)
+{
+    render_program Program = RenderContext->Programs[Shader_Ring];
+    if (Program.ID == RenderContext->TextureProgram.ID)
+    {
+        return;
+    }
+    BeginBatch(RenderContext, 0, SortingValue - 0.02f, Program);
+    RenderQuadTexture(RenderContext,
+                      Feet.X - 0.5f * SELF_MARKER_WIDTH,
+                      Feet.Y - 0.5f * SELF_MARKER_HEIGHT,
+                      SELF_MARKER_WIDTH, SELF_MARKER_HEIGHT,
+                      V4(0.f, 1.f, 1.f, 0.f), UI_RGBA(240, 200, 48, 190), 0.f);
+    EndBatch(RenderContext);
+}
+
 internal void
 DrawEntity(render_context *RenderContext,
            app_state *AppState,
@@ -367,6 +391,12 @@ DrawEntity(render_context *RenderContext,
             ShadowTextureInfo->Origin * ShadowDims;
         ShadowPosition.Y -= GroundZ;
     
+        if (Entity == GetLocalPlayer(AppState))
+        {
+            DrawSelfMarker(RenderContext,
+                           V2(EntityCameraPosition.X, EntityCameraPosition.Y - GroundZ),
+                           SortingValue);
+        }
         if (ShadowTexture)
         {
             // NOTE(zoubir): just under its own sprite
