@@ -54,6 +54,20 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
 
         case BurstShape_Column:
         {
+            // NOTE(zoubir): light under the dots: a pool on the ground and a
+            // tall soft column, both added onto the world (glow.frag)
+            float Pool = 2.2f * Area.Radius;
+            DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 0.5f * Pool,
+                           Centre.Y - 0.25f * Pool, Pool, 0.5f * Pool,
+                           FxColor(0.7f * (1.f - T), Look->RGB), RenderBlend_Additive);
+            float Glow = Clamp01(1.f - 2.f * T);
+            if (Glow > 0.f)
+            {
+                float GlowHeight = 170.f * (0.4f + 0.6f * EaseOut);
+                DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 22.f,
+                               Centre.Y - GlowHeight, 44.f, GlowHeight + 10.f,
+                               FxColor(0.8f * Glow, Look->RGB), RenderBlend_Additive);
+            }
             DrawWaveFront(RenderContext, Centre, 0.f, 2.f * Pi32,
                           Area.Radius * (0.5f + 0.5f * EaseOut),
                           0.5f * Area.Radius * (1.f - T), 1.f - T * T,
