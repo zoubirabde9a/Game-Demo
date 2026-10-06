@@ -15,6 +15,8 @@
      (player_fx/fireball_trails.cpp);
    - shield bubbles: a sphere of light around a player whose Shield is
      up (player_fx/shield_bubble.cpp);
+   - status motes: embers, bubbles, drops and sparkles round units with a
+     status effect running (player_fx/status_fx.cpp);
    - cast bars: a bar over every player winding up a spell
      (cast_bars.cpp);
    - bursts the simulation asks for (sword swings, casts, Shockwave,
@@ -28,6 +30,7 @@
 #include "player_fx/blink_preview.cpp"
 #include "player_fx/fireball_trails.cpp"
 #include "player_fx/shield_bubble.cpp"
+#include "player_fx/status_fx.cpp"
 
 struct player_fx
 {
@@ -57,6 +60,7 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     DrawFireBallTrails(RenderContext, &Fx->Embers, CameraOffset);
     DrawDashGhosts(RenderContext, AppState, &Fx->Dashes, CameraOffset);
     DrawDashStreaks(RenderContext, &Fx->Dashes, CameraOffset);
+    DrawStatusMotes(RenderContext, AppState, CameraOffset);
     DrawShieldBubbles(RenderContext, AppState, Fx->ShieldGrow, CameraOffset, DeltaTime);
     DrawBlinkPreview(RenderContext, AppState, CameraOffset);
     DrawAimMarker(RenderContext, AppState, CameraOffset);
