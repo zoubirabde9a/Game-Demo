@@ -1,0 +1,123 @@
+/* Kill feed and death plate. The feed (client/kill_feed.cpp keeps it) is
+   listed under the minimap, newest on top, "Killer > Victim", each line
+   fading out in its last second; lines with the local player in them are
+   gold. While the local player is dead, a glass plate in the middle of
+   the screen names who killed it and counts down to the respawn with a
+   bar that fills as it comes. Both read only what offline and online
+   play fill the same way: the feed's events and the slot's RespawnTimer. */
+
+#define KILL_FEED_TOP (UI_GAP_LARGE + MINIMAP_PIXELS + 34.f)
+#define KILL_FEED_FADE_SECONDS 1.f
+#define DEATH_PLATE_WIDTH 340.f
+
+// NOTE(zoubir): the killer's name for a feed entry: a player's chosen name,
+// "a Bat" for a monster, or "the world" when nothing is known
+internal void
+KillerName(app_state *AppState, kill_feed_entry *Entry, char *Out, u32 OutSize)
+{
+    if (Entry->Killer != SIM_NOBODY && Entry->Killer < MAX_PLAYERS)
+    {
+        GetPlayerName(AppState, Entry->Killer, Out, OutSize);
+    }
+    else if (Entry->KillerMonster != SIM_NOBODY && Entry->KillerMonster < MonsterKind_Count)
+    {
+        snprintf(Out, OutSize, "a %s", GetMonsterDef((monster_kind)Entry->KillerMonster)->Name);
+    }
+    else
+    {
+        snprintf(Out, OutSize, "the world");
+    }
+}
+
+internal void
+DrawKillFeed(render_context *RenderContext, app_state *AppState, u32 WindowWidth)
+{
+    kill_feed *Feed = AppState->KillFeed;
+    font *Font = AppState->Fonts.Small;
+    if (!Feed || !Font)
+    {
+        return;
+    }
+    float Right = (float)WindowWidth - UI_GAP_LARGE;
+    float Y = KILL_FEED_TOP;
+    for(u32 Index = 0; Index < Feed->Count; Index++)
+    {
+        kill_feed_entry *Entry = &Feed->Entries[Index];
+        char Killer[48];
+        char Victim[48];
+        char Line[112];
+        KillerName(AppState, Entry, Killer, sizeof(Killer));
+        GetPlayerName(AppState, Entry->Victim, Victim, sizeof(Victim));
+        snprintf(Line, sizeof(Line), "%s  >  %s", Killer, Victim);
+        float Fade = Clamp01((KILL_FEED_SECONDS - Entry->Age) / KILL_FEED_FADE_SECONDS);
+        bool32 Mine = Entry->Killer == AppState->LocalPlayerIndex ||
+            Entry->Victim == AppState->LocalPlayerIndex;
+        u32 Color = Mine ? UI_COLOR_ACCENT : UI_COLOR_TEXT;
+        UIText(RenderContext, Font, Right, Y, Line,
+               WithAlpha(Color, Fade), UIAlign_Right);
+        Y += UILineHeight(Font) + 2.f;
+    }
+}
+
+// NOTE(zoubir): the local player's latest death in the feed, or 0
+internal kill_feed_entry *
+LocalDeath(app_state *AppState)
+{
+    kill_feed *Feed = AppState->KillFeed;
+    for(u32 Index = 0; Feed && Index < Feed->Count; Index++)
+    {
+        if (Feed->Entries[Index].Victim == AppState->LocalPlayerIndex)
+        {
+            return &Feed->Entries[Index];
+        }
+    }
+    return 0;
+}
+
+internal void
+DrawDeathPlate(render_context *RenderContext, app_state *AppState,
+               u32 WindowWidth, u32 WindowHeight)
+{
+    player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
+    if (!Slot->Active || !IsDeadPlayer(Slot->Entity))
+    {
+        return;
+    }
+    font *Title = AppState->Fonts.Title ? AppState->Fonts.Title : AppState->Fonts.Body;
+    font *Body = AppState->Fonts.Body;
+    float Width = DEATH_PLATE_WIDTH;
+    float Height = UILineHeight(Title) + UILineHeight(Body) + 4.f * UI_GAP;
+    float X = 0.5f * ((float)WindowWidth - Width);
+    float Y = 0.32f * (float)WindowHeight;
+    DrawUIPanel(RenderContext, X, Y, Width, Height, UI_COLOR_HEALTH);
+
+    char Text[96];
+    kill_feed_entry *Death = LocalDeath(AppState);
+    if (Death)
+    {
+        char Killer[48];
+        KillerName(AppState, Death, Killer, sizeof(Killer));
+        snprintf(Text, sizeof(Text), "Killed by %s", Killer);
+    }
+    else
+    {
+        snprintf(Text, sizeof(Text), "You died");
+    }
+    float CentreX = X + 0.5f * Width;
+    UIText(RenderContext, Title, CentreX, Y + UI_GAP, Text, UI_COLOR_TEXT, UIAlign_Center);
+
+    float Seconds = Maximum(0.f, Slot->RespawnTimer);
+    snprintf(Text, sizeof(Text), "Back in %.0f", Maximum(1.f, Seconds + 0.5f));
+    float TextY = Y + UI_GAP + UILineHeight(Title) + UI_GAP_SMALL;
+    UIText(RenderContext, Body, CentreX, TextY, Text, UI_COLOR_TEXT_MUTED, UIAlign_Center);
+
+    // NOTE(zoubir): fills toward the respawn; the full length is the
+    // player's own respawn time (Second Wind shortens it)
+    float Full = RespawnSeconds(Slot);
+    float Share = Full > 0.f ? Clamp01(1.f - Seconds / Full) : 1.f;
+    float BarX = X + UI_GAP_LARGE;
+    float BarWidth = Width - 2.f * UI_GAP_LARGE;
+    float BarY = Y + Height - UI_GAP - 4.f;
+    DrawFilledRectangle(RenderContext, BarX, BarY, BarWidth, 4.f, UI_COLOR_TRACK, 0.f);
+    DrawFilledRectangle(RenderContext, BarX, BarY, Share * BarWidth, 4.f, UI_COLOR_ACCENT, 0.f);
+}

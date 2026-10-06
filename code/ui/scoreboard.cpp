@@ -1,6 +1,6 @@
 /* Match screens: the scoreboard shown while Tab is held (every player's
-   level, kills, deaths and monster kills, best first) and the respawn countdown
-   shown while the local player is dead. */
+   level, kills, deaths and monster kills, best first). The respawn
+   countdown is the death plate in kill_feed_view.cpp. */
 
 
 // NOTE(zoubir): more kills first, then fewer deaths, then slot order
@@ -92,21 +92,4 @@ DrawScoreboard(render_context *RenderContext, app_state *AppState,
                    UIAlign_Right);
         }
     }
-}
-
-internal void
-DrawRespawnCountdown(render_context *RenderContext, app_state *AppState,
-                     u32 WindowWidth, u32 WindowHeight)
-{
-    player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
-    if (!Slot->Active || !IsDeadPlayer(Slot->Entity))
-    {
-        return;
-    }
-
-    char Text[48];
-    snprintf(Text, sizeof(Text), "Respawning in %.0f",
-             Maximum(1.f, Slot->RespawnTimer + 0.5f));
-    UIText(RenderContext, AppState->Fonts.Title, 0.5f * (float)WindowWidth,
-           0.4f * (float)WindowHeight, Text, UI_COLOR_TEXT, UIAlign_Center);
 }

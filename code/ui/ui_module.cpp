@@ -14,6 +14,7 @@
 #include "tile_editor.cpp"
 #include "connect_screen.cpp"
 #include "minimap.cpp"
+#include "kill_feed_view.cpp"
 #include "controls_panel.cpp"
 #include "ability_icons/ability_icons.cpp"
 #include "talent_panel/talent_icons.cpp"

@@ -22,8 +22,9 @@ DrawHud(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawAbilityBar(RenderContext, AppState, Input, Window->Width, Window->Height);
 DrawXpOverlays(RenderContext, AppState, Window->Width, Window->Height); // XP gains and the level-up banner, ui/talent_panel/xp_bar.cpp
 DrawMinimap(RenderContext, AppState, Window->Width);
+DrawKillFeed(RenderContext, AppState, Window->Width); // recent kills under the minimap, ui/kill_feed_view.cpp
 DrawControlsPanel(RenderContext, AppState, Input, Window->Height);
-DrawRespawnCountdown(RenderContext, AppState, Window->Width, Window->Height);
+DrawDeathPlate(RenderContext, AppState, Window->Width, Window->Height); // who killed you and the respawn countdown, ui/kill_feed_view.cpp
 DrawTalentPanel(RenderContext, AppState, Input, Window->Width, Window->Height); // the talent tree (N), ui/talent_panel/
 if (Input->TabButton.EndedDown) DrawScoreboard(RenderContext, AppState, Window->Width, Window->Height);
 DoTileEditor(RenderContext, AppState, UIContext, Input, Window, TextureProgram, CameraOffset);
