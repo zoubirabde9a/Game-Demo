@@ -202,6 +202,54 @@ int main()
         stbi_write_png("monster_art/terrain_atlas.png", OutWidth, OutHeight, 4, Out, OutWidth * 4);
         printf("monster_art/terrain_atlas.png\n");
         free(Out);
+
+        // NOTE(zoubir): each kind as a field of 8 x 3 tiles at twice the
+        // size, every tile a cell picked by hash the way the game picks
+        // them, so seams and repeats show; liquids at their first frame,
+        // runes as one big glyph and small ones
+        u32 Tile = TERRAIN_TILE_PIXELS;
+        u32 FieldTiles = 8;
+        u32 FieldRows = 3;
+        u32 FieldWidth = FieldTiles * Tile * 2 + Tile;
+        u32 Band = FieldRows * Tile * 2 + Tile;
+        u32 FieldsPerRow = 2;
+        u32 FieldOutWidth = FieldsPerRow * FieldWidth;
+        u32 FieldOutHeight = ((TerrainKind_Count + 1) / FieldsPerRow) * Band;
+        u32 *Fields = (u32 *)calloc(FieldOutWidth * FieldOutHeight, sizeof(u32));
+        for(u32 Y = 0; Y < FieldOutHeight; Y++)
+        {
+            for(u32 X = 0; X < FieldOutWidth; X++)
+            {
+                u32 Kind = (Y / Band) * FieldsPerRow + X / FieldWidth;
+                u32 FX = (X % FieldWidth) / 2;
+                u32 FY = (Y % Band) / 2;
+                u32 Pixel = ART_RGB(30, 30, 30);
+                if (Kind < TerrainKind_Count && FY < FieldRows * Tile && FX < FieldTiles * Tile)
+                {
+                    u32 TileX = FX / Tile;
+                    u32 TileY = FY / Tile;
+                    u32 Roll = HashLattice(0x7E44u, (i32)TileX, (i32)TileY) >> 8;
+                    u32 Cell = Roll % TERRAIN_CELLS;
+                    if (IsTerrainAnimated((terrain_kind)Kind))
+                    {
+                        Cell = (Roll % 4) * TERRAIN_VARIANTS;
+                    }
+                    else if (Kind == TerrainKind_Rune)
+                    {
+                        Cell = (TileX < 2 && TileY < 2) ? TileX + 2 * TileY :
+                            (TileX == 2 || TileY == 2) ? 4 : 5 + Roll % 3;
+                    }
+                    u32 SX = TerrainCellColumn(Cell) * Tile + (FX % Tile);
+                    u32 SY = Kind * Tile + (FY % Tile);
+                    Pixel = Atlas[SY * Width + SX];
+                }
+                Fields[Y * FieldOutWidth + X] = Pixel;
+            }
+        }
+        stbi_write_png("monster_art/terrain_fields.png", FieldOutWidth, FieldOutHeight, 4,
+                       Fields, FieldOutWidth * 4);
+        printf("monster_art/terrain_fields.png\n");
+        free(Fields);
         free(Atlas);
     }
     {

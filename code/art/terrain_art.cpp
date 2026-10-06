@@ -1,9 +1,12 @@
 /* Terrain art: the ground tiles, drawn by code into one atlas texture at
    startup. One row per terrain kind:
 
-   columns 0-3   full tiles. Solid ground uses them as variants (picked
-                 per tile by a hash, so a field does not repeat); water
-                 and lava as animation frames.
+   columns 0-3   full tiles, and columns 17-28 twelve more: sixteen cells
+                 the kind's ground is painted in (TerrainCellColumn).
+                 Solid ground uses them as variants, picked per tile by a
+                 hash; liquids as four layouts of four animation frames;
+                 runes as the quarters of a big glyph (cells 0-3), a bare
+                 slab (4) and small glyphs (5-7).
    columns 4-7   edges: the kind spilling over one side of a neighbouring
                  tile (north, east, south, west), ragged and transparent
                  elsewhere.
@@ -24,8 +27,8 @@
    column 16     side shadow, fading right from the left column; mirrored
                  by its UVs for the other side.
 
-   Every full tile wraps: its left edge continues its right edge and its
-   top its bottom, so neighbours join without seams. Which kind spills
+   Every full tile wraps, and the variants of a kind share their border
+   pixels' noise, so any variant joins any other without a seam. Which kind spills
    over which is TerrainLayer: higher layers spill onto lower ones.
 
    The full tiles are painted in terrain/ground_tiles.cpp (natural ground)
@@ -34,7 +37,9 @@
    from them. */
 
 #define TERRAIN_TILE_PIXELS 32
+// NOTE(zoubir): animation frames per layout; cells per kind is twice that
 #define TERRAIN_VARIANTS 4
+#define TERRAIN_CELLS 16
 #define TERRAIN_EDGE_COLUMN 4
 #define TERRAIN_CORNER_COLUMN 8
 #define TERRAIN_CLIFF_COLUMN 12
@@ -42,7 +47,8 @@
 #define TERRAIN_RIM_COLUMN 14
 #define TERRAIN_SHADOW_COLUMN 15
 #define TERRAIN_SIDE_SHADOW_COLUMN 16
-#define TERRAIN_ATLAS_COLUMNS 17
+#define TERRAIN_EXTRA_COLUMN 17
+#define TERRAIN_ATLAS_COLUMNS 29
 #define TERRAIN_FACE_REPEAT_ROW 8
 #define TERRAIN_FACE_PERIOD 24
 #define TERRAIN_STEP_PIXELS 8
@@ -67,12 +73,32 @@ global_variable u32 TerrainLayer[TerrainKind_Count] =
     9, // stone wall
     0, // pit: the ground around spills over its lip
     1, // spring
-    6, // bramble
+    7, // bramble: its thorny edge spills over grass
     3, // bog
     4, // rune
 };
 
+// NOTE(zoubir): the atlas column of a kind's full-tile cell 0..15
+inline u32
+TerrainCellColumn(u32 Cell)
+{
+    u32 Result = Cell < TERRAIN_VARIANTS ? Cell :
+        TERRAIN_EXTRA_COLUMN + (Cell - TERRAIN_VARIANTS);
+    return Result;
+}
+
+// NOTE(zoubir): the cell edges, corners and faces copy their ground from:
+// a rune's first cells carry parts of a glyph, so it uses its bare slab
+inline u32
+TerrainPlainColumn(u32 Kind)
+{
+    u32 Result = Kind == TerrainKind_Rune ? TERRAIN_EXTRA_COLUMN : 0;
+    return Result;
+}
+
+#include "terrain/ground_paint.cpp"
 #include "terrain/ground_tiles.cpp"
+#include "terrain/liquid_tiles.cpp"
 
 // NOTE(zoubir): how deep (in pixels) the spill reaches at position Along
 // on the border, 0..TERRAIN_TILE_PIXELS - 1; ragged but continuous
@@ -92,7 +118,7 @@ internal void
 BuildTerrainTransitions(u32 *Pixels, u32 Width, terrain_kind Kind)
 {
     u32 Tile = TERRAIN_TILE_PIXELS;
-    u32 *Source = Pixels + Kind * Tile * Width;
+    u32 *Source = Pixels + Kind * Tile * Width + TerrainPlainColumn(Kind) * Tile;
     for(u32 Shape = 0; Shape < 8; Shape++)
     {
         u32 Column = Shape < 4 ? TERRAIN_EDGE_COLUMN + Shape :
@@ -299,7 +325,7 @@ internal void
 BuildTerrainFaces(u32 *Pixels, u32 Width, terrain_kind Kind)
 {
     i32 Tile = TERRAIN_TILE_PIXELS;
-    u32 *Ground = Pixels + (u32)Kind * Tile * Width;
+    u32 *Ground = Pixels + (u32)Kind * Tile * Width + TerrainPlainColumn(Kind) * Tile;
     terrain_cliff *Cliff = &TerrainCliffs[Kind];
     sprite_canvas Face = CanvasFrame(Pixels, Width, Tile, TERRAIN_CLIFF_COLUMN, Kind);
     sprite_canvas Step = CanvasFrame(Pixels, Width, Tile, TERRAIN_STEP_COLUMN, Kind);
@@ -391,11 +417,11 @@ BuildTerrainAtlas(u32 *Pixels)
     ZeroSize(Pixels, Width * Height * sizeof(u32));
     for(u32 Kind = 0; Kind < TerrainKind_Count; Kind++)
     {
-        for(u32 Column = 0; Column < TERRAIN_VARIANTS; Column++)
+        for(u32 Cell = 0; Cell < TERRAIN_CELLS; Cell++)
         {
             sprite_canvas Canvas = CanvasFrame(Pixels, Width, TERRAIN_TILE_PIXELS,
-                                               Column, Kind);
-            DrawTerrainTile(&Canvas, (terrain_kind)Kind, Column);
+                                               TerrainCellColumn(Cell), Kind);
+            DrawTerrainTile(&Canvas, (terrain_kind)Kind, Cell);
         }
         BuildTerrainTransitions(Pixels, Width, (terrain_kind)Kind);
         BuildTerrainFaces(Pixels, Width, (terrain_kind)Kind);
@@ -404,13 +430,13 @@ BuildTerrainAtlas(u32 *Pixels)
 
 #include "terrain/terrain_props_art.cpp"
 
-// NOTE(zoubir): animated kinds play their row as frames; the rest pick a
-// variant per tile
+// NOTE(zoubir): animated kinds play four frames of one of four layouts
+// (cells 0-3, 4-7, ...); the rest pick one of sixteen variants per tile
 inline bool32
 IsTerrainAnimated(terrain_kind Kind)
 {
     bool32 Result = Kind == TerrainKind_ShallowWater ||
         Kind == TerrainKind_DeepWater || Kind == TerrainKind_Lava ||
-        Kind == TerrainKind_Spring || Kind == TerrainKind_Rune;
+        Kind == TerrainKind_Spring;
     return Result;
 }

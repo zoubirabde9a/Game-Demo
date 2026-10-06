@@ -1,355 +1,431 @@
-/* Ground tiles: the full tiles (columns 0-3 of the terrain atlas) of
-   every natural ground kind, and the tile noise they are painted with.
-   Hazard kinds go on to terrain_hazard_art.cpp. Included by
-   terrain_art.cpp, which builds the edges, corners and faces from these. */
+/* Ground tiles: the full tiles of every natural ground kind, eight cells
+   each (see the top of terrain_art.cpp). The base is soft, low-contrast
+   noise that joins across tiles (ground_paint.cpp); the eye catches the
+   details on top: tufts, pebbles, stones, cracks, flecks and embers,
+   placed differently in each variant. Larger patches of light and colour
+   come from the world tint the client multiplies in (client/ground/).
+   Liquids are in liquid_tiles.cpp, hazards in terrain_hazard_art.cpp. */
 
-// NOTE(zoubir): value noise on cells of CellX x CellY pixels that repeats
-// every PeriodX pixels across and PeriodY down (each a multiple of its
-// cell). 0..255
-inline u32
-WrappedNoise(u32 Seed, i32 X, i32 Y, i32 CellX, i32 CellY, i32 PeriodX, i32 PeriodY)
-{
-    i32 CellsX = PeriodX / CellX;
-    i32 CellsY = PeriodY / CellY;
-    i32 CX = FloorDiv(X, CellX);
-    i32 CY = FloorDiv(Y, CellY);
-    i32 FX = (FloorMod(X, CellX) << 8) / CellX;
-    i32 FY = (FloorMod(Y, CellY) << 8) / CellY;
-    i32 A = (i32)(HashLattice(Seed, FloorMod(CX, CellsX), FloorMod(CY, CellsY)) >> 24);
-    i32 B = (i32)(HashLattice(Seed, FloorMod(CX + 1, CellsX), FloorMod(CY, CellsY)) >> 24);
-    i32 C = (i32)(HashLattice(Seed, FloorMod(CX, CellsX), FloorMod(CY + 1, CellsY)) >> 24);
-    i32 D = (i32)(HashLattice(Seed, FloorMod(CX + 1, CellsX), FloorMod(CY + 1, CellsY)) >> 24);
-    i32 Top = A + (((B - A) * FX) >> 8);
-    i32 Bottom = C + (((D - C) * FX) >> 8);
-    u32 Result = (u32)(Top + (((Bottom - Top) * FY) >> 8));
-    return Result;
-}
-
-// NOTE(zoubir): noise that repeats every TERRAIN_TILE_PIXELS, so a tile's
-// edges match the next tile's. 0..255
-inline u32
-WrappedTileNoise(u32 Seed, i32 X, i32 Y, i32 Cell)
-{
-    u32 Result = WrappedNoise(Seed, X, Y, Cell, Cell, TERRAIN_TILE_PIXELS,
-                              TERRAIN_TILE_PIXELS);
-    return Result;
-}
-
-// NOTE(zoubir): two octaves of WrappedTileNoise mapped to 0..1
-inline float
-TileTexture(u32 Seed, i32 X, i32 Y)
-{
-    u32 Coarse = WrappedTileNoise(Seed, X, Y, 8);
-    u32 Fine = WrappedTileNoise(Seed + 17, X, Y, 4);
-    float Result = (float)(2 * Coarse + Fine) / (3.f * 255.f);
-    return Result;
-}
-
-inline u32
-WrapPixel(i32 Value)
-{
-    u32 Result = (u32)FloorMod(Value, TERRAIN_TILE_PIXELS);
-    return Result;
-}
-
-// NOTE(zoubir): a pixel that wraps around the tile, for details that may
-// sit on an edge
-inline void
-PutTilePixel(sprite_canvas *Canvas, i32 X, i32 Y, u32 Color)
-{
-    PutPixel(Canvas, (i32)WrapPixel(X), (i32)WrapPixel(Y), Color);
-}
-
-// NOTE(zoubir): fills the tile from a ramp by wrapped noise, with ordered
-// dithering between steps; Bias shifts the whole tile lighter or darker
 internal void
-FillTileGround(sprite_canvas *Canvas, color_ramp Ramp, u32 Seed, float Bias,
-               float Contrast)
+DrawGrassTile(sprite_canvas *Canvas, u32 Seed, u32 Variant)
 {
-    for(i32 Y = 0; Y < TERRAIN_TILE_PIXELS; Y++)
+    u32 Detail = Seed + 977u * (Variant + 1);
+    color_ramp Grass = Ramp(ART_RGB(62, 108, 44), ART_RGB(76, 126, 52),
+                            ART_RGB(92, 144, 60), ART_RGB(120, 168, 74));
+    FillGround(Canvas, Grass, Seed, Variant, 0.f, 0.55f);
+    // NOTE(zoubir): darker clumps of clover, then tufts of blades over them
+    for(u32 Clump = 0; Clump < 4; Clump++)
     {
-        for(i32 X = 0; X < TERRAIN_TILE_PIXELS; X++)
+        i32 X, Y;
+        ScatterSpot(Detail + 1, Clump, 2, &X, &Y);
+        PutPixel(Canvas, X, Y, Grass.C[0]);
+        PutPixel(Canvas, X + 1, Y, Grass.C[0]);
+        PutPixel(Canvas, X, Y - 1, Grass.C[1]);
+        PutPixel(Canvas, X + 1, Y + 1, Grass.C[1]);
+    }
+    u32 Tufts = 5 + DetailRoll(Detail, 99, 4);
+    for(u32 Tuft = 0; Tuft < Tufts; Tuft++)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail, Tuft, 4, &X, &Y);
+        PutTuft(Canvas, HashLattice(Detail, (i32)Tuft, 3), X, Y, &Grass);
+    }
+    for(u32 Speck = 0; Speck < 5; Speck++)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 2, Speck, 1, &X, &Y);
+        PutPixel(Canvas, X, Y, Grass.C[3]);
+    }
+    // NOTE(zoubir): a flower on three variants in eight
+    if (Variant == 1 || Variant == 4 || Variant == 6)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 3, 0, 4, &X, &Y);
+        u32 Petal = Variant == 4 ? ART_RGB(236, 150, 196) :
+            Variant == 6 ? ART_RGB(170, 190, 250) : ART_RGB(246, 238, 210);
+        PutPixel(Canvas, X, Y - 1, Petal);
+        PutPixel(Canvas, X - 1, Y, Petal);
+        PutPixel(Canvas, X + 1, Y, Petal);
+        PutPixel(Canvas, X, Y, ART_RGB(250, 214, 90));
+        PutPixel(Canvas, X, Y + 1, Grass.C[0]);
+        PutPixel(Canvas, X + 1, Y + 1, Grass.C[0]);
+    }
+}
+
+internal void
+DrawSoilTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Seed, u32 Variant)
+{
+    u32 Detail = Seed + 977u * (Variant + 1);
+    bool32 Wet = Kind == TerrainKind_Mud;
+    color_ramp Soil = Wet ?
+        Ramp(ART_RGB(56, 42, 30), ART_RGB(70, 53, 38),
+             ART_RGB(84, 65, 46), ART_RGB(102, 82, 60)) :
+        Ramp(ART_RGB(116, 86, 56), ART_RGB(134, 101, 67),
+             ART_RGB(152, 118, 80), ART_RGB(174, 140, 98));
+    FillGround(Canvas, Soil, Seed, Variant, 0.f, 0.55f);
+    if (Wet)
+    {
+        // NOTE(zoubir): wheel ruts, and a puddle on half the variants with
+        // the sky caught along its top
+        for(u32 Rut = 0; Rut < 2; Rut++)
         {
-            float Value = 0.5f + Contrast * (TileTexture(Seed, X, Y) - 0.5f) + Bias;
-            PutPixel(Canvas, X, Y, ShadeRamp(&Ramp, Value, X, Y));
+            i32 X, Y;
+            ScatterSpot(Detail + 1, Rut, 3, &X, &Y);
+            for(i32 Step = 0; Step < 8; Step++)
+            {
+                PutPixel(Canvas, X + Step, Y + (Step > 4 ? 1 : 0), Soil.C[0]);
+                PutPixel(Canvas, X + Step, Y + 1 + (Step > 4 ? 1 : 0), Soil.C[3]);
+            }
+        }
+        if (Variant & 1)
+        {
+            i32 X, Y;
+            ScatterSpot(Detail + 2, 0, 7, &X, &Y);
+            i32 Half = 3 + (i32)DetailRoll(Detail, 7, 3);
+            for(i32 DY = -1; DY <= 1; DY++)
+            {
+                i32 Reach = DY == 0 ? Half : Half - 2;
+                for(i32 DX = -Reach; DX <= Reach; DX++)
+                {
+                    u32 Color = DY < 0 ? ART_RGB(96, 104, 110) : ART_RGB(42, 40, 40);
+                    PutPixel(Canvas, X + DX, Y + DY, Color);
+                }
+            }
+            PutPixel(Canvas, X - Half + 2, Y, ART_RGB(150, 160, 166));
+            PutPixel(Canvas, X - Half + 3, Y, ART_RGB(120, 128, 134));
+        }
+        for(u32 Glint = 0; Glint < 4; Glint++)
+        {
+            i32 X, Y;
+            ScatterSpot(Detail + 3, Glint, 2, &X, &Y);
+            PutPixel(Canvas, X, Y, ART_RGB(118, 110, 96));
+        }
+        return;
+    }
+    // NOTE(zoubir): pebbles, a crack on some variants, a sprig of green
+    u32 Pebbles = 3 + DetailRoll(Detail, 11, 4);
+    for(u32 Pebble = 0; Pebble < Pebbles; Pebble++)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail, Pebble, 3, &X, &Y);
+        i32 Width = 1 + (i32)DetailRoll(Detail, Pebble, 2);
+        PutPebble(Canvas, X, Y, Width, 1 + (i32)DetailRoll(Detail + 1, Pebble, 2),
+                  ART_RGB(204, 186, 156), ART_RGB(164, 144, 116), Soil.C[0]);
+    }
+    if ((Variant % 3) == 0)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 4, 0, 6, &X, &Y);
+        PutCrack(Canvas, Detail, X, Y, 7, ART_RGB(96, 68, 44), Soil.C[3]);
+    }
+    if (Variant == 2 || Variant == 5)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 5, 0, 4, &X, &Y);
+        color_ramp Sprig = Ramp(ART_RGB(70, 90, 40), ART_RGB(84, 112, 46),
+                                ART_RGB(100, 130, 52), ART_RGB(128, 156, 66));
+        PutTuft(Canvas, HashLattice(Detail, 5, 5), X, Y, &Sprig);
+    }
+}
+
+// NOTE(zoubir): wind-laid ash with soot, bone-white flecks and the odd
+// ember still glowing; basalt is the same plain cooled to black glass,
+// split by cracks
+internal void
+DrawAshTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Seed, u32 Variant)
+{
+    u32 Detail = Seed + 977u * (Variant + 1);
+    bool32 IsAsh = Kind == TerrainKind_Ash;
+    color_ramp Ground = IsAsh ?
+        Ramp(ART_RGB(104, 98, 94), ART_RGB(118, 112, 106),
+             ART_RGB(132, 126, 118), ART_RGB(150, 144, 134)) :
+        Ramp(ART_RGB(40, 36, 44), ART_RGB(50, 46, 54),
+             ART_RGB(61, 56, 65), ART_RGB(78, 71, 80));
+    FillGround(Canvas, Ground, Seed, Variant, 0.f, 0.5f, IsAsh);
+    if (IsAsh)
+    {
+        for(u32 Soot = 0; Soot < 4; Soot++)
+        {
+            i32 X, Y;
+            ScatterSpot(Detail + 1, Soot, 2, &X, &Y);
+            u32 Dark = ART_RGB(88, 82, 80);
+            PutPixel(Canvas, X, Y, Dark);
+            PutPixel(Canvas, X + 1, Y, Dark);
+            if (DetailRoll(Detail, Soot, 2))
+            {
+                PutPixel(Canvas, X + 1, Y + 1, Dark);
+            }
+        }
+        for(u32 Fleck = 0; Fleck < 5; Fleck++)
+        {
+            i32 X, Y;
+            ScatterSpot(Detail + 2, Fleck, 1, &X, &Y);
+            PutPixel(Canvas, X, Y, ART_RGB(170, 164, 154));
+        }
+        // NOTE(zoubir): a cinder, dark with a lit top
+        if (Variant & 1)
+        {
+            i32 X, Y;
+            ScatterSpot(Detail + 3, 0, 4, &X, &Y);
+            PutPebble(Canvas, X, Y, 2, 1, ART_RGB(110, 100, 96), ART_RGB(58, 52, 52),
+                      Ground.C[0]);
+        }
+        if (Variant == 5)
+        {
+            i32 X, Y;
+            ScatterSpot(Detail + 4, 0, 5, &X, &Y);
+            PutGlow(Canvas, (float)X + 0.5f, (float)Y + 0.5f, 3.5f, ART_RGB(220, 90, 40), 0.5f);
+            PutPixel(Canvas, X, Y, ART_RGB(255, 196, 90));
+            PutPixel(Canvas, X + 1, Y, ART_RGB(230, 100, 36));
+            PutPixel(Canvas, X, Y + 1, ART_RGB(150, 50, 30));
+        }
+        return;
+    }
+    u32 Cracks = 1 + DetailRoll(Detail, 13, 2);
+    for(u32 Crack = 0; Crack < Cracks; Crack++)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 5, Crack, 5, &X, &Y);
+        PutCrack(Canvas, HashLattice(Detail, (i32)Crack, 2), X, Y, 9,
+                 ART_RGB(24, 20, 28), Ground.C[3]);
+    }
+    for(u32 Sheen = 0; Sheen < 3; Sheen++)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 6, Sheen, 2, &X, &Y);
+        PutPixel(Canvas, X, Y, ART_RGB(104, 94, 112));
+    }
+}
+
+// NOTE(zoubir): crags are rough high ground you can walk on: loose
+// stones of every size over gravel, each lit from the top left and
+// casting a little shadow. Basalt crags are black, with embers in the gaps
+internal void
+DrawCragTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Seed, u32 Variant)
+{
+    u32 Detail = Seed + 977u * (Variant + 1);
+    bool32 Basalt = Kind == TerrainKind_BasaltWall;
+    color_ramp Gravel = Basalt ?
+        Ramp(ART_RGB(30, 27, 33), ART_RGB(40, 36, 44),
+             ART_RGB(50, 45, 54), ART_RGB(64, 58, 68)) :
+        Ramp(ART_RGB(92, 88, 82), ART_RGB(106, 102, 95),
+             ART_RGB(120, 115, 107), ART_RGB(138, 132, 122));
+    color_ramp Stone = Basalt ?
+        Ramp(ART_RGB(20, 18, 24), ART_RGB(44, 40, 50),
+             ART_RGB(66, 60, 72), ART_RGB(96, 88, 100)) :
+        Ramp(ART_RGB(64, 60, 58), ART_RGB(110, 105, 98),
+             ART_RGB(140, 134, 125), ART_RGB(178, 172, 160));
+    u32 Shadow = Basalt ? ART_RGB(8, 6, 10) : ART_RGB(40, 38, 40);
+    FillGround(Canvas, Gravel, Seed, Variant, 0.f, 0.6f);
+    for(u32 Grit = 0; Grit < 10; Grit++)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 1, Grit, 1, &X, &Y);
+        PutPixel(Canvas, X, Y, DetailRoll(Detail, Grit, 2) ? Gravel.C[0] : Gravel.C[3]);
+    }
+    if (Basalt && (Variant & 1))
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 2, 0, 4, &X, &Y);
+        PutGlow(Canvas, (float)X + 0.5f, (float)Y + 0.5f, 3.f, ART_RGB(200, 70, 30), 0.55f);
+        PutPixel(Canvas, X, Y, ART_RGB(250, 150, 60));
+    }
+    // NOTE(zoubir): one or two big stones, then smaller ones around them
+    u32 Stones = 5 + DetailRoll(Detail, 17, 3);
+    for(u32 Index = 0; Index < Stones; Index++)
+    {
+        bool32 Big = Index < 1 + (Variant & 1);
+        float RX = Big ? 4.5f + (float)DetailRoll(Detail, Index, 3) :
+            1.5f + (float)DetailRoll(Detail, Index, 2);
+        float RY = Big ? RX - 1.5f : RX - 0.5f;
+        i32 Margin = (i32)RX + 3;
+        i32 X, Y;
+        ScatterSpot(Detail + 7 + Index, Index, Margin, &X, &Y);
+        PutStone(Canvas, (float)X, (float)Y, RX, RY, Stone, Shadow);
+    }
+}
+
+// NOTE(zoubir): flagstones laid in each tile in one of eight patterns;
+// every stone its own shade, bevelled light along its top and left,
+// darker along its bottom and right, mortar between
+internal void
+DrawFlagstoneTile(sprite_canvas *Canvas, u32 Seed, u32 Variant)
+{
+    u32 Detail = Seed + 977u * (Variant + 1);
+    color_ramp Flag = Ramp(ART_RGB(116, 112, 106), ART_RGB(132, 128, 120),
+                           ART_RGB(148, 143, 134), ART_RGB(166, 160, 150));
+    u32 Mortar = ART_RGB(78, 74, 70);
+    // NOTE(zoubir): where the joints fall: SplitX splits the top half (and
+    // the bottom one when SplitBottomX is set), SplitY the whole tile
+    i32 SplitY[8] = {16, 0, 16, 16, 12, 20, 0, 16};
+    i32 SplitTop[8] = {16, 12, 0, 20, 16, 0, 0, 10};
+    i32 SplitBottom[8] = {16, 0, 12, 0, 22, 14, 20, 0};
+    i32 Row = 0;
+    for(i32 Y = 0; Y < 32; Y++)
+    {
+        for(i32 X = 0; X < 32; X++)
+        {
+            bool32 Lower = SplitY[Variant] && Y >= SplitY[Variant];
+            i32 Split = Lower ? SplitBottom[Variant] : SplitTop[Variant];
+            i32 X0 = (Split && X >= Split) ? Split : 0;
+            i32 X1 = (Split && X < Split) ? Split : 32;
+            i32 Y0 = Lower ? SplitY[Variant] : 0;
+            i32 Y1 = (SplitY[Variant] && !Lower) ? SplitY[Variant] : 32;
+            Row = Lower ? 1 : 0;
+            bool32 Joint = X == X0 || Y == Y0;
+            bool32 Corner = (X == X0 + 1 || X == X1 - 1) && (Y == Y0 + 1 || Y == Y1 - 1);
+            if (Joint || Corner)
+            {
+                PutPixel(Canvas, X, Y, Mortar);
+                continue;
+            }
+            float Shade = (float)(HashLattice(Detail, X0, Row) >> 24) / 255.f;
+            float Value = 0.42f + 0.3f * (Shade - 0.5f) +
+                0.5f * (GroundTexture(Seed, Variant, X, Y) - 0.5f);
+            if (X == X0 + 1 || Y == Y0 + 1)
+            {
+                Value += 0.3f;
+            }
+            else if (X == X1 - 1 || Y == Y1 - 1)
+            {
+                Value -= 0.3f;
+            }
+            PutPixel(Canvas, X, Y, ShadeRamp(&Flag, Value, X, Y));
+        }
+    }
+    // NOTE(zoubir): wear: a chip or crack, and moss in a joint
+    i32 X, Y;
+    ScatterSpot(Detail + 1, Variant, 5, &X, &Y);
+    if (Variant & 1)
+    {
+        PutCrack(Canvas, Detail, X, Y, 5, ART_RGB(92, 88, 82), Flag.C[3]);
+    }
+    if (Variant == 2 || Variant == 7)
+    {
+        PutPixel(Canvas, 0, Y, ART_RGB(78, 104, 52));
+        PutPixel(Canvas, 0, Y + 1, ART_RGB(94, 124, 60));
+        PutPixel(Canvas, 1, Y + 1, ART_RGB(70, 94, 48));
+    }
+}
+
+internal void
+DrawStoneWallTile(sprite_canvas *Canvas, u32 Seed, u32 Variant)
+{
+    u32 Detail = Seed + 977u * (Variant + 1);
+    color_ramp Stone = Ramp(ART_RGB(54, 50, 56), ART_RGB(78, 74, 80),
+                            ART_RGB(104, 100, 104), ART_RGB(136, 132, 134));
+    FillGround(Canvas, Stone, Seed, Variant, 0.05f, 0.7f);
+    // NOTE(zoubir): courses of bricks, offset every other row
+    for(i32 Y = 0; Y < 32; Y++)
+    {
+        for(i32 X = 0; X < 32; X++)
+        {
+            i32 Course = Y / 8;
+            i32 Offset = (Course % 2) ? 8 : 0;
+            if ((Y % 8) == 0 || ((X + Offset) % 16) == 0)
+            {
+                PutPixel(Canvas, X, Y, Stone.C[0]);
+            }
+            else if ((Y % 8) == 1)
+            {
+                PutPixel(Canvas, X, Y, Stone.C[3]);
+            }
         }
     }
 }
 
-// NOTE(zoubir): the hazard kinds' tiles (terrain_hazard_art.cpp)
-internal void DrawHazardTerrainTile(sprite_canvas *Canvas, terrain_kind Kind,
-                                    u32 Column, u32 Seed, float Phase);
+// NOTE(zoubir): drifts with blue shade in their hollows and a few
+// sparkles of frost
+internal void
+DrawSnowTile(sprite_canvas *Canvas, u32 Seed, u32 Variant)
+{
+    u32 Detail = Seed + 977u * (Variant + 1);
+    color_ramp Snow = Ramp(ART_RGB(196, 208, 230), ART_RGB(214, 223, 240),
+                           ART_RGB(230, 236, 248), ART_RGB(244, 247, 255));
+    FillGround(Canvas, Snow, Seed, Variant, 0.08f, 0.55f, true);
+    // NOTE(zoubir): wind scallops: a shaded dip under a lit crest
+    for(u32 Scallop = 0; Scallop < 3; Scallop++)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 1, Scallop, 4, &X, &Y);
+        for(i32 Step = 0; Step < 4; Step++)
+        {
+            PutPixel(Canvas, X + Step, Y, Snow.C[3]);
+            PutPixel(Canvas, X + Step + 1, Y + 1, Snow.C[0]);
+        }
+    }
+    for(u32 Sparkle = 0; Sparkle < 3; Sparkle++)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 2, Sparkle, 2, &X, &Y);
+        PutPixel(Canvas, X, Y, ART_RGB(255, 255, 255));
+        if (DetailRoll(Detail, Sparkle, 3) == 0)
+        {
+            PutPixel(Canvas, X - 1, Y, ART_RGB(220, 236, 255));
+            PutPixel(Canvas, X + 1, Y, ART_RGB(220, 236, 255));
+            PutPixel(Canvas, X, Y - 1, ART_RGB(220, 236, 255));
+            PutPixel(Canvas, X, Y + 1, ART_RGB(220, 236, 255));
+        }
+    }
+}
 
 internal void
-DrawTerrainTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Column)
+DrawIceTile(sprite_canvas *Canvas, u32 Seed, u32 Variant)
 {
-    if (Column >= TERRAIN_VARIANTS)
+    u32 Detail = Seed + 977u * (Variant + 1);
+    color_ramp Ice = Ramp(ART_RGB(136, 186, 212), ART_RGB(158, 206, 228),
+                          ART_RGB(180, 222, 240), ART_RGB(214, 238, 250));
+    FillGround(Canvas, Ice, Seed, Variant, 0.f, 0.55f);
+    // NOTE(zoubir): glossy streaks rising to the right, a crack, and air
+    // trapped in the ice
+    for(u32 Streak = 0; Streak < 2; Streak++)
     {
-        return;
+        i32 X, Y;
+        ScatterSpot(Detail + 1, Streak + 2 * Variant, 8, &X, &Y);
+        i32 Length = 4 + (i32)DetailRoll(Detail, Streak, 4);
+        for(i32 Step = 0; Step < Length; Step++)
+        {
+            PutPixel(Canvas, X + Step, Y - Step, ART_RGB(240, 250, 255));
+            PutPixel(Canvas, X + Step + 1, Y - Step, Ice.C[3]);
+        }
     }
-    u32 Seed = 1000u * (u32)Kind + 31u * Column;
-    // NOTE(zoubir): animated kinds keep the same pattern across frames
-    // and move it instead
-    float Phase = (float)Column / (float)TERRAIN_ATLAS_COLUMNS;
+    i32 X, Y;
+    ScatterSpot(Detail + 2, Variant, 6, &X, &Y);
+    PutCrack(Canvas, Detail, X, Y, 8, ART_RGB(112, 162, 192), ART_RGB(236, 248, 255));
+    for(u32 Bubble = 0; Bubble < 3; Bubble++)
+    {
+        ScatterSpot(Detail + 3, Bubble + 3 * Variant, 2, &X, &Y);
+        PutPixel(Canvas, X, Y, Ice.C[3]);
+        PutPixel(Canvas, X + 1, Y + 1, Ice.C[0]);
+    }
+}
+
+// NOTE(zoubir): the liquid and hazard kinds' tiles (liquid_tiles.cpp,
+// terrain_hazard_art.cpp)
+internal void DrawLiquidTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Cell);
+internal void DrawHazardTerrainTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Cell);
+
+// NOTE(zoubir): Cell 0..7 (see the top of terrain_art.cpp)
+internal void
+DrawTerrainTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Cell)
+{
+    u32 Seed = 1000u * (u32)Kind;
     switch(Kind)
     {
-        case TerrainKind_Grass:
-        {
-            color_ramp Grass = Ramp(ART_RGB(52, 92, 40), ART_RGB(74, 122, 50),
-                                    ART_RGB(96, 148, 58), ART_RGB(132, 176, 74));
-            FillTileGround(Canvas, Grass, Seed, 0.f, 1.3f);
-            // NOTE(zoubir): blades of grass, and on some tiles a flower
-            for(u32 Blade = 0; Blade < 14; Blade++)
-            {
-                u32 H = HashLattice(Seed, (i32)Blade, 7);
-                i32 X = (i32)(H % 32);
-                i32 Y = (i32)((H >> 8) % 32);
-                PutTilePixel(Canvas, X, Y, Grass.C[3]);
-                PutTilePixel(Canvas, X, Y + 1, Grass.C[2]);
-                PutTilePixel(Canvas, X + 1, Y + 1, Grass.C[0]);
-            }
-            if (Column == 1 || Column == 3)
-            {
-                u32 H = HashLattice(Seed, 3, 3);
-                i32 X = (i32)(H % 28) + 2;
-                i32 Y = (i32)((H >> 8) % 28) + 2;
-                u32 Petal = Column == 1 ? ART_RGB(240, 230, 120) : ART_RGB(220, 140, 200);
-                PutTilePixel(Canvas, X, Y - 1, Petal);
-                PutTilePixel(Canvas, X - 1, Y, Petal);
-                PutTilePixel(Canvas, X + 1, Y, Petal);
-                PutTilePixel(Canvas, X, Y + 1, Petal);
-                PutTilePixel(Canvas, X, Y, ART_RGB(250, 250, 230));
-            }
-        } break;
-
+        case TerrainKind_Grass: DrawGrassTile(Canvas, Seed, Cell); break;
         case TerrainKind_Dirt:
-        case TerrainKind_Mud:
-        {
-            bool32 Wet = Kind == TerrainKind_Mud;
-            color_ramp Soil = Wet ?
-                Ramp(ART_RGB(48, 34, 24), ART_RGB(70, 50, 34),
-                     ART_RGB(92, 68, 46), ART_RGB(120, 96, 70)) :
-                Ramp(ART_RGB(102, 74, 48), ART_RGB(130, 98, 64),
-                     ART_RGB(156, 120, 80), ART_RGB(186, 152, 106));
-            FillTileGround(Canvas, Soil, Seed, 0.f, 1.2f);
-            // NOTE(zoubir): pebbles on dirt, glints of standing water on mud
-            for(u32 Speck = 0; Speck < 8; Speck++)
-            {
-                u32 H = HashLattice(Seed, (i32)Speck, 11);
-                i32 X = (i32)(H % 32);
-                i32 Y = (i32)((H >> 8) % 32);
-                if (Wet)
-                {
-                    PutTilePixel(Canvas, X, Y, ART_RGB(120, 130, 120));
-                    PutTilePixel(Canvas, X + 1, Y, ART_RGB(150, 160, 150));
-                }
-                else
-                {
-                    PutTilePixel(Canvas, X, Y, Soil.C[3]);
-                    PutTilePixel(Canvas, X, Y + 1, Soil.C[0]);
-                }
-            }
-        } break;
-
+        case TerrainKind_Mud: DrawSoilTile(Canvas, Kind, Seed, Cell); break;
+        case TerrainKind_Ash:
+        case TerrainKind_Basalt: DrawAshTile(Canvas, Kind, Seed, Cell); break;
+        case TerrainKind_Rock:
+        case TerrainKind_BasaltWall: DrawCragTile(Canvas, Kind, Seed, Cell); break;
+        case TerrainKind_StoneFloor: DrawFlagstoneTile(Canvas, Seed, Cell); break;
+        case TerrainKind_StoneWall: DrawStoneWallTile(Canvas, Seed, Cell); break;
+        case TerrainKind_Snow: DrawSnowTile(Canvas, Seed, Cell); break;
+        case TerrainKind_Ice: DrawIceTile(Canvas, Seed, Cell); break;
         case TerrainKind_ShallowWater:
         case TerrainKind_DeepWater:
-        {
-            bool32 Deep = Kind == TerrainKind_DeepWater;
-            color_ramp Water = Deep ?
-                Ramp(ART_RGB(18, 40, 86), ART_RGB(26, 56, 112),
-                     ART_RGB(38, 76, 140), ART_RGB(90, 140, 196)) :
-                Ramp(ART_RGB(54, 112, 150), ART_RGB(70, 140, 178),
-                     ART_RGB(96, 170, 204), ART_RGB(170, 220, 236));
-            FillTileGround(Canvas, Water, 900u + (u32)Kind, -0.05f, 0.9f);
-            // NOTE(zoubir): ripple lines drifting across with the frames
-            i32 Shift = (i32)(Phase * 32.f);
-            for(u32 Ripple = 0; Ripple < 4; Ripple++)
-            {
-                u32 H = HashLattice(77u + (u32)Kind, (i32)Ripple, 5);
-                i32 X = (i32)(H % 32) + Shift;
-                i32 Y = (i32)((H >> 8) % 32);
-                for(i32 Step = 0; Step < 5; Step++)
-                {
-                    PutTilePixel(Canvas, X + Step, Y + (Step == 2 ? -1 : 0), Water.C[3]);
-                }
-            }
-        } break;
-
-        case TerrainKind_Rock:
-        case TerrainKind_BasaltWall:
-        case TerrainKind_StoneWall:
-        {
-            // NOTE(zoubir): blocking ground reads as raised: lit top face,
-            // dark lip along the bottom
-            color_ramp Stone =
-                Kind == TerrainKind_Rock ?
-                Ramp(ART_RGB(70, 68, 66), ART_RGB(102, 98, 94),
-                     ART_RGB(134, 130, 124), ART_RGB(170, 166, 158)) :
-                Kind == TerrainKind_BasaltWall ?
-                Ramp(ART_RGB(16, 14, 18), ART_RGB(30, 26, 32),
-                     ART_RGB(48, 42, 50), ART_RGB(74, 66, 74)) :
-                Ramp(ART_RGB(54, 50, 56), ART_RGB(78, 74, 80),
-                     ART_RGB(104, 100, 104), ART_RGB(136, 132, 134));
-            FillTileGround(Canvas, Stone, Seed, 0.05f, 1.1f);
-            if (Kind == TerrainKind_StoneWall)
-            {
-                // NOTE(zoubir): courses of bricks, offset every other row
-                for(i32 Y = 0; Y < 32; Y++)
-                {
-                    for(i32 X = 0; X < 32; X++)
-                    {
-                        i32 Course = Y / 8;
-                        i32 Offset = (Course % 2) ? 8 : 0;
-                        if ((Y % 8) == 0 || ((X + Offset) % 16) == 0)
-                        {
-                            PutPixel(Canvas, X, Y, Stone.C[0]);
-                        }
-                        else if ((Y % 8) == 1)
-                        {
-                            PutPixel(Canvas, X, Y, Stone.C[3]);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // NOTE(zoubir): cracks
-                for(u32 Crack = 0; Crack < 2; Crack++)
-                {
-                    u32 H = HashLattice(Seed, (i32)Crack, 13);
-                    i32 X = (i32)(H % 32);
-                    i32 Y = (i32)((H >> 8) % 32);
-                    for(i32 Step = 0; Step < 6; Step++)
-                    {
-                        PutTilePixel(Canvas, X + Step, Y + (Step / 2) * ((H >> 16) % 2 ? 1 : -1),
-                                     Stone.C[0]);
-                    }
-                }
-                if (Kind == TerrainKind_BasaltWall)
-                {
-                    u32 H = HashLattice(Seed, 9, 9);
-                    PutTilePixel(Canvas, (i32)(H % 32), (i32)((H >> 8) % 32),
-                                 ART_RGB(220, 90, 30));
-                }
-            }
-        } break;
-
-        case TerrainKind_Ash:
-        case TerrainKind_Basalt:
-        {
-            bool32 IsAsh = Kind == TerrainKind_Ash;
-            color_ramp Ground = IsAsh ?
-                Ramp(ART_RGB(84, 80, 78), ART_RGB(108, 104, 100),
-                     ART_RGB(132, 128, 122), ART_RGB(160, 156, 148)) :
-                Ramp(ART_RGB(34, 30, 36), ART_RGB(50, 46, 52),
-                     ART_RGB(70, 64, 70), ART_RGB(96, 88, 92));
-            FillTileGround(Canvas, Ground, Seed, 0.f, 1.2f);
-            for(u32 Fleck = 0; Fleck < 10; Fleck++)
-            {
-                u32 H = HashLattice(Seed, (i32)Fleck, 17);
-                i32 X = (i32)(H % 32);
-                i32 Y = (i32)((H >> 8) % 32);
-                PutTilePixel(Canvas, X, Y, IsAsh ? Ground.C[0] : Ground.C[3]);
-            }
-            if (IsAsh && Column == 2)
-            {
-                // NOTE(zoubir): a last ember still glowing in the ash
-                u32 H = HashLattice(Seed, 2, 2);
-                i32 X = (i32)(H % 30) + 1;
-                i32 Y = (i32)((H >> 8) % 30) + 1;
-                PutTilePixel(Canvas, X, Y, ART_RGB(250, 140, 40));
-                PutTilePixel(Canvas, X + 1, Y, ART_RGB(200, 70, 20));
-            }
-        } break;
-
-        case TerrainKind_Lava:
-        {
-            color_ramp Molten = Ramp(ART_RGB(170, 40, 10), ART_RGB(230, 100, 20),
-                                     ART_RGB(255, 170, 40), ART_RGB(255, 236, 140));
-            color_ramp Crust = Ramp(ART_RGB(30, 14, 12), ART_RGB(56, 24, 18),
-                                    ART_RGB(80, 34, 22), ART_RGB(110, 50, 30));
-            // NOTE(zoubir): crust plates over glowing melt; the glow pulses
-            // through the frames
-            float Pulse = 0.1f * Sin(2.f * Pi32 * Phase);
-            for(i32 Y = 0; Y < 32; Y++)
-            {
-                for(i32 X = 0; X < 32; X++)
-                {
-                    float Value = TileTexture(950u, X, Y);
-                    if (Value > 0.56f)
-                    {
-                        PutPixel(Canvas, X, Y, ShadeRamp(&Crust, (Value - 0.56f) * 3.f, X, Y));
-                    }
-                    else
-                    {
-                        float Heat = 0.4f + (0.56f - Value) * 2.f + Pulse;
-                        PutPixel(Canvas, X, Y, ShadeRamp(&Molten, Heat, X, Y));
-                    }
-                }
-            }
-        } break;
-
-        case TerrainKind_Snow:
-        {
-            color_ramp Snow = Ramp(ART_RGB(176, 190, 214), ART_RGB(206, 216, 234),
-                                   ART_RGB(228, 234, 246), ART_RGB(248, 250, 255));
-            FillTileGround(Canvas, Snow, Seed, 0.1f, 0.9f);
-            for(u32 Sparkle = 0; Sparkle < 3; Sparkle++)
-            {
-                u32 H = HashLattice(Seed, (i32)Sparkle, 19);
-                PutTilePixel(Canvas, (i32)(H % 32), (i32)((H >> 8) % 32),
-                             ART_RGB(255, 255, 255));
-            }
-        } break;
-
-        case TerrainKind_Ice:
-        {
-            color_ramp Ice = Ramp(ART_RGB(120, 170, 196), ART_RGB(150, 200, 222),
-                                  ART_RGB(180, 222, 238), ART_RGB(226, 244, 252));
-            FillTileGround(Canvas, Ice, Seed, 0.f, 0.7f);
-            // NOTE(zoubir): glossy diagonal streaks and a crack
-            for(i32 Streak = 0; Streak < 2; Streak++)
-            {
-                i32 Start = (i32)(HashLattice(Seed, Streak, 23) % 32);
-                for(i32 Step = 0; Step < 10; Step++)
-                {
-                    PutTilePixel(Canvas, Start + Step, Start - Step + 16 * Streak, Ice.C[3]);
-                }
-            }
-            u32 H = HashLattice(Seed, 4, 29);
-            i32 X = (i32)(H % 32);
-            i32 Y = (i32)((H >> 8) % 32);
-            for(i32 Step = 0; Step < 7; Step++)
-            {
-                PutTilePixel(Canvas, X + Step, Y + (Step % 3) - 1, Ice.C[0]);
-            }
-        } break;
-
-        case TerrainKind_StoneFloor:
-        {
-            color_ramp Flag = Ramp(ART_RGB(96, 92, 88), ART_RGB(122, 118, 112),
-                                   ART_RGB(146, 142, 134), ART_RGB(172, 168, 160));
-            FillTileGround(Canvas, Flag, Seed, 0.f, 0.8f);
-            // NOTE(zoubir): four flagstones per tile with mortar between
-            for(i32 Y = 0; Y < 32; Y++)
-            {
-                for(i32 X = 0; X < 32; X++)
-                {
-                    if ((X % 16) == 0 || (Y % 16) == 0)
-                    {
-                        PutPixel(Canvas, X, Y, Flag.C[0]);
-                    }
-                    else if ((X % 16) == 1 || (Y % 16) == 1)
-                    {
-                        PutPixel(Canvas, X, Y, Flag.C[3]);
-                    }
-                }
-            }
-        } break;
-
-        default:
-        {
-            DrawHazardTerrainTile(Canvas, Kind, Column, Seed, Phase);
-        } break;
+        case TerrainKind_Lava: DrawLiquidTile(Canvas, Kind, Cell); break;
+        default: DrawHazardTerrainTile(Canvas, Kind, Cell); break;
     }
 }
