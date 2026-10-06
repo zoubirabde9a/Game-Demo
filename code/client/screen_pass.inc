@@ -14,6 +14,7 @@ DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawTalentFx(RenderContext, AppState, CameraOffset); // frost on slowed and frozen units, the Ward talent's shell, client/talent_fx.cpp
 DrawRewindFx(RenderContext, AppState, CameraOffset); // time rewinds' sigils, ghosts and flashes, client/rewind_fx/
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);
+DrawThreatPointers(RenderContext, AppState, CameraOffset, &View); // close enemies off screen, client/threat_pointers.cpp
 RenderSetProjection(RenderContext, &ProjectionMatrix); // screens below draw in window pixels
 DrawScreenEdge(RenderContext, AppState, Window->Width, Window->Height, Input->DeltaTime); // vignette and hurt tint, client/screen_edge.cpp
 DrawRewindHud(RenderContext, AppState, Window->Width); // tape counter while time runs back, client/rewind_fx/

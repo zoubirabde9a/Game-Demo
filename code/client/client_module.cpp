@@ -35,6 +35,7 @@
 #include "camera.cpp"
 #include "draw_tilemap.cpp"
 #include "landmark_pointer.cpp"
+#include "threat_pointers.cpp"
 #include "cast_bars.cpp"
 #include "player_fx.cpp"
 #include "talent_fx.cpp"
