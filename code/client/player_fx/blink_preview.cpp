@@ -1,70 +1,16 @@
 /* Blink preview: while the local player's blink is ready, a small faint
    ring where it would land; while the blink winds up (the jump happens
    when the wind-up ends, toward the aim at that moment), the ring stays,
-   bright, and closes in on the spot as the wind-up runs out. It lands at
-   the cursor, or at the edge of PLAYER_AIM_REACH toward it, or short of
-   the first wall, tree or rock on the way (the jump stops there).
-   Monsters and players are not counted: they move. Online the cooldown
-   and the cast come from the server (sim/player_cooldowns.cpp,
-   CastSpell). */
+   bright, and closes in on the spot as the wind-up runs out. It aims at
+   the cursor, or at the edge of PLAYER_AIM_REACH toward it, and lands
+   where the blink does (FindBlinkLanding, sim/player_abilities/
+   blink_landing.cpp): through any wall, tree or rock with room behind it.
+   Online the cooldown and the cast come from the server
+   (sim/player_cooldowns.cpp, CastSpell). */
 
 #define BLINK_PREVIEW_RADIUS 10.f
 #define BLINK_PREVIEW_DOTS 12
 #define BLINK_PREVIEW_COLOR 0xC0FFE8B0
-#define BLINK_PREVIEW_STEP 6.f
-
-// NOTE(zoubir): whether a player standing at Position would overlap a
-// wall, tree or terrain prop
-internal bool32
-IsBlinkSpotBlocked(app_state *AppState, world *World, v2 Position, float Z)
-{
-    world_entity Probe = {};
-    Probe.Type = EntityType_Player;
-    Probe.Position = V3(Position.X, Position.Y, Z);
-    Probe.Collision = AppState->PlayerCollision;
-    entity_collision_volume *Total = &Probe.Collision->TotalVolume;
-    rectangle3 Box = RectCenterHalfDims(Probe.Position + Total->Offset,
-                                        Total->HalfDims);
-    world_entity *Nearby[MOVE_MAX_NEARBY];
-    u32 Count = GatherEntitiesInBox(World, Box, Nearby, ArrayCount(Nearby));
-    for(u32 Index = 0; Index < Count; Index++)
-    {
-        world_entity *Other = Nearby[Index];
-        // NOTE(zoubir): only what stands still; counting everything the
-        // player collides with but units took in the player's own sword
-        // and fireballs, so a swing pulled the ring back to the feet
-        bool32 Solid = Other->Type == EntityType_StaticObject ||
-            Other->Type == EntityType_Tiled;
-        if (Other->IsPresent && Solid &&
-            CanCollide(AppState, EntityType_Player, Other->Type) &&
-            EntityOverlap(&Probe, Other))
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-// NOTE(zoubir): the last clear spot on the way from the player to Target
-internal v2
-FindBlinkLanding(app_state *AppState, world_entity *Player, v2 Target)
-{
-    v2 From = Player->Position.XY;
-    v2 Way = Target - From;
-    float Distance = Length(Way);
-    v2 Result = From;
-    u32 Steps = (u32)(Distance / BLINK_PREVIEW_STEP) + 1;
-    for(u32 Step = 1; Step <= Steps; Step++)
-    {
-        v2 Spot = From + ((float)Step / (float)Steps) * Way;
-        if (IsBlinkSpotBlocked(AppState, &AppState->World, Spot, Player->Position.Z))
-        {
-            break;
-        }
-        Result = Spot;
-    }
-    return Result;
-}
 
 internal void
 DrawBlinkPreview(render_context *RenderContext, app_state *AppState,

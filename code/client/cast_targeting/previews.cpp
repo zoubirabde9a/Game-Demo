@@ -136,7 +136,7 @@ DrawAreaAbilityPreview(render_context *RenderContext, world_entity *Player,
 }
 
 // NOTE(zoubir): Blink: the ring of its reach round the player, and the
-// spot it would land on (FindBlinkLanding, blink_preview.cpp)
+// spot it would land on (FindBlinkLanding, sim/player_abilities/blink_landing.cpp)
 internal void
 DrawBlinkAimPreview(render_context *RenderContext, app_state *AppState,
                     world_entity *Player, v3 CameraOffset, float Alpha, u32 RGB)

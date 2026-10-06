@@ -272,7 +272,7 @@ TestDashGoesWhereKeysPointElseTowardAim()
 }
 
 internal void
-TestBlinkLandsAtCursorOrStopsAtWall()
+TestBlinkLandsAtCursorThroughWalls()
 {
     test_world Test = CreateTestWorld();
     app_state *AppState = Test.AppState;
@@ -300,7 +300,7 @@ TestBlinkLandsAtCursorOrStopsAtWall()
     RunPlayerFrames(&Test, 0, 1);
     Check(Absolute(Blinker->Position.X - X) < 3.f);
 
-    // NOTE(zoubir): a wall on the way stops it at the wall's face
+    // NOTE(zoubir): a wall on the way is jumped through: the full 320
     world_entity *Walled = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
                                            1, {300, 700, 0});
     AddTestEntity(&Test, EntityType_StaticObject, {400, 700, 0}, Test.WallVolume);
@@ -308,8 +308,7 @@ TestBlinkLandsAtCursorOrStopsAtWall()
     AppState->Players[1].Input.Pressed = PlayerButton_Blink;
     RunPlayerFrames(&Test, 1, 1);
     FinishTestCast(&Test, 1);
-    Check(Walled->Position.X > 350.f);
-    Check(Walled->Position.X + 15.f <= 384.01f);
+    Check(Absolute(Walled->Position.X - (300.f + 320.f)) < 3.f);
 
     // NOTE(zoubir): the cursor at or past the reach blinks the whole 320
     world_entity *Far = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
@@ -651,21 +650,36 @@ TestSwingsInTheAirArePaced()
     DestroyTestWorld(&Test);
 }
 
-// NOTE(zoubir): the preview lands short of a wall in the way, where the
-// blink itself stops, and at the target when the way is clear
+// NOTE(zoubir): the landing goes through a wall with room behind it; a
+// target inside a wall lands on the nearest clear spot back toward the
+// player, in a gap between two walls when there is one, and never past
+// the edge of a bounded map
 internal void
-TestBlinkPreviewStopsAtWalls()
+TestBlinkLandingGoesThroughWalls()
 {
     test_world Test = CreateTestWorld();
     app_state *AppState = Test.AppState;
     AppState->PlayerCollision = Test.UnitVolume;
     world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
                                            0, {300, 300, 0});
+    // NOTE(zoubir): walls 32 wide at 400 and 480 leave a 48 unit gap,
+    // room for the 30 unit wide player between X 431 and 449
     AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0}, Test.WallVolume);
-    v2 Walled = FindBlinkLanding(AppState, Player, V2(450.f, 300.f));
-    Check(Walled.X + 15.f <= 384.f + 0.01f && Walled.X > 360.f);
+    AddTestEntity(&Test, EntityType_StaticObject, {480, 300, 0}, Test.WallVolume);
+    v2 Behind = FindBlinkLanding(AppState, Player, V2(560.f, 300.f));
+    Check(Absolute(Behind.X - 560.f) < 0.01f);
+    v2 Gap = FindBlinkLanding(AppState, Player, V2(480.f, 300.f));
+    Check(Gap.X - 15.f >= 416.f - 0.01f && Gap.X + 15.f <= 464.f + 0.01f);
+    v2 Short = FindBlinkLanding(AppState, Player, V2(400.f, 300.f));
+    Check(Short.X + 15.f <= 384.f + 0.01f && Short.X > 360.f);
     v2 Clear = FindBlinkLanding(AppState, Player, V2(300.f, 420.f));
     Check(Absolute(Clear.Y - 420.f) < 0.01f);
+
+    // NOTE(zoubir): the map is 2048 wide
+    world_entity *Edge = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                         1, {1950, 700, 0});
+    v2 Outside = FindBlinkLanding(AppState, Edge, V2(2150.f, 700.f));
+    Check(Outside.X + 15.f <= 2048.f + 0.01f && Outside.X > 2020.f);
     DestroyTestWorld(&Test);
 }
 
@@ -1927,8 +1941,8 @@ RunPlayerAbilityTests()
     TestSwordSwingStartsOneArc();
     printf("TestDashGoesWhereKeysPointElseTowardAim\n");
     TestDashGoesWhereKeysPointElseTowardAim();
-    printf("TestBlinkLandsAtCursorOrStopsAtWall\n");
-    TestBlinkLandsAtCursorOrStopsAtWall();
+    printf("TestBlinkLandsAtCursorThroughWalls\n");
+    TestBlinkLandsAtCursorThroughWalls();
     printf("TestDashCutsBlinkWindUp\n");
     TestDashCutsBlinkWindUp();
     printf("TestHitsShowOneNumberEach\n");
@@ -1949,8 +1963,8 @@ RunPlayerAbilityTests()
     TestJumpClearsGroundHazards();
     printf("TestSwingsInTheAirArePaced\n");
     TestSwingsInTheAirArePaced();
-    printf("TestBlinkPreviewStopsAtWalls\n");
-    TestBlinkPreviewStopsAtWalls();
+    printf("TestBlinkLandingGoesThroughWalls\n");
+    TestBlinkLandingGoesThroughWalls();
     printf("TestWalkSpeedDoesNotDependOnFrameRate\n");
     TestWalkSpeedDoesNotDependOnFrameRate();
     printf("TestDoubleJump\n");

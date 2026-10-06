@@ -81,11 +81,11 @@ DashMotion(app_state *AppState, world *World, memory_arena *Arena,
 }
 
 // NOTE(zoubir): a jump through space to the cursor, at most Power away.
-// It passes through monsters and players (Phasing) but is swept like any
-// move against the rest, so it stops at the first wall, tree or rock on
-// the way (sliding along it) rather than landing inside, and keeps the
-// player's speed. Landing inside a unit is undone by separation at the
-// end of the tick
+// It goes through walls, trees, rocks, monsters and players; only the
+// landing has to be clear, and when the cursor is inside something it
+// lands on the nearest clear spot back toward the player
+// (FindBlinkLanding, blink_landing.cpp). It keeps the player's speed.
+// Landing inside a unit is undone by separation at the end of the tick
 internal bool32
 BlinkMotion(app_state *AppState, world *World, memory_arena *Arena,
             world_entity *Player, player_input *Input, float DeltaTime,
@@ -93,15 +93,10 @@ BlinkMotion(app_state *AppState, world *World, memory_arena *Arena,
 {
     // NOTE(zoubir): never cursor input yet: the full reach
     float Reach = Player->AimReach > 0.f ? Player->AimReach : 1.f;
-    float Distance = Reach * Power;
-    v3 Velocity = Player->Velocity;
-    Player->Velocity = V3(0.f, 0.f, 0.f);
-    Player->Velocity.XY = (Distance / DeltaTime) * GetPlayerAim(Player);
-    Player->Phasing = true;
-    MoveEntity(Player, World, Arena, DeltaTime, AppState, V3(0.f, 0.f, 0.f),
-               &Distance);
-    Player->Phasing = false;
-    Player->Velocity = Velocity;
+    v2 Target = Player->Position.XY + (Reach * Power) * GetPlayerAim(Player);
+    v3 OldPosition = Player->Position;
+    Player->Position.XY = FindBlinkLanding(AppState, Player, Target);
+    CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Player);
     return true;
 }
 
