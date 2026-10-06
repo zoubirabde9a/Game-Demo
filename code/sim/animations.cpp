@@ -13,8 +13,8 @@ SetupAnimationSets(app_state *AppState, memory_arena *ConstantsArena)
         // NOTE(zoubir): the speed at which the walk frames play at their
         // listed rate; faster walking plays them faster. It matches the
         // stride drawn in the frames, so it stays put when the player gets
-        // faster: the top run speed of 260 (PlayerStats.RunSpeed,
-        // player_stats.cpp) plays them 2.8 times as fast (MoveCycleRate,
+        // faster: the top run speed of 208 (PlayerStats.RunSpeed,
+        // player_stats.cpp) plays them 2.2 times as fast (MoveCycleRate,
         // entity.cpp)
         Set->MoveSpeed = 93.f;
         AddAnimation(Set, ConstantsArena,

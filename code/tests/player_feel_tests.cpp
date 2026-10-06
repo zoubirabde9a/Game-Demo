@@ -49,7 +49,7 @@ TestRunStartsStopsAndTurnsQuickly()
     u32 ToTurn = TicksUntilSpeed(&Test, V2(-1.f, 0.f), 0.95f * Top, 1e9f, -1.f, 120);
     printf("  run %.0f: full speed in %u ticks, stop in %u ticks (%.1f units), "
            "turn back in %u ticks\n", RunSpeed, ToFull, ToStop, Skid, ToTurn);
-    Check(Absolute(RunSpeed - 260.f) < 1.f);
+    Check(Absolute(RunSpeed - PlayerStats.RunSpeed) < 1.f);
     Check(ToFull <= 8);
     Check(ToStop <= 7);
     Check(Skid < 15.f);
@@ -69,9 +69,9 @@ TestGroundKeepsItsTopSpeed()
                                            0, {200, 1000, 0});
     Player->GroundSpeedScale = 0.25f;
     Player->GroundFriction = 0.25f;
-    u32 IceToFull = TicksUntilSpeed(&Test, V2(1.f, 0.f), 0.95f * 260.f, 1e9f, 1.f, 200);
+    u32 IceToFull = TicksUntilSpeed(&Test, V2(1.f, 0.f), 0.95f * PlayerStats.RunSpeed, 1e9f, 1.f, 200);
     RunPlayerFrames(&Test, 0, 30);
-    Check(Absolute(Player->Velocity.X - 260.f) < 1.f);
+    Check(Absolute(Player->Velocity.X - PlayerStats.RunSpeed) < 1.f);
     u32 IceToStop = TicksUntilSpeed(&Test, V2(0.f, 0.f), -1e9f, 5.f, 1.f, 200);
     printf("  ice: full speed in %u ticks, stop in %u\n", IceToFull, IceToStop);
     Check(IceToFull > 20 && IceToStop > 14);
@@ -80,7 +80,7 @@ TestGroundKeepsItsTopSpeed()
     Player->GroundFriction = 1.f;
     AppState->Players[0].Input.Move = V2(1.f, 0.f);
     RunPlayerFrames(&Test, 0, 60);
-    Check(Absolute(Player->Velocity.X - 0.6f * 260.f) < 1.f);
+    Check(Absolute(Player->Velocity.X - 0.6f * PlayerStats.RunSpeed) < 1.f);
     DestroyTestWorld(&Test);
 }
 
@@ -107,7 +107,7 @@ TestDashPressedJustEarlyGoes()
     Player->MovementCooldowns[PlayerMove_Dash] = 0.06f + FEEL_TICK;
     Slot->Input.Pressed = PlayerButton_Dash;
     RunPlayerFrames(&Test, 0, 1);
-    Check(Player->Velocity.X > 1000.f);
+    Check(Player->Velocity.X > 0.7f * PlayerStats.DashSpeed);
     Check(Absolute(Player->MovementCooldowns[PlayerMove_Dash] - (Full + 0.06f)) < 0.001f);
     DestroyTestWorld(&Test);
 }
@@ -162,7 +162,7 @@ TestDashCutsSwingShort()
     RunPlayerFrames(&Test, 0, 1);
     Check(Player->State != EntityState_Attacking);
     RunPlayerFrames(&Test, 0, 40);
-    Check(Absolute(Player->Velocity.Y - 260.f) < 1.f);
+    Check(Absolute(Player->Velocity.Y - PlayerStats.RunSpeed) < 1.f);
     DestroyTestWorld(&Test);
 }
 
@@ -272,7 +272,7 @@ TestSmallKnockbackTravel()
     Slot->Input.Pressed = PlayerButton_Dash;
     RunPlayerFrames(&Test, 0, 1);
     Check(Player->Stagger == 0.f);
-    Check(Player->Velocity.Y > 1000.f);
+    Check(Player->Velocity.Y > 0.7f * PlayerStats.DashSpeed);
     RunPlayerFrames(&Test, 0, 40);
     Check(Absolute(Player->Velocity.Y - PlayerStats.RunSpeed) < 1.f);
     DestroyTestWorld(&Test);

@@ -16,12 +16,14 @@
 // NOTE(zoubir): how fast and far the player moves against the numbers the
 // moves were first tuned at: run speed, dash, blink, long jump and the
 // speed checks that follow them are written as old number times this. At
-// 2 the player runs at 260 instead of 130 and every move goes twice as
-// far in the same time; jump heights and monsters do not change
-#define PLAYER_MOVE_SCALE 2.f
+// 1.6 the player runs at 208 instead of 130 and every move goes 1.6 times
+// as far in the same time; jump heights and monsters do not change. It was
+// 2 (a run of 260), which played too fast
+#define PLAYER_MOVE_SCALE 1.6f
 // NOTE(zoubir): the cursor distance player_input.Aim can tell apart; the
-// blink range (320)
-#define PLAYER_AIM_REACH (160.f * PLAYER_MOVE_SCALE)
+// blink range. Kept at 320 when the scale went from 2 to 1.6: blink is
+// instant, so its reach is not part of the pace
+#define PLAYER_AIM_REACH 320.f
 
 // NOTE(zoubir): buttons pressed this tick (edge, not held). Same order as
 // the network's action buttons (NetButton_Jump onward, net/protocol.h),
