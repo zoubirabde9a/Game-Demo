@@ -148,6 +148,8 @@ DrawTileEntity(render_context *RenderContext,
 #define SELF_MARKER_HEIGHT 22.f
 #define SELF_MARKER_COLOR UI_RGBA(240, 200, 48, 190)
 #define FOE_MARKER_COLOR UI_RGBA(235, 70, 60, 120)
+// NOTE(zoubir): the outline around players and monsters (DrawEntity)
+#define UNIT_OUTLINE_COLOR 0x9A000000
 
 internal void
 DrawSelfMarker(render_context *RenderContext, v2 Feet, float SortingValue,
@@ -216,6 +218,25 @@ DrawEntity(render_context *RenderContext,
             EntityTexturePosition.Y += FeetBelowMiddle * (1.f - Cos(Pose.Angle));
         }
         
+        if (Texture && (Entity->Type == EntityType_Player ||
+                        Entity->Type == EntityType_Monster))
+        {
+            // NOTE(zoubir): a dark outline so units read against grass and
+            // stone: the sprite four times in shadow, one world unit out on
+            // each side, just under the sprite itself
+            BeginBatch(RenderContext, Texture->ID,
+                       SortingValue - 0.001f, TextureProgram);
+            v2 Sides[4] = {V2(-1.f, 0.f), V2(1.f, 0.f), V2(0.f, -1.f), V2(0.f, 1.f)};
+            for(u32 Side = 0; Side < 4; Side++)
+            {
+                RenderQuadTexture(RenderContext,
+                                  EntityTexturePosition.X + Sides[Side].X,
+                                  EntityTexturePosition.Y + Sides[Side].Y,
+                                  Dimensions.X, Dimensions.Y, Entity->Uvs,
+                                  UNIT_OUTLINE_COLOR, DrawZ, Pose.Angle);
+            }
+            EndBatch(RenderContext);
+        }
         if (Texture)
         {
             BeginBatch(RenderContext, Texture->ID,
