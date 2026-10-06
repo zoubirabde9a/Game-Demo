@@ -51,7 +51,7 @@ global_variable shader_def ShaderDefs[Shader_Count] =
     {"round rect", "shaders/fx/quad.vert", "shaders/fx/round_rect.frag", 3, true},
     {"round outline", "shaders/fx/quad.vert", "shaders/fx/round_outline.frag", 3, true},
     {"ground crack", "shaders/fx/quad.vert", "shaders/fx/ground_crack.frag", 3, true},
-    {"water surface", "shaders/fx/quad.vert", "shaders/fx/water_surface.frag", 3, true},
+    {"ground surface", "shaders/fx/quad.vert", "shaders/fx/ground_surface.frag", 3, true},
 };
 
 global_variable char *ShaderAttributes[] =
