@@ -11,6 +11,10 @@
 #    $MaxLines. The files below were already longer when the check came in;
 #    each may shrink but not grow past its listed size. Split a file
 #    rather than raising a number here.
+# 4. Every source file is included by another one, except the programs'
+#    entry points (code/app.cpp, platform/*_app.cpp, server/*_main.cpp and
+#    the files directly in tests/ and tools/). A file nothing includes is
+#    dead code that still costs a reader's time.
 param([string]$Root = (Split-Path -Parent $PSScriptRoot))
 $Root = [System.IO.Path]::GetFullPath($Root)
 
@@ -67,6 +71,29 @@ Get-ChildItem -Path $Code -Recurse -Include '*.cpp', '*.h', '*.inc' |
             $Failures.Add("${Name}: $Lines lines, the limit is $Limit; split it by concern into a folder next to it (see docs/architecture-plan.md)")
         }
     }
+
+# 4. Files nothing includes.
+$Sources = @(Get-ChildItem -Path $Code -Recurse -Include '*.cpp', '*.h', '*.inc' |
+    Where-Object { $_.FullName -notmatch '[\\/]third_party[\\/]' })
+$Included = @{}
+foreach ($File in $Sources) {
+    foreach ($Line in Get-Content $File.FullName) {
+        if ($Line -match '^\s*#\s*include\s+"([^"]*)"') {
+            $Target = [System.IO.Path]::GetFullPath((Join-Path $File.DirectoryName $Matches[1]))
+            $Included[$Target.ToLowerInvariant()] = $true
+        }
+    }
+}
+foreach ($File in $Sources) {
+    $Name = RelativePath $File.FullName
+    $EntryPoint = $Name -eq 'code/app.cpp' -or
+        $Name -match '^code/platform/[^/]*_app\.cpp$' -or
+        $Name -match '^code/server/[^/]*_main\.cpp$' -or
+        $Name -match '^code/(tests|tools)/[^/]*\.cpp$'
+    if (-not $EntryPoint -and -not $Included.ContainsKey($File.FullName.ToLowerInvariant())) {
+        $Failures.Add("${Name}: nothing includes it; add it to its module's list or delete it")
+    }
+}
 
 if ($Failures.Count -gt 0) {
     Write-Output "layout_check: $($Failures.Count) problem(s)"

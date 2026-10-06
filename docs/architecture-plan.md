@@ -34,3 +34,4 @@ Rules for every step:
 - every `*_module.cpp` starts with a `/* */` summary;
 - code the dedicated server compiles (`sim/`, `net/`, `server/`, `engine/engine_core.cpp`) includes nothing from `client/`, `ui/`, `art/` or `platform/`;
 - no source file outside `tests/` and `third_party/` passes 600 lines. A few files were already longer; the script lists each with its current size as a ceiling it may not grow past. Split a file rather than raising a number.
+- every source file is included by another, except the programs' entry points (`code/app.cpp`, `platform/*_app.cpp`, `server/*_main.cpp`, the files directly in `tests/` and `tools/`). A file nothing includes is dead code.
