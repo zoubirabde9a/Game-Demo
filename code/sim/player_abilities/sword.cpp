@@ -95,8 +95,9 @@ SwordHit(app_state *AppState, world *World, world_entity *Sword,
         NormalizeOr(Target->Position.XY - From, Sword->CastingDirection);
     u32 Cut = Sword->ComboStep < SwordCut_Count ? Sword->ComboStep :
         SwordCut_Finisher;
-    ApplyHit(AppState, World, Target, &SwordCuts[Cut].Hit, Away,
-             Sword, Sword->OwnerSlot);
+    hit Hit = SwordCuts[Cut].Hit;
+    Hit.Damage *= GameRules.SwordDamageScale;
+    ApplyHit(AppState, World, Target, &Hit, Away, Sword, Sword->OwnerSlot);
 }
 
 // NOTE(zoubir): a sword of cut Cut toward Dir, without touching the chain

@@ -91,7 +91,9 @@ global_variable player_stats PlayerStats =
    server and its bots play the duel rules: players only, 75 health (three
    fireballs), a break between rounds after every death (round_break.cpp),
    and only fireball, launch, blink, dash, jump, the world rewind and the
-   shield. The classic rules (every ability, 100 health) are what most
+   shield. The sword, once the talent tree unlocks it, swings once every
+   1.2 s for 15 a cut, so it takes five cuts to kill; at the classic 25
+   every 0.18 s it killed in under half a second. The classic rules (every ability, 100 health) are what most
    tests were written against; a test program switches to them in main.
    The other abilities' code stays: a button the rules leave out is
    dropped before the player update reads it (UpdatePlayer). Whether
@@ -104,6 +106,10 @@ struct game_rules
     float PlayerMaxHp;
     // NOTE(zoubir): a death starts the break between rounds
     bool32 RoundBreaks;
+    // NOTE(zoubir): seconds between sword swings, and its cuts' damage
+    // as a share of SwordCuts' (sword.cpp)
+    float SwordInterval;
+    float SwordDamageScale;
 };
 
 global_variable game_rules DuelRules =
@@ -113,6 +119,8 @@ global_variable game_rules DuelRules =
     PlayerButton_Shield,
     75.f,
     true,
+    1.2f,
+    0.6f,
 };
 
 global_variable game_rules ClassicRules =
@@ -120,6 +128,8 @@ global_variable game_rules ClassicRules =
     PLAYER_ALL_BUTTONS,
     PlayerStats.MaxHp,
     false,
+    PlayerStats.SwordInterval,
+    1.f,
 };
 
 global_variable game_rules GameRules = DuelRules;

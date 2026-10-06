@@ -33,7 +33,7 @@ PlayerCooldownAtBase(world_entity *Player, u32 Index, float *Full)
     u32 Action = Rewind - RewindKind_Count;
     if (Action < PlayerAction_Count)
     {
-        *Full = PlayerSpawnActions[Action].Interval;
+        *Full = SpawnActionInterval(Action);
         return &Player->ActionCooldowns[Action];
     }
     *Full = 0.f;

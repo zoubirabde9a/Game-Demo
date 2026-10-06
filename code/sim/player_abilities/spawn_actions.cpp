@@ -57,6 +57,16 @@ global_variable player_spawn_action PlayerSpawnActions[PlayerAction_Count] =
      CastFireBall, ComboMove_Cast},
 };
 
+// NOTE(zoubir): seconds before action Index may go again; the sword's
+// depends on the rules (GameRules, player_stats.cpp)
+inline float
+SpawnActionInterval(u32 Index)
+{
+    float Result = (Index == PlayerAction_Sword) ? GameRules.SwordInterval :
+        PlayerSpawnActions[Index].Interval;
+    return Result;
+}
+
 inline bool32
 CanStartSpawnAction(world_entity *Player, u32 Index)
 {
@@ -73,7 +83,7 @@ StartSpawnAction(app_state *AppState, world *World, memory_arena *Arena,
     player_spawn_action *Action = &PlayerSpawnActions[Index];
     Player->State = Action->State;
     Player->ActionLock = Action->Lock;
-    Player->ActionCooldowns[Index] = Action->Interval *
+    Player->ActionCooldowns[Index] = SpawnActionInterval(Index) *
         PlayerCooldownScale(AppState, Player, Action->Button);
     Player->CastingDirection = Dir;
     Player->AnimationState.SlotIndex = 0;

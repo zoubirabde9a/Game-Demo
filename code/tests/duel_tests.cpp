@@ -2,7 +2,8 @@
    launch, blink, dash, jump, the world rewind and the shield do anything;
    a player has 75 health, three fireballs; a death starts a 10 s break in
    which every player levels up and nobody can be hurt or attack; the shield keeps every hit off for 2 s and
-   comes back after 6; a fireball goes once every 6 s; the Old Arena has
+   comes back after 6; a fireball goes once every 6 s; the sword swings
+   once every 1.2 s for 15 a cut; the Old Arena has
    no monsters. Every test runs under the duel rules and puts the classic
    ones back. Included by sim_tests.cpp, which calls RunDuelTests. */
 
@@ -208,6 +209,32 @@ TestDeathStartsRoundBreak()
     GameRules = ClassicRules;
 }
 
+// NOTE(zoubir): at 25 every 0.18 s the sword killed in under half a
+// second; now a kill takes five cuts and about five seconds
+internal void
+TestDuelSwordIsSlowAndLight()
+{
+    GameRules = DuelRules;
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Swinger = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                            0, {300, 300, 0});
+    world_entity *Target = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           1, {340, 300, 0});
+    Target->SpawnShield = 0.f;
+    world_entity *Sword = SwingSwordCut(AppState, Test.World, &Test.Arena, Swinger,
+                                        V2(1.f, 0.f), SwordCut_First);
+    SwordHit(AppState, Test.World, Sword, Target);
+    Check(Target->Hp > 59.9f && Target->Hp < 60.1f);
+    Check(SpawnActionInterval(PlayerAction_Sword) == 1.2f);
+    float Full = 0.f;
+    PlayerCooldownAtBase(Swinger, PlayerMove_Count + PLAYER_AREA_ABILITY_COUNT +
+                         RewindKind_Count + PlayerAction_Sword, &Full);
+    Check(Full == 1.2f);
+    DestroyTestWorld(&Test);
+    GameRules = ClassicRules;
+}
+
 #define DUEL_TEST(Test) printf("%s\n", #Test); Test()
 
 internal void
@@ -217,6 +244,7 @@ RunDuelTests()
     DUEL_TEST(TestDuelPlayersDieInThreeFireballs);
     DUEL_TEST(TestShieldBlocksHitsForTwoSeconds);
     DUEL_TEST(TestFireballWaitsSixSeconds);
+    DUEL_TEST(TestDuelSwordIsSlowAndLight);
     DUEL_TEST(TestOldArenaHasNoMonsters);
     DUEL_TEST(TestDeathStartsRoundBreak);
 }
