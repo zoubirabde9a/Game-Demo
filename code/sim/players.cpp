@@ -221,6 +221,8 @@ UpdateDeadPlayer(player_slot *Slot, world *World, memory_arena *Arena,
     Player->Position = FindFreePlayerSpot(AppState, World, Slot->SpawnPosition, Player);
     Player->Velocity = {};
     Player->Hp = Player->MaxHp;
+    // NOTE(zoubir): a fresh body: no burns, bleeds or fall carried over
+    ZeroArray(Player->StatusTimers, StatusEffect_Count, float);
     Slot->RespawnTimer = 0.f;
     Slot->DelayedInputCount = 0;
     // NOTE(zoubir): a cast or a slam cut short by death does not go off

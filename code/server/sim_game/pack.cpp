@@ -39,19 +39,19 @@ SimGameVariant(world_entity *Entity)
 static_assert(AnimationDirection_Count <= 4, "Facing is 2 bits on the wire");
 static_assert(AnimationType_Count <= 16, "Animation is 4 bits on the wire");
 static_assert(MonsterAffix_Count <= 8, "Affix is 3 bits on the wire");
-static_assert(StatusEffect_Count - 1 <= 4, "Status is 4 bits on the wire");
+static_assert(StatusEffect_Count - 1 <= 11, "Status is 11 bits on the wire");
 static_assert(MAX_MONSTER_ABILITIES <= 4, "Ability is 2 bits on the wire");
 static_assert(EntityType_Count <= 32, "Type is 5 bits on the wire");
 static_assert(MAX_PLAYERS < 16, "HitBy is 4 bits on the wire");
 
 // NOTE(zoubir): bit N set while status effect N + 1 is running
-inline u8
+inline u16
 SimGameStatusBits(world_entity *Entity)
 {
-    u8 Result = 0;
+    u16 Result = 0;
     for (u32 Effect = 1; Effect < StatusEffect_Count; ++Effect)
     {
-        if (Entity->StatusTimers[Effect] > 0.f) Result |= (u8)(1 << (Effect - 1));
+        if (Entity->StatusTimers[Effect] > 0.f) Result |= (u16)(1 << (Effect - 1));
     }
     return Result;
 }

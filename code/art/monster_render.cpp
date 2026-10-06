@@ -174,14 +174,6 @@ DrawDottedLine(render_context *RenderContext, v2 From, v2 To, u32 Color,
 
 #define STATUS_PIP_SIZE 4.f
 
-global_variable u32 StatusPipColors[StatusEffect_Count] =
-{
-    0,
-    0xFF2080FF, // NOTE(zoubir): burning, orange
-    0xFF30D060, // NOTE(zoubir): poisoned, green
-    0xFFFFD090, // NOTE(zoubir): slowed, pale blue
-};
-
 // NOTE(zoubir): a row of small squares above anyone with a status, one
 // per effect; each blinks during its last second
 internal void
@@ -204,7 +196,7 @@ DrawStatusPips(render_context *RenderContext, world *World, v3 CameraOffset)
         for(u32 Effect = 1; Effect < StatusEffect_Count; Effect++)
         {
             float Left = Entity->StatusTimers[Effect];
-            if (Left <= 0.f)
+            if (Left <= 0.f || !StatusTable[Effect].Color)
             {
                 continue;
             }
@@ -212,7 +204,7 @@ DrawStatusPips(render_context *RenderContext, world *World, v3 CameraOffset)
             if (!Hidden)
             {
                 DrawFilledRectangle(RenderContext, X, Head.Y, STATUS_PIP_SIZE,
-                                    STATUS_PIP_SIZE, StatusPipColors[Effect], 0.f);
+                                    STATUS_PIP_SIZE, StatusTable[Effect].Color, 0.f);
             }
             X += STATUS_PIP_SIZE + 2.f;
         }

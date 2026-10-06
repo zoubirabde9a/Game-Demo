@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d56u // "GDMV", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d57u // "GDMW", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 // The server's ticks a second. Each net_input is one tick's worth: the
@@ -135,14 +135,14 @@ struct net_entity_state
     u8 Variant;    // which look within the type: monster kind (also for
                    // hazards), shot style, player slot
     u8 Affix;      // 3 bits: elite affix of a monster, shot or hazard
-    u8 Status;     // 4 bits: bit N set while status effect N + 1 is active
+    u16 Status;    // 11 bits: bit N set while status effect N + 1 is active
     u8 Ability;    // 2 bits: AbilityIndex of a monster shot or hazard;
                    // for a player, PLAYER_FLASH_* bits (sim/player.h)
     i16 Health;
     // Sent as 16-bit fixed point: positions to 1/8 unit within +-4096,
     // velocities to 1/4 unit per second within +-8192. Values outside are
     // clamped. Z and velocity are left out when they are zero, and VelZ
-    // travels with Z (23 bytes an entity at most, 12 for one standing on
+    // travels with Z (24 bytes an entity at most, with the second status byte; 12 for one standing on
     // the ground). Type fits 5 bits.
     float X, Y, Z; // Z is height above the floor (jumps)
     float VelX, VelY;

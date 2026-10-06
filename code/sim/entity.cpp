@@ -317,6 +317,10 @@ inline float RespawnSeconds(player_slot *Slot);
 internal bool32 IsTimeLocked(app_state *AppState, world_entity *Entity);
 internal bool32 IsRewindInvulnerable(app_state *AppState, world_entity *Entity);
 
+internal void
+KillEntity(app_state *AppState, world *World, world_entity *Target,
+           world_entity *Source);
+
 internal bool32
 DamageEntity(app_state *AppState, world *World,
              world_entity *Target, float Damage, world_entity *Source)
@@ -340,6 +344,19 @@ DamageEntity(app_state *AppState, world *World,
     {
         return false;
     }
+    KillEntity(AppState, World, Target, Source);
+    return true;
+}
+
+// NOTE(zoubir): the death itself, after a hit took the last health or
+// something killed outright (a fall into a pit, sim/status_effects.cpp):
+// the burst, the kill credit, and the monster removed or the player left
+// waiting to respawn. Source is the hit or the player behind it, or 0
+internal void
+KillEntity(app_state *AppState, world *World, world_entity *Target,
+           world_entity *Source)
+{
+    Target->Hp = Minimum(Target->Hp, 0.f);
 
     // NOTE(zoubir): credit goes to the player behind the hit, if any
     player_slot *Attacker = 0;
@@ -391,5 +408,4 @@ DamageEntity(app_state *AppState, world *World,
                  (u8)(Attacker - AppState->Players) : SIM_NOBODY,
                  (u8)Target->PlayerIndex, KillerMonster);
     }
-    return true;
 }

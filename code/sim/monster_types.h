@@ -24,6 +24,12 @@ enum status_effect
     StatusEffect_Poisoned,
     StatusEffect_Slowed,
     StatusEffect_Stunned,
+    StatusEffect_Bleeding,
+    StatusEffect_Regenerating,
+    StatusEffect_Hasted,
+    StatusEffect_Rooted,
+    StatusEffect_Soaked,
+    StatusEffect_Falling,
     StatusEffect_Count
 };
 

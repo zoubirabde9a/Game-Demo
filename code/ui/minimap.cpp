@@ -18,15 +18,20 @@ global_variable u32 MinimapGroundColors[TerrainKind_Count] =
     UI_RGBA( 92,  70,  48, 255), // Mud
     UI_RGBA( 88, 150, 200, 255), // Shallow water
     UI_RGBA( 40,  80, 150, 255), // Deep water
-    UI_RGBA( 90,  90,  96, 255), // Rock
+    UI_RGBA(120, 118, 112, 255), // Crag
     UI_RGBA(150, 148, 140, 255), // Ash
     UI_RGBA( 70,  66,  70, 255), // Basalt
-    UI_RGBA( 40,  36,  40, 255), // Basalt wall
+    UI_RGBA( 52,  46,  52, 255), // Basalt crag
     UI_RGBA(230, 100,  30, 255), // Lava
     UI_RGBA(230, 234, 240, 255), // Snow
     UI_RGBA(170, 210, 230, 255), // Ice
     UI_RGBA(150, 146, 136, 255), // Stone floor
     UI_RGBA( 70,  70,  78, 255), // Stone wall
+    UI_RGBA( 10,   8,  14, 255), // Pit
+    UI_RGBA( 90, 230, 200, 255), // Spring
+    UI_RGBA( 60,  80,  40, 255), // Bramble
+    UI_RGBA( 96, 110,  50, 255), // Bog
+    UI_RGBA(170, 140, 255, 255), // Rune
 };
 
 global_variable u32 MinimapPropColors[TerrainProp_Count] =

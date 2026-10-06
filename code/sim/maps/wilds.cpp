@@ -1,6 +1,9 @@
 /* Verdant Wilds: endless green country. Rolling meadows broken by ponds
    and lakes, rocky outcrops on the high ground, muddy hollows where it is
-   wet, and worn dirt trails that wander between them. Trees gather in
+   wet and stinking bogs at their hearts, bramble thickets, a sinkhole
+   here and there, healing springs, and worn dirt trails that wander
+   between them with a ley rune glowing on them now and then. The rocky
+   crowns of the hills are rough but open ground. Trees gather in
    groves where the ground is damp; old paddocks keep broken fences and
    fallen logs. The ground rises in knolls one step up, then in grassy
    plateaus three steps higher: their edges are cliffs to jump, except
@@ -23,6 +26,10 @@ GenerateWilds(map_def *Map, i32 X, i32 Y)
     i32 Damp = FractalNoise(Map->Seed + 7, X, Y, 24, 2);
     i32 Trail = RidgeDistance(FractalNoise(Map->Seed + 13, X, Y, 64, 2));
 
+    i32 Thorns = FractalNoise(Map->Seed + 41, X, Y, 12, 1);
+    i32 Sink = FractalNoise(Map->Seed + 47, X, Y, 9, 1);
+    i32 Spring = FractalNoise(Map->Seed + 43, X, Y, 10, 1);
+
     terrain_kind Result = TerrainKind_Grass;
     if (Height < NOISE_PERCENT(33))
     {
@@ -38,11 +45,28 @@ GenerateWilds(map_def *Map, i32 X, i32 Y)
     }
     else if (Trail < NOISE_PERCENT(4))
     {
-        Result = TerrainKind_Dirt;
+        // NOTE(zoubir): now and then a ley rune glows on a trail
+        Result = TileRoll(Map, X, Y, 9) < 3 ? TerrainKind_Rune : TerrainKind_Dirt;
+    }
+    else if (Sink > NOISE_PERCENT(91))
+    {
+        Result = TerrainKind_Pit;
+    }
+    else if (Spring > NOISE_PERCENT(92) && Height < NOISE_PERCENT(60))
+    {
+        Result = TerrainKind_Spring;
+    }
+    else if (Damp > NOISE_PERCENT(72) && Height < NOISE_PERCENT(46))
+    {
+        Result = TerrainKind_Bog;
     }
     else if (Damp > NOISE_PERCENT(62) && Height < NOISE_PERCENT(50))
     {
         Result = TerrainKind_Mud;
+    }
+    else if (Thorns > NOISE_PERCENT(80))
+    {
+        Result = TerrainKind_Bramble;
     }
     return Result;
 }

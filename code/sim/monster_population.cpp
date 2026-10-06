@@ -75,6 +75,11 @@ internal bool32
 IsSpawnSpotFree(app_state *AppState, world *World, v3 Position,
                 entity_collision_volume_group *Volume)
 {
+    // NOTE(zoubir): never on a pit or in lava
+    if (IsHazardAt(World, Position))
+    {
+        return false;
+    }
     world_entity Probe = {};
     Probe.Type = EntityType_Monster;
     Probe.Position = Position;

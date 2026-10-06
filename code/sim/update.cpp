@@ -141,7 +141,7 @@ UpdateMonster(world_entity *Entity, world *World,
 
     // NOTE(zoubir): a stunned monster neither thinks nor uses abilities
     // (a windup waits), but still falls and slides
-    bool32 Stunned = HasStatus(Entity, StatusEffect_Stunned);
+    bool32 Stunned = IsDisabled(Entity);
     if (!Stunned &&
         UpdateMonsterAbilities(Entity, World, Arena, DeltaTime, AppState,
                                AnimationSpeed, AnimationType,
@@ -190,6 +190,14 @@ UpdateMonster(world_entity *Entity, world *World,
     else if (!Stunned)
     {
         DDEntity.XY = MonsterWander(Entity, AppState, DeltaTime);
+    }
+    if (IsRooted(Entity))
+    {
+        DDEntity.XY = V2(0.f, 0.f);
+    }
+    else if (!Flies)
+    {
+        DDEntity.XY = SteerAroundHazards(World, Entity, DDEntity.XY);
     }
     if (LengthSq(DDEntity.XY) > 0.f && *AnimationType != AnimationType_Move)
     {

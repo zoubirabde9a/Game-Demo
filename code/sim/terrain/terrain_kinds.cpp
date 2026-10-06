@@ -19,7 +19,20 @@ enum terrain_kind
     TerrainKind_Ice,
     TerrainKind_StoneFloor,
     TerrainKind_StoneWall,
+    TerrainKind_Pit,
+    TerrainKind_Spring,
+    TerrainKind_Bramble,
+    TerrainKind_Bog,
+    TerrainKind_Rune,
     TerrainKind_Count
+};
+
+// NOTE(zoubir): what a tile does to a unit standing on it, refreshed every
+// tick (sim/terrain_effects.cpp)
+struct terrain_stand_status
+{
+    status_effect Effect;
+    float Seconds;
 };
 
 struct terrain_def
@@ -27,34 +40,53 @@ struct terrain_def
     char *Name;
     // NOTE(zoubir): units cannot enter it at all
     bool32 Blocks;
+    // NOTE(zoubir): deadly or close to it: monsters walk around it and
+    // nothing spawns on it (a pit, lava)
+    bool32 Hazard;
     // NOTE(zoubir): multiplies movement acceleration of units on it
     float SpeedScale;
     // NOTE(zoubir): multiplies the drag that stops units; below 1 slides
     float Friction;
-    // NOTE(zoubir): kept on anyone standing on it, refreshed every tick
-    status_effect StandStatus;
-    float StandStatusSeconds;
+    // NOTE(zoubir): kept on anyone standing on it; Seconds is how long each
+    // lingers after they step off
+    terrain_stand_status Stand[2];
 };
 
+/* Every kind of ground can be walked on, except the walls that close a
+   map in (stone walls). Crags (rock, basalt walls) are rough high ground,
+   deep water is swum, slowly. The hazards:
+     Lava     burns, and keeps burning a moment after you leave it
+     Pit      you fall and die; jump or dash over it. Whoever threw you
+              in gets the kill
+     Spring   heals over time and washes off poison; soaks you
+     Bramble  grabs you once (rooted) and cuts you while you push through
+     Bog      poisons
+     Rune     a glowing ley line: a burst of speed, which lifts slows
+   Water soaks: no burning while soaked. */
 global_variable terrain_def TerrainTable[TerrainKind_Count] =
 {
-    //                 Blocks Speed  Friction Status                  Secs
-    {"Grass",          false, 1.f,   1.f,  StatusEffect_None,      0.f},
-    {"Dirt",           false, 1.f,   1.f,  StatusEffect_None,      0.f},
-    {"Mud",            false, 0.6f,  1.f,  StatusEffect_None,      0.f},
-    {"Shallow water",  false, 0.7f,  1.f,  StatusEffect_None,      0.f},
-    {"Deep water",     true,  1.f,   1.f,  StatusEffect_None,      0.f},
-    {"Rock",           true,  1.f,   1.f,  StatusEffect_None,      0.f},
-    {"Ash",            false, 0.9f,  1.f,  StatusEffect_None,      0.f},
-    {"Basalt",         false, 1.f,   1.f,  StatusEffect_None,      0.f},
-    {"Basalt wall",    true,  1.f,   1.f,  StatusEffect_None,      0.f},
-    {"Lava",           false, 0.8f,  1.f,  StatusEffect_Burning,   1.f},
-    {"Snow",           false, 0.75f, 1.f,  StatusEffect_None,      0.f},
+    //                 Blocks Hazard Speed  Friction  Stand
+    {"Grass",          false, false, 1.f,   1.f,   {}},
+    {"Dirt",           false, false, 1.f,   1.f,   {}},
+    {"Mud",            false, false, 0.6f,  1.f,   {}},
+    {"Shallow water",  false, false, 0.7f,  1.f,   {{StatusEffect_Soaked, 1.5f}}},
+    {"Deep water",     false, false, 0.45f, 0.6f,  {{StatusEffect_Soaked, 3.f}}},
+    {"Crag",           false, false, 0.85f, 1.f,   {}},
+    {"Ash",            false, false, 0.9f,  1.f,   {}},
+    {"Basalt",         false, false, 1.f,   1.f,   {}},
+    {"Basalt crag",    false, false, 0.85f, 1.f,   {}},
+    {"Lava",           false, true,  0.8f,  1.f,   {{StatusEffect_Burning, 2.f}}},
+    {"Snow",           false, false, 0.75f, 1.f,   {}},
     // NOTE(zoubir): ice cuts grip both ways: same top speed, slow to start
     // and slow to stop
-    {"Ice",            false, 0.25f, 0.25f, StatusEffect_None,     0.f},
-    {"Stone floor",    false, 1.f,   1.f,  StatusEffect_None,      0.f},
-    {"Stone wall",     true,  1.f,   1.f,  StatusEffect_None,      0.f},
+    {"Ice",            false, false, 0.25f, 0.25f, {}},
+    {"Stone floor",    false, false, 1.f,   1.f,   {}},
+    {"Stone wall",     true,  false, 1.f,   1.f,   {}},
+    {"Pit",            false, true,  1.f,   1.f,   {{StatusEffect_Falling, 0.7f}}},
+    {"Spring",         false, false, 0.8f,  1.f,   {{StatusEffect_Regenerating, 3.f}, {StatusEffect_Soaked, 2.f}}},
+    {"Bramble",        false, false, 0.7f,  1.f,   {{StatusEffect_Bleeding, 2.f}, {StatusEffect_Rooted, 0.6f}}},
+    {"Bog",            false, false, 0.6f,  1.f,   {{StatusEffect_Poisoned, 3.f}}},
+    {"Rune",           false, false, 1.f,   1.f,   {{StatusEffect_Hasted, 4.f}}},
 };
 
 inline terrain_def *

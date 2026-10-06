@@ -116,8 +116,13 @@ UpdatePlayer(player_slot *Slot, world *World,
     u32 Allowed = PlayerAllowedButtons(Slot);
     Slot->Input.Pressed &= Allowed;
     Slot->Input.ServerPressed &= Allowed;
-    // NOTE(zoubir): a stunned player can neither move nor act
-    if (HasStatus(Player, StatusEffect_Stunned))
+    // NOTE(zoubir): a rooted player cannot walk; a stunned or falling one
+    // can neither move nor act
+    if (IsRooted(Player))
+    {
+        Slot->Input.Move = V2(0.f, 0.f);
+    }
+    if (IsDisabled(Player))
     {
         Slot->Input.Move = V2(0.f, 0.f);
         Slot->Input.Pressed = 0;

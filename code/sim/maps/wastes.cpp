@@ -1,6 +1,7 @@
 /* Ashen Wastes: an endless burnt plain. Grey ash flats over black basalt,
    lava rivers that wind for miles with scorched basalt banks, and basalt
-   cliffs on the high ground. Dead trees and boulders are the only cover,
+   crags on the high ground, chasms that drop into nothing, and the odd
+   hot spring. Dead trees and boulders are the only cover,
    apart from abandoned camps: crates inside a broken fence. The ground
    climbs in basalt mesas, three steps a tier, mostly ringed by cliffs
    with a stair here and there; along stretches of the lava a ridge two
@@ -36,9 +37,18 @@ GenerateWastes(map_def *Map, i32 X, i32 Y)
     {
         Result = TerrainKind_BasaltWall;
     }
+    else if (FractalNoise(Map->Seed + 31, X, Y, 10, 1) > NOISE_PERCENT(90))
+    {
+        Result = TerrainKind_Pit;
+    }
+    else if (FractalNoise(Map->Seed + 33, X, Y, 10, 1) > NOISE_PERCENT(94))
+    {
+        Result = TerrainKind_Spring;
+    }
     else if (Rockiness > NOISE_PERCENT(60))
     {
-        Result = TerrainKind_Basalt;
+        // NOTE(zoubir): ley runes, few and far between, on the basalt
+        Result = TileRoll(Map, X, Y, 11) < 2 ? TerrainKind_Rune : TerrainKind_Basalt;
     }
     return Result;
 }

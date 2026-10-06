@@ -101,6 +101,12 @@ global_variable layout_symbol LayoutLegend[] =
     {'l', TerrainKind_Grass, TerrainProp_Log, false},
     {'f', TerrainKind_Grass, TerrainProp_Fence, false},
     {'c', TerrainKind_StoneFloor, TerrainProp_Crate, false},
+    // NOTE(zoubir): hazards and boons (sim/terrain/terrain_kinds.cpp)
+    {'P', TerrainKind_Pit, TerrainProp_None, false},
+    {'h', TerrainKind_Spring, TerrainProp_None, false},
+    {'^', TerrainKind_Rune, TerrainProp_None, false},
+    {'B', TerrainKind_Bramble, TerrainProp_None, false},
+    {'q', TerrainKind_Bog, TerrainProp_None, false},
 };
 
 inline layout_symbol *
@@ -165,8 +171,12 @@ PropAt(map_def *Map, i32 X, i32 Y)
         {
             return Symbol->Prop;
         }
+        // NOTE(zoubir): props stand on plain ground only: never in a wall,
+        // a pit, water, a spring or on a rune
         terrain_kind Ground = Map->Generate(Map, X, Y);
-        if (Map->PlaceProp && !GetTerrainDef(Ground)->Blocks)
+        terrain_def *Def = GetTerrainDef(Ground);
+        if (Map->PlaceProp && !Def->Blocks &&
+            Def->Stand[0].Effect == StatusEffect_None)
         {
             Result = Map->PlaceProp(Map, X, Y, Ground);
         }
@@ -336,6 +346,25 @@ GroundHeightAt(world *World, v2 Position)
     return Result;
 }
 
+// NOTE(zoubir): the ground at a point of World's map
+inline terrain_kind
+TerrainUnder(world *World, v3 Position)
+{
+    i32 TileSize = World->TileWidth ? (i32)World->TileWidth : ARENA_TILE_SIZE;
+    i32 TileX = FloorDiv((i32)floorf(Position.X), TileSize);
+    i32 TileY = FloorDiv((i32)floorf(Position.Y), TileSize);
+    terrain_kind Result = TerrainAt(GetMapDef((map_id)World->MapId), TileX, TileY);
+    return Result;
+}
+
+// NOTE(zoubir): a pit or lava: monsters walk around it, nothing spawns on it
+inline bool32
+IsHazardAt(world *World, v3 Position)
+{
+    bool32 Result = GetTerrainDef(TerrainUnder(World, Position))->Hazard;
+    return Result;
+}
+
 // NOTE(zoubir): Position moved up or down onto the ground under it, for
 // spawns: a unit placed on a raised tile stands on top of it, a hair
 // above like a unit that landed there (MOVE_GROUND_HAIR, sim/move.cpp)
@@ -455,9 +484,13 @@ ComputeTerrainContentHash()
     for(u32 Kind = 0; Kind < TerrainKind_Count; Kind++)
     {
         terrain_def *Def = GetTerrainDef((terrain_kind)Kind);
-        u32 Parts[] = {(u32)Def->Blocks, (u32)(Def->SpeedScale * 1000.f),
-                       (u32)(Def->Friction * 1000.f), (u32)Def->StandStatus,
-                       (u32)(Def->StandStatusSeconds * 1000.f)};
+        u32 Parts[] = {(u32)Def->Blocks, (u32)Def->Hazard,
+                       (u32)(Def->SpeedScale * 1000.f),
+                       (u32)(Def->Friction * 1000.f),
+                       (u32)Def->Stand[0].Effect,
+                       (u32)(Def->Stand[0].Seconds * 1000.f),
+                       (u32)Def->Stand[1].Effect,
+                       (u32)(Def->Stand[1].Seconds * 1000.f)};
         for(u32 Part = 0; Part < ArrayCount(Parts); Part++)
         {
             Hash = (Hash ^ Parts[Part]) * 16777619u;

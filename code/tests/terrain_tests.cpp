@@ -9,10 +9,10 @@
    print the new hash with TERRAIN_PRINT_HASHES and update it. */
 
 #define TERRAIN_PRINT_HASHES 0
-#define TERRAIN_GOLDEN_WILDS 0xDEB319CFu
-#define TERRAIN_GOLDEN_WASTES 0x7335F37Cu
-#define TERRAIN_GOLDEN_WILDS_FAR 0x111E7BBFu
-#define TERRAIN_GOLDEN_WASTES_FAR 0x473062E1u
+#define TERRAIN_GOLDEN_WILDS 0x625C8C7Au
+#define TERRAIN_GOLDEN_WASTES 0x17602CD1u
+#define TERRAIN_GOLDEN_WILDS_FAR 0x26452258u
+#define TERRAIN_GOLDEN_WASTES_FAR 0x2E9AE83Cu
 #define TERRAIN_GOLDEN_WILDS_ELEVATION 0x9904B5B2u
 #define TERRAIN_GOLDEN_WASTES_ELEVATION 0xA03D31D9u
 
@@ -112,10 +112,11 @@ TestInfiniteMapsKeepSpawnOpenEverywhere()
                 }
             }
         }
-        // NOTE(zoubir): far out, in every direction, the ground is mostly
-        // open, and somewhere out there something is in the way
+        // NOTE(zoubir): far out, in every direction, the ground is open
+        // (nothing blocks on an infinite map), and somewhere out there is
+        // a pit or lava to stay clear of
         i32 Far = 2000;
-        u32 BlockedAnywhere = 0;
+        u32 HazardsAnywhere = 0;
         i32 Corners[4][2] = {{Far, Far}, {-Far, Far}, {Far, -Far}, {-Far, -Far}};
         for(u32 Corner = 0; Corner < 4; Corner++)
         {
@@ -135,12 +136,13 @@ TestInfiniteMapsKeepSpawnOpenEverywhere()
                     {
                         Open++;
                     }
+                    HazardsAnywhere += GetTerrainDef(Ground)->Hazard ? 1 : 0;
                 }
             }
+            Check(Blocked == 0);
             Check(Open > 64 * 64 / 2);
-            BlockedAnywhere += Blocked;
         }
-        Check(BlockedAnywhere > 0);
+        Check(HazardsAnywhere > 0);
         // NOTE(zoubir): the same tile asked twice gives the same answer
         Check(TerrainAt(Map, -777, 1234) == TerrainAt(Map, -777, 1234));
         Check(PropAt(Map, -777, 1234) == PropAt(Map, -777, 1234));
