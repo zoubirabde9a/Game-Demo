@@ -57,6 +57,13 @@ MoveIntoInstallFolder(launcher_paths *Paths, bool32 MakeShortcuts)
         // the folder is not writable; carry on from here either way
         return false;
     }
+    // NOTE(zoubir): the copy keeps the browser's "downloaded from the
+    // internet" mark, which makes Windows run its SmartScreen check (a
+    // pause or a warning) on every start from the shortcut; the player
+    // already accepted that warning once
+    wchar_t Mark[LAUNCHER_PATH_COUNT];
+    WidePrint(Mark, LAUNCHER_PATH_COUNT, L"%s:Zone.Identifier", Paths->Launcher);
+    DeleteFileW(Mark);
     if (MakeShortcuts && CoInitializeEx(0, COINIT_APARTMENTTHREADED) == S_OK)
     {
         MakeShortcut(FOLDERID_Desktop, Paths->Launcher, Paths->Root);
