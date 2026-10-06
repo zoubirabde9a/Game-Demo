@@ -907,7 +907,8 @@ TestLaunchThrowsUpAndStuns()
                                          {370, 300, 0}, Test.UnitVolume);
     Target->MonsterKind = FindWalkerByWeight(false);
     Target->MaxHp = Target->Hp = 100.f;
-    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    // NOTE(zoubir): the cursor on the target, 70 units right
+    AppState->Players[0].Input.Aim = V2(70.f / PLAYER_AIM_REACH, 0.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Launch;
     RunPlayerFrames(&Test, 0, 30);
     Check(Target->Hp < 100.f);
@@ -937,7 +938,7 @@ TestDashCutsAreaCast()
                                          {370, 300, 0}, Test.UnitVolume);
     Target->MonsterKind = FindWalkerByWeight(false);
     Target->MaxHp = Target->Hp = 100.f;
-    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Aim = V2(70.f / PLAYER_AIM_REACH, 0.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Launch;
     RunPlayerFrames(&Test, 0, 2);
     AppState->Players[0].Input.Aim = V2(-1.f, 0.f);

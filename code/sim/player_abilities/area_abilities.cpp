@@ -31,6 +31,9 @@ struct player_area_ability
     // NOTE(zoubir): the shove pulls toward the area's centre instead of
     // throwing away from the player
     bool32 Pull;
+    // NOTE(zoubir): the centre goes where the cursor is (Reach times the
+    // aim's length, AimReach) instead of always Reach out
+    bool32 AtCursor;
 };
 
 // NOTE(zoubir): the rows of PlayerAreaAbilities, in order
@@ -64,12 +67,12 @@ global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
      SimBurst_PushCone, SimBurst_PushMark},
     // NOTE(zoubir): Launch (A): a ground burst at the aim that throws
     // everything in it into the air (88 units, almost a second under
-    // monster gravity) and stuns it until well after it lands. A circle of
-    // 150 whose middle is 180 out: it reaches 330, twice the 165 it had,
-    // and still starts near the player's feet. The ground there cracks and
+    // monster gravity) and stuns it until well after it lands. A small
+    // circle of 60 put where the cursor is, up to PLAYER_AIM_REACH (320)
+    // out: a long reach that has to be aimed. The ground there cracks and
     // stays broken a while (client/ground_cracks.cpp)
-    {PlayerButton_Launch, PlayerSpell_Launch, 5.f, 180.f, 150.f, -1.f, {20.f, 60.f, 420.f, 420.f, 1.6f, SimBurst_Count},
-     SimBurst_LaunchColumn, SimBurst_LaunchMark},
+    {PlayerButton_Launch, PlayerSpell_Launch, 5.f, PLAYER_AIM_REACH, 60.f, -1.f, {20.f, 60.f, 420.f, 420.f, 1.6f, SimBurst_Count},
+     SimBurst_LaunchColumn, SimBurst_LaunchMark, false, true},
     // NOTE(zoubir): Slam: no key of its own; the slam's dive
     // (movement_abilities.cpp) fires it where the player lands. Everything
     // within 110 units is thrown out and up and stunned
@@ -107,7 +110,12 @@ inline v3
 AreaCentre(world_entity *Player, player_area_ability *Ability, v2 Aim)
 {
     v3 Result = Player->Position;
-    Result.XY += Ability->Reach * Aim;
+    float Reach = Ability->Reach;
+    if (Ability->AtCursor && Player->AimReach > 0.f)
+    {
+        Reach *= Player->AimReach;
+    }
+    Result.XY += Reach * Aim;
     Result.Z = Player->GroundZ;
     return Result;
 }
