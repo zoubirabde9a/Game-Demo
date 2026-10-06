@@ -188,7 +188,9 @@ DrawLevelBadge(render_context *RenderContext, app_state *AppState,
     snprintf(Text, sizeof(Text), "%u", ShownLevel(Slot));
     UIText(RenderContext, Title, CentreX, CentreY - 0.5f * UILineHeight(Title) + 1.f, Text,
            UI_COLOR_TEXT, UIAlign_Center);
-    UIText(RenderContext, Small, CentreX, CentreY + 0.5f * Size - 4.f, "LEVEL",
+    // NOTE(zoubir): just under the progress ring (0.61 of Size out), not
+    // on it, where the gold ring hid the gold letters
+    UIText(RenderContext, Small, CentreX, CentreY + 0.61f * Size + 1.f, "LEVEL",
            UI_RGBA(255, 220, 140, 255), UIAlign_Center);
 }
 
