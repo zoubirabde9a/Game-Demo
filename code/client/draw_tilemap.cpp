@@ -2,7 +2,8 @@
    pass so everything else sorts on top of it. Maps built from terrain
    (sim/arena.cpp) store a terrain_kind per tile and draw from the terrain
    atlas (art/terrain_art.cpp). Which cell a tile shows, the world tint
-   its corners get and the atlas UVs are in ground/ground_cells.cpp.
+   its corners get and the atlas UVs are in ground/ground_cells.cpp; the
+   walls inside pits in ground/pit_walls.cpp.
 
    Raised ground (ElevationAt) is drawn the way the camera shows height:
    a tile's top moves up the screen by its height, and where the tile in
@@ -95,6 +96,11 @@ DrawTerrainTile(render_context *RenderContext, world *World, map_def *Map,
     float Lift = (float)Steps * ELEVATION_STEP_HEIGHT;
     DrawGroundCell(RenderContext, World, Grid, Texture, TileX, TileY, Kind, Column,
                    Lift, CameraOffset);
+    if (Kind == TerrainKind_Pit)
+    {
+        DrawPitWalls(RenderContext, World, Map, Texture, Grid, TileX, TileY, Lift,
+                     CameraOffset);
+    }
 
     // NOTE(zoubir): neighbours in the atlas's side order (N, E, S, W) and
     // corner order (NW, NE, SE, SW); Y grows downward
