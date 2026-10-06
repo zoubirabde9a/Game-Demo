@@ -423,6 +423,23 @@ MoveEntity(world_entity *Entity, world *World,
             Entity->Position.Z = 0.f;
             Entity->Velocity.Z = 0.f;
         }
+        // NOTE(zoubir): nor past a bounded map's edge: a unit thrown higher
+        // than the outer wall drifted over it, out of every chunk
+        if (!World->Unbounded)
+        {
+            float MapWidth = (float)(World->NumTilesX * World->TileWidth);
+            float MapHeight = (float)(World->NumTilesY * World->TileHeight);
+            if (Entity->Position.X < 0.f || Entity->Position.X > MapWidth)
+            {
+                Entity->Position.X = Minimum(MapWidth, Maximum(0.f, Entity->Position.X));
+                Entity->Velocity.X = 0.f;
+            }
+            if (Entity->Position.Y < 0.f || Entity->Position.Y > MapHeight)
+            {
+                Entity->Position.Y = Minimum(MapHeight, Maximum(0.f, Entity->Position.Y));
+                Entity->Velocity.Y = 0.f;
+            }
+        }
         // TODO(zoubir): once per MoveEntity call rather than every sweep
         CheckAndChangeEntityChunk(AppState, World, Arena, From, Entity);
 

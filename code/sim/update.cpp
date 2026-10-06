@@ -346,8 +346,13 @@ UpdateFireBall(world_entity *Entity, world *World,
         // NOTE(zoubir): cosine of the turn; 1 when it flew straight on
         float Turn = (StartSpeed > 0.f && EndSpeed > 0.f) ?
             DotProduct(StartVelocity, Entity->Velocity.XY) / (StartSpeed * EndSpeed) : 0.f;
-        if (Entity->IsPresent && Expected > 0.f &&
-            (Moved < 0.5f * Expected || Turn < 0.99f))
+        // NOTE(zoubir): wholly past a bounded map's edge (cast from the
+        // edge outward) it is in no chunk, where nothing could ever hit it
+        chunk_range Range = GetEntityChunkRange(World, Entity, Entity->Position);
+        bool32 OffMap = Range.MaxX < Range.MinX || Range.MaxY < Range.MinY ||
+            Range.MaxZ < Range.MinZ;
+        if (Entity->IsPresent &&
+            ((Expected > 0.f && (Moved < 0.5f * Expected || Turn < 0.99f)) || OffMap))
         {
             RemoveEntity(World, Entity);
         }
