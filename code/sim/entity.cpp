@@ -319,6 +319,10 @@ internal void StartRoundBreak(app_state *AppState, player_slot *Victim);
 // NOTE(zoubir): in sim/time_rewind/rewind_abilities.cpp, included later
 internal bool32 IsTimeLocked(app_state *AppState, world_entity *Entity);
 internal bool32 IsRewindInvulnerable(app_state *AppState, world_entity *Entity);
+// NOTE(zoubir): in sim/dungeon/dungeon.cpp, included later: roles scale
+// damage in a dungeon run
+internal float DungeonScaleDamage(app_state *AppState, world_entity *Target,
+                                  world_entity *Source, float Damage);
 
 internal void
 KillEntity(app_state *AppState, world *World, world_entity *Target,
@@ -338,6 +342,7 @@ DamageEntity(app_state *AppState, world *World,
     }
 
     Damage = ModifyIncomingDamage(Target, Source, Damage);
+    Damage = DungeonScaleDamage(AppState, Target, Source, Damage);
     if (WardTakesHit(AppState, Target, Damage))
     {
         return false;

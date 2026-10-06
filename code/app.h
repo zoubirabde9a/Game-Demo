@@ -97,6 +97,7 @@ struct app_state
     struct time_rewind *Rewind;
 #include "sim/round_fields.inc"
 #include "sim/map_vote_fields.inc"
+#include "sim/dungeon/dungeon_fields.inc"
     // NOTE(zoubir): one pointer per client feature (online session, kill
     // feed, screens, effects); add a new one there, not here
 #include "client/client_fields.inc"

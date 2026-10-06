@@ -783,6 +783,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "round_rules_tests.cpp"
 #include "progression_tests.cpp"
 #include "kunai_tests.cpp"
+#include "dungeon_tests.cpp"
 
 #define RUN(Test) printf("%s\n", #Test); Test()
 
@@ -835,6 +836,7 @@ main()
     RunRoundRulesTests();
     RunProgressionTests();
     RunKunaiTests();
+    RunDungeonTests();
 
     printf("%d of %d checks passed\n", TestChecks - TestFailures, TestChecks);
     return TestFailures ? 1 : 0;

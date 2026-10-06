@@ -91,6 +91,10 @@ FindFreePlayerSpot(app_state *AppState, world *World, v3 Desired,
     return Result;
 }
 
+// NOTE(zoubir): in sim/dungeon/roles.cpp, included later: a dungeon
+// role's health on the body
+internal void ApplyRoleToPlayer(app_state *AppState, player_slot *Slot);
+
 // NOTE(zoubir): puts a new player entity in SlotIndex, at SpawnPosition
 // or the nearest free spot to it; returns it
 internal world_entity *
@@ -106,6 +110,7 @@ AddPlayerToSlot(app_state *AppState, world *World, memory_arena *Arena,
     Slot->Entity = AddPlayer(AppState, World, Arena,
                              FindFreePlayerSpot(AppState, World, SpawnPosition, 0));
     Slot->Entity->PlayerIndex = SlotIndex;
+    ApplyRoleToPlayer(AppState, Slot);
     return Slot->Entity;
 }
 

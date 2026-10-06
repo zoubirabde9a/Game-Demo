@@ -37,6 +37,7 @@ InitSimulation(app_state *AppState, memory_arena *MemoryArena,
         CreateMonsterPopulation(MemoryArena, MapMonsterPopulation(&AppState->World), 1337);
     FillMonsterPopulation(AppState, &AppState->World, MemoryArena,
                           AppState->Monsters);
+    StartDungeonRun(AppState, MemoryArena);
 }
 
 // NOTE(zoubir): throws the world away and builds it again for MapId, with
@@ -70,6 +71,7 @@ RebuildWorldForMap(app_state *AppState, memory_arena *Arena, u32 MapId)
         CreateMonsterPopulation(Arena, MapMonsterPopulation(&AppState->World), 1337);
     // NOTE(zoubir): it lived in Arena; the next tick makes a new one
     AppState->Rewind = 0;
+    StartDungeonRun(AppState, Arena);
 }
 
 // NOTE(zoubir): a new round: the same map, or the one a vote picked
@@ -120,6 +122,7 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
         *Slot = Kept[SlotIndex];
         Slot->Entity = Player;
         Slot->SpawnPosition = SpawnPosition;
+        ApplyRoleToPlayer(AppState, Slot);
         Slot->RespawnTimer = 0.f;
         Slot->DelayedInputCount = 0;
         if (StartOver)

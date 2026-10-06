@@ -137,6 +137,7 @@ struct player_slot
     bool32 WaitingForInput;
     // NOTE(zoubir): experience, level and talents (sim/progression/)
 #include "progression/progression_fields.inc"
+#include "dungeon/dungeon_slot_fields.inc"
 };
 
 inline bool32

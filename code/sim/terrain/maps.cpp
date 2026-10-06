@@ -59,6 +59,9 @@ struct map_def
     // NOTE(zoubir): monsters kept roaming (monster_population.cpp); 0 for
     // a map of players only
     u32 MonsterPopulation;
+    // NOTE(zoubir): a co-op dungeon (sim/dungeon/): played only when picked,
+    // never by the duel's rotation or map vote
+    bool32 Dungeon;
 };
 
 /* Layout legend for bounded maps. Each character is ground, plus at most

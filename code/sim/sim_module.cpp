@@ -35,6 +35,7 @@
 #include "players.cpp"
 #include "progression/progression.cpp"
 #include "round_break.cpp"
+#include "dungeon/dungeon.cpp"
 #include "map_vote.cpp"
 #include "arena.cpp"
 #include "monster_population.cpp"
