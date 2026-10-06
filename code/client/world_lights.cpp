@@ -1,10 +1,13 @@
-/* World lights: the coloured light that fireballs, monster shots, kunai and
-   lava throw on the ground and the bodies near them. Gathered once a frame
+/* World lights: the coloured light that fireballs, monster shots, kunai,
+   bursts (a hit, a nova, a level up) and lava throw on the ground and the
+   bodies near them. Gathered once a frame
    into a short list in window pixels; the world grade shader
    (build/shaders/fx/world_grade.frag) brightens and tints every pixel
    within reach of each one, so a fireball lights the grass it flies over.
 
-   Moving things come first, then lava. Lava is summed over blocks of
+   Moving things come first, then bursts, then lava. A burst flashes in
+   its own colour (fx_bursts.cpp) and fades over its life; dust and
+   targeting marks give no light. Lava is summed over blocks of
    WORLD_LIGHT_LAVA_BLOCK tiles aligned to the map, so a block's light stays
    put while the camera moves and only its edge ones come and go. */
 
@@ -33,6 +36,11 @@ struct world_light_look
 global_variable world_light_look FireballLight = {130.f, 0.8f, {1.0f, 0.55f, 0.22f}, 1.f};
 global_variable world_light_look MonsterShotLight = {90.f, 0.7f, {1.0f, 0.45f, 0.55f}, 0.5f};
 global_variable world_light_look KunaiLight = {45.f, 0.35f, {0.70f, 0.85f, 1.0f}, 0.f};
+// NOTE(zoubir): a burst lights this many times its own radius, at least
+// that of a BURST_LIGHT_MIN_RADIUS one, starting at this strength
+#define BURST_LIGHT_REACH 2.2f
+#define BURST_LIGHT_MIN_RADIUS 30.f
+#define BURST_LIGHT_STRENGTH 0.9f
 global_variable world_light_look LavaLight = {175.f, 0.75f, {1.0f, 0.42f, 0.12f}, 1.f};
 
 internal void
@@ -92,6 +100,35 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
             AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
                           0.5f * Entity->Position.Z, *Look, 1.f);
         }
+    }
+
+    fx_bursts *Fx = AppState->FxBursts;
+    for(u32 Index = 0; Fx && Index < Fx->Count; Index++)
+    {
+        fx_burst *Burst = &Fx->Bursts[Index];
+        burst_shape Shape = BurstLooks[Burst->Kind].Shape;
+        if (Shape == BurstShape_Puff || Shape == BurstShape_Skid ||
+            Shape == BurstShape_Mark || Shape == BurstShape_ConeMark)
+        {
+            continue;
+        }
+        burst_area Area = BurstArea(Burst->Kind);
+        float Left = 1.f - Burst->Age / Area.Seconds;
+        v2 P = Burst->Position.XY;
+        if (Left <= 0.f || P.X < Min.X || P.X > Max.X || P.Y < Min.Y || P.Y > Max.Y)
+        {
+            continue;
+        }
+        // NOTE(zoubir): 0x00BBGGRR, brought up so its brightest channel
+        // is 1: a pale burst lights as much as a vivid one
+        u32 RGB = BurstLooks[Burst->Kind].RGB;
+        v3 Color = V3((float)(RGB & 0xFF), (float)((RGB >> 8) & 0xFF),
+                      (float)((RGB >> 16) & 0xFF));
+        Color *= 1.f / Maximum(1.f, Maximum(Color.X, Maximum(Color.Y, Color.Z)));
+        world_light_look Look = {BURST_LIGHT_REACH * Maximum(Area.Radius, BURST_LIGHT_MIN_RADIUS),
+                                 BURST_LIGHT_STRENGTH, Color, 0.f};
+        AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
+                      0.5f * Burst->Position.Z, Look, Left * Left);
     }
 
     if (World->TileWidth == 0 || World->TileMap.Texture.Type != AssetType_TerrainAtlas)
