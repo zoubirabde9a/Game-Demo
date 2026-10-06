@@ -39,8 +39,13 @@ UIText(render_context *RenderContext, font *Font, float X, float TopY,
     }
     v4 NoClip = {0.f, 0.f, 100000.f, 100000.f};
     float BaselineY = TopY + Font->UpperLimit;
+    // NOTE(zoubir): the shadow fades with the text, so fading text does not
+    // leave a dark copy of itself behind
+    float TextAlpha = (float)(Color >> 24) / 255.f;
+    float ShadowAlpha = (float)(UI_COLOR_TEXT_SHADOW >> 24) / 255.f;
     RenderText(RenderContext, X + 1.f, BaselineY + 1.f, Font,
-               RenderContext->TextureProgram, Text, UI_COLOR_TEXT_SHADOW,
+               RenderContext->TextureProgram, Text,
+               WithAlpha(UI_COLOR_TEXT_SHADOW, ShadowAlpha * TextAlpha),
                1.f, 1.f, NoClip, 0.f);
     RenderText(RenderContext, X, BaselineY, Font,
                RenderContext->TextureProgram, Text, Color,
