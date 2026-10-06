@@ -288,6 +288,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
             }
             NetU8(S, &P->Snapshot.Stagger);
             NetU8(S, &P->Snapshot.RoundBreak);
+            NetU8(S, &P->Snapshot.MapId);
             NetU8(S, &P->Snapshot.HasOwnBody);
             if (P->Snapshot.HasOwnBody > 1) return false;
             if (P->Snapshot.HasOwnBody)

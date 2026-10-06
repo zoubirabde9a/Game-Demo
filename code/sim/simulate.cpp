@@ -4,9 +4,19 @@
    go to AppState->Events. The client calls it each frame before drawing;
    the server calls it on its fixed tick. */
 
+// NOTE(zoubir): the round after a break moves to the next map (setup.cpp,
+// included later)
+internal void StartNextRoundMap(app_state *AppState, memory_arena *Arena);
+
 internal void
 SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
 {
+    // NOTE(zoubir): before anything holds a pointer into the old world
+    if (AppState->RoundMapDue)
+    {
+        AppState->RoundMapDue = false;
+        StartNextRoundMap(AppState, Arena);
+    }
     world *World = &AppState->World;
     if (!AppState->Rewind)
     {

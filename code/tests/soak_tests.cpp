@@ -508,7 +508,10 @@ TestRandomPlaySoak()
                      RandomBetween(&Series, 0.005f, 0.05f));
         AppState->Events.Count = 0;
     }
-    if (CountLiveMonsters(&AppState->World) == 0) Fail("monsters still alive", __LINE__);
+    // NOTE(zoubir): deaths end rounds and each round moves to the next
+    // map (sim/setup.cpp), which may be the Old Arena, without monsters
+    if (GetMapDef((map_id)AppState->World.MapId)->MonsterPopulation > 0 &&
+        CountLiveMonsters(&AppState->World) == 0) Fail("monsters still alive", __LINE__);
     free(Arena.Base);
     free(Constants.Base);
     free(AppState);

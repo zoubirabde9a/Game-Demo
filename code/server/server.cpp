@@ -235,6 +235,9 @@ ServerTick(server *Server)
     ApplyQueuedInputs(&Server->Game, Server->InputQueues, NET_MAX_CLIENTS, ConnectedSlots);
     GameKeepBots(&Server->Game, ConnectedSlots, Dt);
     GameTick(&Server->Game, Dt);
+    // NOTE(zoubir): each round may be on another map; joiners and the
+    // server list are told the one being played now
+    Server->Clients.MapId = (u8)Server->Game.AppState->World.MapId;
     Server->Tick++;
     if (Server->Tick % SERVER_SNAPSHOT_INTERVAL == 0) ServerSendSnapshots(Server);
 

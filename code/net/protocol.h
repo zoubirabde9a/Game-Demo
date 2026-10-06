@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d58u // "GDMX", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d59u // "GDMY", change it whenever the layout changes
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
 #define NET_PLAYER_HEALTH_STEPS 100.f
@@ -327,6 +327,9 @@ struct net_snapshot
     // The break between rounds (sim/round_break.cpp): tenths of a second
     // left, 0 while a round is played. The same for every viewer.
     u8 RoundBreak;
+    // The map being played (sim/maps/); it changes between rounds, and the
+    // client builds the new one's ground when it does (client/online.cpp).
+    u8 MapId;
     // The viewer's own player exactly: position and velocity as floats.
     // Entities are sent rounded to 1/8 unit, and a prediction replayed
     // from a rounded start went round a wall's corner the other way from

@@ -5,7 +5,10 @@
    it lasts nobody can be hurt (every living player holds the respawn
    shield, IsDodging in entity.cpp) and the only key that works is jump,
    so players can walk around and open the talent panel but not fight.
-   The dead respawn as it ends. Online the server sends the time left in
+   The dead respawn as it ends, and the next round is played on the next
+   map: the tick after the break runs out, everyone starts again at their
+   spawn there, keeping their level, talents and score
+   (StartNextRoundMap, setup.cpp). Online the server sends the time left in
    every snapshot (net_snapshot.RoundBreak), so prediction blocks the
    same keys and the client draws the countdown (ui/round_break_view.cpp). */
 
@@ -63,6 +66,10 @@ UpdateRoundBreak(app_state *AppState, float DeltaTime)
         return;
     }
     AppState->RoundBreak = Maximum(0.f, AppState->RoundBreak - DeltaTime);
+    if (AppState->RoundBreak <= 0.f)
+    {
+        AppState->RoundMapDue = true;
+    }
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];

@@ -197,6 +197,11 @@ TestDeathStartsRoundBreak()
     }
     Check(Absolute((float)Ticks * Dt - ROUND_BREAK_SECONDS) < 0.05f);
     Check(AppState->RoundBreak < 0.05f);
+    // NOTE(zoubir): the next round moves to the next map; this test world
+    // is no map, so it stays (the move is TestRoundMovesToNextMap in
+    // server_client_tests.cpp)
+    Check(AppState->RoundMapDue);
+    AppState->RoundMapDue = false;
     for(u32 Tick = 0; Tick < 3; Tick++)
     {
         SimulateTick(AppState, &Test.Arena, Dt);

@@ -40,7 +40,8 @@ InitSimulation(app_state *AppState, memory_arena *MemoryArena,
 }
 
 // NOTE(zoubir): throws the world away and builds it again for MapId, with
-// no players and no monsters in it. The client calls it when it joins a
+// no players and no monsters in it. StartNextRoundMap below uses it
+// between rounds; the client calls it when it joins a
 // server playing another map (the replicas then fill the world from the
 // server's snapshots) and when the map picker starts one offline.
 // Arena must hold this world and nothing else: it is emptied first, so
@@ -69,4 +70,65 @@ RebuildWorldForMap(app_state *AppState, memory_arena *Arena, u32 MapId)
         CreateMonsterPopulation(Arena, MapMonsterPopulation(&AppState->World), 1337);
     // NOTE(zoubir): it lived in Arena; the next tick makes a new one
     AppState->Rewind = 0;
+}
+
+// NOTE(zoubir): the map after MapId in map_list.inc, round and round
+inline u32
+NextRoundMap(u32 MapId)
+{
+    u32 Result = (MapId + 1) % MapId_Count;
+    return Result;
+}
+
+// NOTE(zoubir): a new round under the duel rules: the next map, built
+// fresh with its monsters, and every player back at their spawn there
+// with full health. Each slot keeps its name, level, experience, talents
+// and score; a player that had a familiar gets it back. Arena must hold
+// the world and nothing else (RebuildWorldForMap)
+internal void
+StartNextRoundMap(app_state *AppState, memory_arena *Arena)
+{
+    player_slot Kept[MAX_PLAYERS];
+    bool32 HadFamiliar[MAX_PLAYERS] = {};
+    world *World = &AppState->World;
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        world_entity *Entity = &World->Entities[Index];
+        if (Entity->IsPresent && Entity->Type == EntityType_Familiar &&
+            Entity->FollowingEntity &&
+            Entity->FollowingEntity->Type == EntityType_Player &&
+            Entity->FollowingEntity->PlayerIndex < MAX_PLAYERS)
+        {
+            HadFamiliar[Entity->FollowingEntity->PlayerIndex] = true;
+        }
+    }
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        Kept[SlotIndex] = AppState->Players[SlotIndex];
+    }
+
+    RebuildWorldForMap(AppState, Arena, NextRoundMap(World->MapId));
+    FillMonsterPopulation(AppState, World, Arena, AppState->Monsters);
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        if (!Kept[SlotIndex].Active)
+        {
+            continue;
+        }
+        world_entity *Player =
+            AddPlayerToSlot(AppState, World, Arena, SlotIndex,
+                            PlayerSpawnPosition(World, SlotIndex));
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        v3 SpawnPosition = Slot->SpawnPosition;
+        *Slot = Kept[SlotIndex];
+        Slot->Entity = Player;
+        Slot->SpawnPosition = SpawnPosition;
+        Slot->RespawnTimer = 0.f;
+        Slot->DelayedInputCount = 0;
+        Player->SpawnShield = RespawnShieldSeconds(Slot);
+        if (HadFamiliar[SlotIndex])
+        {
+            AddFamiliar(AppState, World, Arena, Player);
+        }
+    }
 }

@@ -50,13 +50,18 @@ GameInit(server_game *Game, u32 MapId)
     InitializeArena(&AppState->MemoryArena, (memory_index *)(AppState + 1),
                     SIM_GAME_MEMORY - sizeof(app_state));
     SubArena(&AppState->ConstantsArena, &AppState->MemoryArena, Kilobytes(64));
+    // NOTE(zoubir): the world gets the rest, and its arena holds nothing
+    // else, so a new round can throw it away and build the next map
+    // (StartNextRoundMap, sim/setup.cpp)
+    SubArena(&AppState->WorldArena, &AppState->MemoryArena,
+             AppState->MemoryArena.Size - AppState->MemoryArena.Used - 64);
     AppState->World.MapId = MapId;
-    InitSimulation(AppState, &AppState->MemoryArena, &AppState->ConstantsArena);
+    InitSimulation(AppState, &AppState->WorldArena, &AppState->ConstantsArena);
     AppState->IsInitialized = true;
 
     *Game = {};
     Game->AppState = AppState;
-    Game->Arena = &AppState->MemoryArena;
+    Game->Arena = &AppState->WorldArena;
 }
 
 internal u32
@@ -245,6 +250,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     }
     Out->Stagger = Own ? CooldownToByte(Own->Stagger, PlayerStats.StaggerSeconds) : 0;
     Out->RoundBreak = (u8)Minimum(255u, CeilFloatToUInt32(10.f * Game->AppState->RoundBreak));
+    Out->MapId = (u8)World->MapId;
     // The viewer's own body unrounded, for its prediction (net/protocol.h),
     // and the point the other positions are sent from
     Out->HasOwnBody = (Own && Own->IsPresent) ? 1 : 0;
