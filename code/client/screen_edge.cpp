@@ -1,8 +1,9 @@
 /* Screen edge: a soft dark vignette over the edges of the world, so the
    eye stays on the middle where the player is, and a red tint over it
-   when the player is hurt. A hit flashes it (strength from the share of
-   health lost), and below SCREEN_EDGE_LOW_HEALTH of full health it
-   pulses, faster the closer the player is to dying. Drawn in window
+   when the player is hurt. A hit, the killing one included, flashes it
+   (strength from the share of health lost), and below
+   SCREEN_EDGE_LOW_HEALTH of full health it pulses, faster the closer
+   the player is to dying. Drawn in window
    pixels under the HUD (screen_pass.inc). The shader is
    build/shaders/fx/screen_edge.frag; when it fails to build this draws
    nothing rather than a solid sprite quad. */
@@ -28,10 +29,11 @@ DrawScreenEdge(render_context *RenderContext, app_state *AppState,
         float Health = Maximum(0.f, Player->Hp) / Player->MaxHp;
         float Last = AppState->ScreenEdgeLastHp;
         // NOTE(zoubir): a respawn or the first frame raises health; only a
-        // drop while alive is a hit
-        if (Player->Hp < Last && Player->Hp > 0.f)
+        // drop from alive is a hit. The killing blow counts too: with the
+        // duel rules' one point of health it is the only hit there is
+        if (Player->Hp < Last && Last > 0.f)
         {
-            float Lost = (Last - Player->Hp) / Player->MaxHp;
+            float Lost = (Last - Maximum(0.f, Player->Hp)) / Player->MaxHp;
             AppState->ScreenEdgeHurt = Maximum(AppState->ScreenEdgeHurt,
                                                Minimum(1.f, 0.35f + 2.f * Lost));
         }
