@@ -19,6 +19,10 @@ struct world_grade
     render_target Target;
     bool32 Capturing;
     world_lights Lights;
+    // NOTE(zoubir): camera x, y in world units, window pixels per world
+    // unit, window height: lets the shader find the world point under a
+    // pixel, for ground variation and cloud shadows that stay on the map
+    float WorldView[4];
 };
 
 // NOTE(zoubir): app.cpp, before the world pass and after BeginTimeWarp
@@ -41,6 +45,10 @@ BeginWorldGrade(render_context *RenderContext, app_state *AppState,
     {
         GatherWorldLights(AppState, CameraOffset, View, (float)Window->Height,
                           &Grade->Lights);
+        Grade->WorldView[0] = CameraOffset.X;
+        Grade->WorldView[1] = CameraOffset.Y;
+        Grade->WorldView[2] = AppState->WorldZoom;
+        Grade->WorldView[3] = (float)Window->Height;
     }
     return Grade->Capturing;
 }
@@ -69,6 +77,8 @@ EndWorldGrade(render_context *RenderContext, app_state *AppState,
                            WORLD_GRADE_GLOW, WORLD_GRADE_STRENGTH};
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "Screen"),
                              1, Screen);
+        OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "WorldView"),
+                             1, Grade->WorldView);
         world_lights *Lights = &Grade->Lights;
         float LightCount[4] = {(float)Lights->Count, 0.f, 0.f, 0.f};
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "LightCount"),
