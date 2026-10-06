@@ -238,15 +238,7 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     // map's edges) it walked at floor speed while the server did not, and
     // every snapshot pulled the player back. What standing there does to
     // health and status is left to the server
-    Player->GroundSpeedScale = 1.f;
-    Player->GroundFriction = 1.f;
-    if (FeelsTerrain(&AppState->World, Player))
-    {
-        terrain_def *Ground =
-            GetTerrainDef(TerrainUnder(&AppState->World, Player->Position));
-        Player->GroundSpeedScale = Ground->SpeedScale;
-        Player->GroundFriction = Ground->Friction;
-    }
+    SetGroundUnderfoot(&AppState->World, Player);
 
     Slot->Input = {};
     Slot->Input.Move = MoveFromNetButtons(Input->Buttons);
