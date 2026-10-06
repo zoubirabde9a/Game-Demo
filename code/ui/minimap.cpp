@@ -80,7 +80,8 @@ PaintMinimap(minimap *Minimap, open_gl *OpenGL, map_def *Map)
             if (Map->Kind == MapKind_Bounded &&
                 (X < 0 || Y < 0 || X >= (i32)Map->Width || Y >= (i32)Map->Height))
             {
-                Minimap->Pixels[Row * MINIMAP_TILES + Column] = UI_COLOR_FIELD;
+                // NOTE(zoubir): see-through, so the glass plate shows
+                Minimap->Pixels[Row * MINIMAP_TILES + Column] = 0;
                 continue;
             }
             u32 Color = MinimapPropColors[PropAt(Map, X, Y)];
@@ -143,16 +144,17 @@ DrawMinimap(render_context *RenderContext, app_state *AppState,
     float Left = (float)WindowWidth - Size - UI_GAP_LARGE;
     float Top = UI_GAP_LARGE;
     float Scale = Size / (float)MINIMAP_TILES;
-    DrawFilledRectangle(RenderContext, Left - 2.f, Top - 2.f, Size + 4.f,
-                        Size + 4.f, UI_COLOR_PANEL, 0.f);
+    // NOTE(zoubir): on the same glass plate as the rest of the HUD; past a
+    // bounded map's edge the texture is clear and the plate shows
+    float Rim = UI_GAP_SMALL;
+    DrawUIPanel(RenderContext, Left - Rim, Top - Rim, Size + 2.f * Rim,
+                Size + 2.f * Rim);
     // NOTE(zoubir): the texture pass reads row 0 at the top with these UVs
     BeginBatch(RenderContext, Minimap->Texture, 0.f,
                RenderContext->TextureProgram);
     RenderQuadTexture(RenderContext, Left, Top, Size, Size,
                       V4(0.f, 0.f, 1.f, 1.f), RGBA8_WHITE, 0.f);
     EndBatch(RenderContext);
-    DrawRectangle(RenderContext, Left - 2.f, Top - 2.f, Size + 4.f,
-                  Size + 4.f, UI_COLOR_BORDER, 0.f);
 
     // NOTE(zoubir): other players first, so the local one stays on top
     float TileSize = (float)Tile;
