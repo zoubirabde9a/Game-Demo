@@ -39,3 +39,19 @@ Positions stay 32-bit floats. Precision is under a hundredth of a unit up to abo
 ## Status
 
 All eight steps are done. Raised ground came after them: `ElevationAt` gives every tile a height in steps (see `code/sim/maps/README.md`). The Old Arena has stone stands along its north and south walls and a hill on each flank; Frostbite Keep has ramparts behind its curtain wall, corner towers and a raised hall. The Wilds rise in knolls and grassy plateaus around their rock outcrops, the Wastes in basalt mesas with ridges along the lava; both mostly have stairs somewhere and cliffs elsewhere, and come down flat at the spawn clearing and at landmarks. Logs, fences and crates are jumpable cover on all four maps. `soak_tests 8 2 wilds` (and `wastes`): eight players drifting up to about 4,400 units apart over eight simulated minutes, under 45 entity slots and under 65 chunks, nobody ever inside terrain or another unit. The Old Arena soak needs about 400 slots for the same game, because its walls and trees are entities.
+
+## Hazards and open ground
+
+Nothing inside a map blocks any more except the stone walls that close the bounded maps in. Rock and basalt walls became crags (rough ground, a little slow), and deep water is swum at under half speed. Hazard and boon ground uses the status effect table in `code/sim/status_effects.cpp`: each terrain kind holds up to two statuses while you stand on it (`terrain_def.Stand`).
+
+| Ground | Does | Where |
+| --- | --- | --- |
+| Pit | you fall (no control for 0.7 s) and die; a jump or dash clears it; whoever threw or hit you in gets the kill | arena hill shoulders, Keep yards, Wilds sinkholes, Wastes chasms |
+| Lava | burns, and keeps burning 2 s after you step off | arena road pools, Keep fire pits, Wastes rivers |
+| Spring | heals over time, washes off poison, soaks | arena hilltops, Keep yards, Wilds, Wastes |
+| Bramble | roots you once (then 2.5 s of shrugging it off), bleeds, worse while you move | Wilds |
+| Bog | poisons | Wilds hollows |
+| Rune | 4 s of haste, lifts slows | arena plaza corners, Wilds trails, Wastes basalt |
+| Water | soaks: no burning while soaked | everywhere there is water |
+
+Monsters steer around pits and lava (`SteerAroundHazards`) unless thrown in, and nothing spawns on them. Online, the server sends the player its own exact status clocks and prediction applies the ground's statuses itself, so movement effects start and end on the same tick on both sides. Under the duel rules a player's damage and healing over time scale with its health pool, so a burn takes as long to kill at one point of health as at 100. Tests: `code/tests/hazard_tests.cpp`.
