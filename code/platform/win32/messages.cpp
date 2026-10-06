@@ -124,10 +124,6 @@ Win32MessageLoop(win32_state *state,
                         Win32ProcessKeyboardMessage(&oldKeyboardController->stickUp,
                                                     &newKeyboardController->buttonRight, isDown);
                     }
-                    else if (vKCode == VK_ESCAPE)
-                    {
-                        Running = false;
-                    }
                     else if (vKCode == VK_SPACE)
                     {
                         Win32ProcessKeyboardMessage(&oldKeyboardController->stickUp,
