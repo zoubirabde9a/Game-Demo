@@ -8,9 +8,9 @@
 #    engine/engine_core.cpp) includes nothing from client/, ui/, art/ or
 #    platform/. That code would break the server build on Linux.
 # 3. No source file outside tests/ and third_party/ is longer than
-#    $MaxLines. The files below were already longer when the check came in;
-#    each may shrink but not grow past its listed size. Split a file
-#    rather than raising a number here.
+#    $MaxLines (600 until 2026-10-06). The files below were already
+#    longer when the limit came in; each may shrink but not grow past its
+#    listed size. Split a file rather than raising a number here.
 # 4. Every source file is included by another one, except the programs'
 #    entry points (code/app.cpp, platform/*_app.cpp, server/*_main.cpp and
 #    the files directly in tests/ and tools/). A file nothing includes is
@@ -20,11 +20,15 @@
 param([string]$Root = (Split-Path -Parent $PSScriptRoot))
 $Root = [System.IO.Path]::GetFullPath($Root)
 
-$MaxLines = 600
+$MaxLines = 500
 $Ceilings = @{
-    'code/engine/random.h'      = 604  # mostly a table of random numbers
-    'code/engine/math.h'        = 648  # about 50 small vector helpers
-    'code/art/terrain_art.cpp'  = 945  # claimed by the terrain agent
+    'code/engine/random.h'                  = 604  # mostly a table of random numbers
+    'code/engine/math.h'                    = 648  # about 50 small vector helpers
+    'code/art/terrain_art.cpp'              = 945  # claimed by the terrain agent
+    'code/art/monster_render.cpp'           = 502  # claimed by the monster agent
+    'code/sim/terrain/maps.cpp'             = 514  # claimed by the terrain agent
+    'code/client/draw_tilemap.cpp'          = 521  # claimed by the terrain agent
+    'code/ui/talent_panel/talent_panel.cpp' = 506
 }
 
 $Code = Join-Path $Root 'code'

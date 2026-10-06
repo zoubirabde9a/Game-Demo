@@ -75,7 +75,7 @@ By hand: run `test.bat` and `build.bat` in your worktree. Do not merge red. If `
 
 `test.bat` runs every program in `code/tests/`: the simulation, network, server and a one-minute soak with 8 random players. If you changed game rules (anything that moves, spawns or removes entities), also run a long soak by hand: `build\soak_tests.exe 5 6`. It checks the world's bookkeeping after every tick and names the tick where it broke.
 
-Before the tests, `test.bat` runs `misc\layout_check.ps1`, which keeps the code readable from the top down (`docs/architecture-plan.md`). It fails, naming the file, when a source file passes 600 lines, when code the server compiles includes `client/`, `ui/`, `art/` or `platform/`, when a file has no comment at its top saying what it is for, when nothing includes a file, or when a `*_module.cpp` lacks its summary. Split a long file by concern into a folder next to it, included where the code was; do not raise the limit.
+Before the tests, `test.bat` runs `misc\layout_check.ps1`, which keeps the code readable from the top down (`docs/architecture-plan.md`). It fails, naming the file, when a source file passes 500 lines, when code the server compiles includes `client/`, `ui/`, `art/` or `platform/`, when a file has no comment at its top saying what it is for, when nothing includes a file, or when a `*_module.cpp` lacks its summary. Split a long file by concern into a folder next to it, included where the code was; do not raise the limit.
 
 Also build `build.bat release` when you touch headers or `#if` blocks; the release build compiles different code.
 
