@@ -18,6 +18,7 @@
 #include "body_pose.cpp"
 #include "draw_entities.cpp"
 #include "kill_feed.cpp"
+#include "ground_cracks.cpp"
 #include "fx_bursts.cpp"
 #include "play_events.cpp"
 #include "replica_smoothing.cpp"

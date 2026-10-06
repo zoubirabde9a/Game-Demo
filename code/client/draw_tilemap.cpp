@@ -75,7 +75,7 @@ BeginWorldPass(render_context *RenderContext, memory_arena *TransientArena,
     u32 ElevationBatches = ScreenRows * (2 * ELEVATION_MAX_STEPS + 1);
     u32 PropBatches = World->Unbounded ? 3 * ScreenTiles : 0;
     u32 BatchesCount = 6 * GroundTiles + ElevationBatches + PropBatches +
-        World->EntityCount * 2;
+        World->EntityCount * 2 + GROUND_CRACK_MAX;
     SetupBatchRenderer(RenderContext, TransientArena, BatchesCount);
     RenderBegin(RenderContext, 6 * BatchesCount, RENDER_ORDER_BACK_TO_FRONT);
 }
@@ -405,6 +405,7 @@ DrawTileMap(render_context *RenderContext, app_state *AppState,
         visible_tiles Visible = GetVisibleTiles(World, CameraOffset, Window);
         DrawTerrainGround(RenderContext, AppState, Texture, TextureProgram,
                           CameraOffset, Visible);
+        DrawGroundCracks(RenderContext, AppState, CameraOffset, GetFxClock(AppState));
         if (World->Unbounded)
         {
             DrawTerrainProps(RenderContext, AppState, TextureProgram, CameraOffset,
@@ -433,4 +434,5 @@ DrawTileMap(render_context *RenderContext, app_state *AppState,
         }
     }
     EndBatch(RenderContext);
+    DrawGroundCracks(RenderContext, AppState, CameraOffset, GetFxClock(AppState));
 }

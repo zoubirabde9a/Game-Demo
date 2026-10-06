@@ -261,6 +261,11 @@ AddBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,
         Fx->Callouts[Slot].Name = Combo->Name;
         Fx->Callouts[Slot].Age = 0.f;
     }
+    // NOTE(zoubir): the ground stays broken where these hit
+    if (Kind == SimBurst_LaunchColumn || Kind == SimBurst_SlamRing)
+    {
+        AddGroundCrack(AppState, Position, BurstArea(Kind).Radius, Fx->Clock);
+    }
     fx_burst *Burst = &Fx->Bursts[Fx->Count++];
     Burst->Kind = Kind;
     Burst->Position = Position;

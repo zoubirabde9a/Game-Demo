@@ -31,4 +31,5 @@
     struct world_grade *WorldGrade; // the world pass's render target for the glow and colour grade, client/world_grade.cpp
     u32 KeyboardLayout; // keyboard_layout, AZERTY or QWERTY, client/keyboard_layout.cpp
     bool32 OptionsOpen; // the Esc options menu is showing, ui/options_menu.cpp
+    struct ground_cracks *GroundCracks; // broken ground where Launch and slams hit, client/ground_cracks.cpp
     struct cast_targeting *CastTargeting; // quick or standard cast, and the ability being aimed, client/cast_targeting.cpp

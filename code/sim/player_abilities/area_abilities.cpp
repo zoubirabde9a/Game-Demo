@@ -65,8 +65,10 @@ global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
     // NOTE(zoubir): Launch (A): a ground burst at the aim that throws
     // everything in it into the air (88 units, almost a second under
     // monster gravity) and stuns it until well after it lands. A circle of
-    // 75 whose middle is 90 out, so it reaches from the player's feet
-    {PlayerButton_Launch, PlayerSpell_Launch, 5.f, 90.f, 75.f, -1.f, {20.f, 60.f, 420.f, 420.f, 1.6f, SimBurst_Count},
+    // 150 whose middle is 180 out: it reaches 330, twice the 165 it had,
+    // and still starts near the player's feet. The ground there cracks and
+    // stays broken a while (client/ground_cracks.cpp)
+    {PlayerButton_Launch, PlayerSpell_Launch, 5.f, 180.f, 150.f, -1.f, {20.f, 60.f, 420.f, 420.f, 1.6f, SimBurst_Count},
      SimBurst_LaunchColumn, SimBurst_LaunchMark},
     // NOTE(zoubir): Slam: no key of its own; the slam's dive
     // (movement_abilities.cpp) fires it where the player lands. Everything
