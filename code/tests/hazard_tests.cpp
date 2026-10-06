@@ -191,6 +191,21 @@ TestMonsterWalksAroundPit()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): under the duel's one-point health a burn takes as long to
+// kill as at 100, not one tick
+internal void
+TestDuelPlayersBurnAtTheSamePace()
+{
+    test_world Test = CreateTestWorld();
+    world_entity *Player = AddTestPlayer(&Test, ArenaTileCenter(25, 8));
+    Player->MaxHp = Player->Hp = 1.f;
+    ApplyStatus(Player, StatusEffect_Burning, 2.f);
+    StepGround(&Test, 60);
+    Check(Player->Hp > 0.f && Player->Hp < 1.f);
+    Check(Player->Hp > 1.f - 3.f * STATUS_BURN_DPS * STATUS_TICK_SECONDS / STATUS_PLAYER_HEALTH);
+    DestroyTestWorld(&Test);
+}
+
 #define HAZARD_TEST(Test) printf("%s\n", #Test); Test()
 
 internal void
@@ -207,4 +222,5 @@ RunHazardTests()
     HAZARD_TEST(TestHasteLiftsSlowAndSpeedsUp);
     HAZARD_TEST(TestBleedHurtsMoreWhenMoving);
     HAZARD_TEST(TestMonsterWalksAroundPit);
+    HAZARD_TEST(TestDuelPlayersBurnAtTheSamePace);
 }

@@ -31,6 +31,9 @@
 #define STATUS_BURN_DPS 8.f
 #define STATUS_POISON_DPS 4.f
 #define STATUS_SLOW_SCALE 0.45f
+// NOTE(zoubir): the classic player health (PlayerStats.MaxHp) the
+// damage numbers above are written for
+#define STATUS_PLAYER_HEALTH 100.f
 
 // NOTE(zoubir): status_def Flags
 #define STATUS_ROOTS 0x1
@@ -309,6 +312,15 @@ UpdateStatusEffects(app_state *AppState, world *World, float DeltaTime)
 
         float Damage, Healing;
         StatusHealthPerSecond(Entity, &Damage, &Healing);
+        // NOTE(zoubir): a player's burns and heals are shares of the classic
+        // health bar, so under the duel's one-point health a bramble or a
+        // splash of lava takes as long to kill as it does at 100
+        if (Entity->Type == EntityType_Player && Entity->MaxHp > 0.f)
+        {
+            float Scale = Entity->MaxHp / STATUS_PLAYER_HEALTH;
+            Damage *= Scale;
+            Healing *= Scale;
+        }
         if (Damage > 0.f || Healing > 0.f)
         {
             Entity->StatusTickTimer += DeltaTime;
