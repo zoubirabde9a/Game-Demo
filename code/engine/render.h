@@ -82,6 +82,7 @@ enum shader_id
     Shader_RoundRect,     // small raised rounded part: bar, button, field, chip
     Shader_RoundOutline,  // the rim of a rounded part, for focus
     Shader_GroundCrack,   // broken ground a Launch or slam leaves, client/ground_cracks.cpp
+    Shader_WaterSurface,  // moving light on water, client/ground/water_surface.cpp
     Shader_Count
 };
 

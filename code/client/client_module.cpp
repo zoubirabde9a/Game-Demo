@@ -40,6 +40,7 @@
 #include "camera.cpp"
 #include "ground/ground_cells.cpp"
 #include "ground/pit_walls.cpp"
+#include "ground/water_surface.cpp"
 #include "draw_tilemap.cpp"
 #include "landmark_pointer.cpp"
 #include "threat_pointers.cpp"

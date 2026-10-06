@@ -75,7 +75,9 @@ BeginWorldPass(render_context *RenderContext, memory_arena *TransientArena,
     u32 ElevationBatches = ScreenRows * (2 * ELEVATION_MAX_STEPS + 1);
     u32 PropBatches = World->Unbounded ? 3 * ScreenTiles : 0;
     u32 BatchesCount = 6 * GroundTiles + ElevationBatches + PropBatches +
-        World->EntityCount * 2 + GROUND_CRACK_MAX;
+        World->EntityCount * 2 + GROUND_CRACK_MAX +
+        // NOTE(zoubir): the water surface: one batch, a quad per tile
+        GroundTiles + 1;
     SetupBatchRenderer(RenderContext, TransientArena, BatchesCount);
     RenderBegin(RenderContext, 6 * BatchesCount, RENDER_ORDER_BACK_TO_FRONT);
 }
@@ -332,6 +334,8 @@ DrawTerrainGround(render_context *RenderContext, app_state *AppState,
         }
     }
     EndBatch(RenderContext);
+    DrawWaterSurface(RenderContext, World, Map, &Grid, Visible.MinX, Visible.MinY,
+                     Visible.MaxX, LastY, CameraOffset);
 
     for(i32 TileY = Visible.MinY; TileY <= LastY; TileY++)
     {
