@@ -28,7 +28,7 @@
    counts as thrown by them too, so a kill down the chain is theirs. */
 
 // NOTE(zoubir): speed into the surface below which nothing happens; a
-// Push throws at 750, a run is 260
+// Push throws at 900, a run is 260
 #define IMPACT_MIN_SPEED 260.f
 // NOTE(zoubir): share of the speed into the other unit that it takes on
 // when both weigh the same. It scales with the thrown body's weight over
@@ -42,7 +42,7 @@
 #define IMPACT_WALL_DAMAGE 12.f
 #define IMPACT_WALL_STUN 0.9f
 // NOTE(zoubir): share of the speed into a wall that bounces back
-#define IMPACT_WALL_BOUNCE 0.35f
+#define IMPACT_WALL_BOUNCE 0.55f
 // NOTE(zoubir): share of a player's speed into a unit it walks into that
 // the unit takes on, counting that speed up to SHOULDER_MAX_SPEED at most:
 // a blink moves at its whole distance in one tick, 19200 a second, and

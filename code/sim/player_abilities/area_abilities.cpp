@@ -53,8 +53,14 @@ global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
     {PlayerButton_Shockwave, PlayerSpell_Shockwave, 4.f, 0.f, 120.f, -1.f, {40.f, 500.f, 0.f, 200.f, 0.f, SimBurst_Count},
      SimBurst_ShockwaveRing, SimBurst_Count},
     // NOTE(zoubir): Push (R): a quick wide cone that throws a crowd off
-    // the player and apart, out of each other's way
-    {PlayerButton_Push, PlayerSpell_Push, 2.5f, 0.f, 150.f, 0.34f, {10.f, 750.f, 0.f, 0.f, 0.3f, SimBurst_Count},
+    // the player and apart, out of each other's way. The lift keeps a
+    // body off the ground for about 0.4 s, where a stunned monster keeps
+    // most of its speed (THROWN_AIR_FRICTION): the lightest walker flies
+    // about 200 units, where a shove along the ground stopped it in 75. The
+    // stun outlasts the flight, so a wall it meets is a slam (impacts.cpp),
+    // and it walks back dazed, slowed until 1.6 s after the hit
+    {PlayerButton_Push, PlayerSpell_Push, 2.5f, 0.f, 150.f, 0.34f,
+     {10.f, 900.f, 220.f, 0.f, 0.6f, SimBurst_Count, StatusEffect_Slowed, 1.6f},
      SimBurst_PushCone, SimBurst_PushMark},
     // NOTE(zoubir): Launch (A): a ground burst at the aim that throws
     // everything in it into the air (88 units, almost a second under

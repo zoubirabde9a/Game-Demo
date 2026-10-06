@@ -814,6 +814,72 @@ TestPushThrowsCrowdApart()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a stunned monster's move: no steering, the drag the
+// game gives it (lighter in the air) and gravity, and its status clocks
+internal void
+Tumble(test_world *Test, world_entity *Entity, u32 Frames)
+{
+    for(u32 Frame = 0; Frame < Frames && Entity->IsPresent; Frame++)
+    {
+        v3 DDEntity = -10.f * GetGroundFriction(Entity) * Entity->Velocity;
+        DDEntity.Z = -1000.f;
+        float MaxDistance = 10000.f;
+        MoveEntity(Entity, Test->World, &Test->Arena, Test->Input.DeltaTime,
+                   Test->AppState, DDEntity, &MaxDistance);
+        CountDownStatusTimers(Entity, Test->Input.DeltaTime);
+    }
+}
+
+// NOTE(zoubir): Push throws a monster through the air, far past the
+// sword's reach, and it comes out of the stun slowed; one thrown into a
+// wall slams it, is hurt and bounces back off
+internal void
+TestPushThrowsFarAndOffWalls()
+{
+    for(u32 Walled = 0; Walled < 2; Walled++)
+    {
+        test_world Test = CreateTestWorld();
+        app_state *AppState = Test.AppState;
+        AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+        world_entity *Target = AddTestEntity(&Test, EntityType_Monster,
+                                             {360, 300, 0}, Test.UnitVolume);
+        Target->MonsterKind = FindWalkerByWeight(false);
+        Target->MaxHp = Target->Hp = 100.f;
+        if (Walled)
+        {
+            AddTestEntity(&Test, EntityType_StaticObject, {440, 300, 0},
+                          Test.WallVolume);
+        }
+        AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+        AppState->Players[0].Input.Pressed = PlayerButton_Push;
+        RunPlayerFrames(&Test, 0, 15);
+        Check(Target->Velocity.Z > 0.f);
+        float HpAfterPush = Target->Hp;
+        float Farthest = Target->Position.X;
+        float Back = 0.f;
+        for(u32 Frame = 0; Frame < 60; Frame++)
+        {
+            Tumble(&Test, Target, 1);
+            Farthest = Maximum(Farthest, Target->Position.X);
+            Back = Minimum(Back, Target->Velocity.X);
+        }
+        Check(!HasStatus(Target, StatusEffect_Stunned));
+        Check(HasStatus(Target, StatusEffect_Slowed));
+        if (Walled)
+        {
+            Check(Farthest + 15.f <= 424.f + 0.01f);
+            Check(Back < -100.f);
+            Check(Target->Hp < HpAfterPush);
+            Check(Target->Position.X < Farthest - 20.f);
+        }
+        else
+        {
+            Check(Target->Position.X > 360.f + 180.f);
+        }
+        DestroyTestWorld(&Test);
+    }
+}
+
 // NOTE(zoubir): Launch throws what stands at the aim into the air and
 // stuns it; a stunned monster stays still where it lands
 internal void
@@ -1893,6 +1959,8 @@ RunPlayerAbilityTests()
     TestJumpOverBoulderButNotWall();
     printf("TestPushThrowsCrowdApart\n");
     TestPushThrowsCrowdApart();
+    printf("TestPushThrowsFarAndOffWalls\n");
+    TestPushThrowsFarAndOffWalls();
     printf("TestLaunchThrowsUpAndStuns\n");
     TestLaunchThrowsUpAndStuns();
     printf("TestDashCutsAreaCast\n");
