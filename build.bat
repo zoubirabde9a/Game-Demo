@@ -34,5 +34,9 @@ REM The Windows platform layer
 cl %CommonCompilerFlags% ..\code\platform\win32_app.cpp -Fmwin32_app.map /link -subsystem:windows,5.02 %CommonLinkerFlags%
 if %errorlevel% neq 0 set Result=1
 
+REM The launcher players download: installs the game and keeps it on the server's build (deploy\publish_client.sh)
+cl %CommonCompilerFlags% ..\code\platform\launcher_app.cpp -Felauncher.exe -Fmlauncher.map /link -subsystem:windows,5.02 %CommonLinkerFlags% winhttp.lib bcrypt.lib ole32.lib shell32.lib
+if %errorlevel% neq 0 set Result=1
+
 popd
 exit /b %Result%

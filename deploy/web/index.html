@@ -1,0 +1,81 @@
+<!doctype html>
+<!-- The download page at game.sindansolutions.com. deploy/package_client.sh
+     ships it with each release; it links to the launcher, GameDemo.exe. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Demo</title>
+<meta name="description" content="An online 2D arena fighter for Windows. Download the launcher and play.">
+<style>
+  :root {
+    --bg: #16181d;
+    --panel: #1f2229;
+    --text: #eef0f3;
+    --muted: #a5abb6;
+    --gold: #e0b84a;
+    --gold-dark: #b8932f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 56px 16px 64px; }
+  h1 { font-size: 40px; line-height: 1.1; margin: 0 0 12px; letter-spacing: -0.5px; }
+  .lead { color: var(--muted); font-size: 18px; margin: 0 0 28px; max-width: 34em; }
+  .download {
+    display: inline-block;
+    background: var(--gold);
+    color: #1a1406;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 12px 22px;
+    border-radius: 6px;
+  }
+  .download:hover { background: var(--gold-dark); }
+  .meta { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+  img { display: block; width: 100%; border-radius: 6px; margin: 40px 0; }
+  h2 { font-size: 18px; margin: 36px 0 8px; }
+  ol, ul { padding-left: 20px; margin: 0; }
+  li { margin: 4px 0; }
+  .note { color: var(--muted); font-size: 14px; }
+  kbd {
+    background: var(--panel);
+    border: 1px solid #343843;
+    border-radius: 4px;
+    padding: 0 6px;
+    font: 13px/1.6 ui-monospace, Consolas, monospace;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Game Demo</h1>
+  <p class="lead">An online arena fighter. Sword, fireball, dash and shockwave against other players, with monsters roaming the map.</p>
+  <a class="download" href="GameDemo.exe">Download for Windows</a>
+  <p class="meta">Windows 10 or 11. The download is the launcher; it fetches the game (about 10 MB).</p>
+
+  <img src="https://i.ibb.co/VwQYmWv/1.jpg" alt="Players fighting in the arena">
+
+  <h2>Installing</h2>
+  <ol>
+    <li>Run <b>GameDemo.exe</b>. It installs the game in your user folder and adds a Game Demo shortcut to the desktop and Start menu.</li>
+    <li>The game opens and joins the server.</li>
+  </ol>
+  <p class="note">Windows may say it protected your PC, because the launcher is not signed yet. Click <b>More info</b>, then <b>Run anyway</b>.</p>
+
+  <h2>Updates</h2>
+  <p>Start the game from the shortcut. When we put out a new version, the launcher downloads it while you play and restarts the game on it, usually within 20 seconds.</p>
+
+  <h2>Controls</h2>
+  <ul>
+    <li><kbd>Z</kbd> <kbd>Q</kbd> <kbd>S</kbd> <kbd>D</kbd> move, <kbd>Space</kbd> jump, <kbd>Alt</kbd> dash</li>
+    <li>Left click: walk there, or fireball a monster or player</li>
+    <li>Right click: sword. <kbd>E</kbd>: shockwave. Hold <kbd>Tab</kbd>: scoreboard</li>
+  </ul>
+</main>
+</body>
+</html>

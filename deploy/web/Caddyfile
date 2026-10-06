@@ -1,0 +1,20 @@
+# The download site's file server: the game-demo-web container serves
+# /opt/game-demo/web (mounted at /srv) to the machine's shared Caddy,
+# which adds HTTPS for game.sindansolutions.com. Set up by
+# deploy/setup_downloads.sh; deploy/publish_client.sh fills the folder.
+:80 {
+	root * /srv
+
+	# Launchers ask for this every 10 seconds; it must never be cached.
+	@live path /manifest.txt /GameDemo.exe /index.html /
+	header @live Cache-Control "no-cache"
+
+	# Named by their hash, so a file here never changes.
+	@files path /files/*
+	header @files Cache-Control "public, max-age=31536000, immutable"
+
+	@launcher path /GameDemo.exe
+	header @launcher Content-Disposition "attachment; filename=GameDemo.exe"
+
+	file_server
+}

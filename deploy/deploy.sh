@@ -1,6 +1,10 @@
 #!/bin/bash
-# Ships the committed code to a Linux server and installs it there.
+# Ships the committed code to a Linux server and installs it there, then
+# publishes the Windows game built from the same commit, which every
+# running launcher switches to (deploy/publish_client.sh).
 #   deploy/deploy.sh user@host
+# The game builds with Visual Studio, so the client half runs only from
+# Git Bash on Windows; elsewhere only the server is deployed.
 # The user needs ssh access and sudo on the host. Only committed code is
 # sent (git archive HEAD), so what runs is always a known commit; the
 # release on the server is named after it. Works from Linux, macOS and
@@ -16,6 +20,14 @@ fi
 REV="$(git rev-parse --short HEAD)"
 NAME="$(date +%Y%m%d-%H%M%S)-$REV"
 DIR="/tmp/game-demo-$NAME"
+
+# Built first, so a game that does not compile stops the deploy before
+# the server changes.
+CLIENT=0
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) deploy/package_client.sh "$NAME"; CLIENT=1 ;;
+    *) echo "[deploy] note: not on Windows, so the game client is not built or published" ;;
+esac
 
 echo "[deploy] sending $REV to $TARGET"
 git archive --format=tar HEAD | ssh "$TARGET" "mkdir -p '$DIR' && tar -x -C '$DIR'"
@@ -46,4 +58,14 @@ for PROBE in build/probe build/probe.exe; do
     fi
 done
 [ "$CHECKED" = 1 ] || echo "[deploy] note: no outside check (build the probe with build_server, or the host is not an IPv4 address)"
+
+# The server is live and answering; now move the players onto the game
+# built from the same commit.
+if [ "$CLIENT" = 1 ]; then
+    if ssh "$TARGET" "test -d /opt/game-demo/web"; then
+        deploy/publish_client.sh "$TARGET"
+    else
+        echo "[deploy] note: no download site on $TARGET yet (deploy/setup_downloads.sh); the client was not published"
+    fi
+fi
 echo "[deploy] done: $NAME"
