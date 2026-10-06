@@ -289,15 +289,6 @@ UpdateFamiliar(world_entity *Entity, world *World,
         GetHoverBase(World, Entity);
     CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Entity);
     
-#if 0        
-    float DeltaZ = 0.5f * DDEntityZ * Square(DeltaTime) +
-        Entity->VelocityZ * DeltaTime;
-    Entity->VelocityZ = DDEntityZ * DeltaTime +
-        Entity->VelocityZ;
-    Entity->Z += DeltaZ * DeltaTime;
-    Entity->Z = Maximum(0.f, Entity->Z);
-#endif
-    
     float MaxDistanceFromFollowingEntity = 45.f;
     if (DDEntityLength > MaxDistanceFromFollowingEntity)
     {        

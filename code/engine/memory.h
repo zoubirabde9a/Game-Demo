@@ -99,13 +99,6 @@ BeginTemporaryMemory(memory_arena *Arena)
 inline void
 ZeroSize(void *Ptr, memory_index Size)
 {
-    #if 0
-    u8 *BytePtr = (u8 *)Ptr;
-    while(Size--)
-    {
-        *BytePtr++ = 0;
-    }
-    #endif
     memset(Ptr, 0, Size);
 }
 #define ZeroArray(Array, Count, Type) ZeroSize(Array, (Count) * sizeof(Type))

@@ -101,16 +101,4 @@ AppInitOpenGL(memory_arena *TransientArena, app_state *AppState,
     OpenGL->glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(render_vertex),
                                   (void*)OffsetOf(render_vertex, U));
     
-#if 0    
-    u32 TextureProgram = RenderContext->TextureProgram;
-    OpenGL->glUseProgram(TextureProgram);
-    OpenGL->glEnableVertexAttribArray(0);
-    OpenGL->glEnableVertexAttribArray(1);
-    OpenGL->glEnableVertexAttribArray(2);
-        
-    GLint textureUniform = OpenGL->glGetUniformLocation(TextureProgram, "textureSampler");
-    OpenGL->glUniform1i(textureUniform, 0);
-    glActiveTexture(GL_TEXTURE0);
-#endif
-    
 }

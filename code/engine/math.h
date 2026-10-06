@@ -132,30 +132,6 @@ operator*(v2 A, float B)
     return Result;
 }
 
-#if 0
-inline v2
-operator/(float A, v2 B)
-{
-    v2 Result;
-
-    Result.X = A / B.X;
-    Result.Y = A / B.Y;
-    
-    return Result;
-}
-
-inline v2
-operator/(v2 A, float B)
-{
-    v2 Result;
-
-    Result.X = B / A.X;
-    Result.Y = B / A.Y;
-    
-    return Result;
-}
-#endif
-
 inline v2
 operator*(v2 A, v2 B)
 {

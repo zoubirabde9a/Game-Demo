@@ -1,5 +1,6 @@
-/* Eviction: when asset memory runs short, the least recently used assets
-   are unloaded (their textures deleted) until it fits again. */
+/* Eviction: unloading an asset to free its memory (EvictAsset). Nothing
+   evicts yet: EvictAssetsAsNecessary is empty and GetLeastUsedAsset is a
+   stub. Fill them in if asset memory ever runs short. */
 
 internal void EvictAsset(open_gl *OpenGL, assets *Assets, u32 SlotIndex)
 {
@@ -28,19 +29,4 @@ inline u32 GetLeastUsedAsset(assets* Assets)
 
 internal void EvictAssetsAsNecessary(open_gl *OpenGL, assets *Assets)
 {
-    #if 0
-    while(Assets->TargetMemoryUsed < Assets->TotalMemoryUsed)
-    {
-        u32 SlotIndex = GetLeastUsedAsset(Assets);
-        if (SlotIndex)
-        {
-            EvictAsset(OpenGL, Assets, SlotIndex);
-        }
-        else
-        {
-            InvalidCodePath;
-            break;
-        }
-    }
-    #endif
 }

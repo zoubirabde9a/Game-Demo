@@ -20,23 +20,6 @@ struct ColorRGBA8
     };
 };
 
-#if 0
-struct zi_header
-{
-    u8 Channels;
-    int Width;
-    int Height;
-};
-
-struct gl_texture
-{
-    u32 ID;
-    u32 Width;
-    u32 Height;
-};
-#endif
-
-
 #define RGBA8_BLACK (0xFF000000)
 #define RGBA8_WHITE (0xFFFFFFFF)
 #define RGBA8_RED (0xFF0000FF)

@@ -60,42 +60,6 @@ Win32BuildExecutablePathFileName(win32_state *state, char *fileName,
                destLength, dest);
 }
 
-#if 0
-PLATFORM_READ_ENTIRE_FILE(PlatformReadEntireFile)
-{
-    read_file_result result = {};
-    HANDLE fileHandle = CreateFileA(fileName, GENERIC_READ,
-                                    FILE_SHARE_READ, 0,
-                                    OPEN_EXISTING, 0, 0);
-    if (fileHandle == INVALID_HANDLE_VALUE)
-        return result;
-
-    LARGE_INTEGER fileSize;
-    if (!GetFileSizeEx(fileHandle, &fileSize))
-        return result;
-
-    u32 fileSize32 = safeTruncateU32(fileSize.QuadPart);
-    result.memory = AllocateTransient(Thread, Memory, fileSize32);
-    if (!result.memory)
-        return result;
-
-    DWORD bytesRead;
-    if (ReadFile(fileHandle, result.memory, fileSize32, &bytesRead, 0) &&
-        bytesRead == fileSize32)
-    {
-        result.size = fileSize32;
-    }
-    else
-    {
-        DEBUGPlatformFreeFileMemory(thread, result.memory);
-        result.memory = 0;
-    }
-
-    CloseHandle(fileHandle);
-    return result;                               
-}
-#endif
-
 DEBUG_PLATFORM_FREE_FILE_MEMORY(DEBUGPlatformFreeFileMemory)
 {
     VirtualFree(memory, 0, MEM_RELEASE);

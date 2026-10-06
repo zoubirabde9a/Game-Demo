@@ -24,64 +24,6 @@ AddPlayer(app_state *AppState,
 
     
     Player->AnimationSet = &AppState->ZoubirAnimationSet;;
-#if 0        
-    animation_slot *MoveUpAnimation =
-        GetAnimation(PlayerAnimationSet,
-                     AnimationType_Move,
-                     AnimationDirection_Up);
-    MoveUpAnimation->FirstIndex = 244;
-    MoveUpAnimation->IndicesCount = 4;
-        
-    animation_slot *MoveDownAnimation =
-        GetAnimation(PlayerAnimationSet,
-                     AnimationType_Move,
-                     AnimationDirection_Down);
-    MoveDownAnimation->FirstIndex = 180;
-    MoveDownAnimation->IndicesCount = 4;
-        
-    animation_slot *MoveRightAnimation =
-        GetAnimation(PlayerAnimationSet,
-                     AnimationType_Move,
-                     AnimationDirection_Right);
-    MoveRightAnimation->FirstIndex = 212;
-    MoveRightAnimation->IndicesCount = 4;
-        
-    animation_slot *MoveLeftAnimation = 
-        GetAnimation(PlayerAnimationSet,
-                     AnimationType_Move,
-                     AnimationDirection_Left);
-    MoveLeftAnimation->FirstIndex = 212;
-    MoveLeftAnimation->IndicesCount = 4;
-    MoveLeftAnimation->Reversed = true;
-        
-    animation_slot *StandUpAnimation = 
-        GetAnimation(PlayerAnimationSet,
-                     AnimationType_Stand,
-                     AnimationDirection_Up);
-    StandUpAnimation->FirstIndex = 0;
-    StandUpAnimation->IndicesCount = 1;
-        
-    animation_slot *StandDownAnimation =
-        GetAnimation(PlayerAnimationSet,
-                     AnimationType_Stand,
-                     AnimationDirection_Down);
-    StandDownAnimation->FirstIndex = 12;
-    StandDownAnimation->IndicesCount = 1;
-        
-    animation_slot *StandRightAnimation =
-        GetAnimation(PlayerAnimationSet,
-                     AnimationType_Stand,
-                     AnimationDirection_Right);
-    StandRightAnimation->FirstIndex = 4;
-    StandRightAnimation->IndicesCount = 1;
-        
-    animation_slot *StandLeftAnimation =
-        GetAnimation(PlayerAnimationSet,
-                     AnimationType_Stand,
-                     AnimationDirection_Left);
-    StandLeftAnimation->FirstIndex = 8;
-    StandLeftAnimation->IndicesCount = 1;
-#endif
     return Player;
 }
 
@@ -116,14 +58,6 @@ AddSword(app_state *AppState,
         }
         AddCollisionRule(AppState, Arena, Entity->ID, Caster->ID, false);
     }
-        #if 0
-    animation_slot *SlashAnimation =
-        GetAnimation(AnimationSet,
-                     AnimationType_Stand,
-                     AnimationDirection_Right);
-    SlashAnimation->FirstIndex = 0;
-    SlashAnimation->IndicesCount = 3;
-    #endif
 
 //    AddCollisionRule();
     
@@ -291,35 +225,6 @@ AddFamiliar(app_state *AppState,
     Entity->FollowingEntity = Player;
     
     Entity->AnimationSet = &AppState->FamiliarAnimationSet;
-#if 0        
-    animation_slot *MoveRightAnimation =
-        GetAnimation(EntityAnimationSet,
-                     AnimationType_Move,
-                     AnimationDirection_Right);
-    MoveRightAnimation->FirstIndex = 0;
-    MoveRightAnimation->IndicesCount = 1;
-        
-    animation_slot *MoveLeftAnimation = 
-        GetAnimation(EntityAnimationSet,
-                     AnimationType_Move,
-                     AnimationDirection_Left);
-    MoveLeftAnimation->FirstIndex = 1;
-    MoveLeftAnimation->IndicesCount = 1;
-        
-    animation_slot *StandRightAnimation =
-        GetAnimation(EntityAnimationSet,
-                     AnimationType_Stand,
-                     AnimationDirection_Right);
-    StandRightAnimation->FirstIndex = 0;
-    StandRightAnimation->IndicesCount = 1;
-        
-    animation_slot *StandLeftAnimation =
-        GetAnimation(EntityAnimationSet,
-                     AnimationType_Stand,
-                     AnimationDirection_Left);
-    StandLeftAnimation->FirstIndex = 1;
-    StandLeftAnimation->IndicesCount = 1;
-    #endif
     return Entity;
 }
 

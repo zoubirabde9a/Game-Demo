@@ -48,17 +48,6 @@ DrawTilePickerWidget(ui_element *Widget, ui_context *UIContext)
     
     v4 SelectedTileRect = {};
     SelectedTileRect = State->SelectedRectangle;
-    #if 0
-    if (State->NumTilesX > 0)
-    {
-        SelectedTileRect.X = Widget->X + (float)State->TileWidth * 
-            (State->SelectedTileIndex % State->NumTilesX);
-        SelectedTileRect.Y = Widget->Y + (float)State->TileHeight * 
-            (State->SelectedTileIndex / State->NumTilesX);    
-        SelectedTileRect.Z = (float)State->TileWidth;
-        SelectedTileRect.W = (float)State->TileHeight;
-    }
-    #endif
     
     DrawRectangle(RenderContext, SelectedTileRect.X,
                   SelectedTileRect.Y,
@@ -127,24 +116,6 @@ DoTilePickerWidget(ui_state *State, app_state *AppState,
     if (IsPressed)
     {
         UIContext->SelectedState = State;
-
-#if 0        
-        u32 SelectedTileX = (u32)(RelativeX / State->TileWidth);
-        u32 SelectedTileY = (u32)(RelativeY / State->TileHeight);
-        
-        State->SelectedTileIndex = SelectedTileX +
-            (State->NumTilesY - SelectedTileY - 1) *
-            State->NumTilesX;
-
-        float ClickPosX = (float)(SelectedTileX * State->TileWidth);
-        float ClickPosY = (float)(SelectedTileY * State->TileHeight);
-
-        v4 *SelectedRectangle = &State->SelectedRectangle;
-        SelectedRectangle->X = X + ClickPosX;
-        SelectedRectangle->Y = Y + ClickPosY;
-        SelectedRectangle->Z = (float)TileWidth;
-        SelectedRectangle->W = (float)TileHeight;
-#endif
     }
     
     if (MouseIsPressed && IsHighlighted)

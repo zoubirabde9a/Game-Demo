@@ -234,14 +234,6 @@ RenderText(render_context *RenderContext, float X, float Y,
                                 DrawRect.Z, DrawRect.W,
                                 UX, UY, TW, TH, Color, 1.f);
                 }
-                #if 0
-                if (DrawRect.Z > 0 && DrawRect.W > 0)
-                {
-                    RenderGlyph(RenderContext, DrawRect.X, DrawRect.Y,
-                                DrawRect.Z, DrawRect.W,
-                                UX, UY, TW, TH, RGBA8_WHITE, 1.f);
-                }
-                #endif
             }
             ++Text;
         }
@@ -260,13 +252,8 @@ RenderText(render_context *RenderContext, float X, float Y,
     float TextWidth = GetTextWidth(Font, Text);
     float FontHeight = Font->UpperLimit + Font->LowerLimit;
     Y += 0.5f * (Height + FontHeight);
-    #if 0
-    float ScaleX = Width / TextWidth;
-    float ScaleY = Height / FontHeight;
-    #else
     float ScaleX = 1.f;
     float ScaleY = 1.f;
-    #endif
     
     if (ScaleX > 1.f)
     {

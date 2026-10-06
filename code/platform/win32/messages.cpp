@@ -137,12 +137,6 @@ Win32MessageLoop(win32_state *state,
 #if APP_DEV
                     else if (vKCode == 'P')
                     {
-                        #if 0
-                        if (isDown)
-                        {
-                            GlobalPause = !GlobalPause;
-                        }
-                        #endif
                     }
                     else if (vKCode == VK_F2)
                     {
