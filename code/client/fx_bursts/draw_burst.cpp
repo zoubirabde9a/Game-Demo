@@ -96,6 +96,12 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
 
         case BurstShape_Spark:
         {
+            // NOTE(zoubir): a flash of light where it struck, under the sparks
+            float Flash = 2.6f * Area.Radius;
+            DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 0.5f * Flash,
+                           Centre.Y - 0.5f * Flash, Flash, Flash,
+                           FxColor(0.9f * (1.f - T) * (1.f - T), Look->RGB),
+                           RenderBlend_Additive);
             for(u32 Dot = 0; Dot < 8; Dot++)
             {
                 float Angle = 2.f * Pi32 * (Dot + 0.3f * BurstJitter(Dot, 7)) / 8.f;
@@ -152,6 +158,16 @@ DrawBurst(render_context *RenderContext, fx_burst *Burst, v3 CameraOffset)
 
         case BurstShape_Death:
         {
+            // NOTE(zoubir): the body goes out in a burst of light that fades
+            // over the first half
+            float Light = Clamp01(1.f - 2.f * T);
+            if (Light > 0.f)
+            {
+                float Flash = 4.f * Area.Radius * (0.7f + 0.3f * EaseOut);
+                DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 0.5f * Flash,
+                               Centre.Y - 22.f - 0.5f * Flash, Flash, Flash,
+                               FxColor(Light, Look->RGB), RenderBlend_Additive);
+            }
             // NOTE(zoubir): a bright core for the first moment
             if (T < 0.25f)
             {
