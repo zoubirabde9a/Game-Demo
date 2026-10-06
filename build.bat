@@ -26,16 +26,24 @@ REM Packs art and sound into asset_1.zas
 cl %CommonCompilerFlags% ..\code\tools\test_asset_builder.cpp /link %CommonLinkerFlags%
 if %errorlevel% neq 0 set Result=1
 
+REM Draws data\icon\game.ico; run it by hand after changing the icon (see its top comment)
+cl %CommonCompilerFlags% ..\code\tools\icon_builder.cpp /link %CommonLinkerFlags%
+if %errorlevel% neq 0 set Result=1
+
+REM The game's icon (data\icon\game.ico), linked into win32_app.exe and launcher.exe
+rc -nologo -fo game.res ..\code\platform\game.rc
+if %errorlevel% neq 0 set Result=1
+
 REM The game, hot-reloaded by win32_app.exe; a fresh pdb name lets it rebuild while running
 cl %CommonCompilerFlags% ..\code\app.cpp -Fmapp.map -LD /link -incremental:no -PDB:app%random%.pdb -opt:ref -subsystem:windows,5.02 -EXPORT:AppGetSoundSamples -EXPORT:AppUpdateAndRender OpenGL32.lib
 if %errorlevel% neq 0 set Result=1
 
 REM The Windows platform layer
-cl %CommonCompilerFlags% ..\code\platform\win32_app.cpp -Fmwin32_app.map /link -subsystem:windows,5.02 %CommonLinkerFlags%
+cl %CommonCompilerFlags% ..\code\platform\win32_app.cpp -Fmwin32_app.map game.res /link -subsystem:windows,5.02 %CommonLinkerFlags%
 if %errorlevel% neq 0 set Result=1
 
 REM The launcher players download: installs the game and keeps it on the server's build (deploy\publish_client.sh)
-cl %CommonCompilerFlags% ..\code\platform\launcher_app.cpp -Felauncher.exe -Fmlauncher.map /link -subsystem:windows,5.02 %CommonLinkerFlags% winhttp.lib bcrypt.lib ole32.lib shell32.lib
+cl %CommonCompilerFlags% ..\code\platform\launcher_app.cpp -Felauncher.exe -Fmlauncher.map game.res /link -subsystem:windows,5.02 %CommonLinkerFlags% winhttp.lib bcrypt.lib ole32.lib shell32.lib
 if %errorlevel% neq 0 set Result=1
 
 popd

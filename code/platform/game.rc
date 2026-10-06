@@ -1,0 +1,5 @@
+// The Windows resources linked into win32_app.exe and launcher.exe: the
+// game's icon, shown in Explorer, on the taskbar and in the title bar.
+// data/icon/game.ico is drawn by code/tools/icon_builder.cpp. build.bat
+// compiles this into build/game.res; the windows load the icon as 1.
+1 ICON "../../data/icon/game.ico"

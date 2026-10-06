@@ -43,6 +43,9 @@ Win32CreateMainWindow(HINSTANCE instance)
     WindowClass.hInstance = instance;
 
     WindowClass.hCursor = LoadCursor(0, IDC_ARROW);
+    // NOTE(zoubir): icon 1 in code/platform/game.rc; Windows takes the
+    // title bar's small icon from the same resource
+    WindowClass.hIcon = LoadIconA(instance, MAKEINTRESOURCEA(1));
     WindowClass.lpszClassName = "Some Name";
 
     if (!RegisterClass(&WindowClass))

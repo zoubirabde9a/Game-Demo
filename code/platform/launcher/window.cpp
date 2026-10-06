@@ -147,7 +147,8 @@ CreateLauncherWindow(HINSTANCE Instance, launcher_status *Status)
     Class.lpfnWndProc = LauncherWindowProc;
     Class.hInstance = Instance;
     Class.hCursor = LoadCursor(0, IDC_ARROW);
-    Class.hIcon = LoadIcon(0, IDI_APPLICATION);
+    // NOTE(zoubir): the game's icon, 1 in code/platform/game.rc
+    Class.hIcon = LoadIconW(Instance, MAKEINTRESOURCEW(1));
     Class.lpszClassName = L"GameDemoLauncher";
     RegisterClassW(&Class);
 

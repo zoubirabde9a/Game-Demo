@@ -30,3 +30,5 @@ build/gcc_works.*
 web/shaders/fx/
 build/client_src/
 build/client_package/
+# build.bat compiles code/platform/game.rc into this
+build/*.res
