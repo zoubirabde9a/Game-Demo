@@ -150,6 +150,18 @@ DrawTileEntity(render_context *RenderContext,
 #define FOE_MARKER_COLOR UI_RGBA(235, 70, 60, 120)
 // NOTE(zoubir): the outline around players and monsters (DrawEntity)
 #define UNIT_OUTLINE_COLOR 0x9A000000
+// NOTE(zoubir): the borrowed shadow under monsters and props (DrawEntity):
+// its width as a share of the sprite's, and how dark next to a player's
+#define MONSTER_SHADOW_WIDTH 0.5f
+#define MONSTER_SHADOW_ALPHA 0.85f
+#define PROP_SHADOW_WIDTH 1.0f
+#define TREE_SHADOW_WIDTH 0.7f
+#define PROP_SHADOW_ALPHA 0.55f
+// NOTE(zoubir): a prop's shadow falls down and right of its feet, as if lit
+// from the top left, so it shows past a box-shaped prop (crate, log) that
+// would otherwise cover it; a share of the shadow's width
+#define PROP_SHADOW_SHIFT_X 0.14f
+#define PROP_SHADOW_SHIFT_Y 0.06f
 
 internal void
 DrawSelfMarker(render_context *RenderContext, v2 Feet, float SortingValue,
@@ -311,13 +323,34 @@ DrawEntity(render_context *RenderContext,
             
     loaded_texture *ShadowTexture = 0;
     zas_texture_info *ShadowTextureInfo = 0;
-    if (Entity->ShadowTexture.Type)
+    // NOTE(zoubir): monsters and props have no shadow of their own; they
+    // get the players' blob, sized to their sprite, so nothing looks pasted
+    // on the ground
+    asset_id ShadowAsset = Entity->ShadowTexture;
+    float ShadowWidth = 28.f;
+    float ShadowAlpha = 1.f;
+    v2 ShadowShift = {};
+    if (!ShadowAsset.Type && Entity->Texture.Type &&
+        (Entity->Type == EntityType_Monster || Entity->Type == EntityType_StaticObject))
     {
-        ShadowTexture = GetTexture(Assets, OpenGL, AppState, Entity->ShadowTexture);
-        ShadowTextureInfo = &GetAssetInfo(Assets, Entity->ShadowTexture)->Texture;
+        ShadowAsset = {AssetType_Shadow};
+        ShadowWidth = Entity->Dimensions.X * MONSTER_SHADOW_WIDTH;
+        ShadowAlpha = MONSTER_SHADOW_ALPHA;
+        if (Entity->Type == EntityType_StaticObject)
+        {
+            ShadowWidth = Entity->Dimensions.X *
+                (Entity->Texture.Type == AssetType_Tree ? TREE_SHADOW_WIDTH : PROP_SHADOW_WIDTH);
+            ShadowAlpha = PROP_SHADOW_ALPHA;
+            ShadowShift = V2(PROP_SHADOW_SHIFT_X, PROP_SHADOW_SHIFT_Y) * ShadowWidth;
+        }
+    }
+    if (ShadowAsset.Type)
+    {
+        ShadowTexture = GetTexture(Assets, OpenGL, AppState, ShadowAsset);
+        ShadowTextureInfo = &GetAssetInfo(Assets, ShadowAsset)->Texture;
         
         // NOTE(zoubir): it spreads and narrows with the body's squash
-        v2 ShadowDims = {28.f * Pose.Scale.X, 14.f};
+        v2 ShadowDims = {ShadowWidth * Pose.Scale.X, 0.5f * ShadowWidth};
         ColorRGBA8 ShadowColor;
         ShadowColor.ColorU32 = RGBA8_WHITE;
         // NOTE(zoubir): the shadow lies on the ground under the entity,
@@ -337,9 +370,11 @@ DrawEntity(render_context *RenderContext,
             ShadowColor.A = 0;
             ShadowDims = {};
         }
+        ShadowColor.A = (u8)(ShadowColor.A * ShadowAlpha);
         v2 ShadowPosition = EntityCameraPosition -
             ShadowTextureInfo->Origin * ShadowDims;
         ShadowPosition.Y -= GroundZ;
+        ShadowPosition += ShadowShift;
     
         if (Entity->Type == EntityType_Player)
         {

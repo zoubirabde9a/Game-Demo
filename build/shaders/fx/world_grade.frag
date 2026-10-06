@@ -1,8 +1,10 @@
 // World grade: the post-process every frame's world goes through when no
 // time rewind is bending it (client/world_grade.cpp). Reads the world,
 // drawn into a texture this frame, and puts it on the window with:
-//   glow:  bright pixels (fire, lava, magic, flashes) bleed a soft light
-//          over their neighbours, sampled on two rings around the pixel
+//   glow:  bright coloured pixels (fire, lava, magic, flashes) bleed a soft
+//          light over their neighbours, sampled on two rings around the
+//          pixel; pale ground (snow, sand) does not
+//   shoulder: highlights past 0.8 roll off instead of clipping
 //   grade: a gentle S-curve for contrast, a little more saturation, cool
 //          shadows and warm highlights, so the ground stops looking flat
 //   dither: under one step of 8-bit noise, so the vignette and the glow
@@ -25,11 +27,16 @@ vec3 World(vec2 Pixel)
 
 // NOTE(zoubir): how much of a pixel is bright enough to glow: the
 // brightest channel past a soft knee, so a saturated orange glows as
-// much as a white of the same peak
+// much as a white of the same peak. Pale pixels (snow, sand, stone) need
+// a far higher peak, so only coloured light (fire, lava, magic) and true
+// flashes glow and a snowfield keeps its detail
 vec3 Bright(vec3 C)
 {
     float Peak = max(C.r, max(C.g, C.b));
-    float Over = smoothstep(0.70, 0.98, Peak);
+    float Low = min(C.r, min(C.g, C.b));
+    float Saturation = (Peak - Low) / max(Peak, 0.001);
+    float Knee = mix(0.97, 0.70, smoothstep(0.12, 0.45, Saturation));
+    float Over = smoothstep(Knee, Knee + 0.28, Peak);
     return C * Over;
 }
 
@@ -66,6 +73,11 @@ void main()
     Graded += vec3(-0.012, 0.000, 0.022) * (1.0 - Luma) * (1.0 - Luma);
     Graded += vec3(0.022, 0.010, -0.014) * Luma * Luma;
     C = mix(C, Graded, Grade);
+
+    // NOTE(zoubir): a soft shoulder past 0.8, so snow and lit stone roll
+    // off toward white instead of clipping flat
+    vec3 Over = max(C - 0.8, 0.0);
+    C = min(C, 0.8) + Over / (1.0 + Over * 2.5);
 
     C += (Hash(Pixel + fract(Time) * 61.0) - 0.5) / 255.0;
     FragColor = vec4(C, 1.0);
