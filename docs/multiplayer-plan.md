@@ -36,7 +36,7 @@ Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot car
 
 ## Next
 
-- [ ] Redeploy vps-eu. It runs an older protocol than main (now GDMP) and ignores current builds, which show it as "not answering". Builds from GDMM on answer older and newer ones with the version notice. Needs the user's go-ahead.
+- [x] Redeploy vps-eu: done 2026-10-06 (release 20261006-081044-c566456), together with the first launcher build at https://game.sindansolutions.com. From now on every `deploy/deploy.sh vps-eu` from Windows also moves players onto the new game build.
 - [ ] Give the live server a DNS name and put it in `client/server_list.cpp`, so it can move without a game update.
 - [ ] Draw the kill feed (`AppState->KillFeed`); the UI agent has it.
 - [ ] Split `app_state` into a simulation part and a client part, so the server no longer sees client types. `app.h` changes often; agree it with the other agents first.
