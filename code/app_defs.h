@@ -1,10 +1,9 @@
 #if !defined(APP_DEFS_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Base definitions: the fixed-size integer types (i8 to u64, bool32),
+   internal, local_persist and global_variable, Assert and InvalidCodePath
+   (they crash in APP_DEV builds and compile to nothing otherwise), the
+   Kilobytes to Terabytes size macros, ArrayCount, Align4/8/16 and
+   OffsetOf. */
 
 #define APP_DEFS_H
 

@@ -1,10 +1,8 @@
 #if !defined(RANDOM_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Random numbers: a fixed table of numbers walked by an index, so the
+   same seed always gives the same sequence. Seed makes a random_series;
+   NextRandomNumberU32, RandomUnilateral (0 to 1), RandomBilateral (-1 to
+   1) and RandomBetween (float or integer, both ends included) read it. */
 
 #define RANDOM_H
 

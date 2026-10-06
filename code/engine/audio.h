@@ -1,10 +1,8 @@
 #if !defined(AUDIO_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Audio state: playing_sound is one sound being mixed (its volume fade
+   and playback position), and audio_state is the list of up to 64
+   playing sounds plus the master volume. The mixer that uses them is in
+   audio.cpp. */
 
 #define AUDIO_H
 

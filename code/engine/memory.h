@@ -1,10 +1,10 @@
 #if !defined(MEMORY_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Memory: arenas carved out of the memory the platform reserves at
+   startup. AllocateSize, AllocateStruct and AllocateArray take the next
+   aligned bytes and assert when the arena is full; there is no free.
+   BeginTemporaryMemory and EndTemporaryMemory roll an arena back and zero
+   what was released, and SubArena carves one arena out of another. Also
+   ZeroSize, and CopyString, which always null-terminates. */
 
 #define MEMORY_H
 

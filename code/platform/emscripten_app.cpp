@@ -1,9 +1,8 @@
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: zoubir $
-   ======================================================================== */
+/* Web platform: the browser build's entry point, compiled with emscripten
+   and SDL. It supplies the file, memory and work-queue calls the game
+   expects from a platform, maps SDL keys and mouse buttons to app_input,
+   and main creates the window and GL context, then hands MainLoop to
+   emscripten_set_main_loop. The whole game comes in through app.cpp. */
 #include "../third_party/SDL/SDL.h"
 //#undef main
 #include <emscripten\emscripten.h>

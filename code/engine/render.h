@@ -1,10 +1,9 @@
 #if !defined(RENDER_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Render types: the vertex, batch, shader program and render_context
+   that every draw goes through, plus the RGBA8 color helpers. shader_id
+   lists every shader the game draws with; a new effect needs a row in
+   ShaderDefs, a line here and its .frag file. The functions live in
+   render.cpp and the files it includes. */
 
 struct app_memory;
 

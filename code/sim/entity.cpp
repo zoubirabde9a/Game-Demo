@@ -1,9 +1,8 @@
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: zoubir $
-   ======================================================================== */
+/* Entities: animation playback (AddAnimation, AdvanceAnimation,
+   GetAnimationUvs), entity flags, collision volumes, and the checks for
+   dodging and jumping clear of shots. DamageEntity applies a hit, skips
+   targets that are dead, dodging or frozen by a rewind, and credits the
+   kill to the player behind it. */
 #include "entity.h"
 
 inline animation_slot *

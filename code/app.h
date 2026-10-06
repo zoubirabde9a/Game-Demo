@@ -1,10 +1,10 @@
 #if !defined(APP_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* App state: app_state, everything the game keeps between frames (arenas,
+   world, players, assets, audio, collision tables, animation sets), and
+   transient_state for scratch memory. Also the collision rule calls
+   (SetCollision, CanCollide, AddCollisionRule) and the global Platform
+   table of platform services. A new client feature adds its pointer in
+   client/client_fields.inc, not here. */
 /*
   //NOTE(soubir):
   APP_SLOW:

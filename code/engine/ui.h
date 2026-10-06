@@ -1,10 +1,8 @@
 #if !defined(UI_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* UI types: the font_set of fonts by job, and the elements, per-widget
+   state and ui_context the immediate-mode widgets in ui.cpp work on. A
+   ui_state holds one widget's data (edit box, button or tile picker) in
+   a union, so read only the part that matches its element's type. */
 
 #define UI_H
 

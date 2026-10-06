@@ -1,10 +1,7 @@
 #if !defined(UTILITY_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Utility types: the texture cache and its slots, used by utility.cpp.
+   A slot is empty or holds a texture; the tomb state is for a removal
+   that does not exist yet, and inserts reuse a tomb slot. */
 
 #define UTILITY_H
 

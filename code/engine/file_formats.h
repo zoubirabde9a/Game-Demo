@@ -1,10 +1,10 @@
 #if !defined(FILE_FORMATS_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Pack file format: the on-disk layout of a .zas asset pack, packed with
+   no padding. A zas_header (magic "zasf", version, asset count) points to
+   an array of zas_asset_type_slot, one index range per asset type, and an
+   array of zas_asset_info, one per asset, giving its family, where its
+   data starts and its texture or audio details. Changing these structs
+   means rebuilding the pack. */
 
 #define FILE_FORMATS_H
 #define ZAS_CODE(a, b, c, d) (((u32)(a) << 0) | ((u32)(b) << 8) | ((u32)(c) << 16) | ((u32)(d) << 24))

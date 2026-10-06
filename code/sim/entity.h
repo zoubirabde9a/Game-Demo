@@ -1,10 +1,9 @@
 #if !defined(ENTITY_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Entities: world_entity, what every unit in the world holds (players,
+   monsters, projectiles, hazards, scenery), with its animations,
+   collision volumes, type, flags and state. Also the shared movement and
+   sword-reach constants; monster walk acceleration is tuned per 1/60 s
+   step (ACCELERATION_STEP), not per frame. */
 #define ENTITY_H
 
 struct world;

@@ -1,10 +1,9 @@
 #if !defined(OPENGL_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* OpenGL declarations: the GL types, the GL_ constants the renderer uses
+   (each guarded in case a system header defined it already) and a
+   typedef per GL call. open_gl holds one function pointer per call, and
+   the platform layer fills them at startup, so a new GL call needs its
+   typedef, a field in open_gl and a line in each platform's loader. */
 
 #define OPENGL_H
 #include <stddef.h>

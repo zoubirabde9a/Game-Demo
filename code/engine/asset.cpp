@@ -1,17 +1,9 @@
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: zoubir $
-   ======================================================================== */
-
-#include "asset.h"
-
 /* Assets: textures and sounds from the .zas pack (asset.h), loaded on
    worker threads and uploaded on the main thread. The calls the game
    makes are here: GetTexture and GetAudio (which start a load when the
    asset is not in memory yet), LoadOpenglTexturesFromQueue (each frame)
    and InitializeAssets (at startup). */
+#include "asset.h"
 
 #include "asset/memory_and_upload.cpp"
 #include "asset/load.cpp"

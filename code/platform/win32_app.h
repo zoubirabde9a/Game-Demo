@@ -1,10 +1,8 @@
 #if !defined(WIN32_APP_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Windows platform types: sound output, window size, the hot-reloaded
+   game DLL, input recording and replay (win32_state), and
+   win32_frame_loop, everything one frame needs. Frames run from WinMain's
+   loop and from a timer while the window is dragged or resized. */
 struct win32_sound_output
 {
     int samplesPerSecond;

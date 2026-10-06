@@ -1,10 +1,10 @@
 #if !defined(MATH_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Math: v2, v3 and v4 vectors with their operators, mat4 with the
+   ortho, perspective, scale and translation matrices, scalar helpers
+   (Square, SquareRoot, Lerp, Minimum, Maximum, Absolute), dot products
+   and lengths, and rectangle2 and rectangle3 boxes with
+   RectanglesIntersect. Minimum, Maximum and Absolute are macros, so they
+   evaluate an argument more than once. */
 
 #define MATH_H
 #include "intrinsics.h"

@@ -1,9 +1,8 @@
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: zoubir $
-   ======================================================================== */
+/* Utility: small helpers (IsMouseOnRectangle, CompareStrings, HashString)
+   and the texture cache, a fixed-size hash table from a name to a loaded
+   texture. TextureCacheCreate sizes it once, TextureCacheInsert adds and
+   TextureCacheGet or AcquireTexture look up; a missing name gives an
+   empty texture. The cache never grows, so size it for every texture. */
 #include "utility.h"
 
 inline bool32

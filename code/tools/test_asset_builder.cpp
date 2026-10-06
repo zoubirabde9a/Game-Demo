@@ -1,9 +1,8 @@
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: zoubir $
-   ======================================================================== */
+/* Asset builder: a command-line tool that packs the game's textures and
+   sounds into asset_1.zas. It loads PNGs with stb_image and WAV files by
+   hand, groups them by asset type (BeginAssetType, AddTextureAsset,
+   AddAudioAsset, EndAssetType), then writes the header and data. The
+   asset list is hard-coded in main. */
 
 #include <stdio.h>
 #include <stdlib.h>

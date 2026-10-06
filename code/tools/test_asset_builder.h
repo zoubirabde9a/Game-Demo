@@ -1,10 +1,7 @@
 #if !defined(TEST_ASSET_BUILDER_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Asset builder types: assets_builder, the arena and per-type slots the
+   builder fills, and file_asset_info, one source file with its tags,
+   origin and tile grid. */
 
 #define TEST_ASSET_BUILDER_H
 

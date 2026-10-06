@@ -1,10 +1,9 @@
 #if !defined(ASSET_TYPE_ID_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Asset type ids: one entry per kind of asset. Types before
+   AssetType_PackCount are stored in asset_1.zas; the ones after it are
+   drawn by code at startup and never read from the pack, so a new packed
+   type goes above that line. asset_family says whether an asset is a
+   texture or a sound. */
 
 #define ASSET_TYPE_ID_H
 enum asset_type_id

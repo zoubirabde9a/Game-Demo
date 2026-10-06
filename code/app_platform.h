@@ -1,10 +1,10 @@
 #if !defined(APP_PLATFORM_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Platform interface: the contract between the platform layer
+   (code/platform) and the game. It picks the compiler and SIMD headers,
+   then defines the input, window and sound buffer structs, platform_api
+   (file, memory and worker queue calls), app_memory (two blocks the
+   platform must hand over zeroed) and the two calls the platform makes
+   each frame, APP_UPDATE_AND_RENDER and APP_GET_SOUND_SAMPLES. */
 
 #define APP_PLATFORM_H
 

@@ -1,10 +1,10 @@
 #if !defined(INTRINSICS_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Intrinsics: float rounding and truncation (RoundFloatToI32,
+   FloorFloatToU32, CeilFloatToUInt32 and the like), Sin, Cos, Tan and
+   ATan2 over the C math library, and, once per compiler (MSVC, GCC,
+   Emscripten), AtomicCompareExchangeU32 and the write barrier
+   CompletePreviousWritesBeforeFutureWrites that the asset loader and the
+   work queue rely on. */
 
 #define INTRINSICS_H
 #include <math.h>

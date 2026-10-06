@@ -1,10 +1,6 @@
 #if !defined(UI_IDS_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* UI ids: the fixed widget ids for the old test buttons and edit boxes.
+   UI_COUNT sizes the UI context at startup. */
 
 #define UI_IDS_H
 

@@ -1,9 +1,8 @@
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: zoubir $
-   ======================================================================== */
+/* Windows OpenGL setup: Win32LoadOpenglFunctions fills open_gl with
+   function pointers from wglGetProcAddress, falling back to
+   opengl32.dll. Win32LoadWGLExtensions makes a throwaway window to fetch
+   the WGL extension calls, and Win32SetPixelFormat picks the window's
+   pixel format, with sRGB when the driver supports it. */
 
 #include "windows.h"
 #include "../engine/opengl.h"

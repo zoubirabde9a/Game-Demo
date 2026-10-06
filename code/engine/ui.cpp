@@ -1,15 +1,8 @@
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: zoubir $
-   ======================================================================== */
-#include "ui.h"
-
 /* Immediate-mode widgets. Each frame: UIBegin, then Do* calls (buttons,
    edit boxes, the tile picker) that handle input at once and
    queue an element, then UIEnd, which draws every queued element and
    flushes the pass. */
+#include "ui.h"
 
 #include "ui/context.cpp"
 #include "ui/fonts.cpp"

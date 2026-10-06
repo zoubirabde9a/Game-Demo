@@ -1,10 +1,9 @@
 #if !defined(ASSETS_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* Asset types: the in-memory side of the .zas asset pack. assets holds
+   the pack's type table, the info for each asset and each asset's load
+   state (Unloaded, Queued, Loaded, Locked); an asset_id is a type plus an
+   index within that type. opengl_texture_queue carries decoded textures
+   from load threads to the main thread, which uploads them to OpenGL. */
 
 #define ASSETS_H
 #include "asset_type_id.h"

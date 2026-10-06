@@ -1,9 +1,9 @@
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: zoubir $
-   ======================================================================== */
+/* Audio: the sound mixer. PlaySound starts a sound at full volume, or
+   returns 0 when its audio is not loaded yet (GetAudio starts the load).
+   ChangeVolume fades to a new volume over a set time and ChangePitch sets
+   the playback rate. OutputAudio mixes every playing sound with SSE, four
+   samples at a time (the buffer's sample count must be a multiple of 4),
+   and drops sounds that finished. It reads only a sound's first channel. */
 #include "audio.h"
 
 internal void

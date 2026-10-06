@@ -1,9 +1,9 @@
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: zoubir $
-   ======================================================================== */
+/* OpenGL setup: BuildProgram compiles a vertex and a fragment shader and
+   links them, binding attributes to locations 0, 1, 2 in order, and
+   returns 0 with the driver's message in Error on failure.
+   AppInitOpenGL runs once at startup: it turns on alpha blending, loads
+   the shader library and creates the vertex array and buffer laid out as
+   render_vertex (position, color, UV). */
 // NOTE(zoubir): compiles one stage from Count source strings (a prelude
 // and the file); false with the driver's message in Error when it fails
 internal bool32
