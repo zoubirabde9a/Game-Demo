@@ -475,8 +475,11 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     // its prediction replays from the snapshot's
     u32 StaggersCompared = 0, StaggersOff = 0, ServerStaggered = 0, ClientStaggered = 0;
     u32 DashPresses = 0, DashesSeenAtOnce = 0;
-    // NOTE(zoubir): a press a moment after the dash is ready again
+    // NOTE(zoubir): a press a moment after the dash is ready again, held
+    // back while the watcher is dead or held so the bots killing it does
+    // not use up the presses
     int DashEvery = (int)(PlayerMovements[PlayerMove_Dash].Cooldown * SERVER_TICK_RATE) + 10;
+    int LastDashFrame = -DashEvery;
     u32 JumpPresses = 0, JumpsSeenAtOnce = 0;
     // NOTE(zoubir): the last hit (sim/hit.cpp): units hit lately on each
     // side, and of those on both, how many disagree on the hit's angle,
@@ -492,7 +495,15 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     {
         // The watcher dashes and shields now and then, so its cooldown
         // bars have something to show.
-        Input.AltButton.EndedDown = (Frame % DashEvery) < 2;
+        world_entity *Before = Client->Players[Client->LocalPlayerIndex].Entity;
+        if (Frame - LastDashFrame >= DashEvery && IsOnline(Online) &&
+            Online->Replicas.Active && Before && Before->IsPresent &&
+            !IsDeadPlayer(Before) && !IsLocalPlayerTimeLocked(Client) &&
+            !HasStatus(Before, StatusEffect_Stunned))
+        {
+            LastDashFrame = Frame;
+        }
+        Input.AltButton.EndedDown = (Frame - LastDashFrame) < 2;
         Input.ButtonE.EndedDown = (Frame % 300) < 2;
         // NOTE(zoubir): and jumps, so its own jump arc can be compared
         Input.SpaceButton.EndedDown = (Frame % 120) == 45;
@@ -513,7 +524,7 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
             ++JumpPresses;
             JumpsSeenAtOnce += Own->Velocity.Z > 0.f ? 1 : 0;
         }
-        if ((Frame % DashEvery) == 0 && IsOnline(Online) && Online->Replicas.Active &&
+        if (Frame == LastDashFrame && IsOnline(Online) && Online->Replicas.Active &&
             Own && Own->IsPresent && !IsDeadPlayer(Own) && !Held)
         {
             ++DashPresses;
