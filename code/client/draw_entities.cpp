@@ -163,14 +163,18 @@ DrawTileEntity(render_context *RenderContext,
 internal float GetFxClock(app_state *AppState);
 
 // NOTE(zoubir): a gold ring on the ground under the local player, so it
-// finds itself at a glance in a crowd of look-alike players. Drawn with
-// the ring shader on a flat quad (an ellipse), sorted just under the
+// finds itself at a glance in a crowd of look-alike players, and a fainter
+// red one under every other player: in the duel rules each is a foe. Drawn
+// with the ring shader on a flat quad (an ellipse), sorted just under the
 // shadow, so every sprite covers it
 #define SELF_MARKER_WIDTH 44.f
 #define SELF_MARKER_HEIGHT 22.f
+#define SELF_MARKER_COLOR UI_RGBA(240, 200, 48, 190)
+#define FOE_MARKER_COLOR UI_RGBA(235, 70, 60, 120)
 
 internal void
-DrawSelfMarker(render_context *RenderContext, v2 Feet, float SortingValue)
+DrawSelfMarker(render_context *RenderContext, v2 Feet, float SortingValue,
+               u32 Color)
 {
     render_program Program = RenderContext->Programs[Shader_Ring];
     if (Program.ID == RenderContext->TextureProgram.ID)
@@ -182,7 +186,7 @@ DrawSelfMarker(render_context *RenderContext, v2 Feet, float SortingValue)
                       Feet.X - 0.5f * SELF_MARKER_WIDTH,
                       Feet.Y - 0.5f * SELF_MARKER_HEIGHT,
                       SELF_MARKER_WIDTH, SELF_MARKER_HEIGHT,
-                      V4(0.f, 1.f, 1.f, 0.f), UI_RGBA(240, 200, 48, 190), 0.f);
+                      V4(0.f, 1.f, 1.f, 0.f), Color, 0.f);
     EndBatch(RenderContext);
 }
 
@@ -384,11 +388,13 @@ DrawEntity(render_context *RenderContext,
             ShadowTextureInfo->Origin * ShadowDims;
         ShadowPosition.Y -= GroundZ;
     
-        if (Entity == GetLocalPlayer(AppState))
+        if (Entity->Type == EntityType_Player)
         {
+            u32 MarkerColor = Entity == GetLocalPlayer(AppState) ?
+                SELF_MARKER_COLOR : FOE_MARKER_COLOR;
             DrawSelfMarker(RenderContext,
                            V2(EntityCameraPosition.X, EntityCameraPosition.Y - GroundZ),
-                           SortingValue);
+                           SortingValue, MarkerColor);
         }
         if (ShadowTexture)
         {
