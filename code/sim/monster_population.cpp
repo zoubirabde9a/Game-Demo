@@ -69,17 +69,13 @@ CountLiveMonsters(world *World)
     return Result;
 }
 
-// NOTE(zoubir): true when a monster with Volume placed at Position would
-// not overlap anything monsters collide with (trees, walls, units)
+// NOTE(zoubir): true when a monster with Volume at Position would overlap
+// nothing monsters collide with (trees, walls, units) nor stand on a hazard
 internal bool32
 IsSpawnSpotFree(app_state *AppState, world *World, v3 Position,
                 entity_collision_volume_group *Volume)
 {
-    // NOTE(zoubir): never on a pit or in lava
-    if (IsHazardAt(World, Position))
-    {
-        return false;
-    }
+    if (IsHazardAt(World, Position)) return false;
     world_entity Probe = {};
     Probe.Type = EntityType_Monster;
     Probe.Position = Position;

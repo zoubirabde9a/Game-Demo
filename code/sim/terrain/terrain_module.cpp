@@ -6,4 +6,5 @@
 #include "terrain_kinds.cpp"
 #include "noise.cpp"
 #include "maps.cpp"
+#include "ground_queries.cpp"
 #include "landmarks.cpp"
