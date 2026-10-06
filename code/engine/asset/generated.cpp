@@ -34,13 +34,18 @@ AddGeneratedTexture(assets *Assets, open_gl *OpenGL, asset_id ID,
     Info->Texture.Channels = 4;
     Info->Texture.Width = Width;
     Info->Texture.Height = Height;
-    Info->Texture.Tags = TEXTURE_NO_FILTER;
+    // NOTE(zoubir): sprites are filtered, which the sprite shader turns
+    // into square texels with soft edges (texture_shading.frag). The
+    // terrain atlas is not: its cells sit edge to edge, and filtering
+    // would bleed each cell's neighbour into a seam along every tile
+    u32 Filter = ID.Type == AssetType_TerrainAtlas ? TEXTURE_NO_FILTER : TEXTURE_SOFT_FILTER;
+    Info->Texture.Tags = Filter;
     Info->Texture.Origin = Origin;
     Info->Texture.NumTilesX = NumTilesX;
     Info->Texture.NumTilesY = NumTilesY;
 
     loaded_texture Texture =
         LoadOpenglTexture(Assets, OpenGL, Width, Height, GL_RGBA,
-                          Width * Height * 4, Pixels, TEXTURE_NO_FILTER);
+                          Width * Height * 4, Pixels, Filter);
     UploadTexture(Assets, Texture, ID);
 }
