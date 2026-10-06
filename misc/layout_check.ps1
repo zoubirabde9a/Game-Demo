@@ -18,7 +18,6 @@ $MaxLines = 600
 $Ceilings = @{
     'code/engine/random.h'      = 604  # mostly a table of random numbers
     'code/engine/math.h'        = 648  # about 50 small vector helpers
-    'code/server/replay.cpp'    = 604
     'code/art/terrain_art.cpp'  = 945  # claimed by the terrain agent
 }
 
