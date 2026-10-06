@@ -585,7 +585,10 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
                 if (Theirs->Type == EntityType_Player)
                 {
                     ++Players;
-                    if ((i16)Ours->Hp != (i16)Theirs->Hp) ++WrongPlayerHp;
+                    // NOTE(zoubir): sent rounded up while alive (pack.cpp)
+                    i16 Sent = (Theirs->Hp > 0.f) ?
+                        (i16)CeilFloatToUInt32(Theirs->Hp) : (i16)Theirs->Hp;
+                    if ((i16)Ours->Hp != Sent) ++WrongPlayerHp;
                     if (IsDeadPlayer(Ours) != IsDeadPlayer(Theirs)) ++WrongDead;
                     if (Ours->PlayerIndex != Theirs->PlayerIndex) ++WrongSlot;
                     player_slot *OurSlot = &Client->Players[Ours->PlayerIndex];

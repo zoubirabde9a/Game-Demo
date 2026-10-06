@@ -71,6 +71,27 @@ TestArmoredMonstersSendFacing()
     Check(Out.FacingCount == 2);
 }
 
+// A player burned below the duel's one point of health is still alive,
+// and must not reach the client as 0, which reads as dead there.
+internal void
+TestLivePlayerNeverSentAsDead()
+{
+    static net_snapshot Out;
+    Out = {};
+    world_entity Player = {};
+    Player.Type = EntityType_Player;
+    Player.MaxHp = 1.f;
+    Player.Hp = 0.44f;
+    SimGameWriteEntity(&Player, 3, &Out);
+    Check(Out.Entities[0].Health == 1);
+    Player.Hp = 0.f;
+    SimGameWriteEntity(&Player, 4, &Out);
+    Check(Out.Entities[1].Health == 0);
+    Player.Hp = 73.f;
+    SimGameWriteEntity(&Player, 5, &Out);
+    Check(Out.Entities[2].Health == 73);
+}
+
 // A fireball cast is heard by the caster and by players near it, once,
 // and not by a player across the map.
 internal bool32
@@ -372,6 +393,7 @@ TestTalentFieldSpendsPoints()
 internal void
 RunServerGameTests()
 {
+    TestLivePlayerNeverSentAsDead();
     TestTalentFieldSpendsPoints();
     TestSnapshotPrefersWhatIsNear();
     TestSoundsReachPlayersNearby();

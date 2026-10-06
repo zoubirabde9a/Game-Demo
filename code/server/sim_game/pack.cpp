@@ -155,7 +155,11 @@ SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
         E->Ability = (u8)((Entity->DashFlash > 0.f ? PLAYER_FLASH_DASH : 0) |
                           (Entity->SpawnShield > 0.f ? PLAYER_FLASH_SHIELD : 0));
     }
-    E->Health = (i16)Entity->Hp;
+    // NOTE(zoubir): rounded up while alive: a burn takes fractions off the
+    // duel's one-point health, and 0.4 sent as 0 read as dead on the
+    // client while the server, seeing it alive, never respawned it
+    E->Health = (Entity->Hp > 0.f) ? (i16)CeilFloatToUInt32(Entity->Hp) :
+        (i16)Entity->Hp;
     E->X = Entity->Position.X;
     E->Y = Entity->Position.Y;
     E->Z = Entity->Position.Z;
