@@ -180,10 +180,10 @@ TestAbilityLevelsShortenCooldowns()
     PlayerCooldown(AppState, Player, FireballCooldown, &Full);
     Check(Absolute(Full - 5.1f) < 0.001f);
 
-    Check(LearnTalent(AppState, 0, Talent_Dash));
-    Slot->Input.Pressed = PlayerButton_Dash;
+    Check(LearnTalent(AppState, 0, Talent_Shield));
+    Slot->Input.Pressed = PlayerButton_Shield;
     RunPlayerFrames(&Test, 0, 1);
-    Check(Absolute(Player->MovementCooldowns[PlayerMove_Dash] - 3.f * 0.85f) < 0.05f);
+    Check(Absolute(Player->MovementCooldowns[PlayerMove_Shield] - 6.f * 0.85f) < 0.05f);
     DestroyTestWorld(&Test);
     GameRules = ClassicRules;
 }

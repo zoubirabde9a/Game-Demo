@@ -175,7 +175,6 @@ global_variable talent_icon_painter *TalentIconPainters[Talent_Count] =
     PaintTwinFlameIcon,
     PaintPyreIcon,
 
-    PaintDashIcon,
     PaintFleetFootIcon,
     PaintBlinkIcon,
     PaintSwordIcon,
@@ -185,10 +184,7 @@ global_variable talent_icon_painter *TalentIconPainters[Talent_Count] =
 
     PaintShieldIcon,
     PaintWardIcon,
-    PaintRewindWorldIcon,
-    PaintRewindSelfIcon,
     PaintGravityWellIcon,
-    PaintRewindBubbleIcon,
     PaintSecondWindIcon,
 };
 

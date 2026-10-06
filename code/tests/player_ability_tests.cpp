@@ -283,14 +283,14 @@ TestBlinkLandsAtCursorThroughWalls()
     AppState->Players[0].Input.Aim = V2(100.f / PLAYER_AIM_REACH, 0.f);
     AppState->Players[0].Input.Pressed = PlayerButton_Blink;
     RunPlayerFrames(&Test, 0, 1);
-    // NOTE(zoubir): the press starts a half second wind-up; the cooldown
+    // NOTE(zoubir): the press starts a 0.2 s wind-up; the cooldown
     // is spent but the player has not moved or started dodging
     Check(Blinker->CastSpell == PlayerSpell_Blink);
     Check(Absolute(Blinker->Position.X - 300.f) < 3.f);
     Check(Blinker->MovementCooldowns[PlayerMove_Blink] > 0.f);
     Check(Blinker->DashFlash == 0.f);
     float Seconds = (1 + FinishTestCast(&Test, 0)) * Test.Input.DeltaTime;
-    Check(Absolute(Seconds - 0.5f) < 0.03f);
+    Check(Absolute(Seconds - 0.2f) < 0.03f);
     Check(Absolute(Blinker->Position.X - 400.f) < 3.f);
     Check(Blinker->DashFlash > 0.f);
 

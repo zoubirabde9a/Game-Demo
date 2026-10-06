@@ -90,8 +90,9 @@ global_variable player_stats PlayerStats =
 /* Game rules: what kind of match the simulation plays. The game, the
    server and its bots play the duel rules: players only, 75 health (three
    fireballs), a break between rounds after every death (round_break.cpp),
-   and only fireball, launch, blink, dash, jump, the world rewind and the
-   shield. The sword, once the talent tree unlocks it, swings once every
+   and only fireball, launch, blink, jump and the shield. Dash and the
+   time rewinds are gone from the game; their code stays for the classic
+   rules the older tests use. The sword, once the talent tree unlocks it, swings once every
    1.2 s for 15 a cut, so it takes five cuts to kill; at the classic 25
    every 0.18 s it killed in under half a second. The classic rules (every ability, 100 health) are what most
    tests were written against; a test program switches to them in main.
@@ -114,9 +115,8 @@ struct game_rules
 
 global_variable game_rules DuelRules =
 {
-    PlayerButton_Jump | PlayerButton_Dash | PlayerButton_Cast |
-    PlayerButton_Blink | PlayerButton_Launch | PlayerButton_RewindWorld |
-    PlayerButton_Shield,
+    PlayerButton_Jump | PlayerButton_Cast | PlayerButton_Blink |
+    PlayerButton_Launch | PlayerButton_Shield,
     75.f,
     true,
     1.2f,

@@ -60,8 +60,8 @@ global_variable player_spell_cast PlayerSpells[PlayerSpell_Count] =
     // (player_abilities/movement_abilities.cpp)
     {0.25f, 0.35f, true, "Slam"},
     // NOTE(zoubir): Blink (F): the jump goes to where the cursor is when
-    // the cast ends (player_abilities/movement_abilities.cpp)
-    {0.5f, 0.35f, false, "Blink"},
+    // the cast ends (player_abilities/movement_abilities.cpp), 0.2 s on
+    {0.2f, 0.35f, false, "Blink"},
     // NOTE(zoubir): Frost Nova (G) and Gravity Well (T), area abilities
     // only the talent tree unlocks
     {0.25f, 0.35f, false, "Frost Nova"},

@@ -60,11 +60,6 @@ TalentEffectText(player_slot *Slot, u32 Talent, u32 Level, char *Out, u32 OutSiz
         {
             snprintf(Out, OutSize, "%u fireball%s a cast", Level ? 2 : 1, Level ? "s" : "");
         } break;
-        case Talent_Dash:
-        {
-            snprintf(Out, OutSize, "Speed %.0f",
-                     PlayerMovements[PlayerMove_Dash].Power * (1.f + Def->PowerPerLevel * Extra));
-        } break;
         case Talent_Shield:
         {
             snprintf(Out, OutSize, "%.1f s untouchable",

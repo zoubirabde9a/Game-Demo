@@ -15,7 +15,7 @@ struct action_key
     char *Label;
 };
 
-#define ACTION_KEY_COUNT 15
+#define ACTION_KEY_COUNT 11
 
 internal void
 GetActionKeys(app_input *Input, action_key *Keys)
@@ -23,20 +23,16 @@ GetActionKeys(app_input *Input, action_key *Keys)
     action_key Table[ACTION_KEY_COUNT] =
     {
         {&Input->SpaceButton, PlayerButton_Jump, "Space"},
-        {&Input->AltButton, PlayerButton_Dash, "Alt"},
         {&Input->LeftButton, PlayerButton_Cast, "LMB"},
         {&Input->ButtonE, PlayerButton_Shield, "E"},
         {&Input->ButtonF, PlayerButton_Blink, "F"},
         {LayoutKey(Input, 'A'), PlayerButton_Launch, LayoutKeyName('A')},
-        {&Input->ButtonV, PlayerButton_RewindWorld, "V"},
         // NOTE(zoubir): abilities the talent tree unlocks
         // (sim/progression/talents.cpp); until then the key does nothing
         {&Input->RightButton, PlayerButton_Attack, "RMB"},
         {LayoutKey(Input, 'W'), PlayerButton_Shockwave, LayoutKeyName('W')},
         {&Input->ButtonR, PlayerButton_Push, "R"},
         {&Input->ButtonC, PlayerButton_Slam, "C"},
-        {&Input->ButtonX, PlayerButton_RewindSelf, "X"},
-        {&Input->ButtonB, PlayerButton_RewindBubble, "B"},
         {&Input->ButtonG, PlayerButton_FrostNova, "G"},
         {&Input->ButtonT, PlayerButton_GravityWell, "T"},
     };

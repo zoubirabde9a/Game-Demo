@@ -5,13 +5,14 @@
 
    A talent is either an ability or a passive. An ability talent has the
    ability's button and up to three levels. The abilities the rules start
-   with (GameRules.Buttons: fireball, launch, dash, blink, shield, world
-   rewind) are level 1 for free, so two more levels can be bought; the
-   others (sword, shockwave, push, slam, the self and bubble rewinds, and
-   Frost Nova and Gravity Well, which only exist here) are locked until a
-   point unlocks them at level 1. Each level after the first takes
+   with (GameRules.Buttons: fireball, launch, blink, shield) are level 1
+   for free, so two more levels can be bought; the others (sword,
+   shockwave, push, slam, and Frost Nova and Gravity Well, which only
+   exist here) are locked until a point unlocks them at level 1. Dash and
+   the time rewinds are out of the game: no talent, no key, and the duel
+   rules leave their buttons out. Each level after the first takes
    TALENT_COOLDOWN_PER_LEVEL off the cooldown and adds the talent's
-   per-level perks: dash speed and shield time (PowerPerLevel), longer
+   per-level perks: shield time (PowerPerLevel), longer
    stuns and slows and harder shoves on area spells (AbilityLevelHit),
    faster, farther fireballs.
 
@@ -24,8 +25,8 @@
    Twin Flame    each cast throws two fireballs
    Pyre          killing a player makes the fireball ready at once
    Fleet Foot    a faster run
-   Momentum      a player kill readies dash and slam and halves blink's
-                 wait, as a monster kill does
+   Momentum      a player kill readies slam and halves blink's wait, as
+                 a monster kill does
    Ward          a charge that takes one hit whole, back after a while
    Second Wind   back from death sooner, with a longer shield
 
@@ -65,7 +66,6 @@ enum talent_id
     Talent_TwinFlame,
     Talent_Pyre,
 
-    Talent_Dash,
     Talent_FleetFoot,
     Talent_Blink,
     Talent_Sword,
@@ -75,10 +75,7 @@ enum talent_id
 
     Talent_Shield,
     Talent_Ward,
-    Talent_RewindWorld,
-    Talent_RewindSelf,
     Talent_GravityWell,
-    Talent_RewindBubble,
     Talent_SecondWind,
 
     Talent_Count
@@ -130,8 +127,6 @@ global_variable talent_def TalentDefs[Talent_Count] =
     {"Pyre", "Killing a player makes the fireball ready at once", "fireball reset on a kill",
      TalentBranch_Fire, 3, 0, 1, 0},
 
-    {"Dash", "A burst of speed", "-15% cooldown, +10% speed",
-     TalentBranch_Motion, 0, 0, 3, PlayerButton_Dash, 0.1f},
     {"Fleet Foot", "You run faster", "+6% run speed",
      TalentBranch_Motion, 0, 1, 2, 0},
     {"Blink", "Jumps through space to the cursor", "-15% cooldown",
@@ -142,23 +137,17 @@ global_variable talent_def TalentDefs[Talent_Count] =
      TalentBranch_Motion, 2, 0, 3, PlayerButton_Push, 0.f, 0.f, 0.f, 0.15f},
     {"Slam", "Dive from the air and blast where you land", "-15% cooldown, +0.2 s stun",
      TalentBranch_Motion, 2, 1, 3, PlayerButton_Slam, 0.f, 0.2f},
-    {"Momentum", "A player kill readies dash and slam, halves blink", "movement reset on a kill",
+    {"Momentum", "A player kill readies slam, halves blink", "movement reset on a kill",
      TalentBranch_Motion, 3, 0, 1, 0},
 
     {"Shield", "A moment in which nothing lands", "-15% cooldown, +0.5 s shield",
      TalentBranch_Guard, 0, 0, 3, PlayerButton_Shield, 0.25f},
     {"Ward", "A charge that takes one hit whole", "recharges sooner",
      TalentBranch_Guard, 0, 1, 2, 0},
-    {"World Rewind", "Everyone goes back 2 seconds", "-15% cooldown",
-     TalentBranch_Guard, 1, 0, 3, PlayerButton_RewindWorld},
-    {"Rewind", "You go back to where you were 2 seconds ago", "-15% cooldown",
-     TalentBranch_Guard, 1, 1, 3, PlayerButton_RewindSelf},
     {"Gravity Well", "Pulls everyone at the aim into one spot", "-15% cooldown, +0.15 s hold",
-     TalentBranch_Guard, 2, 0, 3, PlayerButton_GravityWell, 0.f, 0.15f},
-    {"Rewind Bubble", "Everything around you goes back 2 seconds", "-15% cooldown",
-     TalentBranch_Guard, 2, 1, 3, PlayerButton_RewindBubble},
+     TalentBranch_Guard, 1, 0, 3, PlayerButton_GravityWell, 0.f, 0.15f},
     {"Second Wind", "Back from death in half the time, shielded longer", "faster respawn",
-     TalentBranch_Guard, 3, 0, 1, 0},
+     TalentBranch_Guard, 2, 0, 1, 0},
 };
 
 global_variable char *TalentBranchNames[TalentBranch_Count] =

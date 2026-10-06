@@ -474,12 +474,12 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     // NOTE(zoubir): the watcher's stagger from a shove (sim/hit.cpp), which
     // its prediction replays from the snapshot's
     u32 StaggersCompared = 0, StaggersOff = 0, ServerStaggered = 0, ClientStaggered = 0;
-    u32 DashPresses = 0, DashesSeenAtOnce = 0;
-    // NOTE(zoubir): a press a moment after the dash is ready again, held
+    u32 ShieldPresses = 0, ShieldsSeenAtOnce = 0;
+    // NOTE(zoubir): a press a moment after the shield is ready again, held
     // back while the watcher is dead or held so the bots killing it does
     // not use up the presses
-    int DashEvery = (int)(PlayerMovements[PlayerMove_Dash].Cooldown * SERVER_TICK_RATE) + 10;
-    int LastDashFrame = -DashEvery;
+    int ShieldEvery = (int)(PlayerMovements[PlayerMove_Shield].Cooldown * SERVER_TICK_RATE) + 10;
+    int LastShieldFrame = -ShieldEvery;
     u32 JumpPresses = 0, JumpsSeenAtOnce = 0;
     // NOTE(zoubir): the last hit (sim/hit.cpp): units hit lately on each
     // side, and of those on both, how many disagree on the hit's angle,
@@ -493,28 +493,26 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
     for (int Frame = 0; Frame < Seconds * SERVER_TICK_RATE; ++Frame)
     {
-        // The watcher dashes and shields now and then, so its cooldown
-        // bars have something to show.
+        // The watcher shields now and then, so its cooldown bars have
+        // something to show.
         world_entity *Before = Client->Players[Client->LocalPlayerIndex].Entity;
-        if (Frame - LastDashFrame >= DashEvery && IsOnline(Online) &&
+        if (Frame - LastShieldFrame >= ShieldEvery && IsOnline(Online) &&
             Online->Replicas.Active && Before && Before->IsPresent &&
             !IsDeadPlayer(Before) && !IsLocalPlayerTimeLocked(Client) &&
             !HasStatus(Before, StatusEffect_Stunned))
         {
-            LastDashFrame = Frame;
+            LastShieldFrame = Frame;
         }
-        Input.AltButton.EndedDown = (Frame - LastDashFrame) < 2;
-        Input.ButtonE.EndedDown = (Frame % 300) < 2;
+        Input.ButtonE.EndedDown = (Frame - LastShieldFrame) < 2;
         // NOTE(zoubir): and jumps, so its own jump arc can be compared
         Input.SpaceButton.EndedDown = (Frame % 120) == 45;
         UpdateOnlineSession(Online, &Input);
         RunWorldTick(Client, &Arena, Input.DeltaTime);
         UpdateRewindFx(Client, Input.DeltaTime);
-        // NOTE(zoubir): dash is predicted, so the client's player has already
-        // dashed on the frame the key goes down (its cooldown has started;
-        // its speed may not show it, pressed against a wall). Not while
-        // stunned, or frozen by a bot's time rewind: then it does neither,
-        // on the server or here
+        // NOTE(zoubir): the shield is predicted, so the client's player has
+        // already raised it on the frame the key goes down (its cooldown
+        // has started). Not while stunned, or frozen by a bot's time
+        // rewind: then it does neither, on the server or here
         world_entity *Own = Client->Players[Client->LocalPlayerIndex].Entity;
         bool32 Held = IsLocalPlayerTimeLocked(Client) ||
             (Own && HasStatus(Own, StatusEffect_Stunned));
@@ -524,12 +522,12 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
             ++JumpPresses;
             JumpsSeenAtOnce += Own->Velocity.Z > 0.f ? 1 : 0;
         }
-        if (Frame == LastDashFrame && IsOnline(Online) && Online->Replicas.Active &&
+        if (Frame == LastShieldFrame && IsOnline(Online) && Online->Replicas.Active &&
             Own && Own->IsPresent && !IsDeadPlayer(Own) && !Held)
         {
-            ++DashPresses;
-            DashesSeenAtOnce += Own->MovementCooldowns[PlayerMove_Dash] >
-                0.9f * PlayerMovements[PlayerMove_Dash].Cooldown ? 1 : 0;
+            ++ShieldPresses;
+            ShieldsSeenAtOnce += Own->MovementCooldowns[PlayerMove_Shield] >
+                0.9f * PlayerMovements[PlayerMove_Shield].Cooldown ? 1 : 0;
         }
         if (IsOnline(Online) && Online->Replicas.Active &&
             Online->Replicas.LastAppliedTick != LastTick)
@@ -689,9 +687,9 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
            StaggersCompared, StaggersOff, ServerStaggered, ClientStaggered);
     Check(StaggersCompared > 100 && StaggersOff == 0);
     Check(ServerStaggered == 0 || ClientStaggered > 0);
-    printf("  dash presses %u, dashing on the press frame %u\n", DashPresses, DashesSeenAtOnce);
-    // NOTE(zoubir): a 3 s dash gives a 15 s game only a couple of presses
-    Check(DashPresses >= 2 && DashesSeenAtOnce >= DashPresses - 1);
+    printf("  shield presses %u, shielded on the press frame %u\n", ShieldPresses, ShieldsSeenAtOnce);
+    // NOTE(zoubir): a 6 s shield gives a short game only a press or two
+    Check(ShieldPresses >= 1 && ShieldsSeenAtOnce >= ShieldPresses - 1);
     // NOTE(zoubir): jump is predicted too: rising on the press frame
     printf("  jump presses %u, rising on the press frame %u\n",
            JumpPresses, JumpsSeenAtOnce);
