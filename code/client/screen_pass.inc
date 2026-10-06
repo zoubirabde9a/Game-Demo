@@ -21,6 +21,7 @@ DrawScreenEdge(RenderContext, AppState, Window->Width, Window->Height, Input->De
 DrawRewindHud(RenderContext, AppState, Window->Width); // tape counter while time runs back, client/rewind_fx/
 DrawHud(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawAbilityBar(RenderContext, AppState, Input, Window->Width, Window->Height);
+DrawStatusStrip(RenderContext, AppState, Window->Width, Window->Height); // the local player's running status effects, ui/status_strip.cpp
 DoCastModeToggle(RenderContext, AppState, Input, Window->Width); // quick cast checkbox at the top, ui/cast_mode_toggle.cpp
 DrawXpOverlays(RenderContext, AppState, Window->Width, Window->Height); // XP gains and the level-up banner, ui/talent_panel/xp_bar.cpp
 DrawMinimap(RenderContext, AppState, Window->Width);

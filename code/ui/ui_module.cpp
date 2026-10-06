@@ -22,5 +22,6 @@
 #include "talent_panel/xp_bar.cpp"
 #include "talent_panel/talent_panel.cpp"
 #include "ability_bar.cpp"
+#include "status_strip.cpp"
 #include "cast_mode_toggle.cpp"
 #include "shader_errors.cpp"
