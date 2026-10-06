@@ -4,8 +4,8 @@
    go to AppState->Events. The client calls it each frame before drawing;
    the server calls it on its fixed tick. */
 
-// NOTE(zoubir): the round after a break moves to the next map (setup.cpp,
-// included later)
+// NOTE(zoubir): the round after a break, on the same map or the one a
+// vote picked (setup.cpp, included later)
 internal void StartNextRoundMap(app_state *AppState, memory_arena *Arena);
 
 internal void
@@ -41,6 +41,9 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
     // NOTE(zoubir): the break after a death, when nobody fights
     // (sim/round_break.cpp)
     UpdateRoundBreak(AppState, DeltaTime);
+    // NOTE(zoubir): a map vote passing moves everyone on the next tick
+    // (sim/map_vote.cpp)
+    UpdateMapVote(AppState, DeltaTime);
 
     // NOTE(zoubir): entities added during the tick (fireballs, swords,
     // respawned monsters) wait for the next one

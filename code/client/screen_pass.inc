@@ -31,6 +31,7 @@ DrawDeathPlate(RenderContext, AppState, Window->Width, Window->Height); // who k
 OpenTalentsForRoundBreak(AppState); // the talent panel opens for the break between rounds, ui/round_break_view.cpp
 DrawTalentPanel(RenderContext, AppState, Input, Window->Width, Window->Height); // the talent tree (N), ui/talent_panel/
 DrawRoundBreak(RenderContext, AppState, Window->Width, Window->Height); // countdown to the next round, over the talent panel, ui/round_break_view.cpp
+DrawMapVotePlate(RenderContext, AppState, Window->Width); // a map vote is open: who wants which map, Esc to answer, ui/map_vote_view.cpp
 if (Input->TabButton.EndedDown) DrawScoreboard(RenderContext, AppState, Window->Width, Window->Height);
 DoTileEditor(RenderContext, AppState, UIContext, Input, Window, TextureProgram, CameraOffset);
 DoConnectScreen(RenderContext, AppState, UIContext, Input, Window->Width, Window->Height);

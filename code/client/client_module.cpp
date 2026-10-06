@@ -31,6 +31,7 @@
 #include "online_pacing.cpp"
 #include "action_keys.cpp"
 #include "talent_requests.cpp"
+#include "vote_requests.cpp"
 #include "online.cpp"
 #include "cast_targeting.cpp"
 #include "cursor.cpp"

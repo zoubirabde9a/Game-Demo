@@ -51,8 +51,8 @@ GameInit(server_game *Game, u32 MapId)
                     SIM_GAME_MEMORY - sizeof(app_state));
     SubArena(&AppState->ConstantsArena, &AppState->MemoryArena, Kilobytes(64));
     // NOTE(zoubir): the world gets the rest, and its arena holds nothing
-    // else, so a new round can throw it away and build the next map
-    // (StartNextRoundMap, sim/setup.cpp)
+    // else, so a new round or a voted map can throw it away and build it
+    // again (StartNextRoundMap, sim/setup.cpp)
     SubArena(&AppState->WorldArena, &AppState->MemoryArena,
              AppState->MemoryArena.Size - AppState->MemoryArena.Used - 64);
     AppState->World.MapId = MapId;
@@ -108,11 +108,15 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
 
     u32 Held = Input->Buttons;
     u32 LearnBits = NET_LEARN_MASK << NET_LEARN_SHIFT;
-    u32 Pressed = Held & ~Game->HeldButtons[Slot] & ~LearnBits;
+    u32 VoteBits = NET_VOTE_MASK << NET_VOTE_SHIFT;
+    u32 Pressed = Held & ~Game->HeldButtons[Slot] & ~LearnBits & ~VoteBits;
     // NOTE(zoubir): the talent field (net/protocol.h) spends a point each
     // time it changes to a talent
     u32 Learn = (Held >> NET_LEARN_SHIFT) & NET_LEARN_MASK;
     u32 LearnBefore = (Game->HeldButtons[Slot] >> NET_LEARN_SHIFT) & NET_LEARN_MASK;
+    // NOTE(zoubir): and the vote field (sim/map_vote.cpp) the same way
+    u32 Vote = (Held >> NET_VOTE_SHIFT) & NET_VOTE_MASK;
+    u32 VoteBefore = (Game->HeldButtons[Slot] >> NET_VOTE_SHIFT) & NET_VOTE_MASK;
     v2 Move = {};
     if (Held & NetButton_Left) Move.X -= 1.f;
     if (Held & NetButton_Right) Move.X += 1.f;
@@ -144,6 +148,10 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     if (Learn && Learn != LearnBefore)
     {
         Out->Learn = Learn;
+    }
+    if (Vote && Vote != VoteBefore)
+    {
+        Out->Vote = Vote;
     }
 }
 
@@ -251,6 +259,13 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     Out->Stagger = Own ? CooldownToByte(Own->Stagger, PlayerStats.StaggerSeconds) : 0;
     Out->RoundBreak = (u8)Minimum(255u, CeilFloatToUInt32(10.f * Game->AppState->RoundBreak));
     Out->MapId = (u8)World->MapId;
+    app_state *AppState = Game->AppState;
+    Out->VoteMap = AppState->VoteOpen ? (u8)AppState->VoteMap : NET_NO_VOTE;
+    Out->VoteBy = (u8)AppState->VoteBy;
+    Out->VoteSeconds = (u8)CeilFloatToUInt32(Maximum(0.f, AppState->VoteSeconds));
+    Out->VoteYes = (u8)AppState->VoteYes;
+    Out->VoteNo = (u8)AppState->VoteNo;
+    Out->OwnVote = AppState->Votes[ViewerSlot];
     // The viewer's own body unrounded, for its prediction (net/protocol.h),
     // and the point the other positions are sent from
     Out->HasOwnBody = (Own && Own->IsPresent) ? 1 : 0;

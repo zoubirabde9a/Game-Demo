@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d61u // "GDMa", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d62u // "GDMb", change it whenever the layout changes
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
 #define NET_PLAYER_HEALTH_STEPS 100.f
@@ -29,7 +29,7 @@
 // client sends one per tick, whatever its frame rate, and the server
 // applies one per tick.
 #define NET_TICK_RATE 60
-#define NET_MAX_SNAPSHOT_ENTITIES 48 // moving things only; walls and trees are never sent
+#define NET_MAX_SNAPSHOT_ENTITIES 47 // moving things only; walls and trees are never sent (47 leaves room for the map vote)
 #define NET_MAX_SNAPSHOT_ABILITIES 8 // monsters winding up or striking at once
 #define NET_MAX_ABILITY_POINTS 4    // matches MAX_ABILITY_POINTS in entity.h
 #define NET_MAX_SNAPSHOT_SCORES 8   // one per player slot (MAX_PLAYERS)
@@ -45,6 +45,7 @@
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_SERVER_NAME_SIZE 24     // server name, 23 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
+#define NET_NO_VOTE 0xff
 #define NET_CLIENT_TIMEOUT 5.0f     // seconds of silence before either side gives up
 
 enum net_packet_type
@@ -102,6 +103,11 @@ enum net_button
 // input loses nothing and a replay spends the same points.
 #define NET_LEARN_SHIFT 24
 #define NET_LEARN_MASK 0x1fu
+// Bits NET_VOTE_SHIFT to NET_LEARN_SHIFT are a map vote request
+// (map_vote_request, sim/map_vote.cpp): a map asked for or an answer,
+// held and let go like the talent field.
+#define NET_VOTE_SHIFT 20
+#define NET_VOTE_MASK 0xfu
 
 enum net_deny_reason
 {
@@ -331,6 +337,16 @@ struct net_snapshot
     // The map being played (sim/maps/); it changes between rounds, and the
     // client builds the new one's ground when it does (client/online.cpp).
     u8 MapId;
+    // The map vote (sim/map_vote.cpp): the map asked for, NET_NO_VOTE
+    // while none is open; who asked; whole seconds left; the yes and no
+    // answers so far; and the viewer's own answer (map_vote_request).
+    // Sent only while a vote is open, the slot, answer and counts in 4 bits.
+    u8 VoteMap;
+    u8 VoteBy;
+    u8 VoteSeconds;
+    u8 VoteYes;
+    u8 VoteNo;
+    u8 OwnVote;
     // The viewer's own player exactly: position and velocity as floats.
     // Entities are sent rounded to 1/8 unit, and a prediction replayed
     // from a rounded start went round a wall's corner the other way from

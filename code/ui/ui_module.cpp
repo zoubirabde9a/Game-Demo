@@ -27,4 +27,5 @@
 #include "status_strip.cpp"
 #include "cast_mode_toggle.cpp"
 #include "options_menu.cpp"
+#include "map_vote_view.cpp"
 #include "shader_errors.cpp"

@@ -151,9 +151,9 @@ TestOldArenaHasNoMonsters()
     DestroyTestWorld(&Test);
 }
 
-// NOTE(zoubir): a death ends the round: for 10 s everyone has a level
-// more, nobody can be hurt, only jump works, and the dead come back as it
-// ends
+// NOTE(zoubir): on the Old Arena a death that leaves one player standing
+// ends the round: for 10 s everyone has a level more, nobody can be hurt,
+// only jump works, and the dead come back as it ends
 internal void
 TestDeathStartsRoundBreak()
 {
@@ -197,9 +197,8 @@ TestDeathStartsRoundBreak()
     }
     Check(Absolute((float)Ticks * Dt - ROUND_BREAK_SECONDS) < 0.05f);
     Check(AppState->RoundBreak < 0.05f);
-    // NOTE(zoubir): the next round moves to the next map; this test world
-    // is no map, so it stays (the move is TestRoundMovesToNextMap in
-    // server_client_tests.cpp)
+    // NOTE(zoubir): the next round starts over on the same map
+    // (TestRoundReplaysTheMap in round_map_tests.cpp)
     Check(AppState->RoundMapDue);
     AppState->RoundMapDue = false;
     for(u32 Tick = 0; Tick < 3; Tick++)

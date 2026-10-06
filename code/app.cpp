@@ -61,6 +61,12 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     bool32 KeysToUi = ConnectScreenTakesInput(AppState) || AppState->OptionsOpen;
     player_input *LocalInput = &AppState->Players[AppState->LocalPlayerIndex].Input;
     *LocalInput = KeysToUi ? player_input{} : ReadKeyboardPlayerInput(Input, AppState);
+    // NOTE(zoubir): a map vote comes from the menu, so even while it is
+    // open; online it goes in the held buttons (client/vote_requests.cpp)
+    if (!IsOnline(AppState->Online))
+    {
+        LocalInput->Vote = TakeOfflineVoteRequest(AppState);
+    }
     if (!KeysToUi && Input->ButtonJ.Pressed)
     {
         PlaySound(AppState, {AssetType_BattleTheme});
@@ -70,7 +76,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     // camera on where the player is now, then draw it.
     app_input ServerInput = InputForServer(Input, AppState);
     UpdateOnlineSession(AppState->Online, &ServerInput, KeysToUi, LocalInput->Aim,
-                        OnlineTalentBits(AppState, Input->DeltaTime));
+                        OnlineTalentBits(AppState, Input->DeltaTime) |
+                        OnlineVoteBits(AppState, Input->DeltaTime));
     RunWorldTick(AppState, &AppState->WorldArena, Input->DeltaTime);
     PlaySimEvents(AppState, Input->DeltaTime);
     UpdateRewindFx(AppState, Input->DeltaTime);

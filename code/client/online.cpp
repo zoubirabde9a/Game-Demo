@@ -363,8 +363,8 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
     if (IsOnline(Online) && Online->Client.HasSnapshot)
     {
         net_snapshot *Snapshot = &Online->Client.Snapshot;
-        // NOTE(zoubir): joining a server on another map, or a new round
-        // there on the next map: build its ground first, and the replicas
+        // NOTE(zoubir): joining a server on another map, or a map vote
+        // there moving everyone: build its ground first, and the replicas
         // again from this snapshot. Terrain is never sent, both sides
         // generate it from the id
         u32 MapId = Snapshot->MapId;

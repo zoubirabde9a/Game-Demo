@@ -106,7 +106,7 @@ global_variable player_stats PlayerStats =
 
 /* Game rules: what kind of match the simulation plays. The game, the
    server and its bots play the duel rules: players only, 75 health (three
-   fireballs), a break between rounds after every death (round_break.cpp),
+   fireballs), rounds on maps without monsters (round_break.cpp),
    and only fireball, launch, the kunai, blink, jump and the shield. Dash and the
    time rewinds are gone from the game; their code stays for the classic
    rules the older tests use. The sword, once the talent tree unlocks it, swings once every

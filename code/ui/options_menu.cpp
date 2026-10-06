@@ -1,12 +1,19 @@
 /* Options menu: Esc opens it over the game and Esc or "Back to game"
    closes it. It picks the keyboard layout, AZERTY (ZQSD moves) or QWERTY
-   (WASD moves), saved for the next launch (client/keyboard_layout.cpp).
+   (WASD moves), saved for the next launch (client/keyboard_layout.cpp),
+   and holds the map vote (ui/map_vote_view.cpp).
    While it is open the player holds no keys and clicks do not cast
    (app.cpp). The game does not pause: online, the world goes on. */
 
 #define OPTIONS_WIDTH 420.f
 #define OPTIONS_CHOICE_HEIGHT 64.f
 #define OPTIONS_BUTTON_HEIGHT 36.f
+
+// NOTE(zoubir): the map vote's section (ui/map_vote_view.cpp, included
+// after this file)
+internal float MapVoteSectionHeight(app_state *AppState);
+internal void DoMapVoteSection(render_context *RenderContext, app_state *AppState,
+                               app_input *Input, float Left, float Top, float Width);
 
 struct options_choice
 {
@@ -59,7 +66,9 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     float Pad = UI_GAP_LARGE;
     float Width = Minimum(OPTIONS_WIDTH, (float)WindowWidth - 2.f * UI_GAP);
     float Height = Pad + UILineHeight(Title) + UI_GAP + UILineHeight(Body) + UI_GAP_SMALL +
-        OPTIONS_CHOICE_HEIGHT + UI_GAP_LARGE + OPTIONS_BUTTON_HEIGHT + Pad;
+        OPTIONS_CHOICE_HEIGHT + UI_GAP_LARGE +
+        UILineHeight(Body) + UI_GAP_SMALL + MapVoteSectionHeight(AppState) + UI_GAP_LARGE +
+        OPTIONS_BUTTON_HEIGHT + Pad;
     float X = 0.5f * ((float)WindowWidth - Width);
     float Y = Maximum(UI_GAP, 0.5f * ((float)WindowHeight - Height));
 
@@ -104,6 +113,13 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
                UI_COLOR_TEXT_MUTED, UIAlign_Center);
     }
     Top += OPTIONS_CHOICE_HEIGHT + UI_GAP_LARGE;
+
+    UIText(RenderContext, Body, Left, Top, "Map", UI_COLOR_TEXT);
+    UIText(RenderContext, Small, Left + Inner, Top + UILineHeight(Body) - UILineHeight(Small),
+           GetMapDef((map_id)AppState->World.MapId)->Name, UI_COLOR_TEXT_MUTED, UIAlign_Right);
+    Top += UILineHeight(Body) + UI_GAP_SMALL;
+    DoMapVoteSection(RenderContext, AppState, Input, Left, Top, Inner);
+    Top += MapVoteSectionHeight(AppState) + UI_GAP_LARGE;
 
     if (OptionsButton(RenderContext, Input, Left, Top, Inner, OPTIONS_BUTTON_HEIGHT, false))
     {

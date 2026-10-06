@@ -172,6 +172,18 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
     // NOTE(zoubir): prediction holds back the same keys as the server
     // during it, and the HUD counts it down (sim/round_break.cpp)
     AppState->RoundBreak = 0.1f * (float)Snapshot->RoundBreak;
+    // NOTE(zoubir): the map vote, for the menu and the banner
+    // (sim/map_vote.cpp)
+    AppState->VoteOpen = Snapshot->VoteMap != NET_NO_VOTE;
+    AppState->VoteMap = Snapshot->VoteMap;
+    AppState->VoteBy = Snapshot->VoteBy;
+    AppState->VoteSeconds = (float)Snapshot->VoteSeconds;
+    AppState->VoteYes = Snapshot->VoteYes;
+    AppState->VoteNo = Snapshot->VoteNo;
+    if (LocalSlot < MAX_PLAYERS)
+    {
+        AppState->Votes[LocalSlot] = Snapshot->OwnVote;
+    }
     player_slot *Own = &AppState->Players[LocalSlot];
     if (Own->Active && Own->Entity && Own->Entity->Type == EntityType_Player)
     {

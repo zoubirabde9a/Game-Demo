@@ -177,6 +177,14 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         Bot->LearnWait = BOT_LEARN_SECONDS;
     }
 
+    // A map vote gets a yes, held until the server counts it, so bots
+    // never stand in the way of the players (sim/map_vote.cpp).
+    if (Slot && AppState->VoteOpen &&
+        AppState->Votes[Self->PlayerIndex] == MapVote_None)
+    {
+        Held |= (u32)MapVote_Yes << NET_VOTE_SHIFT;
+    }
+
     // A press needs the button up the tick before; drop repeats.
     Held &= ~(Bot->Held & (NetButton_Sword | NetButton_Fireball | NetButton_Dash |
                            NetButton_RewindSelf | NetButton_RewindBubble |

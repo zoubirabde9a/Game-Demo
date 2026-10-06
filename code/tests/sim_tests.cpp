@@ -780,6 +780,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "camera_tests.cpp"
 #include "player_feel_tests.cpp"
 #include "duel_tests.cpp"
+#include "round_rules_tests.cpp"
 #include "progression_tests.cpp"
 #include "kunai_tests.cpp"
 
@@ -831,6 +832,7 @@ main()
     RunCameraTests();
     RunPlayerFeelTests();
     RunDuelTests();
+    RunRoundRulesTests();
     RunProgressionTests();
     RunKunaiTests();
 

@@ -72,19 +72,13 @@ RebuildWorldForMap(app_state *AppState, memory_arena *Arena, u32 MapId)
     AppState->Rewind = 0;
 }
 
-// NOTE(zoubir): the map after MapId in map_list.inc, round and round
-inline u32
-NextRoundMap(u32 MapId)
-{
-    u32 Result = (MapId + 1) % MapId_Count;
-    return Result;
-}
-
-// NOTE(zoubir): a new round under the duel rules: the next map, built
-// fresh with its monsters, and every player back at their spawn there
-// with full health. Each slot keeps its name, level, experience, talents
-// and score; a player that had a familiar gets it back. Arena must hold
-// the world and nothing else (RebuildWorldForMap)
+// NOTE(zoubir): a new round: the same map, or the one a vote picked
+// (sim/map_vote.cpp), built fresh with its monsters, and every player
+// back at their spawn there with full health. Each slot keeps its name
+// and score, and its level, experience and talents unless a vote moved
+// everyone, which starts them over; a player that had a familiar and kept
+// its talents gets it back. Arena must hold the world and nothing else
+// (RebuildWorldForMap)
 internal void
 StartNextRoundMap(app_state *AppState, memory_arena *Arena)
 {
@@ -107,7 +101,10 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
         Kept[SlotIndex] = AppState->Players[SlotIndex];
     }
 
-    RebuildWorldForMap(AppState, Arena, NextRoundMap(World->MapId));
+    bool32 StartOver = AppState->NextMapVoted;
+    u32 MapId = StartOver ? AppState->NextMap : World->MapId;
+    AppState->NextMapVoted = false;
+    RebuildWorldForMap(AppState, Arena, MapId);
     FillMonsterPopulation(AppState, World, Arena, AppState->Monsters);
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
@@ -125,8 +122,17 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
         Slot->SpawnPosition = SpawnPosition;
         Slot->RespawnTimer = 0.f;
         Slot->DelayedInputCount = 0;
+        if (StartOver)
+        {
+            Slot->Xp = 0;
+            Slot->XpClock = 0.f;
+            Slot->Level = 1;
+            ZeroArray(Slot->Ranks, TALENT_SLOTS, u8);
+            Slot->WardReady = false;
+            Slot->WardRecharge = 0.f;
+        }
         Player->SpawnShield = RespawnShieldSeconds(Slot);
-        if (HadFamiliar[SlotIndex])
+        if (HadFamiliar[SlotIndex] && !StartOver)
         {
             AddFamiliar(AppState, World, Arena, Player);
         }

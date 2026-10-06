@@ -124,6 +124,12 @@ FullSnapshot()
     }
     P.Snapshot.Stagger = 0x5a;
     P.Snapshot.RoundBreak = 0x63;
+    P.Snapshot.VoteMap = 2;
+    P.Snapshot.VoteBy = 5;
+    P.Snapshot.VoteSeconds = 27;
+    P.Snapshot.VoteYes = 3;
+    P.Snapshot.VoteNo = 1;
+    P.Snapshot.OwnVote = 2;
     P.Snapshot.MapId = 2;
     // One burst, for the same reason.
     P.Snapshot.BurstCount = 1;
@@ -143,7 +149,7 @@ FullSnapshot()
     P.Snapshot.Rewinds[0].Y = -77.25f;
     P.Snapshot.Rewinds[0].Radius = 160.f;
     P.Snapshot.Rewinds[0].Frozen[0] = 0x81;
-    P.Snapshot.Rewinds[0].Frozen[5] = 0x80;
+    P.Snapshot.Rewinds[0].Frozen[5] = 0x40; // entity 46, the last of 47
     // Every player winding up a spell, pointing at the last (farthest)
     // entities so a trimmed snapshot has to drop them.
     P.Snapshot.CastCount = NET_MAX_SNAPSHOT_CASTS;
@@ -342,13 +348,16 @@ TestFullSnapshotFits()
     Check(Out.Snapshot.InputTick == 0xfedcba98);
     Check(Out.Snapshot.Stagger == 0x5a);
     Check(Out.Snapshot.RoundBreak == 0x63);
+    Check(Out.Snapshot.VoteMap == 2 && Out.Snapshot.VoteBy == 5 &&
+          Out.Snapshot.VoteSeconds == 27 && Out.Snapshot.VoteYes == 3 &&
+          Out.Snapshot.VoteNo == 1 && Out.Snapshot.OwnVote == 2);
     Check(Out.Snapshot.MapId == 2);
     Check(Out.Snapshot.RewindCount == 1);
     net_rewind *Rewind = &Out.Snapshot.Rewinds[0];
     Check(Rewind->Slot == 6 && Rewind->Kind == 1 && Rewind->Phase == 2);
     Check(Rewind->PhaseLeft > 0.355f && Rewind->PhaseLeft < 0.365f);
     Check(Rewind->X == 512.5f && Rewind->Y == -77.25f && Rewind->Radius == 160.f);
-    Check(Rewind->Frozen[0] == 0x81 && Rewind->Frozen[5] == 0x80);
+    Check(Rewind->Frozen[0] == 0x81 && Rewind->Frozen[5] == 0x40);
     Check(Out.Snapshot.CastCount == NET_MAX_SNAPSHOT_CASTS);
     net_player_cast *LastCast = &Out.Snapshot.Casts[NET_MAX_SNAPSHOT_CASTS - 1];
     Check(LastCast->EntityIndex == NET_MAX_SNAPSHOT_ENTITIES - NET_MAX_SNAPSHOT_CASTS);
@@ -1003,8 +1012,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d61u
-#define NET_GOLDEN_LAYOUT 0x6311782cu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d62u
+#define NET_GOLDEN_LAYOUT 0xdb808f31u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
