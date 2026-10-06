@@ -254,6 +254,11 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
         Out->OwnPosition[Axis] = Out->HasOwnBody ? Own->Position.Data[Axis] : 0.f;
         Out->OwnVelocity[Axis] = Out->HasOwnBody ? Own->Velocity.Data[Axis] : 0.f;
     }
+    static_assert(StatusEffect_Count - 1 == NET_STATUS_COUNT, "one clock per status");
+    for (u32 Index = 0; Index < NET_STATUS_COUNT; ++Index)
+    {
+        Out->OwnStatus[Index] = Out->HasOwnBody ? Own->StatusTimers[Index + 1] : 0.f;
+    }
     // The viewer's experience and talents, for its HUD and talent panel;
     // the ranks also make its prediction use the same cooldowns.
     static_assert(Talent_Count == NET_TALENT_COUNT, "one rank per talent");

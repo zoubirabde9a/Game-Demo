@@ -182,6 +182,12 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
             MoveReplicaTo(AppState, Arena, Own->Entity, Exact);
             Own->Entity->Velocity = V3(Snapshot->OwnVelocity[0], Snapshot->OwnVelocity[1],
                                        Snapshot->OwnVelocity[2]);
+            // NOTE(zoubir): its status clocks exactly, not the 1.5 s every
+            // running status reads as on a replica (replicas/apply.cpp)
+            for(u32 Index = 0; Index < NET_STATUS_COUNT; Index++)
+            {
+                Own->Entity->StatusTimers[Index + 1] = Snapshot->OwnStatus[Index];
+            }
         }
     }
     ApplySnapshotScores(AppState, Snapshot);

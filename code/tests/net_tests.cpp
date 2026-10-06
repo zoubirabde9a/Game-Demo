@@ -1000,7 +1000,7 @@ TestFuzzedPacketsAreSafe()
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
 #define NET_GOLDEN_PROTOCOL_ID 0x47444d57u
-#define NET_GOLDEN_LAYOUT 0x00000000u
+#define NET_GOLDEN_LAYOUT 0xd5a794f7u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

@@ -38,6 +38,7 @@
 #define NET_MAX_SNAPSHOT_CASTS 8    // players winding up a spell (MAX_PLAYERS)
 #define NET_COOLDOWN_COUNT 15       // the viewer's own ability cooldowns
 #define NET_TALENT_COUNT 21         // the viewer's own talent ranks (sim/progression/talents.cpp)
+#define NET_STATUS_COUNT 10        // status effects (sim/status_effects.cpp)
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_SERVER_NAME_SIZE 24     // server name, 23 characters plus the terminator
 #define NET_NO_NAME_SLOT 0xff
@@ -328,6 +329,11 @@ struct net_snapshot
     u8 HasOwnBody;
     float OwnPosition[3];
     float OwnVelocity[3];
+    // The viewer's own status clocks exactly (sim/status_effects.cpp),
+    // entry N for status effect N + 1, below 0 while it is shrugged off;
+    // only the nonzero ones are sent. Its prediction replays from them,
+    // so a haste or a soak ends on the same tick as on the server.
+    float OwnStatus[NET_STATUS_COUNT];
     // Bursts seen near this player since its previous snapshot; cosmetic,
     // lost with their snapshot like sounds.
     u8 BurstCount;

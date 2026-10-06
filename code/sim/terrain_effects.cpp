@@ -82,6 +82,40 @@ SetGroundUnderfoot(world *World, world_entity *Entity)
     return Result;
 }
 
+// NOTE(zoubir): what the ground Entity stands on does to it this tick: its
+// statuses, held while it stands there. Online prediction runs it for the
+// local player too, so a rune's haste starts on the same tick there
+internal void
+ApplyGroundStatuses(world_entity *Entity, terrain_def *Ground)
+{
+    for(u32 Index = 0; Index < ArrayCount(Ground->Stand); Index++)
+    {
+        terrain_stand_status *Stand = &Ground->Stand[Index];
+        if (Stand->Effect == StatusEffect_None)
+        {
+            continue;
+        }
+        // NOTE(zoubir): most effects are held while you stand there; one
+        // that is shrugged off after (a root) or that ends in death (a
+        // fall) runs its own course from the step that started it
+        status_def *Def = GetStatusDef(Stand->Effect);
+        if ((Def->ImmuneSeconds > 0.f || (Def->Flags & STATUS_FATAL)) &&
+            HasStatus(Entity, Stand->Effect))
+        {
+            continue;
+        }
+        // NOTE(zoubir): the moment a fall begins: the body stops where
+        // it went over the edge, and the kill is pinned on whoever
+        // threw or hit it in
+        if (Stand->Effect == StatusEffect_Falling)
+        {
+            Entity->ThrownBySlot = StatusBlameSlot(Entity);
+            Entity->Velocity = V3(0.f, 0.f, Minimum(Entity->Velocity.Z, 0.f));
+        }
+        ApplyStatus(Entity, Stand->Effect, Stand->Seconds);
+    }
+}
+
 internal void
 UpdateTerrainEffects(world *World)
 {
@@ -95,31 +129,6 @@ UpdateTerrainEffects(world *World)
         {
             continue;
         }
-        for(u32 Index = 0; Index < ArrayCount(Ground->Stand); Index++)
-        {
-            terrain_stand_status *Stand = &Ground->Stand[Index];
-            if (Stand->Effect == StatusEffect_None)
-            {
-                continue;
-            }
-            // NOTE(zoubir): most effects are held while you stand there; one
-            // that is shrugged off after (a root) or that ends in death (a
-            // fall) runs its own course from the step that started it
-            status_def *Def = GetStatusDef(Stand->Effect);
-            if ((Def->ImmuneSeconds > 0.f || (Def->Flags & STATUS_FATAL)) &&
-                HasStatus(Entity, Stand->Effect))
-            {
-                continue;
-            }
-            // NOTE(zoubir): the moment a fall begins: the body stops where
-            // it went over the edge, and the kill is pinned on whoever
-            // threw or hit it in
-            if (Stand->Effect == StatusEffect_Falling)
-            {
-                Entity->ThrownBySlot = StatusBlameSlot(Entity);
-                Entity->Velocity = V3(0.f, 0.f, Minimum(Entity->Velocity.Z, 0.f));
-            }
-            ApplyStatus(Entity, Stand->Effect, Stand->Seconds);
-        }
+        ApplyGroundStatuses(Entity, Ground);
     }
 }

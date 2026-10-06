@@ -236,9 +236,17 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     // every unit before it moves (sim/terrain_effects.cpp). Prediction does
     // not run SimulateTick, so off the stone floor (grass, sand, ice at the
     // map's edges) it walked at floor speed while the server did not, and
-    // every snapshot pulled the player back. What standing there does to
-    // health and status is left to the server
-    SetGroundUnderfoot(&AppState->World, Player);
+    // every snapshot pulled the player back. The statuses the ground gives
+    // (a rune's haste, water's soak, a bramble's root) start here too,
+    // and the status clocks run down after the step as UpdateStatusEffects
+    // runs them, so they change the walk on the same tick as on the
+    // server. What they do to health is left to the server, and so is
+    // the death at the bottom of a pit
+    terrain_def *Ground = SetGroundUnderfoot(&AppState->World, Player);
+    if (Ground)
+    {
+        ApplyGroundStatuses(Player, Ground);
+    }
 
     Slot->Input = {};
     Slot->Input.Move = MoveFromNetButtons(Input->Buttons);
@@ -255,6 +263,7 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
     UpdatePlayer(Slot, &AppState->World, Arena, Input->DeltaTime, AppState,
                  &AnimationSpeed, &AnimationType, &AnimationDirection);
     Slot->Predicted = false;
+    CountDownStatusTimers(Player, Input->DeltaTime);
     Input->After = SavePredictedBody(Player);
     Player->AnimationType = AnimationType;
     Player->AnimationDirection = AnimationDirection;

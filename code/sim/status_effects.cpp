@@ -263,6 +263,36 @@ StatusKiller(app_state *AppState, world_entity *Entity)
     return Result;
 }
 
+// NOTE(zoubir): runs every status clock down by DeltaTime; one that ends
+// starts its shrug-off time. True when a fatal one (a fall) ran out, for
+// the caller to kill. Online prediction (client/prediction.cpp) runs the
+// local player's clocks with it too, so a haste or a root ends on the
+// same tick there as on the server
+internal bool32
+CountDownStatusTimers(world_entity *Entity, float DeltaTime)
+{
+    bool32 Result = false;
+    for(u32 Effect = 1; Effect < StatusEffect_Count; Effect++)
+    {
+        float *Timer = &Entity->StatusTimers[Effect];
+        if (*Timer < 0.f)
+        {
+            *Timer = Minimum(0.f, *Timer + DeltaTime);
+        }
+        else if (*Timer > 0.f)
+        {
+            *Timer -= DeltaTime;
+            if (*Timer <= 0.f)
+            {
+                status_def *Def = &StatusTable[Effect];
+                *Timer = -Def->ImmuneSeconds;
+                Result |= (Def->Flags & STATUS_FATAL) != 0;
+            }
+        }
+    }
+    return Result;
+}
+
 // NOTE(zoubir): once per tick, after every entity has moved
 internal void
 UpdateStatusEffects(app_state *AppState, world *World, float DeltaTime)
@@ -303,27 +333,10 @@ UpdateStatusEffects(app_state *AppState, world *World, float DeltaTime)
             Entity->StatusTickTimer = 0.f;
         }
 
-        for(u32 Effect = 1; Effect < StatusEffect_Count && Entity->IsPresent; Effect++)
+        if (CountDownStatusTimers(Entity, DeltaTime) && Entity->IsPresent &&
+            Entity->Hp > 0.f)
         {
-            float *Timer = &Entity->StatusTimers[Effect];
-            if (*Timer < 0.f)
-            {
-                *Timer = Minimum(0.f, *Timer + DeltaTime);
-            }
-            else if (*Timer > 0.f)
-            {
-                *Timer -= DeltaTime;
-                if (*Timer <= 0.f)
-                {
-                    status_def *Def = &StatusTable[Effect];
-                    *Timer = -Def->ImmuneSeconds;
-                    if ((Def->Flags & STATUS_FATAL) && Entity->Hp > 0.f)
-                    {
-                        KillEntity(AppState, World, Entity,
-                                   StatusKiller(AppState, Entity));
-                    }
-                }
-            }
+            KillEntity(AppState, World, Entity, StatusKiller(AppState, Entity));
         }
     }
 }
