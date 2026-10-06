@@ -15,7 +15,10 @@
    corrections online play makes to the player do not shake the view. It
    also leans a little toward the mouse, so more of the screen lies the
    way the player aims, and runs a little ahead of a moving player, so a
-   run shows more of what it heads into than what it left. A respawn or a jump across the map is a cut, not
+   run shows more of what it heads into than what it left. While the
+   player is dead it drifts toward whoever killed it, so the killer is in
+   view through the countdown. A respawn or a jump across the map is a
+   cut, not
    a long pan. Hits shake it (fx_bursts.cpp), and a solid hit the local
    player lands nudges it toward the blow (body_pose.cpp); both move only
    what is drawn.
@@ -42,6 +45,11 @@
 // the easing's 17-unit trail turns into a small lead. Dashes hit the cap
 #define CAMERA_LEAD_SECONDS 0.12f
 #define CAMERA_LEAD_MAX 40.f
+// NOTE(zoubir): while the local player is dead the camera drifts this
+// share of the way toward the player who killed it, at most
+// CAMERA_KILLER_MAX units, so the killer is in view for the countdown
+#define CAMERA_KILLER_SHARE 0.5f
+#define CAMERA_KILLER_MAX 220.f
 // NOTE(zoubir): a target farther than this many screen sizes away is cut to
 #define CAMERA_CUT_SCREENS 0.75f
 
@@ -113,6 +121,30 @@ CameraLean(app_input *Input, app_window *View, float Zoom)
 // NOTE(zoubir): keeps the previous position when there is no local player.
 // Window is the view in world units (GetWorldView). Lean is off while a
 // screen holds the mouse
+// NOTE(zoubir): the live player who landed the local player's latest
+// death (client/kill_feed.cpp), or 0 for a monster, the world or none
+internal world_entity *
+LocalKiller(app_state *AppState)
+{
+    kill_feed *Feed = AppState->KillFeed;
+    for(u32 Index = 0; Feed && Index < Feed->Count; Index++)
+    {
+        kill_feed_entry *Entry = &Feed->Entries[Index];
+        if (Entry->Victim != AppState->LocalPlayerIndex)
+        {
+            continue;
+        }
+        if (Entry->Killer >= MAX_PLAYERS || Entry->Killer == AppState->LocalPlayerIndex)
+        {
+            return 0;
+        }
+        world_entity *Killer = AppState->Players[Entry->Killer].Entity;
+        bool32 Alive = Killer && Killer->IsPresent && !IsDeadPlayer(Killer);
+        return Alive ? Killer : 0;
+    }
+    return 0;
+}
+
 internal v3
 UpdateCamera(app_state *AppState, app_window *Window, app_input *Input,
              bool32 Lean)
@@ -126,6 +158,17 @@ UpdateCamera(app_state *AppState, app_window *Window, app_input *Input,
         if (Lean && !IsDeadPlayer(Player))
         {
             Focus.XY += CameraLean(Input, Window, Zoom);
+        }
+        world_entity *Killer = IsDeadPlayer(Player) ? LocalKiller(AppState) : 0;
+        if (Killer)
+        {
+            v2 Toward = CAMERA_KILLER_SHARE * (Killer->Position.XY - Player->Position.XY);
+            float Reach = Length(Toward);
+            if (Reach > CAMERA_KILLER_MAX)
+            {
+                Toward = (CAMERA_KILLER_MAX / Reach) * Toward;
+            }
+            Focus.XY += Toward;
         }
         if (!IsDeadPlayer(Player))
         {
