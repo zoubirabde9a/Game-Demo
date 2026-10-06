@@ -101,11 +101,21 @@ foreach ($File in $Sources) {
 }
 
 # 5. A comment at the top of every file.
+# A header may put its include guard (#if !defined(X) / #define X) first.
+# The old empty template banner ($File: $, $Date: $) does not count.
 foreach ($File in $Sources) {
-    if ($File.Extension -eq '.h') { continue }
-    $First = Get-Content $File.FullName | Where-Object { $_.Trim() -ne '' } | Select-Object -First 1
+    $Lines = @(Get-Content $File.FullName -TotalCount 12 |
+        Where-Object { $_.Trim() -ne '' -and $_ -notmatch '^\s*#\s*(if\s*!\s*defined|ifndef|define)\b' })
+    $First = if ($Lines.Count -gt 0) { $Lines[0] } else { '' }
+    $Name = RelativePath $File.FullName
     if ($First -notmatch '^\s*(/\*|//)') {
-        $Failures.Add("$(RelativePath $File.FullName): start the file with a comment saying what it is for")
+        $Failures.Add("${Name}: start the file with a comment saying what it is for")
+    }
+    # NOTE(zoubir): sim/world.* are in the terrain agent's claim; until it
+    # writes their summaries (.agents/issues/world-banners.md) they pass
+    elseif (($Lines -join "`n") -match '\$File: \$' -and
+            $Name -notin @('code/sim/world.cpp', 'code/sim/world.h')) {
+        $Failures.Add("${Name}: replace the empty `$File: `$ banner with a comment saying what the file is for")
     }
 }
 
