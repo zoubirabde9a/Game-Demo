@@ -9,6 +9,9 @@ struct net_stream
     u32 At;
     bool32 Writing;
     bool32 Failed;
+    // A snapshot's positions on the ground are sent from this point (the
+    // viewer), see NetPosition in protocol.cpp
+    float OriginX, OriginY;
 };
 
 internal void

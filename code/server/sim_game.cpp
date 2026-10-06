@@ -244,6 +244,16 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
         Out->Cooldowns[Index] = Seconds ? CooldownToByte(*Seconds, Full) : 0;
     }
     Out->Stagger = Own ? CooldownToByte(Own->Stagger, PlayerStats.StaggerSeconds) : 0;
+    // The viewer's own body unrounded, for its prediction (net/protocol.h),
+    // and the point the other positions are sent from
+    Out->HasOwnBody = (Own && Own->IsPresent) ? 1 : 0;
+    Out->OriginX = Out->HasOwnBody ? Own->Position.X : 0.f;
+    Out->OriginY = Out->HasOwnBody ? Own->Position.Y : 0.f;
+    for (u32 Axis = 0; Axis < 3; ++Axis)
+    {
+        Out->OwnPosition[Axis] = Out->HasOwnBody ? Own->Position.Data[Axis] : 0.f;
+        Out->OwnVelocity[Axis] = Out->HasOwnBody ? Own->Velocity.Data[Axis] : 0.f;
+    }
     // The viewer's experience and talents, for its HUD and talent panel;
     // the ranks also make its prediction use the same cooldowns.
     static_assert(Talent_Count == NET_TALENT_COUNT, "one rank per talent");

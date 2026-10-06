@@ -173,6 +173,16 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
     {
         ApplyOwnProgression(Own, Snapshot);
         ApplyOwnTimers(AppState, Own->Entity, Snapshot);
+        // NOTE(zoubir): exactly where the server has it, not rounded to
+        // 1/8 unit like the others: prediction replays from here
+        if (Snapshot->HasOwnBody)
+        {
+            v3 Exact = V3(Snapshot->OwnPosition[0], Snapshot->OwnPosition[1],
+                          Snapshot->OwnPosition[2]);
+            MoveReplicaTo(AppState, Arena, Own->Entity, Exact);
+            Own->Entity->Velocity = V3(Snapshot->OwnVelocity[0], Snapshot->OwnVelocity[1],
+                                       Snapshot->OwnVelocity[2]);
+        }
     }
     ApplySnapshotScores(AppState, Snapshot);
     if (Snapshot->NameSlot < MAX_PLAYERS)

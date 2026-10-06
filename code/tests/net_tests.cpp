@@ -396,7 +396,7 @@ TestFixedPointPrecisionAndClamping()
     In.Snapshot.Count = 3;
     In.Snapshot.Entities[0].X = 1234.56f;      // rounds to the nearest 1/8
     In.Snapshot.Entities[0].VelX = -77.3f;     // rounds to the nearest 1/4
-    In.Snapshot.Entities[1].X = 99999.0f;      // beyond +-4096: clamped
+    In.Snapshot.Entities[1].X = 99999.0f;      // beyond +-4096 of the viewer: clamped
     In.Snapshot.Entities[1].VelY = -99999.0f;  // beyond +-8192: clamped
     float NotANumber = 0.0f;
     NotANumber = NotANumber / NotANumber;
@@ -410,6 +410,28 @@ TestFixedPointPrecisionAndClamping()
     Check(Out.Snapshot.Entities[1].X > 4095.0f && Out.Snapshot.Entities[1].X < 4096.0f);
     Check(Out.Snapshot.Entities[1].VelY < -8191.0f && Out.Snapshot.Entities[1].VelY > -8192.0f);
     Check(Out.Snapshot.Entities[2].Z == 0.0f);
+
+    // Positions go from the viewer (the snapshot's origin), so far out on
+    // an infinite map they keep their 1/8 unit; only what is more than
+    // 4096 from the viewer is cut. The viewer's own body is exact.
+    net_packet Far = {};
+    Far.Header.Type = NetPacket_Snapshot;
+    Far.Snapshot.OriginX = 10000.3f;
+    Far.Snapshot.OriginY = -7000.9f;
+    Far.Snapshot.Count = 1;
+    Far.Snapshot.Entities[0].X = 10012.3f;
+    Far.Snapshot.Entities[0].Y = -7004.1f;
+    Far.Snapshot.HasOwnBody = 1;
+    Far.Snapshot.OwnPosition[0] = 10000.3f;
+    Far.Snapshot.OwnVelocity[1] = -123.456f;
+    net_packet Back = RoundTrip(&Far, 0);
+    Check(Back.Snapshot.Entities[0].X > 10012.3f - 0.0626f &&
+          Back.Snapshot.Entities[0].X < 10012.3f + 0.0626f);
+    Check(Back.Snapshot.Entities[0].Y > -7004.1f - 0.0626f &&
+          Back.Snapshot.Entities[0].Y < -7004.1f + 0.0626f);
+    Check(Back.Snapshot.HasOwnBody == 1);
+    Check(Back.Snapshot.OwnPosition[0] == 10000.3f);
+    Check(Back.Snapshot.OwnVelocity[1] == -123.456f);
 }
 
 internal void
@@ -483,8 +505,9 @@ TestRejectsBadPackets()
     Buffer[4] = NetPacket_Snapshot;
 
     // Entity count above the limit. Count sits after the 13-byte header,
-    // the 4-byte tick, the 4-byte input tick and the 1-byte input buffered.
-    Buffer[22] = (u8)(NET_MAX_SNAPSHOT_ENTITIES + 1);
+    // the 4-byte tick, the 4-byte input tick, the 1-byte input buffered
+    // and the two 4-byte origin floats.
+    Buffer[30] = (u8)(NET_MAX_SNAPSHOT_ENTITIES + 1);
     Check(!NetReadPacket(Buffer, Size, &Out));
 
     // Input batches must hold 1..NET_MAX_INPUTS_PER_PACKET inputs.
@@ -964,8 +987,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d55u
-#define NET_GOLDEN_LAYOUT 0xfd3babeeu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d56u
+#define NET_GOLDEN_LAYOUT 0x2e97b15cu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d55u // "GDMU", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d56u // "GDMV", change it whenever the layout changes
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 8
 // The server's ticks a second. Each net_input is one tick's worth: the
@@ -282,6 +282,10 @@ struct net_snapshot
     // This client's inputs that had arrived but were still waiting for
     // their tick; the client paces its inputs to keep one or two waiting.
     u8 InputBuffered;
+    // Where the snapshot's positions are measured from on the wire: the
+    // viewer's player, or the map's middle without one. Positions in this
+    // struct are whole-map ones; the client needs nothing from this.
+    float OriginX, OriginY;
     u16 Count;
     net_entity_state Entities[NET_MAX_SNAPSHOT_ENTITIES];
     u8 AbilityCount;
@@ -316,6 +320,14 @@ struct net_snapshot
     // PlayerStats.StaggerSeconds; its prediction replays from it, or every
     // shove would be braked away on the client and pulled back.
     u8 Stagger;
+    // The viewer's own player exactly: position and velocity as floats.
+    // Entities are sent rounded to 1/8 unit, and a prediction replayed
+    // from a rounded start went round a wall's corner the other way from
+    // the server, so the player shook along the map's edges. HasOwnBody is
+    // 0 when the viewer has no player.
+    u8 HasOwnBody;
+    float OwnPosition[3];
+    float OwnVelocity[3];
     // Bursts seen near this player since its previous snapshot; cosmetic,
     // lost with their snapshot like sounds.
     u8 BurstCount;

@@ -73,6 +73,18 @@ NetNonZero(float Value, float Steps)
     return Scaled >= 0.5f || Scaled <= -0.5f;
 }
 
+// A position on the ground, sent as its distance from the snapshot's
+// origin (the viewer) in 1/8 units. Sent as is, positions past 4096 units
+// from the map's middle, where infinite maps take players, were all cut
+// to 4096; near the viewer they keep their precision anywhere.
+internal void
+NetPosition(net_stream *S, float *Value, float Origin)
+{
+    float Relative = *Value - Origin;
+    NetFixed16(S, &Relative, NET_POSITION_STEPS);
+    *Value = Relative + Origin;
+}
+
 internal void
 NetSerializeEntity(net_stream *S, net_entity_state *E)
 {
@@ -114,8 +126,8 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     E->Status = (u8)(((Extra >> 3) & 7) | (((Look >> 7) & 1) << 3));
     E->Ability = (Extra >> 6) & 3;
     NetI16(S, &E->Health);
-    NetFixed16(S, &E->X, NET_POSITION_STEPS);
-    NetFixed16(S, &E->Y, NET_POSITION_STEPS);
+    NetPosition(S, &E->X, S->OriginX);
+    NetPosition(S, &E->Y, S->OriginY);
     if (TypeAndFlags & NET_ENTITY_HAS_Z)
     {
         NetFixed16(S, &E->Z, NET_POSITION_STEPS);
@@ -168,8 +180,8 @@ NetSerializeRewind(net_stream *S, net_rewind *R, u16 EntityCount)
     }
     NetU8(S, &Left);
     R->PhaseLeft = (float)Left / 250.f;
-    NetFixed16(S, &R->X, NET_POSITION_STEPS);
-    NetFixed16(S, &R->Y, NET_POSITION_STEPS);
+    NetPosition(S, &R->X, S->OriginX);
+    NetPosition(S, &R->Y, S->OriginY);
     u8 Radius = 0;
     if (S->Writing)
     {
@@ -203,8 +215,8 @@ NetSerializeAbility(net_stream *S, net_ability_state *A, u16 EntityCount)
     if (A->EntityIndex >= EntityCount || A->PointCount > NET_MAX_ABILITY_POINTS) return false;
     for (u32 Index = 0; Index < A->PointCount; ++Index)
     {
-        NetFixed16(S, &A->PointX[Index], NET_POSITION_STEPS);
-        NetFixed16(S, &A->PointY[Index], NET_POSITION_STEPS);
+        NetPosition(S, &A->PointX[Index], S->OriginX);
+        NetPosition(S, &A->PointY[Index], S->OriginY);
     }
     return true;
 }
@@ -305,6 +317,12 @@ NetSerializePacket(net_stream *S, net_packet *P)
             NetU32(S, &P->Snapshot.Tick);
             NetU32(S, &P->Snapshot.InputTick);
             NetU8(S, &P->Snapshot.InputBuffered);
+            NetF32(S, &P->Snapshot.OriginX);
+            NetF32(S, &P->Snapshot.OriginY);
+            if (!(P->Snapshot.OriginX == P->Snapshot.OriginX) ||
+                !(P->Snapshot.OriginY == P->Snapshot.OriginY)) return false;
+            S->OriginX = P->Snapshot.OriginX;
+            S->OriginY = P->Snapshot.OriginY;
             NetU16(S, &P->Snapshot.Count);
             if (P->Snapshot.Count > NET_MAX_SNAPSHOT_ENTITIES) return false;
             for (u32 Index = 0; Index < P->Snapshot.Count; ++Index)
@@ -373,6 +391,16 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 }
             }
             NetU8(S, &P->Snapshot.Stagger);
+            NetU8(S, &P->Snapshot.HasOwnBody);
+            if (P->Snapshot.HasOwnBody > 1) return false;
+            if (P->Snapshot.HasOwnBody)
+            {
+                for (u32 Axis = 0; Axis < 3; ++Axis)
+                {
+                    NetF32(S, &P->Snapshot.OwnPosition[Axis]);
+                    NetF32(S, &P->Snapshot.OwnVelocity[Axis]);
+                }
+            }
             NetU8(S, &P->Snapshot.KillCount);
             if (P->Snapshot.KillCount > NET_MAX_SNAPSHOT_KILLS) return false;
             for (u32 Index = 0; Index < P->Snapshot.KillCount; ++Index)
@@ -391,8 +419,8 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU8(S, &Burst->Kind);
                 NetU8(S, &Burst->Slot);
                 NetU8(S, &Burst->Angle);
-                NetFixed16(S, &Burst->X, NET_POSITION_STEPS);
-                NetFixed16(S, &Burst->Y, NET_POSITION_STEPS);
+                NetPosition(S, &Burst->X, S->OriginX);
+                NetPosition(S, &Burst->Y, S->OriginY);
                 NetFixed16(S, &Burst->Z, NET_POSITION_STEPS);
             }
             NetU8(S, &P->Snapshot.RewindCount);

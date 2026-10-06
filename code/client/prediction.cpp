@@ -139,6 +139,10 @@ struct prediction_history
     v3 BeforeVelocity;
     u32 ShownTick;
     v2 DrawError;
+    // NOTE(zoubir): snapshots that moved the player off where it was
+    // shown, and by how much in all, for tests and diagnosis
+    u32 Corrections;
+    float CorrectedDistance;
     u32 LastButtons;
     // NOTE(zoubir): After of the newest input the server applied
     predicted_body Acked;
@@ -226,6 +230,22 @@ PredictLocalStep(app_state *AppState, memory_arena *Arena,
         IsDeadPlayer(Player))
     {
         return false;
+    }
+
+    // NOTE(zoubir): the ground under the feet, as SimulateTick reads it for
+    // every unit before it moves (sim/terrain_effects.cpp). Prediction does
+    // not run SimulateTick, so off the stone floor (grass, sand, ice at the
+    // map's edges) it walked at floor speed while the server did not, and
+    // every snapshot pulled the player back. What standing there does to
+    // health and status is left to the server
+    Player->GroundSpeedScale = 1.f;
+    Player->GroundFriction = 1.f;
+    if (FeelsTerrain(&AppState->World, Player))
+    {
+        terrain_def *Ground =
+            GetTerrainDef(TerrainUnder(&AppState->World, Player->Position));
+        Player->GroundSpeedScale = Ground->SpeedScale;
+        Player->GroundFriction = Ground->Friction;
     }
 
     Slot->Input = {};
@@ -364,7 +384,13 @@ PredictLocalPlayer(app_state *AppState, memory_arena *Arena,
     // one; comparing those counted this frame's own walk as a correction
     if (NewSnapshot && HadShown && FoundShown)
     {
-        History->DrawError += ShownBefore.XY - ReplayedAtShown.XY;
+        v2 Correction = ShownBefore.XY - ReplayedAtShown.XY;
+        History->DrawError += Correction;
+        if (LengthSq(Correction) > Square(0.01f))
+        {
+            History->Corrections++;
+            History->CorrectedDistance += Length(Correction);
+        }
         if (LengthSq(History->DrawError) > Square(PREDICTION_SNAP_DISTANCE))
         {
             History->DrawError = {};

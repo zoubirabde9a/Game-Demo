@@ -58,6 +58,11 @@ struct motion_result
     bool32 Joined;
     motion_track Local;
     motion_track Remote;
+    // NOTE: the camera's own position, before it is snapped to pixels
+    motion_track Camera;
+    v2 LocalEnd;
+    u32 Corrections;
+    float CorrectedDistance;
     float LocalTravel;
     float RemoteTravel;
 };
@@ -73,13 +78,14 @@ PrintMotionTrack(const char *Name, motion_track *Track)
 // NOTE: MaxDelayMs is the most a packet waits on the link either way;
 // each waits a random amount up to it, so packets also arrive out of order
 internal motion_result
-PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed)
+PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed,
+           u32 EdgePattern = 0, bool32 Offline = false, u32 MapId = MapId_Arena)
 {
     motion_result Result = {};
     static server Server;
     static lossy_link Link;
     static net_client Mover;
-    Check(ServerStart(&Server, 0));
+    Check(ServerStart(&Server, 0, MapId));
     ClearMonsters(&Server);
 
     app_state *Client = (app_state *)calloc(1, sizeof(app_state));
@@ -100,7 +106,7 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed)
     char Address[32];
     net_address LinkAddress = LossyAddress(&Link);
     snprintf(Address, sizeof(Address), "127.0.0.1:%u", LinkAddress.Port);
-    Check(OnlineConnect(Online, Address, "Watcher"));
+    if (!Offline) Check(OnlineConnect(Online, Address, "Watcher"));
     Check(NetClientConnect(&Mover, LocalServer(&Server), 4321, SimContentId(), "Mover"));
 
     // NOTE: walking changes speed by at most RunSpeed / StopSeconds a
@@ -112,8 +118,11 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed)
     u32 Random = Seed * 747796405u + 1;
     app_input Input = {};
     float Seconds = 0.0f;
-    float TotalSeconds = 8.0f;
-    float MeasureFrom = 2.0f;
+    float TotalSeconds = EdgePattern ? 16.0f : 8.0f;
+    float MeasureFrom = EdgePattern ? 9.0f : 2.0f;
+    app_window Window = {};
+    Window.Width = 1920;
+    Window.Height = 1080;
     v2 LocalStart = {}, RemoteStart = {};
     bool32 Measuring = false;
     while (Seconds < TotalSeconds)
@@ -132,6 +141,29 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed)
         bool32 Right = ((int)Seconds % 2) == 0;
         Input.ButtonD.EndedDown = Right;
         Input.ButtonQ.EndedDown = !Right;
+        // NOTE: edge patterns run up and left into the corner for 9 s,
+        // then 1: keep pushing; 2: slide right and back along the top
+        // edge; 3: step down off the top edge and back into it
+        // NOTE: pattern 4 wanders: a new one of the eight directions every
+        // 0.7 s, over whatever ground the map has there
+        if (EdgePattern == 4)
+        {
+            u32 Way = ((u32)(Seconds / 0.7f) * 3) % 8;
+            Input.ButtonD.EndedDown = Way == 0 || Way == 1 || Way == 7;
+            Input.ButtonQ.EndedDown = Way == 3 || Way == 4 || Way == 5;
+            Input.ButtonS.EndedDown = Way == 1 || Way == 2 || Way == 3;
+            Input.ButtonZ.EndedDown = Way == 5 || Way == 6 || Way == 7;
+        }
+        else if (EdgePattern)
+        {
+            bool32 Settle = Seconds < 9.0f || EdgePattern == 1;
+            float Phase = Seconds - 9.0f;
+            Input.ButtonQ.EndedDown = Settle || (EdgePattern == 2 && (int)(Phase / 1.2f) % 2 == 1);
+            Input.ButtonD.EndedDown = !Settle && EdgePattern == 2 && (int)(Phase / 1.2f) % 2 == 0;
+            Input.ButtonZ.EndedDown = Settle || EdgePattern == 2 ||
+                (EdgePattern == 3 && fmodf(Phase, 1.0f) > 0.35f);
+            Input.ButtonS.EndedDown = !Settle && EdgePattern == 3 && fmodf(Phase, 1.0f) <= 0.35f;
+        }
 
         UpdateOnlineSession(Online, &Input);
         LossyPump(&Link);
@@ -141,16 +173,27 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed)
             ServerClock -= 1.0f / SERVER_TICK_RATE;
             u32 MoverButtons = (u32)((int)(Seconds / 0.8f) % 2) ? NetButton_Up : NetButton_Down;
             if (Seconds < 1.5f) MoverButtons = NetButton_Down;
+            // NOTE: a wander crosses the spawn, so the mover leaves it
+            if (EdgePattern == 4) MoverButtons = NetButton_Left | NetButton_Up;
             NetClientUpdate(&Mover, 1.0f / SERVER_TICK_RATE, MoverButtons, 0, 0);
             ServerTick(&Server);
         }
         LossyPump(&Link);
+        if (Offline)
+        {
+            // NOTE: walking only; the keyboard reader also needs the cast
+            // targeting the game's startup makes
+            player_input Walk = {};
+            Walk.Move.X = Input.ButtonD.EndedDown ? 1.f : (Input.ButtonQ.EndedDown ? -1.f : 0.f);
+            Walk.Move.Y = Input.ButtonS.EndedDown ? 1.f : (Input.ButtonZ.EndedDown ? -1.f : 0.f);
+            Client->Players[Client->LocalPlayerIndex].Input = Walk;
+        }
         RunWorldTick(Client, &Arena, DeltaTime);
 
-        if (!IsOnline(Online) || Mover.State != NetClient_Connected) continue;
+        if ((!Offline && !IsOnline(Online)) || Mover.State != NetClient_Connected) continue;
         Result.Joined = true;
         world_entity *Local = GetLocalPlayer(Client);
-        world_entity *Remote = Client->Players[Mover.PlayerIndex].Entity;
+        world_entity *Remote = Offline ? Local : Client->Players[Mover.PlayerIndex].Entity;
         if (!Local || !Remote || !Remote->IsPresent) continue;
         if (Seconds >= MeasureFrom && !Measuring)
         {
@@ -162,6 +205,9 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed)
         {
             TrackMotion(&Result.Local, Local->Position.XY, DeltaTime, Allowed);
             TrackMotion(&Result.Remote, Remote->Position.XY, DeltaTime, Allowed);
+            app_window View = GetWorldView(Client, &Window);
+            UpdateCamera(Client, &View, &Input, false);
+            TrackMotion(&Result.Camera, Client->CameraOffset.XY, DeltaTime, Allowed);
             Result.LocalTravel += Length(Local->Position.XY - LocalStart);
             Result.RemoteTravel += Length(Remote->Position.XY - RemoteStart);
             LocalStart = Local->Position.XY;
@@ -169,6 +215,9 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed)
         }
     }
 
+    if (GetLocalPlayer(Client)) Result.LocalEnd = GetLocalPlayer(Client)->Position.XY;
+    Result.Corrections = Online->Prediction.Corrections;
+    Result.CorrectedDistance = Online->Prediction.CorrectedDistance;
     NetClientDisconnect(&Mover);
     OnlineDisconnect(Online);
     NetCloseSocket(&Link.Socket);
@@ -212,8 +261,54 @@ TestOnlineMotionIsSmooth()
     }
 }
 
+// The local player runs into the arena's corner, then pushes into it,
+// slides along the top edge, or steps off the raised edge and back, over
+// a jittery, lossy link. The server must never have to correct it, and it
+// must move as smoothly as the same walk offline. Snapshots used to send
+// its position rounded to 1/8 unit; replayed from there, it went round
+// the wall's corners differently from the server, and was pulled back
+// 20 times a second all along the edges.
+internal void
+TestOnlineEdgesAreSmooth()
+{
+    const char *Names[] = {"", "pushing into the corner", "sliding along the edge",
+                           "stepping off the edge and back"};
+    for (u32 Pattern = 1; Pattern <= 3; ++Pattern)
+    {
+        motion_result Online = PlayMotion(144.0f, 30, 5, 40 + Pattern, Pattern);
+        motion_result Offline = PlayMotion(144.0f, 0, 0, 40 + Pattern, Pattern, true);
+        printf("  edge, %s: %u corrections from the server (%.1f units)\n",
+               Names[Pattern], Online.Corrections, Online.CorrectedDistance);
+        PrintMotionTrack("online", &Online.Local);
+        PrintMotionTrack("offline", &Offline.Local);
+        PrintMotionTrack("camera", &Online.Camera);
+        Check(Online.Joined);
+        Check(Online.Corrections <= 2);
+        Check(Online.Local.Jolts <= Offline.Local.Jolts + 3);
+        Check(Online.Camera.Jolts <= Offline.Local.Jolts + 3);
+    }
+}
+
+// The local player wanders over every map, mud, water, snow and ice
+// included. Prediction must walk each kind of ground as the server does:
+// it once walked everything at stone-floor speed.
+internal void
+TestOnlineGroundPredictsExactly()
+{
+    for (u32 MapId = 0; MapId < MapId_Count; ++MapId)
+    {
+        motion_result Online = PlayMotion(144.0f, 30, 5, 60 + MapId, 4, false, MapId);
+        printf("  wandering on map %u: %u corrections from the server (%.1f units), walked %.0f\n",
+               MapId, Online.Corrections, Online.CorrectedDistance, Online.LocalTravel);
+        Check(Online.Joined);
+        Check(Online.Corrections <= 3);
+    }
+}
+
 internal void
 RunMotionTests()
 {
     TestOnlineMotionIsSmooth();
+    TestOnlineEdgesAreSmooth();
+    TestOnlineGroundPredictsExactly();
 }
