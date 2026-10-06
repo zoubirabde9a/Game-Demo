@@ -40,6 +40,9 @@ struct ui_state
     font *Font;
     char Text[128];
     u32 TextCount;
+    // NOTE(zoubir): 0..1, eases toward 1 while the mouse is on the widget
+    // and back to 0 after, so hover lights it up gradually
+    float HotFade;
     union
     {
         // EditBox

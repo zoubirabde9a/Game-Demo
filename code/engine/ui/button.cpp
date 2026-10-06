@@ -83,15 +83,20 @@ DrawButton(ui_element* Button, ui_context *UIContext)
     v4 Inner = UIInnerRect(Button, Padding);
     bool32 IsHighlighted = (UIContext->HighlightedElement == Button);
     bool32 IsSelected = State->IsSelected;
+    float Hot = UIEaseHot(State, IsHighlighted, UIContext->Input->DeltaTime);
 
-    DrawFilledRectangle(RenderContext, Button->X, Button->Y,
-                        Button->Width, Button->Height,
-                        (IsHighlighted || IsSelected) ?
-                        UI_COLOR_CONTROL_HOT : UI_COLOR_CONTROL, 0.f);
-    DrawRectangle(RenderContext, Button->X, Button->Y,
-                  Button->Width, Button->Height,
-                  (IsHighlighted || IsSelected) ?
-                  UI_COLOR_ACCENT : UI_COLOR_BORDER, 0.f);
+    // NOTE(zoubir): pressed, the button sinks a pixel
+    float Sink = State->IsPressed ? 1.f : 0.f;
+    DrawRoundRect(RenderContext, Button->X, Button->Y + Sink,
+                  Button->Width, Button->Height - Sink,
+                  UIMixColor(IsSelected ? UI_COLOR_CONTROL_HOT : UI_COLOR_CONTROL,
+                             UI_COLOR_CONTROL_HOT, Hot));
+    if (IsSelected || Hot > 0.01f)
+    {
+        DrawRoundOutline(RenderContext, Button->X, Button->Y + Sink,
+                         Button->Width, Button->Height - Sink,
+                         WithAlpha(UI_COLOR_ACCENT, IsSelected ? 1.f : 0.8f * Hot));
+    }
     RenderText(RenderContext, Inner.X, Inner.Y, Inner.Z, Inner.W,
                UIInnerClip(Button, Padding), State->Font,
                RenderContext->TextureProgram, State->ButtonText,

@@ -118,6 +118,10 @@ DrawDeathPlate(render_context *RenderContext, app_state *AppState,
     float BarX = X + UI_GAP_LARGE;
     float BarWidth = Width - 2.f * UI_GAP_LARGE;
     float BarY = Y + Height - UI_GAP - 4.f;
-    DrawFilledRectangle(RenderContext, BarX, BarY, BarWidth, 4.f, UI_COLOR_TRACK, 0.f);
-    DrawFilledRectangle(RenderContext, BarX, BarY, Share * BarWidth, 4.f, UI_COLOR_ACCENT, 0.f);
+    DrawRoundRect(RenderContext, BarX, BarY, BarWidth, 6.f, UI_COLOR_TRACK);
+    if (Share > 0.f)
+    {
+        DrawRoundRect(RenderContext, BarX, BarY, Maximum(6.f, Share * BarWidth), 6.f,
+                      UI_COLOR_ACCENT);
+    }
 }

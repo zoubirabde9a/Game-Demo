@@ -78,6 +78,9 @@ enum shader_id
     Shader_TalentBackdrop, // a talent branch's glowing column
     Shader_TalentArc,     // a progress ring filling clockwise from the top
     Shader_ScreenEdge,    // vignette and hurt tint over the whole screen
+    Shader_WorldGrade,    // glow and colour grade over the world, every frame
+    Shader_RoundRect,     // small raised rounded part: bar, button, field, chip
+    Shader_RoundOutline,  // the rim of a rounded part, for focus
     Shader_Count
 };
 

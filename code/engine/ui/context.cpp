@@ -45,6 +45,19 @@ UIContextGetState(ui_context *UIContext, u32 StateIndex)
     return State;
 }
 
+// NOTE(zoubir): moves State->HotFade toward 1 while Hot and toward 0
+// otherwise, over about a tenth of a second, and returns it
+inline float
+UIEaseHot(ui_state *State, bool32 Hot, float DeltaTime)
+{
+    float Target = Hot ? 1.f : 0.f;
+    float Step = DeltaTime * 10.f;
+    float Fade = State->HotFade;
+    Fade = Fade < Target ? Minimum(Target, Fade + Step) : Maximum(Target, Fade - Step);
+    State->HotFade = Fade;
+    return Fade;
+}
+
 internal ui_context *
 UIContextCreate(memory_arena *Arena, u32 NumberOfStates)
 {

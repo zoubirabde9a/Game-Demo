@@ -219,10 +219,10 @@ DrawTalentNode(render_context *RenderContext, app_state *AppState, app_input *In
         float KeyHeight = UILineHeight(Small);
         float KeyX = Centre.X - 0.5f * Arc - 2.f;
         float KeyY = Centre.Y - 0.5f * Arc - 2.f;
-        DrawFilledRectangle(RenderContext, KeyX, KeyY, KeyWidth, KeyHeight,
-                            UI_RGBA(8, 9, 14, 230), 0.f);
-        DrawRectangle(RenderContext, KeyX, KeyY, KeyWidth, KeyHeight,
-                      WithAlpha(Accent, Level ? 0.8f : 0.3f), 0.f);
+        DrawRoundRect(RenderContext, KeyX, KeyY, KeyWidth, KeyHeight,
+                      UI_RGBA(12, 13, 20, 235));
+        DrawRoundOutline(RenderContext, KeyX, KeyY, KeyWidth, KeyHeight,
+                         WithAlpha(Accent, Level ? 0.8f : 0.3f));
         UIText(RenderContext, Small, KeyX + 4.f, KeyY, Key,
                Level ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED);
     }

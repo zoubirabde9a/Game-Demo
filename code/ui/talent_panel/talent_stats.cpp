@@ -25,10 +25,10 @@ DrawTalentStats(render_context *RenderContext, app_state *AppState, talent_panel
     font *Small = AppState->Fonts.Small;
     float X = L->SidebarX;
     float Width = TALENT_SIDEBAR_WIDTH;
-    DrawFilledRectangle(RenderContext, X, L->ColumnTop, Width, L->ColumnHeight,
-                        UI_RGBA(255, 255, 255, 8), 0.f);
-    DrawRectangle(RenderContext, X, L->ColumnTop, Width, L->ColumnHeight,
-                  UI_RGBA(255, 255, 255, 24), 0.f);
+    DrawRoundRect(RenderContext, X, L->ColumnTop, Width, L->ColumnHeight,
+                  UI_RGBA(255, 255, 255, 10));
+    DrawRoundOutline(RenderContext, X, L->ColumnTop, Width, L->ColumnHeight,
+                     UI_RGBA(255, 255, 255, 26));
     float Left = X + 14.f;
     float Inner = Width - 28.f;
     float Y = L->ColumnTop + 12.f;

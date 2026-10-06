@@ -7,7 +7,8 @@
    key squeezes its slot, and pressing one still recharging shakes it red.
    Hovering a slot names the ability, its level and its cooldown.
 
-   Experience runs as a thin strip between health and the slots, with the
+   Health is a bar over the slots (ability_health.cpp). Experience runs
+   as a thin strip between health and the slots, with the
    level badge left of the plate and the talent button right of it
    (talent_panel/xp_bar.cpp).
 
@@ -25,16 +26,12 @@
 // NOTE(zoubir): slot_frame.frag fills this share of its quad with the slot
 // and leaves the rest for the glow
 #define ABILITY_SLOT_BOX 0.78f
-#define ABILITY_HEALTH_HEIGHT 18.f
 // NOTE(zoubir): from the health bar's foot to the slots' top, the XP
 // strip in the middle
 #define ABILITY_HEALTH_GAP 30.f
 #define ABILITY_PULSE_SECONDS 0.45f
 #define ABILITY_PRESS_SECONDS 0.16f
 #define ABILITY_DENIED_SECONDS 0.3f
-// NOTE(zoubir): the red trail on the health bar catches up at this share
-// of the gap per second
-#define ABILITY_HEALTH_TRAIL_RATE 3.f
 
 struct ability_bar
 {
@@ -43,7 +40,7 @@ struct ability_bar
     float Pulse[ABILITY_SLOT_DEF_COUNT];  // 1 when it came ready, fading to 0
     float Press[ABILITY_SLOT_DEF_COUNT];  // 1 when pressed, fading to 0
     float Denied[ABILITY_SLOT_DEF_COUNT]; // 1 when pressed while recharging
-    float HealthTrail;                    // share of health the trail shows
+    health_bar Health;                    // the bar's trail and glide, ability_health.cpp
     bool32 WasShown[ABILITY_SLOT_DEF_COUNT]; // the player had it last frame
     bool32 ShownSeen; // WasShown holds a real frame, so a new slot is an unlock
 };
@@ -124,52 +121,6 @@ AbilityBarWidth(player_slot *Slot)
     return Width;
 }
 
-// NOTE(zoubir): health above the slots: a red bar, a pale trail that
-// drains after a hit so the size of the hit can be read, and the numbers
-internal void
-DrawAbilityBarHealth(render_context *RenderContext, app_state *AppState,
-                     ability_bar *Bar, world_entity *Player,
-                     float X, float Y, float Width, float DeltaTime)
-{
-    float Share = Player->MaxHp > 0.f ?
-        Maximum(0.f, Minimum(1.f, Player->Hp / Player->MaxHp)) : 0.f;
-    if (Share >= Bar->HealthTrail)
-    {
-        Bar->HealthTrail = Share;
-    }
-    else
-    {
-        Bar->HealthTrail = Maximum(Share, Bar->HealthTrail -
-                                   ABILITY_HEALTH_TRAIL_RATE * DeltaTime *
-                                   Maximum(0.08f, Bar->HealthTrail - Share));
-    }
-    float Height = ABILITY_HEALTH_HEIGHT;
-    DrawFilledRectangle(RenderContext, X - 2.f, Y - 2.f, Width + 4.f, Height + 4.f,
-                        UI_RGBA(6, 7, 10, 200), 0.f);
-    DrawFilledRectangle(RenderContext, X, Y, Width, Height, UI_RGBA(40, 18, 18, 230), 0.f);
-    DrawFilledRectangle(RenderContext, X, Y, Bar->HealthTrail * Width, Height,
-                        UI_RGBA(255, 214, 190, 220), 0.f);
-    u32 Fill = Share > 0.3f ? UI_COLOR_HEALTH : UI_RGBA(255, 70, 50, 255);
-    DrawFilledRectangle(RenderContext, X, Y, Share * Width, Height, Fill, 0.f);
-    // NOTE(zoubir): a lighter top half makes the bar look rounded
-    DrawFilledRectangle(RenderContext, X, Y, Share * Width, 0.4f * Height,
-                        UI_RGBA(255, 255, 255, 48), 0.f);
-    // NOTE(zoubir): with one point of health (the duel rules) the bar is
-    // full or empty and a "1 / 1" says nothing more
-    if (Player->MaxHp <= 1.f)
-    {
-        return;
-    }
-    char Text[32];
-    // NOTE(zoubir): an overkill leaves Hp below zero; the bar says 0
-    snprintf(Text, sizeof(Text), "%d / %d", (int)(Maximum(0.f, Player->Hp) + 0.5f),
-             (int)(Player->MaxHp + 0.5f));
-    font *Small = AppState->Fonts.Small;
-    UIText(RenderContext, Small, X + 0.5f * Width,
-           Y + 0.5f * (Height - UILineHeight(Small)) - 1.f, Text, UI_COLOR_TEXT,
-           UIAlign_Center);
-}
-
 // NOTE(zoubir): the top of the glass plate behind health and slots; other
 // panels stay above it (controls_panel.cpp)
 internal float
@@ -195,7 +146,7 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         ability_bar *New = AllocateStruct(&AppState->MemoryArena, ability_bar);
         *New = {};
         New->Atlas = BuildAbilityIconAtlas(RenderContext->OpenGL, RenderContext->Arena);
-        New->HealthTrail = 1.f;
+        New->Health = {1.f, 1.f};
         for(u32 Index = 0; Index < ABILITY_SLOT_DEF_COUNT; Index++)
         {
             New->WasReady[Index] = true;
@@ -226,8 +177,8 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
     float PlateHeight = (float)WindowHeight - ABILITY_BAR_BOTTOM + PlatePad - PlateTop;
     float PlateWidth = Width + 2.f * PlatePad;
     DrawUIPanel(RenderContext, Left - PlatePad, PlateTop, PlateWidth, PlateHeight);
-    DrawAbilityBarHealth(RenderContext, AppState, Bar, Player, Left, HealthY, Width,
-                         DeltaTime);
+    DrawHealthBar(RenderContext, AppState, &Bar->Health, Player, Left, HealthY, Width,
+                  DeltaTime);
     DrawXpStrip(RenderContext, AppState, Left,
                 HealthY + ABILITY_HEALTH_HEIGHT + 0.5f * (ABILITY_HEALTH_GAP - XP_STRIP_HEIGHT) - 2.f,
                 Width);
@@ -379,10 +330,10 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         float KeyHeight = UILineHeight(Small);
         float KeyX = CentreX - 0.5f * Slot - 3.f;
         float KeyY = CentreY - 0.5f * Slot - 0.45f * KeyHeight;
-        DrawFilledRectangle(RenderContext, KeyX, KeyY, KeyWidth, KeyHeight,
-                            UI_RGBA(8, 9, 14, 220), 0.f);
-        DrawRectangle(RenderContext, KeyX, KeyY, KeyWidth, KeyHeight,
-                      WithAlpha(Def->Accent, Ready ? 0.7f : 0.25f), 0.f);
+        DrawRoundRect(RenderContext, KeyX, KeyY, KeyWidth, KeyHeight,
+                      UI_RGBA(12, 13, 20, 235));
+        DrawRoundOutline(RenderContext, KeyX, KeyY, KeyWidth, KeyHeight,
+                         WithAlpha(Def->Accent, Ready ? 0.7f : 0.25f));
         UIText(RenderContext, Small, KeyX + 4.f, KeyY, Key,
                Ready ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED);
 

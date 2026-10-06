@@ -11,17 +11,20 @@ DrawEditBox(ui_element *EditBox, ui_context *UIContext)
     bool32 IsSelected = (UIContext->SelectedState == State);
     bool32 IsHighlighted = (UIContext->HighlightedElement == EditBox);
 
-    DrawFilledRectangle(RenderContext, EditBox->X, EditBox->Y,
-                        EditBox->Width, EditBox->Height, UI_COLOR_FIELD, 0.f);
-    DrawRectangle(RenderContext, EditBox->X, EditBox->Y,
-                  EditBox->Width, EditBox->Height,
-                  (IsSelected || IsHighlighted) ? UI_COLOR_ACCENT :
-                  UI_COLOR_BORDER, 0.f);
+    float Hot = UIEaseHot(State, IsHighlighted || IsSelected, UIContext->Input->DeltaTime);
+
+    DrawRoundRect(RenderContext, EditBox->X, EditBox->Y,
+                  EditBox->Width, EditBox->Height, UI_COLOR_FIELD);
+    DrawRoundOutline(RenderContext, EditBox->X, EditBox->Y,
+                     EditBox->Width, EditBox->Height,
+                     UIMixColor(UI_COLOR_BORDER, UI_COLOR_ACCENT, Hot));
     if (IsSelected)
     {
+        // NOTE(zoubir): the caret breathes rather than blinking hard
+        float Breath = 0.55f + 0.45f * cosf(5.f * RenderContext->Time);
         DrawFilledRectangle(RenderContext,
-                            Inner.X + UIContext->ElementCursor.Offset, Inner.Y,
-                            1.f, Inner.W, UI_COLOR_ACCENT, 0.f);
+                            Inner.X + UIContext->ElementCursor.Offset, Inner.Y + 2.f,
+                            2.f, Inner.W - 4.f, WithAlpha(UI_COLOR_ACCENT, Breath), 0.f);
     }
     RenderText(RenderContext, Inner.X, Inner.Y, Inner.Z, Inner.W,
                UIInnerClip(EditBox, State->Padding), State->Font,

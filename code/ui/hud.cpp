@@ -52,10 +52,10 @@ DrawPlayerLabels(render_context *RenderContext, app_state *AppState,
         float Left = Zoom * (Player->Position.X - CameraOffset.X) -
             0.5f * (NameWidth + ChipWidth + 4.f);
         float Top = Zoom * (SpriteTop - 14.f) - Height;
-        DrawFilledRectangle(RenderContext, Left, Top, ChipWidth, Height,
-                            UI_RGBA(40, 30, 8, 220), 0.f);
-        DrawRectangle(RenderContext, Left, Top, ChipWidth, Height,
-                      UI_RGBA(255, 196, 70, 220), 0.f);
+        DrawRoundRect(RenderContext, Left, Top, ChipWidth, Height,
+                      UI_RGBA(52, 38, 10, 225));
+        DrawRoundOutline(RenderContext, Left, Top, ChipWidth, Height,
+                         UI_RGBA(255, 196, 70, 220));
         UIText(RenderContext, Font, Left + 4.f, Top, Level, UI_RGBA(255, 226, 150, 255));
         UIText(RenderContext, Font, Left + ChipWidth + 4.f, Top, Name, UI_COLOR_TEXT);
     }

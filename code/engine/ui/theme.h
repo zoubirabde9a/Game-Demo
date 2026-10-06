@@ -34,6 +34,22 @@
 // not clipped inside an edit box or button
 #define UI_ROW_HEIGHT 40.f
 
+// NOTE(zoubir): From blended toward To by T (0..1), alpha included, for
+// colours that ease between states
+inline u32
+UIMixColor(u32 From, u32 To, float T)
+{
+    float Clamped = T < 0.f ? 0.f : (T > 1.f ? 1.f : T);
+    u32 Result = 0;
+    for(u32 Shift = 0; Shift < 32; Shift += 8)
+    {
+        float A = (float)((From >> Shift) & 0xFF);
+        float B = (float)((To >> Shift) & 0xFF);
+        Result |= (u32)(A + (B - A) * Clamped + 0.5f) << Shift;
+    }
+    return Result;
+}
+
 // NOTE(zoubir): Color with its alpha replaced by Alpha (0..1); shaders
 // that read the alpha as a parameter take it this way too
 inline u32

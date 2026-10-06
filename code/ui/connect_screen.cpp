@@ -97,11 +97,13 @@ DrawServerRow(render_context *RenderContext, app_state *AppState, app_input *Inp
     bool32 Hot = IsMouseOnRectangle(Input->MouseX, Input->MouseY, X, Y, Width, Height);
     bool32 Joinable = (Status->Reach == ServerReach_Up ||
                        Status->Reach == ServerReach_Unknown);
-    DrawFilledRectangle(RenderContext, X, Y, Width, Height,
-                        Hot ? UI_COLOR_CONTROL_HOT : UI_COLOR_CONTROL, 0.f);
-    DrawRectangle(RenderContext, X, Y, Width, Height,
-                  Current ? UI_COLOR_ACCENT : (Hot ? UI_COLOR_TEXT_MUTED : UI_COLOR_BORDER),
-                  0.f);
+    DrawRoundRect(RenderContext, X, Y, Width, Height,
+                  Hot ? UI_COLOR_CONTROL_HOT : UI_COLOR_CONTROL);
+    if (Current || Hot)
+    {
+        DrawRoundOutline(RenderContext, X, Y, Width, Height,
+                         Current ? UI_COLOR_ACCENT : UI_COLOR_TEXT_MUTED);
+    }
 
     u32 Bars = 0;
     u32 BarColor = UI_COLOR_HEALTH;
@@ -116,9 +118,8 @@ DrawServerRow(render_context *RenderContext, app_state *AppState, app_input *Inp
     for(u32 Index = 0; Index < 3; Index++)
     {
         float BarHeight = 6.f + 6.f * (float)Index;
-        DrawFilledRectangle(RenderContext, BarsX + (float)Index * 7.f, BarsBottom - BarHeight,
-                            5.f, BarHeight,
-                            Index < Bars ? BarColor : UI_RGBA(0, 0, 0, 140), 0.f);
+        DrawRoundRect(RenderContext, BarsX + (float)Index * 7.f, BarsBottom - BarHeight,
+                      5.f, BarHeight, Index < Bars ? BarColor : UI_RGBA(0, 0, 0, 140));
     }
 
     font *Body = AppState->Fonts.Body;

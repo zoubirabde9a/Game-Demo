@@ -47,6 +47,9 @@ global_variable shader_def ShaderDefs[Shader_Count] =
     {"talent backdrop", "shaders/fx/quad.vert", "shaders/fx/talent_backdrop.frag", 3, true},
     {"talent arc", "shaders/fx/quad.vert", "shaders/fx/talent_arc.frag", 3, true},
     {"screen edge", "shaders/fx/quad.vert", "shaders/fx/screen_edge.frag", 3, true},
+    {"world grade", "shaders/fx/quad.vert", "shaders/fx/world_grade.frag", 3, true},
+    {"round rect", "shaders/fx/quad.vert", "shaders/fx/round_rect.frag", 3, true},
+    {"round outline", "shaders/fx/quad.vert", "shaders/fx/round_outline.frag", 3, true},
 };
 
 global_variable char *ShaderAttributes[] =
@@ -61,6 +64,7 @@ global_variable char ShaderVertexPrelude[] =
     "#define ATTRIBUTE attribute\n"
     "#define VARYING varying\n";
 global_variable char ShaderFragmentPrelude[] =
+    "#extension GL_OES_standard_derivatives : enable\n"
     "precision mediump float;\n"
     "#define VARYING varying\n"
     "#define TEXTURE texture2D\n"

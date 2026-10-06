@@ -53,9 +53,7 @@ DrawScoreboard(render_context *RenderContext, app_state *AppState,
     float Columns[] = {Left + UI_GAP_LARGE, Left + 270.f, Left + 330.f, Left + 410.f,
                        Left + Width - UI_GAP_LARGE};
 
-    DrawFilledRectangle(RenderContext, Left, Top, Width, Height,
-                        UI_COLOR_PANEL, 0.f);
-    DrawRectangle(RenderContext, Left, Top, Width, Height, UI_COLOR_BORDER, 0.f);
+    DrawUIPanel(RenderContext, Left, Top, Width, Height);
 
     char *Headers[] = {"Player", "Level", "Kills", "Deaths", "Mobs"};
     float Y = Top + 12.f;

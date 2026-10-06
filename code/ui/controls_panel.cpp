@@ -111,10 +111,7 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
     float Left = UI_GAP_LARGE;
     float Top = Maximum(CONTROLS_TOP_MIN,
                         Minimum(CONTROLS_TOP, Bottom - Height));
-    u32 PanelColor = WithAlpha(UI_COLOR_PANEL, Fade * (float)(UI_COLOR_PANEL >> 24) / 255.f);
-    DrawFilledRectangle(RenderContext, Left, Top, Width, Height, PanelColor, 0.f);
-    DrawRectangle(RenderContext, Left, Top, Width, Height,
-                  WithAlpha(UI_COLOR_BORDER, Fade), 0.f);
+    DrawUIPanel(RenderContext, Left, Top, Width, Height, UI_RGBA(150, 160, 190, 255), Fade);
 
     UIText(RenderContext, AppState->Fonts.Title, Left + Pad, Top + Pad,
            "Controls", WithAlpha(UI_COLOR_TEXT, Fade));

@@ -52,15 +52,14 @@ DoCastModeToggle(render_context *RenderContext, app_state *AppState,
                 Hot ? UI_COLOR_ACCENT : UI_RGBA(150, 160, 190, 255));
     float BoxX = X + CAST_TOGGLE_PAD;
     float BoxY = Y + 0.5f * (Height - CAST_TOGGLE_BOX);
-    DrawFilledRectangle(RenderContext, BoxX, BoxY, CAST_TOGGLE_BOX, CAST_TOGGLE_BOX,
-                        UI_COLOR_FIELD, 0.f);
-    DrawRectangle(RenderContext, BoxX, BoxY, CAST_TOGGLE_BOX, CAST_TOGGLE_BOX,
-                  Hot ? UI_COLOR_ACCENT : UI_COLOR_BORDER, 0.f);
+    DrawRoundRect(RenderContext, BoxX, BoxY, CAST_TOGGLE_BOX, CAST_TOGGLE_BOX,
+                  UI_COLOR_FIELD);
+    DrawRoundOutline(RenderContext, BoxX, BoxY, CAST_TOGGLE_BOX, CAST_TOGGLE_BOX,
+                     Hot ? UI_COLOR_ACCENT : UI_COLOR_BORDER);
     if (Quick)
     {
-        DrawFilledRectangle(RenderContext, BoxX + 4.f, BoxY + 4.f,
-                            CAST_TOGGLE_BOX - 8.f, CAST_TOGGLE_BOX - 8.f,
-                            UI_COLOR_ACCENT, 0.f);
+        DrawRoundRect(RenderContext, BoxX + 4.f, BoxY + 4.f,
+                      CAST_TOGGLE_BOX - 8.f, CAST_TOGGLE_BOX - 8.f, UI_COLOR_ACCENT);
     }
     float TextX = BoxX + CAST_TOGGLE_BOX + UI_GAP_SMALL;
     UIText(RenderContext, Body, TextX, Y + 0.5f * (Height - LineHeight) + 1.f, Label,

@@ -87,11 +87,15 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     // NOTE(zoubir): while a time rewind shows, the world is drawn into a
     // texture and put on the window through its shader (client/rewind_fx/)
     BeginTimeWarp(RenderContext, AppState);
+    // NOTE(zoubir): otherwise into a texture for the glow and colour grade
+    // (client/world_grade.cpp)
+    BeginWorldGrade(RenderContext, AppState);
     BeginWorldPass(RenderContext, TransientArena, &AppState->World, &View);
     DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset, &View);
     DrawWorldEntities(RenderContext, AppState, &AppState->Assets,
                       TextureProgram, CameraOffset);
     RenderFlush(RenderContext);
+    EndWorldGrade(RenderContext, AppState, TransientArena, &ProjectionMatrix, Window);
     EndTimeWarp(RenderContext, AppState, TransientArena, &ProjectionMatrix,
                 CameraOffset, Window);
 
