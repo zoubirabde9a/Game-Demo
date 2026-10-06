@@ -6,7 +6,9 @@
    The panel stays above the ability bar: in a short window it switches to
    the small font, moves up toward the HUD lines, then splits into two
    columns.
-   A new key goes in ControlsRows. */
+   A new key goes in ControlsRows; capital letters in its key text are
+   shown as the keys at those places on the player's layout
+   (client/keyboard_layout.cpp), so name letter keys as on AZERTY. */
 
 #define CONTROLS_INTRO_SECONDS 10.f
 // NOTE(zoubir): the intro fades out over its last this-many seconds
@@ -43,10 +45,35 @@ global_variable controls_row ControlsRows[] =
     {"N",           "Talents: spend a point each level"},
     {"G T W R C",   "Talent abilities, once unlocked"},
     {"Tab",         "Scoreboard"},
+    {"Esc",         "Options: AZERTY or QWERTY"},
     {"F4",          "Play: map and server"},
     {"F1",          "Fullscreen"},
     {"Hold H",      "This panel"},
 };
+
+// NOTE(zoubir): a row's key text on the player's layout; only runs of
+// capital letters are letter keys ("ZQSD", "G T W R C"), so "Alt", "Tab"
+// and "F4" stay as they are
+internal void
+ControlsKeyText(char *Out, u32 OutSize, char *Text)
+{
+    bool32 Letters = true;
+    for(char *At = Text; *At; At++)
+    {
+        if (!(*At == ' ' || (*At >= 'A' && *At <= 'Z')))
+        {
+            Letters = false;
+        }
+    }
+    if (Letters)
+    {
+        LayoutKeyText(Out, OutSize, Text);
+    }
+    else
+    {
+        snprintf(Out, OutSize, "%s", Text);
+    }
+}
 
 internal void
 DrawControlsPanel(render_context *RenderContext, app_state *AppState,
@@ -74,7 +101,7 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
     {
         UIText(RenderContext, Small, UI_GAP_LARGE,
                (float)WindowHeight - UI_GAP_LARGE - UILineHeight(Small),
-               "Hold H for controls", UI_COLOR_TEXT_MUTED);
+               "Hold H for controls, Esc for options", UI_COLOR_TEXT_MUTED);
         return;
     }
 
@@ -100,9 +127,11 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
     float Height = Pad + TitleHeight + RowsPerColumn * RowHeight + Pad;
     float KeyWidth = 0.f;
     float ActionWidth = 0.f;
+    char Keys[ArrayCount(ControlsRows)][16];
     for(u32 Row = 0; Row < RowCount; Row++)
     {
-        KeyWidth = Maximum(KeyWidth, UITextWidth(Font, ControlsRows[Row].Key));
+        ControlsKeyText(Keys[Row], sizeof(Keys[Row]), ControlsRows[Row].Key);
+        KeyWidth = Maximum(KeyWidth, UITextWidth(Font, Keys[Row]));
         ActionWidth = Maximum(ActionWidth,
                               UITextWidth(Font, ControlsRows[Row].Action));
     }
@@ -121,7 +150,7 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
         u32 Column = Row / RowsPerColumn;
         float KeyRight = Left + Pad + Column * (ColumnWidth + UI_GAP_LARGE) + KeyWidth;
         float Y = RowsTop + (Row % RowsPerColumn) * RowHeight;
-        UIText(RenderContext, Font, KeyRight, Y, ControlsRows[Row].Key,
+        UIText(RenderContext, Font, KeyRight, Y, Keys[Row],
                WithAlpha(UI_COLOR_ACCENT, Fade), UIAlign_Right);
         UIText(RenderContext, Font, KeyRight + UI_GAP_LARGE, Y,
                ControlsRows[Row].Action, WithAlpha(UI_COLOR_TEXT, Fade));

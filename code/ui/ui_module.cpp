@@ -26,4 +26,5 @@
 #include "round_break_view.cpp"
 #include "status_strip.cpp"
 #include "cast_mode_toggle.cpp"
+#include "options_menu.cpp"
 #include "shader_errors.cpp"

@@ -194,6 +194,7 @@ struct app_input
     app_button_state ShiftButton;
     app_button_state AltButton;
     app_button_state TabButton;
+    app_button_state EscapeButton;
     union
     {
         app_button_state FButtons[12];

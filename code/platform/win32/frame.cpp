@@ -118,6 +118,10 @@ Win32PollKeyboardAndMouse(HWND windowHandle, app_input *OldInput,
                                 &NewInput->TabButton,
                                 Win32KeyDown(VK_TAB));
 
+    Win32ProcessKeyboardMessage(&OldInput->EscapeButton,
+                                &NewInput->EscapeButton,
+                                Win32KeyDown(VK_ESCAPE));
+
     for(u32 FButtonIndex = 0;
         FButtonIndex < 12;
         FButtonIndex++)

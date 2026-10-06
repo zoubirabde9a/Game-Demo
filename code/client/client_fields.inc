@@ -29,4 +29,6 @@
     u32 ScreenEdgeLastKills; // the local player's kills last frame plus one (0: not seen yet), client/screen_edge.cpp
     float ScreenEdgeKill; // gold flash at the screen edge after a kill, 1 fading to 0, client/screen_edge.cpp
     struct world_grade *WorldGrade; // the world pass's render target for the glow and colour grade, client/world_grade.cpp
+    u32 KeyboardLayout; // keyboard_layout, AZERTY or QWERTY, client/keyboard_layout.cpp
+    bool32 OptionsOpen; // the Esc options menu is showing, ui/options_menu.cpp
     struct cast_targeting *CastTargeting; // quick or standard cast, and the ability being aimed, client/cast_targeting.cpp

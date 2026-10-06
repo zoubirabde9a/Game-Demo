@@ -74,9 +74,9 @@ internal u32
 NetButtonsFromKeyboard(app_input *Input)
 {
     u32 Result = 0;
-    if (Input->ButtonQ.EndedDown) Result |= NetButton_Left;
+    if (LayoutKey(Input, 'Q')->EndedDown) Result |= NetButton_Left;
     if (Input->ButtonD.EndedDown) Result |= NetButton_Right;
-    if (Input->ButtonZ.EndedDown) Result |= NetButton_Up;
+    if (LayoutKey(Input, 'Z')->EndedDown) Result |= NetButton_Up;
     if (Input->ButtonS.EndedDown) Result |= NetButton_Down;
     Result |= ActionButtonsFromKeys(Input, false) << PLAYER_BUTTON_NET_SHIFT;
     return Result;

@@ -1,5 +1,6 @@
 /* Local controls: turns this machine's keyboard and mouse into the
-   player_input the simulation understands. ZQSD move (AZERTY layout),
+   player_input the simulation understands. ZQSD move on AZERTY and
+   WASD on QWERTY (picked in the Esc menu, keyboard_layout.cpp),
    the mouse cursor aims, right click sword, left click fireball, Space
    jump, Alt dash, E shockwave, F blink, R push, A launch (the action keys
    are one table, action_keys.cpp). In standard cast mode an area
@@ -37,10 +38,10 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
 {
     player_input Result = {};
     Result.Aim = AimFromCursor(Input, AppState);
-    if (Input->ButtonZ.EndedDown) { Result.Move.Y = -1.f; }
+    if (LayoutKey(Input, 'Z')->EndedDown) { Result.Move.Y = -1.f; }
     if (Input->ButtonS.EndedDown) { Result.Move.Y = 1.f; }
     if (Input->ButtonD.EndedDown) { Result.Move.X = 1.f; }
-    if (Input->ButtonQ.EndedDown) { Result.Move.X = -1.f; }
+    if (LayoutKey(Input, 'Q')->EndedDown) { Result.Move.X = -1.f; }
 
     // NOTE(zoubir): standard cast holds an aimed ability back until it is
     // confirmed (cast_targeting.cpp); quick cast passes the keys through

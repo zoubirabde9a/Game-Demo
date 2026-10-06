@@ -2,7 +2,8 @@
    one table. Offline play reads new presses from it (keyboard_input.cpp),
    online play sends the held keys as network buttons (online.cpp), which
    are the same bits moved up by PLAYER_BUTTON_NET_SHIFT. A new action is
-   one row here. Every ability has a key; one the duel rules leave out
+   one row here. Letter keys named as on AZERTY go through LayoutKey
+   (keyboard_layout.cpp) so they move on QWERTY. Every ability has a key; one the duel rules leave out
    (GameRules, sim/player_stats.cpp) does nothing until the talent tree
    unlocks it (sim/progression/talents.cpp). */
 
@@ -26,12 +27,12 @@ GetActionKeys(app_input *Input, action_key *Keys)
         {&Input->LeftButton, PlayerButton_Cast, "LMB"},
         {&Input->ButtonE, PlayerButton_Shield, "E"},
         {&Input->ButtonF, PlayerButton_Blink, "F"},
-        {&Input->ButtonA, PlayerButton_Launch, "A"},
+        {LayoutKey(Input, 'A'), PlayerButton_Launch, LayoutKeyName('A')},
         {&Input->ButtonV, PlayerButton_RewindWorld, "V"},
         // NOTE(zoubir): abilities the talent tree unlocks
         // (sim/progression/talents.cpp); until then the key does nothing
         {&Input->RightButton, PlayerButton_Attack, "RMB"},
-        {&Input->ButtonW, PlayerButton_Shockwave, "W"},
+        {LayoutKey(Input, 'W'), PlayerButton_Shockwave, LayoutKeyName('W')},
         {&Input->ButtonR, PlayerButton_Push, "R"},
         {&Input->ButtonC, PlayerButton_Slam, "C"},
         {&Input->ButtonX, PlayerButton_RewindSelf, "X"},

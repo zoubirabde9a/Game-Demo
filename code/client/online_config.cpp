@@ -2,6 +2,8 @@
    GAME_SERVER and GAME_NAME environment variables or else the first two
    lines of server.txt in the folder the game runs from. A connect from
    the connect screen writes server.txt so the next launch reuses it.
+   Its third line is the keyboard layout (keyboard_layout.cpp), kept here
+   because the launcher carries server.txt over to each new version.
    With neither, the game joins ONLINE_DEFAULT_SERVER, the first server in
    server_list.cpp; GAME_SERVER=offline keeps it offline.
    online.cpp uses ReadOnlineConfig and SaveOnlineConfig. */
@@ -92,6 +94,25 @@ ReadOnlineConfig(char *Address, u32 AddressSize, char *Name, u32 NameSize)
                   (FromEnv && FromEnv[0]) ? FromEnv : SkipLines(File, 1));
     return Address[0] != 0;
 }
+
+// NOTE(zoubir): the layout server.txt's third line names; AZERTY when it
+// names none
+internal keyboard_layout
+ReadSavedKeyboardLayout()
+{
+    char File[256] = {};
+    FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "rb");
+    if (Handle)
+    {
+        fread(File, 1, sizeof(File) - 1, Handle);
+        fclose(Handle);
+    }
+    char Word[16];
+    CopyFirstLine(Word, sizeof(Word), SkipLines(File, 2));
+    keyboard_layout Result = StringsMatchIgnoringCase(Word, (char *)"qwerty") ?
+        KeyboardLayout_Qwerty : KeyboardLayout_Azerty;
+    return Result;
+}
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
@@ -108,13 +129,33 @@ SaveOnlineConfig(char *Address, char *Name)
     FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "wb");
     if (Handle)
     {
-        fprintf(Handle, "%s\n%s\n", Address, Name);
+        fprintf(Handle, "%s\n%s\n%s\n", Address, Name,
+                KeyboardLayoutWord(GlobalKeyboardLayout));
         fclose(Handle);
     }
+}
+
+// NOTE(zoubir): rewrites server.txt with the layout in use, keeping the
+// address and name lines as they were in the file
+internal void
+SaveKeyboardLayout()
+{
+    char File[256] = {};
+    FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "rb");
+    if (Handle)
+    {
+        fread(File, 1, sizeof(File) - 1, Handle);
+        fclose(Handle);
+    }
+    char Address[128], Name[64];
+    CopyFirstLine(Address, sizeof(Address), File);
+    CopyFirstLine(Name, sizeof(Name), SkipLines(File, 1));
+    SaveOnlineConfig(Address, Name);
 }
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 #else
 internal void SaveOnlineConfig(char *Address, char *Name) {}
+internal void SaveKeyboardLayout() {}
 #endif

@@ -56,9 +56,9 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     // NOTE(zoubir): dark, so a window bigger than a small map shows a border
     OpenGL->glClearColor(0.05f, 0.06f, 0.08f, 1.0f);
 
-    // Input. While a screen such as the connect screen is open, keys type
-    // into it.
-    bool32 KeysToUi = ConnectScreenTakesInput(AppState);
+    // Input. While a screen such as the connect screen or the options
+    // menu is open, keys and clicks go to it.
+    bool32 KeysToUi = ConnectScreenTakesInput(AppState) || AppState->OptionsOpen;
     player_input *LocalInput = &AppState->Players[AppState->LocalPlayerIndex].Input;
     *LocalInput = KeysToUi ? player_input{} : ReadKeyboardPlayerInput(Input, AppState);
     if (!KeysToUi && Input->ButtonJ.Pressed)

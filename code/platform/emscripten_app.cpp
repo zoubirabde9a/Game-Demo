@@ -255,6 +255,22 @@ WebMapSDLKeyToAppKey(app_input *Input, u32 SDLKey)
             Result = &Input->TabButton;
             break;
         };
+        case SDLK_ESCAPE:
+        {
+            Result = &Input->EscapeButton;
+            break;
+        };
+        // NOTE(zoubir): W and A move on QWERTY (client/keyboard_layout.cpp)
+        case SDLK_w:
+        {
+            Result = &Input->ButtonW;
+            break;
+        };
+        case SDLK_a:
+        {
+            Result = &Input->ButtonA;
+            break;
+        };
         
         case SDLK_z:
         {

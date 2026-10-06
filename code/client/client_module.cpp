@@ -24,6 +24,7 @@
 #include "replicas.cpp"
 #include "prediction.cpp"
 #include "server_list.cpp"
+#include "keyboard_layout.cpp"
 #include "online_config.cpp"
 #include "online_quality.cpp"
 #include "online_pacing.cpp"

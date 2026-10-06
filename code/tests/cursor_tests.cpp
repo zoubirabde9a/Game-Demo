@@ -1,7 +1,9 @@
 /* Cursor tests: a left click casts wherever it lands, and the tile
    editor's clicks paint without casting, here or online. Standard cast
    aims an area ability on its key and casts it on the next left click
-   (client/cast_targeting.cpp); quick cast casts it on the key. Included
+   (client/cast_targeting.cpp); quick cast casts it on the key. On QWERTY
+   the letter keys move to the same places (client/keyboard_layout.cpp).
+   Included
    by sim_tests.cpp, which calls RunCursorTests. */
 
 inline void
@@ -163,6 +165,35 @@ TestQuickCastCastsOnTheKey()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): QWERTY: WASD moves and Q launches, where AZERTY has ZQSD
+// and A; the key names follow
+internal void
+TestQwertyMovesTheLetterKeys()
+{
+    test_world Test = CreateCursorTestWorld(CastMode_Quick);
+    AddPlayerToSlot(Test.AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    GlobalKeyboardLayout = KeyboardLayout_Qwerty;
+    PressKey(&Test.Input.ButtonW);
+    PressKey(&Test.Input.ButtonA);
+    player_input Local = ReadKeyboardPlayerInput(&Test.Input, Test.AppState);
+    Check(Local.Move.X == -1.f && Local.Move.Y == -1.f);
+    Check(Local.Pressed == 0);
+    ReleaseKey(&Test.Input.ButtonW);
+    ReleaseKey(&Test.Input.ButtonA);
+    PressKey(&Test.Input.ButtonQ);
+    Local = ReadKeyboardPlayerInput(&Test.Input, Test.AppState);
+    Check(Local.Pressed == PlayerButton_Launch);
+    Check(Local.Move.X == 0.f && Local.Move.Y == 0.f);
+    Check(strcmp(ActionKeyLabel(PlayerButton_Launch), "Q") == 0);
+    Check(strcmp(ActionKeyLabel(PlayerButton_Shockwave), "Z") == 0);
+    char Keys[16];
+    LayoutKeyText(Keys, sizeof(Keys), (char *)"ZQSD");
+    Check(strcmp(Keys, "WASD") == 0);
+    GlobalKeyboardLayout = KeyboardLayout_Azerty;
+    Check(strcmp(ActionKeyLabel(PlayerButton_Launch), "A") == 0);
+    DestroyTestWorld(&Test);
+}
+
 #define CURSOR_TEST(Test) printf("%s\n", #Test); Test()
 
 internal void
@@ -173,4 +204,5 @@ RunCursorTests()
     CURSOR_TEST(TestStandardCastAimsThenClickCasts);
     CURSOR_TEST(TestStandardCastRightClickCancels);
     CURSOR_TEST(TestQuickCastCastsOnTheKey);
+    CURSOR_TEST(TestQwertyMovesTheLetterKeys);
 }

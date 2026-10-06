@@ -34,4 +34,5 @@ DrawRoundBreak(RenderContext, AppState, Window->Width, Window->Height); // count
 if (Input->TabButton.EndedDown) DrawScoreboard(RenderContext, AppState, Window->Width, Window->Height);
 DoTileEditor(RenderContext, AppState, UIContext, Input, Window, TextureProgram, CameraOffset);
 DoConnectScreen(RenderContext, AppState, UIContext, Input, Window->Width, Window->Height);
+DoOptionsMenu(RenderContext, AppState, Input, Window->Width, Window->Height); // Esc: keyboard layout, ui/options_menu.cpp
 DrawShaderErrors(RenderContext, AppState, Window->Width);
