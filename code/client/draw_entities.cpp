@@ -243,15 +243,8 @@ DrawEntity(render_context *RenderContext,
             ColorRGBA8 Color;
             Color.ColorU32 = Entity->Tint ? Entity->Tint : RGBA8_WHITE;
             Color.A = 255;
-            // NOTE(zoubir): a shielded respawn flickers
-            bool32 Shielded = Entity->Type == EntityType_Player &&
-                (Entity->SpawnShield > 0.f ||
-                 (Entity->AbilityIndex & PLAYER_FLASH_SHIELD));
-            float Clock = GetFxClock(AppState);
-            if (Shielded && ((u32)(Clock * 14.f) & 1))
-            {
-                Color.A = 90;
-            }
+            // NOTE(zoubir): a shielded player (respawn or Shield) is drawn
+            // whole, inside a bubble (player_fx/shield_bubble.cpp)
             // NOTE(zoubir): a fresh hit draws the sprite red (body_pose.cpp)
             float Keep = 1.f - 0.75f * Pose.Flash;
             Color.G = (u8)(Color.G * Keep);

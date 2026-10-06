@@ -13,6 +13,8 @@
      (player_fx/blink_preview.cpp);
    - fireball trails: embers cooling behind every fireball
      (player_fx/fireball_trails.cpp);
+   - shield bubbles: a sphere of light around a player whose Shield is
+     up (player_fx/shield_bubble.cpp);
    - cast bars: a bar over every player winding up a spell
      (cast_bars.cpp);
    - bursts the simulation asks for (sword swings, casts, Shockwave,
@@ -25,12 +27,14 @@
 #include "player_fx/hit_numbers.cpp"
 #include "player_fx/blink_preview.cpp"
 #include "player_fx/fireball_trails.cpp"
+#include "player_fx/shield_bubble.cpp"
 
 struct player_fx
 {
     dash_streaks Dashes;
     hit_numbers Hits;
     fireball_trails Embers;
+    float ShieldGrow[MAX_PLAYERS];
 };
 
 // NOTE(zoubir): the state lives in MemoryArena, not the world arena, so a
@@ -53,6 +57,7 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     DrawFireBallTrails(RenderContext, &Fx->Embers, CameraOffset);
     DrawDashGhosts(RenderContext, AppState, &Fx->Dashes, CameraOffset);
     DrawDashStreaks(RenderContext, &Fx->Dashes, CameraOffset);
+    DrawShieldBubbles(RenderContext, AppState, Fx->ShieldGrow, CameraOffset, DeltaTime);
     DrawBlinkPreview(RenderContext, AppState, CameraOffset);
     DrawAimMarker(RenderContext, AppState, CameraOffset);
     DrawHitNumbers(RenderContext, AppState, &Fx->Hits, CameraOffset);
