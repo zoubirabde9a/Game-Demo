@@ -15,6 +15,7 @@ DrawTalentFx(RenderContext, AppState, CameraOffset); // frost on slowed and froz
 DrawRewindFx(RenderContext, AppState, CameraOffset); // time rewinds' sigils, ghosts and flashes, client/rewind_fx/
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);
 RenderSetProjection(RenderContext, &ProjectionMatrix); // screens below draw in window pixels
+DrawScreenEdge(RenderContext, AppState, Window->Width, Window->Height, Input->DeltaTime); // vignette and hurt tint, client/screen_edge.cpp
 DrawRewindHud(RenderContext, AppState, Window->Width); // tape counter while time runs back, client/rewind_fx/
 DrawHud(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawAbilityBar(RenderContext, AppState, Input, Window->Width, Window->Height);

@@ -21,3 +21,6 @@
     struct talent_requests *TalentRequests; // talents clicked, on their way to the simulation, client/talent_requests.cpp
     struct talent_panel *TalentPanel; // the talent tree screen (N), ui/talent_panel/
     struct xp_bar *XpBar; // experience bar, level badge and level-up banner, ui/talent_panel/xp_bar.cpp
+    float ScreenEdgeLastHp; // the local player's health last frame, to spot hits, client/screen_edge.cpp
+    float ScreenEdgeHurt; // red flash at the screen edge after a hit, 1 fading to 0, client/screen_edge.cpp
+    float ScreenEdgeClock; // seconds, drives the low-health pulse, client/screen_edge.cpp

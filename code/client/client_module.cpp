@@ -38,6 +38,7 @@
 #include "cast_bars.cpp"
 #include "player_fx.cpp"
 #include "talent_fx.cpp"
+#include "screen_edge.cpp"
 #include "rewind_fx/rewind_fx.cpp"
 #include "monster_cast_tells.cpp"
 #include "startup.cpp"
