@@ -154,6 +154,12 @@ DrawAbilityBarHealth(render_context *RenderContext, app_state *AppState,
     // NOTE(zoubir): a lighter top half makes the bar look rounded
     DrawFilledRectangle(RenderContext, X, Y, Share * Width, 0.4f * Height,
                         UI_RGBA(255, 255, 255, 48), 0.f);
+    // NOTE(zoubir): with one point of health (the duel rules) the bar is
+    // full or empty and a "1 / 1" says nothing more
+    if (Player->MaxHp <= 1.f)
+    {
+        return;
+    }
     char Text[32];
     // NOTE(zoubir): an overkill leaves Hp below zero; the bar says 0
     snprintf(Text, sizeof(Text), "%d / %d", (int)(Maximum(0.f, Player->Hp) + 0.5f),
