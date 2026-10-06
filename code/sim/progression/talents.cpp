@@ -128,7 +128,7 @@ global_variable talent_def TalentDefs[Talent_Count] =
     {"Pyre", "Killing a player makes the fireball ready at once", "fireball reset on a kill",
      TalentBranch_Fire, 3, 0, 1, 0},
 
-    {"Kunai", "A fast homing blade; a shield sends it back", "-15% cooldown, +10% damage",
+    {"Kunai", "Thrown at a foe, it follows them; shields send it back", "-15% cooldown, +10% damage",
      TalentBranch_Motion, 0, 0, 3, PlayerButton_Kunai, 0.1f},
     {"Fleet Foot", "You run faster", "+6% run speed",
      TalentBranch_Motion, 0, 1, 2, 0},

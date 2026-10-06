@@ -72,12 +72,15 @@ SpawnActionInterval(u32 Index)
     return Result;
 }
 
+// NOTE(zoubir): ready, and for the kunai a unit under the cursor to throw
+// it at (kunai.cpp); a press that cannot start waits in the queue
 inline bool32
-CanStartSpawnAction(world_entity *Player, u32 Index)
+CanStartSpawnAction(world *World, world_entity *Player, u32 Index)
 {
     player_spawn_action *Action = &PlayerSpawnActions[Index];
     bool32 Result = Player->ActionCooldowns[Index] <= 0.f &&
-        !(Action->OnePerAnimation && Player->State == Action->State);
+        !(Action->OnePerAnimation && Player->State == Action->State) &&
+        (Index != PlayerAction_Kunai || KunaiTargetFor(World, Player));
     return Result;
 }
 

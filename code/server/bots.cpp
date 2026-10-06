@@ -105,12 +105,16 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     Bot->WanderLeft -= Dt;
 
     v2 Direction = {};
+    // NOTE(zoubir): the aim's length, as a player's cursor gives it: the
+    // cursor on the target, so the kunai picks it and Launch lands on it
+    float AimReach = 1.f;
     world_entity *Target = Self ? BotFindTarget(AppState, Self) : 0;
     if (Target)
     {
         v2 Delta = Target->Position.XY - Self->Position.XY;
         float Distance = Length(Delta);
         Direction = (Distance > 0.001f) ? Delta * (1.f / Distance) : V2(1.f, 0.f);
+        AimReach = Minimum(1.f, Maximum(0.05f, Distance / PLAYER_AIM_REACH));
         if (Distance > BOT_SWORD_RANGE * 0.6f) Held |= NetButtonsToward(Direction);
         if (Bot->AttackWait <= 0.f)
         {
@@ -192,7 +196,7 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
                            NetButton_GravityWell | NetButton_Kunai));
     Bot->Held = Held;
     Input.Buttons = Held;
-    Input.AimX = Direction.X;
-    Input.AimY = Direction.Y;
+    Input.AimX = AimReach * Direction.X;
+    Input.AimY = AimReach * Direction.Y;
     return Input;
 }

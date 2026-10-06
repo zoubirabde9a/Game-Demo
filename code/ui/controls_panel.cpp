@@ -40,7 +40,7 @@ global_variable controls_row ControlsRows[] =
     {"E",           "Shield: nothing hurts you for 2 s"},
     {"F",           "Blink to the cursor after 0.2 s"},
     {"A",           "Launch: throws foes up, stuns"},
-    {"V",           "Kunai: homing blade, bounces off shields"},
+    {"V",           "Kunai at the foe under the cursor; follows it"},
     {"N",           "Talents: spend a point each level"},
     {"G T W R C",   "Talent abilities, once unlocked"},
     {"Tab",         "Scoreboard"},

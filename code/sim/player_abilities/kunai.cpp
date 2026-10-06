@@ -1,10 +1,13 @@
-/* Kunai (V): a thrown blade, faster than a fireball, that homes. On the
-   throw it picks the nearest enemy unit (a player or a monster) inside a
-   cone around the aim and within its range, then turns toward that unit
-   every tick at KunaiTurnRate, so a sharp sidestep, a jump or a blink can
-   still beat it. With nothing in the cone it flies straight along the
-   aim. It hits the first enemy unit it comes near (by distance, so it
-   never blocks anyone), and walls stop it.
+/* Kunai (V): a thrown blade, faster than a fireball, aimed at a unit, not
+   at the ground. The throw needs an enemy (a player or a monster) within
+   KUNAI_PICK_RADIUS of the cursor and within its range; with none the key
+   does nothing and the cooldown is not spent (CanStartSpawnAction). Once
+   thrown it heads straight for that unit every tick, so it follows it
+   wherever it runs or blinks, for up to KUNAI_FLIGHT_SECONDS. A jump
+   lets it pass under for a moment, a wall stops it, and it falls when
+   its unit dies. It hits the first enemy unit it comes near (by
+   distance, so it never blocks anyone). The client marks the unit a
+   throw would pick (client/player_fx/kunai_fx.cpp).
 
    A player whose shield is up (SpawnShield: the E shield, the respawn
    shield) is not hurt: the kunai glances off and homes on whoever threw
@@ -17,9 +20,13 @@
    spawn_actions.cpp. The server simulates it; clients draw the replica
    (client/player_fx/kunai_fx.cpp). */
 
-// NOTE(zoubir): cosine of the cone's half angle around the aim (about 40
-// degrees) in which the throw looks for a target
-#define KUNAI_SEEK_COS 0.76f
+// NOTE(zoubir): how near the cursor a unit must stand to be the target;
+// with the cursor at the aim's limit (PLAYER_AIM_REACH) or past it, how
+// near the aim's line beyond that
+#define KUNAI_PICK_RADIUS 48.f
+// NOTE(zoubir): the longest a kunai flies before it drops, chasing or
+// sent back by a shield
+#define KUNAI_FLIGHT_SECONDS 2.f
 // NOTE(zoubir): how near it must come to a unit to hit it, across the
 // ground; a little over a player's half width
 #define KUNAI_HIT_RADIUS 18.f
@@ -34,7 +41,7 @@ AddKunai(app_state *AppState, world *World, memory_arena *Arena, v3 Position,
                                     Position, AppState->FireBallCollision);
     Kunai->Velocity = Velocity;
     Kunai->Dimensions = V2(KUNAI_SIZE, KUNAI_SIZE);
-    Kunai->TimeLeft = PlayerStats.KunaiRange / PlayerStats.KunaiSpeed;
+    Kunai->TimeLeft = KUNAI_FLIGHT_SECONDS;
     return Kunai;
 }
 
@@ -55,14 +62,17 @@ KunaiOwner(app_state *AppState, world_entity *Kunai)
     return Result;
 }
 
-// NOTE(zoubir): the enemy nearest From inside the cone around Aim and
-// within the kunai's range; units off to the side count as farther, so
-// the one along the aim wins a near tie. 0 for none
+// NOTE(zoubir): the enemy Owner's cursor is on: within KUNAI_PICK_RADIUS
+// of the cursor (Aim, a unit direction, times AimReach of the aim's
+// limit) and within the kunai's range, the nearest the cursor winning.
+// A cursor at the limit may be farther out, so then the spot slides out
+// along the aim to the unit, up to the range. 0 for none
 internal world_entity *
-FindKunaiTarget(world *World, world_entity *Owner, v2 From, v2 Aim)
+FindKunaiTarget(world *World, world_entity *Owner, v2 Aim, float AimReach)
 {
     world_entity *Result = 0;
-    float BestScore = 0.f;
+    float BestMiss = 0.f;
+    bool32 AtLimit = AimReach >= 0.999f;
     for(u32 Index = 0; Index < World->EntityCount; Index++)
     {
         world_entity *Unit = &World->Entities[Index];
@@ -70,24 +80,32 @@ FindKunaiTarget(world *World, world_entity *Owner, v2 From, v2 Aim)
         {
             continue;
         }
-        v2 To = Unit->Position.XY - From;
-        float Distance = Length(To);
-        if (Distance > PlayerStats.KunaiRange || Distance < 0.001f)
+        v2 To = Unit->Position.XY - Owner->Position.XY;
+        if (Length(To) > PlayerStats.KunaiRange)
         {
             continue;
         }
-        float Cos = DotProduct(To, Aim) / Distance;
-        if (Cos < KUNAI_SEEK_COS)
-        {
-            continue;
-        }
-        float Score = Distance * (2.f - Cos);
-        if (!Result || Score < BestScore)
+        float Along = DotProduct(To, Aim);
+        float Spot = AtLimit ?
+            Minimum(PlayerStats.KunaiRange, Maximum(PLAYER_AIM_REACH, Along)) :
+            AimReach * PLAYER_AIM_REACH;
+        float Miss = Length(To - Spot * Aim);
+        if (Miss <= KUNAI_PICK_RADIUS && (!Result || Miss < BestMiss))
         {
             Result = Unit;
-            BestScore = Score;
+            BestMiss = Miss;
         }
     }
+    return Result;
+}
+
+// NOTE(zoubir): the unit a kunai thrown now would go for (spawn_actions.cpp
+// checks it before the key spends anything)
+inline world_entity *
+KunaiTargetFor(world *World, world_entity *Player)
+{
+    float Reach = Player->AimReach > 0.f ? Player->AimReach : 1.f;
+    world_entity *Result = FindKunaiTarget(World, Player, GetPlayerAim(Player), Reach);
     return Result;
 }
 
@@ -96,29 +114,20 @@ internal void
 ThrowKunai(app_state *AppState, world *World, memory_arena *Arena,
            world_entity *Player, v2 Dir, player_tick *Tick)
 {
-    v2 Start = Player->Position.XY + 24.f * Dir;
+    world_entity *Target = KunaiTargetFor(World, Player);
+    if (!Target)
+    {
+        return;
+    }
+    v2 Toward = NormalizeOr(Target->Position.XY - Player->Position.XY, Dir);
+    v2 Start = Player->Position.XY + 24.f * Toward;
     float Height = GroundHeightAt(World, Player->Position.XY) + KUNAI_HAND_HEIGHT;
-    v2 Velocity = PlayerStats.KunaiSpeed * Dir;
+    v2 Velocity = PlayerStats.KunaiSpeed * Toward;
     world_entity *Kunai = AddKunai(AppState, World, Arena, V3(Start.X, Start.Y, Height),
                                    V3(Velocity.X, Velocity.Y, 0.f));
     Kunai->HasOwner = true;
     Kunai->OwnerSlot = Player->PlayerIndex;
-    Kunai->FollowingEntity = FindKunaiTarget(World, Player, Player->Position.XY, Dir);
-}
-
-// NOTE(zoubir): Velocity turned toward Want by at most MaxTurn radians,
-// keeping its speed
-internal v2
-TurnToward(v2 Velocity, v2 Want, float MaxTurn)
-{
-    float Speed = Length(Velocity);
-    float Have = ATan2(Velocity.Y, Velocity.X);
-    float Delta = ATan2(Want.Y, Want.X) - Have;
-    while (Delta > Pi32) Delta -= 2.f * Pi32;
-    while (Delta < -Pi32) Delta += 2.f * Pi32;
-    Delta = Minimum(MaxTurn, Maximum(-MaxTurn, Delta));
-    v2 Result = Speed * V2(Cos(Have + Delta), Sin(Have + Delta));
-    return Result;
+    Kunai->FollowingEntity = Target;
 }
 
 // NOTE(zoubir): the kunai glances off Shielded, whose player now owns it,
@@ -136,7 +145,7 @@ ReflectKunai(app_state *AppState, world_entity *Kunai, world_entity *Shielded)
                     -Kunai->Velocity.XY) :
         NormalizeOr(-Kunai->Velocity.XY, V2(1.f, 0.f));
     Kunai->Velocity.XY = Speed * Back;
-    Kunai->TimeLeft = PlayerStats.KunaiRange / PlayerStats.KunaiSpeed;
+    Kunai->TimeLeft = KUNAI_FLIGHT_SECONDS;
     EmitBurst(&AppState->Events, SimBurst_KunaiReflect, (u8)Shielded->PlayerIndex,
               Kunai->Position, ATan2(Back.Y, Back.X));
     EmitSound(&AppState->Events, AssetType_Dash, Kunai->Position);
@@ -164,20 +173,20 @@ UpdateKunai(world_entity *Kunai, world *World, memory_arena *Arena,
         return;
     }
 
+    // NOTE(zoubir): it was thrown at one unit and drops when that unit
+    // dies or goes
     world_entity *Owner = KunaiOwner(AppState, Kunai);
     world_entity *Target = Kunai->FollowingEntity;
-    if (Target && !IsKunaiTarget(Target, Owner))
+    if (!Target || !IsKunaiTarget(Target, Owner))
     {
-        Target = Kunai->FollowingEntity = 0;
+        Kunai->FollowingEntity = 0;
+        RemoveEntity(World, Kunai);
+        return;
     }
-    if (Target)
+    v2 Want = Target->Position.XY - Kunai->Position.XY;
+    if (LengthSq(Want) > 0.0001f)
     {
-        v2 Want = Target->Position.XY - Kunai->Position.XY;
-        if (LengthSq(Want) > 0.0001f)
-        {
-            Kunai->Velocity.XY = TurnToward(Kunai->Velocity.XY, Want,
-                                            PlayerStats.KunaiTurnRate * DeltaTime);
-        }
+        Kunai->Velocity.XY = PlayerStats.KunaiSpeed * NormalizeOr(Want, V2(1.f, 0.f));
     }
 
     for(u32 Index = 0; Index < World->EntityCount; Index++)

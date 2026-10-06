@@ -90,7 +90,7 @@ RunPlayerActionQueue(app_state *AppState, world *World, memory_arena *Arena,
             bool32 Consumed = true;
             if (Action->TimeRemaining > 0.f)
             {
-                Consumed = CanStartSpawnAction(Player, Action->Type);
+                Consumed = CanStartSpawnAction(World, Player, Action->Type);
                 if (Consumed)
                 {
                     StartSpawnAction(AppState, World, Arena, Player,
