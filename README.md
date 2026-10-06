@@ -23,7 +23,7 @@ misc\shell_64.bat
 build.bat
 ```
 
-`misc\shell_64.bat` finds your Visual Studio install and sets up the 64-bit compiler for the current console. `build.bat` writes `win32_app.exe`, `app.dll` and `launcher.exe` (what players download, see `deploy/README.md`) into `build/`. Start the game from inside `build/`, because it loads `asset_1.zas` and `shaders/` from the current folder:
+`misc\shell_64.bat` finds your Visual Studio install and sets up the 64-bit compiler for the current console. `build.bat` writes `win32_app.exe` and `app.dll` into `build/`. Start the game from inside `build/`, because it loads `asset_1.zas` and `shaders/` from the current folder:
 
 ```
 cd build
