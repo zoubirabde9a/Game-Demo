@@ -28,7 +28,6 @@ $Ceilings = @{
     'code/engine/math.h'                    = 648  # about 50 small vector helpers
     'code/art/monster_render.cpp'           = 502  # claimed by the monster agent
     'code/sim/terrain/maps.cpp'             = 514  # claimed by the terrain agent
-    'code/client/draw_tilemap.cpp'          = 521  # claimed by the terrain agent
 }
 
 $Code = Join-Path $Root 'code'

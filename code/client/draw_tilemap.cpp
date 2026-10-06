@@ -1,8 +1,8 @@
 /* The arena's ground: one textured quad per tile, drawn first in the world
    pass so everything else sorts on top of it. Maps built from terrain
    (sim/arena.cpp) store a terrain_kind per tile and draw from the terrain
-   atlas (art/terrain_art.cpp): a variant per tile picked by a hash, or an
-   animation frame for water and lava.
+   atlas (art/terrain_art.cpp). Which cell a tile shows, the world tint
+   its corners get and the atlas UVs are in ground/ground_cells.cpp.
 
    Raised ground (ElevationAt) is drawn the way the camera shows height:
    a tile's top moves up the screen by its height, and where the tile in
@@ -79,95 +79,6 @@ BeginWorldPass(render_context *RenderContext, memory_arena *TransientArena,
     RenderBegin(RenderContext, 6 * BatchesCount, RENDER_ORDER_BACK_TO_FRONT);
 }
 
-// NOTE(zoubir): steps of every tile the ground pass touches, read once a
-// frame: the tiles drawn plus one on each side, for their neighbours
-struct elevation_grid
-{
-    i32 MinX;
-    i32 MinY;
-    i32 Width;
-    i32 Height;
-    u8 *Steps;
-};
-
-internal elevation_grid
-ReadElevationGrid(memory_arena *Arena, map_def *Map, i32 MinX, i32 MinY,
-                  i32 MaxX, i32 MaxY)
-{
-    elevation_grid Grid;
-    Grid.MinX = MinX - 1;
-    Grid.MinY = MinY - 1;
-    Grid.Width = MaxX - MinX + 3;
-    Grid.Height = MaxY - MinY + 3;
-    Grid.Steps = AllocateArray(Arena, (memory_index)(Grid.Width * Grid.Height), u8);
-    for(i32 Y = 0; Y < Grid.Height; Y++)
-    {
-        for(i32 X = 0; X < Grid.Width; X++)
-        {
-            Grid.Steps[Y * Grid.Width + X] =
-                (u8)ElevationAt(Map, Grid.MinX + X, Grid.MinY + Y);
-        }
-    }
-    return Grid;
-}
-
-inline i32
-GridSteps(elevation_grid *Grid, i32 X, i32 Y)
-{
-    i32 GX = X - Grid->MinX;
-    i32 GY = Y - Grid->MinY;
-    Assert(GX >= 0 && GY >= 0 && GX < Grid->Width && GY < Grid->Height);
-    i32 Result = Grid->Steps[GY * Grid->Width + GX];
-    return Result;
-}
-
-// NOTE(zoubir): UVs of one cell of the terrain atlas. The tile pass counts
-// atlas rows from the bottom of the texture, unlike sprites, so the row
-// index runs in reverse; each cell's own pixels are already upright
-inline v4
-TerrainAtlasUvs(loaded_texture *Texture, u32 Kind, u32 Column)
-{
-    u32 Row = TerrainKind_Count - 1 - Kind;
-    v4 Result = GetTextureUvsFromIndex(Texture->Width, Texture->Height,
-                                       TERRAIN_ATLAS_COLUMNS, TerrainKind_Count,
-                                       Row * TERRAIN_ATLAS_COLUMNS + Column);
-    return Result;
-}
-
-// NOTE(zoubir): part of one atlas cell, Left/Top/Width/Height in the
-// cell's pixels from its top-left, drawn as a quad of the same size in
-// world units at X, Y (camera already taken off). A negative Width takes
-// the piece from the cell's right side and mirrors it
-inline void
-DrawAtlasPiece(render_context *RenderContext, loaded_texture *Texture,
-               u32 Kind, u32 Column, float Left, float Top, float Width,
-               float Height, float X, float Y)
-{
-    v4 Cell = TerrainAtlasUvs(Texture, Kind, Column);
-    float Pixels = (float)TERRAIN_TILE_PIXELS;
-    float U0 = Cell.X + (Cell.Z - Cell.X) * (Left / Pixels);
-    float U1 = Cell.X + (Cell.Z - Cell.X) * ((Left + Absolute(Width)) / Pixels);
-    // NOTE(zoubir): Cell.W is the cell's top row, Cell.Y its bottom
-    float VTop = Cell.W - (Cell.W - Cell.Y) * (Top / Pixels);
-    float VBottom = Cell.W - (Cell.W - Cell.Y) * ((Top + Height) / Pixels);
-    v4 Uvs = Width < 0.f ? V4(U1, VBottom, U0, VTop) : V4(U0, VBottom, U1, VTop);
-    RenderQuadTexture(RenderContext, X, Y, Absolute(Width), Height, Uvs,
-                      RGBA8_WHITE, 0.f);
-}
-
-// NOTE(zoubir): Lift is how far up the screen the tile's top sits
-inline void
-DrawGroundCell(render_context *RenderContext, world *World, loaded_texture *Texture,
-               i32 TileX, i32 TileY, u32 Kind, u32 Column, float Lift,
-               v3 CameraOffset)
-{
-    RenderQuadTexture(RenderContext,
-                      (float)TileX * World->TileWidth - CameraOffset.X,
-                      (float)TileY * World->TileHeight - CameraOffset.Y - Lift,
-                      (float)World->TileWidth, (float)World->TileHeight,
-                      TerrainAtlasUvs(Texture, Kind, Column), RGBA8_WHITE, 0.f);
-}
-
 // NOTE(zoubir): the ground of one tile, lifted by its height: its own
 // kind, then every neighbouring kind on a higher layer spilling over the
 // shared edges and corners, lowest layer first so the highest ends on
@@ -175,16 +86,14 @@ DrawGroundCell(render_context *RenderContext, world *World, loaded_texture *Text
 // dressed with a rim or a shadow at the end
 internal void
 DrawTerrainTile(render_context *RenderContext, world *World, map_def *Map,
-                loaded_texture *Texture, elevation_grid *Grid, i32 TileX,
+                loaded_texture *Texture, ground_grid *Grid, i32 TileX,
                 i32 TileY, u32 AnimationFrame, v3 CameraOffset)
 {
     u32 Kind = (u32)TerrainAt(Map, TileX, TileY);
-    u32 Column = IsTerrainAnimated((terrain_kind)Kind) ?
-        (AnimationFrame + (u32)(TileX + TileY)) % TERRAIN_VARIANTS :
-        HashLattice(0x7E44u, TileX, TileY) % TERRAIN_VARIANTS;
+    u32 Column = PickTerrainColumn(Map, Kind, TileX, TileY, AnimationFrame);
     i32 Steps = GridSteps(Grid, TileX, TileY);
     float Lift = (float)Steps * ELEVATION_STEP_HEIGHT;
-    DrawGroundCell(RenderContext, World, Texture, TileX, TileY, Kind, Column,
+    DrawGroundCell(RenderContext, World, Grid, Texture, TileX, TileY, Kind, Column,
                    Lift, CameraOffset);
 
     // NOTE(zoubir): neighbours in the atlas's side order (N, E, S, W) and
@@ -240,7 +149,7 @@ DrawTerrainTile(render_context *RenderContext, world *World, map_def *Map,
         {
             if (Sides[Side] == Next)
             {
-                DrawGroundCell(RenderContext, World, Texture, TileX, TileY, Next,
+                DrawGroundCell(RenderContext, World, Grid, Texture, TileX, TileY, Next,
                                TERRAIN_EDGE_COLUMN + Side, Lift, CameraOffset);
             }
         }
@@ -252,7 +161,7 @@ DrawTerrainTile(render_context *RenderContext, world *World, map_def *Map,
             u32 SideB = (Corner + 3) % 4;
             if (Corners[Corner] == Next && Sides[SideA] != Next && Sides[SideB] != Next)
             {
-                DrawGroundCell(RenderContext, World, Texture, TileX, TileY, Next,
+                DrawGroundCell(RenderContext, World, Grid, Texture, TileX, TileY, Next,
                                TERRAIN_CORNER_COLUMN + Corner, Lift, CameraOffset);
             }
         }
@@ -399,9 +308,9 @@ DrawTerrainGround(render_context *RenderContext, app_state *AppState,
         LastY = Minimum(LastY, (i32)World->NumTilesY - 1);
     }
     // NOTE(zoubir): the render arena is this frame's transient memory
-    elevation_grid Grid = ReadElevationGrid(RenderContext->Arena, Map,
-                                            Visible.MinX, Visible.MinY,
-                                            Visible.MaxX, LastY);
+    float Seconds = (float)(AppState->UpdateID % 36000) / 60.f;
+    ground_grid Grid = ReadGroundGrid(RenderContext->Arena, Map, Visible.MinX,
+                                      Visible.MinY, Visible.MaxX, LastY, Seconds);
     float Tile = (float)World->TileHeight;
 
     BeginBatch(RenderContext, Texture->ID, FLAT_GROUND_SORT_KEY, TextureProgram);
