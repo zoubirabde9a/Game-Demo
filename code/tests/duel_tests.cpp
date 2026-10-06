@@ -132,7 +132,8 @@ TestOldArenaHasNoMonsters()
     Check(GetMapDef(MapId_Arena)->MonsterPopulation == 0);
     for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
     {
-        if (MapIndex != MapId_Arena)
+        // NOTE(zoubir): a dungeon places its own monsters (sim/dungeon/)
+        if (MapIndex != MapId_Arena && !GetMapDef((map_id)MapIndex)->Dungeon)
         {
             Check(GetMapDef((map_id)MapIndex)->MonsterPopulation > 0);
         }

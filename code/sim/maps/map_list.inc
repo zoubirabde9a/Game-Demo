@@ -5,3 +5,4 @@
 #include "keep.cpp"
 #include "wilds.cpp"
 #include "wastes.cpp"
+#include "crypt.cpp"

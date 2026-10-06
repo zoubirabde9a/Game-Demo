@@ -13,11 +13,11 @@
    Included by sim_module.cpp after players.cpp: it reads player slots
    and map defs, and nothing else in sim/ depends on it but those hooks. */
 
+#include "rooms.cpp"
+
 struct dungeon_run
 {
-    // NOTE(zoubir): the rooms and encounters join here as they are built
-    // (docs/dungeon-plan.md)
-    u32 Unused;
+    u32 RoomCount;
 };
 
 // NOTE(zoubir): whether the world being played is a dungeon run
@@ -41,6 +41,7 @@ StartDungeonRun(app_state *AppState, memory_arena *Arena)
     {
         AppState->Dungeon = AllocateStruct(Arena, dungeon_run);
         ZeroSize(AppState->Dungeon, sizeof(dungeon_run));
+        AppState->Dungeon->RoomCount = CountRooms(AppState->World.MapId);
     }
 }
 

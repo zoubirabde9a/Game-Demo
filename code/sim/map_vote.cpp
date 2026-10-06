@@ -14,6 +14,17 @@
 
 #define MAP_VOTE_SECONDS 30.f
 
+// NOTE(zoubir): a map the vote may move everyone to: another duel map.
+// A dungeon (sim/dungeon/) is its own mode: never voted to, and a run
+// never votes its way out
+inline bool32
+IsVotableMap(app_state *AppState, u32 MapId)
+{
+    bool32 Result = MapId < MapId_Count && MapId != AppState->World.MapId &&
+        !GetMapDef((map_id)MapId)->Dungeon && !IsDungeon(AppState);
+    return Result;
+}
+
 // NOTE(zoubir): player_input.Vote's values: an answer, or a map asked for
 // as MapVote_Ask + its map_id. Four bits on the wire (NET_VOTE_MASK)
 enum map_vote_request
@@ -51,7 +62,7 @@ UpdateMapVote(app_state *AppState, float DeltaTime)
         {
             u32 MapId = Request - MapVote_Ask;
             if (!AppState->VoteOpen && !AppState->NextMapVoted &&
-                MapId < MapId_Count && MapId != AppState->World.MapId)
+                IsVotableMap(AppState, MapId))
             {
                 AppState->VoteOpen = true;
                 AppState->VoteMap = MapId;

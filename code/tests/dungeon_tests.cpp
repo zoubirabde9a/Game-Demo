@@ -62,9 +62,75 @@ TestNoDuelMapIsADungeon()
     }
 }
 
+// NOTE(zoubir): the room layout matches the map: every room and gate
+// tile is open ground, the rooms are numbered 1 up with a gate between
+// each pair, and the party spawns in the first room
+internal void
+TestCryptRoomsMatchTheMap()
+{
+    map_def *Map = GetMapDef(MapId_Crypt);
+    Check(Map->Dungeon && Map->MonsterPopulation == 0);
+    Check(ArrayCount(CryptRooms) == Map->Height);
+    u32 RoomTiles[DUNGEON_MAX_ROOMS + 1] = {};
+    u32 GateTiles[DUNGEON_MAX_GATES + 1] = {};
+    for(i32 Y = 0; Y < (i32)Map->Height; Y++)
+    {
+        Check(strlen(CryptRooms[Y]) == Map->Width);
+        for(i32 X = 0; X < (i32)Map->Width; X++)
+        {
+            u32 Room = RoomAtTile(MapId_Crypt, X, Y);
+            u32 Gate = GateAtTile(MapId_Crypt, X, Y);
+            bool32 Open = !GetTerrainDef(TerrainAt(Map, X, Y))->Blocks;
+            char Symbol = CryptRooms[Y][X];
+            Check(Symbol == '.' || Room || Gate < DUNGEON_MAX_GATES);
+            if (Gate < DUNGEON_MAX_GATES)
+            {
+                Check(Open);
+            }
+            RoomTiles[Room]++;
+            GateTiles[Gate]++;
+        }
+    }
+    u32 Rooms = CountRooms(MapId_Crypt);
+    Check(Rooms == 7);
+    for(u32 Room = 1; Room <= Rooms; Room++)
+    {
+        Check(RoomTiles[Room] > 0);
+    }
+    for(u32 Gate = 0; Gate < DUNGEON_MAX_GATES; Gate++)
+    {
+        Check((GateTiles[Gate] > 0) == (Gate + 1 < Rooms));
+    }
+    for(u32 Spawn = 0; Spawn < Map->SpawnCount; Spawn++)
+    {
+        Check(RoomAtTile(MapId_Crypt, Map->SpawnX[Spawn], Map->SpawnY[Spawn]) == 1);
+    }
+    Check(Map->SpawnCount == MAX_PLAYERS);
+}
+
+// NOTE(zoubir): the duel's vote never offers the dungeon, and a run
+// offers nothing
+internal void
+TestTheMapVoteLeavesTheDungeonAlone()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->World.MapId = MapId_Arena;
+    Check(IsVotableMap(AppState, MapId_Keep));
+    Check(!IsVotableMap(AppState, MapId_Crypt));
+    dungeon_run Run = {};
+    AppState->Dungeon = &Run;
+    AppState->World.MapId = MapId_Crypt;
+    Check(!IsVotableMap(AppState, MapId_Keep));
+    AppState->Dungeon = 0;
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunDungeonTests()
 {
+    TestCryptRoomsMatchTheMap();
+    TestTheMapVoteLeavesTheDungeonAlone();
     TestRolesDoNothingOutsideADungeon();
     TestRolesScaleHealthAndDamage();
     TestNoDuelMapIsADungeon();

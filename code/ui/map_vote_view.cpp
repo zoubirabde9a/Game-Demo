@@ -34,7 +34,11 @@ MapVoteSectionHeight(app_state *AppState)
     }
     else
     {
-        u32 Others = MapId_Count - 1;
+        u32 Others = 0;
+        for(u32 MapId = 0; MapId < MapId_Count; MapId++)
+        {
+            Others += IsVotableMap(AppState, MapId) ? 1 : 0;
+        }
         u32 Rows = (Others + MAP_VOTE_COLUMNS - 1) / MAP_VOTE_COLUMNS;
         Result = (float)Rows * (MAP_VOTE_BUTTON_HEIGHT + UI_GAP_SMALL) +
             UILineHeight(Small);
@@ -93,7 +97,7 @@ DoMapVoteSection(render_context *RenderContext, app_state *AppState, app_input *
     u32 Column = 0;
     for(u32 MapId = 0; MapId < MapId_Count; MapId++)
     {
-        if (MapId == AppState->World.MapId)
+        if (!IsVotableMap(AppState, MapId))
         {
             continue;
         }
