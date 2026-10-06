@@ -33,7 +33,7 @@ struct world_light_look
 global_variable world_light_look FireballLight = {130.f, 0.8f, {1.0f, 0.55f, 0.22f}, 1.f};
 global_variable world_light_look MonsterShotLight = {90.f, 0.7f, {1.0f, 0.45f, 0.55f}, 0.5f};
 global_variable world_light_look KunaiLight = {45.f, 0.35f, {0.70f, 0.85f, 1.0f}, 0.f};
-global_variable world_light_look LavaLight = {120.f, 0.55f, {1.0f, 0.42f, 0.12f}, 1.f};
+global_variable world_light_look LavaLight = {175.f, 0.75f, {1.0f, 0.42f, 0.12f}, 1.f};
 
 internal void
 AddWorldLight(world_lights *Lights, v3 CameraOffset, float Zoom,

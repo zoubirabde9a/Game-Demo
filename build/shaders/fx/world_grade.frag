@@ -78,7 +78,10 @@ void main()
     vec2 Pixel = gl_FragCoord.xy;
     vec3 C = World(Pixel);
     vec3 Light = Lights(Pixel);
-    C = C * (1.0 + 1.1 * Light) + 0.06 * Light;
+    // NOTE(zoubir): bright pixels take less of it, so the lava and the
+    // fireball themselves keep their detail instead of clipping to yellow
+    float Lit = 1.1 * (1.0 - 0.85 * max(C.r, max(C.g, C.b)));
+    C = C * (1.0 + Lit * Light) + 0.06 * Light;
 
     // NOTE(zoubir): the rings scale with the screen's height, so the glow
     // covers the same part of the world at any resolution
