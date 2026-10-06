@@ -78,6 +78,7 @@ internal bool32 RunPlayerCombo(app_state *AppState, world *World,
 
 #include "player_abilities/sword.cpp"
 #include "player_abilities/fireball.cpp"
+#include "player_abilities/kunai.cpp"
 #include "player_abilities/spawn_actions.cpp"
 #include "player_abilities/jump.cpp"
 #include "player_abilities/area_abilities.cpp"

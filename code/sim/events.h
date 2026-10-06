@@ -60,6 +60,7 @@ enum sim_burst
     SimBurst_WardBreak,    // a player's ward shattering as it takes a hit
     SimBurst_LevelUp,      // a player reaching a new level
     SimBurst_TalentLearned, // a player spending a talent point
+    SimBurst_KunaiReflect, // a kunai glancing off a shield, back along Angle
     SimBurst_Count
 };
 

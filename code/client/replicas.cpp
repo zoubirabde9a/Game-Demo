@@ -40,7 +40,8 @@ IsMovingEntityType(entity_type Type)
                      Type == EntityType_Sword ||
                      Type == EntityType_Familiar ||
                      Type == EntityType_MonsterShot ||
-                     Type == EntityType_MonsterHazard);
+                     Type == EntityType_MonsterHazard ||
+                     Type == EntityType_Kunai);
     return Result;
 }
 

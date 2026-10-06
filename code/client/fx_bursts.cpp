@@ -112,6 +112,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Shatter, 0.45f, 22.f, 0x006ED7FF, false, 0.2f, BurstPose_None},      // WardBreak, gold
     {BurstShape_LevelUp, 1.1f, 40.f, 0x0050C8FF, false, 0.f, BurstPose_None},        // LevelUp, gold
     {BurstShape_Learned, 0.7f, 34.f, 0x008CE6FF, false, 0.f, BurstPose_None},        // TalentLearned, pale gold
+    {BurstShape_Slash, 0.3f, 30.f, 0x00FFE070, false, 0.25f, BurstPose_None},        // KunaiReflect, sky blue
 };
 static_assert(ArrayCount(BurstLooks) == SimBurst_Count, "one look per burst");
 

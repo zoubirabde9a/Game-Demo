@@ -199,6 +199,13 @@ SetupCollisionTable(app_state *AppState)
     SetCollision(AppState, EntityType_FireBall,
                  EntityType_Tiled, true);
 
+    // NOTE(zoubir): walls stop kunai too; units are hit by distance in
+    // UpdateKunai, which may bounce it off a shield instead
+    SetCollision(AppState, EntityType_Kunai,
+                 EntityType_StaticObject, true);
+    SetCollision(AppState, EntityType_Kunai,
+                 EntityType_Tiled, true);
+
     // NOTE(zoubir): walls stop monster shots; players are hit by distance
     // in UpdateMonsterShot so a shot never shoves anyone
     SetCollision(AppState, EntityType_MonsterShot,

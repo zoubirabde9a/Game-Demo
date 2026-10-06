@@ -92,6 +92,11 @@ SpawnReplica(app_state *AppState, world *World, memory_arena *Arena,
             Result = AddShotReplica(AppState, World, Arena, Position,
                                     State->Variant);
         } break;
+        case EntityType_Kunai:
+        {
+            Result = AddKunai(AppState, World, Arena, Position,
+                              V3(State->VelX, State->VelY, 0.f));
+        } break;
         case EntityType_MonsterHazard:
         {
             Result = AddHazardReplica(AppState, World, Arena, Position,

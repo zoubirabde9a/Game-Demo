@@ -489,6 +489,9 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     // NOTE(zoubir): players winding up a spell (sim/player_casts.cpp) on
     // each side, and of those on both, how many show another spell
     u32 ServerCasts = 0, ClientCasts = 0, BothCast = 0, WrongCast = 0;
+    // NOTE(zoubir): bots throw kunai (server/bots.cpp); replicas of them
+    // compared with the server's
+    u32 KunaiCompared = 0;
     app_input Input = {};
     Input.DeltaTime = 1.0f / SERVER_TICK_RATE;
     for (int Frame = 0; Frame < Seconds * SERVER_TICK_RATE; ++Frame)
@@ -499,7 +502,8 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
         if (Frame - LastShieldFrame >= ShieldEvery && IsOnline(Online) &&
             Online->Replicas.Active && Before && Before->IsPresent &&
             !IsDeadPlayer(Before) && !IsLocalPlayerTimeLocked(Client) &&
-            !HasStatus(Before, StatusEffect_Stunned))
+            !HasStatus(Before, StatusEffect_Stunned) && Client->RoundBreak <= 0.f &&
+            Before->MovementCooldowns[PlayerMove_Shield] <= 0.f)
         {
             LastShieldFrame = Frame;
         }
@@ -511,11 +515,12 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
         UpdateRewindFx(Client, Input.DeltaTime);
         // NOTE(zoubir): the shield is predicted, so the client's player has
         // already raised it on the frame the key goes down (its cooldown
-        // has started). Not while stunned, or frozen by a bot's time
-        // rewind: then it does neither, on the server or here
+        // has started). Not while stunned, frozen by a bot's time rewind,
+        // or in the break between rounds, where only jump works: then it
+        // does neither, on the server or here
         world_entity *Own = Client->Players[Client->LocalPlayerIndex].Entity;
         bool32 Held = IsLocalPlayerTimeLocked(Client) ||
-            (Own && HasStatus(Own, StatusEffect_Stunned));
+            (Own && HasStatus(Own, StatusEffect_Stunned)) || Client->RoundBreak > 0.f;
         if ((Frame % 120) == 45 && IsOnline(Online) && Online->Replicas.Active &&
             Own && Own->IsPresent && !IsDeadPlayer(Own) && !Held)
         {
@@ -572,6 +577,7 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
                 if (!Theirs->IsPresent || !Ours->IsPresent) continue;
                 ++Compared;
                 if (Ours->Type != Theirs->Type) { ++WrongType; continue; }
+                KunaiCompared += Theirs->Type == EntityType_Kunai ? 1 : 0;
                 ServerHits += Theirs->HitFresh > 0.f ? 1 : 0;
                 ClientHits += Ours->HitFresh > 0.f ? 1 : 0;
                 ServerStops += Theirs->HitStop > 0.f ? 1 : 0;
@@ -667,6 +673,8 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
            ServerElites, ClientElites, ServerFlashes, ClientFlashes);
     Check(Compared > 1000);
     Check(WrongType == 0 && WrongKind == 0 && WrongAffix == 0);
+    printf("  kunai compared %u\n", KunaiCompared);
+    Check(KunaiCompared > 0);
     Check(WrongMaxHp == 0 && WrongTint == 0);
     Check(ServerWindups == 0 || ClientWindups > 0);
     Check(ServerBurrows == 0 || ClientBurrows > 0);

@@ -79,6 +79,8 @@ enum entity_type
     EntityType_MonsterShot,
     // NOTE(zoubir): a lingering patch of bile, web or embers
     EntityType_MonsterHazard,
+    // NOTE(zoubir): a player's homing blade, player_abilities/kunai.cpp
+    EntityType_Kunai,
     EntityType_Count
 };
 

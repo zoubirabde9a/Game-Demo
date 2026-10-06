@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d5au // "GDMZ", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d61u // "GDMa", change it whenever the layout changes
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
 #define NET_PLAYER_HEALTH_STEPS 100.f
@@ -39,8 +39,8 @@
 #define NET_MAX_SNAPSHOT_BURSTS 8   // visual bursts seen since the last snapshot
 #define NET_MAX_SNAPSHOT_REWINDS 4  // time rewinds under way the viewer can see
 #define NET_MAX_SNAPSHOT_CASTS 8    // players winding up a spell (MAX_PLAYERS)
-#define NET_COOLDOWN_COUNT 15       // the viewer's own ability cooldowns
-#define NET_TALENT_COUNT 17         // the viewer's own talent ranks (sim/progression/talents.cpp)
+#define NET_COOLDOWN_COUNT 16       // the viewer's own ability cooldowns
+#define NET_TALENT_COUNT 18         // the viewer's own talent ranks (sim/progression/talents.cpp)
 #define NET_STATUS_COUNT 10        // status effects (sim/status_effects.cpp)
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_SERVER_NAME_SIZE 24     // server name, 23 characters plus the terminator
@@ -89,6 +89,7 @@ enum net_button
     NetButton_Shield       = 1 << 16,
     NetButton_FrostNova    = 1 << 17,
     NetButton_GravityWell  = 1 << 18,
+    NetButton_Kunai        = 1 << 19,
 };
 // The action buttons, Jump onward, are the simulation's player_button bits
 // moved up by PLAYER_BUTTON_NET_SHIFT (sim/player.h); keep the two orders

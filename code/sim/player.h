@@ -49,8 +49,10 @@ enum player_button
     // (area_abilities.cpp, progression/talents.cpp)
     PlayerButton_FrostNova = 1 << 13,
     PlayerButton_GravityWell = 1 << 14,
+    // NOTE(zoubir): a homing blade (player_abilities/kunai.cpp)
+    PlayerButton_Kunai = 1 << 15,
 };
-#define PLAYER_ALL_BUTTONS ((u32)(PlayerButton_GravityWell << 1) - 1)
+#define PLAYER_ALL_BUTTONS ((u32)(PlayerButton_Kunai << 1) - 1)
 #define PLAYER_BUTTON_NET_SHIFT 4
 
 struct player_input
@@ -93,6 +95,7 @@ enum player_action
 {
     PlayerAction_Sword,
     PlayerAction_FireBall,
+    PlayerAction_Kunai,
     PlayerAction_Count
 };
 

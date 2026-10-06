@@ -18,6 +18,7 @@
 #include "shield.cpp"
 #include "frost_nova.cpp"
 #include "gravity_well.cpp"
+#include "kunai.cpp"
 
 // NOTE(zoubir): pixels per icon in the texture; the bar draws them at
 // about 36, so they are always scaled down and stay crisp

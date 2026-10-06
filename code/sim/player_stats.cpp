@@ -59,6 +59,17 @@ struct player_stats
     float FireballRange;
     float FireballLock;
     float FireballInterval;
+    // NOTE(zoubir): the kunai (player_abilities/kunai.cpp): faster than a
+    // fireball and homing, so it hits for half as much; how far it flies
+    // before it drops, and how fast it turns toward its target (radians a
+    // second: at 900 a circle 200 across, so a sharp sidestep or a jump
+    // still beats it)
+    float KunaiDamage;
+    float KunaiSpeed;
+    float KunaiRange;
+    float KunaiTurnRate;
+    float KunaiLock;
+    float KunaiInterval;
 };
 
 global_variable player_stats PlayerStats =
@@ -85,12 +96,18 @@ global_variable player_stats PlayerStats =
     420.f,                          // FireballRange
     0.05f,                          // FireballLock
     6.f,                            // FireballInterval
+    12.f,                           // KunaiDamage
+    900.f,                          // KunaiSpeed
+    560.f,                          // KunaiRange
+    9.f,                            // KunaiTurnRate
+    0.05f,                          // KunaiLock
+    3.5f,                           // KunaiInterval
 };
 
 /* Game rules: what kind of match the simulation plays. The game, the
    server and its bots play the duel rules: players only, 75 health (three
    fireballs), a break between rounds after every death (round_break.cpp),
-   and only fireball, launch, blink, jump and the shield. Dash and the
+   and only fireball, launch, the kunai, blink, jump and the shield. Dash and the
    time rewinds are gone from the game; their code stays for the classic
    rules the older tests use. The sword, once the talent tree unlocks it, swings once every
    1.2 s for 15 a cut, so it takes five cuts to kill; at the classic 25
@@ -116,7 +133,7 @@ struct game_rules
 global_variable game_rules DuelRules =
 {
     PlayerButton_Jump | PlayerButton_Cast | PlayerButton_Blink |
-    PlayerButton_Launch | PlayerButton_Shield,
+    PlayerButton_Launch | PlayerButton_Shield | PlayerButton_Kunai,
     75.f,
     true,
     1.2f,

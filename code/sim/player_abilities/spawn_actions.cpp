@@ -55,6 +55,11 @@ global_variable player_spawn_action PlayerSpawnActions[PlayerAction_Count] =
      PlayerStats.FireballLock, PlayerStats.FireballInterval,
      PLAYER_ACTION_LINGER, false, AssetType_FireCast,
      CastFireBall, ComboMove_Cast},
+    // NOTE(zoubir): Kunai (V), one every 3.5 s, homing (kunai.cpp)
+    {PlayerButton_Kunai, EntityState_Casting, AnimationType_Cast,
+     PlayerStats.KunaiLock, PlayerStats.KunaiInterval,
+     PLAYER_ACTION_LINGER, false, AssetType_Dash,
+     ThrowKunai, ComboMove_None},
 };
 
 // NOTE(zoubir): seconds before action Index may go again; the sword's

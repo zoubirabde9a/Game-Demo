@@ -175,6 +175,7 @@ global_variable talent_icon_painter *TalentIconPainters[Talent_Count] =
     PaintTwinFlameIcon,
     PaintPyreIcon,
 
+    PaintKunaiIcon,
     PaintFleetFootIcon,
     PaintBlinkIcon,
     PaintSwordIcon,

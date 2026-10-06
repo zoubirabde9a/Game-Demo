@@ -13,6 +13,8 @@
      (player_fx/blink_preview.cpp);
    - fireball trails: embers cooling behind every fireball
      (player_fx/fireball_trails.cpp);
+   - kunai: every kunai's blade and the streak behind it
+     (player_fx/kunai_fx.cpp);
    - shield bubbles: a sphere of light around a player whose Shield is
      up (player_fx/shield_bubble.cpp);
    - status motes: embers, bubbles, drops and sparkles round units with a
@@ -29,6 +31,7 @@
 #include "player_fx/hit_numbers.cpp"
 #include "player_fx/blink_preview.cpp"
 #include "player_fx/fireball_trails.cpp"
+#include "player_fx/kunai_fx.cpp"
 #include "player_fx/shield_bubble.cpp"
 #include "player_fx/status_fx.cpp"
 
@@ -37,6 +40,7 @@ struct player_fx
     dash_streaks Dashes;
     hit_numbers Hits;
     fireball_trails Embers;
+    kunai_trails Kunai;
     float ShieldGrow[MAX_PLAYERS];
 };
 
@@ -56,8 +60,10 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     UpdateDashStreaks(&Fx->Dashes, AppState, DeltaTime);
     UpdateHitNumbers(&Fx->Hits, AppState, DeltaTime);
     UpdateFireBallTrails(&Fx->Embers, AppState, DeltaTime);
+    UpdateKunaiTrails(&Fx->Kunai, AppState, DeltaTime);
 
     DrawFireBallTrails(RenderContext, &Fx->Embers, CameraOffset);
+    DrawKunaiFx(RenderContext, AppState, &Fx->Kunai, CameraOffset);
     DrawDashGhosts(RenderContext, AppState, &Fx->Dashes, CameraOffset);
     DrawDashStreaks(RenderContext, &Fx->Dashes, CameraOffset);
     DrawStatusMotes(RenderContext, AppState, CameraOffset);

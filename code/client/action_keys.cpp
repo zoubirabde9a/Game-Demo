@@ -15,7 +15,7 @@ struct action_key
     char *Label;
 };
 
-#define ACTION_KEY_COUNT 11
+#define ACTION_KEY_COUNT 12
 
 internal void
 GetActionKeys(app_input *Input, action_key *Keys)
@@ -35,6 +35,9 @@ GetActionKeys(app_input *Input, action_key *Keys)
         {&Input->ButtonC, PlayerButton_Slam, "C"},
         {&Input->ButtonG, PlayerButton_FrostNova, "G"},
         {&Input->ButtonT, PlayerButton_GravityWell, "T"},
+        // NOTE(zoubir): the kunai (sim/player_abilities/kunai.cpp), V on
+        // both layouts
+        {&Input->ButtonV, PlayerButton_Kunai, "V"},
     };
     for(u32 Index = 0; Index < ACTION_KEY_COUNT; Index++)
     {

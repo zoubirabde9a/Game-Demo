@@ -65,6 +65,12 @@ TalentEffectText(player_slot *Slot, u32 Talent, u32 Level, char *Out, u32 OutSiz
             snprintf(Out, OutSize, "%.1f s untouchable",
                      PlayerMovements[PlayerMove_Shield].Power * (1.f + Def->PowerPerLevel * Extra));
         } break;
+        case Talent_Kunai:
+        {
+            snprintf(Out, OutSize, "%.0f damage, speed %.0f",
+                     PlayerStats.KunaiDamage * (1.f + Def->PowerPerLevel * Extra),
+                     PlayerStats.KunaiSpeed);
+        } break;
         case Talent_FleetFoot:
         {
             snprintf(Out, OutSize, "Run speed %.0f",

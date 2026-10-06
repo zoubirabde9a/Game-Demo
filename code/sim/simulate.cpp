@@ -126,6 +126,11 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
                               &AnimationDirection);
             } break;
 
+            case EntityType_Kunai:
+            {
+                UpdateKunai(Entity, World, Arena, DeltaTime, AppState);
+            } break;
+
             case EntityType_MonsterShot:
             {
                 UpdateMonsterShot(Entity, World, Arena, DeltaTime, AppState);

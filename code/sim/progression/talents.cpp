@@ -5,14 +5,14 @@
 
    A talent is either an ability or a passive. An ability talent has the
    ability's button and up to three levels. The abilities the rules start
-   with (GameRules.Buttons: fireball, launch, blink, shield) are level 1
+   with (GameRules.Buttons: fireball, launch, kunai, blink, shield) are level 1
    for free, so two more levels can be bought; the others (sword,
    shockwave, push, slam, and Frost Nova and Gravity Well, which only
    exist here) are locked until a point unlocks them at level 1. Dash and
    the time rewinds are out of the game: no talent, no key, and the duel
    rules leave their buttons out. Each level after the first takes
    TALENT_COOLDOWN_PER_LEVEL off the cooldown and adds the talent's
-   per-level perks: shield time (PowerPerLevel), longer
+   per-level perks: shield time and kunai damage (PowerPerLevel), longer
    stuns and slows and harder shoves on area spells (AbilityLevelHit),
    faster, farther fireballs.
 
@@ -66,6 +66,7 @@ enum talent_id
     Talent_TwinFlame,
     Talent_Pyre,
 
+    Talent_Kunai,
     Talent_FleetFoot,
     Talent_Blink,
     Talent_Sword,
@@ -127,6 +128,8 @@ global_variable talent_def TalentDefs[Talent_Count] =
     {"Pyre", "Killing a player makes the fireball ready at once", "fireball reset on a kill",
      TalentBranch_Fire, 3, 0, 1, 0},
 
+    {"Kunai", "A fast homing blade; a shield sends it back", "-15% cooldown, +10% damage",
+     TalentBranch_Motion, 0, 0, 3, PlayerButton_Kunai, 0.1f},
     {"Fleet Foot", "You run faster", "+6% run speed",
      TalentBranch_Motion, 0, 1, 2, 0},
     {"Blink", "Jumps through space to the cursor", "-15% cooldown",

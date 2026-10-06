@@ -126,6 +126,11 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
             }
         }
         if (BotRandom(Bot) % 400 == 0) Held |= NetButton_Dash;
+        // NOTE(zoubir): a kunai now and then from mid range; it homes
+        if (Distance > BOT_SWORD_RANGE && Distance < 500.f && BotRandom(Bot) % 120 == 0)
+        {
+            Held |= NetButton_Kunai;
+        }
         // NOTE(zoubir): badly hurt, a bot may rewind itself to before the
         // hits; up close, now and then, it rewinds the fight around it.
         // Never the whole world: on a live server that is the players' call
@@ -176,7 +181,7 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     Held &= ~(Bot->Held & (NetButton_Sword | NetButton_Fireball | NetButton_Dash |
                            NetButton_RewindSelf | NetButton_RewindBubble |
                            NetButton_FrostNova | NetButton_Shockwave |
-                           NetButton_GravityWell));
+                           NetButton_GravityWell | NetButton_Kunai));
     Bot->Held = Held;
     Input.Buttons = Held;
     Input.AimX = Direction.X;
