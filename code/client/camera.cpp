@@ -14,7 +14,8 @@
    frame rate (CAMERA_FOLLOW_RATE), so uneven frames and the small
    corrections online play makes to the player do not shake the view. It
    also leans a little toward the mouse, so more of the screen lies the
-   way the player aims. A respawn or a jump across the map is a cut, not
+   way the player aims, and runs a little ahead of a moving player, so a
+   run shows more of what it heads into than what it left. A respawn or a jump across the map is a cut, not
    a long pan. Hits shake it (fx_bursts.cpp), and a solid hit the local
    player lands nudges it toward the blow (body_pose.cpp); both move only
    what is drawn.
@@ -36,6 +37,11 @@
 // screen centre, at most CAMERA_LEAN_MAX world units
 #define CAMERA_LEAN_SHARE 0.12f
 #define CAMERA_LEAN_MAX 50.f
+// NOTE(zoubir): the camera aims this many seconds ahead of a moving
+// player, at most CAMERA_LEAD_MAX units: a full run (260) leads by 31, so
+// the easing's 17-unit trail turns into a small lead. Dashes hit the cap
+#define CAMERA_LEAD_SECONDS 0.12f
+#define CAMERA_LEAD_MAX 40.f
 // NOTE(zoubir): a target farther than this many screen sizes away is cut to
 #define CAMERA_CUT_SCREENS 0.75f
 
@@ -120,6 +126,16 @@ UpdateCamera(app_state *AppState, app_window *Window, app_input *Input,
         if (Lean && !IsDeadPlayer(Player))
         {
             Focus.XY += CameraLean(Input, Window, Zoom);
+        }
+        if (!IsDeadPlayer(Player))
+        {
+            v2 Lead = CAMERA_LEAD_SECONDS * Player->Velocity.XY;
+            float LeadSize = Length(Lead);
+            if (LeadSize > CAMERA_LEAD_MAX)
+            {
+                Lead = (CAMERA_LEAD_MAX / LeadSize) * Lead;
+            }
+            Focus.XY += Lead;
         }
         if (World->Unbounded)
         {
