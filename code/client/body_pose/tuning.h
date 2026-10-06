@@ -83,6 +83,12 @@
 // NOTE(zoubir): a stunned body's sway, in radians and turns per second
 #define BODY_DIZZY_ANGLE 0.16f
 #define BODY_DIZZY_SPEED 2.2f
+// NOTE(zoubir): a fall into a pit: the share of the body gone at the
+// bottom, the seconds it takes (the sim's Falling, status_effects.cpp)
+// and how far it turns over on the way down
+#define BODY_FALL_SHRINK 0.95f
+#define BODY_FALL_SECONDS 0.7f
+#define BODY_FALL_TURN 2.4f
 // NOTE(zoubir): faster than FOOTSTEP_SPEED on the ground a unit puffs dust
 // every FOOTSTEP_SECONDS, faster than TRAIL_SPEED every TRAIL_SECONDS.
 // Only within DUST_RANGE of the local player, so far-off crowds do not

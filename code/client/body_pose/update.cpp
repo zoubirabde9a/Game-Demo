@@ -167,6 +167,9 @@ UpdateBodyPoses(app_state *AppState, float DeltaTime)
         }
         Pose->Tilt += (Tilt - Pose->Tilt) * Minimum(1.f, BODY_TILT_EASE * DeltaTime);
 
+        Pose->Fall = HasStatus(Entity, StatusEffect_Falling) ?
+            Minimum(1.f, Pose->Fall + DeltaTime / BODY_FALL_SECONDS) : 0.f;
+
         KickUpDust(AppState, Entity, Pose, OnGround, DeltaTime);
     }
 }

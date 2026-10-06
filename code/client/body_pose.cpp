@@ -30,6 +30,7 @@
    - a cast with a wind-up crouches it while it charges and pops it up as
      it lets go (SetBodyWindup, from the cast's bursts, fx_bursts.cpp);
    - a stun sways it side to side on its feet, dizzy;
+   - falling into a pit shrinks it away to nothing as it turns over;
    - turning to face another way squeezes it thin for an instant, so the
      sprite's snap to its new row reads as a turn;
    - standing still on the ground it breathes, a slow rise and settle,
@@ -109,6 +110,8 @@ struct body_pose
     // seconds left of the local player's freeze after landing a hit)
     bool32 Frozen;
     float Hold;
+    // NOTE(zoubir): 0..1, how far it has dropped into a pit
+    float Fall;
     // NOTE(zoubir): the slot held a body last frame. Ids are slot indices
     // and are reused, so a new body in a freed slot is told apart by the
     // slot having been empty, not by its id
@@ -329,6 +332,14 @@ GetBodyPose(app_state *AppState, world_entity *Entity)
         // NOTE(zoubir): fast out of the kick, settling upright
         float Turned = 1.f - Pose->Spin * Pose->Spin;
         Angle += Pose->SpinSign * 2.f * Pi32 * Turned;
+    }
+    // NOTE(zoubir): dropping into a pit, it shrinks away and turns over
+    if (Pose->Fall > 0.f)
+    {
+        float Left = 1.f - BODY_FALL_SHRINK * Pose->Fall * Pose->Fall;
+        Result.Scale *= Left;
+        Angle += BODY_FALL_TURN * Pose->Fall;
+        Result.White = 0.f;
     }
     // NOTE(zoubir): what is left of an eased tilt is no tilt
     Result.Angle = Absolute(Angle) < 0.002f ? 0.f : Angle;
