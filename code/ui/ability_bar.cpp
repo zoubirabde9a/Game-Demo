@@ -155,7 +155,8 @@ DrawAbilityBarHealth(render_context *RenderContext, app_state *AppState,
     DrawFilledRectangle(RenderContext, X, Y, Share * Width, 0.4f * Height,
                         UI_RGBA(255, 255, 255, 48), 0.f);
     char Text[32];
-    snprintf(Text, sizeof(Text), "%d / %d", (int)(Player->Hp + 0.5f),
+    // NOTE(zoubir): an overkill leaves Hp below zero; the bar says 0
+    snprintf(Text, sizeof(Text), "%d / %d", (int)(Maximum(0.f, Player->Hp) + 0.5f),
              (int)(Player->MaxHp + 0.5f));
     font *Small = AppState->Fonts.Small;
     UIText(RenderContext, Small, X + 0.5f * Width,
