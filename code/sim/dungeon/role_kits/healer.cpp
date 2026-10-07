@@ -1,6 +1,6 @@
 /* The healer's kit (role_abilities.cpp): Mending Bolt on A, Ward on R,
-   and from its tree Sanctuary on C and Radiance on V. Every one of them
-   is for the party: Ward and Mending
+   Holy Fire on W, and from its tree Sanctuary on C and Radiance on V.
+   All but Holy Fire are for the party: Ward and Mending
    Bolt land on an ally (PickAllyFor: the one under the cursor or picked
    on the party frames, else the most hurt in reach, else the nearest
    ally, the healer only when alone), Ward also shields the allies round
@@ -17,7 +17,9 @@
 
    Smite: with nothing to heal the healer still has a use for its
    fireball, as each one that lands heals the most hurt ally in reach for
-   SMITE_SHARE of the damage it dealt. */
+   SMITE_SHARE of the damage it dealt. Holy Fire is the healer's attack:
+   HOLY_FIRE_DAMAGE on the foe it aims at, healing through Smite like a
+   fireball, so a healer with little to heal still adds to the race. */
 
 // NOTE(zoubir): from OnRoleHit: the healer's fireball dealt
 // Damage; Smite heals the most hurt ally in reach SMITE_SHARE of it
@@ -111,8 +113,28 @@ CastRadiance(app_state *AppState, world_entity *Player)
     EmitSound(&AppState->Events, AssetType_SfxHeal, Player->Position);
 }
 
+// NOTE(zoubir): returns whether the light found a foe to strike
+internal bool32
+CastHolyFire(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
+    world_entity *Foe = AttackTarget(AppState, Slot, Player, HOLY_FIRE_RANGE);
+    if (!Foe)
+    {
+        return false;
+    }
+    u8 SlotIndex = (u8)Player->PlayerIndex;
+    float Before = Foe->Hp;
+    hit Hit = {HOLY_FIRE_DAMAGE, HOLY_FIRE_SHOVE, 0.f, 0.f, 0.f, SimBurst_Impact};
+    EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Foe));
+    ApplyHit(AppState, &AppState->World, Foe, &Hit,
+             DirectionTo(Foe->Position.XY - Player->Position.XY), Player, SlotIndex);
+    OnHealerShot(AppState, Player, Before - Maximum(0.f, Foe->Hp));
+    EmitSound(&AppState->Events, AssetType_SfxFireCast, Player->Position);
+    return true;
+}
+
 // NOTE(zoubir): returns whether the key cast (a sanctuary with every
-// circle in use does not)
+// circle in use, or Holy Fire with no foe in reach, does not)
 internal bool32
 CastHealerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 Key)
 {
@@ -160,6 +182,11 @@ CastHealerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 
         case 3:
         {
             CastRadiance(AppState, Player);
+        } break;
+
+        case 4:
+        {
+            return CastHolyFire(AppState, Slot, Player);
         } break;
     }
     return true;

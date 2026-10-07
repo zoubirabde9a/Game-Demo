@@ -260,15 +260,59 @@ PaintRoleRadianceIcon(icon_canvas *Canvas)
     }
 }
 
+// NOTE(zoubir): Shield Throw: a round shield spinning through the air,
+// its path bending from one foe to the next
+internal void
+PaintRoleShieldThrowIcon(icon_canvas *Canvas)
+{
+    v4 Trail = IconColor(170, 200, 255);
+    IconGlow(Canvas, V2(0.56f, 0.44f), 0.44f, IconColor(140, 180, 255, 100));
+    IconCapsule(Canvas, V2(0.12f, 0.84f), V2(0.34f, 0.58f), 0.03f,
+                Gradient(IconColor(170, 200, 255, 0), Trail, V2(0.12f, 0.84f), V2(0.34f, 0.58f)));
+    IconCapsule(Canvas, V2(0.68f, 0.34f), V2(0.86f, 0.62f), 0.025f,
+                Gradient(Trail, IconColor(170, 200, 255, 0), V2(0.68f, 0.34f), V2(0.86f, 0.62f)));
+    IconCircle(Canvas, V2(0.88f, 0.66f), 0.05f, Solid(IconColor(255, 120, 90)));
+    IconCircle(Canvas, V2(0.52f, 0.44f), 0.22f,
+               Gradient(IconColor(235, 238, 245), IconColor(110, 120, 140), V2(0.42f, 0.3f), V2(0.62f, 0.6f)));
+    IconCircle(Canvas, V2(0.52f, 0.44f), 0.16f,
+               Gradient(IconColor(80, 120, 210), IconColor(30, 50, 110), V2(0.46f, 0.34f), V2(0.6f, 0.56f)));
+    IconCircle(Canvas, V2(0.52f, 0.44f), 0.06f, Solid(IconColor(240, 205, 90)));
+    IconArc(Canvas, V2(0.52f, 0.44f), 0.28f, 0.02f, Solid(IconColor(220, 230, 255, 160)), 3.6f, 5.4f);
+}
+
+// NOTE(zoubir): Holy Fire: a column of golden light striking down,
+// flames curling where it lands
+internal void
+PaintRoleHolyFireIcon(icon_canvas *Canvas)
+{
+    v4 Gold = IconColor(255, 215, 110);
+    v4 Pale = IconColor(255, 250, 225);
+    IconGlow(Canvas, V2(0.5f, 0.62f), 0.46f, IconColor(255, 200, 90, 120));
+    v2 Beam[4] = {V2(0.4f, 0.1f), V2(0.6f, 0.1f), V2(0.56f, 0.7f), V2(0.44f, 0.7f)};
+    IconPolygon(Canvas, Beam, 4,
+                Gradient(IconColor(255, 250, 225, 40), Pale, V2(0.5f, 0.1f), V2(0.5f, 0.7f)));
+    IconTriangle(Canvas, V2(0.26f, 0.84f), V2(0.4f, 0.84f), V2(0.3f, 0.6f),
+                 Gradient(Gold, IconColor(255, 140, 60), V2(0.3f, 0.6f), V2(0.33f, 0.84f)));
+    IconTriangle(Canvas, V2(0.6f, 0.84f), V2(0.74f, 0.84f), V2(0.7f, 0.6f),
+                 Gradient(Gold, IconColor(255, 140, 60), V2(0.7f, 0.6f), V2(0.67f, 0.84f)));
+    IconTriangle(Canvas, V2(0.38f, 0.86f), V2(0.62f, 0.86f), V2(0.5f, 0.52f),
+                 Gradient(Pale, Gold, V2(0.5f, 0.52f), V2(0.5f, 0.86f)));
+    IconCircle(Canvas, V2(0.5f, 0.74f), 0.07f, Solid(IconColor(255, 255, 245)));
+    IconSparkle(Canvas, V2(0.74f, 0.26f), 0.07f, Solid(IconColor(255, 255, 255)));
+}
+
 // NOTE(zoubir): the painters in RoleSpells' order: the damage role's A, R,
-// C, V, then the tank's, then the healer's (player_role order)
+// C, V, W, then the tank's, then the healer's (player_role order); 0 for a
+// key the role has no spell on
 #define ROLE_ICON_COUNT (PlayerRole_Count * ROLE_KEYS)
 typedef void role_icon_painter(icon_canvas *Canvas);
 global_variable role_icon_painter *RoleIconPainters[ROLE_ICON_COUNT] =
 {
-    PaintRoleInfernoIcon, PaintRoleGiantFireballIcon, PaintRoleDetonateIcon, PaintRoleCombustionIcon,
+    PaintRoleInfernoIcon, PaintRoleGiantFireballIcon, PaintRoleDetonateIcon, PaintRoleCombustionIcon, 0,
     PaintRoleTauntIcon, PaintRoleShieldSlamIcon, PaintRoleInterceptIcon, PaintRoleLastStandIcon,
+    PaintRoleShieldThrowIcon,
     PaintRoleMendingBoltIcon, PaintRoleWardIcon, PaintRoleSanctuaryIcon, PaintRoleRadianceIcon,
+    PaintRoleHolyFireIcon,
 };
 
 // NOTE(zoubir): the icon for Role's Key, as an index into RoleIconPainters,

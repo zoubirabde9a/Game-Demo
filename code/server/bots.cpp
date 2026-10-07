@@ -139,8 +139,8 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
     player_slot *Slot = &AppState->Players[Self->PlayerIndex];
     u32 Result = 0;
     // NOTE(zoubir): a key is ready when its spell is learned and its
-    // cooldown has run; A, R, C and V are NetButton_Launch, _Push, _Slam
-    // and _Kunai
+    // cooldown has run; A, R, C, V and W are NetButton_Launch, _Push,
+    // _Slam, _Kunai and _Shockwave
     bool32 Ready[ROLE_KEYS];
     for (u32 Key = 0; Key < ROLE_KEYS; ++Key)
     {
@@ -156,6 +156,10 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
         if (Target && Distance < TAUNT_RADIUS * 0.8f && Ready[0] && BotRandom(Bot) % 30 == 0)
         {
             Result |= NetButton_Launch;
+        }
+        if (Target && Distance < 0.9f * SHIELD_THROW_RANGE && Ready[4] && BotRandom(Bot) % 15 == 0)
+        {
+            Result |= NetButton_Shockwave;
         }
         if (Self->Hp < 0.35f * Self->MaxHp && Ready[3])
         {
@@ -240,6 +244,12 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
                 Result |= NetButton_Push;
                 *Pick = (u16)(Ally->ID + 1);
             }
+        }
+        // NOTE(zoubir): nobody low: Holy Fire on what it is fighting
+        if (Target && !Low && Distance < 0.9f * HOLY_FIRE_RANGE && Ready[4] &&
+            !(Result & (NetButton_Launch | NetButton_Push)) && BotRandom(Bot) % 8 == 0)
+        {
+            Result |= NetButton_Shockwave;
         }
         // NOTE(zoubir): the party hurt round it: Radiance, or a sanctuary
         // at its own feet

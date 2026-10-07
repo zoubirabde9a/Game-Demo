@@ -50,6 +50,18 @@
 #define LAST_STAND_HEAL_SHARE 0.3f
 #define LAST_STAND_SECONDS 6.f
 #define LAST_STAND_COOLDOWN 40.f
+// NOTE(zoubir): Shield Throw (W): the shield hits the foe the tank aims
+// at, then bounces to the nearest foe within SHIELD_THROW_BOUNCE_RADIUS
+// of the last one, up to SHIELD_THROW_BOUNCES times, each bounce
+// SHIELD_THROW_BOUNCE_SHARE of the hit before it
+#define SHIELD_THROW_RANGE 480.f
+#define SHIELD_THROW_DAMAGE 34.f
+#define SHIELD_THROW_SHOVE 120.f
+#define SHIELD_THROW_THREAT 40.f
+#define SHIELD_THROW_BOUNCES 2
+#define SHIELD_THROW_BOUNCE_RADIUS 200.f
+#define SHIELD_THROW_BOUNCE_SHARE 0.75f
+#define SHIELD_THROW_COOLDOWN 6.f
 
 // NOTE(zoubir): Healer (role_kits/healer.cpp)
 #define SANCTUARY_RADIUS 110.f
@@ -75,6 +87,17 @@
 #define RADIANCE_HEAL 30.f
 #define RADIANCE_WARD 15.f
 #define RADIANCE_COOLDOWN 18.f
+// NOTE(zoubir): Holy Fire (W): a bolt of light at the foe the healer
+// aims at; the damage it deals heals the most hurt ally like a fireball's
+// (Smite)
+#define HOLY_FIRE_RANGE 500.f
+#define HOLY_FIRE_DAMAGE 48.f
+#define HOLY_FIRE_SHOVE 60.f
+#define HOLY_FIRE_COOLDOWN 4.f
+
+// NOTE(zoubir): an attack spell (Shield Throw, Holy Fire) aimed at no
+// foe goes for the one nearest the cursor within this of it
+#define ATTACK_PICK_RADIUS 140.f
 
 // NOTE(zoubir): Damage (role_kits/striker.cpp): Meteor (A) winds up for
 // its cast (PlayerSpell_Meteor, sim/player_casts.cpp), falls

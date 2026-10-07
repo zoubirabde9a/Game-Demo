@@ -1,8 +1,9 @@
 /* Role abilities (docs/dungeon-plan.md, "Roles"): in a dungeon run each
-   class casts its own spells on A, R, C and V (RoleSpells), and everyone
-   shares the game's fireball (X), shield (E) and blink (F), and jumps.
-   Every other game ability does nothing in a run (RunAllowedButtons).
-   A and R are the class's main spells; C and V come from its tree
+   class casts its own spells on A, R, C and V (RoleSpells), the tank and
+   the healer an attack on W too, and everyone shares the game's fireball
+   (X), shield (E) and blink (F), and jumps. Every other game ability
+   does nothing in a run (RunAllowedButtons).
+   A, R and W are the class's main spells; C and V come from its tree
    (role_talents.cpp), and until a point unlocks one its key does nothing.
 
    Tank (Bulwark, role_kits/tank.cpp)
@@ -13,12 +14,16 @@
         rallies the allies near it.
      C  Intercept: leaps to an ally and takes the threat off them.
      V  Last Stand: heals the tank and raises Shield Wall.
+     W  Shield Throw: the shield hits a foe and bounces to two more,
+        sundering each.
    Healer (Mender, role_kits/healer.cpp)
      A  Mending Bolt: heals an ally.
      R  Ward: an ally absorbs the next hits, and the allies round them
         absorb half as much.
      C  Sanctuary: a circle at the cursor that heals allies inside.
      V  Radiance: heals and wards every ally round the healer.
+     W  Holy Fire: a bolt of light at a foe that heals the most hurt
+        ally for what it deals.
    Damage (Striker, role_kits/striker.cpp)
      A  Meteor: a 1 s cast, then a meteor at the cursor and burning
         ground.
@@ -67,6 +72,7 @@ global_variable u32 RoleKeys[ROLE_KEYS] =
     PlayerButton_Push,
     PlayerButton_Slam,
     PlayerButton_Kunai,
+    PlayerButton_Shockwave,
 };
 
 // NOTE(zoubir): the game's abilities every class keeps in a run
@@ -103,7 +109,8 @@ global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
       "Detonate: blow up the Searing marks on a foe; in fire, every marked foe there",
       RoleAim_None, DETONATE_RANGE, StrikerTalent_Detonate + 1},
      {"Combustion", COMBUSTION_COOLDOWN, "Combustion: 6 s of 40% more damage",
-      RoleAim_None, 0.f, StrikerTalent_Combustion + 1}},
+      RoleAim_None, 0.f, StrikerTalent_Combustion + 1},
+     {}},
     {{"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you; Shield Wall 2 s",
       RoleAim_None, 0.f, 0},
      {"Shield Slam", SHIELD_SLAM_COOLDOWN,
@@ -112,7 +119,10 @@ global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
      {"Intercept", INTERCEPT_COOLDOWN, "Intercept: leap to an ally and pull their foes",
       RoleAim_Ally, INTERCEPT_RANGE, TankTalent_Intercept + 1},
      {"Last Stand", LAST_STAND_COOLDOWN, "Last Stand: heal 30%, Shield Wall for 6 s",
-      RoleAim_None, 0.f, TankTalent_LastStand + 1}},
+      RoleAim_None, 0.f, TankTalent_LastStand + 1},
+     {"Shield Throw", SHIELD_THROW_COOLDOWN,
+      "Shield Throw: hit a foe and bounce to two more, sundering each",
+      RoleAim_None, SHIELD_THROW_RANGE, 0}},
     {{"Mending Bolt", MENDING_BOLT_COOLDOWN, "Mending Bolt: heal an ally", RoleAim_Ally,
       MENDING_BOLT_RANGE, 0},
      {"Ward", WARD_COOLDOWN, "Ward: shield an ally (+12% damage while it holds), half on allies near",
@@ -120,7 +130,10 @@ global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
      {"Sanctuary", SANCTUARY_COOLDOWN, "Sanctuary: a healing circle at the cursor",
       RoleAim_Ground, SANCTUARY_RADIUS, HealerTalent_Sanctuary + 1},
      {"Radiance", RADIANCE_COOLDOWN, "Radiance: heal and ward every ally around you",
-      RoleAim_None, 0.f, HealerTalent_Radiance + 1}},
+      RoleAim_None, 0.f, HealerTalent_Radiance + 1},
+     {"Holy Fire", HOLY_FIRE_COOLDOWN,
+      "Holy Fire: strike a foe with light; the most hurt ally heals for it",
+      RoleAim_None, HOLY_FIRE_RANGE, 0}},
 };
 
 // NOTE(zoubir): Key's cooldown for Slot's role after its talents
@@ -150,13 +163,15 @@ RoleSpellRadius(player_slot *Slot, u32 Key)
 }
 
 // NOTE(zoubir): whether Slot may cast Key's spell: a main spell always, a
-// tree spell once a point unlocked it
+// tree spell once a point unlocked it, a key with no spell for the class
+// (the striker's W) never
 inline bool32
 RoleSpellLearned(player_slot *Slot, u32 Key)
 {
     u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
     u32 Unlock = Key < ROLE_KEYS ? RoleSpells[Role][Key].Unlock : 0;
-    bool32 Result = Key < ROLE_KEYS && (!Unlock || RoleRank(Slot, Role, Unlock - 1) > 0);
+    bool32 Result = Key < ROLE_KEYS && RoleSpells[Role][Key].Name &&
+        (!Unlock || RoleRank(Slot, Role, Unlock - 1) > 0);
     return Result;
 }
 
@@ -287,6 +302,7 @@ ChestOf(world_entity *Unit)
 }
 
 #include "role_kits/allies.cpp"
+#include "role_kits/foe_pick.cpp"
 #include "role_kits/foe_marks.cpp"
 #include "role_kits/tank.cpp"
 #include "role_kits/healer.cpp"

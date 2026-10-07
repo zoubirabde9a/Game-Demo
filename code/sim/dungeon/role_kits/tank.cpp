@@ -1,5 +1,13 @@
 /* The tank's kit (role_abilities.cpp): Taunt on A, Shield Slam on R,
-   and from its tree Intercept on C and Last Stand on V.
+   Shield Throw on W, and from its tree Intercept on C and Last Stand on
+   V.
+
+   Shield Throw is the tank's attack: the shield hits the foe it aims at
+   for SHIELD_THROW_DAMAGE, then bounces to the nearest foe the throw has
+   not hit yet, up to SHIELD_THROW_BOUNCES times, each hit
+   SHIELD_THROW_BOUNCE_SHARE of the one before. Every foe it hits takes
+   SHIELD_THROW_THREAT and is sundered like the tank's fireball does it,
+   so the throw also picks up a pack from range.
 
    Shield Slam is the tank's answer to a pack: every monster within
    SHIELD_SLAM_RADIUS is struck, stunned and shoved back, and takes on
@@ -123,8 +131,42 @@ CastShieldSlam(app_state *AppState, world *World, player_slot *Slot, world_entit
     EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Player->Position);
 }
 
+// NOTE(zoubir): returns whether the shield found a foe to hit
+internal bool32
+CastShieldThrow(app_state *AppState, world *World, player_slot *Slot, world_entity *Player)
+{
+    u8 SlotIndex = (u8)Player->PlayerIndex;
+    world_entity *Foe = AttackTarget(AppState, Slot, Player, SHIELD_THROW_RANGE);
+    if (!Foe)
+    {
+        return false;
+    }
+    u32 Room = RoomAtPosition(World, Player->Position.XY);
+    world_entity *Struck[1 + SHIELD_THROW_BOUNCES];
+    u32 StruckCount = 0;
+    v2 From = Player->Position.XY;
+    float Damage = SHIELD_THROW_DAMAGE;
+    EmitBurst(&AppState->Events, SimBurst_Lunge, SlotIndex, ChestOf(Player),
+              ATan2(Foe->Position.Y - From.Y, Foe->Position.X - From.X));
+    while(Foe && StruckCount < ArrayCount(Struck))
+    {
+        Struck[StruckCount++] = Foe;
+        hit Hit = {Damage, SHIELD_THROW_SHOVE, 0.f, 0.f, 0.f, SimBurst_Impact};
+        AddThreat(&AppState->Dungeon->Threat, World, Foe, SlotIndex, SHIELD_THROW_THREAT);
+        OnTankShot(AppState, Slot, Foe);
+        v2 Toward = DirectionTo(Foe->Position.XY - From);
+        From = Foe->Position.XY;
+        ApplyHit(AppState, World, Foe, &Hit, Toward, Player, SlotIndex);
+        Damage *= SHIELD_THROW_BOUNCE_SHARE;
+        Foe = NearestFoe(World, From, SHIELD_THROW_BOUNCE_RADIUS, Room, Struck, StruckCount);
+    }
+    EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Player->Position);
+    return true;
+}
+
 // NOTE(zoubir): returns whether the key cast (an intercept with nobody
-// to leap to does not, and keeps its cooldown)
+// to leap to, or a shield throw with no foe in reach, does not, and
+// keeps its cooldown)
 internal bool32
 CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
             player_slot *Slot, world_entity *Player, u32 Key)
@@ -185,6 +227,11 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
             EmitSound(&AppState->Events, AssetType_SfxShield, Player->Position);
             EmitBurst(&AppState->Events, SimBurst_ShieldSlam, SlotIndex, Player->Position,
                       ATan2(Player->Aim.Y, Player->Aim.X));
+        } break;
+
+        case 4:
+        {
+            return CastShieldThrow(AppState, World, Slot, Player);
         } break;
     }
     return true;

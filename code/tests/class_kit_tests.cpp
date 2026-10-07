@@ -3,8 +3,8 @@
    the shared fireball, shield and blink; its C and V spells wait for
    their talent; the Giant Fireball winds up, flies and blows up a pack,
    toward the spot it was cast at; a client predicting its own striker
-   shows the Meteor and Giant Fireball wind-ups but fires neither; and the tree's V spells (Combustion, Last Stand, Radiance) do what
-   they say. */
+   shows the Meteor and Giant Fireball wind-ups but fires neither; the tree's V spells (Combustion, Last Stand, Radiance) do what
+   they say; and the tank's and healer's W attacks land. */
 
 // NOTE(zoubir): the run lets through the shared keys and the class's
 // learned spells, nothing else
@@ -204,6 +204,66 @@ TestTreeFinishers()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the W spells: Shield Throw hits a foe and bounces to the
+// next two, sundering each, never to a fourth; Holy Fire hurts a foe and
+// heals the most hurt ally; the striker has nothing on W
+internal void
+TestAttackSpells()
+{
+    crypt_world Crypt = CreateCryptWorld(2);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Crypt, 1);
+    player_slot *Tank = &AppState->Players[0];
+    player_slot *Healer = &AppState->Players[1];
+    SetPlayerRole(AppState, Tank, PlayerRole_Damage);
+    Check(!(RunAllowedButtons(AppState, Tank, 0) & PlayerButton_Shockwave));
+    SetPlayerRole(AppState, Tank, PlayerRole_Tank);
+    SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+    Check(RunAllowedButtons(AppState, Tank, 0) & PlayerButton_Shockwave);
+    Check(RunAllowedButtons(AppState, Healer, 0) & PlayerButton_Shockwave);
+    world_entity *Body = Tank->Entity;
+    world_entity *Mender = Healer->Entity;
+    MovePlayerTo(AppState, World, &Crypt.Arena, Mender, Body->Position + V3(0.f, 60.f, 0.f));
+    world_entity *Foes[4];
+    for(u32 Index = 0; Index < 4; Index++)
+    {
+        Foes[Index] = SpawnMonster(AppState, World, &Crypt.Arena,
+                                   Body->Position + V3(120.f + 70.f * (float)Index, 0.f, 0.f),
+                                   MonsterKind_Brute);
+        Foes[Index]->MaxHp = Foes[Index]->Hp = 2000.f;
+    }
+    // NOTE(zoubir): the first one picked under the cursor
+    Tank->Input.Target = (u32)(Foes[0] - World->Entities) + 1;
+    Check(CastTankKey(AppState, World, &Crypt.Arena, Tank, Body, 4));
+    for(u32 Index = 0; Index < 3; Index++)
+    {
+        foe_mark *Mark = FindFoeMark(Run, World, Foes[Index]);
+        Check(Foes[Index]->Hp < 2000.f);
+        Check(Mark && Mark->SunderSeconds > 0.f);
+    }
+    Check(Foes[3]->Hp == 2000.f);
+    Check(2000.f - Foes[0]->Hp > 2000.f - Foes[2]->Hp);
+
+    float FoesHp = 0.f;
+    for(u32 Index = 0; Index < 4; Index++)
+    {
+        FoesHp += Foes[Index]->Hp;
+    }
+    Body->Hp = Body->MaxHp - 80.f;
+    Mender->Hp = Mender->MaxHp;
+    Check(CastHealerKey(AppState, Healer, Mender, 4));
+    float FoesAfter = 0.f;
+    for(u32 Index = 0; Index < 4; Index++)
+    {
+        FoesAfter += Foes[Index]->Hp;
+    }
+    Check(FoesAfter < FoesHp);
+    Check(Body->Hp > Body->MaxHp - 80.f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunClassKitTests()
 {
@@ -212,4 +272,5 @@ RunClassKitTests()
     TestGiantFireballFliesToTheCastSpot();
     TestPredictedStrikerWindsUp();
     TestTreeFinishers();
+    TestAttackSpells();
 }
