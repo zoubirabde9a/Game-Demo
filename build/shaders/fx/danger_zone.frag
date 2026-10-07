@@ -12,7 +12,8 @@
 //   A ring is a disc with a safe hole in the middle; its fill closes in
 //   from the rim toward the hole.
 //   colour b: shape, 0 a disc, 1 a lane, between 0.25 and 0.75 a ring
-//             whose hole is (b - 0.25) * 2 of its radius
+//             whose hole is (b - 0.25) * 2 of its radius; past 0.8
+//             it is a wave and its middle is left clear
 //   colour a: strength
 
 VARYING vec4 fragmentColor;
@@ -72,6 +73,12 @@ void main()
         }
     }
     float Radial = Lane ? 0.0 : length(fragmentUV * 2.0 - 1.0);
+    if (Ring && Radial < Hole && Hole > 0.8)
+    {
+        // a thin ring is a wave rolling out (a boss's Doom), not an
+        // attack with safe ground inside, so its middle stays clear
+        discard;
+    }
     if (Ring && Radial < Hole)
     {
         // the safe ground at the caster's feet, a calm green

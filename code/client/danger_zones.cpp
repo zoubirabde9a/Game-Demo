@@ -224,7 +224,50 @@ struct danger_zones
     u32 WindingId[DANGER_TRACKED];
     danger_impact Impacts[DANGER_IMPACT_MAX];
     u32 ImpactCount;
+    // NOTE(zoubir): when the shown boss clock ran out, for the Doom waves
+    u32 LastClockStage;
+    float EnragedAt;
 };
+
+// NOTE(zoubir): once a boss's clock runs out a Doom pulse hits the whole
+// room every BOSS_DOOM_SECONDS (sim/dungeon/boss_clock.cpp). Each one
+// shows as a ring of the boss's fury rolling out from it over the floor,
+// reaching DANGER_DOOM_REACH as the pulse lands. Timed from when this
+// client saw the clock run out, so online it can be a few frames off
+#define DANGER_DOOM_REACH 640.f
+#define DANGER_DOOM_HOLE 0.82f
+
+internal void
+DrawDoomWaves(render_context *RenderContext, app_state *AppState, danger_zones *Zones,
+              v3 CameraOffset, float Now)
+{
+    dungeon_run *Run = AppState->Dungeon;
+    u32 Stage = Run ? Run->Clock.ShownStage : BossClock_None;
+    if (Stage == BossClock_Enraged && Zones->LastClockStage != BossClock_Enraged)
+    {
+        Zones->EnragedAt = Now;
+    }
+    Zones->LastClockStage = Stage;
+    if (Stage != BossClock_Enraged || Run->ShownBossKind >= MonsterKind_Count)
+    {
+        return;
+    }
+    world *World = &AppState->World;
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        world_entity *Boss = &World->Entities[Index];
+        if (Boss->IsPresent && Boss->Type == EntityType_Monster && Boss->Hp > 0.f &&
+            (u32)Boss->MonsterKind == Run->ShownBossKind)
+        {
+            float Beat = fmodf(Maximum(0.f, Now - Zones->EnragedAt), BOSS_DOOM_SECONDS) /
+                BOSS_DOOM_SECONDS;
+            DrawDangerDisc(RenderContext, World, CameraOffset, Boss->Position.XY,
+                           Maximum(1.f, DANGER_DOOM_REACH * Beat), Beat, DANGER_PALETTE_HARM,
+                           DangerRingShape(DANGER_DOOM_HOLE), 0.3f + 0.7f * Beat);
+            break;
+        }
+    }
+}
 
 internal void
 AddDangerImpact(app_state *AppState, danger_zones *Zones, danger_cast *Cast, float Now)
@@ -320,4 +363,5 @@ DrawDangerZones(render_context *RenderContext, app_state *AppState, v3 CameraOff
         DrawDangerCast(RenderContext, World, CameraOffset, &Impact->Cast, 1.f,
                        Strength * Strength);
     }
+    DrawDoomWaves(RenderContext, AppState, Zones, CameraOffset, Now);
 }

@@ -99,7 +99,9 @@ ApplyDeveloperRoom(app_state *AppState, memory_arena *Arena)
 
 // NOTE(zoubir): developer builds, offline, once a fight with a boss
 // starts: GAME_BOSS_HEALTH=0.59 puts the boss at that share of its
-// health, so a screenshot can show a phase (a Hollow Champion at 60%)
+// health, so a screenshot can show a phase (a Hollow Champion at 60%),
+// and GAME_BOSS_CLOCK=5 leaves that many seconds on its enrage timer,
+// to show the enrage and its Doom waves
 internal void
 ApplyDeveloperBossHealth(app_state *AppState)
 {
@@ -107,17 +109,28 @@ ApplyDeveloperBossHealth(app_state *AppState)
 #pragma warning(push)
 #pragma warning(disable: 4996)
     char *Value = getenv("GAME_BOSS_HEALTH");
+    char *ClockValue = getenv("GAME_BOSS_CLOCK");
 #pragma warning(pop)
     local_persist u32 SetSerial = 0;
     dungeon_run *Run = AppState->Dungeon;
     world_entity *Boss = Run ? FightBoss(&AppState->World, Run) : 0;
-    if (!Value || !Value[0] || !Boss || Boss->MonsterSerial == SetSerial)
+    bool32 Health = Value && Value[0];
+    bool32 Clock = ClockValue && ClockValue[0];
+    if ((!Health && !Clock) || !Boss || Boss->MonsterSerial == SetSerial ||
+        Run->Clock.BossSerial != Boss->MonsterSerial)
     {
         return;
     }
     SetSerial = Boss->MonsterSerial;
-    float Share = Clamp01((float)atof(Value));
-    Boss->Hp = Maximum(1.f, Share * Boss->MaxHp);
+    if (Health)
+    {
+        float Share = Clamp01((float)atof(Value));
+        Boss->Hp = Maximum(1.f, Share * Boss->MaxHp);
+    }
+    if (Clock)
+    {
+        Run->Clock.Limit = (Run->Seconds - Run->Clock.StartSeconds) + (float)atof(ClockValue);
+    }
 #endif
 }
 
