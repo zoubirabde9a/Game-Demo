@@ -18,6 +18,9 @@
 #define RAIN_MAX 480
 #define RAIN_SECONDS 0.55f
 #define RAIN_FALL 520.f
+// NOTE(zoubir): the world's wind blows east, a little south: rain, the
+// Keep's snow, leaves, grass gusts (ground_surface.frag) and the Wastes'
+// smoke (world_grade.frag) all go with it
 #define RAIN_SLANT 0.28f
 
 internal float
@@ -123,15 +126,18 @@ DrawRain(render_context *RenderContext, app_state *AppState, v3 CameraOffset, v2
         return;
     }
     float Seconds = WeatherSeconds(AppState);
-    v2 Fall = V2(-RAIN_SLANT, 1.f) * RAIN_FALL;
-    v2 Min = CameraOffset.XY - V2(RAIN_CELL, RAIN_CELL + RAIN_FALL * RAIN_SECONDS);
-    v2 Max = CameraOffset.XY + View + V2(RAIN_CELL + RAIN_SLANT * RAIN_FALL * RAIN_SECONDS,
-                                         RAIN_CELL);
+    v2 Fall = V2(RAIN_SLANT, 1.f) * RAIN_FALL;
+    // NOTE(zoubir): a streak is within half a fall of its start either way
+    v2 Reach = V2(RAIN_CELL + 0.5f * RAIN_SLANT * RAIN_FALL * RAIN_SECONDS,
+                  RAIN_CELL + 0.5f * RAIN_FALL * RAIN_SECONDS);
+    v2 Min = CameraOffset.XY - Reach;
+    v2 Max = CameraOffset.XY + View + Reach;
     i32 MinX = (i32)floorf(Min.X / RAIN_CELL);
     i32 MinY = (i32)floorf(Min.Y / RAIN_CELL);
     i32 MaxX = (i32)floorf(Max.X / RAIN_CELL);
     i32 MaxY = (i32)floorf(Max.Y / RAIN_CELL);
-    float Angle = atan2f(Fall.X, Fall.Y);
+    // NOTE(zoubir): the quad turns the other way from the fall's angle
+    float Angle = atan2f(-Fall.X, Fall.Y);
     u32 Drawn = 0;
     BeginBatch(RenderContext, 0, AMBIENT_MOTE_SORT_KEY, Program);
     RenderContext->AllocatedBatches[RenderContext->BatchCount].Blend = RenderBlend_Alpha;

@@ -35,7 +35,7 @@ struct mote_look
 // of sim/maps/map_list.inc, which anyone adding a map may change
 global_variable mote_look ArenaMotes = {1, 140.f, 9.f, {6.f, -3.f}, 8.f, 0.7f, 3.f, 0x00B0E0F0, 0.35f, 0.f, true};     // sunlit dust
 global_variable mote_look CryptMotes = {1, 120.f, 10.f, {2.f, -2.f}, 5.f, 0.5f, 2.5f, 0x00C0D0D8, 0.25f, 0.f, true};   // dust in the dark
-global_variable mote_look KeepMotes = {3, 90.f, 6.f, {-14.f, 34.f}, 10.f, 1.3f, 3.5f, 0x00FFFAF4, 0.85f, 0.f, false};  // snow
+global_variable mote_look KeepMotes = {3, 90.f, 6.f, {14.f, 34.f}, 10.f, 1.3f, 3.5f, 0x00FFFAF4, 0.85f, 0.f, false};   // snow, with the wind
 global_variable mote_look WastesMotes = {2, 110.f, 4.f, {4.f, -26.f}, 12.f, 2.1f, 3.f, 0x002A8CFF, 0.95f, 0.f, true};  // embers
 global_variable mote_look WildsMotes = {2, 120.f, 7.f, {5.f, -4.f}, 14.f, 0.9f, 6.f, 0x0040F0FF, 1.f, 1.f, true};      // fireflies
 
