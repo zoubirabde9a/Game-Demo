@@ -30,6 +30,9 @@ TestBossClockEnragesAndHitsHarder()
     world_entity *Player = AppState->Players[0].Entity;
     world_entity *Boss = StartBossRoom(&Crypt, 3);
     Check(Boss && Boss->MonsterKind == MonsterKind_Gravecaller);
+    // NOTE(zoubir): the boss is counted once, not once listed and once
+    // for standing in the room
+    Check(CountLiveFoes(&AppState->World, Run) == 1);
     Check(Run->Clock.Stage == BossClock_Running);
     // NOTE(zoubir): one player has less boss health to chew through, but
     // also a third of the damage, so it gets longer than three

@@ -263,14 +263,23 @@ CountLiveFoes(world *World, dungeon_run *Run)
         Result += FindMonsterBySerial(World, Run->FoeSlots[Index],
                                       Run->FoeSerials[Index]) ? 1 : 0;
     }
+    // NOTE(zoubir): and the monsters in the room the list does not hold,
+    // each counted once
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Entity = &World->Entities[EntityIndex];
-        if (Entity->IsPresent && Entity->Type == EntityType_Monster &&
-            RoomAtPosition(World, Entity->Position.XY) == Run->FightingRoom)
+        if (!Entity->IsPresent || Entity->Type != EntityType_Monster ||
+            RoomAtPosition(World, Entity->Position.XY) != Run->FightingRoom)
         {
-            Result++;
+            continue;
         }
+        bool32 Listed = false;
+        for(u32 Index = 0; Index < Run->FoeCount && !Listed; Index++)
+        {
+            Listed = Run->FoeSlots[Index] == EntityIndex &&
+                Run->FoeSerials[Index] == Entity->MonsterSerial;
+        }
+        Result += Listed ? 0 : 1;
     }
     return Result;
 }
