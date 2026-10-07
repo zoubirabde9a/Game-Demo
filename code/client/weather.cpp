@@ -202,8 +202,9 @@ SplashRain(app_state *AppState, v3 CameraOffset, v2 View, float Amount)
 // DAY_CYCLE_SECONDS on the weather clock, starting at noon, dark for about
 // a third of it. Daylight is 1 by day and 0 at the depth of night; the
 // grade dims and cools (world_grade.cpp), players' lanterns light
-// (world_lights.cpp), sun shafts fade and fireflies come out.
-// GAME_TIME=day or night fixes it, for screenshots
+// (world_lights.cpp), sun shafts fade and fireflies come out; between the
+// two, dusk and dawn warm it gold. GAME_TIME=day, dusk or night fixes it,
+// for screenshots
 #define DAY_CYCLE_SECONDS 600.f
 
 inline bool32
@@ -226,8 +227,8 @@ Daylight(app_state *AppState)
 #pragma warning(disable: 4996) // getenv: read once, never kept
         char *Forced = getenv("GAME_TIME");
 #pragma warning(pop)
-        AppState->TimeOverride = !Forced ? 1 : Forced[0] == 'd' ? 2 :
-            Forced[0] == 'n' ? 3 : 1;
+        AppState->TimeOverride = !Forced ? 1 : Forced[1] == 'u' ? 4 :
+            Forced[0] == 'd' ? 2 : Forced[0] == 'n' ? 3 : 1;
     }
     if (AppState->TimeOverride == 2)
     {
@@ -236,6 +237,10 @@ Daylight(app_state *AppState)
     if (AppState->TimeOverride == 3)
     {
         return 0.f;
+    }
+    if (AppState->TimeOverride == 4)
+    {
+        return 0.5f;
     }
     float Phase = 6.2832f * WeatherSeconds(AppState) / DAY_CYCLE_SECONDS;
     float Sun = 0.5f + 0.5f * Cos(Phase);

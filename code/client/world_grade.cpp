@@ -93,18 +93,23 @@ EndWorldGrade(render_context *RenderContext, app_state *AppState,
         float Rain = RainAmount(AppState);
         // NOTE(zoubir): night dims, cools and greys it, short of too dark
         // to play (weather.cpp)
-        float Night = 1.f - Daylight(AppState);
+        float Day = Daylight(AppState);
+        float Night = 1.f - Day;
+        // NOTE(zoubir): dusk and dawn, at their strongest halfway between
+        // day and night: warm highlights and long amber shafts
+        float Twilight = 4.f * Day * Night;
         float MoodShadow[4] = {Mood->Shadow.X - 0.015f * Night, Mood->Shadow.Y,
                                Mood->Shadow.Z + 0.06f * Night,
                                Mood->Saturation * (1.f - 0.25f * Rain) * (1.f - 0.3f * Night)};
         // NOTE(zoubir): a lightning strike lights the world blue-white
         float Flash = LightningFlash(AppState);
-        float MoodLight[4] = {Mood->Light.X + 0.05f * Flash, Mood->Light.Y + 0.07f * Flash,
-                              Mood->Light.Z + 0.12f * Flash,
+        float MoodLight[4] = {Mood->Light.X + 0.05f * Flash + 0.07f * Twilight,
+                              Mood->Light.Y + 0.07f * Flash + 0.025f * Twilight,
+                              Mood->Light.Z + 0.12f * Flash - 0.05f * Twilight,
                               Mood->Exposure * (1.f - 0.2f * Rain) * (1.f + 0.9f * Flash) *
                               (1.f - 0.42f * Night)};
         // NOTE(zoubir): rain hides the sun
-        float MoodShape[4] = {Mood->Contrast, Mood->Sky, Mood->SunShafts * (1.f - Rain) * (1.f - Night), 0.f};
+        float MoodShape[4] = {Mood->Contrast, Mood->Sky, Mood->SunShafts * (1.f - Rain) * (1.f - Night + 1.5f * Twilight), 0.f};
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodShadow"), 1, MoodShadow);
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodLight"), 1, MoodLight);
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodShape"), 1, MoodShape);
