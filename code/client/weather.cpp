@@ -6,7 +6,8 @@
 
    While it rains: DrawRain draws slanted streaks over the world (cells
    like the ambient motes, nothing stored), drops splash rings on water
-   (ground_marks.cpp), the map's grade dims and greys (world_grade.cpp),
+   (ground_marks.cpp), the map's grade dims and greys (world_grade.cpp)
+   and in a hard shower lightning flashes (LightningFlash),
    and the motes in the air fade out (ambient_motes.cpp). */
 
 // NOTE(zoubir): seconds a weather cycle lasts; it rains about a third of it
@@ -66,6 +67,42 @@ RainAmount(app_state *AppState)
     float Wave = 0.5f + 0.5f * Sin(Phase + 1.f);
     float T = Clamp01((Wave - 0.6f) / 0.15f);
     float Result = T * T * (3.f - 2.f * T);
+    return Result;
+}
+
+// NOTE(zoubir): lightning in a hard shower: time is cut into slots of
+// LIGHTNING_SLOT seconds, and a hash of the slot on the weather clock says
+// whether it strikes and when, so every player sees the same flash. A
+// strike is a bright flash, a dip, and a weaker second flash. 0..1
+#define LIGHTNING_SLOT 7.f
+
+internal float
+LightningFlash(app_state *AppState)
+{
+    float Rain = RainAmount(AppState);
+    if (Rain < 0.8f)
+    {
+        return 0.f;
+    }
+    float Seconds = WeatherSeconds(AppState);
+    i32 Slot = (i32)floorf(Seconds / LIGHTNING_SLOT);
+    u32 Roll = HashLattice(0x7A11u, Slot, 3);
+    if ((Roll & 0xFF) > 140)
+    {
+        return 0.f;
+    }
+    float Strike = MoteRoll(Roll, 8) * (LIGHTNING_SLOT - 1.f);
+    float T = Seconds - (float)Slot * LIGHTNING_SLOT - Strike;
+    float Result = 0.f;
+    if (T >= 0.f && T < 0.12f)
+    {
+        Result = 1.f - T / 0.12f;
+    }
+    else if (T >= 0.2f && T < 0.45f)
+    {
+        Result = 0.6f * (1.f - (T - 0.2f) / 0.25f);
+    }
+    Result *= (Rain - 0.8f) / 0.2f;
     return Result;
 }
 
