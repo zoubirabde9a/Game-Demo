@@ -49,19 +49,17 @@ DrawFallingLeaves(render_context *RenderContext, app_state *AppState, v3 CameraO
         {
             for(u32 Index = 0; Index < LEAF_PER_CELL && Drawn < LEAVES_MAX; Index++)
             {
-                u32 Seed = HashLattice(0x1EAFu + Index * 0x51u, CellX, CellY);
+                drifter Leaf = DrifterAt(0x1EAFu + Index * 0x51u, CellX, CellY, LEAF_CELL,
+                                         Seconds, LEAF_SECONDS, 0x1EAF, 12);
                 // NOTE(zoubir): rain thins them out
-                if (MoteRoll(Seed, 24) < Rain)
+                if (MoteRoll(Leaf.Seed, 24) < Rain)
                 {
                     continue;
                 }
-                float Age = Seconds / LEAF_SECONDS + MoteRoll(Seed, 0);
-                float Cycle = floorf(Age);
-                float Phase = Age - Cycle;
-                u32 Birth = HashLattice(Seed, (i32)Cycle, 0x1EAF);
+                float Phase = Leaf.Phase;
+                u32 Birth = Leaf.Birth;
                 float Time = Phase * LEAF_SECONDS;
-                v2 Start = V2(((float)CellX + MoteRoll(Birth, 0)) * LEAF_CELL,
-                              ((float)CellY + MoteRoll(Birth, 12)) * LEAF_CELL);
+                v2 Start = Leaf.Start;
                 // NOTE(zoubir): down and a little with the wind, swaying
                 // wide and slow as a leaf glides
                 float Sway = 22.f * Sin(0.9f * Time + 6.283f * MoteRoll(Birth, 4));

@@ -63,6 +63,37 @@ MoteRoll(u32 Hash, u32 Shift)
     return Result;
 }
 
+// NOTE(zoubir): one of the things that drift through the air with nothing
+// stored (these motes, rain in weather.cpp, leaves in falling_leaves.cpp):
+// the world is cut into cells of Cell units, each holds a few, and each
+// lives a cycle of Life seconds over and over, born each cycle somewhere
+// new in its cell. Seed is the drifter's own (from Salt, its cell and
+// index), Birth this cycle's, Phase 0..1 through it, Start where it was
+// born. StartRoll is the bit of Birth its Y comes from
+struct drifter
+{
+    u32 Seed;
+    u32 Birth;
+    float Phase;
+    v2 Start;
+};
+
+internal drifter
+DrifterAt(u32 Salt, i32 CellX, i32 CellY, float Cell, float Seconds, float Life,
+          u32 BirthSalt, u32 StartRoll)
+{
+    drifter Result;
+    Result.Seed = HashLattice(Salt, CellX, CellY);
+    // NOTE(zoubir): each starts its cycles at its own time
+    float Age = Seconds / Life + MoteRoll(Result.Seed, 0);
+    float Cycle = floorf(Age);
+    Result.Phase = Age - Cycle;
+    Result.Birth = HashLattice(Result.Seed, (i32)Cycle, (i32)BirthSalt);
+    Result.Start = V2(((float)CellX + MoteRoll(Result.Birth, 0)) * Cell,
+                      ((float)CellY + MoteRoll(Result.Birth, StartRoll)) * Cell);
+    return Result;
+}
+
 internal void
 DrawAmbientMotes(render_context *RenderContext, app_state *AppState, v3 CameraOffset,
                  v2 View, float Fade)
@@ -95,16 +126,13 @@ DrawAmbientMotes(render_context *RenderContext, app_state *AppState, v3 CameraOf
         {
             for(u32 Index = 0; Index < Look->Count && Drawn < AMBIENT_MOTES_MAX; Index++)
             {
-                u32 Seed = HashLattice(0xA0B1u + Index * 0x3C6Fu + World->MapId, CellX, CellY);
-                // NOTE(zoubir): each mote starts its cycles at its own time
-                float Age = Seconds / Look->Life + MoteRoll(Seed, 0);
-                float Cycle = floorf(Age);
-                float Phase = Age - Cycle;
-                u32 Birth = HashLattice(Seed, (i32)Cycle, 0x5EED);
+                drifter Mote = DrifterAt(0xA0B1u + Index * 0x3C6Fu + World->MapId, CellX, CellY,
+                                         Look->Cell, Seconds, Look->Life, 0x5EED, 20);
+                float Phase = Mote.Phase;
+                u32 Birth = Mote.Birth;
                 float Time = Phase * Look->Life;
                 float Swing = Look->Sway * Sin(Look->SwayRate * Time + 6.283f * MoteRoll(Birth, 12));
-                v2 Start = V2(((float)CellX + MoteRoll(Birth, 0)) * Look->Cell,
-                              ((float)CellY + MoteRoll(Birth, 20)) * Look->Cell);
+                v2 Start = Mote.Start;
                 v2 P = Start + Look->Velocity * Time + V2(Swing, 0.3f * Swing);
                 float Life = Sin(3.1416f * Phase);
                 float Strength = Fade * Look->Alpha * Life * Life;

@@ -140,18 +140,15 @@ DrawRain(render_context *RenderContext, app_state *AppState, v3 CameraOffset, v2
         {
             for(u32 Index = 0; Index < RAIN_PER_CELL && Drawn < RAIN_MAX; Index++)
             {
-                u32 Seed = HashLattice(0x8A1Du + Index * 0x2F3Bu, CellX, CellY);
+                drifter Drop = DrifterAt(0x8A1Du + Index * 0x2F3Bu, CellX, CellY, RAIN_CELL,
+                                         Seconds, RAIN_SECONDS, 0x4A11, 12);
                 // NOTE(zoubir): a lighter shower leaves cells out
-                if ((float)(Seed >> 24) / 255.f > Amount)
+                if ((float)(Drop.Seed >> 24) / 255.f > Amount)
                 {
                     continue;
                 }
-                float Age = Seconds / RAIN_SECONDS + MoteRoll(Seed, 0);
-                float Cycle = floorf(Age);
-                float Phase = Age - Cycle;
-                u32 Birth = HashLattice(Seed, (i32)Cycle, 0x4A11);
-                v2 Start = V2(((float)CellX + MoteRoll(Birth, 0)) * RAIN_CELL,
-                              ((float)CellY + MoteRoll(Birth, 12)) * RAIN_CELL);
+                float Phase = Drop.Phase;
+                v2 Start = Drop.Start;
                 v2 P = Start + Fall * (Phase * RAIN_SECONDS) - Fall * (0.5f * RAIN_SECONDS);
                 float Long = 34.f;
                 float Wide = 4.f;
