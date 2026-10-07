@@ -181,6 +181,63 @@ DrawSelfMarker(render_context *RenderContext, v2 Feet, float SortingValue,
     EndBatch(RenderContext);
 }
 
+// NOTE(zoubir): the blob on the ground under an entity, just under its
+// sprite. Players and shots have their own; monsters and props borrow the
+// players', sized to their sprite, so nothing looks pasted on the ground.
+// It spreads and narrows with the body's squash (ScaleX), lies on the
+// ground under the entity, raised ground included, and fades and shrinks
+// with the height above it
+internal void
+DrawEntityShadow(render_context *RenderContext, app_state *AppState,
+                 render_program TextureProgram, assets *Assets, world_entity *Entity,
+                 v2 Feet, float GroundZ, float DrawZ, float SortingValue, float ScaleX)
+{
+    asset_id ShadowAsset = Entity->ShadowTexture;
+    float ShadowWidth = 28.f;
+    float ShadowAlpha = 1.f;
+    v2 ShadowShift = {};
+    if (!ShadowAsset.Type && Entity->Texture.Type &&
+        (Entity->Type == EntityType_Monster || Entity->Type == EntityType_StaticObject))
+    {
+        ShadowAsset = {AssetType_Shadow};
+        ShadowWidth = Entity->Dimensions.X * MONSTER_SHADOW_WIDTH;
+        ShadowAlpha = MONSTER_SHADOW_ALPHA;
+        if (Entity->Type == EntityType_StaticObject)
+        {
+            ShadowWidth = Entity->Dimensions.X *
+                (Entity->Texture.Type == AssetType_Tree ? TREE_SHADOW_WIDTH : PROP_SHADOW_WIDTH);
+            ShadowAlpha = PROP_SHADOW_ALPHA;
+            ShadowShift = V2(PROP_SHADOW_SHIFT_X, PROP_SHADOW_SHIFT_Y) * ShadowWidth;
+        }
+    }
+    if (!ShadowAsset.Type)
+    {
+        return;
+    }
+    loaded_texture *ShadowTexture = GetTexture(Assets, AppState->OpenGL, AppState, ShadowAsset);
+    zas_texture_info *ShadowTextureInfo = &GetAssetInfo(Assets, ShadowAsset)->Texture;
+    float Height = DrawZ - GroundZ;
+    if (!ShadowTexture || Height >= 200.f)
+    {
+        return;
+    }
+    v2 ShadowDims = {ShadowWidth * ScaleX, 0.5f * ShadowWidth};
+    if (Height > 1.f)
+    {
+        ShadowDims *= (1.f - Height / 200.f);
+    }
+    ColorRGBA8 ShadowColor;
+    ShadowColor.ColorU32 = RGBA8_WHITE;
+    ShadowColor.A = (u8)((200.f - Height) * ShadowAlpha);
+    v2 ShadowPosition = Feet - ShadowTextureInfo->Origin * ShadowDims + ShadowShift;
+    ShadowPosition.Y -= GroundZ;
+    BeginBatch(RenderContext, ShadowTexture->ID, SortingValue - 0.01f, TextureProgram);
+    RenderQuadTexture(RenderContext, ShadowPosition.X, ShadowPosition.Y,
+                      ShadowDims.X, ShadowDims.Y, {0.f, 0.f, 1.f, 1.f},
+                      ShadowColor.ColorU32, 0.f);
+    EndBatch(RenderContext);
+}
+
 internal void
 DrawEntity(render_context *RenderContext,
            app_state *AppState,
@@ -300,111 +357,27 @@ DrawEntity(render_context *RenderContext,
                 EndBatch(RenderContext);
             }
         }
+        // NOTE(zoubir): a thin health line over the sprite
+        if (Entity->MaxHp > 0.f && Entity->Hp > 0.f)
         {
-            // Hp
-            if (Entity->MaxHp > 0.f && Entity->Hp > 0.f)
-            {
-                DrawRectangle(RenderContext,
-                              EntityTexturePosition.X +
-                              Entity->Dimensions.X * 0.25f,
-                              EntityTexturePosition.Y -
-                              10,
-                              (Entity->Hp / Entity->MaxHp) *
-                              (Entity->Dimensions.X * 0.5f),
-                              1,
-                              RGBA8_WHITE, SortingValue);
-            }
-
-        
+            DrawRectangle(RenderContext,
+                          EntityTexturePosition.X + Entity->Dimensions.X * 0.25f,
+                          EntityTexturePosition.Y - 10,
+                          (Entity->Hp / Entity->MaxHp) * (Entity->Dimensions.X * 0.5f),
+                          1, RGBA8_WHITE, SortingValue);
         }
-
     }
-    
-            
-    loaded_texture *ShadowTexture = 0;
-    zas_texture_info *ShadowTextureInfo = 0;
-    // NOTE(zoubir): monsters and props have no shadow of their own; they
-    // get the players' blob, sized to their sprite, so nothing looks pasted
-    // on the ground
-    asset_id ShadowAsset = Entity->ShadowTexture;
-    float ShadowWidth = 28.f;
-    float ShadowAlpha = 1.f;
-    v2 ShadowShift = {};
-    if (!ShadowAsset.Type && Entity->Texture.Type &&
-        (Entity->Type == EntityType_Monster || Entity->Type == EntityType_StaticObject))
+
+    if (Entity->Type == EntityType_Player)
     {
-        ShadowAsset = {AssetType_Shadow};
-        ShadowWidth = Entity->Dimensions.X * MONSTER_SHADOW_WIDTH;
-        ShadowAlpha = MONSTER_SHADOW_ALPHA;
-        if (Entity->Type == EntityType_StaticObject)
-        {
-            ShadowWidth = Entity->Dimensions.X *
-                (Entity->Texture.Type == AssetType_Tree ? TREE_SHADOW_WIDTH : PROP_SHADOW_WIDTH);
-            ShadowAlpha = PROP_SHADOW_ALPHA;
-            ShadowShift = V2(PROP_SHADOW_SHIFT_X, PROP_SHADOW_SHIFT_Y) * ShadowWidth;
-        }
+        u32 MarkerColor = Entity == GetLocalPlayer(AppState) ?
+            SELF_MARKER_COLOR : FOE_MARKER_COLOR;
+        DrawSelfMarker(RenderContext,
+                       V2(EntityCameraPosition.X, EntityCameraPosition.Y - GroundZ),
+                       SortingValue, MarkerColor);
     }
-    if (ShadowAsset.Type)
-    {
-        ShadowTexture = GetTexture(Assets, OpenGL, AppState, ShadowAsset);
-        ShadowTextureInfo = &GetAssetInfo(Assets, ShadowAsset)->Texture;
-        
-        // NOTE(zoubir): it spreads and narrows with the body's squash
-        v2 ShadowDims = {ShadowWidth * Pose.Scale.X, 0.5f * ShadowWidth};
-        ColorRGBA8 ShadowColor;
-        ShadowColor.ColorU32 = RGBA8_WHITE;
-        // NOTE(zoubir): the shadow lies on the ground under the entity,
-        // raised ground included, and fades and shrinks with the height
-        // above it
-        float Diff = DrawZ - GroundZ;
-        if (Diff < 200.f)
-        {
-            ShadowColor.A = (u8)(255 - (Diff) - 55);
-            if (Diff > 1.f)
-            {
-                ShadowDims *= (1.f - Diff / 200.f);
-            }
-        }
-        else
-        {
-            ShadowColor.A = 0;
-            ShadowDims = {};
-        }
-        ShadowColor.A = (u8)(ShadowColor.A * ShadowAlpha);
-        v2 ShadowPosition = EntityCameraPosition -
-            ShadowTextureInfo->Origin * ShadowDims;
-        ShadowPosition.Y -= GroundZ;
-        ShadowPosition += ShadowShift;
-    
-        if (Entity->Type == EntityType_Player)
-        {
-            u32 MarkerColor = Entity == GetLocalPlayer(AppState) ?
-                SELF_MARKER_COLOR : FOE_MARKER_COLOR;
-            DrawSelfMarker(RenderContext,
-                           V2(EntityCameraPosition.X, EntityCameraPosition.Y - GroundZ),
-                           SortingValue, MarkerColor);
-        }
-        if (ShadowTexture)
-        {
-            // NOTE(zoubir): just under its own sprite
-            BeginBatch(RenderContext, ShadowTexture->ID,
-                       SortingValue - 0.01f, TextureProgram);
-
-                            
-            RenderQuadTexture(RenderContext,
-                              ShadowPosition.X,
-                              ShadowPosition.Y,
-                              ShadowDims.X,
-                              ShadowDims.Y,
-                              {0.f, 0.f, 1.f, 1.f},
-                              ShadowColor.ColorU32, 0.f);
-            EndBatch(RenderContext);
-        }
-    
-    }
-       
-    
-    
+    DrawEntityShadow(RenderContext, AppState, TextureProgram, Assets, Entity,
+                     EntityCameraPosition, GroundZ, DrawZ, SortingValue, Pose.Scale.X);
 }
 
 // NOTE(zoubir): picks the sprite-sheet frame for the animation the
