@@ -84,8 +84,8 @@ MonsterBite(app_state *AppState, world *World, world_entity *Monster,
 #define AREA_HIT_LIFT_SHARE 0.4f
 #define AREA_HIT_MAX_LIFT 320.f
 
-// NOTE(zoubir): hits every player within Radius of Center, pushing them
-// away from it. Returns how many were hit
+// NOTE(zoubir): hits every player within Radius of Center and not closer
+// than InnerRadius, pushing them away from it. Returns how many were hit
 internal u32
 HurtPlayersInRadius(app_state *AppState, world *World, world_entity *Source,
                     v2 Center, monster_ability *Ability)
@@ -103,7 +103,7 @@ HurtPlayersInRadius(app_state *AppState, world *World, world_entity *Source,
         }
         v2 Away = Player->Position.XY - Center;
         float Distance = Length(Away);
-        if (Distance > Ability->Radius)
+        if (Distance > Ability->Radius || Distance < Ability->InnerRadius)
         {
             continue;
         }

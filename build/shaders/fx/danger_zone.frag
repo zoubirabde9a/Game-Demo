@@ -9,7 +9,10 @@
 //   its length, with chevrons running the way the attack goes.
 //   colour r: windup progress, 0 to 1
 //   colour g: palette, 0 danger (red), 0.5 spirit (violet), 1 grave (green)
-//   colour b: shape, below 0.5 a disc, above a lane
+//   A ring is a disc with a safe hole in the middle; its fill closes in
+//   from the rim toward the hole.
+//   colour b: shape, 0 a disc, 1 a lane, between 0.25 and 0.75 a ring
+//             whose hole is (b - 0.25) * 2 of its radius
 //   colour a: strength
 
 VARYING vec4 fragmentColor;
@@ -35,7 +38,9 @@ void main()
 {
     float Progress = fragmentColor.r;
     vec3 Hue = Palette(fragmentColor.g);
-    bool Lane = fragmentColor.b > 0.5;
+    bool Lane = fragmentColor.b > 0.85;
+    bool Ring = fragmentColor.b > 0.15 && !Lane;
+    float Hole = Ring ? (fragmentColor.b - 0.25) * 2.0 : 0.0;
 
     // Edge is 0 in the middle and 1 on the rim; Along is how far the fill
     // has to travel to reach this point
@@ -57,6 +62,22 @@ void main()
         Along = Edge;
         // rings drifting inward, the attack gathering
         Stripes = fract(Edge * 5.0 + Time * 1.2);
+        if (Ring)
+        {
+            // the fill runs from the rim in toward the hole, and the
+            // hole's edge gets a rim of its own
+            Along = (1.0 - Edge) / max(1.0 - Hole, 0.01);
+            Edge = max(Edge, 1.0 - (Edge - Hole));
+            Stripes = fract(-Along * 5.0 + Time * 1.2);
+        }
+    }
+    float Radial = Lane ? 0.0 : length(fragmentUV * 2.0 - 1.0);
+    if (Ring && Radial < Hole)
+    {
+        // the safe ground at the caster's feet, a calm green
+        float Calm = 0.14 + 0.06 * sin(Time * 3.0);
+        FragColor = vec4(0.4, 1.0, 0.55, Calm * fragmentColor.a);
+        return;
     }
     if (Edge > 1.0)
     {

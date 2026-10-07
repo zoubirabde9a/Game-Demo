@@ -6,7 +6,10 @@
 
    Calm:    Soul Cleave brings the greatsword down in a wide ring that
             hurts most of the party if the tank lets it reach them;
-            Shadow Rush charges across the hall along a locked line.
+            Shadow Rush charges across the hall along a locked line;
+            Hollow Ring hits the whole hall except the ground at his
+            feet, so after a cleave sends the party out, the ring calls
+            it back in.
    Enraged (below 40% health): faster, pale as ash, and Wail of the
             Dead: four souls fly out in an X round its target.
    The dungeon raises two Hollow Shades at 75%, 50% and 25%
@@ -64,6 +67,23 @@ DefineMonster_HollowKing(monster_def *Def)
     Cleave->Damage = 30.f;
     Cleave->Radius = 120.f;
     Cleave->Knockback = 700.f;
+
+    // NOTE(zoubir): the answer to Soul Cleave: the cleave hits everyone
+    // near him, the ring everyone who is not, so the party reads the
+    // ground and goes in, then out
+    monster_ability *Ring = AddMonsterAbility(Def, MonsterAbility_Slam,
+                                              "Hollow Ring");
+    Ring->MaxRange = 420.f;
+    Ring->Cooldown = 9.f;
+    Ring->Windup = 1.6f;
+    Ring->Active = 0.3f;
+    Ring->Recover = 0.6f;
+    Ring->Damage = 22.f;
+    Ring->Radius = 420.f;
+    Ring->InnerRadius = 100.f;
+    Ring->Knockback = 300.f;
+    Ring->Status = StatusEffect_Slowed;
+    Ring->StatusSeconds = 1.5f;
 
     monster_ability *Rush = AddMonsterAbility(Def, MonsterAbility_Charge,
                                               "Shadow Rush");

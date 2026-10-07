@@ -40,18 +40,30 @@ DangerZoneSortKey(world *World, v3 Position)
     return Result;
 }
 
+// NOTE(zoubir): Shape is 0 for a disc, 255 for a lane, and between them
+// a ring (DangerRingShape)
 inline u32
-DangerZoneColor(float Progress, u32 Palette, bool32 Lane, float Strength)
+DangerZoneColor(float Progress, u32 Palette, u32 Shape, float Strength)
 {
     u32 Result = ((u32)(255.f * Clamp01(Strength)) << 24) |
-        ((Lane ? 255u : 0u) << 16) | (Palette << 8) |
+        (Shape << 16) | (Palette << 8) |
         (u32)(255.f * Clamp01(Progress));
+    return Result;
+}
+
+// NOTE(zoubir): a ring whose hole is Inner of its radius, as the shader
+// reads it back: 64 for no hole up to 192 for none left
+inline u32
+DangerRingShape(float Inner)
+{
+    u32 Result = 64 + (u32)(128.f * Clamp01(Inner));
     return Result;
 }
 
 internal void
 DrawDangerDisc(render_context *RenderContext, world *World, v3 CameraOffset,
-               v2 Center, float Radius, float Progress, u32 Palette)
+               v2 Center, float Radius, float Progress, u32 Palette,
+               u32 Shape = 0)
 {
     float GroundZ = TerrainHeightAt(World, Center.X, Center.Y);
     float Size = 2.f * Radius;
@@ -60,7 +72,7 @@ DrawDangerDisc(render_context *RenderContext, world *World, v3 CameraOffset,
     RenderQuadTexture(RenderContext, Center.X - Radius - CameraOffset.X,
                       Center.Y - GroundZ - Radius - CameraOffset.Y, Size, Size,
                       V4(0.f, 1.f, 1.f, 0.f),
-                      DangerZoneColor(Progress, Palette, false, 1.f), 0.f);
+                      DangerZoneColor(Progress, Palette, Shape, 1.f), 0.f);
     EndBatch(RenderContext);
 }
 
@@ -78,7 +90,7 @@ DrawDangerLane(render_context *RenderContext, world *World, v3 CameraOffset,
     RenderQuadTexture(RenderContext, Middle.X - 0.5f * Length - CameraOffset.X,
                       Middle.Y - GroundZ - 0.5f * Width - CameraOffset.Y,
                       Length, Width, V4(0.f, 1.f, 1.f, 0.f),
-                      DangerZoneColor(Progress, Palette, true, 1.f), 0.f, Angle);
+                      DangerZoneColor(Progress, Palette, 255, 1.f), 0.f, Angle);
     EndBatch(RenderContext);
 }
 
@@ -112,8 +124,10 @@ DrawDangerZones(render_context *RenderContext, app_state *AppState, v3 CameraOff
         {
             case MonsterAbility_Slam:
             {
+                u32 Shape = Ability->InnerRadius > 0.f ?
+                    DangerRingShape(Ability->InnerRadius / Ability->Radius) : 0;
                 DrawDangerDisc(RenderContext, World, CameraOffset, Self,
-                               Ability->Radius, Progress, DANGER_PALETTE_HARM);
+                               Ability->Radius, Progress, DANGER_PALETTE_HARM, Shape);
             } break;
 
             case MonsterAbility_Charge:

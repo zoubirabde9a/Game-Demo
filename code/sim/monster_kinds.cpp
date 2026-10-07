@@ -79,6 +79,10 @@ struct monster_ability
     float Recover;
     float Damage;
     float Radius;
+    // NOTE(zoubir): slams and mortar spots spare a player closer than this
+    // to their centre, so a slam with one is a ring: safe only at the
+    // monster's feet. 0 for a full circle
+    float InnerRadius;
     // NOTE(zoubir): speed for charges, push on players hit for the rest
     float Speed;
     float Knockback;

@@ -33,7 +33,7 @@ enum status_effect
     StatusEffect_Count
 };
 
-#define MAX_MONSTER_ABILITIES 3
+#define MAX_MONSTER_ABILITIES 4
 #define MAX_ABILITY_POINTS 4
 
 // NOTE(zoubir): every monster ability runs Windup (rooted, telegraphed,
