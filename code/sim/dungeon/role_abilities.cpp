@@ -155,6 +155,17 @@ RoleOwnsKey(app_state *AppState, player_slot *Slot, u32 Key)
     return Result;
 }
 
+// NOTE(zoubir): whether Slot's role casts its own spell on the key of
+// Talent's ability in this run, so the talent does nothing (LearnTalent,
+// the talent panel)
+internal bool32
+RoleReplacesTalent(app_state *AppState, player_slot *Slot, u32 Talent)
+{
+    u32 Button = Talent < Talent_Count ? TalentDefs[Talent].Button : 0;
+    bool32 Result = Button && RoleOwnsKey(AppState, Slot, RoleKeyForButton(Button));
+    return Result;
+}
+
 // NOTE(zoubir): the role spell Player casts on Button, 0 when the game's
 // own ability is on it
 internal role_spell *

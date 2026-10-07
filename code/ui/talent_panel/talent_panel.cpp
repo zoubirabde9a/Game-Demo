@@ -228,15 +228,20 @@ DrawUIBand(render_context *RenderContext, v2 A, v2 B, float Width, u32 Color,
                    Color, Color, Color, Color, Blend);
 }
 
-// NOTE(zoubir): the medallion state the node shader reads, 0..1
+// NOTE(zoubir): the medallion state the node shader reads, 0..1; dark
+// for an ability whose key the player's dungeon role has taken
 internal float
-TalentNodeState(player_slot *Slot, u32 Talent)
+TalentNodeState(app_state *AppState, player_slot *Slot, u32 Talent)
 {
     talent_def *Def = &TalentDefs[Talent];
     u32 Level = TalentLevel(Slot, Talent);
     talent_refusal Refusal = CanLearnTalent(Slot, Talent);
     float Result = 0.f;
-    if (Level >= Def->MaxLevel)
+    if (RoleReplacesTalent(AppState, Slot, Talent))
+    {
+        Result = 0.f;
+    }
+    else if (Level >= Def->MaxLevel)
     {
         Result = 1.f;
     }
@@ -253,6 +258,17 @@ TalentNodeState(player_slot *Slot, u32 Talent)
         Result = 0.3f;
     }
     return Result;
+}
+
+// NOTE(zoubir): in a dungeon run, why an ability whose key the role has
+// taken will not take a point
+internal void
+RoleReplacedText(app_state *AppState, player_slot *Slot, u32 Talent, char *Out, u32 OutSize)
+{
+    u32 Button = TalentDefs[Talent].Button;
+    role_spell *Spell = RoleSpellOnButton(AppState, Slot->Entity, Button);
+    snprintf(Out, OutSize, "In a run your role casts %s on %s instead",
+             Spell ? Spell->Name : "its own spell", ActionKeyLabel(Button));
 }
 
 // NOTE(zoubir): why Talent will not take a point, as a sentence

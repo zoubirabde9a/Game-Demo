@@ -103,11 +103,19 @@ DrawTalentTooltip(render_context *RenderContext, app_state *AppState,
             snprintf(Line, 112, "%s: %s", Label, Def->PerRank);
         }
     }
-    u32 StatusColor = Refusal == TalentRefusal_None ? UI_COLOR_GOOD :
+    bool32 Replaced = RoleReplacesTalent(AppState, Slot, Talent);
+    u32 StatusColor = (Refusal == TalentRefusal_None && !Replaced) ? UI_COLOR_GOOD :
         (Refusal == TalentRefusal_MaxRank ? UI_COLOR_ACCENT : UI_RGBA(255, 120, 100, 255));
     if ((Line = AddTooltipLine(&Lines, Body, StatusColor)) != 0)
     {
-        TalentRefusalText(Slot, Talent, Refusal, Line, 112);
+        if (Replaced)
+        {
+            RoleReplacedText(AppState, Slot, Talent, Line, 112);
+        }
+        else
+        {
+            TalentRefusalText(Slot, Talent, Refusal, Line, 112);
+        }
     }
 
     float Width = TALENT_TOOLTIP_WIDTH;

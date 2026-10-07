@@ -124,7 +124,7 @@ DrawTalentNode(render_context *RenderContext, app_state *AppState, app_input *In
     float Denied = Panel->Denied[Talent];
     Centre.X += 5.f * Denied * Sin(Panel->Clock * 70.f);
     float Size = L->NodeSize;
-    float State = TalentNodeState(Slot, Talent);
+    float State = TalentNodeState(AppState, Slot, Talent);
     u32 Level = TalentLevel(Slot, Talent);
     float Flash = Panel->Flash[Talent];
     float Lift = Hot ? 1.06f : 1.f;
@@ -150,7 +150,14 @@ DrawTalentNode(render_context *RenderContext, app_state *AppState, app_input *In
                    WithAlpha(ArcColor, (float)Level / (float)Def->MaxLevel));
     float Icon = Lift * 0.78f * Size;
     u32 Tint = 0xFFFFFFFF;
-    if (Level == 0)
+    // NOTE(zoubir): in a dungeon run, an ability whose key the role has
+    // taken is greyed out whatever its level: its points would do nothing
+    bool32 Replaced = RoleReplacesTalent(AppState, Slot, Talent);
+    if (Replaced)
+    {
+        Tint = UI_RGBA(70, 70, 82, 255);
+    }
+    else if (Level == 0)
     {
         Tint = State >= 0.5f ? UI_RGBA(205, 205, 215, 255) : UI_RGBA(90, 90, 104, 255);
     }
@@ -227,12 +234,18 @@ DrawTalentNode(render_context *RenderContext, app_state *AppState, app_input *In
                Level ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED);
     }
     UIText(RenderContext, Small, Centre.X, PipY + Pip + 6.f, Def->Name,
-           Level ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED, UIAlign_Center);
+           (Level && !Replaced) ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED, UIAlign_Center);
 
     if (Hot && Input->LeftButton.Pressed)
     {
         talent_refusal Refusal = CanLearnTalent(Slot, Talent);
-        if (Refusal == TalentRefusal_None)
+        if (RoleReplacesTalent(AppState, Slot, Talent))
+        {
+            Panel->Denied[Talent] = 1.f;
+            RoleReplacedText(AppState, Slot, Talent, Panel->Message, sizeof(Panel->Message));
+            Panel->MessageAge = 0.f;
+        }
+        else if (Refusal == TalentRefusal_None)
         {
             RequestTalent(AppState, Talent);
             Panel->Message[0] = 0;

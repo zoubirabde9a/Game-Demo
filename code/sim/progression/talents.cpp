@@ -381,15 +381,22 @@ ResetTalents(app_state *AppState, u32 SlotIndex)
     }
 }
 
+// NOTE(zoubir): in sim/dungeon/role_abilities.cpp: whether a dungeon
+// role casts its own spell on the key Talent's ability is on, so the
+// talent does nothing there
+internal bool32 RoleReplacesTalent(app_state *AppState, player_slot *Slot, u32 Talent);
+
 // NOTE(zoubir): one point into Talent, if it may take one; returns
-// whether it did
+// whether it did. In a dungeon run a point never goes into an ability the
+// player's role has taken the key of
 internal bool32
 LearnTalent(app_state *AppState, u32 SlotIndex, u32 Talent)
 {
     player_slot *Slot = &AppState->Players[SlotIndex];
     if (Talent >= Talent_Count || !Slot->Active ||
         CanLearnTalent(Slot, Talent) != TalentRefusal_None ||
-        (IsRoleTalent(Talent) && !AppState->Dungeon))
+        (IsRoleTalent(Talent) && !AppState->Dungeon) ||
+        RoleReplacesTalent(AppState, Slot, Talent))
     {
         return false;
     }

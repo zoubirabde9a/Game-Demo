@@ -253,6 +253,15 @@ TestRoleTalents()
     Check(Slot->Ranks[Talent_RoleFirst + StrikerTalent_SearingHeat] +
           Slot->Ranks[Talent_RoleFirst + StrikerTalent_Wildfire] == 1);
 
+    // NOTE(zoubir): an ability whose key the role has taken takes no point
+    // in a run (the striker casts Detonate on E, not the shield), and the
+    // abilities it keeps still do
+    u32 PointsBefore = TalentPointsLeft(Slot);
+    Check(RoleReplacesTalent(AppState, Slot, Talent_Shield));
+    Check(!LearnTalent(AppState, 0, Talent_Shield));
+    Check(!RoleReplacesTalent(AppState, Slot, Talent_Kunai));
+    Check(TalentPointsLeft(Slot) == PointsBefore);
+
     // NOTE(zoubir): outside a run nobody can buy one
     dungeon_run *Run = AppState->Dungeon;
     AppState->Dungeon = 0;
