@@ -10,7 +10,8 @@
    (default 20, 3, 2, 1). With seeds N past 1 the whole probe runs N
    times, each with the bots' choices and the run's own randomness (pack
    spots, elite affixes) seeded differently, every line led by its seed:
-   one run is too noisy to tune by.
+   one run is too noisy to tune by. PROBE_DEATHS=1 also prints, for each
+   player who falls, the monsters within 260 of them.
    A room past 2 marks the rooms before it cleared, puts the bots inside
    it once they have joined, and gives each the experience of
    PROBE_SECONDS_PER_ROOM of play per room skipped, to time one fight
@@ -55,6 +56,11 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
     GameInit(&Game, MapId_Crypt);
     dungeon_run *SeededRun = 0;
     u32 SeededBots = 0;
+    u32 SlotDeaths[MAX_PLAYERS] = {};
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    bool32 ShowDeaths = getenv("PROBE_DEATHS") != 0;
+#pragma warning(pop)
     Game.BotTarget = Players;
     float Dt = 1.0f / SERVER_TICK_RATE;
     u32 Ticks = Minutes * 60 * SERVER_TICK_RATE;
@@ -120,7 +126,31 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
         u32 Deaths = 0;
         for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
         {
-            Deaths += Game.AppState->Players[Slot].Deaths;
+            player_slot *Player = &Game.AppState->Players[Slot];
+            Deaths += Player->Deaths;
+            // NOTE(zoubir): with PROBE_DEATHS set, who stood round each
+            // player as they fell, to find what kills a party
+            if (ShowDeaths && Player->Deaths != SlotDeaths[Slot] && Player->Entity)
+            {
+                world *World = &Game.AppState->World;
+                printf("    %s (slot %u) fell %.1f s in, at %.0f%% of the room's foes alive:",
+                       GetRoleDef(Player->Role)->Title, Slot, Seconds,
+                       100.f * (float)Run->ShownFoesLeft / (float)Maximum(1u, Run->FoeCount));
+                for (u32 Index = 0; Index < World->EntityCount; ++Index)
+                {
+                    world_entity *Foe = &World->Entities[Index];
+                    float Gap = Length(Foe->Position.XY - Player->Entity->Position.XY);
+                    if (Foe->IsPresent && Foe->Type == EntityType_Monster && Foe->Hp > 0.f &&
+                        Gap < 260.f)
+                    {
+                        printf(" %s%s%s %.0f", GetAffix(Foe->EliteAffix)->Name,
+                               Foe->EliteAffix ? " " : "",
+                               GetMonsterDef((monster_kind)Foe->MonsterKind)->Name, Gap);
+                    }
+                }
+                printf("\n");
+            }
+            SlotDeaths[Slot] = Player->Deaths;
         }
         world_entity *Boss = FightBoss(&Game.AppState->World, Run);
         if (Boss && Boss->MaxHp > 0.f)
