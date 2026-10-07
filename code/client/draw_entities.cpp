@@ -152,6 +152,27 @@ DrawTileEntity(render_context *RenderContext,
 #define UNIT_OUTLINE_COLOR 0x9A000000
 // NOTE(zoubir): radians a leafy tree leans each way at most in the wind
 #define TREE_SWAY_ANGLE 0.018f
+// NOTE(zoubir): a body's reflection in water (DrawEntity): faint, tinted
+// toward the water's blue; none past this height above it
+#define WATER_REFLECTION_COLOR 0x50FFD8B0
+#define WATER_REFLECTION_MAX_LIFT 48.f
+
+// NOTE(zoubir): over flat water, low enough for its reflection to show
+internal bool32
+IsStandingInWater(world *World, world_entity *Entity, float GroundZ, float DrawZ)
+{
+    if (!World->TileWidth || World->TileMap.Texture.Type != AssetType_TerrainAtlas ||
+        GroundZ > 0.f || DrawZ - GroundZ > WATER_REFLECTION_MAX_LIFT)
+    {
+        return false;
+    }
+    map_def *Map = GetMapDef((map_id)World->MapId);
+    i32 TileX = FloorDiv((i32)floorf(Entity->Position.X), (i32)World->TileWidth);
+    i32 TileY = FloorDiv((i32)floorf(Entity->Position.Y), (i32)World->TileHeight);
+    terrain_kind Kind = TerrainAt(Map, TileX, TileY);
+    bool32 Result = Kind == TerrainKind_ShallowWater || Kind == TerrainKind_DeepWater;
+    return Result;
+}
 // NOTE(zoubir): the borrowed shadow under monsters and props (DrawEntity):
 // its width as a share of the sprite's, and how dark next to a player's
 #define MONSTER_SHADOW_WIDTH 0.5f
@@ -305,6 +326,25 @@ DrawEntity(render_context *RenderContext,
             EntityTexturePosition.Y += FeetBelowMiddle * (1.f - Cos(Pose.Angle));
         }
         
+        if (Texture && (Entity->Type == EntityType_Player ||
+                        Entity->Type == EntityType_Monster) &&
+            IsStandingInWater(World, Entity, GroundZ, DrawZ))
+        {
+            // NOTE(zoubir): the body upside down in the water: mirrored about
+            // the ground line, so a body Lift above the water shows Lift
+            // below it; flipped by swapping the frame's top and bottom, faint
+            // and blue, over the water and under everything standing
+            float Ground = EntityCameraPosition.Y - GroundZ;
+            float Lift = DrawZ - GroundZ;
+            float Above = (1.f - TextureInfo->Origin.Y) * Dimensions.Y;
+            v4 Flipped = V4(Entity->Uvs.X, Entity->Uvs.W, Entity->Uvs.Z, Entity->Uvs.Y);
+            BeginBatch(RenderContext, Texture->ID, FLAT_GROUND_SORT_KEY + 2.f, TextureProgram);
+            RenderQuadTexture(RenderContext,
+                              EntityCameraPosition.X - TextureInfo->Origin.X * Dimensions.X,
+                              Ground + Lift - Above, Dimensions.X, Dimensions.Y, Flipped,
+                              WATER_REFLECTION_COLOR, 0.f, -Pose.Angle);
+            EndBatch(RenderContext);
+        }
         if (Texture && (Entity->Type == EntityType_Player ||
                         Entity->Type == EntityType_Monster))
         {
