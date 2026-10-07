@@ -448,9 +448,38 @@ TestHealersRevive()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Gravecaller Ossian waits in the Ossuary; at two thirds
+// of its health a Bone Shaman joins the fight, once
+internal void
+TestBossEventsFireOnce()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    Run->RoomStates[1] = Run->RoomStates[2] = RoomState_Cleared;
+    world_entity *Player = AppState->Players[0].Entity;
+    MovePlayerTo(AppState, World, &Crypt.Arena, Player, Run->RoomEntry[3]);
+    TickCrypt(&Crypt, 1);
+    world_entity *Boss = FightBoss(World, Run);
+    Check(Boss && Boss->MonsterKind == MonsterKind_Gravecaller);
+    Check(Run->FoeCount == 1);
+    Boss->Hp = 0.7f * Boss->MaxHp;
+    TickCrypt(&Crypt, 1);
+    Check(Run->FoeCount == 1);
+    Boss->Hp = 0.6f * Boss->MaxHp;
+    TickCrypt(&Crypt, 2);
+    Check(Run->FoeCount == 2);
+    Check(World->Entities[Run->FoeSlots[1]].MonsterKind == MonsterKind_Shaman);
+    TickCrypt(&Crypt, 2);
+    Check(Run->FoeCount == 2);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDungeonTests()
 {
+    TestBossEventsFireOnce();
     TestHealersRevive();
     TestRoleKeys();
     TestStrayPlayersComeBack();

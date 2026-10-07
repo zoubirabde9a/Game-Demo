@@ -75,6 +75,12 @@ struct dungeon_run
     u32 FoeCount;
     u32 FoeSlots[DUNGEON_MAX_FOES];
     u32 FoeSerials[DUNGEON_MAX_FOES];
+    // NOTE(zoubir): the fight's boss, 0 serial for none, and which of its
+    // scripted events have happened, one bit per BossEvents row
+    // (boss_scripts.cpp)
+    u32 BossSlot;
+    u32 BossSerial;
+    u32 BossEventsFired;
     // NOTE(zoubir): the wall entities closing each gate, as slot + 1
     // (0 for none). Built on the first tick, so only a world that
     // simulates has them

@@ -134,13 +134,15 @@ PickPackSpot(world *World, dungeon_run *Run, u32 Room)
     return Run->RoomMiddle[Room];
 }
 
-internal void
+// NOTE(zoubir): one of a room's monsters near Spot; 0 when the run's
+// list is full
+internal world_entity *
 SpawnFoe(app_state *AppState, world *World, memory_arena *Arena,
          dungeon_run *Run, v3 Spot, encounter_row *Row, float HealthScale)
 {
     if (Run->FoeCount >= DUNGEON_MAX_FOES)
     {
-        return;
+        return 0;
     }
     entity_collision_volume_group *Volume =
         GetMonsterStats(Row->Kind)->FlyHeight > 0.f ?
@@ -171,6 +173,7 @@ SpawnFoe(app_state *AppState, world *World, memory_arena *Arena,
     Run->FoeSlots[Run->FoeCount] = (u32)(Monster - World->Entities);
     Run->FoeSerials[Run->FoeCount] = Monster->MonsterSerial;
     Run->FoeCount++;
+    return Monster;
 }
 
 // NOTE(zoubir): puts a living player at Position, as a respawn does
@@ -194,6 +197,7 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
     Run->RoomStates[Room] = RoomState_Fighting;
     Run->FightingRoom = Room;
     Run->FoeCount = 0;
+    Run->BossSlot = Run->BossSerial = Run->BossEventsFired = 0;
 
     u32 RowCount;
     encounter_row *Rows = GetEncounters(World->MapId, &RowCount);
@@ -216,7 +220,13 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
             }
             for(u32 Index = 0; Index < Row->Count; Index++)
             {
-                SpawnFoe(AppState, World, Arena, Run, Spot, Row, HealthScale);
+                world_entity *Foe = SpawnFoe(AppState, World, Arena, Run, Spot,
+                                             Row, HealthScale);
+                if (Foe && (Row->Flags & Encounter_Boss))
+                {
+                    Run->BossSlot = (u32)(Foe - World->Entities);
+                    Run->BossSerial = Foe->MonsterSerial;
+                }
             }
         }
     }
@@ -325,6 +335,7 @@ CanStartRoom(dungeon_run *Run, u32 Room)
 
 #include "role_abilities.cpp"
 #include "revive.cpp"
+#include "boss_scripts.cpp"
 
 // NOTE(zoubir): a player thrown over a wall (a launch, a blast) lands on
 // it or behind it, out of every room: back to the party's spot, so walls
@@ -401,6 +412,7 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
         else
         {
             UpdateRevives(AppState, DeltaTime);
+            UpdateBossEvents(AppState, World, Arena, Run);
             for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
             {
                 player_slot *Slot = &AppState->Players[SlotIndex];

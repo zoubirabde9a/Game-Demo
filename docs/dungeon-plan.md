@@ -63,9 +63,9 @@ Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, 
 
 **The Brood Queen**, a spider the size of a house.
 - Web Nova: slam that slows and leaves webs.
-- Venom Rain: a fan of seven poisoned barbs.
+- Venom Rain: a fan of four poisoned barbs.
 - Hatch (below 50%): two Hexweaver Spiders.
-- At 50% the nest's edges fill with webs, shrinking the room.
+- At 50% two more Hexweaver Spiders crawl out of the nest.
 
 **The Hollow King**, the last boss.
 - Soul Cleave: a huge slam. The tank keeps it facing away from the group.
@@ -85,7 +85,7 @@ Snapshots gain: each player's role (2 bits), downed state, the run's room and en
 - [x] Threat and taunt, through `DungeonPickTarget`. Taunt is `TauntAround` in `sim/dungeon/threat.cpp`; the tank's key for it comes with the role kits.
 - [x] Role kits: what A, E and V cast for each role (`sim/dungeon/role_abilities.cpp`). They borrow existing bursts for now; their own look comes with the client step.
 - [x] Downed players and healer revives (`sim/dungeon/revive.cpp`): a healer within 60 of the body for 3 s brings them back there at 40% health.
-- [ ] The three bosses and their phase scripts.
+- [ ] The three bosses and their phase scripts. Done: the scripted events (`sim/dungeon/boss_scripts.cpp`), Gravecaller Ossian, the Brood Queen. Left: the Hollow King.
 - [ ] Online: role and run state on the wire, role pick request, server `--map crypt`.
 - [ ] Client: role picker, boss health bar, objective line, party frames.
 
