@@ -3,7 +3,8 @@
    same map, everyone keeping their level (sim/setup.cpp
    StartNextRoundMap); a map vote that passes moves everyone to the map
    asked for and starts them over at level 1 (sim/map_vote.cpp), and a
-   client playing there builds the new map and follows (client/online.cpp).
+   client playing there builds the new map and follows (client/online.cpp),
+   into or out of the dungeon mode too.
    Included by server_tests.cpp, which calls TestRoundMovesToNextMap. */
 
 struct round_map_test
@@ -149,9 +150,36 @@ TestMapVoteMovesAndStartsOver()
     StopRoundMapTest(&Test);
 }
 
+// NOTE(zoubir): the vote changes the game mode: a duel votes its way into
+// the dungeon, server and client both start a run there, and the run
+// votes its way back out to a duel map
+internal void
+TestMapVoteChangesTheMode()
+{
+    static round_map_test Test;
+    StartRoundMapTest(&Test, "Moder");
+    RunRoundMapTest(&Test, 3 * SERVER_TICK_RATE);
+    app_state *Game = Test.Server.Game.AppState;
+    Check(!Game->Dungeon && !Test.Client->Dungeon);
+
+    u32 Dungeon = FirstMapOfMode(true);
+    RequestVote(Test.Client, MapVoteAsk(Dungeon));
+    RunRoundMapTest(&Test, SERVER_TICK_RATE);
+    CheckPlayerAtSpawn(&Test, Dungeon);
+    Check(Game->Dungeon != 0 && Test.Client->Dungeon != 0);
+
+    u32 Duel = FirstMapOfMode(false);
+    RequestVote(Test.Client, MapVoteAsk(Duel));
+    RunRoundMapTest(&Test, SERVER_TICK_RATE);
+    CheckPlayerAtSpawn(&Test, Duel);
+    Check(!Game->Dungeon && !Test.Client->Dungeon);
+    StopRoundMapTest(&Test);
+}
+
 internal void
 TestRoundMovesToNextMap()
 {
     TestRoundReplaysTheMap();
     TestMapVoteMovesAndStartsOver();
+    TestMapVoteChangesTheMode();
 }

@@ -1,7 +1,10 @@
 /* Map vote on screen (sim/map_vote.cpp). In the Escape menu
-   (options_menu.cpp), a Map section: a button per other map, which asks
-   everyone to move there, or, while a vote is open, who asked for which
-   map, the answers so far and Yes / No buttons. Over the game, while a
+   (options_menu.cpp), a Mode and map section: a row with the two game
+   modes, Duel and Dungeon, where the other one asks everyone to move to
+   its first map, then a button per other map of the mode being played,
+   which asks everyone to move there. While a vote is open: who asked for
+   which map (and mode, when it changes), the answers so far and Yes / No
+   buttons. Over the game, while a
    vote is open, a slim plate at the top says so and how to answer.
    Clicks become requests (client/vote_requests.cpp). */
 
@@ -20,7 +23,47 @@ CountActivePlayers(app_state *AppState)
     return Result;
 }
 
-// NOTE(zoubir): the section's height under its "Map" heading
+struct game_mode_choice
+{
+    bool32 Dungeon;
+    char *Name;
+};
+
+global_variable game_mode_choice GameModeChoices[] =
+{
+    {false, "Duel"},
+    {true, "Dungeon"},
+};
+
+// NOTE(zoubir): the maps a button is drawn for: the other maps of the mode
+// being played (a mode change goes through its own row)
+inline bool32
+IsMapButtonShown(app_state *AppState, u32 MapId)
+{
+    bool32 Result = IsVotableMap(AppState, MapId) &&
+        IsDungeonMap(MapId) == IsDungeonMap(AppState->World.MapId);
+    return Result;
+}
+
+// NOTE(zoubir): "Sunken Crypt", or "Dungeon: Sunken Crypt" when the map
+// is of the other mode, so the vote says the mode changes
+internal void
+VoteMapText(app_state *AppState, char *Out, u32 OutSize)
+{
+    u32 MapId = AppState->VoteMap;
+    char *Name = GetMapDef((map_id)MapId)->Name;
+    if (IsDungeonMap(MapId) != IsDungeonMap(AppState->World.MapId))
+    {
+        snprintf(Out, OutSize, "%s: %s", GameModeChoices[IsDungeonMap(MapId) ? 1 : 0].Name,
+                 Name);
+    }
+    else
+    {
+        snprintf(Out, OutSize, "%s", Name);
+    }
+}
+
+// NOTE(zoubir): the section's height under its heading
 internal float
 MapVoteSectionHeight(app_state *AppState)
 {
@@ -37,10 +80,12 @@ MapVoteSectionHeight(app_state *AppState)
         u32 Others = 0;
         for(u32 MapId = 0; MapId < MapId_Count; MapId++)
         {
-            Others += IsVotableMap(AppState, MapId) ? 1 : 0;
+            Others += IsMapButtonShown(AppState, MapId) ? 1 : 0;
         }
         u32 Rows = (Others + MAP_VOTE_COLUMNS - 1) / MAP_VOTE_COLUMNS;
-        Result = (float)Rows * (MAP_VOTE_BUTTON_HEIGHT + UI_GAP_SMALL) +
+        Result = (MAP_VOTE_BUTTON_HEIGHT + UI_GAP) +
+            (float)Rows * (MAP_VOTE_BUTTON_HEIGHT + UI_GAP_SMALL) +
+            (Rows ? 0.f : UILineHeight(Small) + UI_GAP_SMALL) +
             UILineHeight(Small);
     }
     return Result;
@@ -59,8 +104,9 @@ DoMapVoteSection(render_context *RenderContext, app_state *AppState, app_input *
     {
         char Who[48];
         GetPlayerName(AppState, AppState->VoteBy, Who, sizeof(Who));
-        snprintf(Text, sizeof(Text), "%s wants %s", Who,
-                 GetMapDef((map_id)AppState->VoteMap)->Name);
+        char Map[64];
+        VoteMapText(AppState, Map, sizeof(Map));
+        snprintf(Text, sizeof(Text), "%s wants %s", Who, Map);
         UIText(RenderContext, Body, Left, Top, Text, UI_COLOR_TEXT);
         snprintf(Text, sizeof(Text), "%.0f s", Maximum(0.f, AppState->VoteSeconds));
         UIText(RenderContext, Body, Left + Width, Top, Text, UI_COLOR_TEXT_MUTED,
@@ -93,14 +139,38 @@ DoMapVoteSection(render_context *RenderContext, app_state *AppState, app_input *
         return;
     }
 
+    // NOTE(zoubir): the modes; the one being played is lit, the other
+    // asks for its first map
+    bool32 InDungeon = IsDungeonMap(AppState->World.MapId);
+    float ModeWidth = 0.5f * (Width - UI_GAP);
+    for(u32 Index = 0; Index < ArrayCount(GameModeChoices); Index++)
+    {
+        game_mode_choice *Mode = GameModeChoices + Index;
+        float X = Left + Index * (ModeWidth + UI_GAP);
+        bool32 Selected = (Mode->Dungeon != 0) == (InDungeon != 0);
+        u32 First = FirstMapOfMode(Mode->Dungeon);
+        if (OptionsButton(RenderContext, Input, X, Top, ModeWidth,
+                          MAP_VOTE_BUTTON_HEIGHT, Selected) &&
+            !Selected && IsVotableMap(AppState, First))
+        {
+            RequestVote(AppState, MapVoteAsk(First));
+        }
+        UIText(RenderContext, Body, X + 0.5f * ModeWidth,
+               Top + 0.5f * (MAP_VOTE_BUTTON_HEIGHT - UILineHeight(Body)),
+               Mode->Name, Selected ? UI_COLOR_ACCENT : UI_COLOR_TEXT, UIAlign_Center);
+    }
+    Top += MAP_VOTE_BUTTON_HEIGHT + UI_GAP;
+
     float ButtonWidth = (Width - (MAP_VOTE_COLUMNS - 1) * UI_GAP_SMALL) / MAP_VOTE_COLUMNS;
     u32 Column = 0;
+    u32 Shown = 0;
     for(u32 MapId = 0; MapId < MapId_Count; MapId++)
     {
-        if (!IsVotableMap(AppState, MapId))
+        if (!IsMapButtonShown(AppState, MapId))
         {
             continue;
         }
+        Shown++;
         float X = Left + Column * (ButtonWidth + UI_GAP_SMALL);
         if (OptionsButton(RenderContext, Input, X, Top, ButtonWidth,
                           MAP_VOTE_BUTTON_HEIGHT, false))
@@ -120,10 +190,16 @@ DoMapVoteSection(render_context *RenderContext, app_state *AppState, app_input *
     {
         Top += MAP_VOTE_BUTTON_HEIGHT + UI_GAP_SMALL;
     }
+    if (!Shown)
+    {
+        UIText(RenderContext, Small, Left, Top, "No other map in this mode",
+               UI_COLOR_TEXT_MUTED);
+        Top += UILineHeight(Small) + UI_GAP_SMALL;
+    }
     char *Hint = "Starts over there at level 1";
     if (CountActivePlayers(AppState) > 1)
     {
-        Hint = "Asks for a vote. The new map starts everyone over at level 1";
+        Hint = "Asks for a vote. A new map or mode starts everyone over at level 1";
     }
     UIText(RenderContext, Small, Left, Top, Hint, UI_COLOR_TEXT_MUTED);
 }
@@ -146,8 +222,9 @@ DrawMapVotePlate(render_context *RenderContext, app_state *AppState, u32 WindowW
     GetPlayerName(AppState, AppState->VoteBy, Who, sizeof(Who));
     char Text[128];
     bool32 Answered = AppState->Votes[AppState->LocalPlayerIndex] != MapVote_None;
-    snprintf(Text, sizeof(Text), "%s wants %s  -  %s  (%.0f s)", Who,
-             GetMapDef((map_id)AppState->VoteMap)->Name,
+    char Map[64];
+    VoteMapText(AppState, Map, sizeof(Map));
+    snprintf(Text, sizeof(Text), "%s wants %s  -  %s  (%.0f s)", Who, Map,
              Answered ? "waiting for the others" : "Esc to vote",
              Maximum(0.f, AppState->VoteSeconds));
     UIText(RenderContext, Body, X + 0.5f * Width, Y + UI_GAP_SMALL, Text,

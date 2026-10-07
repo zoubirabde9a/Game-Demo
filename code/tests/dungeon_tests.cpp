@@ -108,20 +108,24 @@ TestCryptRoomsMatchTheMap()
     Check(Map->SpawnCount == MAX_PLAYERS);
 }
 
-// NOTE(zoubir): the duel's vote never offers the dungeon, and a run
-// offers nothing
+// NOTE(zoubir): the vote changes the mode: a duel can vote for the
+// dungeon and a run for a duel map, never for the map being played
 internal void
-TestTheMapVoteLeavesTheDungeonAlone()
+TestTheMapVoteChangesTheMode()
 {
     test_world Test = CreateTestWorld();
     app_state *AppState = Test.AppState;
     AppState->World.MapId = MapId_Arena;
     Check(IsVotableMap(AppState, MapId_Keep));
-    Check(!IsVotableMap(AppState, MapId_Crypt));
+    Check(IsVotableMap(AppState, MapId_Crypt));
+    Check(!IsVotableMap(AppState, MapId_Arena));
+    Check(FirstMapOfMode(true) == MapId_Crypt);
+    Check(FirstMapOfMode(false) == MapId_Arena);
     dungeon_run Run = {};
     AppState->Dungeon = &Run;
     AppState->World.MapId = MapId_Crypt;
-    Check(!IsVotableMap(AppState, MapId_Keep));
+    Check(IsVotableMap(AppState, MapId_Keep));
+    Check(!IsVotableMap(AppState, MapId_Crypt));
     AppState->Dungeon = 0;
     DestroyTestWorld(&Test);
 }
@@ -581,7 +585,7 @@ RunDungeonTests()
     TestRoomsStartClearAndOpenGates();
     TestDownedWaitAndWipesReset();
     TestCryptRoomsMatchTheMap();
-    TestTheMapVoteLeavesTheDungeonAlone();
+    TestTheMapVoteChangesTheMode();
     TestRolesDoNothingOutsideADungeon();
     TestRolesScaleHealthAndDamage();
     TestNoDuelMapIsADungeon();

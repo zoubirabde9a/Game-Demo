@@ -1,6 +1,6 @@
 # Dungeon plan
 
-A co-op mode. Up to eight players walk one dungeon together, room by room, and fight packs of monsters, elites and three bosses. Each player picks a role: tank, healer or damage. The duel game is untouched: the dungeon is its own map with its own rules, and the duel's map rotation and map vote never pick it.
+A co-op mode. Up to eight players walk one dungeon together, room by room, and fight packs of monsters, elites and three bosses. Each player picks a role: tank, healer or damage. The duel game is untouched: the dungeon is its own map with its own rules, and the duel's map rotation never picks it. Players switch between the two modes with the Mode row of the Esc menu's vote.
 
 This file is the plan and the record. Tick a box when the step lands on `main`.
 
@@ -84,7 +84,7 @@ The protocol id is "GDMe". Each `net_score` has a `Dungeon` byte: the role, Shie
 ## Steps
 
 - [x] The mode switch and roles in the simulation: `IsDungeon`, `player_role`, role health and damage scaling, tests.
-- [x] The Sunken Crypt map, flagged `Dungeon`, left out of the duel rotation and the map vote.
+- [x] The Sunken Crypt map, flagged `Dungeon`, left out of the duel rotation; the Esc menu votes into and out of it.
 - [x] Encounters: room triggers, spawning packs, leashing, gates that open, checkpoints, wipe and reset.
 - [x] Threat and taunt, through `DungeonPickTarget`. Taunt is `TauntAround` in `sim/dungeon/threat.cpp`; the tank's key for it comes with the role kits.
 - [x] Role kits: what A, E and V cast for each role (`sim/dungeon/role_abilities.cpp`). They borrow existing bursts for now; their own look comes with the client step.

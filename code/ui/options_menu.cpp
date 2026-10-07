@@ -1,7 +1,7 @@
 /* Options menu: Esc opens it over the game and Esc or "Back to game"
    closes it. It picks the keyboard layout, AZERTY (ZQSD moves) or QWERTY
    (WASD moves), saved for the next launch (client/keyboard_layout.cpp),
-   and holds the map vote (ui/map_vote_view.cpp).
+   and holds the vote for another game mode or map (ui/map_vote_view.cpp).
    While it is open the player holds no keys and clicks do not cast
    (app.cpp). The game does not pause: online, the world goes on. */
 
@@ -114,7 +114,7 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     }
     Top += OPTIONS_CHOICE_HEIGHT + UI_GAP_LARGE;
 
-    UIText(RenderContext, Body, Left, Top, "Map", UI_COLOR_TEXT);
+    UIText(RenderContext, Body, Left, Top, "Mode and map", UI_COLOR_TEXT);
     UIText(RenderContext, Small, Left + Inner, Top + UILineHeight(Body) - UILineHeight(Small),
            GetMapDef((map_id)AppState->World.MapId)->Name, UI_COLOR_TEXT_MUTED, UIAlign_Right);
     Top += UILineHeight(Body) + UI_GAP_SMALL;

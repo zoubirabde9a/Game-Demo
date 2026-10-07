@@ -1,5 +1,7 @@
 /* Map vote: any player can ask for another map (the Escape menu,
-   ui/options_menu.cpp). The vote stays open MAP_VOTE_SECONDS; the one who
+   ui/options_menu.cpp), of either game mode: a duel map, or a dungeon
+   (sim/dungeon/), the co-op mode. Asking for a map of the other mode is
+   how the players change mode. The vote stays open MAP_VOTE_SECONDS; the one who
    asked counts as a yes, and every other player can answer yes or no.
    When more than half of the players say yes, the world moves to that map
    on the next tick (StartNextRoundMap, setup.cpp) and everyone starts
@@ -14,14 +16,37 @@
 
 #define MAP_VOTE_SECONDS 30.f
 
-// NOTE(zoubir): a map the vote may move everyone to: another duel map.
-// A dungeon (sim/dungeon/) is its own mode: never voted to, and a run
-// never votes its way out
+// NOTE(zoubir): whether MapId is played as a dungeon run, not a duel
+inline bool32
+IsDungeonMap(u32 MapId)
+{
+    bool32 Result = MapId < MapId_Count && GetMapDef((map_id)MapId)->Dungeon;
+    return Result;
+}
+
+// NOTE(zoubir): a map the vote may move everyone to: any map but the one
+// being played. The world is built again for it (StartNextRoundMap), which
+// starts a dungeon run on a dungeon map and ends one anywhere else
 inline bool32
 IsVotableMap(app_state *AppState, u32 MapId)
 {
-    bool32 Result = MapId < MapId_Count && MapId != AppState->World.MapId &&
-        !GetMapDef((map_id)MapId)->Dungeon && !IsDungeon(AppState);
+    bool32 Result = MapId < MapId_Count && MapId != AppState->World.MapId;
+    return Result;
+}
+
+// NOTE(zoubir): the map a vote for the other mode asks for: the first map
+// of that mode, MapId_Count when there is none
+internal u32
+FirstMapOfMode(bool32 Dungeon)
+{
+    u32 Result = MapId_Count;
+    for(u32 MapId = MapId_Count; MapId-- > 0;)
+    {
+        if (IsDungeonMap(MapId) == (Dungeon != 0))
+        {
+            Result = MapId;
+        }
+    }
     return Result;
 }
 
