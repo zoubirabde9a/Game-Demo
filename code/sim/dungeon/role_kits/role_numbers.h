@@ -1,4 +1,4 @@
-/* Role kit numbers (role_abilities.cpp): every role spell's reach, power
+/* Role kit numbers (dungeon.cpp, for role_abilities.cpp): every role spell's reach, power
    and cooldown before talents, in one place to tune. The role branch of
    the talent tree changes them by rank (role_talents.cpp has those
    numbers). */
@@ -45,6 +45,11 @@
 #define INTERCEPT_COOLDOWN 10.f
 // NOTE(zoubir): how far short of the ally an intercept lands
 #define INTERCEPT_LANDING_GAP 36.f
+// NOTE(zoubir): Last Stand (V, from the tree): the tank heals this share
+// of its health and stands behind Shield Wall this long
+#define LAST_STAND_HEAL_SHARE 0.3f
+#define LAST_STAND_SECONDS 6.f
+#define LAST_STAND_COOLDOWN 40.f
 
 // NOTE(zoubir): Healer (role_kits/healer.cpp)
 #define SANCTUARY_RADIUS 110.f
@@ -64,11 +69,18 @@
 // NOTE(zoubir): a healer's fireball heals the most hurt ally this share of
 // the damage it dealt (Smite)
 #define SMITE_SHARE 1.5f
+// NOTE(zoubir): Radiance (V, from the tree): every living player this
+// close to the healer heals this much and holds a ward at least this big
+#define RADIANCE_RADIUS 260.f
+#define RADIANCE_HEAL 30.f
+#define RADIANCE_WARD 15.f
+#define RADIANCE_COOLDOWN 18.f
 
-// NOTE(zoubir): Damage (role_kits/striker.cpp): the meteor falls
-// INFERNO_DELAY after the cast, then the ground burns
+// NOTE(zoubir): Damage (role_kits/striker.cpp): Meteor (A) winds up for
+// its cast (PlayerSpell_Meteor, sim/player_casts.cpp), falls
+// INFERNO_DELAY after it, then the ground burns
 #define INFERNO_RADIUS 90.f
-#define INFERNO_DELAY 0.6f
+#define INFERNO_DELAY 0.4f
 #define INFERNO_DAMAGE 32.f
 #define INFERNO_BURN_SECONDS 3.f
 #define INFERNO_BURN_PER_SECOND 10.f
@@ -90,3 +102,18 @@
 #define DETONATE_DAMAGE 12.f
 #define DETONATE_PER_STACK 20.f
 #define DETONATE_COOLDOWN 7.f
+// NOTE(zoubir): Giant Fireball (R) winds up for its cast
+// (PlayerSpell_GiantFireball), then flies slowly along the aim and blows
+// up on the first monster it reaches, on leaving its room or at the end
+// of its flight, hitting and marking everything in the blast
+#define GIANT_FIREBALL_SPEED 260.f
+#define GIANT_FIREBALL_RANGE 700.f
+#define GIANT_FIREBALL_TOUCH 34.f
+#define GIANT_FIREBALL_RADIUS 110.f
+#define GIANT_FIREBALL_DAMAGE 55.f
+#define GIANT_FIREBALL_COOLDOWN 8.f
+// NOTE(zoubir): Combustion (V, from the tree): this much more damage for
+// this long
+#define COMBUSTION_SHARE 0.4f
+#define COMBUSTION_SECONDS 6.f
+#define COMBUSTION_COOLDOWN 30.f

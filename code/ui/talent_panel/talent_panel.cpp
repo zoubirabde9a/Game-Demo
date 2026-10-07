@@ -58,18 +58,29 @@ global_variable u32 RoleBranchAccents[PlayerRole_Count] =
     UI_RGBA(130, 230, 150, 255),
 };
 
-// NOTE(zoubir): how many columns the panel shows: the role's only in a run
+// NOTE(zoubir): the columns the panel shows, from FirstShownBranch: the
+// game's three outside a dungeon run, the class's own tree alone in one
+// (sim/dungeon/role_talents.cpp)
+inline u32
+FirstShownBranch(app_state *AppState)
+{
+    u32 Result = IsDungeon(AppState) ? TalentBranch_Role : 0;
+    return Result;
+}
+
 inline u32
 ShownTalentBranches(app_state *AppState)
 {
-    u32 Result = IsDungeon(AppState) ? TalentBranch_Count : TALENT_GAME_BRANCHES;
+    u32 Result = IsDungeon(AppState) ? 1 : TALENT_GAME_BRANCHES;
     return Result;
 }
 
 inline bool32
 IsTalentShown(app_state *AppState, u32 Talent)
 {
-    bool32 Result = TalentDefs[Talent].Branch < ShownTalentBranches(AppState);
+    u32 Branch = TalentDefs[Talent].Branch;
+    u32 First = FirstShownBranch(AppState);
+    bool32 Result = Branch >= First && Branch < First + ShownTalentBranches(AppState);
     return Result;
 }
 
@@ -157,7 +168,7 @@ struct talent_panel_layout
 };
 
 internal talent_panel_layout
-LayTalentPanel(u32 WindowWidth, u32 WindowHeight, float Shown, u32 Branches)
+LayTalentPanel(u32 WindowWidth, u32 WindowHeight, float Shown, u32 First, u32 Branches)
 {
     talent_panel_layout L = {};
     // NOTE(zoubir): above the ability bar, which keeps showing cooldowns
@@ -172,10 +183,18 @@ LayTalentPanel(u32 WindowWidth, u32 WindowHeight, float Shown, u32 Branches)
     float Sidebar = L.Width >= 900.f ? TALENT_SIDEBAR_WIDTH : 0.f;
     float Inner = L.Width - 2.f * UI_GAP_LARGE - (Sidebar > 0.f ? Sidebar + TALENT_COLUMN_GAP : 0.f);
     L.ColumnWidth = (Inner - (float)(Branches - 1) * TALENT_COLUMN_GAP) / (float)Branches;
-    for(u32 Branch = 0; Branch < Branches; Branch++)
+    // NOTE(zoubir): a lone column (a class's tree) keeps a column's width,
+    // in the middle of the room the three would take
+    float Lone = (Inner - 2.f * TALENT_COLUMN_GAP) / 3.f;
+    float Start = L.X + UI_GAP_LARGE;
+    if (Branches == 1 && L.ColumnWidth > Lone)
     {
-        L.ColumnX[Branch] = L.X + UI_GAP_LARGE +
-            (float)Branch * (L.ColumnWidth + TALENT_COLUMN_GAP);
+        Start += 0.5f * (L.ColumnWidth - Lone);
+        L.ColumnWidth = Lone;
+    }
+    for(u32 Column = 0; Column < Branches; Column++)
+    {
+        L.ColumnX[First + Column] = Start + (float)Column * (L.ColumnWidth + TALENT_COLUMN_GAP);
     }
     L.SidebarX = Sidebar > 0.f ? L.X + L.Width - UI_GAP_LARGE - Sidebar : 0.f;
     L.TierTop = L.ColumnTop + TALENT_COLUMN_HEADER;
@@ -386,6 +405,7 @@ DrawTalentPanel(render_context *RenderContext, app_state *AppState, app_input *I
     }
 
     talent_panel_layout L = LayTalentPanel(WindowWidth, WindowHeight, Panel->Shown,
+                                           FirstShownBranch(AppState),
                                            ShownTalentBranches(AppState));
     Requests->PanelX = L.X;
     Requests->PanelY = L.Y;
@@ -415,7 +435,8 @@ DrawTalentPanel(render_context *RenderContext, app_state *AppState, app_input *I
             Hovered = (i32)Talent;
         }
     }
-    for(u32 Branch = 0; Branch < ShownTalentBranches(AppState); Branch++)
+    for(u32 Branch = FirstShownBranch(AppState);
+        Branch < FirstShownBranch(AppState) + ShownTalentBranches(AppState); Branch++)
     {
         DrawTalentColumn(RenderContext, AppState, Panel, &L, Branch, Hovered);
     }

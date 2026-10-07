@@ -58,23 +58,6 @@ PaintIronSkinIcon(icon_canvas *Canvas)
     }
 }
 
-// NOTE(zoubir): Rally: three small shields under one big ring of light
-internal void
-PaintRallyIcon(icon_canvas *Canvas)
-{
-    IconGlow(Canvas, V2(0.5f, 0.55f), 0.46f, IconColor(255, 220, 120, 110));
-    IconArc(Canvas, V2(0.5f, 0.58f), 0.36f, 0.035f, Solid(IconColor(255, 225, 130)));
-    for(u32 Shield = 0; Shield < 3; Shield++)
-    {
-        float X = 0.3f + 0.2f * (float)Shield;
-        float Y = Shield == 1 ? 0.42f : 0.56f;
-        v2 Points[5] = {V2(X - 0.08f, Y - 0.1f), V2(X + 0.08f, Y - 0.1f), V2(X + 0.08f, Y + 0.06f),
-                        V2(X, Y + 0.15f), V2(X - 0.08f, Y + 0.06f)};
-        IconPolygon(Canvas, Points, 5, Gradient(IconColor(220, 230, 245), IconColor(80, 110, 180),
-                                                V2(X, Y - 0.1f), V2(X, Y + 0.15f)));
-    }
-}
-
 // NOTE(zoubir): Renewal: a green leaf with light dripping off it
 internal void
 PaintRenewalIcon(icon_canvas *Canvas)
@@ -136,25 +119,20 @@ PaintExecutionerIcon(icon_canvas *Canvas)
 
 internal void PaintProvokeIcon(icon_canvas *C) { PaintRoleTauntIcon(C); IconBadgeSooner(C); }
 internal void PaintBastionIcon(icon_canvas *C) { PaintRoleShieldSlamIcon(C); IconBadgeMore(C); }
-internal void PaintGuardianIcon(icon_canvas *C) { PaintRoleInterceptIcon(C); IconBadgeMore(C); }
 internal void PaintSwiftMendingIcon(icon_canvas *C) { PaintRoleMendingBoltIcon(C); IconBadgeMore(C); }
 internal void PaintDeepWardIcon(icon_canvas *C) { PaintRoleWardIcon(C); IconBadgeMore(C); }
-internal void PaintHallowedIcon(icon_canvas *C) { PaintRoleSanctuaryIcon(C); IconBadgeWider(C); }
-internal void PaintSearingHeatIcon(icon_canvas *C) { PaintRoleDetonateIcon(C); IconBadgeMore(C); }
 internal void PaintOverloadIcon(icon_canvas *C) { PaintRoleDetonateIcon(C); IconBadgeSooner(C); }
 internal void PaintShatterArmorIcon(icon_canvas *C) { PaintRoleShieldSlamIcon(C); IconBadgeMore(C); }
-internal void PaintInspirationIcon(icon_canvas *C) { PaintRoleWardIcon(C); IconBadgeWider(C); }
 internal void PaintWildfireIcon(icon_canvas *C) { PaintRoleInfernoIcon(C); IconBadgeMore(C); }
-internal void PaintCataclysmIcon(icon_canvas *C) { PaintRoleInfernoIcon(C); IconBadgeWider(C); }
 
 // NOTE(zoubir): by player_role (Damage, Tank, Healer), then slot, as
-// RoleTalentDefs lists them
+// RoleTalentDefs lists them; a slot that unlocks a spell shows the spell
 global_variable talent_icon_painter *RoleTalentIconPainters[PlayerRole_Count][ROLE_TALENTS] =
 {
-    {PaintPyromancerIcon, PaintSearingHeatIcon, PaintWildfireIcon, PaintExecutionerIcon,
-     PaintCataclysmIcon, PaintOverloadIcon},
-    {PaintIronSkinIcon, PaintProvokeIcon, PaintBastionIcon, PaintGuardianIcon,
-     PaintRallyIcon, PaintShatterArmorIcon},
-    {PaintSwiftMendingIcon, PaintDeepWardIcon, PaintRenewalIcon, PaintHallowedIcon,
-     PaintInspirationIcon, PaintMiracleIcon},
+    {PaintPyromancerIcon, PaintRoleDetonateIcon, PaintWildfireIcon, PaintExecutionerIcon,
+     PaintRoleCombustionIcon, PaintOverloadIcon},
+    {PaintIronSkinIcon, PaintRoleInterceptIcon, PaintProvokeIcon, PaintBastionIcon,
+     PaintRoleLastStandIcon, PaintShatterArmorIcon},
+    {PaintSwiftMendingIcon, PaintRoleSanctuaryIcon, PaintDeepWardIcon, PaintRenewalIcon,
+     PaintRoleRadianceIcon, PaintMiracleIcon},
 };

@@ -125,6 +125,11 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Role, 0.7f, 110.f, 0x0060E0FF, false, 0.f, BurstPose_Release},   // SanctuaryCast
     {BurstShape_Role, 0.6f, 40.f, 0x002080FF, false, 0.f, BurstPose_Charge},     // InfernoCast
     {BurstShape_Role, 0.8f, 90.f, 0x002080FF, false, 0.6f, BurstPose_None},      // InfernoBlast
+    // NOTE(zoubir): a Giant Fireball plays out for its whole flight; its
+    // blast ends it early (client/dungeon/role_fx.cpp)
+    {BurstShape_Role, GIANT_FIREBALL_RANGE / GIANT_FIREBALL_SPEED, 22.f, 0x002080FF, false, 0.f,
+     BurstPose_Release},                                                           // GiantFireball
+    {BurstShape_Role, 0.8f, 110.f, 0x002080FF, false, 0.6f, BurstPose_None},     // GiantFireballBlast
 };
 static_assert(ArrayCount(BurstLooks) == SimBurst_Count, "one look per burst");
 

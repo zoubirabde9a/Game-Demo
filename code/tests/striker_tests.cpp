@@ -1,10 +1,10 @@
 /* Striker and party synergy tests (sim/dungeon/role_kits/), included by
-   dungeon_tests.cpp: kunai and fireball hits leave Searing stacks, a
+   dungeon_tests.cpp: fireball hits leave Searing stacks, a
    full mark detonates far harder than none, Detonate in burning ground
    takes every marked monster in it, and marks fade; the tank's slam
    sunders, and a sundered monster and a warded attacker both raise the
-   damage dealt; and the role talents that build on them (Searing Heat,
-   Overload, Shatter Armor, Inspiration). */
+   damage dealt; and the role talents that build on them (Detonate's
+   second rank, Overload, Shatter Armor). */
 
 // NOTE(zoubir): a big monster Offset from the striker, held still
 internal world_entity *
@@ -25,13 +25,13 @@ DetonateOn(app_state *AppState, world_entity *Monster)
     player_slot *Slot = &AppState->Players[0];
     Slot->Input.Target = (u32)(Monster - AppState->World.Entities) + 1;
     float Before = Monster->Hp;
-    Check(CastStrikerKey(AppState, Slot, Slot->Entity, 1));
+    Check(CastStrikerKey(AppState, Slot, Slot->Entity, 2));
     float Result = Before - Monster->Hp;
     return Result;
 }
 
 internal void
-TestMarkBitsFromKunaiAndFireball()
+TestMarkBitsFromFireball()
 {
     crypt_world Crypt = CreateCryptWorld(1);
     app_state *AppState = Crypt.AppState;
@@ -41,25 +41,23 @@ TestMarkBitsFromKunaiAndFireball()
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
     world_entity *Monster = StrikerDummy(&Crypt, V3(120.f, 0.f, 0.f));
-    world_entity Kunai = {};
-    Kunai.Type = EntityType_Kunai;
-    Kunai.HasOwner = true;
-    Kunai.OwnerSlot = 0;
-    world_entity Fireball = Kunai;
+    world_entity Fireball = {};
     Fireball.Type = EntityType_FireBall;
-    DungeonScaleDamage(AppState, Monster, &Kunai, 1.f);
+    Fireball.HasOwner = true;
+    Fireball.OwnerSlot = 0;
+    DungeonScaleDamage(AppState, Monster, &Fireball, 1.f);
     Check(FindFoeMark(Run, World, Monster) && FindFoeMark(Run, World, Monster)->Stacks == 1);
     DungeonScaleDamage(AppState, Monster, &Fireball, 1.f);
-    DungeonScaleDamage(AppState, Monster, &Kunai, 1.f);
-    DungeonScaleDamage(AppState, Monster, &Kunai, 1.f);
+    DungeonScaleDamage(AppState, Monster, &Fireball, 1.f);
+    DungeonScaleDamage(AppState, Monster, &Fireball, 1.f);
     Check(FindFoeMark(Run, World, Monster)->Stacks == SEARING_MOST);
     // NOTE(zoubir): the striker's own blows (Detonate, a burn) add none
     world_entity *Other = StrikerDummy(&Crypt, V3(0.f, 120.f, 0.f));
     DungeonScaleDamage(AppState, Other, Slot->Entity, 1.f);
     Check(FindFoeMark(Run, World, Other) == 0);
-    // NOTE(zoubir): nor does a tank's kunai: it sunders instead
+    // NOTE(zoubir): nor does a tank's fireball: it sunders instead
     SetPlayerRole(AppState, Slot, PlayerRole_Tank);
-    DungeonScaleDamage(AppState, Other, &Kunai, 1.f);
+    DungeonScaleDamage(AppState, Other, &Fireball, 1.f);
     Check(FindFoeMark(Run, World, Other) && FindFoeMark(Run, World, Other)->Stacks == 0);
     // NOTE(zoubir): left alone, the mark fades
     UpdateFoeMarks(Run, World, SEARING_SECONDS + 0.1f);
@@ -92,7 +90,7 @@ TestDetonateSpendsAFullMark()
     Slot->Input.Target = 0;
     Slot->Entity->Aim = V2(0.f, 1.f);
     Slot->Entity->AimReach = 0.9f;
-    Check(!CastStrikerKey(AppState, Slot, Slot->Entity, 1));
+    Check(!CastStrikerKey(AppState, Slot, Slot->Entity, 2));
     DestroyCryptWorld(&Crypt);
 }
 
@@ -159,7 +157,7 @@ TestSunderAndWardRaiseDamage()
     // NOTE(zoubir): Detonate spends the stacks and leaves the sunder
     AddSearing(Run, World, Monster);
     Striker->Input.Target = (u32)(Monster - World->Entities) + 1;
-    Check(CastStrikerKey(AppState, Striker, Striker->Entity, 1));
+    Check(CastStrikerKey(AppState, Striker, Striker->Entity, 2));
     Mark = FindFoeMark(Run, World, Monster);
     Check(Mark && Mark->Stacks == 0 && Mark->SunderSeconds > 0.f);
     UpdateFoeMarks(Run, World, SUNDER_SECONDS + 0.1f);
@@ -182,8 +180,8 @@ TestRotationTalents()
     SetPlayerRole(AppState, Tank, PlayerRole_Tank);
     SetPlayerRole(AppState, Healer, PlayerRole_Healer);
 
-    // NOTE(zoubir): Searing Heat, two ranks: a full mark is 12 + 30 x 3
-    Striker->Ranks[Talent_RoleFirst + StrikerTalent_SearingHeat] = 2;
+    // NOTE(zoubir): Detonate's second rank: a full mark is 12 + 25 x 3
+    Striker->Ranks[Talent_RoleFirst + StrikerTalent_Detonate] = 2;
     Striker->Ranks[Talent_RoleFirst + StrikerTalent_Overload] = 1;
     world_entity *Marked = StrikerDummy(&Crypt, V3(120.f, 0.f, 0.f));
     world_entity *Bare = StrikerDummy(&Crypt, V3(-120.f, 0.f, 0.f));
@@ -198,7 +196,7 @@ TestRotationTalents()
     Striker->CastRefund = 0.f;
     float None = DetonateOn(AppState, Bare);
     Check(Striker->CastRefund == 0.f);
-    float Expected = (DETONATE_DAMAGE + (DETONATE_PER_STACK + 2.f * SEARING_HEAT_PER_STACK) *
+    float Expected = (DETONATE_DAMAGE + (DETONATE_PER_STACK + SEARING_HEAT_PER_STACK) *
                       SEARING_MOST) / DETONATE_DAMAGE;
     Check(Full > 0.99f * Expected * None && Full < 1.01f * Expected * None);
 
@@ -213,20 +211,15 @@ TestRotationTalents()
     float Scale = FoeMarkDamageScale(Run, World, Monster);
     Check(Scale > 1.249f && Scale < 1.251f);
 
-    // NOTE(zoubir): Inspiration: the warded striker and the tank beside
-    // it both deal 24% more
-    Healer->Ranks[Talent_RoleFirst + HealerTalent_Inspiration] = 1;
+    // NOTE(zoubir): the warded one is empowered, the ally beside it only
+    // shares the shield
     v3 Before = Tank->Entity->Position;
     Tank->Entity->Position = Striker->Entity->Position + V3(30.f, 0.f, 0.f);
     CheckAndChangeEntityChunk(AppState, World, &Crypt.Arena, Before, Tank->Entity);
     Healer->Input.Target = Striker->Entity->ID + 1;
-    Check(CastHealerKey(AppState, Healer, Healer->Entity, 1));
-    Check(Striker->WardAbsorb > 0.f && Striker->WardEmpower > 0.239f && Striker->WardEmpower < 0.241f);
-    Check(Tank->WardAbsorb > 0.f && Tank->WardEmpower == Striker->WardEmpower);
-    // NOTE(zoubir): without it only the warded one is empowered
-    Healer->Ranks[Talent_RoleFirst + HealerTalent_Inspiration] = 0;
     Striker->WardAbsorb = Tank->WardAbsorb = 0.f;
     Check(CastHealerKey(AppState, Healer, Healer->Entity, 1));
+    Check(Tank->WardAbsorb > 0.f);
     Check(Striker->WardEmpower > 0.119f && Striker->WardEmpower < 0.121f);
     Check(Tank->WardEmpower == 0.f);
     DestroyCryptWorld(&Crypt);
@@ -277,7 +270,7 @@ RunStrikerTests()
     TestTankAndHealerShots();
     TestRotationTalents();
     TestSunderAndWardRaiseDamage();
-    TestMarkBitsFromKunaiAndFireball();
+    TestMarkBitsFromFireball();
     TestDetonateSpendsAFullMark();
     TestDetonateInFireChains();
 }

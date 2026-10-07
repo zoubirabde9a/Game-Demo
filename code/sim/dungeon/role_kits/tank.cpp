@@ -1,5 +1,5 @@
-/* The tank's kit (role_abilities.cpp): Taunt on A, Shield Slam on E,
-   Intercept on V.
+/* The tank's kit (role_abilities.cpp): Taunt on A, Shield Slam on R,
+   and from its tree Intercept on C and Last Stand on V.
 
    Shield Slam is the tank's answer to a pack: every monster within
    SHIELD_SLAM_RADIUS is struck, stunned and shoved back, and takes on
@@ -13,7 +13,7 @@
    SUNDER_SECONDS, as long as its cooldown, the monster takes SUNDER_SHARE
    more from the whole party. So the tank has a rotation of its own in a
    damage race: slam the boss on cooldown, taunt the adds, leap to an
-   ally in trouble. Between slams its fireball and kunai keep the sunder
+   ally in trouble. Between slams its fireball keeps the sunder
    going: a shot on a sundered monster adds SUNDERING_SHOT_SECONDS (never
    past a fresh slam's), and on a clean one starts a short sunder of
    SUNDERING_SHOT_FRESH, so a tank that has to stay away still holds the
@@ -21,9 +21,11 @@
 
    What keeps a tank standing late in a big party: it takes only the
    square root of the party's extra damage (PartySustainScale,
-   party_scaling.cpp), and the slam's heal grows with it like a healer's. */
+   party_scaling.cpp), the slam's heal grows with it like a healer's, and
+   Last Stand heals LAST_STAND_HEAL_SHARE of its health behind
+   LAST_STAND_SECONDS of Shield Wall for the hit it cannot take. */
 
-// NOTE(zoubir): from OnRoleHit: the tank's fireball or kunai landed
+// NOTE(zoubir): from OnRoleHit: the tank's fireball landed
 internal void
 OnTankShot(app_state *AppState, player_slot *Slot, world_entity *Target)
 {
@@ -83,7 +85,6 @@ CastShieldSlam(app_state *AppState, world *World, player_slot *Slot, world_entit
 {
     u8 SlotIndex = (u8)Player->PlayerIndex;
     bool32 Bastion = RoleRank(Slot, PlayerRole_Tank, TankTalent_Bastion) > 0;
-    bool32 Rally = RoleRank(Slot, PlayerRole_Tank, TankTalent_Rally) > 0;
     bool32 Shatter = RoleRank(Slot, PlayerRole_Tank, TankTalent_ShatterArmor) > 0;
     hit Hit = {SHIELD_SLAM_DAMAGE, SHIELD_SLAM_SHOVE, 80.f, 80.f,
                SHIELD_SLAM_STUN + (Bastion ? BASTION_STUN : 0.f), SimBurst_Impact};
@@ -107,15 +108,14 @@ CastShieldSlam(app_state *AppState, world *World, player_slot *Slot, world_entit
     HealPlayer(AppState, SlotIndex, Player,
                SHIELD_SLAM_HEAL_SHARE * (float)Counted * Player->MaxHp);
     Slot->ShieldWallSeconds = SHIELD_WALL_SECONDS + (Bastion ? BASTION_WALL_SECONDS : 0.f);
-    float Reach = Rally ? RALLY_TALENT_RADIUS : RALLY_RADIUS;
     for(u32 Other = 0; Other < MAX_PLAYERS; Other++)
     {
         world_entity *Ally = LivingPlayerInSlot(AppState, Other);
-        if (Ally && Ally != Player && Length(Ally->Position.XY - Player->Position.XY) <= Reach)
+        if (Ally && Ally != Player && Length(Ally->Position.XY - Player->Position.XY) <= RALLY_RADIUS)
         {
             player_slot *AllySlot = &AppState->Players[Other];
             AllySlot->RallySeconds = RALLY_SECONDS;
-            AllySlot->RallyShare = Rally ? RALLY_TALENT_SHARE : RALLY_SHARE;
+            AllySlot->RallyShare = RALLY_SHARE;
         }
     }
     EmitBurst(&AppState->Events, SimBurst_ShieldSlam, SlotIndex, Player->Position,
@@ -165,13 +165,22 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
             MovePlayerTo(AppState, World, Arena, Player, Landing);
             // NOTE(zoubir): what was after the ally comes for the tank
             TauntAround(AppState, &AppState->Dungeon->Threat, Player, TAUNT_RADIUS * 0.5f);
-            if (RoleRank(Slot, PlayerRole_Tank, TankTalent_Guardian))
+            // NOTE(zoubir): Intercept's second rank wards the ally
+            if (RoleRank(Slot, PlayerRole_Tank, TankTalent_Intercept) >= 2)
             {
                 player_slot *AllySlot = &AppState->Players[Ally->PlayerIndex];
                 AllySlot->WardAbsorb = Maximum(AllySlot->WardAbsorb, GUARDIAN_WARD);
                 AllySlot->WardFull = Maximum(AllySlot->WardAbsorb, AllySlot->WardFull);
             }
             EmitBurst(&AppState->Events, SimBurst_InterceptLand, SlotIndex, Player->Position, Angle);
+        } break;
+
+        case 3:
+        {
+            HealPlayer(AppState, SlotIndex, Player, LAST_STAND_HEAL_SHARE * Player->MaxHp);
+            Slot->ShieldWallSeconds = Maximum(Slot->ShieldWallSeconds, LAST_STAND_SECONDS);
+            EmitBurst(&AppState->Events, SimBurst_ShieldSlam, SlotIndex, Player->Position,
+                      ATan2(Player->Aim.Y, Player->Aim.X));
         } break;
     }
     return true;

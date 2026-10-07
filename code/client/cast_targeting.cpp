@@ -109,9 +109,13 @@ LearnedTargetedButtons(app_state *AppState)
     if (Player && Player->IsPresent && !IsDeadPlayer(Player))
     {
         u32 Targeted = RoleTargetedButtons(AppState, CAST_TARGETED_BUTTONS);
+        // NOTE(zoubir): in a dungeon run, what the class casts
+        // (sim/dungeon/role_abilities.cpp, RunAllowedButtons)
+        u32 Run = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
         for(u32 Bit = 1; Bit <= Targeted; Bit <<= 1)
         {
-            if ((Bit & Targeted) && AbilityLevel(Slot, Bit) > 0)
+            if ((Bit & Targeted & Run) &&
+                (IsDungeon(AppState) || AbilityLevel(Slot, Bit) > 0))
             {
                 Result |= Bit;
             }

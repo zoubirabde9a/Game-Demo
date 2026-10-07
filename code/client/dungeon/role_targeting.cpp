@@ -98,13 +98,18 @@ LocalRoleSpell(app_state *AppState, u32 Button)
     return Result;
 }
 
-// NOTE(zoubir): whether the local player's cursor picks allies: its role
-// has an ally spell on the kunai's key
+// NOTE(zoubir): whether the local player's cursor picks allies: its class
+// has an ally spell on one of its keys (the healer, and the tank's
+// Intercept)
 internal bool32
 LocalPicksAllies(app_state *AppState)
 {
-    role_spell *Spell = LocalRoleSpell(AppState, PlayerButton_Kunai);
-    bool32 Result = Spell && Spell->Aim == RoleAim_Ally;
+    bool32 Result = false;
+    for(u32 Key = 0; Key < ROLE_KEYS; Key++)
+    {
+        role_spell *Spell = LocalRoleSpell(AppState, RoleKeys[Key]);
+        Result |= Spell && Spell->Aim == RoleAim_Ally;
+    }
     return Result;
 }
 

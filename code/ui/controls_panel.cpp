@@ -25,10 +25,20 @@ struct controls_panel
     float SecondsShown;
 };
 
+// NOTE(zoubir): where a row shows: everywhere, only outside a dungeon
+// run, or only in one, where A, R, C and V are the class's spells
+enum controls_where
+{
+    Controls_Always,
+    Controls_Duel,
+    Controls_Run,
+};
+
 struct controls_row
 {
     char *Key;
     char *Action;
+    controls_where Where;
 };
 
 global_variable controls_row ControlsRows[] =
@@ -39,10 +49,14 @@ global_variable controls_row ControlsRows[] =
     {"Space",       "Jump; fireballs and blasts pass under"},
     {"E",           "Shield: nothing hurts you for 2 s"},
     {"F",           "Blink to the cursor after 0.2 s"},
-    {"A",           "Launch: throws foes up, stuns"},
-    {"V",           "Kunai at the foe under the cursor; follows it"},
+    {"A",           "Launch: throws foes up, stuns", Controls_Duel},
+    {"V",           "Kunai at the foe under the cursor; follows it", Controls_Duel},
+    {"G T W R C",   "Talent abilities, once unlocked", Controls_Duel},
+    {"A",           "", Controls_Run},
+    {"R",           "", Controls_Run},
+    {"C",           "Your tree's first spell, once unlocked", Controls_Run},
+    {"V",           "Your tree's second spell, once unlocked", Controls_Run},
     {"N",           "Talents: spend a point each level"},
-    {"G T W R C",   "Talent abilities, once unlocked"},
     {"Tab",         "Scoreboard"},
     {"Esc",         "Options: AZERTY or QWERTY"},
     {"F4",          "Play: map and server"},
@@ -50,19 +64,44 @@ global_variable controls_row ControlsRows[] =
     {"Hold H",      "This panel"},
 };
 
+// NOTE(zoubir): the rows that show now, in order, into Rows; returns how
+// many
+internal u32
+ShownControlsRows(app_state *AppState, controls_row **Rows)
+{
+    controls_where Hidden = IsDungeon(AppState) ? Controls_Duel : Controls_Run;
+    u32 Result = 0;
+    for(u32 Row = 0; Row < ArrayCount(ControlsRows); Row++)
+    {
+        if (ControlsRows[Row].Where != Hidden)
+        {
+            Rows[Result++] = &ControlsRows[Row];
+        }
+    }
+    return Result;
+}
+
 // NOTE(zoubir): a row's key text on the player's layout; only runs of
 // capital letters are letter keys ("ZQSD", "G T W R C"), so "Alt", "Tab"
 // and "F4" stay as they are
-// NOTE(zoubir): a row's action: in a dungeon run the keys a tank's or a
-// healer's role owns say what its spell does (sim/dungeon/role_abilities.cpp)
+// NOTE(zoubir): a row's action: in a dungeon run the class's keys say
+// what its spell does (sim/dungeon/role_abilities.cpp); C and V only once
+// the tree unlocked them
 internal char *
 ControlsRowAction(app_state *AppState, controls_row *Row)
 {
+    if (Row->Where != Controls_Run)
+    {
+        return Row->Action;
+    }
     u32 Button = 0;
     if (strcmp(Row->Key, "A") == 0) Button = PlayerButton_Launch;
-    else if (strcmp(Row->Key, "E") == 0) Button = PlayerButton_Shield;
+    else if (strcmp(Row->Key, "R") == 0) Button = PlayerButton_Push;
+    else if (strcmp(Row->Key, "C") == 0) Button = PlayerButton_Slam;
     else if (strcmp(Row->Key, "V") == 0) Button = PlayerButton_Kunai;
-    char *Result = Button ? RoleControlsLine(AppState, Button, Row->Action) : Row->Action;
+    player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
+    bool32 Learned = (RunAllowedButtons(AppState, Slot, 0) & Button) != 0;
+    char *Result = Learned ? RoleControlsLine(AppState, Button, Row->Action) : Row->Action;
     return Result;
 }
 
@@ -122,7 +161,8 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
     float Bottom = AbilityBarPlateTop(WindowHeight) - UI_GAP;
     float Pad = UI_GAP;
     float TitleHeight = UILineHeight(AppState->Fonts.Title) + UI_GAP_SMALL;
-    u32 RowCount = ArrayCount(ControlsRows);
+    controls_row *Rows[ArrayCount(ControlsRows)];
+    u32 RowCount = ShownControlsRows(AppState, Rows);
     font *Font = AppState->Fonts.Body;
     float RowHeight = UILineHeight(Font) + 4.f;
     u32 Columns = 1;
@@ -142,10 +182,10 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
     char Keys[ArrayCount(ControlsRows)][16];
     for(u32 Row = 0; Row < RowCount; Row++)
     {
-        ControlsKeyText(Keys[Row], sizeof(Keys[Row]), ControlsRows[Row].Key);
+        ControlsKeyText(Keys[Row], sizeof(Keys[Row]), Rows[Row]->Key);
         KeyWidth = Maximum(KeyWidth, UITextWidth(Font, Keys[Row]));
         ActionWidth = Maximum(ActionWidth,
-                              UITextWidth(Font, ControlsRowAction(AppState, &ControlsRows[Row])));
+                              UITextWidth(Font, ControlsRowAction(AppState, Rows[Row])));
     }
     float ColumnWidth = KeyWidth + UI_GAP_LARGE + ActionWidth;
     float Width = Pad + Columns * ColumnWidth + (Columns - 1) * UI_GAP_LARGE + Pad;
@@ -165,6 +205,6 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
         UIText(RenderContext, Font, KeyRight, Y, Keys[Row],
                WithAlpha(UI_COLOR_ACCENT, Fade), UIAlign_Right);
         UIText(RenderContext, Font, KeyRight + UI_GAP_LARGE, Y,
-               ControlsRowAction(AppState, &ControlsRows[Row]), WithAlpha(UI_COLOR_TEXT, Fade));
+               ControlsRowAction(AppState, Rows[Row]), WithAlpha(UI_COLOR_TEXT, Fade));
     }
 }

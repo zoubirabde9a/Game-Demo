@@ -80,6 +80,13 @@ DoCastModeToggle(render_context *RenderContext, app_state *AppState,
                 Accent = AbilitySlotDefs[Index].Accent;
             }
         }
+        // NOTE(zoubir): a dungeon class's spell on the key goes by its own
+        // name (sim/dungeon/role_abilities.cpp)
+        role_spell *Spell = LocalRoleSpell(AppState, Targeting->Aiming);
+        if (Spell)
+        {
+            Name = Spell->Name;
+        }
         char Line[96];
         snprintf(Line, sizeof(Line), "%s: left click or %s to cast, right click to cancel",
                  Name, ActionKeyLabel(Targeting->Aiming));

@@ -13,13 +13,19 @@
      healed, then crosses of light rising off them.
    - Ward: a blue six-sided shell closing round the warded.
    - Sanctuary: a gold pillar blooming where the circle goes down.
-   - Inferno: fire gathering at the caster's hands, and when the meteor
+   - Meteor: fire gathering at the caster's hands, and when the meteor
      lands a flash, a ring of fire and embers thrown out. Detonate plays
-     the same blast on each monster it blows up.
+     the same blast on each monster it blows up. Combustion flares the
+     caster's hands.
+   - Giant Fireball: a big ball of fire flying from the striker's hand,
+     each client flying its own copy (giant_fireball_fx.cpp), and the
+     Meteor's blast, wider, where it bursts.
+   - Last Stand plays Shield Slam's flare; Radiance, Sanctuary's pillar
+     at the healer and a Mending Bolt's crosses on every ally it heals.
 
    Lasting things are drawn from the run instead, the same offline and
-   online: an Inferno's meteor falling onto its marked circle, then the
-   ground burning; the striker's Searing and the tank's Sunder on the monsters
+   online: a Meteor falling onto its marked circle, then the ground
+   burning; the striker's Searing and the tank's Sunder on the monsters
    (foe_mark_fx.cpp); and for a tank or healer, a ring under the ally their
    spells would land on now (client/dungeon/role_targeting.cpp). */
 
@@ -67,6 +73,8 @@ RoleBurstLife(sim_burst Kind)
     return Result;
 }
 
+#include "giant_fireball_fx.cpp"
+
 internal void
 AddRoleBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position, float Angle)
 {
@@ -82,6 +90,23 @@ AddRoleBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position, float A
             Fx->Bursts[Index - 1] = Fx->Bursts[Index];
         }
         Fx->Count--;
+    }
+    // NOTE(zoubir): a Giant Fireball burst ends its striker's oldest ball
+    // in flight
+    if (Kind == SimBurst_GiantFireballBlast)
+    {
+        for(u32 Index = 0; Index < Fx->Count; Index++)
+        {
+            if (Fx->Bursts[Index].Kind == SimBurst_GiantFireball && Fx->Bursts[Index].Slot == Slot)
+            {
+                for(u32 Next = Index + 1; Next < Fx->Count; Next++)
+                {
+                    Fx->Bursts[Next - 1] = Fx->Bursts[Next];
+                }
+                Fx->Count--;
+                break;
+            }
+        }
     }
     role_burst *Burst = &Fx->Bursts[Fx->Count++];
     Burst->Kind = Kind;
@@ -262,11 +287,18 @@ DrawRoleBurst(render_context *RenderContext, app_state *AppState, role_burst *Bu
                            RenderBlend_Additive);
         } break;
 
+        case SimBurst_GiantFireball:
+        {
+            DrawGiantFireball(RenderContext, AppState, Burst, T, CameraOffset);
+        } break;
+
+        case SimBurst_GiantFireballBlast:
         case SimBurst_InfernoBlast:
         {
-            float Radius = INFERNO_RADIUS;
+            bool32 Giant = Burst->Kind == SimBurst_GiantFireballBlast;
+            float Radius = Giant ? GIANT_FIREBALL_RADIUS : INFERNO_RADIUS;
             dungeon_run *Run = AppState->Dungeon;
-            for(u32 Index = 0; Run && Index < MAX_INFERNOS; Index++)
+            for(u32 Index = 0; Run && !Giant && Index < MAX_INFERNOS; Index++)
             {
                 inferno *Zone = &Run->Infernos[Index];
                 if (Zone->Radius > 0.f && Length(Zone->Position.XY - Burst->Position.XY) < 8.f)

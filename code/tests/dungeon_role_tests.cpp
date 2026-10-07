@@ -61,13 +61,15 @@ TestRoleKeys()
             Check(Full == TAUNT_COOLDOWN);
         }
     }
-    // NOTE(zoubir): the damage role owns A and E (Detonate), and keeps
-    // the game's V
+    // NOTE(zoubir): every class owns A, R, C and V, and leaves the shield
+    // to the game
     Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Launch) != 0);
-    Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Shield) != 0);
-    Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Kunai) == 0);
+    Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Push) != 0);
+    Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Slam) != 0);
+    Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Kunai) != 0);
+    Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Shield) == 0);
 
-    PressOnce(&Crypt, 0, PlayerButton_Shield);
+    PressOnce(&Crypt, 0, PlayerButton_Push);
     Check(AppState->Players[0].ShieldWallSeconds > 0.f);
     float Before = Tank->Hp;
     DamageEntity(AppState, World, Tank, 10.f, Monster);
@@ -77,9 +79,9 @@ TestRoleKeys()
     AppState->Players[2].RallySeconds = 0.f;
 
     Striker->Hp = Striker->MaxHp - 50.f;
-    PressOnce(&Crypt, 1, PlayerButton_Kunai);
+    PressOnce(&Crypt, 1, PlayerButton_Launch);
     Check(NearHp(Striker->Hp, Striker->MaxHp - 50.f + MENDING_BOLT_HEAL));
-    PressOnce(&Crypt, 1, PlayerButton_Shield);
+    PressOnce(&Crypt, 1, PlayerButton_Push);
     Check(AppState->Players[2].WardAbsorb == WARD_ABSORB);
     Before = Striker->Hp;
     DamageEntity(AppState, World, Striker, 20.f, Monster);
@@ -87,18 +89,24 @@ TestRoleKeys()
     Check(AppState->Players[2].WardAbsorb == WARD_ABSORB - 20.f);
     RemoveEntity(World, Monster);
 
-    // NOTE(zoubir): a sanctuary at the healer's own feet
+    // NOTE(zoubir): a sanctuary at the healer's own feet, once its tree
+    // has it
     Healer->Hp = Healer->MaxHp - 30.f;
     Healer->AimReach = 0.f;
-    PressOnce(&Crypt, 1, PlayerButton_Launch);
+    AppState->Players[1].Ranks[Talent_RoleFirst + HealerTalent_Sanctuary] = 1;
+    PressOnce(&Crypt, 1, PlayerButton_Slam);
     TickCrypt(&Crypt, 120);
     Check(Healer->Hp > Healer->MaxHp - 15.f);
     Check(Run->Sanctuaries[0].Seconds > 0.f);
     Check(Run->Sanctuaries[0].Radius == SANCTUARY_RADIUS);
 
+    // NOTE(zoubir): Meteor winds up first, then falls
     PressOnce(&Crypt, 2, PlayerButton_Launch);
-    Check(Striker->CastSpell == 0);
+    Check(Striker->CastSpell == PlayerSpell_Meteor);
     Check(AppState->Players[2].RoleCooldowns[0] > 0.f);
+    Check(Run->Infernos[0].Delay == 0.f && Run->Infernos[0].Seconds == 0.f);
+    TickCrypt(&Crypt, 61);
+    Check(Striker->CastSpell == 0);
     Check(Run->Infernos[0].Delay > 0.f);
     DestroyCryptWorld(&Crypt);
 }
@@ -120,23 +128,23 @@ TestAllySpellsGoWherePicked()
     Healer->Hp = Healer->MaxHp - 20.f;
 
     // NOTE(zoubir): C picked, though A is hurt worse
-    float *BoltWait = &AppState->Players[1].RoleCooldowns[2];
-    PressAt(&Crypt, 1, PlayerButton_Kunai, C);
+    float *BoltWait = &AppState->Players[1].RoleCooldowns[0];
+    PressAt(&Crypt, 1, PlayerButton_Launch, C);
     Check(NearHp(C->Hp, C->MaxHp - 40.f + MENDING_BOLT_HEAL));
     Check(NearHp(A->Hp, A->MaxHp - 60.f));
     *BoltWait = 0.f;
 
     // NOTE(zoubir): the healer's own frame picked
-    PressAt(&Crypt, 1, PlayerButton_Kunai, Healer);
+    PressAt(&Crypt, 1, PlayerButton_Launch, Healer);
     Check(Healer->Hp == Healer->MaxHp);
     *BoltWait = 0.f;
 
     // NOTE(zoubir): nobody picked: the most hurt
     float HurtBefore = A->Hp;
-    PressAt(&Crypt, 1, PlayerButton_Kunai, 0);
+    PressAt(&Crypt, 1, PlayerButton_Launch, 0);
     Check(NearHp(A->Hp, HurtBefore + MENDING_BOLT_HEAL));
 
-    PressAt(&Crypt, 1, PlayerButton_Shield, C);
+    PressAt(&Crypt, 1, PlayerButton_Push, C);
     Check(AppState->Players[2].WardAbsorb == WARD_ABSORB);
     // NOTE(zoubir): A shares the ward only if it stands near C
     bool32 ANear = Length(A->Position.XY - C->Position.XY) <= WARD_SPLASH_RADIUS;
@@ -164,7 +172,7 @@ TestShieldSlamStunsAndRallies()
                                          MonsterKind_Brute);
     float Hp = Monster->Hp;
     DamageEntity(AppState, World, Monster, 1.f, Far);
-    PressOnce(&Crypt, 0, PlayerButton_Shield);
+    PressOnce(&Crypt, 0, PlayerButton_Push);
     Check(Monster->Hp < Hp - 1.f);
     Check(HasStatus(Monster, StatusEffect_Stunned));
     Check(FindMonsterTarget(AppState, World, Monster, 0) == Tank);
@@ -178,8 +186,9 @@ TestShieldSlamStunsAndRallies()
     DestroyCryptWorld(&Crypt);
 }
 
-// NOTE(zoubir): Inferno marks the ground, strikes when the meteor lands,
-// then burns what stands there
+// NOTE(zoubir): Meteor winds up, marks the ground where the cursor was
+// when it was pressed, strikes when the meteor lands, then burns what
+// stands there
 internal void
 TestInfernoFallsThenBurns()
 {
@@ -196,11 +205,12 @@ TestInfernoFallsThenBurns()
     Striker->Aim = V2(1.f, 0.f);
     Striker->AimReach = 150.f / PLAYER_AIM_REACH;
     PressOnce(&Crypt, 0, PlayerButton_Launch);
-    Check(Run->Infernos[0].Delay > 0.f);
+    Check(Striker->CastSpell == PlayerSpell_Meteor);
     // NOTE(zoubir): the monster is held in place so it stays in the fire
     v3 Spot = Monster->Position;
     Check(Monster->Hp == 1000.f);
-    for(u32 Tick = 0; Tick < (u32)(60.f * INFERNO_DELAY) + 2; Tick++)
+    for(u32 Tick = 0; Tick < (u32)(60.f * (PlayerSpells[PlayerSpell_Meteor].CastTime + INFERNO_DELAY)) + 2;
+        Tick++)
     {
         Monster->Position = Spot;
         Monster->Velocity = {};
@@ -249,23 +259,22 @@ TestRoleTalents()
     Check(Slot->Ranks[Talent_RoleFirst + TankTalent_IronSkin] == 0);
     Check(TalentPointsLeft(Slot) == Left + 2);
     Check(LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_Wildfire) ||
-          LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_SearingHeat));
-    Check(Slot->Ranks[Talent_RoleFirst + StrikerTalent_SearingHeat] +
+          LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_Detonate));
+    Check(Slot->Ranks[Talent_RoleFirst + StrikerTalent_Detonate] +
           Slot->Ranks[Talent_RoleFirst + StrikerTalent_Wildfire] == 1);
 
-    // NOTE(zoubir): an ability whose key the role has taken takes no point
-    // in a run (the striker casts Detonate on E, not the shield), and the
-    // abilities it keeps still do
+    // NOTE(zoubir): in a run only the class's tree takes points
     u32 PointsBefore = TalentPointsLeft(Slot);
     Check(RoleReplacesTalent(AppState, Slot, Talent_Shield));
     Check(!LearnTalent(AppState, 0, Talent_Shield));
-    Check(!RoleReplacesTalent(AppState, Slot, Talent_Kunai));
+    Check(RoleReplacesTalent(AppState, Slot, Talent_Kunai));
+    Check(!LearnTalent(AppState, 0, Talent_Shockwave));
     Check(TalentPointsLeft(Slot) == PointsBefore);
 
     // NOTE(zoubir): outside a run nobody can buy one
     dungeon_run *Run = AppState->Dungeon;
     AppState->Dungeon = 0;
-    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_SearingHeat));
+    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_Detonate));
     AppState->Dungeon = Run;
     DestroyCryptWorld(&Crypt);
 }
@@ -329,7 +338,7 @@ TestHealerFavoursAllies()
     world_entity *Healer = AppState->Players[0].Entity;
     world_entity *Ally = AppState->Players[1].Entity;
     MovePlayerTo(AppState, World, &Crypt.Arena, Ally, Healer->Position + V3(60.f, 0.f, 0.f));
-    PressAt(&Crypt, 0, PlayerButton_Shield, 0);
+    PressAt(&Crypt, 0, PlayerButton_Push, 0);
     Check(AppState->Players[1].WardAbsorb == WARD_ABSORB);
     Check(AppState->Players[0].WardAbsorb == WARD_SPLASH_SHARE * WARD_ABSORB);
     DestroyCryptWorld(&Crypt);
@@ -337,7 +346,7 @@ TestHealerFavoursAllies()
     crypt_world Solo = CreateCryptWorld(1);
     TickCrypt(&Solo, 1);
     SetPlayerRole(Solo.AppState, &Solo.AppState->Players[0], PlayerRole_Healer);
-    PressAt(&Solo, 0, PlayerButton_Shield, 0);
+    PressAt(&Solo, 0, PlayerButton_Push, 0);
     Check(Solo.AppState->Players[0].WardAbsorb == WARD_ABSORB);
     DestroyCryptWorld(&Solo);
 }
@@ -373,7 +382,7 @@ TestTankSustain()
     }
     Check(Near > 0);
     Tank->Hp = Tank->MaxHp - 100.f;
-    PressOnce(&Crypt, 0, PlayerButton_Shield);
+    PressOnce(&Crypt, 0, PlayerButton_Push);
     float Healed = Tank->Hp - (Tank->MaxHp - 100.f);
     Check(NearHp(Healed, SHIELD_SLAM_HEAL_SHARE * (float)Near * Tank->MaxHp));
     for(u32 Index = 0; Index < 3; Index++)

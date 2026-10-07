@@ -19,7 +19,9 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d6au // "GDMj", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d6bu // "GDMk", change it whenever the layout changes
+// (GDMk: two dungeon casts came in before the rewinds, so cast ids moved,
+// and two bursts for the Giant Fireball)
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
 #define NET_PLAYER_HEALTH_STEPS 100.f
@@ -397,9 +399,9 @@ struct net_snapshot
     i16 SanctuaryX[NET_MAX_SANCTUARIES];
     i16 SanctuaryY[NET_MAX_SANCTUARIES];
     u8 SanctuaryTenths[NET_MAX_SANCTUARIES];
-    // The damage role's Infernos: where, and tenths of a second (bits
+    // The damage role's Meteors: where, and tenths of a second (bits
     // 0-5) until the meteor lands while bit 6 (NET_INFERNO_FALLING) is
-    // set, else of burning ground left; bit 7 a talent widened it.
+    // set, else of burning ground left.
     u8 InfernoCount;
     i16 InfernoX[NET_MAX_INFERNOS];
     i16 InfernoY[NET_MAX_INFERNOS];

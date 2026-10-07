@@ -45,6 +45,15 @@ FinishPlayerCast(app_state *AppState, world *World, memory_arena *Arena,
             }
         } break;
 
+        case PlayerSpell_Meteor:
+        case PlayerSpell_GiantFireball:
+        {
+            if (Authoritative)
+            {
+                FinishRoleCast(AppState, Player, Spell);
+            }
+        } break;
+
         case PlayerSpell_None:
         case PlayerSpell_Count:
         {

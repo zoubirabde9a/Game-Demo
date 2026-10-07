@@ -73,6 +73,19 @@ struct inferno
     u32 By;
 };
 
+// NOTE(zoubir): the damage role's Giant Fireball in flight
+// (role_kits/striker.cpp): where it is, its velocity, how far it may still
+// fly, the room it was cast in and who cast it; Distance 0 is a free one
+#define MAX_GIANT_FIREBALLS 4
+struct giant_fireball
+{
+    v3 Position;
+    v2 Velocity;
+    float Distance;
+    u32 Room;
+    u32 By;
+};
+
 #include "boss_clock.h"
 #include "role_kits/foe_marks.h"
 
@@ -115,6 +128,7 @@ struct dungeon_run
     threat_table Threat;
     sanctuary Sanctuaries[MAX_SANCTUARIES];
     inferno Infernos[MAX_INFERNOS];
+    giant_fireball GiantFireballs[MAX_GIANT_FIREBALLS];
     // NOTE(zoubir): the striker's marks on monsters (role_kits/striker.cpp)
     foe_mark Marks[MAX_FOE_MARKS];
     // NOTE(zoubir): what the HUD shows of the fight: the boss's kind
@@ -157,6 +171,9 @@ IsDungeon(app_state *AppState)
 
 #include "roles.cpp"
 #include "role_talents.cpp"
+// NOTE(zoubir): every class spell's numbers, here so the damage hooks
+// below can read them too
+#include "role_kits/role_numbers.h"
 
 // NOTE(zoubir): share of a hit a tank takes behind Shield Wall
 // (role_abilities.cpp)
@@ -295,6 +312,11 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         if (Attacker->WardAbsorb > 0.f)
         {
             Result *= 1.f + Attacker->WardEmpower;
+        }
+        // NOTE(zoubir): a striker's Combustion (role_kits/striker.cpp)
+        if (Attacker->CombustSeconds > 0.f)
+        {
+            Result *= 1.f + COMBUSTION_SHARE;
         }
         AddThreat(&AppState->Dungeon->Threat, &AppState->World, Target,
                   (u32)(Attacker - AppState->Players), Result * Role->ThreatScale);

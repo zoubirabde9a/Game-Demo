@@ -185,15 +185,90 @@ PaintRoleDetonateIcon(icon_canvas *Canvas)
     }
 }
 
-// NOTE(zoubir): the painters in RoleSpells' order for the keys a role
-// owns: tank A, E, V, healer A, E, V, then the damage role's A and E
-#define ROLE_ICON_COUNT 8
+// NOTE(zoubir): Giant Fireball: a huge slow fireball with a long tail
+internal void
+PaintRoleGiantFireballIcon(icon_canvas *Canvas)
+{
+    v4 Yellow = IconColor(255, 235, 140);
+    v4 Orange = IconColor(255, 120, 30);
+    v4 Red = IconColor(180, 30, 15);
+    IconGlow(Canvas, V2(0.58f, 0.44f), 0.5f, IconColor(255, 110, 30, 150));
+    IconCapsule(Canvas, V2(0.1f, 0.88f), V2(0.5f, 0.52f), 0.16f,
+                Gradient(IconColor(255, 90, 20, 0), IconColor(255, 140, 40, 210),
+                         V2(0.1f, 0.88f), V2(0.5f, 0.52f)));
+    IconCircle(Canvas, V2(0.58f, 0.44f), 0.29f, Gradient(Yellow, Red, V2(0.48f, 0.32f), V2(0.74f, 0.64f)));
+    IconCircle(Canvas, V2(0.58f, 0.44f), 0.17f, Gradient(IconColor(255, 250, 220), Orange,
+                                                        V2(0.52f, 0.36f), V2(0.66f, 0.54f)));
+    IconSparkle(Canvas, V2(0.82f, 0.18f), 0.07f, Solid(IconColor(255, 255, 230)));
+}
+
+// NOTE(zoubir): Combustion: a flame rising out of a burning heart
+internal void
+PaintRoleCombustionIcon(icon_canvas *Canvas)
+{
+    v4 Yellow = IconColor(255, 235, 130);
+    v4 Orange = IconColor(255, 130, 30);
+    v4 Red = IconColor(200, 30, 20);
+    IconGlow(Canvas, V2(0.5f, 0.55f), 0.5f, IconColor(255, 90, 20, 160));
+    IconTriangle(Canvas, V2(0.26f, 0.66f), V2(0.74f, 0.66f), V2(0.5f, 0.08f),
+                 Gradient(Yellow, Red, V2(0.5f, 0.08f), V2(0.5f, 0.66f)));
+    IconTriangle(Canvas, V2(0.18f, 0.7f), V2(0.42f, 0.7f), V2(0.26f, 0.32f), Solid(Orange));
+    IconTriangle(Canvas, V2(0.58f, 0.7f), V2(0.82f, 0.7f), V2(0.74f, 0.32f), Solid(Orange));
+    IconCircle(Canvas, V2(0.5f, 0.68f), 0.22f, Gradient(Yellow, Red, V2(0.44f, 0.58f), V2(0.6f, 0.84f)));
+    IconCircle(Canvas, V2(0.5f, 0.66f), 0.09f, Solid(IconColor(255, 250, 230)));
+}
+
+// NOTE(zoubir): Last Stand: a shield planted in the ground with a green
+// cross of healing on its field
+internal void
+PaintRoleLastStandIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.5f, 0.5f), 0.48f, IconColor(120, 220, 160, 110));
+    IconArc(Canvas, V2(0.5f, 0.5f), 0.4f, 0.04f, Solid(IconColor(200, 220, 255, 200)));
+    v2 Shield[5] = {V2(0.3f, 0.14f), V2(0.7f, 0.14f), V2(0.7f, 0.6f), V2(0.5f, 0.86f),
+                    V2(0.3f, 0.6f)};
+    IconPolygon(Canvas, Shield, 5, Gradient(IconColor(235, 238, 245), IconColor(110, 120, 140),
+                                            V2(0.5f, 0.14f), V2(0.5f, 0.86f)));
+    v2 Field[5] = {V2(0.35f, 0.2f), V2(0.65f, 0.2f), V2(0.65f, 0.58f), V2(0.5f, 0.78f),
+                   V2(0.35f, 0.58f)};
+    IconPolygon(Canvas, Field, 5, Gradient(IconColor(80, 120, 210), IconColor(30, 50, 110),
+                                           V2(0.5f, 0.2f), V2(0.5f, 0.78f)));
+    IconCapsule(Canvas, V2(0.5f, 0.3f), V2(0.5f, 0.6f), 0.05f, Solid(IconColor(120, 240, 150)));
+    IconCapsule(Canvas, V2(0.36f, 0.44f), V2(0.64f, 0.44f), 0.05f, Solid(IconColor(120, 240, 150)));
+}
+
+// NOTE(zoubir): Radiance: a gold sun with rays reaching three small allies
+internal void
+PaintRoleRadianceIcon(icon_canvas *Canvas)
+{
+    v4 Gold = IconColor(255, 220, 110);
+    v4 Pale = IconColor(255, 250, 220);
+    IconGlow(Canvas, V2(0.5f, 0.42f), 0.5f, IconColor(255, 220, 120, 150));
+    for(u32 Ray = 0; Ray < 12; Ray++)
+    {
+        float Angle = 2.f * Pi32 * (float)Ray / 12.f;
+        v2 Tip = V2(0.5f + 0.32f * Cos(Angle), 0.42f + 0.32f * Sin(Angle));
+        IconCapsule(Canvas, V2(0.5f, 0.42f), Tip, 0.025f,
+                    Gradient(Gold, IconColor(255, 220, 110, 30), V2(0.5f, 0.42f), Tip));
+    }
+    IconCircle(Canvas, V2(0.5f, 0.42f), 0.15f, Gradient(Pale, Gold, V2(0.45f, 0.36f), V2(0.58f, 0.5f)));
+    for(u32 Ally = 0; Ally < 3; Ally++)
+    {
+        float X = 0.24f + 0.26f * (float)Ally;
+        IconCircle(Canvas, V2(X, 0.76f), 0.05f, Solid(IconColor(140, 240, 160)));
+        IconCapsule(Canvas, V2(X, 0.82f), V2(X, 0.92f), 0.045f, Solid(IconColor(110, 210, 140)));
+    }
+}
+
+// NOTE(zoubir): the painters in RoleSpells' order: the damage role's A, R,
+// C, V, then the tank's, then the healer's (player_role order)
+#define ROLE_ICON_COUNT (PlayerRole_Count * ROLE_KEYS)
 typedef void role_icon_painter(icon_canvas *Canvas);
 global_variable role_icon_painter *RoleIconPainters[ROLE_ICON_COUNT] =
 {
-    PaintRoleTauntIcon, PaintRoleShieldSlamIcon, PaintRoleInterceptIcon,
-    PaintRoleSanctuaryIcon, PaintRoleWardIcon, PaintRoleMendingBoltIcon,
-    PaintRoleInfernoIcon, PaintRoleDetonateIcon,
+    PaintRoleInfernoIcon, PaintRoleGiantFireballIcon, PaintRoleDetonateIcon, PaintRoleCombustionIcon,
+    PaintRoleTauntIcon, PaintRoleShieldSlamIcon, PaintRoleInterceptIcon, PaintRoleLastStandIcon,
+    PaintRoleMendingBoltIcon, PaintRoleWardIcon, PaintRoleSanctuaryIcon, PaintRoleRadianceIcon,
 };
 
 // NOTE(zoubir): the icon for Role's Key, as an index into RoleIconPainters,
@@ -201,18 +276,7 @@ global_variable role_icon_painter *RoleIconPainters[ROLE_ICON_COUNT] =
 inline u32
 RoleIconIndex(u32 Role, u32 Key)
 {
-    u32 Result = ROLE_ICON_COUNT;
-    if (Role == PlayerRole_Tank && Key < ROLE_KEYS)
-    {
-        Result = Key;
-    }
-    else if (Role == PlayerRole_Healer && Key < ROLE_KEYS)
-    {
-        Result = ROLE_KEYS + Key;
-    }
-    else if (Role == PlayerRole_Damage && Key < 2)
-    {
-        Result = 2 * ROLE_KEYS + Key;
-    }
+    u32 Result = (Role < PlayerRole_Count && Key < ROLE_KEYS) ? Role * ROLE_KEYS + Key :
+        ROLE_ICON_COUNT;
     return Result;
 }

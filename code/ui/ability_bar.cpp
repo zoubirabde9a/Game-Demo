@@ -45,15 +45,6 @@ struct ability_bar
     bool32 ShownSeen; // WasShown holds a real frame, so a new slot is an unlock
 };
 
-// NOTE(zoubir): whether slot Def shows: a gap never does, an ability once
-// the player has it
-inline bool32
-IsAbilitySlotShown(player_slot *Slot, ability_slot_def *Def)
-{
-    bool32 Result = Def->Paint && AbilityLevel(Slot, Def->Button) > 0;
-    return Result;
-}
-
 // NOTE(zoubir): share of Button's cooldown still to run (0 = ready) and
 // its seconds; when two cooldowns share a button the longer one counts.
 // False when the button has no cooldown at all
@@ -100,20 +91,20 @@ AbilitySlotSpacing(bool32 *First, bool32 *Gap)
 }
 
 inline float
-AbilityBarWidth(player_slot *Slot)
+AbilityBarWidth(app_state *AppState, player_slot *Slot)
 {
     float Width = 0.f;
     bool32 First = true;
     bool32 Gap = false;
-    for(u32 Index = 0; Index < ABILITY_SLOT_DEF_COUNT; Index++)
+    for(u32 Position = 0; Position < AbilitySlotCount(AppState); Position++)
     {
-        ability_slot_def *Def = &AbilitySlotDefs[Index];
+        ability_slot_def *Def = &AbilitySlotDefs[AbilitySlotIndex(AppState, Position)];
         if (!Def->Paint)
         {
             Gap = true;
             continue;
         }
-        if (IsAbilitySlotShown(Slot, Def))
+        if (IsAbilitySlotShown(AppState, Slot, Def))
         {
             Width += AbilitySlotSpacing(&First, &Gap) + ABILITY_SLOT_SIZE;
         }
@@ -166,7 +157,7 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
 
     // NOTE(zoubir): never narrower than this, so health and experience
     // stay readable with few abilities
-    float Width = Maximum(AbilityBarWidth(LocalSlot), 5.f * ABILITY_SLOT_SIZE);
+    float Width = Maximum(AbilityBarWidth(AppState, LocalSlot), 5.f * ABILITY_SLOT_SIZE);
     float Left = 0.5f * ((float)WindowWidth - Width);
     float SlotTop = (float)WindowHeight - ABILITY_BAR_BOTTOM - ABILITY_SLOT_SIZE;
     float HealthY = SlotTop - ABILITY_HEALTH_GAP - ABILITY_HEALTH_HEIGHT;
@@ -200,20 +191,21 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
     font *Small = AppState->Fonts.Small;
     font *Strong = AppState->Fonts.Strong ? AppState->Fonts.Strong : AppState->Fonts.Body;
     float QuadSize = ABILITY_SLOT_SIZE / ABILITY_SLOT_BOX;
-    float X = Left + 0.5f * (Width - AbilityBarWidth(LocalSlot));
+    float X = Left + 0.5f * (Width - AbilityBarWidth(AppState, LocalSlot));
     bool32 First = true;
     bool32 Gap = false;
     i32 Hovered = -1;
     float HoveredX = 0.f;
-    for(u32 Index = 0; Index < ABILITY_SLOT_DEF_COUNT; Index++)
+    for(u32 Position = 0; Position < AbilitySlotCount(AppState); Position++)
     {
+        u32 Index = AbilitySlotIndex(AppState, Position);
         ability_slot_def *Def = &AbilitySlotDefs[Index];
         if (!Def->Paint)
         {
             Gap = true;
             continue;
         }
-        bool32 Shown = IsAbilitySlotShown(LocalSlot, Def);
+        bool32 Shown = IsAbilitySlotShown(AppState, LocalSlot, Def);
         if (Shown && !Bar->WasShown[Index])
         {
             // NOTE(zoubir): just unlocked: it arrives with the ready flash

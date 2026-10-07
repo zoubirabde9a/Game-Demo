@@ -72,6 +72,8 @@ enum sim_burst
     SimBurst_SanctuaryCast, // a sanctuary blooming on the ground
     SimBurst_InfernoCast,  // the damage role calling a meteor down
     SimBurst_InfernoBlast, // the meteor landing at Position
+    SimBurst_GiantFireball, // a Giant Fireball leaving Position along Angle
+    SimBurst_GiantFireballBlast, // the Giant Fireball of Slot bursting at Position
     SimBurst_Count
 };
 

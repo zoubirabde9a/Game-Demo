@@ -6,7 +6,7 @@
     // seconds left of the tank's Shield Wall, and the damage a healer's
     // Ward still absorbs and absorbed when cast, for the ring that empties
     // (sim/dungeon/role_abilities.cpp)
-#define ROLE_KEYS 3
+#define ROLE_KEYS 4
     float RoleCooldowns[ROLE_KEYS];
     float ShieldWallSeconds;
     float WardAbsorb;
@@ -16,6 +16,11 @@
     // off its own cooldown (Overload, role_kits/striker.cpp)
     float WardEmpower;
     float CastRefund;
+    // NOTE(zoubir): where a role spell with a cast lands, fixed when it
+    // was pressed (Meteor), and the seconds left of a striker's
+    // Combustion (role_kits/striker.cpp)
+    v2 RoleCastPoint;
+    float CombustSeconds;
     // NOTE(zoubir): a tank's Shield Slam rallied this player: seconds left
     // and the share of damage it takes off; a healer's Renewal: seconds
     // left, health a second, and the healer's slot

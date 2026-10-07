@@ -28,6 +28,10 @@ enum player_spell
     PlayerSpell_Blink,
     PlayerSpell_FrostNova,
     PlayerSpell_GravityWell,
+    // NOTE(zoubir): the dungeon damage class's two spells with a cast
+    // (sim/dungeon/role_kits/striker.cpp)
+    PlayerSpell_Meteor,
+    PlayerSpell_GiantFireball,
     // NOTE(zoubir): the rewinds stay last, in rewind_kind order
     // (time_rewind/rewind_abilities.cpp RewindSpell)
     PlayerSpell_RewindSelf,
@@ -66,6 +70,10 @@ global_variable player_spell_cast PlayerSpells[PlayerSpell_Count] =
     // only the talent tree unlocks
     {0.25f, 0.35f, false, "Frost Nova"},
     {0.35f, 0.35f, false, "Gravity Well"},
+    // NOTE(zoubir): Meteor (A) and Giant Fireball (R) in a dungeon run:
+    // the striker walks at half speed while they wind up
+    {1.f, 0.5f, false, "Meteor"},
+    {1.5f, 0.5f, false, "Giant Fireball"},
     // NOTE(zoubir): the time rewinds (time_rewind/rewind_abilities.cpp):
     // the hold and the playback follow the cast
     {0.5f, 0.5f, false, "Rewind"},

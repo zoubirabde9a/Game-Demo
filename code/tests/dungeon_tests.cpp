@@ -508,6 +508,7 @@ TestNoFriendlyFireInADungeon()
 #include "dungeon_role_tests.cpp"
 #include "boss_clock_tests.cpp"
 #include "striker_tests.cpp"
+#include "class_kit_tests.cpp"
 
 internal void
 RunDungeonTests()
@@ -515,6 +516,7 @@ RunDungeonTests()
     RunDungeonRoleTests();
     RunBossClockTests();
     RunStrikerTests();
+    RunClassKitTests();
     TestNoFriendlyFireInADungeon();
     TestBlinksStopAtClosedGates();
     TestClearedCryptStartsANewRun();

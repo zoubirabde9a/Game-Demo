@@ -138,17 +138,28 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
 {
     player_slot *Slot = &AppState->Players[Self->PlayerIndex];
     u32 Result = 0;
+    // NOTE(zoubir): a key is ready when its spell is learned and its
+    // cooldown has run; A, R, C and V are NetButton_Launch, _Push, _Slam
+    // and _Kunai
     bool32 Ready[ROLE_KEYS];
-    for (u32 Key = 0; Key < ROLE_KEYS; ++Key) Ready[Key] = Slot->RoleCooldowns[Key] <= 0.f;
+    for (u32 Key = 0; Key < ROLE_KEYS; ++Key)
+    {
+        Ready[Key] = Slot->RoleCooldowns[Key] <= 0.f && RoleSpellLearned(Slot, Key);
+    }
+    bool32 Casting = IsPlayerCasting(Self);
     if (Slot->Role == PlayerRole_Tank)
     {
         if (Target && Distance < SHIELD_SLAM_RADIUS && Ready[1] && BotRandom(Bot) % 20 == 0)
         {
-            Result |= NetButton_Shield;
+            Result |= NetButton_Push;
         }
         if (Target && Distance < TAUNT_RADIUS * 0.8f && Ready[0] && BotRandom(Bot) % 30 == 0)
         {
             Result |= NetButton_Launch;
+        }
+        if (Self->Hp < 0.35f * Self->MaxHp && Ready[3])
+        {
+            Result |= NetButton_Kunai;
         }
         // NOTE(zoubir): an ally with monsters on them, too far to taunt off
         for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS && Ready[2]; ++SlotIndex)
@@ -158,7 +169,7 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
             if (Ally && Ally != Self && AppState->Players[SlotIndex].Aggro > 0 &&
                 Gap > 150.f && Gap < INTERCEPT_RANGE && BotRandom(Bot) % 40 == 0)
             {
-                Result |= NetButton_Kunai;
+                Result |= NetButton_Slam;
                 *Pick = (u16)(Ally->ID + 1);
                 break;
             }
@@ -202,22 +213,22 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
             }
         }
         world_entity *Hurt = BotHurtAlly(AppState, Self, MENDING_BOLT_RANGE, 0.85f);
-        if (Hurt && Ready[2] && BotRandom(Bot) % 6 == 0)
+        if (Hurt && Ready[0] && BotRandom(Bot) % 6 == 0)
         {
-            Result |= NetButton_Kunai;
+            Result |= NetButton_Launch;
             *Pick = (u16)(Hurt->ID + 1);
         }
         world_entity *Low = BotHurtAlly(AppState, Self, MENDING_BOLT_RANGE, 0.6f);
-        if (Low && Ready[1] && !(Result & NetButton_Kunai) &&
+        if (Low && Ready[1] && !(Result & NetButton_Launch) &&
             AppState->Players[Low->PlayerIndex].WardAbsorb <= 0.f && BotRandom(Bot) % 10 == 0)
         {
-            Result |= NetButton_Shield;
+            Result |= NetButton_Push;
             *Pick = (u16)(Low->ID + 1);
         }
         // NOTE(zoubir): nobody in danger: the ward goes on the striker for
         // its damage (role_kits/healer.cpp)
         for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS && !Low && Ready[1] &&
-             !(Result & (NetButton_Kunai | NetButton_Shield)); ++SlotIndex)
+             !(Result & (NetButton_Launch | NetButton_Push)); ++SlotIndex)
         {
             world_entity *Ally = LivingPlayerInSlot(AppState, SlotIndex);
             player_slot *AllySlot = &AppState->Players[SlotIndex];
@@ -226,12 +237,12 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
                 Length(Ally->Position.XY - Self->Position.XY) < MENDING_BOLT_RANGE &&
                 BotRandom(Bot) % 10 == 0)
             {
-                Result |= NetButton_Shield;
+                Result |= NetButton_Push;
                 *Pick = (u16)(Ally->ID + 1);
             }
         }
-        // NOTE(zoubir): a sanctuary at its own feet when the party is hurt
-        // round it
+        // NOTE(zoubir): the party hurt round it: Radiance, or a sanctuary
+        // at its own feet
         u32 HurtNear = 0;
         for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; ++SlotIndex)
         {
@@ -239,30 +250,40 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
             HurtNear += (Ally && Ally->Hp < 0.8f * Ally->MaxHp &&
                          Length(Ally->Position.XY - Self->Position.XY) < SANCTUARY_RADIUS) ? 1 : 0;
         }
-        if (HurtNear >= 2 && Ready[0] && BotRandom(Bot) % 20 == 0)
+        if (HurtNear >= 2 && Ready[3] && BotRandom(Bot) % 10 == 0)
         {
-            Result |= NetButton_Launch;
+            Result |= NetButton_Kunai;
+        }
+        else if (HurtNear >= 2 && Ready[2] && BotRandom(Bot) % 20 == 0)
+        {
+            Result |= NetButton_Slam;
         }
     }
-    else if (Target && Target->Type == EntityType_Monster)
+    else if (Target && Target->Type == EntityType_Monster && !Casting)
     {
         // NOTE(zoubir): the striker's rotation (role_kits/striker.cpp):
-        // the kunai builds Searing on what it fights, Detonate spends a
-        // full mark, or one about to fade, and Inferno opens on a pack
+        // fireballs build Searing on what it fights, Meteor opens on a
+        // pack, the Giant Fireball goes in between, Detonate spends a full
+        // mark or one about to fade, and Combustion goes up in a fight
         if (Distance > 80.f && Distance < PLAYER_AIM_REACH && Ready[0] &&
             BotRandom(Bot) % 25 == 0)
         {
             Result |= NetButton_Launch;
         }
-        if (Distance < PlayerStats.KunaiRange && BotRandom(Bot) % 8 == 0)
+        else if (Distance > 60.f && Distance < 0.8f * GIANT_FIREBALL_RANGE && Ready[1] &&
+                 BotRandom(Bot) % 30 == 0)
         {
-            Result |= NetButton_Kunai;
+            Result |= NetButton_Push;
         }
         foe_mark *Mark = FindFoeMark(AppState->Dungeon, &AppState->World, Target);
-        if (Mark && Mark->Stacks && Ready[1] && Distance < DETONATE_RANGE &&
+        if (Mark && Mark->Stacks && Ready[2] && Distance < DETONATE_RANGE &&
             (Mark->Stacks >= SEARING_MOST || Mark->Seconds < 1.5f))
         {
-            Result |= NetButton_Shield;
+            Result |= NetButton_Slam;
+        }
+        if (Ready[3] && AppState->Dungeon->FightingRoom && BotRandom(Bot) % 60 == 0)
+        {
+            Result |= NetButton_Kunai;
         }
     }
     return Result;
@@ -387,7 +408,9 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     if (Self && IsDungeon(AppState) && !IsDeadPlayer(Self))
     {
         float Distance = Target ? Length(Target->Position.XY - Self->Position.XY) : 0.f;
-        Held &= ~(u32)NetButton_Kunai;
+        // NOTE(zoubir): A, R, C and V are the class's keys in a run
+        // (BotRoleButtons); the game's presses on them go
+        Held &= ~(u32)(NetButton_Kunai | NetButton_Launch | NetButton_Push | NetButton_Slam);
         // NOTE(zoubir): the striker fights from range and, against a
         // monster whose shell takes hits from the front (sim/monster_
         // abilities/armor.cpp), from behind it, as the tank holds it
@@ -419,7 +442,8 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
                            NetButton_RewindSelf | NetButton_RewindBubble |
                            NetButton_FrostNova | NetButton_Shockwave |
                            NetButton_GravityWell | NetButton_Kunai |
-                           NetButton_Launch | NetButton_Shield));
+                           NetButton_Launch | NetButton_Shield |
+                           NetButton_Push | NetButton_Slam));
     Bot->Held = Held;
     Input.Buttons = Held;
     Input.AimX = AimReach * Direction.X;

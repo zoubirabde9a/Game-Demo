@@ -1,28 +1,33 @@
-/* The damage role's kit (role_abilities.cpp): Inferno on A, Detonate on
-   E; V stays the game's kunai and X its fireball.
+/* The damage role's kit (role_abilities.cpp): Meteor on A and Giant
+   Fireball on R, both with a cast; from its tree Detonate on C and
+   Combustion on V. X is the game's fireball, as for everyone.
 
-   The rotation is build and spend. Every kunai and fireball a striker
-   lands puts a Searing stack on the monster, up to SEARING_MOST; the mark
-   fades SEARING_SECONDS after its last stack. Detonate blows the marks
-   up for DETONATE_DAMAGE plus DETONATE_PER_STACK a stack, so it pays to
-   spend it on a full mark and not to let marks fade: a striker who
-   detonates at one stack, or lets the kunai sit, deals a third less, and
-   a boss's enrage timer (sim/dungeon/boss_clock.cpp) is set for one who
-   does not.
+   The rotation is build and spend. Every fireball a striker lands, and
+   every monster a Meteor or a Giant Fireball blast catches, puts a
+   Searing stack on it, up to SEARING_MOST; the mark fades
+   SEARING_SECONDS after its last stack. Detonate blows the marks up for
+   DETONATE_DAMAGE plus DETONATE_PER_STACK a stack, so it pays to spend it
+   on a full mark and not to let marks fade.
 
-   Inferno calls a meteor down at the cursor. It lands INFERNO_DELAY
-   later, so a monster can be seen to walk out of the marked circle,
-   strikes everything inside for INFERNO_DAMAGE and puts a stack on each;
-   the ground there then burns for INFERNO_BURN_SECONDS, hurting any
-   monster standing in it each INFERNO_BURN_TICK and keeping its mark from
-   fading. Detonating a monster in burning ground detonates every other
-   marked monster in that fire too, which is how a striker clears a pack
-   the tank has gathered: Inferno, a kunai or two, Detonate.
+   Meteor winds up for a second (PlayerSpell_Meteor, sim/player_casts.cpp)
+   at the spot the cursor was on when it was pressed, then calls a meteor
+   down there. It lands INFERNO_DELAY later, strikes everything inside for
+   INFERNO_DAMAGE and marks it; the ground then burns for
+   INFERNO_BURN_SECONDS, keeping marks alive. Detonating a monster in
+   burning ground detonates every other marked monster in that fire too.
 
-   The damage counts as the caster's, so their role and talents scale it
+   Giant Fireball winds up for 1.5 s (PlayerSpell_GiantFireball), then a
+   slow ball flies along the aim the striker cast with. It blows up on the
+   first monster it reaches, when it leaves the room it was cast in, or
+   at the end of its flight: everything within GIANT_FIREBALL_RADIUS takes
+   GIANT_FIREBALL_DAMAGE and a stack. Combustion makes every hit the
+   striker lands COMBUSTION_SHARE harder for COMBUSTION_SECONDS
+   (DungeonScaleDamage).
+
+   The damage counts as the caster's, so their class and talents scale it
    and it makes threat for them. */
 
-// NOTE(zoubir): from OnRoleHit: the striker's kunai or fireball landed
+// NOTE(zoubir): from OnRoleHit: the striker's fireball landed
 internal void
 OnStrikerShot(app_state *AppState, world_entity *Target)
 {
@@ -103,8 +108,9 @@ DetonateMark(app_state *AppState, world_entity *Player, world_entity *Monster)
     EmitBurst(&AppState->Events, SimBurst_InfernoBlast, (u8)Player->PlayerIndex,
               Monster->Position);
     player_slot *Slot = &AppState->Players[Player->PlayerIndex];
-    float PerStack = DETONATE_PER_STACK + SEARING_HEAT_PER_STACK *
-        (float)RoleRank(Slot, PlayerRole_Damage, StrikerTalent_SearingHeat);
+    // NOTE(zoubir): Detonate's second rank, once Searing Heat
+    float PerStack = DETONATE_PER_STACK +
+        (RoleRank(Slot, PlayerRole_Damage, StrikerTalent_Detonate) >= 2 ? SEARING_HEAT_PER_STACK : 0.f);
     DamageEntity(AppState, World, Monster, DETONATE_DAMAGE + PerStack * (float)Stacks, Player);
     return Stacks;
 }
@@ -145,19 +151,46 @@ CastDetonate(app_state *AppState, player_slot *Slot, world_entity *Player)
     return true;
 }
 
-// NOTE(zoubir): returns whether the key cast (with every inferno in use
-// it does not)
+// NOTE(zoubir): returns whether the key cast. Meteor and Giant Fireball
+// only start their cast here (FinishStrikerCast fires them); Detonate
+// with no marked monster in reach does not cast
 internal bool32
 CastStrikerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 Key)
 {
-    if (Key == 1)
+    u8 SlotIndex = (u8)Player->PlayerIndex;
+    switch(Key)
     {
-        return CastDetonate(AppState, Slot, Player);
+        case 0:
+        {
+            Slot->RoleCastPoint = AimPoint(Player);
+            StartPlayerCast(Player, PlayerSpell_Meteor, Player->Aim);
+        } break;
+
+        case 1:
+        {
+            StartPlayerCast(Player, PlayerSpell_GiantFireball, Player->Aim);
+        } break;
+
+        case 2:
+        {
+            return CastDetonate(AppState, Slot, Player);
+        } break;
+
+        case 3:
+        {
+            Slot->CombustSeconds = COMBUSTION_SECONDS;
+            EmitBurst(&AppState->Events, SimBurst_InfernoCast, SlotIndex, ChestOf(Player),
+                      ATan2(Player->Aim.Y, Player->Aim.X));
+        } break;
     }
-    if (Key != 0)
-    {
-        return false;
-    }
+    return true;
+}
+
+// NOTE(zoubir): the meteor called down at Slot's cast point; nothing when
+// every inferno is in use (the cooldown was spent at the press)
+internal void
+CallMeteor(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
     dungeon_run *Run = AppState->Dungeon;
     inferno *Free = 0;
     for(u32 Index = 0; Index < MAX_INFERNOS; Index++)
@@ -171,19 +204,66 @@ CastStrikerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32
     }
     if (!Free)
     {
-        return false;
+        return;
     }
     u8 SlotIndex = (u8)Player->PlayerIndex;
-    v2 Point = AimPoint(Player);
+    v2 Point = Slot->RoleCastPoint;
     Free->Position = V3(Point.X, Point.Y, Player->GroundZ);
     Free->Delay = INFERNO_DELAY;
     Free->Seconds = INFERNO_BURN_SECONDS + WILDFIRE_SECONDS *
         (float)RoleRank(Slot, PlayerRole_Damage, StrikerTalent_Wildfire);
-    Free->Radius = RoleSpellRadius(Slot, Key);
+    Free->Radius = RoleSpellRadius(Slot, 0);
     Free->By = SlotIndex;
     EmitBurst(&AppState->Events, SimBurst_InfernoCast, SlotIndex, ChestOf(Player),
               ATan2(Point.Y - Player->Position.Y, Point.X - Player->Position.X));
-    return true;
+}
+
+// NOTE(zoubir): a Giant Fireball leaves Player's hand along Direction;
+// nothing when all are in flight
+internal void
+LaunchGiantFireball(app_state *AppState, world_entity *Player, v2 Direction)
+{
+    dungeon_run *Run = AppState->Dungeon;
+    world *World = &AppState->World;
+    v2 Dir = LengthSq(Direction) > 0.f ? DirectionTo(Direction) : V2(1.f, 0.f);
+    for(u32 Index = 0; Index < MAX_GIANT_FIREBALLS; Index++)
+    {
+        giant_fireball *Ball = &Run->GiantFireballs[Index];
+        if (Ball->Distance <= 0.f)
+        {
+            Ball->Position = ChestOf(Player);
+            Ball->Position.XY += 24.f * Dir;
+            Ball->Velocity = GIANT_FIREBALL_SPEED * Dir;
+            Ball->Distance = GIANT_FIREBALL_RANGE;
+            Ball->Room = RoomAtPosition(World, Player->Position.XY);
+            Ball->By = Player->PlayerIndex;
+            // NOTE(zoubir): clients fly their own copy of it from this
+            // (client/dungeon/giant_fireball_fx.cpp); it is not in the snapshot
+            EmitBurst(&AppState->Events, SimBurst_GiantFireball, (u8)Player->PlayerIndex,
+                      Ball->Position, ATan2(Dir.Y, Dir.X));
+            return;
+        }
+    }
+}
+
+// NOTE(zoubir): from FinishPlayerCast (sim/player_update/casts.cpp), on
+// the server or offline: a class spell's wind-up is over
+internal void
+FinishRoleCast(app_state *AppState, world_entity *Player, player_spell Spell)
+{
+    if (!IsDungeon(AppState) || Player->PlayerIndex >= MAX_PLAYERS)
+    {
+        return;
+    }
+    player_slot *Slot = &AppState->Players[Player->PlayerIndex];
+    if (Spell == PlayerSpell_Meteor)
+    {
+        CallMeteor(AppState, Slot, Player);
+    }
+    else if (Spell == PlayerSpell_GiantFireball)
+    {
+        LaunchGiantFireball(AppState, Player, Player->CastingDirection);
+    }
 }
 
 // NOTE(zoubir): Damage to every living monster within Radius of Centre,
@@ -253,6 +333,45 @@ UpdateInfernos(app_state *AppState, dungeon_run *Run, float DeltaTime)
                 BurnAround(AppState, World, Zone->Position, Zone->Radius, Zone->By,
                            INFERNO_BURN_PER_SECOND * INFERNO_BURN_TICK, false);
             }
+        }
+    }
+}
+
+// NOTE(zoubir): once a tick: each Giant Fireball flies on, and blows up on
+// the first monster it reaches, on leaving its room or at the end of its
+// flight
+internal void
+UpdateGiantFireballs(app_state *AppState, dungeon_run *Run, float DeltaTime)
+{
+    world *World = &AppState->World;
+    for(u32 Index = 0; Index < MAX_GIANT_FIREBALLS; Index++)
+    {
+        giant_fireball *Ball = &Run->GiantFireballs[Index];
+        if (Ball->Distance <= 0.f)
+        {
+            continue;
+        }
+        v2 Step = DeltaTime * Ball->Velocity;
+        Ball->Position.XY += Step;
+        Ball->Distance -= Length(Step);
+        bool32 Blow = Ball->Distance <= 0.f ||
+            RoomAtPosition(World, Ball->Position.XY) != Ball->Room;
+        for(u32 EntityIndex = 0; EntityIndex < World->EntityCount && !Blow; EntityIndex++)
+        {
+            world_entity *Monster = &World->Entities[EntityIndex];
+            Blow = Monster->IsPresent && Monster->Type == EntityType_Monster &&
+                Monster->Hp > 0.f &&
+                Length(Monster->Position.XY - Ball->Position.XY) <= GIANT_FIREBALL_TOUCH;
+        }
+        if (Blow)
+        {
+            Ball->Distance = 0.f;
+            if (AppState->Players[Ball->By].Entity)
+            {
+                BurnAround(AppState, World, Ball->Position, GIANT_FIREBALL_RADIUS, Ball->By,
+                           GIANT_FIREBALL_DAMAGE, true);
+            }
+            EmitBurst(&AppState->Events, SimBurst_GiantFireballBlast, (u8)Ball->By, Ball->Position);
         }
     }
 }

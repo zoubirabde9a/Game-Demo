@@ -22,6 +22,7 @@
 #include "talent_panel/xp_bar.cpp"
 #include "talent_panel/talent_panel.cpp"
 #include "ability_health.cpp"
+#include "ability_slot_order.cpp"
 #include "ability_bar.cpp"
 #include "round_break_view.cpp"
 #include "status_strip.cpp"

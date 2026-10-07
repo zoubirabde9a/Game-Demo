@@ -108,6 +108,8 @@ UsePlayerAbilities(app_state *AppState, world *World, memory_arena *Arena,
 // healer's keys cast their role's spells in a dungeon run
 internal void UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
                                player_slot *Slot, float DeltaTime);
+internal u32 RunAllowedButtons(app_state *AppState, player_slot *Slot, u32 Allowed);
+internal void FinishRoleCast(app_state *AppState, world_entity *Player, player_spell Spell);
 
 internal void
 UpdatePlayer(player_slot *Slot, world *World,
@@ -120,8 +122,10 @@ UpdatePlayer(player_slot *Slot, world *World,
     world_entity *Player = Slot->Entity;
     // NOTE(zoubir): abilities the match leaves out (GameRules) and the
     // talent tree has not unlocked do nothing, nor does any but jump
-    // during the break between rounds
-    u32 Allowed = PlayerAllowedButtons(Slot) & RoundBreakButtons(AppState);
+    // during the break between rounds. A dungeon run has its own set: the
+    // shared abilities and the class's spells (sim/dungeon/role_abilities.cpp)
+    u32 Allowed = RunAllowedButtons(AppState, Slot, PlayerAllowedButtons(Slot)) &
+        RoundBreakButtons(AppState);
     Slot->Input.Pressed &= Allowed;
     Slot->Input.ServerPressed &= Allowed;
     // NOTE(zoubir): a rooted player cannot walk; a stunned or falling one

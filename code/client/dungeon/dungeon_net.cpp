@@ -93,9 +93,10 @@ ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Sna
             // NOTE(zoubir): a falling meteor's burn is still to come; any
             // time will do for the drawing, which only asks whether it burns
             Zone->Seconds = (Packed & NET_INFERNO_FALLING) ? INFERNO_BURN_SECONDS : Seconds;
-            Zone->Radius = INFERNO_RADIUS * ((Packed & NET_ZONE_WIDE) ? CATACLYSM_RADIUS : 1.f);
+            Zone->Radius = INFERNO_RADIUS;
         }
     }
+
     // NOTE(zoubir): the marks, on the replicas they were sent for
     for(u32 Index = 0; Index < MAX_FOE_MARKS; Index++)
     {

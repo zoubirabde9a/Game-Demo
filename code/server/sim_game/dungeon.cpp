@@ -166,9 +166,9 @@ WriteDungeonSnapshot(app_state *AppState, net_snapshot *Out)
             Out->InfernoY[Slot] = (i16)Zone->Position.Y;
             u32 Tenths = Zone->Delay > 0.f ?
                 (DungeonTenths(Zone->Delay, 63) | NET_INFERNO_FALLING) : DungeonTenths(Zone->Seconds, 63);
-            Out->InfernoTenths[Slot] = (u8)(Tenths |
-                ((Zone->Radius > INFERNO_RADIUS + 1.f) ? NET_ZONE_WIDE : 0));
+            Out->InfernoTenths[Slot] = (u8)Tenths;
         }
     }
+
     WriteFoeMarks(AppState, Run, FoeMarkCenter(AppState, Out), Out);
 }
