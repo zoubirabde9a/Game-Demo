@@ -21,14 +21,16 @@ $Out = "$Root\build\render_check"
 New-Item -ItemType Directory -Force $Out | Out-Null
 
 # NOTE(zoubir): name, map, keys (see code/platform/win32/screenshot.cpp),
-# frame. Each scene shows the effects of one or two maps at work
+# frame. Every scene puts the mouse somewhere (M:x,y): the player aims at
+# it, and left free it is wherever the desktop's mouse happens to be.
+# Each scene shows the effects of one or two maps at work
 $Scenes = @(
     @("arena-cast",   "arena",  "2:F4 3:H M:900,400 30:< 60:A 61:< 90-200:D", 300),
-    @("keep-ice",     "keep",   "2:F4 3:H 10-28:S 28-110:Q", 120),
-    @("wastes-lava",  "ashen",  "2:F4 3:H 10-380:Q", 400),
-    @("wilds-pond",   "wilds",  "2:F4 3:H 10-150:D", 150),
-    @("wilds-rain",   "wilds",  "2:F4 3:H", 120, "rain"),
-    @("crypt-torches","crypt",  "2:F4 3:H", 120)
+    @("keep-ice",     "keep",   "2:F4 3:H M:700,300 10-28:S 28-110:Q", 120),
+    @("wastes-lava",  "ashen",  "2:F4 3:H M:700,300 10-380:Q", 400),
+    @("wilds-pond",   "wilds",  "2:F4 3:H M:700,300 10-150:D", 150),
+    @("wilds-rain",   "wilds",  "2:F4 3:H M:700,300", 120, "rain"),
+    @("crypt-torches","crypt",  "2:F4 3:H M:700,300", 120)
 )
 
 $Known = @{}
@@ -49,20 +51,12 @@ foreach ($Scene in $Scenes) {
     $env:GAME_SCREENSHOT_KEYS = $Scene[2]
     $env:GAME_WEATHER = if ($Scene.Count -gt 4) { $Scene[4] } else { "dry" }
     $Png = "$Out\$Name.png"
-    # NOTE(zoubir): textures load on worker threads, so now and then one is
-    # not ready on the frame and the picture differs; a scene that differs
-    # is played twice more, and one that matches only then is reported
-    $Tries = if ($Update) { 1 } else { 3 }
-    for ($Try = 1; $Try -le $Tries; $Try++) {
-        if (Test-Path $Png) { Remove-Item $Png }
-        cmd /c "`"$Root\misc\screenshot.bat`" `"$Png`" $($Scene[3])" | Out-Null
-        if (-not (Test-Path $Png)) { Write-Host "render_check: $Name drew nothing"; exit 1 }
-        $Hash = (Get-FileHash $Png).Hash
-        if ($Update -or $Known[$Name] -eq $Hash) { break }
-    }
+    if (Test-Path $Png) { Remove-Item $Png }
+    cmd /c "`"$Root\misc\screenshot.bat`" `"$Png`" $($Scene[3])" | Out-Null
+    if (-not (Test-Path $Png)) { Write-Host "render_check: $Name drew nothing"; exit 1 }
+    $Hash = (Get-FileHash $Png).Hash
     $Lines += "$Name $Hash"
     if (-not $Update -and $Known[$Name] -ne $Hash) { $Differ += $Name }
-    elseif ($Try -gt 1 -and -not $Update) { Write-Host "matched on try $($Try): $Name (a texture loaded late)" }
 }
 
 if ($Update) {
