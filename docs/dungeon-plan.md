@@ -21,15 +21,15 @@ A player picks a role in the lobby room before the first gate, and can change it
 | Damage taken | 70% | 100% | 100% |
 | Damage dealt | 70% | 50% | 135% |
 | Threat per damage | 4x | 1x (heals make threat on every monster in the fight, half the healing) | 1x |
-| Left click | Fireball | Fireball (weak, at half damage) | Fireball |
-| A | Taunt: every monster within 260 attacks you for 4 s, and you stay ahead after (8 s cooldown) | Sanctuary: a circle at the cursor that heals allies inside 8 a second for 5 s (14 s) | Inferno: a meteor at the cursor lands 0.6 s later for 32 on everything in a circle of 90, then the ground burns 10 a second for 3 s (9 s) |
-| E | Shield Slam: monsters within 110 take 15, are stunned 1 s and shoved, and turn on you; you take 40% for 4 s and allies within 170 take 25% less for 4 s (14 s) | Ward an ally: absorbs the next 36 (10 s) | Shield |
+| X | Fireball | Fireball (weak, at half damage) | Fireball |
+| A | Taunt: every monster within 260 attacks you for 4 s, and you stay ahead after; Shield Wall for 2 s (8 s cooldown) | Sanctuary: a circle at the cursor that heals allies inside 8 a second for 5 s (14 s) | Inferno: a meteor at the cursor lands 0.6 s later for 32 on everything in a circle of 90, then the ground burns 10 a second for 3 s (9 s) |
+| E | Shield Slam: monsters within 110 take 15, are stunned 1 s and shoved, and turn on you; you heal 5% of your health for each one struck (up to five); you take 40% for 4 s and allies within 170 take 25% less for 4 s (14 s) | Ward an ally: absorbs the next 36, and every ally within 150 of them absorbs 18 (10 s) | Shield |
 | V | Intercept: leap to an ally and pull what was on them (10 s) | Mending Bolt: heal an ally for 34 (2.2 s) | Kunai |
 | F | Blink | Blink | Blink |
 
 The numbers are `sim/dungeon/role_kits/role_numbers.h`; each kit is a file in `sim/dungeon/role_kits/`.
 
-**Who an ally spell lands on** (Ward, Mending Bolt, Intercept): the ally whose party frame the mouse is on, else the ally the cursor is on, else the ally picked by clicking their party frame, else (for heals) the most hurt ally within 500, else the caster. A healer can heal themselves from their own frame. For a tank or healer the cursor picks allies, not foes (`client/dungeon/role_targeting.cpp`); a ring under the ally shows who the next spell goes to, gold when picked. In standard cast an ally spell casts at once, and a ground spell (Sanctuary, Inferno) aims first with its circle shown at the cursor.
+**Who an ally spell lands on** (Ward, Mending Bolt, Intercept): the ally whose party frame the mouse is on, else the ally the cursor is on, else the ally picked by clicking their party frame, else (for heals) the most hurt player within 500, else the nearest other ally within 500. A healer's spell lands on the healer only when the healer is the most hurt, picks their own frame, or has nobody in reach, so every healer spell is an ally spell first. For a tank or healer the cursor picks allies, not foes (`client/dungeon/role_targeting.cpp`); a ring under the ally shows who the next spell goes to, gold when picked. In standard cast an ally spell casts at once, and a ground spell (Sanctuary, Inferno) aims first with its circle shown at the cursor.
 
 Between fights every living player heals 8% of their health a second, so a party walks into the next room whole with or without a healer.
 
@@ -82,7 +82,14 @@ Death: a dead player lies downed where they fell. A healer standing next to them
 
 When the last room is cleared the run is won: the HUD shows the time it took (offline) and counts down 20 s, then the crypt is built again for a new run, everyone in the Antechamber with their role, level and talents.
 
-Scaling: every dungeon monster's health is multiplied by `0.6 + 0.4 x players`, so two players face 1.4x and five face 2.6x.
+Scaling (`sim/dungeon/party_scaling.cpp`): each player past the first multiplies every dungeon monster's health by 1.45 and its damage by 1.12, so each player who joins makes the run harder than the one before did.
+
+| Players | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| Monster health | 1 | 1.45 | 2.1 | 3.05 | 4.42 | 6.41 | 9.29 | 13.5 |
+| Monster damage | 1 | 1.12 | 1.25 | 1.4 | 1.57 | 1.76 | 1.97 | 2.21 |
+
+The roles keep up at the square root of that damage: the tank takes only the square root of the party's extra damage (1.49x at eight players, where the others take 2.21x), and every heal and ward, the tank's Shield Slam heal included, grows by the same root. The damage scale holds while a room is being fought and drops back to 1 when it ends.
 
 ## Bosses
 
@@ -121,6 +128,7 @@ The protocol id is "GDMf". Each `net_score` has a `Dungeon` byte (the role, Shie
 - [x] The three bosses (`sim/monsters/crypt_*.cpp`) and their scripted events (`sim/dungeon/boss_scripts.cpp`).
 - [x] Online: role and run state on the wire, role pick request, server `--map crypt`.
 - [x] Client: role picker, boss health bar, objective line, party frames. Done offline (`ui/dungeon/dungeon_hud.cpp`): the objective, the boss bar, the role picker in the Antechamber. Party frames done too, and all of it online.
+- [x] Fireball on X instead of the left click; party scaling by a factor per player; Ward shields the allies round its target, healer spells prefer an ally to the healer; Taunt raises Shield Wall, Shield Slam heals the tank per monster struck.
 - [x] Role overhaul: heals and wards land on allies (cursor or party frames), clickable party frames with aggro and wards, Shield Slam for the tank, Inferno for the damage role, a talent branch per role, role looks and spell animations, heal numbers, rest between fights, bots that play their role.
 
 ## Known problems

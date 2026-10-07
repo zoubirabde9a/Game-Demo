@@ -215,9 +215,11 @@ TestRoomsStartClearAndOpenGates()
     Check(IsGateClosed(Run, 0) && IsGateClosed(Run, 1));
     // NOTE(zoubir): B was pulled in from the Antechamber
     Check(RoomAtPosition(World, B->Position.XY) == 2);
-    // NOTE(zoubir): two players face 1.4 times the health
+    // NOTE(zoubir): two players face 1.45 times the health, 1.12 times
+    // the damage
     world_entity *Foe = &World->Entities[Run->FoeSlots[0]];
-    Check(Foe->MaxHp > GetMonsterStats(Foe->MonsterKind)->MaxHp * 1.39f);
+    Check(Foe->MaxHp > GetMonsterStats(Foe->MonsterKind)->MaxHp * 1.44f);
+    Check(Run->PartyDamage == PartyDamageScale(2));
 
     KillRoomMonsters(&Crypt, 2);
     TickCrypt(&Crypt, 2);

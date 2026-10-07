@@ -3,9 +3,15 @@
 
    Shield Slam is the tank's answer to a pack: every monster within
    SHIELD_SLAM_RADIUS is struck, stunned and shoved back, and takes on
-   SHIELD_SLAM_THREAT for the tank; the tank stands behind Shield Wall
+   SHIELD_SLAM_THREAT for the tank; the tank heals SHIELD_SLAM_HEAL_SHARE
+   of its health for each one, stands behind Shield Wall
    (SHIELD_WALL_SCALE of the damage, dungeon.cpp) and every ally within
-   RALLY_RADIUS takes RALLY_SHARE less for RALLY_SECONDS. */
+   RALLY_RADIUS takes RALLY_SHARE less for RALLY_SECONDS. A taunt raises
+   Shield Wall for TAUNT_WALL_SECONDS too.
+
+   What keeps a tank standing late in a big party: it takes only the
+   square root of the party's extra damage (PartySustainScale,
+   party_scaling.cpp), and the slam's heal grows with it like a healer's. */
 
 // NOTE(zoubir): an ally Self can leap to: alive, within Range, and in the
 // same room, so a leap never crosses a gate
@@ -49,6 +55,7 @@ CastShieldSlam(app_state *AppState, world *World, player_slot *Slot, world_entit
     bool32 Rally = RoleRank(Slot, PlayerRole_Tank, TankTalent_Rally) > 0;
     hit Hit = {SHIELD_SLAM_DAMAGE, SHIELD_SLAM_SHOVE, 80.f, 80.f,
                SHIELD_SLAM_STUN + (Bastion ? BASTION_STUN : 0.f), SimBurst_Impact};
+    u32 Struck = 0;
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Monster = &World->Entities[EntityIndex];
@@ -60,7 +67,11 @@ CastShieldSlam(app_state *AppState, world *World, player_slot *Slot, world_entit
         }
         AddThreat(&AppState->Dungeon->Threat, World, Monster, SlotIndex, SHIELD_SLAM_THREAT);
         ApplyHit(AppState, World, Monster, &Hit, DirectionTo(Offset), Player, SlotIndex);
+        Struck++;
     }
+    u32 Counted = Minimum(Struck, (u32)SHIELD_SLAM_HEAL_FOES);
+    HealPlayer(AppState, SlotIndex, Player,
+               SHIELD_SLAM_HEAL_SHARE * (float)Counted * Player->MaxHp);
     Slot->ShieldWallSeconds = SHIELD_WALL_SECONDS + (Bastion ? BASTION_WALL_SECONDS : 0.f);
     float Reach = Rally ? RALLY_TALENT_RADIUS : RALLY_RADIUS;
     for(u32 Other = 0; Other < MAX_PLAYERS; Other++)
@@ -91,6 +102,7 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
             float Reach = TAUNT_RADIUS * (1.f + PROVOKE_REACH *
                 (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_Provoke));
             TauntAround(AppState, &AppState->Dungeon->Threat, Player, Reach);
+            Slot->ShieldWallSeconds = Maximum(Slot->ShieldWallSeconds, TAUNT_WALL_SECONDS);
             EmitBurst(&AppState->Events, SimBurst_Taunt, SlotIndex, Player->Position);
         } break;
 

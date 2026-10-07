@@ -1,7 +1,9 @@
 /* The healer's kit (role_abilities.cpp): Sanctuary on A, Ward on E,
-   Mending Bolt on V. Ward and Mending Bolt land on an ally (PickAllyFor:
-   the one under the cursor or picked on the party frames, else the most
-   hurt in reach, else the healer); Sanctuary goes where the cursor is.
+   Mending Bolt on V. Every one of them is for the party: Ward and Mending
+   Bolt land on an ally (PickAllyFor: the one under the cursor or picked
+   on the party frames, else the most hurt in reach, else the nearest
+   ally, the healer only when alone), Ward also shields the allies round
+   that one, and Sanctuary heals everyone standing where the cursor is.
    Renewal (role_talents.cpp) leaves healing over time on whoever a bolt
    lands on, run by UpdateRenewals. */
 
@@ -69,11 +71,28 @@ CastHealerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 
         case 1:
         {
             world_entity *Ally = PickAllyFor(AppState, Slot, Player, MENDING_BOLT_RANGE);
+            float Absorb = (WARD_ABSORB + DEEP_WARD_ABSORB *
+                            (float)RoleRank(Slot, PlayerRole_Healer, HealerTalent_DeepWard)) *
+                PartySustainScale(AppState->Dungeon);
             player_slot *AllySlot = &AppState->Players[Ally->PlayerIndex];
-            AllySlot->WardAbsorb = WARD_ABSORB + DEEP_WARD_ABSORB *
-                (float)RoleRank(Slot, PlayerRole_Healer, HealerTalent_DeepWard);
-            AllySlot->WardFull = AllySlot->WardAbsorb;
+            AllySlot->WardAbsorb = Absorb;
+            AllySlot->WardFull = Absorb;
             EmitBurst(&AppState->Events, SimBurst_WardCast, SlotIndex, ChestOf(Ally));
+            // NOTE(zoubir): the allies round the warded one get part of
+            // it, never less than the ward they already hold
+            float Splash = WARD_SPLASH_SHARE * Absorb;
+            for(u32 Other = 0; Other < MAX_PLAYERS; Other++)
+            {
+                world_entity *Near = LivingPlayerInSlot(AppState, Other);
+                player_slot *NearSlot = &AppState->Players[Other];
+                if (Near && Near != Ally && NearSlot->WardAbsorb < Splash &&
+                    Length(Near->Position.XY - Ally->Position.XY) <= WARD_SPLASH_RADIUS)
+                {
+                    NearSlot->WardAbsorb = Splash;
+                    NearSlot->WardFull = Splash;
+                    EmitBurst(&AppState->Events, SimBurst_WardCast, SlotIndex, ChestOf(Near));
+                }
+            }
         } break;
 
         case 2:

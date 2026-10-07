@@ -1,16 +1,19 @@
 /* Role abilities (docs/dungeon-plan.md, "Roles"): in a dungeon run each
    role's A, E and V keys cast that role's spells instead of the game's
-   Launch, Shield and kunai, where its row in RoleSpells names one. Left
-   click, blink and jump are the same for everyone.
+   Launch, Shield and kunai, where its row in RoleSpells names one. The
+   fireball (X), blink and jump are the same for everyone.
 
    Tank (Bulwark, role_kits/tank.cpp)
-     A  Taunt: every monster near the tank attacks it.
-     E  Shield Slam: stuns and hurts what is round the tank, raises
-        Shield Wall on it and rallies the allies near it.
+     A  Taunt: every monster near the tank attacks it, and Shield Wall
+        goes up for a moment.
+     E  Shield Slam: stuns and hurts what is round the tank, heals it
+        for each one struck, raises Shield Wall on it and rallies the
+        allies near it.
      V  Intercept: leaps to an ally and takes the threat off them.
    Healer (Mender, role_kits/healer.cpp)
      A  Sanctuary: a circle at the cursor that heals allies inside.
-     E  Ward: an ally absorbs the next hits.
+     E  Ward: an ally absorbs the next hits, and the allies round them
+        absorb half as much.
      V  Mending Bolt: heals an ally.
    Damage (Striker, role_kits/striker.cpp)
      A  Inferno: a meteor at the cursor, then burning ground.
@@ -18,7 +21,9 @@
 
    Who an ally spell lands on: the player the client says is under the
    cursor or picked on the party frames (player_input.Target, which may
-   be the caster), else the most hurt ally in reach, else the caster.
+   be the caster), else the most hurt player in reach, else the nearest
+   other ally in reach. Only a healer with nobody in reach casts on
+   themselves, so no healer spell is a self heal.
 
    UseRoleAbilities runs from UpdatePlayer before the game's abilities and
    takes the role's keys out of the input, so the game's spells on those
@@ -72,15 +77,16 @@ global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
     {{"Inferno", INFERNO_COOLDOWN, "Inferno: a meteor at the cursor, then burning ground",
       RoleAim_Ground, INFERNO_RADIUS},
      {0}, {0}},
-    {{"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you", RoleAim_None, 0.f},
+    {{"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you; Shield Wall 2 s",
+      RoleAim_None, 0.f},
      {"Shield Slam", SHIELD_SLAM_COOLDOWN,
-      "Shield Slam: stun what is near, take 40% damage, shield allies near you",
+      "Shield Slam: stun what is near, heal per foe hit, take 40%, shield allies",
       RoleAim_None, 0.f},
      {"Intercept", INTERCEPT_COOLDOWN, "Intercept: leap to an ally and pull their foes",
       RoleAim_Ally, INTERCEPT_RANGE}},
     {{"Sanctuary", SANCTUARY_COOLDOWN, "Sanctuary: a healing circle at the cursor",
       RoleAim_Ground, SANCTUARY_RADIUS},
-     {"Ward", WARD_COOLDOWN, "Ward: an ally absorbs the next hits", RoleAim_Ally,
+     {"Ward", WARD_COOLDOWN, "Ward: shield an ally, and half on allies near them", RoleAim_Ally,
       MENDING_BOLT_RANGE},
      {"Mending Bolt", MENDING_BOLT_COOLDOWN, "Mending Bolt: heal an ally", RoleAim_Ally,
       MENDING_BOLT_RANGE}},
@@ -246,6 +252,26 @@ MostHurtAlly(app_state *AppState, v2 From, float Range, world_entity *Skip = 0)
     return Result;
 }
 
+// NOTE(zoubir): the living player within Range of Self nearest to it,
+// Self left out, or 0
+internal world_entity *
+NearestOtherAlly(app_state *AppState, world_entity *Self, float Range)
+{
+    world_entity *Result = 0;
+    float Best = Range;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        world_entity *Player = LivingPlayerInSlot(AppState, SlotIndex);
+        float Distance = Player ? Length(Player->Position.XY - Self->Position.XY) : 0.f;
+        if (Player && Player != Self && Distance <= Best)
+        {
+            Best = Distance;
+            Result = Player;
+        }
+    }
+    return Result;
+}
+
 // NOTE(zoubir): who a healer's ally spell lands on (the rules at the top)
 internal world_entity *
 PickAllyFor(app_state *AppState, player_slot *Slot, world_entity *Player, float Range)
@@ -254,6 +280,10 @@ PickAllyFor(app_state *AppState, player_slot *Slot, world_entity *Player, float 
     if (!Result || Length(Result->Position.XY - Player->Position.XY) > Range)
     {
         Result = MostHurtAlly(AppState, Player->Position.XY, Range);
+    }
+    if (!Result)
+    {
+        Result = NearestOtherAlly(AppState, Player, Range);
     }
     if (!Result)
     {
@@ -271,7 +301,8 @@ HealPlayer(app_state *AppState, u32 By, world_entity *Target, float Amount)
     {
         return 0.f;
     }
-    float Given = Minimum(Amount, Target->MaxHp - Target->Hp);
+    float Given = Minimum(Amount * PartySustainScale(AppState->Dungeon),
+                          Target->MaxHp - Target->Hp);
     Target->Hp += Given;
     dungeon_run *Run = AppState->Dungeon;
     if (Run && Given > 0.f && By < MAX_PLAYERS)

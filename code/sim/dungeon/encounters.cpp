@@ -20,15 +20,6 @@
 #include "crypt_encounters.cpp"
 #include "threat.cpp"
 
-// NOTE(zoubir): a dungeon monster's health is MaxHp times this, so two
-// players face 1.4 times the health and five face 2.6 times
-inline float
-PartyHealthScale(u32 Players)
-{
-    float Result = 0.6f + 0.4f * (float)Maximum(Players, 1u);
-    return Result;
-}
-
 // NOTE(zoubir): packs appear at least this far from every player
 #define DUNGEON_PACK_DISTANCE 300.f
 #define DUNGEON_PACK_SPREAD 70.f
@@ -194,6 +185,7 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
     u32 Standing;
     u32 Players = CountPartyPlayers(AppState, &Standing);
     float HealthScale = PartyHealthScale(Players);
+    Run->PartyDamage = PartyDamageScale(Players);
     Run->RoomStates[Room] = RoomState_Fighting;
     Run->FightingRoom = Room;
     Run->FoeCount = 0;
@@ -290,6 +282,7 @@ EndEncounter(app_state *AppState, dungeon_run *Run, v3 Position, float Seconds)
 {
     Run->FightingRoom = 0;
     Run->FoeCount = 0;
+    Run->PartyDamage = 0.f;
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];

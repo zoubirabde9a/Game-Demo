@@ -10,6 +10,9 @@
 // NOTE(zoubir): Tank (role_kits/tank.cpp)
 #define TAUNT_RADIUS 260.f
 #define TAUNT_COOLDOWN 8.f
+// NOTE(zoubir): a taunt raises Shield Wall for this long (never cutting
+// a longer one short), so the tank meets what it pulled behind it
+#define TAUNT_WALL_SECONDS 2.f
 #define SHIELD_SLAM_RADIUS 110.f
 #define SHIELD_SLAM_DAMAGE 15.f
 #define SHIELD_SLAM_SHOVE 260.f
@@ -17,6 +20,11 @@
 // NOTE(zoubir): threat each monster struck takes on, on top of the hit's
 #define SHIELD_SLAM_THREAT 80.f
 #define SHIELD_SLAM_COOLDOWN 14.f
+// NOTE(zoubir): the tank heals this share of its health for each monster
+// the slam strikes, counting at most SHIELD_SLAM_HEAL_FOES; the bigger
+// the pack it holds, the more it gets back
+#define SHIELD_SLAM_HEAL_SHARE 0.05f
+#define SHIELD_SLAM_HEAL_FOES 5
 #define SHIELD_WALL_SECONDS 4.f
 // NOTE(zoubir): allies this close to the slam take RALLY_SHARE less for
 // RALLY_SECONDS (the tank itself has Shield Wall instead)
@@ -35,6 +43,10 @@
 #define SANCTUARY_COOLDOWN 14.f
 #define WARD_ABSORB 36.f
 #define WARD_COOLDOWN 10.f
+// NOTE(zoubir): the allies this close to the warded one absorb this
+// share of the ward too
+#define WARD_SPLASH_RADIUS 150.f
+#define WARD_SPLASH_SHARE 0.5f
 #define MENDING_BOLT_HEAL 34.f
 #define MENDING_BOLT_RANGE 500.f
 #define MENDING_BOLT_COOLDOWN 2.2f

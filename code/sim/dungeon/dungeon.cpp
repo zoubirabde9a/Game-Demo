@@ -102,6 +102,10 @@ struct dungeon_run
     bool32 GatesBuilt;
     u32 GateWalls[DUNGEON_MAX_GATES][DUNGEON_GATE_TILES];
     u32 Wipes;
+    // NOTE(zoubir): what the monsters' hits are multiplied by in the room
+    // being fought, set when it starts for the party's size
+    // (PartyDamageScale, party_scaling.cpp); 0 between fights, read as 1
+    float PartyDamage;
     random_series Series;
     // NOTE(zoubir): who each monster attacks (threat.cpp)
     threat_table Threat;
@@ -151,6 +155,8 @@ IsDungeon(app_state *AppState)
 // NOTE(zoubir): share of a hit a tank takes behind Shield Wall
 // (role_abilities.cpp)
 #define SHIELD_WALL_SCALE 0.4f
+
+#include "party_scaling.cpp"
 
 // NOTE(zoubir): in threat.cpp and role_kits/striker.cpp, included by
 // encounters.cpp later
@@ -242,6 +248,14 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
     {
         player_slot *Slot = &AppState->Players[Target->PlayerIndex];
         Result *= GetRoleDef(Slot->Role)->DamageTaken * RoleTalentTakenScale(Slot, Target);
+        // NOTE(zoubir): a bigger party's fight hits harder, the tank less
+        // so (PartySustainScale)
+        dungeon_run *Run = AppState->Dungeon;
+        bool32 FromPlayer = Source && Source->Type == EntityType_Player;
+        if (Run->FightingRoom && !FromPlayer)
+        {
+            Result *= Slot->Role == PlayerRole_Tank ? PartySustainScale(Run) : RunPartyDamage(Run);
+        }
         if (Slot->ShieldWallSeconds > 0.f)
         {
             Result *= SHIELD_WALL_SCALE;
