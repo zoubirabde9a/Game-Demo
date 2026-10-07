@@ -70,7 +70,7 @@ Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, 
 **The Hollow King**, the last boss.
 - Soul Cleave: a huge slam. The tank keeps it facing away from the group.
 - Shadow Rush: a charge through the room.
-- Wail of the Dead (below 40%): a ring of shots in every direction.
+- Wail of the Dead (below 40%): four souls flying out in an X round its target.
 - At 75%, 50% and 25% two Hollow Shades rise at the room's edges.
 
 ## Online
@@ -85,7 +85,7 @@ Snapshots gain: each player's role (2 bits), downed state, the run's room and en
 - [x] Threat and taunt, through `DungeonPickTarget`. Taunt is `TauntAround` in `sim/dungeon/threat.cpp`; the tank's key for it comes with the role kits.
 - [x] Role kits: what A, E and V cast for each role (`sim/dungeon/role_abilities.cpp`). They borrow existing bursts for now; their own look comes with the client step.
 - [x] Downed players and healer revives (`sim/dungeon/revive.cpp`): a healer within 60 of the body for 3 s brings them back there at 40% health.
-- [ ] The three bosses and their phase scripts. Done: the scripted events (`sim/dungeon/boss_scripts.cpp`), Gravecaller Ossian, the Brood Queen. Left: the Hollow King.
+- [x] The three bosses (`sim/monsters/crypt_*.cpp`) and their scripted events (`sim/dungeon/boss_scripts.cpp`).
 - [ ] Online: role and run state on the wire, role pick request, server `--map crypt`.
 - [ ] Client: role picker, boss health bar, objective line, party frames.
 

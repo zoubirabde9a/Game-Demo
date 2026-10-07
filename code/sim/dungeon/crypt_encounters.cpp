@@ -3,9 +3,9 @@
    same Pack stand together around one spot; a boss stands in the middle
    of its room. Elites roll a random affix (sim/monster_affixes.cpp).
 
-   Bosses: Gravecaller Ossian in the Ossuary and the Brood Queen in the
-   Brood Nest (sim/monsters/crypt_*.cpp). The Throne of Dust holds the
-   Ashen Warlord until the Hollow King lands (docs/dungeon-plan.md). */
+   Bosses (sim/monsters/crypt_*.cpp): Gravecaller Ossian in the Ossuary,
+   the Brood Queen in the Brood Nest, the Hollow King on the Throne of
+   Dust. */
 
 enum encounter_flag
 {
@@ -47,8 +47,8 @@ global_variable encounter_row CryptEncounters[] =
     {6, 1, MonsterKind_Warden, 1, Encounter_Elite},
     {6, 1, MonsterKind_Imp, 2, 0},
     {6, 2, MonsterKind_Ravager, 1, Encounter_Elite},
-    // 7, Throne of Dust: the last boss
-    {7, 0, MonsterKind_Warlord, 1, Encounter_Boss},
+    // 7, Throne of Dust: the last boss, the Hollow King
+    {7, 0, MonsterKind_HollowKing, 1, Encounter_Boss},
 };
 
 // NOTE(zoubir): the encounter table of a dungeon map

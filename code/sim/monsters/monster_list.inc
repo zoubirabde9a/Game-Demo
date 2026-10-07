@@ -18,3 +18,4 @@
 #include "lurker.cpp"
 #include "crypt_gravecaller.cpp"
 #include "crypt_brood_queen.cpp"
+#include "crypt_hollow_king.cpp"

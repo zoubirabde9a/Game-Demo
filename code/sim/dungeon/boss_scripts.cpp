@@ -20,6 +20,10 @@ global_variable boss_event BossEvents[] =
     {MonsterKind_Gravecaller, 0.33f, MonsterKind_Shaman, 1},
     // NOTE(zoubir): the Brood Queen: two spiders when she is half gone
     {MonsterKind_BroodQueen, 0.5f, MonsterKind_Spider, 2},
+    // NOTE(zoubir): the Hollow King: his court of shades rises three times
+    {MonsterKind_HollowKing, 0.75f, MonsterKind_Shade, 2},
+    {MonsterKind_HollowKing, 0.5f, MonsterKind_Shade, 2},
+    {MonsterKind_HollowKing, 0.25f, MonsterKind_Shade, 2},
 };
 
 // NOTE(zoubir): the fight's boss, as encounters.cpp spawned it, or 0 once
