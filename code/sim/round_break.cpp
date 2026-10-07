@@ -21,12 +21,14 @@
 // round lasts; the next round's start brings them back (setup.cpp)
 #define ROUND_WAIT_SECONDS 1000000.f
 
-// NOTE(zoubir): rounds are played on maps without monsters
+// NOTE(zoubir): rounds are played on maps without monsters; a dungeon
+// (sim/dungeon/) has its own rules for the dead
 inline bool32
 IsRoundMap(app_state *AppState)
 {
-    bool32 Result = GameRules.RoundBreaks &&
-        GetMapDef((map_id)AppState->World.MapId)->MonsterPopulation == 0;
+    map_def *Map = GetMapDef((map_id)AppState->World.MapId);
+    bool32 Result = GameRules.RoundBreaks && Map->MonsterPopulation == 0 &&
+        !Map->Dungeon;
     return Result;
 }
 

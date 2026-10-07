@@ -126,9 +126,149 @@ TestTheMapVoteLeavesTheDungeonAlone()
     DestroyTestWorld(&Test);
 }
 
+struct crypt_world
+{
+    app_state *AppState;
+    memory_arena Arena;
+    memory_arena Constants;
+};
+
+// NOTE(zoubir): the real Sunken Crypt, built as the game builds it, with
+// Players players at their spawns in the Antechamber
+internal crypt_world
+CreateCryptWorld(u32 Players)
+{
+    crypt_world Result = {};
+    Result.AppState = (app_state *)calloc(1, sizeof(app_state));
+    memory_index Size = Megabytes(48);
+    InitializeArena(&Result.Arena, (memory_index *)calloc(1, Size), Size);
+    InitializeArena(&Result.Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
+    Result.AppState->World.MapId = MapId_Crypt;
+    InitSimulation(Result.AppState, &Result.Arena, &Result.Constants);
+    for(u32 SlotIndex = 0; SlotIndex < Players; SlotIndex++)
+    {
+        world_entity *Player =
+            AddPlayerToSlot(Result.AppState, &Result.AppState->World, &Result.Arena,
+                            SlotIndex, PlayerSpawnPosition(&Result.AppState->World, SlotIndex));
+        Player->SpawnShield = 0.f;
+    }
+    return Result;
+}
+
+internal void
+DestroyCryptWorld(crypt_world *Crypt)
+{
+    free(Crypt->AppState);
+    free(Crypt->Arena.Base);
+    free(Crypt->Constants.Base);
+}
+
+internal void
+TickCrypt(crypt_world *Crypt, u32 Ticks)
+{
+    for(u32 Tick = 0; Tick < Ticks; Tick++)
+    {
+        SimulateTick(Crypt->AppState, &Crypt->Arena, 1.f / 60.f);
+    }
+}
+
+inline bool32
+IsGateClosed(dungeon_run *Run, u32 Gate)
+{
+    bool32 Result = Run->GateWalls[Gate][0] != 0;
+    return Result;
+}
+
+internal void
+KillRoomMonsters(crypt_world *Crypt, u32 Room)
+{
+    world *World = &Crypt->AppState->World;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster &&
+            RoomAtPosition(World, Entity->Position.XY) == Room)
+        {
+            KillEntity(Crypt->AppState, World, Entity, 0);
+        }
+    }
+}
+
+// NOTE(zoubir): the party clears the empty Antechamber at once, walks into
+// the Bone Halls and the fight starts behind closed gates; killing every
+// monster clears the room and opens the way on
+internal void
+TestRoomsStartClearAndOpenGates()
+{
+    crypt_world Crypt = CreateCryptWorld(2);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    Check(Run && Run->RoomCount == 7);
+    Check(AppState->Monsters && CountLiveMonsters(World) == 0);
+    TickCrypt(&Crypt, 1);
+    Check(Run->RoomStates[1] == RoomState_Cleared);
+    Check(!IsGateClosed(Run, 0) && IsGateClosed(Run, 1));
+
+    world_entity *A = AppState->Players[0].Entity;
+    world_entity *B = AppState->Players[1].Entity;
+    MovePlayerTo(AppState, World, &Crypt.Arena, A, Run->RoomEntry[2]);
+    TickCrypt(&Crypt, 1);
+    Check(Run->FightingRoom == 2 && Run->FoeCount == 10);
+    Check(IsGateClosed(Run, 0) && IsGateClosed(Run, 1));
+    // NOTE(zoubir): B was pulled in from the Antechamber
+    Check(RoomAtPosition(World, B->Position.XY) == 2);
+    // NOTE(zoubir): two players face 1.4 times the health
+    world_entity *Foe = &World->Entities[Run->FoeSlots[0]];
+    Check(Foe->MaxHp > GetMonsterStats(Foe->MonsterKind)->MaxHp * 1.39f);
+
+    KillRoomMonsters(&Crypt, 2);
+    TickCrypt(&Crypt, 2);
+    Check(Run->RoomStates[2] == RoomState_Cleared && Run->FightingRoom == 0);
+    Check(!IsGateClosed(Run, 0) && !IsGateClosed(Run, 1) && IsGateClosed(Run, 2));
+    DestroyCryptWorld(&Crypt);
+}
+
+// NOTE(zoubir): a player down in a fight stays down while anyone stands;
+// when the last one falls the party wipes: the boss is gone, the room
+// waits again and everyone stands at its checkpoint, in the room before
+internal void
+TestDownedWaitAndWipesReset()
+{
+    crypt_world Crypt = CreateCryptWorld(2);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    Run->RoomStates[1] = Run->RoomStates[2] = RoomState_Cleared;
+    world_entity *A = AppState->Players[0].Entity;
+    world_entity *B = AppState->Players[1].Entity;
+    MovePlayerTo(AppState, World, &Crypt.Arena, A, Run->RoomEntry[3]);
+    TickCrypt(&Crypt, 1);
+    Check(Run->FightingRoom == 3 && Run->FoeCount == 1);
+
+    KillEntity(AppState, World, A, 0);
+    TickCrypt(&Crypt, 5 * 60);
+    Check(IsDeadPlayer(A));
+    Check(Run->FightingRoom == 3);
+
+    KillEntity(AppState, World, B, 0);
+    TickCrypt(&Crypt, 1);
+    Check(Run->FightingRoom == 0 && Run->RoomStates[3] == RoomState_Waiting);
+    Check(Run->Wipes == 1);
+    Check(CountLiveMonsters(World) == 0);
+    TickCrypt(&Crypt, 3 * 60);
+    Check(!IsDeadPlayer(A) && !IsDeadPlayer(B));
+    Check(RoomAtPosition(World, A->Position.XY) == 2);
+    Check(RoomAtPosition(World, B->Position.XY) == 2);
+    Check(!IsGateClosed(Run, 1));
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDungeonTests()
 {
+    TestRoomsStartClearAndOpenGates();
+    TestDownedWaitAndWipesReset();
     TestCryptRoomsMatchTheMap();
     TestTheMapVoteLeavesTheDungeonAlone();
     TestRolesDoNothingOutsideADungeon();

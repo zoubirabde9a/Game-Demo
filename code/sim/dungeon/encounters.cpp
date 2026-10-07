@@ -1,0 +1,381 @@
+/* Encounters: the dungeon run's rooms coming alive, one at a time
+   (docs/dungeon-plan.md). Included by sim_module.cpp after
+   monster_population.cpp, whose spawning it uses; UpdateDungeon runs once
+   a tick from SimulateTick.
+
+   A room waits until a living player stands in it and the room before is
+   cleared. Then its encounter starts: every row of the map's encounter
+   table for the room spawns (crypt_encounters.cpp), packs together on
+   spots away from the party, a boss in the middle, each with health
+   scaled to the party's size. The rest of the party is pulled in, and
+   both of the room's gates close behind walls. The dead stay down while
+   it lasts.
+
+   When every monster of the encounter is dead the room is cleared: the
+   gate onward opens and the dead stand up at the room's entrance. When
+   every player is dead the party wipes: the monsters vanish, the room
+   waits again, and everyone comes back at the checkpoint by its
+   entrance gate, in the room before. Cleared rooms stay cleared. */
+
+#include "crypt_encounters.cpp"
+
+// NOTE(zoubir): a dungeon monster's health is MaxHp times this, so two
+// players face 1.4 times the health and five face 2.6 times
+inline float
+PartyHealthScale(u32 Players)
+{
+    float Result = 0.6f + 0.4f * (float)Maximum(Players, 1u);
+    return Result;
+}
+
+// NOTE(zoubir): packs appear at least this far from every player
+#define DUNGEON_PACK_DISTANCE 300.f
+#define DUNGEON_PACK_SPREAD 70.f
+#define DUNGEON_SPOT_TRIES 48
+// NOTE(zoubir): the dead wait this long while a fight lasts, which no
+// fight does; the fight's end sets the real wait
+#define DUNGEON_DOWNED_SECONDS 1000000.f
+#define DUNGEON_CLEAR_RESPAWN_SECONDS 1.f
+#define DUNGEON_WIPE_RESPAWN_SECONDS 2.f
+
+inline u32
+CountPartyPlayers(app_state *AppState, u32 *Standing)
+{
+    u32 Result = 0;
+    *Standing = 0;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        if (Slot->Active && Slot->Entity)
+        {
+            Result++;
+            *Standing += IsDeadPlayer(Slot->Entity) ? 0 : 1;
+        }
+    }
+    return Result;
+}
+
+// NOTE(zoubir): opens or closes one gate: walls on every one of its tiles
+internal void
+SetGateClosed(app_state *AppState, world *World, memory_arena *Arena,
+              dungeon_run *Run, u32 Gate, bool32 Closed)
+{
+    u32 *Walls = Run->GateWalls[Gate];
+    bool32 IsClosed = Walls[0] != 0;
+    if (Closed == IsClosed)
+    {
+        return;
+    }
+    if (!Closed)
+    {
+        for(u32 Index = 0; Index < DUNGEON_GATE_TILES && Walls[Index]; Index++)
+        {
+            RemoveEntity(World, &World->Entities[Walls[Index] - 1]);
+            Walls[Index] = 0;
+        }
+        return;
+    }
+    map_def *Map = GetMapDef((map_id)World->MapId);
+    u32 Count = 0;
+    for(i32 Y = 0; Y < (i32)Map->Height; Y++)
+    {
+        for(i32 X = 0; X < (i32)Map->Width; X++)
+        {
+            if (GateAtTile(World->MapId, X, Y) == Gate && Count < DUNGEON_GATE_TILES)
+            {
+                world_entity *Wall = AddWall(AppState, World, Arena,
+                                             TileCenter(World, X, Y));
+                Walls[Count++] = (u32)(Wall - World->Entities) + 1;
+            }
+        }
+    }
+}
+
+// NOTE(zoubir): gate G joins room G + 1 to room G + 2. It is open once
+// the room before it is cleared, unless the room after it is fighting
+inline bool32
+IsGateOpen(dungeon_run *Run, u32 Gate)
+{
+    bool32 Result = Run->RoomStates[Gate + 1] == RoomState_Cleared &&
+        Run->RoomStates[Gate + 2] != RoomState_Fighting;
+    return Result;
+}
+
+internal void
+UpdateGates(app_state *AppState, world *World, memory_arena *Arena,
+            dungeon_run *Run)
+{
+    for(u32 Gate = 0; Gate + 1 < Run->RoomCount; Gate++)
+    {
+        SetGateClosed(AppState, World, Arena, Run, Gate, !IsGateOpen(Run, Gate));
+    }
+    Run->GatesBuilt = true;
+}
+
+// NOTE(zoubir): a spot in Room for a pack: open ground away from the
+// party; the room's middle when none turns up
+internal v3
+PickPackSpot(world *World, dungeon_run *Run, u32 Room)
+{
+    map_def *Map = GetMapDef((map_id)World->MapId);
+    float Tile = (float)World->TileWidth;
+    for(u32 Try = 0; Try < DUNGEON_SPOT_TRIES; Try++)
+    {
+        i32 X = (i32)RandomChoice(&Run->Series, Map->Width);
+        i32 Y = (i32)RandomChoice(&Run->Series, Map->Height);
+        v3 Spot = V3(((float)X + 0.5f) * Tile, ((float)Y + 0.5f) * Tile, 0.f);
+        if (RoomAtTile(World->MapId, X, Y) == Room && IsOpenTile(Map, X, Y) &&
+            IsFarFromPlayers(World, Spot.XY, DUNGEON_PACK_DISTANCE))
+        {
+            return Spot;
+        }
+    }
+    return Run->RoomMiddle[Room];
+}
+
+internal void
+SpawnFoe(app_state *AppState, world *World, memory_arena *Arena,
+         dungeon_run *Run, v3 Spot, encounter_row *Row, float HealthScale)
+{
+    if (Run->FoeCount >= DUNGEON_MAX_FOES)
+    {
+        return;
+    }
+    entity_collision_volume_group *Volume =
+        GetMonsterStats(Row->Kind)->FlyHeight > 0.f ?
+        AppState->BatCollision : AppState->PlayerCollision;
+    v3 Position = Spot;
+    for(u32 Try = 0; Try < DUNGEON_SPOT_TRIES; Try++)
+    {
+        v3 Probe = Spot;
+        if (Try > 0)
+        {
+            Probe.X += RandomBetween(&Run->Series, -DUNGEON_PACK_SPREAD, DUNGEON_PACK_SPREAD);
+            Probe.Y += RandomBetween(&Run->Series, -DUNGEON_PACK_SPREAD, DUNGEON_PACK_SPREAD);
+        }
+        Probe = OnGround(World, Probe);
+        if (IsSpawnSpotFree(AppState, World, Probe, Volume))
+        {
+            Position = Probe;
+            break;
+        }
+    }
+    world_entity *Monster = SpawnMonster(AppState, World, Arena, Position, Row->Kind);
+    if (Row->Flags & Encounter_Elite)
+    {
+        ApplyEliteAffix(Monster, 1 + RandomChoice(&Run->Series, MonsterAffix_Count - 1));
+    }
+    Monster->MaxHp *= HealthScale;
+    Monster->Hp = Monster->MaxHp;
+    Run->FoeSlots[Run->FoeCount] = (u32)(Monster - World->Entities);
+    Run->FoeSerials[Run->FoeCount] = Monster->MonsterSerial;
+    Run->FoeCount++;
+}
+
+// NOTE(zoubir): puts a living player at Position, as a respawn does
+internal void
+MovePlayerTo(app_state *AppState, world *World, memory_arena *Arena,
+             world_entity *Player, v3 Position)
+{
+    v3 OldPosition = Player->Position;
+    Player->Position = FindFreePlayerSpot(AppState, World, Position, Player);
+    Player->Velocity = {};
+    CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Player);
+}
+
+internal void
+StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
+               dungeon_run *Run, u32 Room)
+{
+    u32 Standing;
+    u32 Players = CountPartyPlayers(AppState, &Standing);
+    float HealthScale = PartyHealthScale(Players);
+    Run->RoomStates[Room] = RoomState_Fighting;
+    Run->FightingRoom = Room;
+    Run->FoeCount = 0;
+
+    u32 RowCount;
+    encounter_row *Rows = GetEncounters(World->MapId, &RowCount);
+    for(u32 Pack = 0; Pack < DUNGEON_MAX_FOES; Pack++)
+    {
+        bool32 PackUsed = false;
+        v3 Spot = {};
+        for(u32 RowIndex = 0; RowIndex < RowCount; RowIndex++)
+        {
+            encounter_row *Row = &Rows[RowIndex];
+            if (Row->Room != Room || Row->Pack != Pack)
+            {
+                continue;
+            }
+            if (!PackUsed)
+            {
+                PackUsed = true;
+                Spot = (Row->Flags & Encounter_Boss) ? Run->RoomMiddle[Room] :
+                    PickPackSpot(World, Run, Room);
+            }
+            for(u32 Index = 0; Index < Row->Count; Index++)
+            {
+                SpawnFoe(AppState, World, Arena, Run, Spot, Row, HealthScale);
+            }
+        }
+    }
+
+    // NOTE(zoubir): the party fights together: whoever is outside is
+    // pulled in before the gates close, and a wipe brings everyone back
+    // to the room's checkpoint
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        if (!Slot->Active || !Slot->Entity)
+        {
+            continue;
+        }
+        Slot->SpawnPosition = Run->RoomCheckpoint[Room];
+        if (!IsDeadPlayer(Slot->Entity) &&
+            RoomAtPosition(World, Slot->Entity->Position.XY) != Room)
+        {
+            MovePlayerTo(AppState, World, Arena, Slot->Entity, Run->RoomEntry[Room]);
+        }
+    }
+}
+
+// NOTE(zoubir): the encounter's monsters still alive, and anything they
+// brought into the room (summons, a slime's split): a room is cleared
+// when it holds no monster at all
+internal u32
+CountLiveFoes(world *World, dungeon_run *Run)
+{
+    u32 Result = 0;
+    for(u32 Index = 0; Index < Run->FoeCount; Index++)
+    {
+        Result += FindMonsterBySerial(World, Run->FoeSlots[Index],
+                                      Run->FoeSerials[Index]) ? 1 : 0;
+    }
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster &&
+            RoomAtPosition(World, Entity->Position.XY) == Run->FightingRoom)
+        {
+            Result++;
+        }
+    }
+    return Result;
+}
+
+// NOTE(zoubir): the fight is over, either way: the dead come back at
+// Position after Seconds, and later deaths respawn there too
+internal void
+EndEncounter(app_state *AppState, dungeon_run *Run, v3 Position, float Seconds)
+{
+    Run->FightingRoom = 0;
+    Run->FoeCount = 0;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        if (!Slot->Active || !Slot->Entity)
+        {
+            continue;
+        }
+        Slot->SpawnPosition = Position;
+        if (IsDeadPlayer(Slot->Entity))
+        {
+            Slot->RespawnTimer = Seconds;
+        }
+    }
+}
+
+internal void
+WipeEncounter(app_state *AppState, world *World, dungeon_run *Run)
+{
+    u32 Room = Run->FightingRoom;
+    for(u32 Index = 0; Index < Run->FoeCount; Index++)
+    {
+        world_entity *Foe = FindMonsterBySerial(World, Run->FoeSlots[Index],
+                                                Run->FoeSerials[Index]);
+        if (Foe)
+        {
+            RemoveEntity(World, Foe);
+        }
+    }
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Entity = &World->Entities[EntityIndex];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster &&
+            RoomAtPosition(World, Entity->Position.XY) == Room)
+        {
+            RemoveEntity(World, Entity);
+        }
+    }
+    Run->RoomStates[Room] = RoomState_Waiting;
+    Run->Wipes++;
+    EndEncounter(AppState, Run, Run->RoomCheckpoint[Room], DUNGEON_WIPE_RESPAWN_SECONDS);
+}
+
+// NOTE(zoubir): the next room may start once the one before is cleared
+inline bool32
+CanStartRoom(dungeon_run *Run, u32 Room)
+{
+    bool32 Result = Room >= 1 && Room <= Run->RoomCount &&
+        Run->RoomStates[Room] == RoomState_Waiting &&
+        (Room == 1 || Run->RoomStates[Room - 1] == RoomState_Cleared);
+    return Result;
+}
+
+// NOTE(zoubir): once a tick, from SimulateTick, before anyone moves
+internal void
+UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
+{
+    dungeon_run *Run = AppState->Dungeon;
+    if (!Run)
+    {
+        return;
+    }
+    world *World = &AppState->World;
+    if (!Run->FightingRoom)
+    {
+        for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+        {
+            player_slot *Slot = &AppState->Players[SlotIndex];
+            if (Slot->Active && Slot->Entity && !IsDeadPlayer(Slot->Entity))
+            {
+                u32 Room = RoomAtPosition(World, Slot->Entity->Position.XY);
+                if (CanStartRoom(Run, Room))
+                {
+                    StartEncounter(AppState, World, Arena, Run, Room);
+                    break;
+                }
+            }
+        }
+    }
+
+    if (Run->FightingRoom)
+    {
+        u32 Standing;
+        u32 Players = CountPartyPlayers(AppState, &Standing);
+        if (CountLiveFoes(World, Run) == 0)
+        {
+            u32 Room = Run->FightingRoom;
+            Run->RoomStates[Room] = RoomState_Cleared;
+            EndEncounter(AppState, Run, Run->RoomEntry[Room],
+                         DUNGEON_CLEAR_RESPAWN_SECONDS);
+        }
+        else if (Players > 0 && Standing == 0)
+        {
+            WipeEncounter(AppState, World, Run);
+        }
+        else
+        {
+            for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+            {
+                player_slot *Slot = &AppState->Players[SlotIndex];
+                if (Slot->Active && Slot->Entity && IsDeadPlayer(Slot->Entity))
+                {
+                    Slot->RespawnTimer = Maximum(Slot->RespawnTimer,
+                                                 DUNGEON_DOWNED_SECONDS);
+                }
+            }
+        }
+    }
+    UpdateGates(AppState, World, Arena, Run);
+}

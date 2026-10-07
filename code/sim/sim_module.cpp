@@ -39,6 +39,7 @@
 #include "map_vote.cpp"
 #include "arena.cpp"
 #include "monster_population.cpp"
+#include "dungeon/encounters.cpp"
 #include "terrain_effects.cpp"
 #include "update.cpp"
 #include "time_rewind/time_rewind.cpp"

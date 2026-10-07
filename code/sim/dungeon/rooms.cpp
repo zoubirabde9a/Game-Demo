@@ -77,3 +77,79 @@ CountRooms(u32 MapId)
     }
     return Result;
 }
+
+// NOTE(zoubir): ground a unit can be put on: not blocking, no prop, not
+// a hazard (lava, a pit)
+inline bool32
+IsOpenTile(map_def *Map, i32 X, i32 Y)
+{
+    terrain_def *Def = GetTerrainDef(TerrainAt(Map, X, Y));
+    bool32 Result = !Def->Blocks && !Def->Hazard &&
+        PropAt(Map, X, Y) == TerrainProp_None;
+    return Result;
+}
+
+// NOTE(zoubir): the open tile of Room nearest to the tile point Target
+// (in tiles, may be fractional), as a world position on the ground
+internal v3
+NearestRoomTile(world *World, u32 Room, v2 Target)
+{
+    map_def *Map = GetMapDef((map_id)World->MapId);
+    float BestDistance = 0.f;
+    v2 Best = Target;
+    bool32 Found = false;
+    for(i32 Y = 0; Y < (i32)Map->Height; Y++)
+    {
+        for(i32 X = 0; X < (i32)Map->Width; X++)
+        {
+            if (RoomAtTile(World->MapId, X, Y) != Room || !IsOpenTile(Map, X, Y))
+            {
+                continue;
+            }
+            v2 Center = V2((float)X + 0.5f, (float)Y + 0.5f);
+            float Distance = LengthSq(Center - Target);
+            if (!Found || Distance < BestDistance)
+            {
+                Found = true;
+                BestDistance = Distance;
+                Best = Center;
+            }
+        }
+    }
+    float Tile = (float)World->TileWidth;
+    v3 Result = V3(Best.X * Tile, Best.Y * Tile, 0.f);
+    return Result;
+}
+
+// NOTE(zoubir): the middle of a gate's tiles, or of a room's, in tiles
+internal v2
+GateOrRoomMiddle(u32 MapId, u32 Gate, u32 Room)
+{
+    map_def *Map = GetMapDef((map_id)MapId);
+    v2 Sum = V2(0.f, 0.f);
+    float Count = 0.f;
+    for(i32 Y = 0; Y < (i32)Map->Height; Y++)
+    {
+        for(i32 X = 0; X < (i32)Map->Width; X++)
+        {
+            bool32 Match = Room ? RoomAtTile(MapId, X, Y) == Room :
+                GateAtTile(MapId, X, Y) == Gate;
+            if (Match)
+            {
+                Sum += V2((float)X + 0.5f, (float)Y + 0.5f);
+                Count += 1.f;
+            }
+        }
+    }
+    v2 Result = Count > 0.f ? Sum * (1.f / Count) : Sum;
+    return Result;
+}
+
+// NOTE(zoubir): V as a unit vector, or zero when it has no length
+inline v2
+DirectionTo(v2 V)
+{
+    float Distance = Length(V);
+    v2 Result = Distance > 0.f ? V * (1.f / Distance) : V2(0.f, 0.f);
+    return Result;
+}

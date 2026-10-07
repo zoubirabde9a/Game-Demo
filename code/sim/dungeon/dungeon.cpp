@@ -15,9 +15,42 @@
 
 #include "rooms.cpp"
 
+enum room_state
+{
+    RoomState_Waiting,
+    RoomState_Fighting,
+    RoomState_Cleared,
+};
+
+#define DUNGEON_MAX_FOES 32
+#define DUNGEON_GATE_TILES 8
+// NOTE(zoubir): tiles from a gate to where the party is put either side
+#define DUNGEON_ENTRY_DEPTH 4.f
+
 struct dungeon_run
 {
     u32 RoomCount;
+    // NOTE(zoubir): by room, 1 for the first (encounters.cpp)
+    u8 RoomStates[DUNGEON_MAX_ROOMS + 1];
+    // NOTE(zoubir): where a room's fight pulls the party in, where it
+    // comes back after a wipe (in the room before, by the gate), and the
+    // room's middle, where its boss stands
+    v3 RoomEntry[DUNGEON_MAX_ROOMS + 1];
+    v3 RoomCheckpoint[DUNGEON_MAX_ROOMS + 1];
+    v3 RoomMiddle[DUNGEON_MAX_ROOMS + 1];
+    // NOTE(zoubir): the room being fought, 0 for none, and its monsters,
+    // as entity slot and MonsterSerial (slots are reused)
+    u32 FightingRoom;
+    u32 FoeCount;
+    u32 FoeSlots[DUNGEON_MAX_FOES];
+    u32 FoeSerials[DUNGEON_MAX_FOES];
+    // NOTE(zoubir): the wall entities closing each gate, as slot + 1
+    // (0 for none). Built on the first tick, so only a world that
+    // simulates has them
+    bool32 GatesBuilt;
+    u32 GateWalls[DUNGEON_MAX_GATES][DUNGEON_GATE_TILES];
+    u32 Wipes;
+    random_series Series;
 };
 
 // NOTE(zoubir): whether the world being played is a dungeon run
@@ -41,7 +74,28 @@ StartDungeonRun(app_state *AppState, memory_arena *Arena)
     {
         AppState->Dungeon = AllocateStruct(Arena, dungeon_run);
         ZeroSize(AppState->Dungeon, sizeof(dungeon_run));
-        AppState->Dungeon->RoomCount = CountRooms(AppState->World.MapId);
+        dungeon_run *Run = AppState->Dungeon;
+        world *World = &AppState->World;
+        Run->RoomCount = Minimum(CountRooms(World->MapId), (u32)DUNGEON_MAX_ROOMS);
+        Run->Series = Seed(World->MapId * 7919 + 17);
+        for(u32 Room = 1; Room <= Run->RoomCount; Room++)
+        {
+            v2 Middle = GateOrRoomMiddle(World->MapId, 0, Room);
+            Run->RoomMiddle[Room] = NearestRoomTile(World, Room, Middle);
+            Run->RoomEntry[Room] = Run->RoomMiddle[Room];
+            Run->RoomCheckpoint[Room] = Run->RoomMiddle[Room];
+            if (Room >= 2)
+            {
+                // NOTE(zoubir): a few tiles in from the gate on each side,
+                // so a party put there has room round the spot
+                v2 Gate = GateOrRoomMiddle(World->MapId, Room - 2, 0);
+                v2 Before = GateOrRoomMiddle(World->MapId, 0, Room - 1);
+                Run->RoomEntry[Room] =
+                    NearestRoomTile(World, Room, Gate + DUNGEON_ENTRY_DEPTH * DirectionTo(Middle - Gate));
+                Run->RoomCheckpoint[Room] =
+                    NearestRoomTile(World, Room - 1, Gate + DUNGEON_ENTRY_DEPTH * DirectionTo(Before - Gate));
+            }
+        }
     }
 }
 

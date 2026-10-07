@@ -81,7 +81,7 @@ Snapshots gain: each player's role (2 bits), downed state, the run's room and en
 
 - [x] The mode switch and roles in the simulation: `IsDungeon`, `player_role`, role health and damage scaling, tests.
 - [x] The Sunken Crypt map, flagged `Dungeon`, left out of the duel rotation and the map vote.
-- [ ] Encounters: room triggers, spawning packs, leashing, gates that open, checkpoints, wipe and reset.
+- [x] Encounters: room triggers, spawning packs, leashing, gates that open, checkpoints, wipe and reset.
 - [ ] Threat and taunt, through `DungeonPickTarget`.
 - [ ] Role kits: what A, E and V cast for each role.
 - [ ] Downed players and healer revives.
