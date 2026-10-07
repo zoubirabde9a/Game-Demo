@@ -75,20 +75,6 @@ PaintRallyIcon(icon_canvas *Canvas)
     }
 }
 
-// NOTE(zoubir): Unyielding: a cracked shield still standing, red behind it
-internal void
-PaintUnyieldingIcon(icon_canvas *Canvas)
-{
-    IconGlow(Canvas, V2(0.5f, 0.5f), 0.48f, IconColor(255, 60, 40, 130));
-    v2 Shield[5] = {V2(0.28f, 0.16f), V2(0.72f, 0.16f), V2(0.72f, 0.6f), V2(0.5f, 0.86f),
-                    V2(0.28f, 0.6f)};
-    IconPolygon(Canvas, Shield, 5, Gradient(IconColor(200, 205, 215), IconColor(80, 80, 95),
-                                            V2(0.5f, 0.16f), V2(0.5f, 0.86f)));
-    IconCapsule(Canvas, V2(0.46f, 0.18f), V2(0.54f, 0.38f), 0.02f, Solid(IconColor(30, 20, 20)));
-    IconCapsule(Canvas, V2(0.54f, 0.38f), V2(0.44f, 0.56f), 0.02f, Solid(IconColor(30, 20, 20)));
-    IconCapsule(Canvas, V2(0.44f, 0.56f), V2(0.52f, 0.78f), 0.02f, Solid(IconColor(30, 20, 20)));
-}
-
 // NOTE(zoubir): Renewal: a green leaf with light dripping off it
 internal void
 PaintRenewalIcon(icon_canvas *Canvas)
@@ -101,19 +87,6 @@ PaintRenewalIcon(icon_canvas *Canvas)
     IconCapsule(Canvas, V2(0.5f, 0.22f), V2(0.5f, 0.86f), 0.022f, Solid(IconColor(30, 110, 50)));
     IconCircle(Canvas, V2(0.68f, 0.84f), 0.04f, Solid(IconColor(200, 255, 210)));
     IconCircle(Canvas, V2(0.32f, 0.88f), 0.03f, Solid(IconColor(200, 255, 210)));
-}
-
-// NOTE(zoubir): Beacon: one bolt of light splitting into two
-internal void
-PaintBeaconIcon(icon_canvas *Canvas)
-{
-    v4 Green = IconColor(120, 240, 150);
-    IconGlow(Canvas, V2(0.5f, 0.5f), 0.46f, IconColor(110, 240, 150, 110));
-    IconCapsule(Canvas, V2(0.14f, 0.5f), V2(0.46f, 0.5f), 0.05f, Solid(Green));
-    IconCapsule(Canvas, V2(0.46f, 0.5f), V2(0.78f, 0.26f), 0.04f, Solid(Green));
-    IconCapsule(Canvas, V2(0.46f, 0.5f), V2(0.78f, 0.74f), 0.03f, Solid(IconColor(180, 255, 200)));
-    IconCircle(Canvas, V2(0.8f, 0.26f), 0.09f, Solid(IconColor(235, 255, 240)));
-    IconCircle(Canvas, V2(0.8f, 0.74f), 0.07f, Solid(IconColor(200, 255, 215)));
 }
 
 // NOTE(zoubir): Miracle: a figure rising in a column of gold
@@ -161,26 +134,16 @@ PaintExecutionerIcon(icon_canvas *Canvas)
                                            V2(0.6f, 0.12f), V2(0.8f, 0.42f)));
 }
 
-// NOTE(zoubir): Bloodlust: a red drop feeding a flame
-internal void
-PaintBloodlustIcon(icon_canvas *Canvas)
-{
-    IconGlow(Canvas, V2(0.5f, 0.5f), 0.46f, IconColor(255, 50, 50, 140));
-    v2 Drop[5] = {V2(0.5f, 0.12f), V2(0.66f, 0.4f), V2(0.62f, 0.56f), V2(0.38f, 0.56f), V2(0.34f, 0.4f)};
-    IconPolygon(Canvas, Drop, 5, Gradient(IconColor(255, 120, 110), IconColor(150, 10, 20),
-                                          V2(0.45f, 0.15f), V2(0.55f, 0.56f)));
-    IconCircle(Canvas, V2(0.5f, 0.5f), 0.12f, Solid(IconColor(180, 20, 30)));
-    IconSparkle(Canvas, V2(0.72f, 0.74f), 0.1f, Solid(IconColor(255, 170, 60)));
-    IconSparkle(Canvas, V2(0.3f, 0.78f), 0.07f, Solid(IconColor(255, 120, 40)));
-}
-
 internal void PaintProvokeIcon(icon_canvas *C) { PaintRoleTauntIcon(C); IconBadgeSooner(C); }
 internal void PaintBastionIcon(icon_canvas *C) { PaintRoleShieldSlamIcon(C); IconBadgeMore(C); }
 internal void PaintGuardianIcon(icon_canvas *C) { PaintRoleInterceptIcon(C); IconBadgeMore(C); }
 internal void PaintSwiftMendingIcon(icon_canvas *C) { PaintRoleMendingBoltIcon(C); IconBadgeMore(C); }
 internal void PaintDeepWardIcon(icon_canvas *C) { PaintRoleWardIcon(C); IconBadgeMore(C); }
 internal void PaintHallowedIcon(icon_canvas *C) { PaintRoleSanctuaryIcon(C); IconBadgeWider(C); }
-internal void PaintKindlingIcon(icon_canvas *C) { PaintRoleInfernoIcon(C); IconBadgeSooner(C); }
+internal void PaintSearingHeatIcon(icon_canvas *C) { PaintRoleDetonateIcon(C); IconBadgeMore(C); }
+internal void PaintOverloadIcon(icon_canvas *C) { PaintRoleDetonateIcon(C); IconBadgeSooner(C); }
+internal void PaintShatterArmorIcon(icon_canvas *C) { PaintRoleShieldSlamIcon(C); IconBadgeMore(C); }
+internal void PaintInspirationIcon(icon_canvas *C) { PaintRoleWardIcon(C); IconBadgeWider(C); }
 internal void PaintWildfireIcon(icon_canvas *C) { PaintRoleInfernoIcon(C); IconBadgeMore(C); }
 internal void PaintCataclysmIcon(icon_canvas *C) { PaintRoleInfernoIcon(C); IconBadgeWider(C); }
 
@@ -188,10 +151,10 @@ internal void PaintCataclysmIcon(icon_canvas *C) { PaintRoleInfernoIcon(C); Icon
 // RoleTalentDefs lists them
 global_variable talent_icon_painter *RoleTalentIconPainters[PlayerRole_Count][ROLE_TALENTS] =
 {
-    {PaintPyromancerIcon, PaintKindlingIcon, PaintWildfireIcon, PaintExecutionerIcon,
-     PaintCataclysmIcon, PaintBloodlustIcon},
+    {PaintPyromancerIcon, PaintSearingHeatIcon, PaintWildfireIcon, PaintExecutionerIcon,
+     PaintCataclysmIcon, PaintOverloadIcon},
     {PaintIronSkinIcon, PaintProvokeIcon, PaintBastionIcon, PaintGuardianIcon,
-     PaintRallyIcon, PaintUnyieldingIcon},
+     PaintRallyIcon, PaintShatterArmorIcon},
     {PaintSwiftMendingIcon, PaintDeepWardIcon, PaintRenewalIcon, PaintHallowedIcon,
-     PaintBeaconIcon, PaintMiracleIcon},
+     PaintInspirationIcon, PaintMiracleIcon},
 };

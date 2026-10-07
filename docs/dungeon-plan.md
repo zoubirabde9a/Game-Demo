@@ -51,12 +51,12 @@ In a run the talent panel (N) has a fourth column, the role's own branch, in its
 
 | Tier | Bulwark | Mender | Striker |
 |---|---|---|---|
-| 1 | Iron Skin (-6% damage taken a rank), Provoke (-1.5 s Taunt, +15% reach a rank) | Swift Mending (+15% Mending Bolt a rank), Deep Ward (+12 absorbed a rank) | Pyromancer (+6% damage a rank), Kindling (-1.5 s Inferno a rank) |
-| 2 | Bastion (Shield Wall +2 s, stun +0.5 s), Guardian (Intercept wards the ally for 30) | Renewal (Mending Bolt also heals 24 over 4 s), Hallowed Ground (Sanctuary 30% wider, 50% stronger) | Wildfire (burning ground +2 s), Executioner (+35% on monsters under 30%) |
-| 3 | Rally (allies take 40% less, out to 240) | Beacon (40% of each bolt heals the next most hurt) | Cataclysm (Inferno 35% wider) |
-| 4 | Unyielding (-30% damage taken under a third of health) | Miracle (revive in 1.5 s at 70%) | Bloodlust (a kill takes 2 s off Inferno) |
+| 1 | Iron Skin (-6% damage taken a rank), Provoke (-1.5 s Taunt, +15% reach a rank) | Swift Mending (+15% Mending Bolt a rank), Deep Ward (+12 absorbed a rank) | Pyromancer (+6% damage a rank), Searing Heat (+5 a Searing stack on Detonate, a rank) |
+| 2 | Bastion (Shield Wall +2 s, stun +0.5 s), Guardian (Intercept wards the ally for 30) | Renewal (Mending Bolt also heals 24 over 4 s), Hallowed Ground (Sanctuary 30% wider, 50% stronger) | Wildfire (burning ground +2 s, keeping marks alive), Executioner (+35% on monsters under 30%) |
+| 3 | Rally (allies take 40% less, out to 240) | Inspiration (a ward's damage bonus is 24%, and the allies it splashes onto get it too) | Cataclysm (Inferno 35% wider, marking more of a pack) |
+| 4 | Shatter Armor (Sunder is 25% for 12 s) | Miracle (revive in 1.5 s at 70%) | Overload (detonating a full mark gives back 3 s of Detonate) |
 
-The six slots are `Talent_RoleFirst` on in `sim/progression/talents.cpp`; their meaning is the player's role, so picking another role gives their points back, and they take no point outside a run.
+Each branch serves its role's rotation and its part in the damage race as much as its own job: the striker's deepens build and spend and ends in Overload, which pays for never detonating short; the tank's ends in a deeper Sunder for the whole party; the healer's turns the ward into a party-wide damage call. The six slots are `Talent_RoleFirst` on in `sim/progression/talents.cpp`; their meaning is the player's role, so picking another role gives their points back, and they take no point outside a run.
 
 ### Looks
 
@@ -109,9 +109,9 @@ Every boss fight is a damage race. The boss's enrage timer shows under its healt
 |---|---|
 | Gravecaller Ossian | 2:15 |
 | The Brood Queen | 2:15 |
-| The Hollow King | 3:00 |
+| The Hollow King | 2:30 |
 
-A timer is about 1.3 times what a party playing its rotations well needs: the boss's and its adds' health over the party's damage at 70% of its best (striker about 24 a second, tank 4, healer 1). Another party size scales it by its health growth over its head count. The clock starts again after a wipe. `tools/dungeon_balance.cpp` runs three server bots through the crypt and times every fight; with the bots playing the striker rotation, sunder and wards they kill the Brood Queen in 1:20 to 2:10 and the Hollow King in 1:45 to 2:30, and can run out of time on Gravecaller Ossian, where they are the lowest level. People should do better than bots.
+A timer is about 1.3 times what a party playing its rotations well needs: the boss's and its adds' health over the party's damage at 70% of its best (striker about 24 a second, tank 4, healer 1). Another party size scales it by its health growth over its head count. The clock starts again after a wipe. `tools/dungeon_balance.cpp` runs three server bots through the crypt and times every fight; with the bots playing the striker rotation, sunder and wards they kill the Brood Queen in 1:20 to 2:10 and the Hollow King in 1:40 to 2:30, and can run out of time on Gravecaller Ossian, where they are the lowest level. People should do better than bots.
 
 Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, summon, burrow, mend), and the dungeon adds scripted phase events at health thresholds (adds, hazards) on top, in `sim/dungeon/boss_scripts.cpp`.
 

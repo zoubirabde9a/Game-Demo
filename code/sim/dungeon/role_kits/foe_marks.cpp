@@ -67,12 +67,14 @@ AddSearing(dungeon_run *Run, world *World, world_entity *Monster)
     Mark->Seconds = SEARING_SECONDS;
 }
 
-// NOTE(zoubir): Monster is sundered for Seconds, never cut shorter
+// NOTE(zoubir): Monster takes Share more for Seconds, never cut shorter
+// or weaker by a lesser sunder
 internal void
-AddSunder(dungeon_run *Run, world *World, world_entity *Monster, float Seconds)
+AddSunder(dungeon_run *Run, world *World, world_entity *Monster, float Seconds, float Share)
 {
     foe_mark *Mark = GetFoeMark(Run, World, Monster);
     Mark->SunderSeconds = Maximum(Mark->SunderSeconds, Seconds);
+    Mark->SunderShare = Maximum(Mark->SunderShare, Share);
 }
 
 // NOTE(zoubir): from DungeonScaleDamage: what a player's hit on Monster
@@ -81,7 +83,7 @@ internal float
 FoeMarkDamageScale(dungeon_run *Run, world *World, world_entity *Monster)
 {
     foe_mark *Mark = FindFoeMark(Run, World, Monster);
-    float Result = (Mark && Mark->SunderSeconds > 0.f) ? 1.f + SUNDER_SHARE : 1.f;
+    float Result = (Mark && Mark->SunderSeconds > 0.f) ? 1.f + Mark->SunderShare : 1.f;
     return Result;
 }
 
@@ -98,6 +100,10 @@ UpdateFoeMarks(dungeon_run *Run, world *World, float DeltaTime)
         }
         Mark->Seconds -= DeltaTime;
         Mark->SunderSeconds = Maximum(0.f, Mark->SunderSeconds - DeltaTime);
+        if (Mark->SunderSeconds <= 0.f)
+        {
+            Mark->SunderShare = 0.f;
+        }
         if (Mark->Seconds <= 0.f)
         {
             Mark->Stacks = 0;

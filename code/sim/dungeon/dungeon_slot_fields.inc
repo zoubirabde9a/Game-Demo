@@ -11,6 +11,11 @@
     float ShieldWallSeconds;
     float WardAbsorb;
     float WardFull;
+    // NOTE(zoubir): the share more damage the player deals while its ward
+    // holds (role_kits/healer.cpp), and seconds a role cast gives back
+    // off its own cooldown (Overload, role_kits/striker.cpp)
+    float WardEmpower;
+    float CastRefund;
     // NOTE(zoubir): a tank's Shield Slam rallied this player: seconds left
     // and the share of damage it takes off; a healer's Renewal: seconds
     // left, health a second, and the healer's slot

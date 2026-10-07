@@ -8,7 +8,8 @@
    lands on, run by UpdateRenewals.
 
    A warded ally also deals WARD_EMPOWER_SHARE more while the ward holds
-   (DungeonScaleDamage), so the ward is the healer's call in a damage
+   (DungeonScaleDamage; Inspiration doubles it and gives it to the
+   allies the ward splashes onto), so the ward is the healer's call in a damage
    race: on the tank before a big hit, on the striker the rest of the
    time to beat the boss's clock. */
 
@@ -27,15 +28,6 @@ CastMendingBolt(app_state *AppState, player_slot *Slot, world_entity *Player)
         AllySlot->RenewSeconds = RENEWAL_SECONDS;
         AllySlot->RenewPerSecond = RENEWAL_PER_SECOND;
         AllySlot->RenewBy = SlotIndex;
-    }
-    if (RoleRank(Slot, PlayerRole_Healer, HealerTalent_Beacon))
-    {
-        world_entity *Next = MostHurtAlly(AppState, Ally->Position.XY, BEACON_RANGE, Ally);
-        if (Next)
-        {
-            HealPlayer(AppState, SlotIndex, Next, BEACON_SHARE * Heal);
-            EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Next));
-        }
     }
 }
 
@@ -80,8 +72,11 @@ CastHealerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 
                             (float)RoleRank(Slot, PlayerRole_Healer, HealerTalent_DeepWard)) *
                 PartySustainScale(AppState->Dungeon);
             player_slot *AllySlot = &AppState->Players[Ally->PlayerIndex];
+            bool32 Inspiration = RoleRank(Slot, PlayerRole_Healer, HealerTalent_Inspiration) > 0;
+            float Empower = WARD_EMPOWER_SHARE + (Inspiration ? INSPIRATION_SHARE : 0.f);
             AllySlot->WardAbsorb = Absorb;
             AllySlot->WardFull = Absorb;
+            AllySlot->WardEmpower = Empower;
             EmitBurst(&AppState->Events, SimBurst_WardCast, SlotIndex, ChestOf(Ally));
             // NOTE(zoubir): the allies round the warded one get part of
             // it, never less than the ward they already hold
@@ -95,6 +90,7 @@ CastHealerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 
                 {
                     NearSlot->WardAbsorb = Splash;
                     NearSlot->WardFull = Splash;
+                    NearSlot->WardEmpower = Inspiration ? Empower : 0.f;
                     EmitBurst(&AppState->Events, SimBurst_WardCast, SlotIndex, ChestOf(Near));
                 }
             }

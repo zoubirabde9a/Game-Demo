@@ -107,6 +107,7 @@ ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Sna
             Mark->Stacks = Minimum((u32)(Bits & NET_MARK_STACKS), (u32)SEARING_MOST);
             Mark->Seconds = Mark->Stacks ? SEARING_SECONDS : 0.f;
             Mark->SunderSeconds = (Bits & NET_MARK_SUNDER) ? SUNDER_SECONDS : 0.f;
+            Mark->SunderShare = (Bits & NET_MARK_SUNDER) ? SUNDER_SHARE : 0.f;
         }
     }
     UpdateGates(AppState, &AppState->World, Arena, Run);

@@ -6,27 +6,33 @@
    is depends on the player's role, so picking another role gives its
    points back (SetPlayerRole, roles.cpp).
 
+   Each branch deepens its role's part in the damage race (docs/
+   dungeon-plan.md, "How the roles feed each other") as much as its
+   own job, and ends in a capstone that rewards playing the rotation.
+
    Bulwark (tank)
-     Iron Skin    takes less damage
-     Provoke      Taunt comes back sooner and reaches farther
-     Bastion      Shield Slam's wall lasts longer and stuns longer
-     Guardian     Intercept wards the ally it lands by
-     Rally        Shield Slam shields allies more, farther out
-     Unyielding   takes far less while under a third of its health
+     Iron Skin      takes less damage
+     Provoke        Taunt comes back sooner and reaches farther
+     Bastion        Shield Slam's wall lasts longer and stuns longer
+     Guardian       Intercept wards the ally it lands by
+     Rally          Shield Slam shields allies more, farther out
+     Shatter Armor  Sunder makes monsters take more, for longer
    Mender (healer)
      Swift Mending  Mending Bolt heals more
      Deep Ward      Ward absorbs more
      Renewal        Mending Bolt also heals over a few seconds
      Hallowed Ground  Sanctuary is wider and heals more
-     Beacon         part of each Mending Bolt heals the next most hurt
+     Inspiration    Ward's damage bonus doubles and reaches the allies
+                    round the warded one
      Miracle        revives in half the time, with more health
    Striker (damage)
-     Pyromancer   deals more damage
-     Kindling     Inferno comes back sooner
-     Wildfire     Inferno's ground burns longer
-     Executioner  hits harder on monsters close to death
-     Cataclysm    Inferno is wider
-     Bloodlust    a kill takes seconds off Inferno
+     Pyromancer     deals more damage
+     Searing Heat   each Searing stack detonates for more
+     Wildfire       Inferno's ground burns longer, keeping marks alive
+     Executioner    hits harder on monsters close to death
+     Cataclysm      Inferno is wider, marking more of a pack
+     Overload       detonating a full mark gives back part of Detonate's
+                    cooldown
 
    The kits read the ranks through RoleRank; the numbers per rank are
    here. */
@@ -38,7 +44,7 @@ enum tank_talent
     TankTalent_Bastion,
     TankTalent_Guardian,
     TankTalent_Rally,
-    TankTalent_Unyielding,
+    TankTalent_ShatterArmor,
 };
 
 enum healer_talent
@@ -47,18 +53,18 @@ enum healer_talent
     HealerTalent_DeepWard,
     HealerTalent_Renewal,
     HealerTalent_HallowedGround,
-    HealerTalent_Beacon,
+    HealerTalent_Inspiration,
     HealerTalent_Miracle,
 };
 
 enum striker_talent
 {
     StrikerTalent_Pyromancer,
-    StrikerTalent_Kindling,
+    StrikerTalent_SearingHeat,
     StrikerTalent_Wildfire,
     StrikerTalent_Executioner,
     StrikerTalent_Cataclysm,
-    StrikerTalent_Bloodlust,
+    StrikerTalent_Overload,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -70,25 +76,24 @@ enum striker_talent
 #define GUARDIAN_WARD 30.f
 #define RALLY_TALENT_SHARE 0.4f
 #define RALLY_TALENT_RADIUS 240.f
-#define UNYIELDING_BELOW 0.33f
-#define UNYIELDING_SHARE 0.3f
+#define SHATTER_SHARE 0.1f
+#define SHATTER_SECONDS 2.f
 #define SWIFT_MENDING_SHARE 0.15f
 #define DEEP_WARD_ABSORB 12.f
 #define RENEWAL_SECONDS 4.f
 #define RENEWAL_PER_SECOND 6.f
 #define HALLOWED_RADIUS 1.3f
 #define HALLOWED_HEAL 1.5f
-#define BEACON_SHARE 0.4f
-#define BEACON_RANGE 220.f
+#define INSPIRATION_SHARE 0.12f
 #define MIRACLE_SECONDS 1.5f
 #define MIRACLE_HP_SHARE 0.7f
 #define PYROMANCER_SHARE 0.06f
-#define KINDLING_COOLDOWN 1.5f
+#define SEARING_HEAT_PER_STACK 5.f
 #define WILDFIRE_SECONDS 2.f
 #define EXECUTIONER_BELOW 0.3f
 #define EXECUTIONER_SHARE 0.35f
 #define CATACLYSM_RADIUS 1.35f
-#define BLOODLUST_SECONDS 2.f
+#define OVERLOAD_SECONDS 3.f
 
 // NOTE(zoubir): by player_role (Damage, Tank, Healer), then slot; the
 // branch, tier, column and ranks match the slot's row in TalentDefs
@@ -97,16 +102,16 @@ global_variable talent_def RoleTalentDefs[PlayerRole_Count][ROLE_TALENTS] =
     {
         {"Pyromancer", "All your damage is higher", "+6% damage",
          TalentBranch_Role, 0, 0, 2, 0},
-        {"Kindling", "Inferno comes back sooner", "-1.5 s Inferno cooldown",
+        {"Searing Heat", "Each Searing stack detonates for more", "+5 a stack on Detonate",
          TalentBranch_Role, 0, 1, 2, 0},
-        {"Wildfire", "Inferno's ground burns longer", "+2 s of burning ground",
+        {"Wildfire", "Inferno's ground burns longer, keeping marks alive", "+2 s of burning ground",
          TalentBranch_Role, 1, 0, 1, 0},
         {"Executioner", "Hit harder on monsters under 30% health", "+35% damage on them",
          TalentBranch_Role, 1, 1, 1, 0},
-        {"Cataclysm", "Inferno covers a wider circle", "+35% Inferno radius",
+        {"Cataclysm", "Inferno covers a wider circle, marking more of a pack", "+35% Inferno radius",
          TalentBranch_Role, 2, 0, 1, 0},
-        {"Bloodlust", "Each monster you kill takes 2 s off Inferno", "-2 s Inferno per kill",
-         TalentBranch_Role, 3, 0, 1, 0},
+        {"Overload", "Detonating a full mark gives back 3 s of Detonate",
+         "-3 s Detonate on a full mark", TalentBranch_Role, 3, 0, 1, 0},
     },
     {
         {"Iron Skin", "You take less damage", "-6% damage taken",
@@ -119,7 +124,7 @@ global_variable talent_def RoleTalentDefs[PlayerRole_Count][ROLE_TALENTS] =
          TalentBranch_Role, 1, 1, 1, 0},
         {"Rally", "Shield Slam shields allies more, farther out",
          "allies take 40% less, out to 240", TalentBranch_Role, 2, 0, 1, 0},
-        {"Unyielding", "Under a third of your health you take far less", "-30% damage taken",
+        {"Shatter Armor", "Sunder bites deeper and lasts longer", "Sunder +10%, +2 s",
          TalentBranch_Role, 3, 0, 1, 0},
     },
     {
@@ -131,8 +136,8 @@ global_variable talent_def RoleTalentDefs[PlayerRole_Count][ROLE_TALENTS] =
          TalentBranch_Role, 1, 0, 1, 0},
         {"Hallowed Ground", "Sanctuary is wider and heals more", "+30% radius, +50% healing",
          TalentBranch_Role, 1, 1, 1, 0},
-        {"Beacon", "40% of each Mending Bolt heals the next most hurt ally",
-         "a second heal", TalentBranch_Role, 2, 0, 1, 0},
+        {"Inspiration", "Ward's damage bonus doubles and spreads to the allies near",
+         "+24% damage while warded", TalentBranch_Role, 2, 0, 1, 0},
         {"Miracle", "Revive the fallen in 1.5 s, at 70% health", "faster, stronger revives",
          TalentBranch_Role, 3, 0, 1, 0},
     },
@@ -163,16 +168,11 @@ ShownTalentDef(player_slot *Slot, u32 Talent)
 }
 
 // NOTE(zoubir): the share of a hit a player takes after its role's
-// talents (Iron Skin, Unyielding), for DungeonScaleDamage
+// talents (Iron Skin), for DungeonScaleDamage
 internal float
 RoleTalentTakenScale(player_slot *Slot, world_entity *Player)
 {
     float Result = 1.f - IRON_SKIN_SHARE * (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_IronSkin);
-    if (RoleRank(Slot, PlayerRole_Tank, TankTalent_Unyielding) && Player->MaxHp > 0.f &&
-        Player->Hp < UNYIELDING_BELOW * Player->MaxHp)
-    {
-        Result *= 1.f - UNYIELDING_SHARE;
-    }
     return Result;
 }
 

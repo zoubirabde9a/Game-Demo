@@ -3,7 +3,8 @@
    full mark detonates far harder than none, Detonate in burning ground
    takes every marked monster in it, and marks fade; the tank's slam
    sunders, and a sundered monster and a warded attacker both raise the
-   damage dealt. */
+   damage dealt; and the role talents that build on them (Searing Heat,
+   Overload, Shatter Armor, Inspiration). */
 
 // NOTE(zoubir): a big monster Offset from the striker, held still
 internal world_entity *
@@ -150,6 +151,7 @@ TestSunderAndWardRaiseDamage()
     Check(Sundered > 1.149f * Plain && Sundered < 1.151f * Plain);
 
     Striker->WardAbsorb = 20.f;
+    Striker->WardEmpower = WARD_EMPOWER_SHARE;
     float Warded = DungeonScaleDamage(AppState, Monster, Striker->Entity, 10.f);
     Check(Warded > 1.119f * Sundered && Warded < 1.121f * Sundered);
     Striker->WardAbsorb = 0.f;
@@ -166,8 +168,74 @@ TestSunderAndWardRaiseDamage()
 }
 
 internal void
+TestRotationTalents()
+{
+    crypt_world Crypt = CreateCryptWorld(3);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Crypt, 1);
+    player_slot *Striker = &AppState->Players[0];
+    player_slot *Tank = &AppState->Players[1];
+    player_slot *Healer = &AppState->Players[2];
+    SetPlayerRole(AppState, Striker, PlayerRole_Damage);
+    SetPlayerRole(AppState, Tank, PlayerRole_Tank);
+    SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+
+    // NOTE(zoubir): Searing Heat, two ranks: a full mark is 12 + 30 x 3
+    Striker->Ranks[Talent_RoleFirst + StrikerTalent_SearingHeat] = 2;
+    Striker->Ranks[Talent_RoleFirst + StrikerTalent_Overload] = 1;
+    world_entity *Marked = StrikerDummy(&Crypt, V3(120.f, 0.f, 0.f));
+    world_entity *Bare = StrikerDummy(&Crypt, V3(-120.f, 0.f, 0.f));
+    for(u32 Stack = 0; Stack < SEARING_MOST; Stack++)
+    {
+        AddSearing(Run, World, Marked);
+    }
+    float Full = DetonateOn(AppState, Marked);
+    // NOTE(zoubir): Overload gives back part of the cooldown on a full
+    // mark only
+    Check(Striker->CastRefund == OVERLOAD_SECONDS);
+    Striker->CastRefund = 0.f;
+    float None = DetonateOn(AppState, Bare);
+    Check(Striker->CastRefund == 0.f);
+    float Expected = (DETONATE_DAMAGE + (DETONATE_PER_STACK + 2.f * SEARING_HEAT_PER_STACK) *
+                      SEARING_MOST) / DETONATE_DAMAGE;
+    Check(Full > 0.99f * Expected * None && Full < 1.01f * Expected * None);
+
+    // NOTE(zoubir): Shatter Armor: a deeper, longer sunder
+    Tank->Ranks[Talent_RoleFirst + TankTalent_ShatterArmor] = 1;
+    world_entity *Monster = SpawnMonster(AppState, World, &Crypt.Arena,
+                                         Tank->Entity->Position + V3(40.f, 0.f, 0.f),
+                                         MonsterKind_Brute);
+    Check(CastTankKey(AppState, World, &Crypt.Arena, Tank, Tank->Entity, 1));
+    foe_mark *Mark = FindFoeMark(Run, World, Monster);
+    Check(Mark && Mark->SunderSeconds == SUNDER_SECONDS + SHATTER_SECONDS);
+    float Scale = FoeMarkDamageScale(Run, World, Monster);
+    Check(Scale > 1.249f && Scale < 1.251f);
+
+    // NOTE(zoubir): Inspiration: the warded striker and the tank beside
+    // it both deal 24% more
+    Healer->Ranks[Talent_RoleFirst + HealerTalent_Inspiration] = 1;
+    v3 Before = Tank->Entity->Position;
+    Tank->Entity->Position = Striker->Entity->Position + V3(30.f, 0.f, 0.f);
+    CheckAndChangeEntityChunk(AppState, World, &Crypt.Arena, Before, Tank->Entity);
+    Healer->Input.Target = Striker->Entity->ID + 1;
+    Check(CastHealerKey(AppState, Healer, Healer->Entity, 1));
+    Check(Striker->WardAbsorb > 0.f && Striker->WardEmpower > 0.239f && Striker->WardEmpower < 0.241f);
+    Check(Tank->WardAbsorb > 0.f && Tank->WardEmpower == Striker->WardEmpower);
+    // NOTE(zoubir): without it only the warded one is empowered
+    Healer->Ranks[Talent_RoleFirst + HealerTalent_Inspiration] = 0;
+    Striker->WardAbsorb = Tank->WardAbsorb = 0.f;
+    Check(CastHealerKey(AppState, Healer, Healer->Entity, 1));
+    Check(Striker->WardEmpower > 0.119f && Striker->WardEmpower < 0.121f);
+    Check(Tank->WardEmpower == 0.f);
+    DestroyCryptWorld(&Crypt);
+}
+
+internal void
 RunStrikerTests()
 {
+    TestRotationTalents();
     TestSunderAndWardRaiseDamage();
     TestMarkBitsFromKunaiAndFireball();
     TestDetonateSpendsAFullMark();

@@ -248,13 +248,15 @@ TestRoleTalents()
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
     Check(Slot->Ranks[Talent_RoleFirst + TankTalent_IronSkin] == 0);
     Check(TalentPointsLeft(Slot) == Left + 2);
-    Check(LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_Kindling));
-    Check(RoleSpellCooldown(Slot, 0) == INFERNO_COOLDOWN - KINDLING_COOLDOWN);
+    Check(LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_Wildfire) ||
+          LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_SearingHeat));
+    Check(Slot->Ranks[Talent_RoleFirst + StrikerTalent_SearingHeat] +
+          Slot->Ranks[Talent_RoleFirst + StrikerTalent_Wildfire] == 1);
 
     // NOTE(zoubir): outside a run nobody can buy one
     dungeon_run *Run = AppState->Dungeon;
     AppState->Dungeon = 0;
-    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_Kindling));
+    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_SearingHeat));
     AppState->Dungeon = Run;
     DestroyCryptWorld(&Crypt);
 }

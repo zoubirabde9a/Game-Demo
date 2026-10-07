@@ -108,8 +108,10 @@ DetonateMark(app_state *AppState, world_entity *Player, world_entity *Monster)
     }
     EmitBurst(&AppState->Events, SimBurst_InfernoBlast, (u8)Player->PlayerIndex,
               Monster->Position);
-    DamageEntity(AppState, World, Monster, DETONATE_DAMAGE + DETONATE_PER_STACK * (float)Stacks,
-                 Player);
+    player_slot *Slot = &AppState->Players[Player->PlayerIndex];
+    float PerStack = DETONATE_PER_STACK + SEARING_HEAT_PER_STACK *
+        (float)RoleRank(Slot, PlayerRole_Damage, StrikerTalent_SearingHeat);
+    DamageEntity(AppState, World, Monster, DETONATE_DAMAGE + PerStack * (float)Stacks, Player);
     return Stacks;
 }
 
@@ -127,7 +129,11 @@ CastDetonate(app_state *AppState, player_slot *Slot, world_entity *Player)
     dungeon_run *Run = AppState->Dungeon;
     world *World = &AppState->World;
     inferno *Fire = InfernoUnder(Run, Target);
-    DetonateMark(AppState, Player, Target);
+    u32 Stacks = DetonateMark(AppState, Player, Target);
+    if (Stacks >= SEARING_MOST && RoleRank(Slot, PlayerRole_Damage, StrikerTalent_Overload))
+    {
+        Slot->CastRefund = OVERLOAD_SECONDS;
+    }
     if (Fire)
     {
         for(u32 Row = 0; Row < MAX_FOE_MARKS; Row++)
@@ -258,12 +264,8 @@ UpdateInfernos(app_state *AppState, dungeon_run *Run, float DeltaTime)
 }
 
 // NOTE(zoubir): from DungeonScaleDamage: a hit by Attacker that is about
-// to kill Target; Bloodlust takes seconds off Inferno
+// to kill Target; no role talent uses it now
 internal void
 OnRoleKill(player_slot *Attacker)
 {
-    if (RoleRank(Attacker, PlayerRole_Damage, StrikerTalent_Bloodlust))
-    {
-        Attacker->RoleCooldowns[0] = Maximum(0.f, Attacker->RoleCooldowns[0] - BLOODLUST_SECONDS);
-    }
 }

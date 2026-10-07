@@ -294,7 +294,7 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         Result *= FoeMarkDamageScale(AppState->Dungeon, &AppState->World, Target);
         if (Attacker->WardAbsorb > 0.f)
         {
-            Result *= 1.f + WARD_EMPOWER_SHARE;
+            Result *= 1.f + Attacker->WardEmpower;
         }
         AddThreat(&AppState->Dungeon->Threat, &AppState->World, Target,
                   (u32)(Attacker - AppState->Players), Result * Role->ThreatScale);

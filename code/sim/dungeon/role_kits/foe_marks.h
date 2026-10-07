@@ -17,6 +17,8 @@ struct foe_mark
     // until they fade
     u32 Stacks;
     float Seconds;
-    // NOTE(zoubir): seconds the monster stays sundered
+    // NOTE(zoubir): seconds the monster stays sundered, and the share more
+    // it takes meanwhile
     float SunderSeconds;
+    float SunderShare;
 };

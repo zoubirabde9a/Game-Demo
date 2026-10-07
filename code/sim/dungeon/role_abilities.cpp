@@ -107,7 +107,6 @@ RoleSpellCooldown(player_slot *Slot, u32 Key)
     if (Key == 0)
     {
         Result -= PROVOKE_COOLDOWN * (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_Provoke);
-        Result -= KINDLING_COOLDOWN * (float)RoleRank(Slot, PlayerRole_Damage, StrikerTalent_Kindling);
     }
     return Result;
 }
@@ -365,7 +364,10 @@ UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
         }
         if (Cast)
         {
-            Slot->RoleCooldowns[Key] = RoleSpellCooldown(Slot, Key);
+            // NOTE(zoubir): a cast may give part of its cooldown back
+            // (Overload, role_kits/striker.cpp)
+            Slot->RoleCooldowns[Key] = Maximum(0.f, RoleSpellCooldown(Slot, Key) - Slot->CastRefund);
+            Slot->CastRefund = 0.f;
         }
     }
 }

@@ -59,6 +59,7 @@ CastShieldSlam(app_state *AppState, world *World, player_slot *Slot, world_entit
     u8 SlotIndex = (u8)Player->PlayerIndex;
     bool32 Bastion = RoleRank(Slot, PlayerRole_Tank, TankTalent_Bastion) > 0;
     bool32 Rally = RoleRank(Slot, PlayerRole_Tank, TankTalent_Rally) > 0;
+    bool32 Shatter = RoleRank(Slot, PlayerRole_Tank, TankTalent_ShatterArmor) > 0;
     hit Hit = {SHIELD_SLAM_DAMAGE, SHIELD_SLAM_SHOVE, 80.f, 80.f,
                SHIELD_SLAM_STUN + (Bastion ? BASTION_STUN : 0.f), SimBurst_Impact};
     u32 Struck = 0;
@@ -72,7 +73,8 @@ CastShieldSlam(app_state *AppState, world *World, player_slot *Slot, world_entit
             continue;
         }
         AddThreat(&AppState->Dungeon->Threat, World, Monster, SlotIndex, SHIELD_SLAM_THREAT);
-        AddSunder(AppState->Dungeon, World, Monster, SUNDER_SECONDS);
+        AddSunder(AppState->Dungeon, World, Monster, SUNDER_SECONDS + (Shatter ? SHATTER_SECONDS : 0.f),
+                  SUNDER_SHARE + (Shatter ? SHATTER_SHARE : 0.f));
         ApplyHit(AppState, World, Monster, &Hit, DirectionTo(Offset), Player, SlotIndex);
         Struck++;
     }
