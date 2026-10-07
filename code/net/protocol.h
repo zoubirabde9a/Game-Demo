@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d63u // "GDMc", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d64u // "GDMd", change it whenever the layout changes
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
 #define NET_PLAYER_HEALTH_STEPS 100.f
@@ -108,6 +108,11 @@ enum net_button
 // held and let go like the talent field.
 #define NET_VOTE_SHIFT 20
 #define NET_VOTE_MASK 0xfu
+// Bits NET_ROLE_SHIFT and up are a dungeon role request (sim/dungeon/
+// roles.cpp): the player_role picked + 1, held and let go the same way.
+#define NET_ROLE_SHIFT 29
+#define NET_ROLE_MASK 0x3u
+#define NET_NO_BOSS 0xFFu
 
 enum net_deny_reason
 {
@@ -251,6 +256,10 @@ struct net_score
     u16 MonsterKills;
     u8 Level;         // sim/progression/experience.cpp
     u8 Ward;          // 1 bit: the Ward talent's charge is up
+    // In a dungeon run (sim/dungeon/), 0 elsewhere: the player_role in
+    // bits 0-1, Shield Wall up in bit 2, a healer's ward in bit 3, and a
+    // downed player's revive progress in bits 4-7 (0..15 of the way).
+    u8 Dungeon;
 };
 
 struct net_kill
@@ -348,6 +357,18 @@ struct net_snapshot
     u8 VoteYes;
     u8 VoteNo;
     u8 OwnVote;
+    // A dungeon run (sim/dungeon/), HasDungeon 0 on any other map: the
+    // room being fought (0 for none), the rooms cleared (room N in bit
+    // N - 1), the wipes, the fight's boss kind (NET_NO_BOSS for none) and
+    // its health in 0..255 of its most, and the monsters left in the
+    // fight. The same for every viewer; the rest is sent only in a run.
+    u8 HasDungeon;
+    u8 FightingRoom;
+    u8 RoomsCleared;
+    u8 Wipes;
+    u8 BossKind;
+    u8 BossHealth;
+    u8 FoesLeft;
     // The viewer's own player exactly: position and velocity as floats.
     // Entities are sent rounded to 1/8 unit, and a prediction replayed
     // from a rounded start went round a wall's corner the other way from

@@ -8,9 +8,12 @@
    - Party frames, bottom left: each player's role, name and health, the
      local one first; a downed player's bar is grey.
    - The role picker, in the Antechamber between fights: three buttons,
-     the picked one outlined, and what its keys do. Picking only works
-     offline for now: online the server does not hear role requests yet
-     (the online step of the plan). */
+     the picked one outlined, and what its keys do. Offline the pick
+     takes at once; online it goes to the server as a request
+     (client/dungeon/role_requests.cpp) and shows once a snapshot says so.
+
+   The fight is read from dungeon_run's Shown fields, which the run sets
+   offline and the snapshot sets online. */
 
 #define DUNGEON_HUD_TOP 44.f
 #define DUNGEON_BOSS_BAR_WIDTH 420.f
@@ -65,9 +68,8 @@ DrawDungeonObjective(render_context *RenderContext, app_state *AppState,
     if (Run->FightingRoom)
     {
         snprintf(Text, sizeof(Text), "%s  -  %u %s left",
-                 GetRoomName(World->MapId, Run->FightingRoom),
-                 CountLiveFoes(World, Run),
-                 CountLiveFoes(World, Run) == 1 ? "enemy" : "enemies");
+                 GetRoomName(World->MapId, Run->FightingRoom), Run->ShownFoesLeft,
+                 Run->ShownFoesLeft == 1 ? "enemy" : "enemies");
     }
     else
     {
@@ -99,8 +101,8 @@ internal float
 DrawDungeonBossBar(render_context *RenderContext, app_state *AppState,
                    float CenterX, float Y)
 {
-    world_entity *Boss = FightBoss(&AppState->World, AppState->Dungeon);
-    if (!Boss || Boss->MaxHp <= 0.f)
+    dungeon_run *Run = AppState->Dungeon;
+    if (Run->ShownBossKind >= MonsterKind_Count)
     {
         return 0.f;
     }
@@ -108,10 +110,10 @@ DrawDungeonBossBar(render_context *RenderContext, app_state *AppState,
     float Width = DUNGEON_BOSS_BAR_WIDTH;
     float X = CenterX - 0.5f * Width;
     float NameHeight = DungeonHudLine(RenderContext, Body, CenterX, Y,
-                                      GetMonsterDef(Boss->MonsterKind)->Name,
+                                      GetMonsterDef((monster_kind)Run->ShownBossKind)->Name,
                                       UI_COLOR_ACCENT);
     float BarY = Y + NameHeight + 2.f;
-    float Share = Clamp01(Boss->Hp / Boss->MaxHp);
+    float Share = Clamp01(Run->ShownBossShare);
     DrawRoundRect(RenderContext, X, BarY, Width, DUNGEON_BOSS_BAR_HEIGHT, UI_COLOR_TRACK);
     if (Share > 0.f)
     {
@@ -131,7 +133,6 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     dungeon_run *Run = AppState->Dungeon;
     if (!Slot->Active || !Slot->Entity || Run->FightingRoom ||
-        IsOnline(AppState->Online) ||
         RoomAtPosition(&AppState->World, Slot->Entity->Position.XY) != 1)
     {
         return;
@@ -157,7 +158,14 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
         if (OptionsButton(RenderContext, Input, X, LineY, DUNGEON_ROLE_BUTTON_WIDTH,
                           DUNGEON_ROLE_BUTTON_HEIGHT, Picked))
         {
-            SetPlayerRole(AppState, Slot, Role);
+            if (IsOnline(AppState->Online))
+            {
+                RequestDungeonRole(AppState, Role);
+            }
+            else
+            {
+                SetPlayerRole(AppState, Slot, Role);
+            }
         }
         UIText(RenderContext, Body, X + 0.5f * DUNGEON_ROLE_BUTTON_WIDTH,
                LineY + 0.5f * (DUNGEON_ROLE_BUTTON_HEIGHT - UILineHeight(Body)),

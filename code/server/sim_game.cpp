@@ -109,7 +109,8 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     u32 Held = Input->Buttons;
     u32 LearnBits = NET_LEARN_MASK << NET_LEARN_SHIFT;
     u32 VoteBits = NET_VOTE_MASK << NET_VOTE_SHIFT;
-    u32 Pressed = Held & ~Game->HeldButtons[Slot] & ~LearnBits & ~VoteBits;
+    u32 RoleBits = NET_ROLE_MASK << NET_ROLE_SHIFT;
+    u32 Pressed = Held & ~Game->HeldButtons[Slot] & ~LearnBits & ~VoteBits & ~RoleBits;
     // NOTE(zoubir): the talent field (net/protocol.h) spends a point each
     // time it changes to a talent
     u32 Learn = (Held >> NET_LEARN_SHIFT) & NET_LEARN_MASK;
@@ -117,6 +118,9 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     // NOTE(zoubir): and the vote field (sim/map_vote.cpp) the same way
     u32 Vote = (Held >> NET_VOTE_SHIFT) & NET_VOTE_MASK;
     u32 VoteBefore = (Game->HeldButtons[Slot] >> NET_VOTE_SHIFT) & NET_VOTE_MASK;
+    // NOTE(zoubir): and the dungeon role field (sim/dungeon/roles.cpp)
+    u32 Role = (Held >> NET_ROLE_SHIFT) & NET_ROLE_MASK;
+    u32 RoleBefore = (Game->HeldButtons[Slot] >> NET_ROLE_SHIFT) & NET_ROLE_MASK;
     v2 Move = {};
     if (Held & NetButton_Left) Move.X -= 1.f;
     if (Held & NetButton_Right) Move.X += 1.f;
@@ -154,6 +158,10 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     if (Vote && Vote != VoteBefore)
     {
         Out->Vote = Vote;
+    }
+    if (Role && Role != RoleBefore)
+    {
+        Out->Role = Role;
     }
 }
 
@@ -240,6 +248,8 @@ GameTick(server_game *Game, float Dt)
 #include "sim_game/pack.cpp"
 // NOTE(zoubir): the time rewinds under way, with which entities each froze
 #include "sim_game/rewinds.cpp"
+// NOTE(zoubir): a dungeon run's roles and rooms (sim/dungeon/)
+#include "sim_game/dungeon.cpp"
 
 internal void
 GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
@@ -268,6 +278,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     Out->VoteYes = (u8)AppState->VoteYes;
     Out->VoteNo = (u8)AppState->VoteNo;
     Out->OwnVote = AppState->Votes[ViewerSlot];
+    WriteDungeonSnapshot(AppState, Out);
     // The viewer's own body unrounded, for its prediction (net/protocol.h),
     // and the point the other positions are sent from
     Out->HasOwnBody = (Own && Own->IsPresent) ? 1 : 0;
@@ -348,6 +359,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
         Score->MonsterKills = (u16)Player->MonsterKills;
         Score->Level = (u8)Player->Level;
         Score->Ward = (Player->Ranks[Talent_Ward] && Player->WardReady) ? 1 : 0;
+        Score->Dungeon = PackDungeonScore(Game->AppState, Player);
     }
 
     SimGameWriteRewinds(Game, First != 0, Center, Out);

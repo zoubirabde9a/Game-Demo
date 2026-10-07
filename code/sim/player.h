@@ -81,6 +81,9 @@ struct player_input
     // (map_vote_request, sim/map_vote.cpp), 0 for none. The server reads
     // it from spare bits of the held buttons (NET_VOTE_SHIFT)
     u32 Vote;
+    // NOTE(zoubir): a dungeon role asked for this tick, its player_role + 1,
+    // 0 for none (sim/dungeon/roles.cpp, NET_ROLE_SHIFT)
+    u32 Role;
 };
 
 // NOTE(zoubir): the moves the combo trail records (player_fields.inc) and

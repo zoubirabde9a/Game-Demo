@@ -572,6 +572,7 @@ TestStatsCountTrafficAndTicks()
 #include "server_game_tests.cpp"
 #include "server_client_tests.cpp"
 #include "round_map_tests.cpp"
+#include "dungeon_online_tests.cpp"
 #include "rewind_tests.cpp"
 #include "replay_tests.cpp"
 #include "motion_tests.cpp"
@@ -592,6 +593,7 @@ main()
     TestQuietClientTimesOut();
     RunServerClientTests();
     TestRoundMovesToNextMap();
+    RunDungeonOnlineTests();
     RunServerGameTests();
     RunRewindTests();
     RunReplayTests();

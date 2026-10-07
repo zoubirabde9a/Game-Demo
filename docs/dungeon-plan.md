@@ -75,7 +75,9 @@ Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, 
 
 ## Online
 
-Snapshots gain: each player's role (2 bits), downed state, the run's room and encounter state, the current boss's slot. The protocol id changes once for all of it. `TestReplicasMatchTheServer` gets the new fields.
+The protocol id is "GDMd". Each `net_score` has a `Dungeon` byte: the role, Shield Wall, a ward and revive progress. Each snapshot has a dungeon block (`HasDungeon` 0 elsewhere): the room being fought, the rooms cleared, the wipes, the boss's kind and health, the monsters left. A role pick rides in bits 29-30 of the held buttons (`NET_ROLE_SHIFT`). The server packs in `server/sim_game/dungeon.cpp`; the client reads it in `client/dungeon/dungeon_net.cpp` and builds the gate walls itself from the room states, so its prediction stops at closed gates. `tests/dungeon_online_tests.cpp` runs a real server on the crypt with a real client.
+
+Not sent yet: the healer's sanctuaries, so online they heal but are not drawn.
 
 ## Steps
 
@@ -86,8 +88,8 @@ Snapshots gain: each player's role (2 bits), downed state, the run's room and en
 - [x] Role kits: what A, E and V cast for each role (`sim/dungeon/role_abilities.cpp`). They borrow existing bursts for now; their own look comes with the client step.
 - [x] Downed players and healer revives (`sim/dungeon/revive.cpp`): a healer within 60 of the body for 3 s brings them back there at 40% health.
 - [x] The three bosses (`sim/monsters/crypt_*.cpp`) and their scripted events (`sim/dungeon/boss_scripts.cpp`).
-- [ ] Online: role and run state on the wire, role pick request, server `--map crypt`.
-- [ ] Client: role picker, boss health bar, objective line, party frames. Done offline (`ui/dungeon/dungeon_hud.cpp`): the objective, the boss bar, the role picker in the Antechamber. Party frames done too. Left: all of it online.
+- [x] Online: role and run state on the wire, role pick request, server `--map crypt`.
+- [x] Client: role picker, boss health bar, objective line, party frames. Done offline (`ui/dungeon/dungeon_hud.cpp`): the objective, the boss bar, the role picker in the Antechamber. Party frames done too, and all of it online.
 
 ## Known problems
 

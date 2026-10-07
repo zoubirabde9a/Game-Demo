@@ -91,6 +91,13 @@ struct dungeon_run
     // NOTE(zoubir): who each monster attacks (threat.cpp)
     threat_table Threat;
     sanctuary Sanctuaries[MAX_SANCTUARIES];
+    // NOTE(zoubir): what the HUD shows of the fight: the boss's kind
+    // (MonsterKind_Count for none) and share of health, and the monsters
+    // left. UpdateDungeon sets them; online the snapshot does
+    // (client/dungeon/dungeon_net.cpp), as the client has no fight to read
+    u32 ShownBossKind;
+    float ShownBossShare;
+    u32 ShownFoesLeft;
 };
 
 // NOTE(zoubir): whether the world being played is a dungeon run
@@ -126,6 +133,7 @@ StartDungeonRun(app_state *AppState, memory_arena *Arena)
         world *World = &AppState->World;
         Run->RoomCount = Minimum(CountRooms(World->MapId), (u32)DUNGEON_MAX_ROOMS);
         Run->Series = Seed(World->MapId * 7919 + 17);
+        Run->ShownBossKind = MonsterKind_Count;
         for(u32 Room = 1; Room <= Run->RoomCount; Room++)
         {
             v2 Middle = GateOrRoomMiddle(World->MapId, 0, Room);

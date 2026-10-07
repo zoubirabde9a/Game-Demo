@@ -246,6 +246,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU8(S, &LevelAndWard);
                 Score->Level = LevelAndWard & 0x7f;
                 Score->Ward = LevelAndWard >> 7;
+                NetU8(S, &Score->Dungeon);
                 if (Score->Slot >= NET_MAX_SNAPSHOT_SCORES) return false;
             }
             NetU8(S, &P->Snapshot.NameSlot);
@@ -305,6 +306,17 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 P->Snapshot.OwnVote = WhoAndOwn >> 4;
                 P->Snapshot.VoteYes = Counts & 0xf;
                 P->Snapshot.VoteNo = Counts >> 4;
+            }
+            NetU8(S, &P->Snapshot.HasDungeon);
+            if (P->Snapshot.HasDungeon > 1) return false;
+            if (P->Snapshot.HasDungeon)
+            {
+                NetU8(S, &P->Snapshot.FightingRoom);
+                NetU8(S, &P->Snapshot.RoomsCleared);
+                NetU8(S, &P->Snapshot.Wipes);
+                NetU8(S, &P->Snapshot.BossKind);
+                NetU8(S, &P->Snapshot.BossHealth);
+                NetU8(S, &P->Snapshot.FoesLeft);
             }
             NetU8(S, &P->Snapshot.HasOwnBody);
             if (P->Snapshot.HasOwnBody > 1) return false;

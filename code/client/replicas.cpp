@@ -184,6 +184,8 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
     {
         AppState->Votes[LocalSlot] = Snapshot->OwnVote;
     }
+    // NOTE(zoubir): a dungeon run's rooms, gates and fight (sim/dungeon/)
+    ApplyDungeonSnapshot(AppState, Arena, Snapshot);
     player_slot *Own = &AppState->Players[LocalSlot];
     if (Own->Active && Own->Entity && Own->Entity->Type == EntityType_Player)
     {

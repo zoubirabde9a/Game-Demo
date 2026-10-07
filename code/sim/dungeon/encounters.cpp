@@ -364,6 +364,33 @@ RescueStrayPlayers(app_state *AppState, world *World, memory_arena *Arena)
     }
 }
 
+// NOTE(zoubir): roles asked for this tick (player_input.Role): taken
+// between fights, ignored during one
+internal void
+TakeRoleRequests(app_state *AppState, dungeon_run *Run)
+{
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        u32 Request = Slot->Input.Role;
+        Slot->Input.Role = 0;
+        if (Request && Slot->Active && !Run->FightingRoom)
+        {
+            SetPlayerRole(AppState, Slot, Request - 1);
+        }
+    }
+}
+
+// NOTE(zoubir): the fight as the HUD shows it (dungeon_run.Shown*)
+internal void
+UpdateShownFight(world *World, dungeon_run *Run)
+{
+    world_entity *Boss = Run->FightingRoom ? FightBoss(World, Run) : 0;
+    Run->ShownBossKind = Boss ? Boss->MonsterKind : MonsterKind_Count;
+    Run->ShownBossShare = (Boss && Boss->MaxHp > 0.f) ? Boss->Hp / Boss->MaxHp : 0.f;
+    Run->ShownFoesLeft = Run->FightingRoom ? CountLiveFoes(World, Run) : 0;
+}
+
 // NOTE(zoubir): once a tick, from SimulateTick, before anyone moves
 internal void
 UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
@@ -374,6 +401,7 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
         return;
     }
     world *World = &AppState->World;
+    TakeRoleRequests(AppState, Run);
     UpdateThreat(&Run->Threat, DeltaTime);
     UpdateSanctuaries(AppState, Run, DeltaTime);
     RescueStrayPlayers(AppState, World, Arena);
@@ -425,4 +453,5 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
         }
     }
     UpdateGates(AppState, World, Arena, Run);
+    UpdateShownFight(World, Run);
 }

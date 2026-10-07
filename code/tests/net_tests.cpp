@@ -94,6 +94,7 @@ FullSnapshot()
         Score->MonsterKills = (u16)(1000 + Index);
         Score->Level = (u8)(Index * 2 + 1);
         Score->Ward = Index & 1;
+        Score->Dungeon = (u8)(0x91 + Index);
     }
     P.Snapshot.Xp = 4321;
     for (u8 Index = 0; Index < NET_TALENT_COUNT; ++Index)
@@ -131,6 +132,13 @@ FullSnapshot()
     P.Snapshot.VoteNo = 1;
     P.Snapshot.OwnVote = 2;
     P.Snapshot.MapId = 2;
+    P.Snapshot.HasDungeon = 1;
+    P.Snapshot.FightingRoom = 5;
+    P.Snapshot.RoomsCleared = 0x0f;
+    P.Snapshot.Wipes = 3;
+    P.Snapshot.BossKind = 14;
+    P.Snapshot.BossHealth = 200;
+    P.Snapshot.FoesLeft = 4;
     // One burst, for the same reason.
     P.Snapshot.BurstCount = 1;
     P.Snapshot.Bursts[0].Kind = 2;
@@ -1012,8 +1020,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d63u
-#define NET_GOLDEN_LAYOUT 0x0377dbb6u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d64u
+#define NET_GOLDEN_LAYOUT 0x8afda53cu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
