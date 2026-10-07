@@ -28,7 +28,7 @@ $Out = "$Root\build\render_check"
 New-Item -ItemType Directory -Force $Out | Out-Null
 
 # NOTE(zoubir): name, map, keys (see code/platform/win32/screenshot.cpp),
-# frame. Every scene puts the mouse somewhere (M:x,y): the player aims at
+# frame, and if given the weather and time of day (dry and day otherwise). Every scene puts the mouse somewhere (M:x,y): the player aims at
 # it, and left free it is wherever the desktop's mouse happens to be.
 # Each scene shows the effects of one or two maps at work
 $Scenes = @(
@@ -37,7 +37,9 @@ $Scenes = @(
     @("wastes-lava",  "ashen",  "2:F4 3:H M:700,300 10-380:Q", 400),
     @("wilds-pond",   "wilds",  "2:F4 3:H M:700,300 10-150:D", 150),
     @("wilds-rain",   "wilds",  "2:F4 3:H M:700,300", 120, "rain"),
-    @("crypt-torches","crypt",  "2:F4 3:H M:700,300", 120)
+    @("crypt-torches","crypt",  "2:F4 3:H M:700,300", 120),
+    @("arena-night",  "arena",  "2:F4 3:H M:700,300 10-60:D", 120, "dry", "night"),
+    @("wilds-dusk",   "wilds",  "2:F4 3:H M:700,300", 120, "dry", "dusk")
 )
 
 $Known = @{}
@@ -57,6 +59,7 @@ foreach ($Scene in $Scenes) {
     $env:GAME_MAP = $Scene[1]
     $env:GAME_SCREENSHOT_KEYS = $Scene[2]
     $env:GAME_WEATHER = if ($Scene.Count -gt 4) { $Scene[4] } else { "dry" }
+    $env:GAME_TIME = if ($Scene.Count -gt 5) { $Scene[5] } else { "day" }
     $Png = "$Out\$Name.png"
     if (Test-Path $Png) { Remove-Item $Png }
     cmd /c "`"$Root\misc\screenshot.bat`" `"$Png`" $($Scene[3])" | Out-Null
