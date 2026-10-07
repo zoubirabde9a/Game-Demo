@@ -7,7 +7,7 @@
    dbghelp.dll, which every Windows has; it is loaded only after a crash,
    and only once the raw stack is safely on disk. The game code runs from
    app_temp.dll, whose .pdb has a random name, so its frames often stay
-   unnamed: look app_temp.dll+offset up in buildpp.map, the function
+   unnamed: look app_temp.dll+offset up in build\app.map, the function
    with the largest address (less the preferred load address) under it. */
 
 #include <dbghelp.h>
