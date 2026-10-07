@@ -207,14 +207,15 @@ DrawEntity(render_context *RenderContext,
             EntityTexturePosition.Y += FeetBelowMiddle * (1.f - Cos(Pose.Angle));
         }
         
-        if (Texture && (Entity->Type == EntityType_Player ||
-                        Entity->Type == EntityType_Monster) &&
-            IsStandingInWater(World, Entity, GroundZ, DrawZ))
+        u32 Reflection = (Entity->Type == EntityType_Player ||
+                          Entity->Type == EntityType_Monster) ?
+            ReflectionColorUnder(World, Entity, GroundZ, DrawZ) : 0;
+        if (Texture && Reflection)
         {
-            // NOTE(zoubir): the body upside down in the water: mirrored about
-            // the ground line, so a body Lift above the water shows Lift
-            // below it; flipped by swapping the frame's top and bottom, faint
-            // and blue, over the water and under everything standing
+            // NOTE(zoubir): the body upside down in the water or ice:
+            // mirrored about the ground line, so a body Lift above it shows
+            // Lift below it; flipped by swapping the frame's top and bottom,
+            // faint, over the ground and under everything standing
             float Ground = EntityCameraPosition.Y - GroundZ;
             float Lift = DrawZ - GroundZ;
             float Above = (1.f - TextureInfo->Origin.Y) * Dimensions.Y;
@@ -223,7 +224,7 @@ DrawEntity(render_context *RenderContext,
             RenderQuadTexture(RenderContext,
                               EntityCameraPosition.X - TextureInfo->Origin.X * Dimensions.X,
                               Ground + Lift - Above, Dimensions.X, Dimensions.Y, Flipped,
-                              WATER_REFLECTION_COLOR, 0.f, -Pose.Angle);
+                              Reflection, 0.f, -Pose.Angle);
             EndBatch(RenderContext);
         }
         if (Texture && (Entity->Type == EntityType_Player ||

@@ -19,25 +19,36 @@
 #define HEALTH_BAR_HEIGHT 2.f
 // NOTE(zoubir): radians a leafy tree leans each way at most in the wind
 #define TREE_SWAY_ANGLE 0.018f
-// NOTE(zoubir): a body's reflection in water (DrawEntity): faint, tinted
-// toward the water's blue; none past this height above it
+// NOTE(zoubir): a body's reflection in water or ice (DrawEntity): faint,
+// tinted toward their blue; none past this height above them
 #define WATER_REFLECTION_COLOR 0x50FFD8B0
+#define ICE_REFLECTION_COLOR 0x38FFF0E0
 #define WATER_REFLECTION_MAX_LIFT 48.f
 
-// NOTE(zoubir): over flat water, low enough for its reflection to show
-internal bool32
-IsStandingInWater(world *World, world_entity *Entity, float GroundZ, float DrawZ)
+// NOTE(zoubir): the colour a body's reflection is drawn in, or 0 for none:
+// faint and blue over flat water, fainter and paler over ice, nothing
+// past WATER_REFLECTION_MAX_LIFT above it
+internal u32
+ReflectionColorUnder(world *World, world_entity *Entity, float GroundZ, float DrawZ)
 {
     if (!World->TileWidth || World->TileMap.Texture.Type != AssetType_TerrainAtlas ||
         GroundZ > 0.f || DrawZ - GroundZ > WATER_REFLECTION_MAX_LIFT)
     {
-        return false;
+        return 0;
     }
     map_def *Map = GetMapDef((map_id)World->MapId);
     i32 TileX = FloorDiv((i32)floorf(Entity->Position.X), (i32)World->TileWidth);
     i32 TileY = FloorDiv((i32)floorf(Entity->Position.Y), (i32)World->TileHeight);
     terrain_kind Kind = TerrainAt(Map, TileX, TileY);
-    bool32 Result = Kind == TerrainKind_ShallowWater || Kind == TerrainKind_DeepWater;
+    u32 Result = 0;
+    if (Kind == TerrainKind_ShallowWater || Kind == TerrainKind_DeepWater)
+    {
+        Result = WATER_REFLECTION_COLOR;
+    }
+    else if (Kind == TerrainKind_Ice)
+    {
+        Result = ICE_REFLECTION_COLOR;
+    }
     return Result;
 }
 // NOTE(zoubir): the borrowed shadow under monsters and props (DrawEntity):
