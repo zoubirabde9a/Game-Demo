@@ -15,6 +15,10 @@
      E  Ward: an ally absorbs the next hits, and the allies round them
         absorb half as much.
      V  Mending Bolt: heals an ally.
+   Every role's fireball (X) and kunai mean something to it (OnRoleHit):
+   the striker's leave Searing stacks, the tank's keep a Sunder going,
+   the healer's heal the most hurt ally.
+
    Damage (Striker, role_kits/striker.cpp)
      A  Inferno: a meteor at the cursor, then burning ground.
      E  Detonate: blows up the Searing marks the striker's kunai,
@@ -328,6 +332,30 @@ HealPlayer(app_state *AppState, u32 By, world_entity *Target, float Amount)
 #include "role_kits/tank.cpp"
 #include "role_kits/healer.cpp"
 #include "role_kits/striker.cpp"
+
+// NOTE(zoubir): from DungeonScaleDamage: Attacker's hit on a monster dealt
+// Damage; a fireball or kunai means something to each role
+internal void
+OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
+          world_entity *Source, float Damage)
+{
+    if (!Source || (Source->Type != EntityType_Kunai && Source->Type != EntityType_FireBall))
+    {
+        return;
+    }
+    switch(Attacker->Role)
+    {
+        case PlayerRole_Damage: OnStrikerShot(AppState, Target); break;
+        case PlayerRole_Tank: OnTankShot(AppState, Attacker, Target); break;
+        case PlayerRole_Healer:
+        {
+            if (Attacker->Entity)
+            {
+                OnHealerShot(AppState, Attacker->Entity, Damage);
+            }
+        } break;
+    }
+}
 
 // NOTE(zoubir): from UpdatePlayer, before the game's abilities
 internal void

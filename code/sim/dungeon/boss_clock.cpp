@@ -39,8 +39,8 @@ struct boss_clock_def
 
 global_variable boss_clock_def BossClockDefs[] =
 {
-    {MonsterKind_Gravecaller, 135.f},
-    {MonsterKind_BroodQueen, 135.f},
+    {MonsterKind_Gravecaller, 150.f},
+    {MonsterKind_BroodQueen, 120.f},
     {MonsterKind_HollowKing, 150.f},
 };
 

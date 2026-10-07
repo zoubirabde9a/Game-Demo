@@ -11,7 +11,25 @@
    (DungeonScaleDamage; Inspiration doubles it and gives it to the
    allies the ward splashes onto), so the ward is the healer's call in a damage
    race: on the tank before a big hit, on the striker the rest of the
-   time to beat the boss's clock. */
+   time to beat the boss's clock.
+
+   Smite: with nothing to heal the healer still has a use for its
+   fireball, as each one that lands heals the most hurt ally in reach for
+   SMITE_SHARE of the damage it dealt. */
+
+// NOTE(zoubir): from OnRoleHit: the healer's fireball or kunai dealt
+// Damage; Smite heals the most hurt ally in reach SMITE_SHARE of it
+internal void
+OnHealerShot(app_state *AppState, world_entity *Healer, float Damage)
+{
+    world_entity *Ally = MostHurtAlly(AppState, Healer->Position.XY, MENDING_BOLT_RANGE);
+    if (Ally)
+    {
+        u8 SlotIndex = (u8)Healer->PlayerIndex;
+        HealPlayer(AppState, SlotIndex, Ally, SMITE_SHARE * Damage);
+        EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Ally));
+    }
+}
 
 internal void
 CastMendingBolt(app_state *AppState, player_slot *Slot, world_entity *Player)

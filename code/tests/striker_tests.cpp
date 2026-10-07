@@ -57,10 +57,10 @@ TestMarkBitsFromKunaiAndFireball()
     world_entity *Other = StrikerDummy(&Crypt, V3(0.f, 120.f, 0.f));
     DungeonScaleDamage(AppState, Other, Slot->Entity, 1.f);
     Check(FindFoeMark(Run, World, Other) == 0);
-    // NOTE(zoubir): nor does a tank's kunai
+    // NOTE(zoubir): nor does a tank's kunai: it sunders instead
     SetPlayerRole(AppState, Slot, PlayerRole_Tank);
     DungeonScaleDamage(AppState, Other, &Kunai, 1.f);
-    Check(FindFoeMark(Run, World, Other) == 0);
+    Check(FindFoeMark(Run, World, Other) && FindFoeMark(Run, World, Other)->Stacks == 0);
     // NOTE(zoubir): left alone, the mark fades
     UpdateFoeMarks(Run, World, SEARING_SECONDS + 0.1f);
     Check(FindFoeMark(Run, World, Monster) == 0);
@@ -232,9 +232,49 @@ TestRotationTalents()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the tank's shots keep a sunder going, the healer's heal
+internal void
+TestTankAndHealerShots()
+{
+    crypt_world Crypt = CreateCryptWorld(3);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Crypt, 1);
+    player_slot *Tank = &AppState->Players[1];
+    player_slot *Healer = &AppState->Players[2];
+    SetPlayerRole(AppState, Tank, PlayerRole_Tank);
+    SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+    world_entity *Monster = StrikerDummy(&Crypt, V3(150.f, 0.f, 0.f));
+    world_entity Shot = {};
+    Shot.Type = EntityType_FireBall;
+    Shot.HasOwner = true;
+    Shot.OwnerSlot = 1;
+    DungeonScaleDamage(AppState, Monster, &Shot, 10.f);
+    foe_mark *Mark = FindFoeMark(Run, World, Monster);
+    Check(Mark && Mark->SunderSeconds == SUNDERING_SHOT_FRESH && Mark->Stacks == 0);
+    DungeonScaleDamage(AppState, Monster, &Shot, 10.f);
+    Check(Mark->SunderSeconds == SUNDERING_SHOT_FRESH + SUNDERING_SHOT_SECONDS);
+    for(u32 Shots = 0; Shots < 4; Shots++)
+    {
+        DungeonScaleDamage(AppState, Monster, &Shot, 10.f);
+    }
+    Check(Mark->SunderSeconds == SUNDER_SECONDS);
+
+    world_entity *Hurt = AppState->Players[0].Entity;
+    Hurt->Hp = 0.5f * Hurt->MaxHp;
+    float Before = Hurt->Hp;
+    Shot.OwnerSlot = 2;
+    float Dealt = DungeonScaleDamage(AppState, Monster, &Shot, 10.f);
+    Check(Dealt > 0.f);
+    Check(Hurt->Hp > Before + 0.99f * SMITE_SHARE * Dealt);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunStrikerTests()
 {
+    TestTankAndHealerShots();
     TestRotationTalents();
     TestSunderAndWardRaiseDamage();
     TestMarkBitsFromKunaiAndFireball();

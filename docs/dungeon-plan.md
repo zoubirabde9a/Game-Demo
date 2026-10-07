@@ -33,6 +33,8 @@ The numbers are `sim/dungeon/role_kits/role_numbers.h`; each kit is a file in `s
 
 Each role has one job in the damage race besides its own. The tank keeps the boss Sundered: Shield Slam's sunder lasts as long as its cooldown, so a tank who slams on cooldown keeps the party's damage 15% up. The healer's Ward makes its ally deal 12% more while it holds, so the ward is a choice every 10 s: on the tank before a big hit, on the striker otherwise. The striker spends Searing marks. All three stack: a warded striker detonating a full mark on a sundered boss hits 1.29 times as hard as a lone one. The marks a monster carries live in one table (`sim/dungeon/role_kits/foe_marks.cpp`); a sundered monster shows a cracked steel ring at its feet.
 
+Every role's fireball (X) and kunai mean something to it. The striker's leave Searing stacks. The tank's keep a Sunder going: 3 s more on a sundered monster (never past a fresh slam's), or a 4 s sunder on a clean one, so a tank that has to keep away still holds the bonus up. The healer's Smite: each fireball that lands heals the most hurt ally in reach for 1.5 times the damage it dealt, so a healer with nothing to heal still adds to the race.
+
 ### The striker's rotation
 
 The damage role builds and spends. Every kunai and fireball it lands, and every Inferno blast, puts a Searing stack on the monster, up to three; a mark fades 6 s after its last stack, and burning ground keeps it alive. Detonate (E) spends the mark: 12 with none, 72 with three, before the role's 35%. The single-target loop is kunai, fireball, kunai, Detonate, with Inferno on cooldown. Against a pack the tank has gathered it is Inferno, a kunai or two, then Detonate on a monster in the fire, which sets off every marked monster there.
@@ -107,11 +109,11 @@ Every boss fight is a damage race. The boss's enrage timer shows under its healt
 
 | Boss | Timer for three players |
 |---|---|
-| Gravecaller Ossian | 2:15 |
-| The Brood Queen | 2:15 |
+| Gravecaller Ossian | 2:30 |
+| The Brood Queen | 2:00 |
 | The Hollow King | 2:30 |
 
-A timer is about 1.3 times what a party playing its rotations well needs: the boss's and its adds' health over the party's damage at 70% of its best (striker about 24 a second, tank 4, healer 1). Another party size scales it by its health growth over its head count. The clock starts again after a wipe. `tools/dungeon_balance.cpp` runs three server bots through the crypt and times every fight; with the bots playing the striker rotation, sunder and wards they kill the Brood Queen in 1:20 to 2:10 and the Hollow King in 1:40 to 2:30, and can run out of time on Gravecaller Ossian, where they are the lowest level. People should do better than bots.
+A timer is about 1.3 times what a party playing its rotations well needs: the boss's and its adds' health over the party's damage at 70% of its best (striker about 24 a second, tank 4, healer 1). Another party size scales it by its health growth over its head count. The clock starts again after a wipe. `tools/dungeon_balance.cpp` runs three server bots through the crypt and times every fight; in a full run the bots clear the Bone Halls in about 1:15, Gravecaller Ossian in 2:25, the Webbed Galleries in under a minute and the Brood Queen in 1:10, wipe once on the Ashen Causeway and come within seconds of the Hollow King's clock. Placed straight at the Gravecaller with one room's experience, they run out of time: they never kill the Bone Shamans mending him first, which is the call the fight asks of players. People should do better than bots.
 
 Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, summon, burrow, mend), and the dungeon adds scripted phase events at health thresholds (adds, hazards) on top, in `sim/dungeon/boss_scripts.cpp`.
 

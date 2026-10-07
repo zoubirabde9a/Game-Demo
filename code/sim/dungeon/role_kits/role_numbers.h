@@ -26,6 +26,10 @@
 // sundered for the party
 #define SUNDER_SHARE 0.15f
 #define SUNDER_SECONDS 10.f
+// NOTE(zoubir): the tank's fireball and kunai keep a sunder going: this
+// much longer on a sundered monster, or a sunder this long on a clean one
+#define SUNDERING_SHOT_SECONDS 3.f
+#define SUNDERING_SHOT_FRESH 4.f
 // NOTE(zoubir): the tank heals this share of its health for each monster
 // the slam strikes, counting at most SHIELD_SLAM_HEAL_FOES; the bigger
 // the pack it holds, the more it gets back
@@ -57,6 +61,9 @@
 #define MENDING_BOLT_RANGE 500.f
 #define MENDING_BOLT_COOLDOWN 2.2f
 #define HEAL_THREAT_SHARE 0.5f
+// NOTE(zoubir): a healer's fireball heals the most hurt ally this share of
+// the damage it dealt (Smite)
+#define SMITE_SHARE 1.5f
 
 // NOTE(zoubir): Damage (role_kits/striker.cpp): the meteor falls
 // INFERNO_DELAY after the cast, then the ground burns

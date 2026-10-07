@@ -175,7 +175,7 @@ internal void AddThreat(threat_table *Table, world *World, world_entity *Monster
 internal void OnRoleKill(player_slot *Attacker);
 internal float FoeMarkDamageScale(dungeon_run *Run, world *World, world_entity *Monster);
 internal void OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
-                        world_entity *Source);
+                        world_entity *Source, float Damage);
 
 // NOTE(zoubir): the world was just built for its map in Arena
 // (InitSimulation, RebuildWorldForMap): a dungeon map starts a fresh run
@@ -298,7 +298,7 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         }
         AddThreat(&AppState->Dungeon->Threat, &AppState->World, Target,
                   (u32)(Attacker - AppState->Players), Result * Role->ThreatScale);
-        OnRoleHit(AppState, Attacker, Target, Source);
+        OnRoleHit(AppState, Attacker, Target, Source, Result);
         if (Result >= Target->Hp)
         {
             OnRoleKill(Attacker);

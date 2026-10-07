@@ -13,11 +13,36 @@
    SUNDER_SECONDS, as long as its cooldown, the monster takes SUNDER_SHARE
    more from the whole party. So the tank has a rotation of its own in a
    damage race: slam the boss on cooldown, taunt the adds, leap to an
-   ally in trouble.
+   ally in trouble. Between slams its fireball and kunai keep the sunder
+   going: a shot on a sundered monster adds SUNDERING_SHOT_SECONDS (never
+   past a fresh slam's), and on a clean one starts a short sunder of
+   SUNDERING_SHOT_FRESH, so a tank that has to stay away still holds the
+   party's bonus up.
 
    What keeps a tank standing late in a big party: it takes only the
    square root of the party's extra damage (PartySustainScale,
    party_scaling.cpp), and the slam's heal grows with it like a healer's. */
+
+// NOTE(zoubir): from OnRoleHit: the tank's fireball or kunai landed
+internal void
+OnTankShot(app_state *AppState, player_slot *Slot, world_entity *Target)
+{
+    dungeon_run *Run = AppState->Dungeon;
+    world *World = &AppState->World;
+    bool32 Shatter = RoleRank(Slot, PlayerRole_Tank, TankTalent_ShatterArmor) > 0;
+    float Most = SUNDER_SECONDS + (Shatter ? SHATTER_SECONDS : 0.f);
+    float Share = SUNDER_SHARE + (Shatter ? SHATTER_SHARE : 0.f);
+    foe_mark *Mark = FindFoeMark(Run, World, Target);
+    if (Mark && Mark->SunderSeconds > 0.f)
+    {
+        Mark->SunderSeconds = Minimum(Most, Mark->SunderSeconds + SUNDERING_SHOT_SECONDS);
+        Mark->SunderShare = Maximum(Mark->SunderShare, Share);
+    }
+    else
+    {
+        AddSunder(Run, World, Target, SUNDERING_SHOT_FRESH, Share);
+    }
+}
 
 // NOTE(zoubir): an ally Self can leap to: alive, within Range, and in the
 // same room, so a leap never crosses a gate

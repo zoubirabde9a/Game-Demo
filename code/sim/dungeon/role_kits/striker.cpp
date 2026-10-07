@@ -22,17 +22,11 @@
    The damage counts as the caster's, so their role and talents scale it
    and it makes threat for them. */
 
-// NOTE(zoubir): from DungeonScaleDamage: a striker's kunai or fireball
-// landed on a monster
+// NOTE(zoubir): from OnRoleHit: the striker's kunai or fireball landed
 internal void
-OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
-          world_entity *Source)
+OnStrikerShot(app_state *AppState, world_entity *Target)
 {
-    if (Attacker->Role == PlayerRole_Damage && Source &&
-        (Source->Type == EntityType_Kunai || Source->Type == EntityType_FireBall))
-    {
-        AddSearing(AppState->Dungeon, &AppState->World, Target);
-    }
+    AddSearing(AppState->Dungeon, &AppState->World, Target);
 }
 
 // NOTE(zoubir): the burning inferno Monster stands in, 0 for none
