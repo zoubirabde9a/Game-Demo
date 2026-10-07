@@ -1,7 +1,7 @@
 /* The dungeon online (sim/dungeon/, client/dungeon/dungeon_net.cpp), with
    a real server playing the Sunken Crypt and a real client: the client
    builds the crypt and its run, picks a role through the held buttons
-   and sees it come back, sees the empty Antechamber cleared, and builds
+   and sees it come back, sees a healer's sanctuary, sees the empty Antechamber cleared, and builds
    the gate walls the server has, so its prediction stops where the
    server's player does. Included by server_tests.cpp after
    round_map_tests.cpp, whose test harness it borrows. */
@@ -93,6 +93,14 @@ TestDungeonRolesAndRoomsOnline()
     world_entity *Own = GetLocalPlayer(Client);
     Check(Own && Own->MaxHp == GetRoleDef(PlayerRole_Healer)->MaxHp);
     Check(Client->Dungeon->ShownBossKind == MonsterKind_Count);
+
+    // NOTE(zoubir): a sanctuary on the server is drawn on the client
+    Game->Dungeon->Sanctuaries[2].Position = V3(300.f, 400.f, 0.f);
+    Game->Dungeon->Sanctuaries[2].Seconds = 4.f;
+    RunDungeonOnlineTest(&Test, 6);
+    sanctuary *Shown = &Client->Dungeon->Sanctuaries[0];
+    Check(Shown->Seconds > 3.f && Shown->Seconds <= 4.1f);
+    Check(Shown->Position.X == 300.f && Shown->Position.Y == 400.f);
     StopRoundMapTest(&Test);
     free(DungeonSessionArena.Base);
 }

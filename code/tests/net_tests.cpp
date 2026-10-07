@@ -139,6 +139,13 @@ FullSnapshot()
     P.Snapshot.BossKind = 14;
     P.Snapshot.BossHealth = 200;
     P.Snapshot.FoesLeft = 4;
+    P.Snapshot.SanctuaryCount = NET_MAX_SANCTUARIES;
+    for (u32 Index = 0; Index < NET_MAX_SANCTUARIES; ++Index)
+    {
+        P.Snapshot.SanctuaryX[Index] = (i16)(800 * Index - 3);
+        P.Snapshot.SanctuaryY[Index] = (i16)(1500 - 300 * Index);
+        P.Snapshot.SanctuaryTenths[Index] = (u8)(41 + Index);
+    }
     // One burst, for the same reason.
     P.Snapshot.BurstCount = 1;
     P.Snapshot.Bursts[0].Kind = 2;
@@ -157,7 +164,7 @@ FullSnapshot()
     P.Snapshot.Rewinds[0].Y = -77.25f;
     P.Snapshot.Rewinds[0].Radius = 160.f;
     P.Snapshot.Rewinds[0].Frozen[0] = 0x81;
-    P.Snapshot.Rewinds[0].Frozen[5] = 0x40; // entity 46, the last of 47
+    P.Snapshot.Rewinds[0].Frozen[5] = 0x10; // entity 44, the last of 45
     // Every player winding up a spell, pointing at the last (farthest)
     // entities so a trimmed snapshot has to drop them.
     P.Snapshot.CastCount = NET_MAX_SNAPSHOT_CASTS;
@@ -365,7 +372,7 @@ TestFullSnapshotFits()
     Check(Rewind->Slot == 6 && Rewind->Kind == 1 && Rewind->Phase == 2);
     Check(Rewind->PhaseLeft > 0.355f && Rewind->PhaseLeft < 0.365f);
     Check(Rewind->X == 512.5f && Rewind->Y == -77.25f && Rewind->Radius == 160.f);
-    Check(Rewind->Frozen[0] == 0x81 && Rewind->Frozen[5] == 0x40);
+    Check(Rewind->Frozen[0] == 0x81 && Rewind->Frozen[5] == 0x10);
     Check(Out.Snapshot.CastCount == NET_MAX_SNAPSHOT_CASTS);
     net_player_cast *LastCast = &Out.Snapshot.Casts[NET_MAX_SNAPSHOT_CASTS - 1];
     Check(LastCast->EntityIndex == NET_MAX_SNAPSHOT_ENTITIES - NET_MAX_SNAPSHOT_CASTS);
@@ -1020,8 +1027,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d64u
-#define NET_GOLDEN_LAYOUT 0x8afda53cu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d65u
+#define NET_GOLDEN_LAYOUT 0x509def32u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -1031,6 +1038,52 @@ HashBytes(u32 Hash, u8 *Bytes, u32 Count)
         Hash = (Hash ^ Bytes[Index]) * 16777619u;
     }
     return Hash;
+}
+
+// NOTE(zoubir): a dungeon run's block (sim/dungeon/), sanctuaries and all,
+// comes back as it went
+internal void
+TestDungeonBlockRoundTrip()
+{
+    static net_packet P;
+    P = {};
+    P.Header = {NetPacket_Snapshot, 1, 2};
+    P.Snapshot.Tick = 99;
+    P.Snapshot.NameSlot = NET_NO_NAME_SLOT;
+    P.Snapshot.VoteMap = NET_NO_VOTE;
+    P.Snapshot.HasDungeon = 1;
+    P.Snapshot.FightingRoom = 7;
+    P.Snapshot.RoomsCleared = 0x3f;
+    P.Snapshot.Wipes = 9;
+    P.Snapshot.BossKind = NET_NO_BOSS;
+    P.Snapshot.BossHealth = 1;
+    P.Snapshot.FoesLeft = 12;
+    P.Snapshot.SanctuaryCount = NET_MAX_SANCTUARIES;
+    for (u32 Index = 0; Index < NET_MAX_SANCTUARIES; ++Index)
+    {
+        P.Snapshot.SanctuaryX[Index] = (i16)(1000 * Index - 5);
+        P.Snapshot.SanctuaryY[Index] = (i16)(3000 - 700 * Index);
+        P.Snapshot.SanctuaryTenths[Index] = (u8)(10 + Index);
+    }
+    static u8 Buffer[NET_MAX_PACKET_SIZE];
+    u32 Size = NetWritePacket(&P, Buffer, sizeof(Buffer));
+    Check(Size > 0);
+    static net_packet Out;
+    Out = {};
+    Check(NetReadPacket(Buffer, Size, &Out));
+    Check(Out.Snapshot.HasDungeon == 1 && Out.Snapshot.FightingRoom == 7);
+    Check(Out.Snapshot.RoomsCleared == 0x3f && Out.Snapshot.Wipes == 9);
+    Check(Out.Snapshot.BossKind == NET_NO_BOSS && Out.Snapshot.FoesLeft == 12);
+    Check(Out.Snapshot.SanctuaryCount == NET_MAX_SANCTUARIES);
+    for (u32 Index = 0; Index < NET_MAX_SANCTUARIES; ++Index)
+    {
+        Check(Out.Snapshot.SanctuaryX[Index] == P.Snapshot.SanctuaryX[Index]);
+        Check(Out.Snapshot.SanctuaryY[Index] == P.Snapshot.SanctuaryY[Index]);
+        Check(Out.Snapshot.SanctuaryTenths[Index] == P.Snapshot.SanctuaryTenths[Index]);
+    }
+    // NOTE(zoubir): more sanctuaries than there is room for is refused
+    Buffer[Size - 1 - 4 * 5] = NET_MAX_SANCTUARIES + 1;
+    Check(!NetReadPacket(Buffer, Size, &Out) || Out.Snapshot.SanctuaryCount <= NET_MAX_SANCTUARIES);
 }
 
 internal void
@@ -1126,6 +1179,7 @@ main()
     TestVersionNotice();
     TestStillEntitiesAreSmaller();
     TestFuzzedPacketsAreSafe();
+    TestDungeonBlockRoundTrip();
     TestWireLayoutIsPinned();
 
     printf("net tests: %d checks, %d failed\n", TestChecks, TestFailures);

@@ -317,6 +317,14 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU8(S, &P->Snapshot.BossKind);
                 NetU8(S, &P->Snapshot.BossHealth);
                 NetU8(S, &P->Snapshot.FoesLeft);
+                NetU8(S, &P->Snapshot.SanctuaryCount);
+                if (P->Snapshot.SanctuaryCount > NET_MAX_SANCTUARIES) return false;
+                for (u32 Index = 0; Index < P->Snapshot.SanctuaryCount; ++Index)
+                {
+                    NetI16(S, &P->Snapshot.SanctuaryX[Index]);
+                    NetI16(S, &P->Snapshot.SanctuaryY[Index]);
+                    NetU8(S, &P->Snapshot.SanctuaryTenths[Index]);
+                }
             }
             NetU8(S, &P->Snapshot.HasOwnBody);
             if (P->Snapshot.HasOwnBody > 1) return false;

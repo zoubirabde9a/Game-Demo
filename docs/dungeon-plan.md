@@ -77,9 +77,7 @@ Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, 
 
 ## Online
 
-The protocol id is "GDMd". Each `net_score` has a `Dungeon` byte: the role, Shield Wall, a ward and revive progress. Each snapshot has a dungeon block (`HasDungeon` 0 elsewhere): the room being fought, the rooms cleared, the wipes, the boss's kind and health, the monsters left. A role pick rides in bits 29-30 of the held buttons (`NET_ROLE_SHIFT`). The server packs in `server/sim_game/dungeon.cpp`; the client reads it in `client/dungeon/dungeon_net.cpp` and builds the gate walls itself from the room states, so its prediction stops at closed gates. `tests/dungeon_online_tests.cpp` runs a real server on the crypt with a real client.
-
-Not sent yet: the healer's sanctuaries, so online they heal but are not drawn.
+The protocol id is "GDMe". Each `net_score` has a `Dungeon` byte: the role, Shield Wall, a ward and revive progress. Each snapshot has a dungeon block (`HasDungeon` 0 elsewhere): the room being fought, the rooms cleared, the wipes, the boss's kind and health, the monsters left, the healers' sanctuaries. A role pick rides in bits 29-30 of the held buttons (`NET_ROLE_SHIFT`). The server packs in `server/sim_game/dungeon.cpp`; the client reads it in `client/dungeon/dungeon_net.cpp` and builds the gate walls itself from the room states, so its prediction stops at closed gates. `tests/dungeon_online_tests.cpp` runs a real server on the crypt with a real client.
 
 ## Steps
 

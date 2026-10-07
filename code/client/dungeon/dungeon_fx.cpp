@@ -12,8 +12,8 @@
    - Revives: a green ring round a downed player, filling as a healer
      stands over them (revive.cpp).
 
-   It reads the run and the player slots, which only an offline world
-   fills today; online the server does not send them yet. */
+   It reads the run and the player slots: the simulation fills them
+   offline, the snapshots online (client/dungeon/dungeon_net.cpp). */
 
 #define GATE_BAR_HEIGHT 44.f
 #define GATE_BARS_PER_TILE 4

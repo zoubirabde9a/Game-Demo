@@ -1,6 +1,7 @@
 /* A dungeon run on the wire (sim/dungeon/, net/protocol.h): each
    player's role and what is drawn on them, in net_score.Dungeon, and the
-   run's rooms, wipes and boss, in the snapshot's dungeon block. Read back
+   run's rooms, wipes, boss and sanctuaries, in the snapshot's dungeon
+   block. Read back
    by client/dungeon/dungeon_net.cpp. */
 
 // NOTE(zoubir): X held to 0..1
@@ -49,4 +50,16 @@ WriteDungeonSnapshot(app_state *AppState, net_snapshot *Out)
     Out->BossKind = Run->ShownBossKind < MonsterKind_Count ? (u8)Run->ShownBossKind : NET_NO_BOSS;
     Out->BossHealth = (u8)(255.f * DungeonShare(Run->ShownBossShare) + 0.5f);
     Out->FoesLeft = (u8)Minimum(Run->ShownFoesLeft, 255u);
+    Out->SanctuaryCount = 0;
+    for(u32 Index = 0; Index < MAX_SANCTUARIES && Out->SanctuaryCount < NET_MAX_SANCTUARIES; Index++)
+    {
+        sanctuary *Zone = &Run->Sanctuaries[Index];
+        if (Zone->Seconds > 0.f)
+        {
+            u32 Slot = Out->SanctuaryCount++;
+            Out->SanctuaryX[Slot] = (i16)Zone->Position.X;
+            Out->SanctuaryY[Slot] = (i16)Zone->Position.Y;
+            Out->SanctuaryTenths[Slot] = (u8)Minimum(255u, (u32)(10.f * Zone->Seconds) + 1);
+        }
+    }
 }

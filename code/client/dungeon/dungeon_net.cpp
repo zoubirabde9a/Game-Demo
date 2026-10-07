@@ -4,7 +4,7 @@
    Each score's Dungeon byte gives a player's role (with the health it
    brings, so the party frames and the bar show the right share), Shield
    Wall, a ward and revive progress. The snapshot's dungeon block gives
-   the rooms and the fight; the gate walls are then built or taken down
+   the rooms, the fight and the healers' sanctuaries; the gate walls are then built or taken down
    locally from the room states (UpdateGates), so the local player's
    prediction stops at a closed gate as the server does. The role the
    player picks goes the other way, in role_requests.cpp. */
@@ -51,5 +51,16 @@ ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Sna
         (u32)Snapshot->BossKind : (u32)MonsterKind_Count;
     Run->ShownBossShare = (float)Snapshot->BossHealth / 255.f;
     Run->ShownFoesLeft = Snapshot->FoesLeft;
+    for(u32 Index = 0; Index < MAX_SANCTUARIES; Index++)
+    {
+        sanctuary *Zone = &Run->Sanctuaries[Index];
+        Zone->Seconds = 0.f;
+        if (Index < Snapshot->SanctuaryCount)
+        {
+            Zone->Position = V3((float)Snapshot->SanctuaryX[Index],
+                                (float)Snapshot->SanctuaryY[Index], 0.f);
+            Zone->Seconds = 0.1f * (float)Snapshot->SanctuaryTenths[Index];
+        }
+    }
     UpdateGates(AppState, &AppState->World, Arena, Run);
 }
