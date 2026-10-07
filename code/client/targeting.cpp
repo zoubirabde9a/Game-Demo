@@ -26,7 +26,8 @@
    picked, pale when the kunai is ready and in range, dim while it cools
    down, red when the unit is out of range; and a short note by the
    cursor ("No target", "Out of range") when the kunai key is pressed and
-   cannot throw. */
+   cannot throw, or "Not ready" for any aimed ability still recharging
+   (keyboard_input.cpp raises them, cast_targeting.cpp finds them). */
 
 #define TARGET_SNAP_PIXELS 22.f
 #define TARGET_KEEP_PIXELS 40.f
@@ -207,18 +208,33 @@ UpdateCursorTarget(app_input *Input, app_state *AppState)
     Targeting->PickedFor = (Picked == Targeting->Picked) ?
         Targeting->PickedFor + Input->DeltaTime : 0.f;
     Targeting->Picked = Picked;
-
-    if (ActionButtonsFromKeys(Input, true) & PlayerButton_Kunai)
-    {
-        char *Refusal = KunaiRefusal(AppState, Local, PickedUnit(AppState, Local, Picked));
-        if (Refusal)
-        {
-            Targeting->Notice = Refusal;
-            Targeting->NoticeLeft = TARGET_NOTICE_SECONDS;
-            Targeting->NoticeAt = V2((float)Input->MouseX, (float)Input->MouseY);
-        }
-    }
     return Picked;
+}
+
+// NOTE(zoubir): why the kunai would not go at the unit picked this frame,
+// 0 when it would (UpdateCursorTarget first)
+internal char *
+LocalKunaiRefusal(app_state *AppState)
+{
+    cursor_targeting *Targeting = GetCursorTargeting(AppState);
+    world_entity *Local = GetLocalPlayer(AppState);
+    char *Result = 0;
+    if (Local && Local->IsPresent && !IsDeadPlayer(Local))
+    {
+        Result = KunaiRefusal(AppState, Local,
+                              PickedUnit(AppState, Local, Targeting->Picked));
+    }
+    return Result;
+}
+
+// NOTE(zoubir): a short note by the cursor, for a key that cannot cast
+internal void
+ShowTargetNotice(app_state *AppState, app_input *Input, char *Text)
+{
+    cursor_targeting *Targeting = GetCursorTargeting(AppState);
+    Targeting->Notice = Text;
+    Targeting->NoticeLeft = TARGET_NOTICE_SECONDS;
+    Targeting->NoticeAt = V2((float)Input->MouseX, (float)Input->MouseY);
 }
 
 // NOTE(zoubir): one corner of the brackets: two arms from Tip, outlined

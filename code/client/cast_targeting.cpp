@@ -5,9 +5,16 @@
    Standard cast (the default): a key whose ability covers an area or
    lands somewhere (TargetedButtons) first shows where it would hit
    (cast_targeting/previews.cpp); a left click or the same key again
-   casts it, a right click cancels. Keys that only move or guard the
-   player (jump, dash, shield, slam) and the two basic attacks cast at
-   once in both modes.
+   casts it, a right click cancels. The kunai aims the same way: its key
+   shows its reach, and the click throws it at the unit the cursor is on
+   (targeting.cpp). Keys that only move or guard the player (jump, dash,
+   shield, slam) and the two basic attacks cast at once in both modes.
+
+   A targeted key pressed while its ability recharges aims nothing: it
+   is swallowed and the cursor says "Not ready" (targeting.cpp), so no
+   preview promises a cast the simulation would refuse. A confirm the
+   caller blocks (a kunai with no unit in reach) keeps the aim and says
+   why instead of spending the press.
 
    Everything happens before the input reaches the simulation: the keys
    of the ability being aimed, and the click that confirms or cancels it,
@@ -45,7 +52,7 @@ struct cast_targeting
 #define CAST_TARGETED_BUTTONS (PlayerButton_Shockwave | PlayerButton_Push | \
                                PlayerButton_Launch | PlayerButton_FrostNova | \
                                PlayerButton_GravityWell | PlayerButton_Blink | \
-                               PlayerButton_RewindBubble)
+                               PlayerButton_RewindBubble | PlayerButton_Kunai)
 
 // NOTE(zoubir): made on first use, in MemoryArena so a map switch keeps it
 internal cast_targeting *
@@ -69,11 +76,29 @@ IsMouseOnCastModeToggle(cast_targeting *Targeting, app_input *Input)
     return Result;
 }
 
-// NOTE(zoubir): the targeted buttons the local player can use now: alive,
-// and the ability learned (a key the talent tree has not unlocked yet
-// does nothing, so it aims nothing either)
+// NOTE(zoubir): whether Button's cooldown has run out (or is close enough
+// that a press now still counts, CanUseEarly)
+internal bool32
+IsCastReady(app_state *AppState, world_entity *Player, u32 Button)
+{
+    bool32 Result = true;
+    for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
+    {
+        float Full;
+        float *Left = PlayerCooldown(AppState, Player, Index, &Full);
+        if (Left && PlayerCooldownButton(Index) == Button && !CanUseEarly(*Left))
+        {
+            Result = false;
+        }
+    }
+    return Result;
+}
+
+// NOTE(zoubir): the targeted buttons the local player has: alive, and
+// the ability learned (a key the talent tree has not unlocked yet does
+// nothing, so it aims nothing either)
 internal u32
-AimableButtons(app_state *AppState)
+LearnedTargetedButtons(app_state *AppState)
 {
     u32 Result = 0;
     world_entity *Player = GetLocalPlayer(AppState);
@@ -91,10 +116,30 @@ AimableButtons(app_state *AppState)
     return Result;
 }
 
+// NOTE(zoubir): the learned targeted buttons whose cooldown is still
+// running
+internal u32
+RechargingButtons(app_state *AppState, u32 Learned)
+{
+    u32 Result = 0;
+    world_entity *Player = GetLocalPlayer(AppState);
+    for(u32 Bit = 1; Player && Bit <= Learned; Bit <<= 1)
+    {
+        if ((Bit & Learned) && !IsCastReady(AppState, Player, Bit))
+        {
+            Result |= Bit;
+        }
+    }
+    return Result;
+}
+
 // NOTE(zoubir): once a frame, before the keys are read for the
-// simulation: starts, confirms and cancels the aim
-internal void
-UpdateCastTargeting(app_input *Input, app_state *AppState)
+// simulation: starts, confirms and cancels the aim. Blocked are buttons
+// whose cast would be refused now for another reason than the cooldown
+// (the kunai with no unit in reach). Returns the buttons pressed this
+// frame that cannot go: recharging, or blocked, for the cursor's note
+internal u32
+UpdateCastTargeting(app_input *Input, app_state *AppState, u32 Blocked)
 {
     cast_targeting *Targeting = GetCastTargeting(AppState);
     u32 Held = ActionButtonsFromKeys(Input, false);
@@ -110,7 +155,10 @@ UpdateCastTargeting(app_input *Input, app_state *AppState)
         Targeting->Swallowed |= Pressed & PlayerButton_Cast;
         Pressed &= ~Clicks;
     }
-    u32 Aimable = Targeting->Mode == CastMode_Standard ? AimableButtons(AppState) : 0;
+    u32 Learned = LearnedTargetedButtons(AppState);
+    u32 Recharging = RechargingButtons(AppState, Learned);
+    u32 Refused = 0;
+    u32 Aimable = Targeting->Mode == CastMode_Standard ? Learned : 0;
     if (!(Aimable & Targeting->Aiming))
     {
         Targeting->Aiming = 0;
@@ -119,7 +167,15 @@ UpdateCastTargeting(app_input *Input, app_state *AppState)
     if (Targeting->Aiming)
     {
         u32 Confirm = Fresh & (PlayerButton_Cast | Targeting->Aiming);
-        if (Confirm)
+        if (Confirm && (Targeting->Aiming & (Blocked | Recharging)))
+        {
+            // NOTE(zoubir): it would not go: the aim stays, the press is
+            // spent on nothing, and the cursor says why
+            Refused |= Targeting->Aiming;
+            Targeting->Swallowed |= Confirm;
+            Fresh &= ~Confirm;
+        }
+        else if (Confirm)
         {
             Targeting->Confirmed = Targeting->Aiming;
             Targeting->Swallowed |= Confirm;
@@ -132,6 +188,17 @@ UpdateCastTargeting(app_input *Input, app_state *AppState)
             Targeting->Aiming = 0;
             Fresh &= ~(u32)PlayerButton_Attack;
         }
+    }
+    // NOTE(zoubir): a key still recharging: standard mode shows no aim
+    // for it and holds it back; quick mode lets it through (the
+    // simulation ignores it). Both say "Not ready"
+    u32 Early = Fresh & Recharging;
+    Refused |= Early;
+    Targeting->Swallowed |= Early & Aimable;
+    Fresh &= ~(Early & Aimable);
+    if (!Aimable)
+    {
+        Refused |= Fresh & Blocked & Learned;
     }
     u32 Start = Fresh & Aimable;
     if (Start)
@@ -146,6 +213,7 @@ UpdateCastTargeting(app_input *Input, app_state *AppState)
     {
         Targeting->AimSeconds += Input->DeltaTime;
     }
+    return Refused;
 }
 
 // NOTE(zoubir): Buttons (pressed or held player_button bits) as the

@@ -4,8 +4,8 @@
    the mouse cursor aims, right click sword, left click fireball, Space
    jump, E shockwave, F blink, R push, A launch (the action keys
    are one table, action_keys.cpp). In standard cast mode an area
-   ability's key aims it first and a left click casts it
-   (cast_targeting.cpp). Holding Tab shows the scoreboard
+   ability's key, and the kunai's (V), aims it first and a left click
+   casts it (cast_targeting.cpp). Holding Tab shows the scoreboard
    (read in app.cpp, it is not a player action). While the tile editor
    (F3) is open the left button paints tiles and does not cast. */
 
@@ -46,7 +46,13 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
 
     // NOTE(zoubir): standard cast holds an aimed ability back until it is
     // confirmed (cast_targeting.cpp); quick cast passes the keys through
-    UpdateCastTargeting(Input, AppState);
+    char *KunaiNo = LocalKunaiRefusal(AppState);
+    u32 Refused = UpdateCastTargeting(Input, AppState, KunaiNo ? PlayerButton_Kunai : 0);
+    if (Refused)
+    {
+        bool32 Kunai = (Refused & PlayerButton_Kunai) && KunaiNo;
+        ShowTargetNotice(AppState, Input, Kunai ? KunaiNo : (char *)"Not ready");
+    }
     Result.Pressed = FilterCastButtons(AppState, ActionButtonsFromKeys(Input, true));
     if (AppState->TileEditing)
     {

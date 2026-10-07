@@ -5,8 +5,9 @@
    While standard mode aims an ability: its area at the cursor's angle (a
    disc, or a wedge for Push), a dotted line out to an area that lands
    away from the player, and for Blink the ring of its reach and the spot
-   it would land on. Grey while the ability recharges, its icon's colour
-   when it is ready.
+   it would land on; for the kunai the ring of its reach (the unit it
+   would hit is bracketed by targeting.cpp). Grey while the ability
+   recharges, its icon's colour when it is ready.
 
    While the local player winds up an area ability, in either mode: the
    area's rim where it will land, filling from the middle as the wind-up
@@ -38,24 +39,7 @@ CastPreviewRGB(u32 Button)
         case PlayerButton_GravityWell:  { Result = 0x00FF64B4; } break;
         case PlayerButton_Blink:        { Result = 0x00E66EF0; } break;
         case PlayerButton_RewindBubble: { Result = 0x00E6F06E; } break;
-    }
-    return Result;
-}
-
-// NOTE(zoubir): whether Button's cooldown has run out (or is close enough
-// that a press now still counts, CanUseEarly)
-internal bool32
-IsCastReady(app_state *AppState, world_entity *Player, u32 Button)
-{
-    bool32 Result = true;
-    for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
-    {
-        float Full;
-        float *Left = PlayerCooldown(AppState, Player, Index, &Full);
-        if (Left && PlayerCooldownButton(Index) == Button && !CanUseEarly(*Left))
-        {
-            Result = false;
-        }
+        case PlayerButton_Kunai:        { Result = 0x00FFF0D8; } break;
     }
     return Result;
 }
@@ -213,5 +197,12 @@ DrawCastPreview(render_context *RenderContext, app_state *AppState,
         DrawCastPreviewArea(RenderContext, Feet,
                             RewindAbilities[RewindKind_Bubble].Radius, 0.f, Pi32,
                             1.f, Alpha, RGB);
+    }
+    else if (Button == PlayerButton_Kunai)
+    {
+        v2 Feet = BurstToScreen(V3(Player->Position.X, Player->Position.Y,
+                                   Player->GroundZ), CameraOffset);
+        DrawCastPreviewArea(RenderContext, Feet, PlayerStats.KunaiRange, 0.f, Pi32,
+                            0.f, Alpha, RGB);
     }
 }

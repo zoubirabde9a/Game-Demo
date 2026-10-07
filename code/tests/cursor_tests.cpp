@@ -265,6 +265,94 @@ TestCursorSkipsSelfAndSaysNoTarget()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): starts Button's cooldown over, as a cast just now would
+internal void
+StartCooldown(app_state *AppState, world_entity *Player, u32 Button)
+{
+    for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
+    {
+        float Full;
+        float *Left = PlayerCooldown(AppState, Player, Index, &Full);
+        if (Left && PlayerCooldownButton(Index) == Button)
+        {
+            *Left = Full;
+        }
+    }
+}
+
+// NOTE(zoubir): standard cast: A while Launch recharges shows no aim,
+// sends nothing and says "Not ready"; the click after it is a fireball
+internal void
+TestStandardCastRechargingAimsNothing()
+{
+    test_world Test = CreateCursorTestWorld(CastMode_Standard);
+    app_state *AppState = Test.AppState;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0,
+                                           {300, 300, 0});
+    StartCooldown(AppState, Player, PlayerButton_Launch);
+    app_input *Input = &Test.Input;
+    PressKey(&Input->ButtonA);
+    player_input Local = ReadKeyboardPlayerInput(Input, AppState);
+    Check(Local.Pressed == 0);
+    Check(AppState->CastTargeting->Aiming == 0);
+    Check(AppState->CursorTargeting->NoticeLeft > 0.f);
+    Check(strcmp(AppState->CursorTargeting->Notice, "Not ready") == 0);
+    app_input Sent = InputForServer(Input, AppState);
+    Check(!Sent.ButtonA.EndedDown);
+
+    NextInputFrame(Input);
+    ReleaseKey(&Input->ButtonA);
+    PressKey(&Input->LeftButton);
+    Local = ReadKeyboardPlayerInput(Input, AppState);
+    Check(Local.Pressed == PlayerButton_Cast);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): standard cast: V shows the kunai's reach and throws
+// nothing; a click off every unit keeps the aim and says so; a click on
+// a unit throws at it
+internal void
+TestStandardCastAimsTheKunai()
+{
+    test_world Test = CreateCursorTestWorld(CastMode_Standard);
+    app_state *AppState = Test.AppState;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    world_entity *Enemy = AddPlayerToSlot(AppState, Test.World, &Test.Arena, 1,
+                                          {500, 300, 0});
+    app_input *Input = &Test.Input;
+    PutCursorAt(&Test, 300, 500);
+    PressKey(&Input->ButtonV);
+    player_input Local = ReadKeyboardPlayerInput(Input, AppState);
+    Check(Local.Pressed == 0);
+    Check(AppState->CastTargeting->Aiming == PlayerButton_Kunai);
+    Check(AppState->CursorTargeting->NoticeLeft == 0.f);
+    app_input Sent = InputForServer(Input, AppState);
+    Check(!Sent.ButtonV.EndedDown);
+
+    NextInputFrame(Input);
+    ReleaseKey(&Input->ButtonV);
+    PressKey(&Input->LeftButton);
+    Local = ReadKeyboardPlayerInput(Input, AppState);
+    Check(Local.Pressed == 0);
+    Check(AppState->CastTargeting->Aiming == PlayerButton_Kunai);
+    Check(AppState->CursorTargeting->Notice &&
+          strcmp(AppState->CursorTargeting->Notice, "No target") == 0);
+
+    NextInputFrame(Input);
+    ReleaseKey(&Input->LeftButton);
+    ReadKeyboardPlayerInput(Input, AppState);
+    NextInputFrame(Input);
+    PutCursorAt(&Test, 500, 275);
+    PressKey(&Input->LeftButton);
+    Local = ReadKeyboardPlayerInput(Input, AppState);
+    Check(Local.Pressed == PlayerButton_Kunai);
+    Check(Local.Target == Enemy->ID + 1);
+    Check(AppState->CastTargeting->Aiming == 0);
+    Sent = InputForServer(Input, AppState);
+    Check(Sent.ButtonV.EndedDown && !Sent.LeftButton.EndedDown);
+    DestroyTestWorld(&Test);
+}
+
 #define CURSOR_TEST(Test) printf("%s\n", #Test); Test()
 
 internal void
@@ -278,4 +366,6 @@ RunCursorTests()
     CURSOR_TEST(TestQwertyMovesTheLetterKeys);
     CURSOR_TEST(TestCursorPicksTheBodyOnScreen);
     CURSOR_TEST(TestCursorSkipsSelfAndSaysNoTarget);
+    CURSOR_TEST(TestStandardCastRechargingAimsNothing);
+    CURSOR_TEST(TestStandardCastAimsTheKunai);
 }
