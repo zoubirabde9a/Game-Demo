@@ -1,5 +1,5 @@
 /* World lights: the coloured light that players' lanterns (on dark maps),
-   fireballs, monster shots, kunai, bursts (a hit, a nova, a level up) and
+   bodies on fire, fireballs, monster shots, kunai, bursts (a hit, a nova, a level up) and
    lava throw on the ground and the bodies near them. Gathered once a frame
    into a short list in window pixels; the world grade shader
    (build/shaders/fx/world_grade.frag) brightens and tints every pixel
@@ -44,6 +44,9 @@ global_variable world_light_look KunaiLight = {45.f, 0.35f, {0.70f, 0.85f, 1.0f}
 // NOTE(zoubir): a lantern, carried by every living player on a map whose
 // mood asks for one (map_moods.cpp); its strength comes from the mood
 global_variable world_light_look LanternLight = {170.f, 1.f, {1.0f, 0.78f, 0.50f}, 0.4f};
+// NOTE(zoubir): a body on fire (StatusEffect_Burning) burns like a torch;
+// a flicker of 1 also gives it the heat shimmer (world_grade.frag)
+global_variable world_light_look BurningLight = {95.f, 0.7f, {1.0f, 0.5f, 0.18f}, 1.f};
 global_variable world_light_look LavaLight = {175.f, 0.75f, {1.0f, 0.42f, 0.12f}, 1.f};
 
 internal void
@@ -110,6 +113,13 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
             // what it lights is the ground under it
             AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
                           0.5f * Entity->Position.Z, *Look, Scale);
+        }
+        if ((Entity->Type == EntityType_Player || Entity->Type == EntityType_Monster) &&
+            !IsDeadPlayer(Entity) && HasStatus(Entity, StatusEffect_Burning) &&
+            P.X > Min.X && P.X < Max.X && P.Y > Min.Y && P.Y < Max.Y)
+        {
+            AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
+                          Entity->Position.Z + 12.f, BurningLight, 1.f);
         }
     }
 
