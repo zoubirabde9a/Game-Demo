@@ -74,13 +74,12 @@ AddOpenglTextureToQueue(opengl_texture_queue *Queue,
 
 
 
+// NOTE(zoubir): sends pixels to a new OpenGL texture; the caller keeps the
+// memory (LoadOpenglTexture releases asset memory after)
 internal loaded_texture
-LoadOpenglTexture(assets *Assets,
-                  open_gl *OpenGL, u32 Width, u32 Height,
-                  GLenum ImageFormat, memory_index MemorySize,
-                  void *TextureMemory, u32 Flags)
+UploadOpenglTexture(open_gl *OpenGL, u32 Width, u32 Height, GLenum ImageFormat,
+                    void *TextureMemory, u32 Flags)
 {
-    
     loaded_texture Texture;
     Texture.Width = Width;
     Texture.Height = Height;
@@ -92,10 +91,6 @@ LoadOpenglTexture(assets *Assets,
                  Width, Height, 0,
                  ImageFormat, GL_UNSIGNED_BYTE, TextureMemory);
 
-    //IMPORTANT memory leak with texture memory
-    ReleaseAssetMemory(Assets, MemorySize, TextureMemory);
-    
-//    DEBUGPlatformFreeFileMemory(Entry->MemoryToFree);
     //Set some texture parameters
     OpenGL->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     OpenGL->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -112,5 +107,20 @@ LoadOpenglTexture(assets *Assets,
     OpenGL->glGenerateMipmap(GL_TEXTURE_2D);
     OpenGL->glBindTexture(GL_TEXTURE_2D, 0);
 
+    return Texture;
+}
+
+// NOTE(zoubir): uploads asset memory (from Platform.AllocateMemory, see
+// AcquireAssetMemory) and gives it back
+internal loaded_texture
+LoadOpenglTexture(assets *Assets,
+                  open_gl *OpenGL, u32 Width, u32 Height,
+                  GLenum ImageFormat, memory_index MemorySize,
+                  void *TextureMemory, u32 Flags)
+{
+    loaded_texture Texture = UploadOpenglTexture(OpenGL, Width, Height, ImageFormat,
+                                                 TextureMemory, Flags);
+    //IMPORTANT memory leak with texture memory
+    ReleaseAssetMemory(Assets, MemorySize, TextureMemory);
     return Texture;
 }

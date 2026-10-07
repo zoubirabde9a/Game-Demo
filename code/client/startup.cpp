@@ -91,14 +91,18 @@ StartClient(app_state *AppState, transient_state *TransientState,
     AppInitOpenGL(TransientArena, AppState, Thread, Memory);
 
     // NOTE(zoubir): a plain white texture nothing refers to by name; kept
-    // because removing it would change the OpenGL ids later textures get
+    // because removing it would change the OpenGL ids later textures get.
+    // Its pixels are scratch memory: it used to be malloc'd and then given
+    // to LoadOpenglTexture, which VirtualFrees what it uploads, before the
+    // free; now and then the VirtualFree took the heap's pages and the free
+    // crashed (about one launch in fifteen)
     u32 WhiteWidth = 2 << 6;
     u32 WhiteHeight = (2 << 6) + 1;
-    u8 *White = (u8 *)malloc(WhiteWidth * WhiteHeight * 4);
+    temporary_memory WhiteMemory = BeginTemporaryMemory(TransientArena);
+    u8 *White = AllocateArray(TransientArena, WhiteWidth * WhiteHeight * 4, u8);
     memset(White, 255, WhiteWidth * WhiteHeight * 4);
-    LoadOpenglTexture(Assets, OpenGL, WhiteWidth, WhiteHeight, GL_RGBA,
-                      WhiteWidth * WhiteHeight * 4, White, TEXTURE_SOFT_FILTER);
-    free(White);
+    UploadOpenglTexture(OpenGL, WhiteWidth, WhiteHeight, GL_RGBA, White, TEXTURE_SOFT_FILTER);
+    EndTemporaryMemory(WhiteMemory);
 
     InitializeAssets(Assets, OpenGL, AppState, MemoryArena);
     AddMonsterTextures(Assets, OpenGL, TransientArena);
