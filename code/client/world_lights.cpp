@@ -57,7 +57,7 @@ global_variable world_light_look StatusLights[StatusEffect_Count] =
     {},                                          // Stunned: stars, fx_bursts.cpp
     {},                                          // Bleeding
     {70.f, 0.3f, {0.6f, 1.0f, 0.6f}, 0.f},       // Regenerating
-    {60.f, 0.25f, {1.0f, 0.95f, 0.5f}, 0.f},     // Hasted
+    {80.f, 0.45f, {1.0f, 0.95f, 0.5f}, 0.f},     // Hasted
     {},                                          // Rooted
     {},                                          // Soaked
     {},                                          // Falling
