@@ -60,6 +60,22 @@ ReleaseKey(app_button_state *Key)
     Key->EndedDown = false;
 }
 
+// NOTE(zoubir): standard cast: X aims the fireball and sends nothing;
+// the click after it throws it. Returns the click's frame
+internal player_input
+AimAndThrowFireball(app_input *Input, app_state *AppState)
+{
+    PressKey(&Input->ButtonX);
+    player_input Local = ReadKeyboardPlayerInput(Input, AppState);
+    Check(Local.Pressed == 0);
+    Check(AppState->CastTargeting->Aiming == PlayerButton_Cast);
+    NextInputFrame(Input);
+    ReleaseKey(&Input->ButtonX);
+    PressKey(&Input->LeftButton);
+    Local = ReadKeyboardPlayerInput(Input, AppState);
+    return Local;
+}
+
 // NOTE(zoubir): the fireball is a key like the other abilities; a left
 // click on bare ground neither casts nor walks there
 internal void
@@ -76,8 +92,9 @@ TestFireballIsOnX()
 
     NextInputFrame(&Test.Input);
     ReleaseKey(&Test.Input.LeftButton);
-    PressKey(&Test.Input.ButtonX);
-    Local = ReadKeyboardPlayerInput(&Test.Input, Test.AppState);
+    ReadKeyboardPlayerInput(&Test.Input, Test.AppState);
+    NextInputFrame(&Test.Input);
+    Local = AimAndThrowFireball(&Test.Input, Test.AppState);
     Check(Local.Pressed == PlayerButton_Cast);
     app_input Sent = InputForServer(&Test.Input, Test.AppState);
     Check(Sent.ButtonX.EndedDown);
@@ -132,8 +149,8 @@ TestStandardCastAimsThenClickCasts()
     Sent = InputForServer(Input, Test.AppState);
     Check(!Sent.ButtonA.EndedDown);
 
-    // NOTE(zoubir): with nothing aimed, a click casts nothing and X still
-    // throws the fireball
+    // NOTE(zoubir): with nothing aimed, a click casts nothing, and X
+    // still aims the fireball for the next click
     NextInputFrame(Input);
     ReleaseKey(&Input->LeftButton);
     ReadKeyboardPlayerInput(Input, Test.AppState);
@@ -142,8 +159,10 @@ TestStandardCastAimsThenClickCasts()
     Local = ReadKeyboardPlayerInput(Input, Test.AppState);
     Check(Local.Pressed == 0);
     NextInputFrame(Input);
-    PressKey(&Input->ButtonX);
-    Local = ReadKeyboardPlayerInput(Input, Test.AppState);
+    ReleaseKey(&Input->LeftButton);
+    ReadKeyboardPlayerInput(Input, Test.AppState);
+    NextInputFrame(Input);
+    Local = AimAndThrowFireball(Input, Test.AppState);
     Check(Local.Pressed == PlayerButton_Cast);
     DestroyTestWorld(&Test);
 }
@@ -295,7 +314,7 @@ StartCooldown(app_state *AppState, world_entity *Player, u32 Button)
 }
 
 // NOTE(zoubir): standard cast: A while Launch recharges shows no aim,
-// sends nothing and says "Not ready"; the click after it is a fireball
+// sends nothing and says "Not ready"; the fireball still aims and goes
 internal void
 TestStandardCastRechargingAimsNothing()
 {
@@ -316,8 +335,7 @@ TestStandardCastRechargingAimsNothing()
 
     NextInputFrame(Input);
     ReleaseKey(&Input->ButtonA);
-    PressKey(&Input->ButtonX);
-    Local = ReadKeyboardPlayerInput(Input, AppState);
+    Local = AimAndThrowFireball(Input, AppState);
     Check(Local.Pressed == PlayerButton_Cast);
     DestroyTestWorld(&Test);
 }
