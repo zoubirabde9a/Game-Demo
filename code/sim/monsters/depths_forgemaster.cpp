@@ -6,8 +6,8 @@
 
    Calm:    Anvil Drop brings the hammer down in a wide ring that sets the
             struck burning and leaves embers on the floor; Hammer Hurl
-            lobs three white-hot ingots at the party's back line, each
-            leaving burning ground; Bellows Rush charges along a locked
+            lobs three white-hot ingots at the party's back line, setting
+            the struck burning; Bellows Rush charges along a locked
             line at a player far from him.
    Enraged (below half health): faster, glowing red, and Stoke the
             Forge: two Cinder Imps climb out of the coals, three at most.
@@ -59,7 +59,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     Anvil->Windup = 1.1f;
     Anvil->Active = 0.3f;
     Anvil->Recover = 0.6f;
-    Anvil->Damage = 28.f;
+    Anvil->Damage = 22.f;
     Anvil->Radius = 115.f;
     Anvil->Knockback = 650.f;
     Anvil->Status = StatusEffect_Burning;
@@ -68,25 +68,24 @@ DefineMonster_Forgemaster(monster_def *Def)
     Anvil->HazardStyle = HazardStyle_Embers;
 
     // NOTE(zoubir): the far players are never safe: the ingots land where
-    // they are heading and the ground keeps burning, so the healer and
-    // the striker have to keep moving while the tank holds him
+    // they are heading, so the healer and the striker have to keep moving
+    // while the tank holds him. No burning ground: the back line stood in
+    // it and three bots died in seconds
     monster_ability *Hurl = AddMonsterAbility(Def, MonsterAbility_Mortar,
                                               "Hammer Hurl");
     Hurl->MinRange = 120.f;
     Hurl->MaxRange = 480.f;
-    Hurl->Cooldown = 4.f;
+    Hurl->Cooldown = 5.f;
     Hurl->Windup = 1.f;
     Hurl->Active = 0.3f;
     Hurl->Recover = 0.5f;
-    Hurl->Damage = 20.f;
+    Hurl->Damage = 14.f;
     Hurl->Radius = 55.f;
     Hurl->Knockback = 250.f;
     Hurl->Count = 3;
     Hurl->Spread = 120.f;
     Hurl->Status = StatusEffect_Burning;
     Hurl->StatusSeconds = 1.5f;
-    Hurl->HazardSeconds = 3.f;
-    Hurl->HazardStyle = HazardStyle_Embers;
 
     monster_ability *Rush = AddMonsterAbility(Def, MonsterAbility_Charge,
                                               "Bellows Rush");
@@ -96,7 +95,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     Rush->Windup = 0.9f;
     Rush->Active = 0.7f;
     Rush->Recover = 0.7f;
-    Rush->Damage = 22.f;
+    Rush->Damage = 18.f;
     Rush->Radius = 46.f;
     Rush->Speed = 640.f;
     Rush->Knockback = 700.f;

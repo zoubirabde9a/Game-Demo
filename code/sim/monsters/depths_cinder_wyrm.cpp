@@ -8,8 +8,8 @@
             the ring locks a moment before she bursts out under it.
             Magma Spit throws a fan of four burning globs. Tail Lash
             sweeps everything near her toward the lava round the rim.
-   Enraged (below 45% health): faster, white-hot, and Molten Rain: four
-            spots of falling magma that leave the floor burning.
+   Enraged (below 45% health): faster, white-hot, and Molten Rain: three
+            spots of falling magma that set the struck burning.
    The dungeon adds two Dune Lurkers at 66% and 33% that crawl back into
    her and heal her if they live too long (sim/dungeon/boss_scripts.cpp). */
 #if defined(MONSTER_NAME_PASS)
@@ -45,15 +45,13 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Rain->Windup = 1.1f;
     Rain->Active = 0.3f;
     Rain->Recover = 0.5f;
-    Rain->Damage = 18.f;
+    Rain->Damage = 13.f;
     Rain->Radius = 50.f;
     Rain->Knockback = 200.f;
-    Rain->Count = MAX_ABILITY_POINTS;
+    Rain->Count = 3;
     Rain->Spread = 160.f;
     Rain->Status = StatusEffect_Burning;
     Rain->StatusSeconds = 2.f;
-    Rain->HazardSeconds = 4.f;
-    Rain->HazardStyle = HazardStyle_Embers;
     Rain->PhaseMask = PHASE_ENRAGED;
 
     // NOTE(zoubir): her answer to a party that stands round her: a
@@ -65,7 +63,7 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Lash->Windup = 0.9f;
     Lash->Active = 0.3f;
     Lash->Recover = 0.5f;
-    Lash->Damage = 22.f;
+    Lash->Damage = 18.f;
     Lash->Radius = 105.f;
     Lash->Knockback = 750.f;
 
@@ -77,7 +75,7 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Dive->Windup = 0.7f;
     Dive->Active = 2.f;
     Dive->Recover = 0.9f;
-    Dive->Damage = 30.f;
+    Dive->Damage = 22.f;
     Dive->Radius = 72.f;
     Dive->Knockback = 600.f;
     Dive->Status = StatusEffect_Burning;
@@ -91,7 +89,7 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Spit->Windup = 0.7f;
     Spit->Active = 1.4f;
     Spit->Recover = 0.4f;
-    Spit->Damage = 11.f;
+    Spit->Damage = 8.f;
     Spit->Radius = 18.f;
     Spit->Speed = 290.f;
     Spit->Knockback = 120.f;

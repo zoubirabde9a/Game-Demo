@@ -5,7 +5,7 @@
 
    Calm:    Hellfire Cleave splits the floor round him and leaves it
             burning; Flame Step vanishes in a burst and comes down behind
-            his target; Cinderfall drops four burning stones over the
+            his target; Cinderfall drops three burning stones over the
             hall, where the party is heading.
    Enraged (below 40% health): faster, white with heat, and Crown of
             Fire: four fireballs out in a cross round his target.
@@ -44,7 +44,7 @@ DefineMonster_EmberTyrant(monster_def *Def)
     Crown->Windup = 0.9f;
     Crown->Active = 1.6f;
     Crown->Recover = 0.5f;
-    Crown->Damage = 16.f;
+    Crown->Damage = 12.f;
     Crown->Radius = 20.f;
     Crown->Speed = 270.f;
     Crown->Knockback = 150.f;
@@ -62,7 +62,7 @@ DefineMonster_EmberTyrant(monster_def *Def)
     Cleave->Windup = 1.1f;
     Cleave->Active = 0.3f;
     Cleave->Recover = 0.6f;
-    Cleave->Damage = 32.f;
+    Cleave->Damage = 26.f;
     Cleave->Radius = 125.f;
     Cleave->Knockback = 700.f;
     Cleave->Status = StatusEffect_Burning;
@@ -76,11 +76,11 @@ DefineMonster_EmberTyrant(monster_def *Def)
                                               "Flame Step");
     Step->MinRange = 160.f;
     Step->MaxRange = 540.f;
-    Step->Cooldown = 8.f;
+    Step->Cooldown = 10.f;
     Step->Windup = 1.f;
     Step->Active = 0.3f;
     Step->Recover = 0.6f;
-    Step->Damage = 24.f;
+    Step->Damage = 16.f;
     Step->Radius = 80.f;
     Step->Spread = 60.f;
     Step->Knockback = 500.f;
@@ -91,19 +91,17 @@ DefineMonster_EmberTyrant(monster_def *Def)
                                               "Cinderfall");
     Fall->MinRange = 100.f;
     Fall->MaxRange = 560.f;
-    Fall->Cooldown = 6.f;
+    Fall->Cooldown = 8.f;
     Fall->Windup = 1.2f;
     Fall->Active = 0.3f;
     Fall->Recover = 0.5f;
-    Fall->Damage = 22.f;
+    Fall->Damage = 14.f;
     Fall->Radius = 60.f;
     Fall->Knockback = 250.f;
-    Fall->Count = MAX_ABILITY_POINTS;
+    Fall->Count = 3;
     Fall->Spread = 150.f;
     Fall->Status = StatusEffect_Burning;
     Fall->StatusSeconds = 2.f;
-    Fall->HazardSeconds = 5.f;
-    Fall->HazardStyle = HazardStyle_Embers;
 }
 
 #else

@@ -44,7 +44,7 @@ struct dungeon_level
     u32 NextMapId;
 };
 
-// NOTE(zoubir): the Depths' monsters have 35% more health and hit 20%
+// NOTE(zoubir): the Depths' monsters have 35% more health and hit 10%
 // harder than the Crypt's; with the levels and talents a party gains in
 // the Crypt, that keeps the second level a step up rather than a wall
 global_variable dungeon_level DungeonLevels[] =
@@ -52,7 +52,7 @@ global_variable dungeon_level DungeonLevels[] =
     {MapId_Crypt, 1, CryptRooms, CryptEncounters, ArrayCount(CryptEncounters),
      CryptRoomNames, ArrayCount(CryptRoomNames), 1.f, 1.f, MapId_Depths},
     {MapId_Depths, 2, DepthsRooms, DepthsEncounters, ArrayCount(DepthsEncounters),
-     DepthsRoomNames, ArrayCount(DepthsRoomNames), 1.35f, 1.2f, MapId_Crypt},
+     DepthsRoomNames, ArrayCount(DepthsRoomNames), 1.35f, 1.1f, MapId_Crypt},
 };
 
 // NOTE(zoubir): the level played on MapId, 0 for a map that is not one

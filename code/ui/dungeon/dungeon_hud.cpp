@@ -65,7 +65,7 @@ DrawDungeonObjective(render_context *RenderContext, app_state *AppState,
         u32 NextMap = NextRunMap(World->MapId);
         char *Onward = GetMapDef((map_id)NextMap)->Name;
         dungeon_level *NextLevel = GetDungeonLevel(NextMap);
-        char *Verb = (NextLevel && NextLevel->Number > 1) ? "Down to" : "Back up to";
+        char *Verb = (char *)((NextLevel && NextLevel->Number > 1) ? "Down to" : "Back up to");
         if (!Next && IsOnline(AppState->Online))
         {
             snprintf(Text, sizeof(Text), "%s cleared!  %s the %s soon",
