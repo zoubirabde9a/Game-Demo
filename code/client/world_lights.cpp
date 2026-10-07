@@ -1,6 +1,6 @@
-/* World lights: the coloured light that fireballs, monster shots, kunai,
-   bursts (a hit, a nova, a level up) and lava throw on the ground and the
-   bodies near them. Gathered once a frame
+/* World lights: the coloured light that players' lanterns (on dark maps),
+   fireballs, monster shots, kunai, bursts (a hit, a nova, a level up) and
+   lava throw on the ground and the bodies near them. Gathered once a frame
    into a short list in window pixels; the world grade shader
    (build/shaders/fx/world_grade.frag) brightens and tints every pixel
    within reach of each one, so a fireball lights the grass it flies over.
@@ -41,6 +41,9 @@ global_variable world_light_look KunaiLight = {45.f, 0.35f, {0.70f, 0.85f, 1.0f}
 #define BURST_LIGHT_REACH 2.2f
 #define BURST_LIGHT_MIN_RADIUS 30.f
 #define BURST_LIGHT_STRENGTH 0.9f
+// NOTE(zoubir): a lantern, carried by every living player on a map whose
+// mood asks for one (map_moods.cpp); its strength comes from the mood
+global_variable world_light_look LanternLight = {170.f, 1.f, {1.0f, 0.78f, 0.50f}, 0.4f};
 global_variable world_light_look LavaLight = {175.f, 0.75f, {1.0f, 0.42f, 0.12f}, 1.f};
 
 internal void
@@ -87,8 +90,14 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
             continue;
         }
         world_light_look *Look = 0;
+        float Scale = 1.f;
         switch(Entity->Type)
         {
+            case EntityType_Player:
+            {
+                Scale = MoodFor(World->MapId)->Lantern;
+                Look = (Scale > 0.f && !IsDeadPlayer(Entity)) ? &LanternLight : 0;
+            } break;
             case EntityType_FireBall: Look = &FireballLight; break;
             case EntityType_MonsterShot: Look = &MonsterShotLight; break;
             case EntityType_Kunai: Look = &KunaiLight; break;
@@ -100,7 +109,7 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
             // NOTE(zoubir): halfway down to the ground, since most of
             // what it lights is the ground under it
             AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
-                          0.5f * Entity->Position.Z, *Look, 1.f);
+                          0.5f * Entity->Position.Z, *Look, Scale);
         }
     }
 
