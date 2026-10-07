@@ -1,6 +1,7 @@
-/* Sound effects: every action's sound, made by code at startup instead
-   of read from asset_1.zas (synth.cpp has the parts, recipes.cpp the
-   designs). SoundEffects lists each one: its asset type (the id the
+/* Sound effects: every action's sound, loaded at startup from a recorded
+   file in sfx/ when there is one (sound_files.cpp), else made by code
+   instead of read from asset_1.zas (synth.cpp has the parts, recipes.cpp
+   the designs). SoundEffects lists each one: its asset type (the id the
    simulation emits, engine/asset_type_id.h), its recipe, its length, how
    loud it plays against the others, and how much its pitch may wander
    from one play to the next so a repeated sound does not sound stamped.
@@ -8,10 +9,12 @@
    Entry points: AddSoundEffects (once, after InitializeAssets) renders
    them all into the permanent arena and loads them as audio assets;
    PlayGameSound (play_events.cpp) plays one at its level and pitch.
-   A new sound is a type in asset_type_id.h, a recipe and a row here. */
+   A new sound is a type in asset_type_id.h, a recipe and a row here,
+   and sfx/<its name>.wav for a recorded one. */
 
 #include "synth.cpp"
 #include "recipes.cpp"
+#include "sound_files.cpp"
 
 typedef void sfx_recipe(float *Samples, u32 Count, sfx_random *Random, sfx_reverb *Reverb);
 
@@ -105,13 +108,18 @@ AddSoundEffects(assets *Assets, memory_arena *Permanent, memory_arena *Temporary
     {
         sound_effect *Effect = &SoundEffects[Index];
         ReserveGeneratedAssets(Assets, Effect->Type, 1);
-        RenderSoundEffect(Effect, Work, Reverb);
-        u32 Count = SoundEffectSampleCount(Effect);
-        i16 *Samples = AllocateArray(Permanent, Count, i16);
-        for(u32 Sample = 0; Sample < Count; Sample++)
+        u32 Count = 0;
+        i16 *Samples = LoadSoundFile(Effect->Name, Permanent, &Count);
+        if (!Samples)
         {
-            float Value = Minimum(1.f, Maximum(-1.f, Work[Sample]));
-            Samples[Sample] = (i16)(Value * 32767.f);
+            RenderSoundEffect(Effect, Work, Reverb);
+            Count = SoundEffectSampleCount(Effect);
+            Samples = AllocateArray(Permanent, Count, i16);
+            for(u32 Sample = 0; Sample < Count; Sample++)
+            {
+                float Value = Minimum(1.f, Maximum(-1.f, Work[Sample]));
+                Samples[Sample] = (i16)(Value * 32767.f);
+            }
         }
         AddGeneratedAudio(Assets, {Effect->Type, 0}, Samples, Count);
     }

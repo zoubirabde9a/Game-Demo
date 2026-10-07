@@ -33,11 +33,11 @@ cmd.exe //c "$(cygpath -w "$SRC/build.bat")" release > "$SRC/build.log" 2>&1 || 
     exit 1
 }
 
-# What the game needs at run time: it loads asset_1.zas, shaders/ and
-# fonts/ from the folder it runs in.
+# What the game needs at run time: it loads asset_1.zas, shaders/, fonts/
+# and the recorded sound effects in sfx/ from the folder it runs in.
 GAME="$SRC/build"
 FILES=(win32_app.exe app.dll asset_1.zas)
-while IFS= read -r F; do FILES+=("$F"); done < <(cd "$GAME" && find shaders fonts -type f | sort)
+while IFS= read -r F; do FILES+=("$F"); done < <(cd "$GAME" && find shaders fonts sfx -type f | sort)
 
 hash_of() { sha256sum "$1" | cut -d' ' -f1; }
 size_of() { wc -c < "$1" | tr -d ' '; }
