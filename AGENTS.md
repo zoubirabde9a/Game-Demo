@@ -81,7 +81,7 @@ To find where a change belongs, run `powershell -File misc\code_map.ps1` (or `..
 
 Also build `build.bat release` when you touch headers or `#if` blocks; the release build compiles different code.
 
-To look at what you changed on screen, run `misc\screenshot.bat out.png [frame]` after `build.bat`. It saves the frame the game draws (frame 90 by default) and quits; a desktop capture of the game window comes out white.
+To look at what you changed on screen, run `misc\screenshot.bat out.png [frame]` after `build.bat`. It saves the frame the game draws (frame 90 by default) and quits; a desktop capture of the game window comes out white. Set `GAME_OFFSCREEN=1` first: someone may be playing on this machine, and without it the game window opens in front of them.
 
 The build scripts set up the compiler themselves (`misc\shell_64.bat`) and work from any folder, so there is no shell to prepare first. When PATH is longer than cmd can hold once Visual Studio appends to it, `shell_64.bat` swaps in a short PATH that keeps git and g++.
 
