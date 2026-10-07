@@ -69,8 +69,10 @@ Win32RunFrame(win32_frame_loop *loop, bool32 readMessages)
     AppWindow.Width = drawable.Game.Width;
     AppWindow.Height = drawable.Game.Height;
     Win32SetViewport(drawable.Pixels);
+    Win32ProfileGameStart();
     loop->appCode.updateAndRender(loop->thread, loop->appMemory, NewInput,
                                   &AppWindow);
+    Win32ProfileGameEnd();
     Win32WriteFrameSound(loop->soundOutput, &loop->soundIsValid, loop->Samples,
                          loop->flipWallClock, loop->targetSecondsPerFrame,
                          loop->appUpdateHz, &loop->appCode, loop->thread,
