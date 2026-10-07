@@ -105,7 +105,7 @@ The roles keep up at the square root of that damage: the tank takes only the squ
 
 ## Bosses
 
-Every boss fight is a damage race. The boss's enrage timer shows under its health bar (`sim/dungeon/boss_clock.cpp`) and turns red with 30 s left. When it runs out the boss goes berserk: faster, red, and every hit on a player 50% harder, 25% more every 5 s after. Every 2 s a Doom pulse hits everyone in the room for 8% of their health times the same scale, so even Gravecaller Ossian, who hits rarely, wipes the party within about 15 s. Surviving is not enough; the party has to keep its damage up and kill the adds in time.
+Every boss fight is a damage race. While a boss is up, every monster hit on a player is 1.4 times as hard (`DUNGEON_BOSS_DAMAGE`, `sim/dungeon/party_scaling.cpp`), the tank's too: playtesters said the bosses did not do much damage. A boss's shots carry no link back to it, so its adds take the scale as well. The boss's enrage timer shows under its health bar (`sim/dungeon/boss_clock.cpp`) and turns red with 30 s left. When it runs out the boss goes berserk: faster, red, and every hit on a player 50% harder, 25% more every 5 s after. Every 2 s a Doom pulse hits everyone in the room for 8% of their health times the same scale, so even Gravecaller Ossian, who hits rarely, wipes the party within about 15 s. Surviving is not enough; the party has to keep its damage up and kill the adds in time.
 
 | Boss | Timer for three players |
 |---|---|

@@ -288,6 +288,7 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         if (Run->FightingRoom && !FromPlayer)
         {
             Result *= Slot->Role == PlayerRole_Tank ? PartySustainScale(Run) : RunPartyDamage(Run);
+            Result *= RunBossDamage(Run);
         }
         Result *= BossClockDamageScale(&Run->Clock, Run->FightingRoom, Run->BossSerial);
         if (Slot->ShieldWallSeconds > 0.f)

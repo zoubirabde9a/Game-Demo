@@ -28,6 +28,13 @@
 #define DUNGEON_FOE_HEALTH 0.6f
 #define DUNGEON_FOE_DAMAGE 1.15f
 
+// NOTE(zoubir): while a boss is up, every monster hit on a player is
+// DUNGEON_BOSS_DAMAGE times as hard on top of that, the tank's included.
+// Playtesters said the bosses did not do much damage: a boss's shots
+// carry no link back to it, so the whole fight takes the scale, its
+// adds too, as the enrage scale does (boss_clock.h)
+#define DUNGEON_BOSS_DAMAGE 1.4f
+
 // NOTE(zoubir): Growth to the power of the players past the first; a
 // loop rather than powf, so the ARM server and an x86 machine get the
 // same float
@@ -67,6 +74,15 @@ inline float
 RunPartyDamage(dungeon_run *Run)
 {
     float Result = (Run && Run->PartyDamage > 0.f) ? Run->PartyDamage : 1.f;
+    return Result;
+}
+
+// NOTE(zoubir): what a monster's hit on a player is multiplied by for
+// the boss: DUNGEON_BOSS_DAMAGE while one is being fought, else 1
+inline float
+RunBossDamage(dungeon_run *Run)
+{
+    float Result = (Run && Run->FightingRoom && Run->BossSerial) ? DUNGEON_BOSS_DAMAGE : 1.f;
     return Result;
 }
 

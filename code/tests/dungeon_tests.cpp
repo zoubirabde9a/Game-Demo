@@ -221,6 +221,8 @@ TestRoomsStartClearAndOpenGates()
     Check(Foe->MaxHp > GetMonsterStats(Foe->MonsterKind)->MaxHp *
           DUNGEON_FOE_HEALTH * 1.44f);
     Check(Run->PartyDamage == DUNGEON_FOE_DAMAGE * PartyDamageScale(2));
+    // NOTE(zoubir): only a boss fight hits harder for the boss
+    Check(RunBossDamage(Run) == 1.f);
 
     KillRoomMonsters(&Crypt, 2);
     TickCrypt(&Crypt, 2);
@@ -409,6 +411,7 @@ TestBossEventsFireOnce()
     world_entity *Boss = FightBoss(World, Run);
     Check(Boss && Boss->MonsterKind == MonsterKind_Gravecaller);
     Check(Run->FoeCount == 1);
+    Check(RunBossDamage(Run) == DUNGEON_BOSS_DAMAGE);
     Boss->Hp = 0.7f * Boss->MaxHp;
     TickCrypt(&Crypt, 1);
     Check(Run->FoeCount == 1);
