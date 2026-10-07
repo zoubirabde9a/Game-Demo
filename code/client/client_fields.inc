@@ -28,6 +28,7 @@
     float ScreenEdgeClock; // seconds, drives the low-health pulse, client/screen_edge.cpp
     u32 ScreenEdgeLastKills; // the local player's kills last frame plus one (0: not seen yet), client/screen_edge.cpp
     float ScreenEdgeKill; // gold flash at the screen edge after a kill, 1 fading to 0, client/screen_edge.cpp
+    u32 WeatherOverride; // GAME_WEATHER, read once: 0 unread, 1 none, 2 rain, 3 dry; client/weather.cpp
     float RainSplash; // raindrops owed to the water since the last frame, client/weather.cpp
     struct ground_marks *GroundMarks; // ripples and footprints walking leaves, client/ground_marks.cpp
     struct terrain_cache *TerrainCache; // what the client draws knows of each tile in view, client/ground/terrain_cache.cpp

@@ -45,15 +45,20 @@ RainAmount(app_state *AppState)
     {
         return 0.f;
     }
+    if (!AppState->WeatherOverride)
+    {
 #pragma warning(push)
-#pragma warning(disable: 4996) // getenv: a test override, read each frame
-    char *Forced = getenv("GAME_WEATHER");
+#pragma warning(disable: 4996) // getenv: read once, never kept
+        char *Forced = getenv("GAME_WEATHER");
 #pragma warning(pop)
-    if (Forced && Forced[0] == 'r')
+        AppState->WeatherOverride = !Forced ? 1 : Forced[0] == 'r' ? 2 :
+            Forced[0] == 'd' ? 3 : 1;
+    }
+    if (AppState->WeatherOverride == 2)
     {
         return 1.f;
     }
-    if (Forced && Forced[0] == 'd')
+    if (AppState->WeatherOverride == 3)
     {
         return 0.f;
     }

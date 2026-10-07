@@ -34,11 +34,12 @@ At 1e7 a float cannot tell `x + 0.5` from `x`. Steps off the flat ground key mus
 
 | Look | File | To add one |
 |---|---|---|
-| Coloured light (fire, shots, bursts, lava, lanterns) | `client/world_lights.cpp` | a `world_light_look` row; at most 32 lights a frame |
+| Coloured light (fire, shots, bursts, lava, lanterns, glowing statuses) | `client/world_lights.cpp` | a `world_light_look` row, or a row of `StatusLights`; at most 32 lights a frame |
 | Glow round bright colour | `client/world_bloom.cpp`, `fx/bloom.frag` | nothing: anything bright and saturated glows |
 | A map's colour grade and lantern | `client/map_moods.cpp` | a `map_mood` row, matched by map name |
 | Moving light on water, ice, snow, mud | `client/ground/ground_surface.cpp`, `fx/ground_surface.frag` | a `ground_surface` value, a case in `SurfaceOfKind`, a branch in the shader |
 | Motes in the air per map | `client/ambient_motes.cpp` | a `mote_look`, matched by map name |
+| Rain showers | `client/weather.cpp` | a case in `MapHasRain`; `GAME_WEATHER=rain` or `dry` fixes it |
 | Ripples and footprints | `client/ground_marks.cpp` | a `ground_mark_kind` and its drawing |
 | Shadows, player rings, reflections, tree sway | `client/draw_entities/ground_contact.cpp` | tuning numbers at its top |
 | Ground textures | `art/terrain/*_tiles.cpp`, brushes in `ground_paint.cpp` | a painter per kind; 16 variants a kind |
