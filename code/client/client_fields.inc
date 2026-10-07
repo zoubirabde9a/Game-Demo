@@ -52,3 +52,4 @@
     struct role_fx *RoleFx; // the role spells' effects playing out, client/dungeon/role_fx.cpp
     struct party_pick *PartyPick; // the party frames' places and the ally picked on them, client/dungeon/role_targeting.cpp
     struct cast_targeting *CastTargeting; // quick or standard cast, and the ability being aimed, client/cast_targeting.cpp
+    struct cast_fx *CastFx; // each player's cast circle, hand glow and release, client/cast_fx.cpp

@@ -309,6 +309,9 @@ DrawEntity(render_context *RenderContext,
         DrawSelfMarker(RenderContext,
                        V2(EntityCameraPosition.X, EntityCameraPosition.Y - GroundZ),
                        SortingValue, MarkerColor);
+        DrawCastSigil(RenderContext, AppState, Entity,
+                      V2(EntityCameraPosition.X, EntityCameraPosition.Y - GroundZ),
+                      SortingValue);
     }
     DrawEntityShadow(RenderContext, AppState, TextureProgram, Assets, Entity,
                      EntityCameraPosition, GroundZ, DrawZ, SortingValue, Pose.Scale.X);

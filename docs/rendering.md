@@ -43,6 +43,7 @@ At 1e7 a float cannot tell `x + 0.5` from `x`. Steps off the flat ground key mus
 | Day and night | `client/time_of_day.cpp` | a case in `MapHasNight`; `GAME_TIME=day`, `dusk` or `night` fixes it; effects ask `Daylight()` |
 | Rain showers | `client/weather.cpp` | a case in `MapHasRain`; `GAME_WEATHER=rain` or `dry` fixes it |
 | Ripples and footprints | `client/ground_marks.cpp` | a `ground_mark_kind` and its drawing |
+| A player's cast: circle on the ground, hand glow, release flash | `client/cast_fx.cpp`, `client/player_fx/cast_glow.cpp`, `fx/cast_sigil.frag` | a `CastLooks` row per spell with a wind-up: radius, colour and the figure in the circle |
 | Shadows, player rings, reflections, tree sway | `client/draw_entities/ground_contact.cpp` | tuning numbers at its top |
 | Ground textures | `art/terrain/*_tiles.cpp`, brushes in `ground_paint.cpp` | a painter per kind; 16 variants a kind |
 | Cloud shadows, ground patches, heat shimmer, smoke | `fx/world_grade.frag` | smoke: the map mood's `Smoke` |

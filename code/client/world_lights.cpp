@@ -1,5 +1,6 @@
 /* World lights: the coloured light that players' lanterns (on dark maps),
-   bodies under a glowing status (on fire, poisoned...), wall torches,
+   bodies under a glowing status (on fire, poisoned...), players winding
+   up a spell, wall torches,
    fireballs, monster shots, kunai, bursts (a hit, a nova, a level up) and
    lava throw on the ground and the bodies near them. Gathered once a frame
    into a short list in window pixels; the world grade shader
@@ -189,6 +190,15 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
                     AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
                                   Entity->Position.Z + 12.f, StatusLights[Effect], 1.f);
                 }
+            }
+            // NOTE(zoubir): a caster lights the ground in its spell's
+            // colour, brighter as the cast fills (cast_fx.cpp)
+            world_light_look Cast = {};
+            if (Entity->Type == EntityType_Player &&
+                CastLightOf(AppState, Entity, &Cast.Color, &Cast.Radius, &Cast.Strength))
+            {
+                AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
+                              Entity->Position.Z + 12.f, Cast, 1.f);
             }
         }
     }

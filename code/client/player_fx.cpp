@@ -19,6 +19,9 @@
      up (player_fx/shield_bubble.cpp);
    - status motes: embers, bubbles, drops and sparkles round units with a
      status effect running (player_fx/status_fx.cpp);
+   - cast glow: light gathering in the hand of every player winding up a
+     spell, and its flash when the spell goes off (player_fx/cast_glow.cpp,
+     cast_fx.cpp);
    - cast bars: a bar over every player winding up a spell
      (cast_bars.cpp);
    - bursts the simulation asks for (sword swings, casts, Shockwave,
@@ -34,6 +37,7 @@
 #include "player_fx/kunai_fx.cpp"
 #include "player_fx/shield_bubble.cpp"
 #include "player_fx/status_fx.cpp"
+#include "player_fx/cast_glow.cpp"
 
 struct player_fx
 {
@@ -57,6 +61,7 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     }
     player_fx *Fx = AppState->PlayerFx;
     UpdateBodyPoses(AppState, DeltaTime);
+    UpdateCastFx(AppState, DeltaTime);
     UpdateDashStreaks(&Fx->Dashes, AppState, DeltaTime);
     UpdateHitNumbers(&Fx->Hits, AppState, DeltaTime);
     UpdateFireBallTrails(&Fx->Embers, AppState, DeltaTime);
@@ -72,6 +77,7 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     DrawAimMarker(RenderContext, AppState, CameraOffset);
     DrawHitNumbers(RenderContext, AppState, &Fx->Hits, CameraOffset);
     DrawHitCombo(RenderContext, AppState, &Fx->Hits, CameraOffset);
+    DrawCastGlows(RenderContext, AppState, CameraOffset);
     DrawPlayerCastBars(RenderContext, AppState, CameraOffset);
     DrawFxBursts(RenderContext, AppState, CameraOffset, DeltaTime);
 }

@@ -2,7 +2,8 @@
    spell's name above it, blinking white in the last CAST_BAR_HOT of the
    wind-up. Monsters draw theirs with their motes and release ring
    (monster_cast_tells.cpp); players get the bar alone, for every spell
-   with a cast time (sim/player_casts.cpp).
+   with a cast time (sim/player_casts.cpp), in the colour of the spell's
+   circle on the ground (cast_fx.cpp).
 
    Read only from CastSpell and CastLeft, which snapshots carry
    (client/replicas/apply.cpp) and prediction steps for the local player,
@@ -78,9 +79,11 @@ DrawPlayerCastBars(render_context *RenderContext, app_state *AppState,
             continue;
         }
         v2 Feet = Entity->Position.XY - CameraOffset.XY - V2(0.f, Entity->Position.Z);
+        cast_look *Look = CastLookOf(Entity->CastSpell);
+        u32 Color = Look ? CastRGBA(0.45f * V3(1.f, 1.f, 1.f) + 0.55f * Look->Color, 1.f, 1.f) :
+            UI_RGBA(120, 200, 255, 255);
         DrawCastBar(RenderContext, AppState, Entity, Feet,
                     PlayerCastProgress(Entity), Clock,
-                    PlayerSpells[Entity->CastSpell].Name,
-                    UI_RGBA(120, 200, 255, 255));
+                    PlayerSpells[Entity->CastSpell].Name, Color);
     }
 }
