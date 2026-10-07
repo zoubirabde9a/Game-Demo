@@ -19,6 +19,7 @@
 #define FOOTPRINT_STRIDE 13.f
 #define RIPPLE_SECONDS 1.3f
 #define FOOTPRINT_SECONDS 7.f
+#define DROP_SECONDS 0.5f
 // NOTE(zoubir): a jump or a flyer this far above the ground leaves nothing
 #define GROUND_MARK_MAX_HEIGHT 2.f
 
@@ -27,6 +28,7 @@ enum ground_mark_kind
     GroundMark_None,
     GroundMark_Ripple,
     GroundMark_Footprint,
+    GroundMark_Drop,     // a raindrop landing on water (weather.cpp)
 };
 
 struct ground_mark
@@ -191,16 +193,18 @@ DrawGroundMarks(render_context *RenderContext, app_state *AppState, v3 CameraOff
     {
         ground_mark *Mark = &Marks->Marks[Index];
         float Age = Now - Mark->Born;
-        if (Mark->Kind != GroundMark_Ripple || Age < 0.f || Age > RIPPLE_SECONDS)
+        bool32 Drop = Mark->Kind == GroundMark_Drop;
+        float Life = Drop ? DROP_SECONDS : RIPPLE_SECONDS;
+        if ((Mark->Kind != GroundMark_Ripple && !Drop) || Age < 0.f || Age > Life)
         {
             continue;
         }
-        float T = Age / RIPPLE_SECONDS;
-        float Width = 10.f + 40.f * T;
+        float T = Age / Life;
+        float Width = Drop ? 3.f + 11.f * T : 10.f + 40.f * T;
         // NOTE(zoubir): seen from above and a little in front, a ring on
         // the water is an ellipse
         float Height = 0.55f * Width;
-        u32 Alpha = (u32)(110.f * (1.f - T) * (1.f - T));
+        u32 Alpha = (u32)((Drop ? 170.f : 110.f) * (1.f - T) * (1.f - T));
         RenderQuadTexture(RenderContext, Mark->Position.X - 0.5f * Width - CameraOffset.X,
                           Mark->Position.Y - 0.5f * Height - CameraOffset.Y, Width, Height,
                           V4(0.f, 1.f, 1.f, 0.f), (Alpha << 24) | 0x00FFEED0, 0.f);

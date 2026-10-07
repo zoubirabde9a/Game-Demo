@@ -81,8 +81,9 @@ BeginWorldPass(render_context *RenderContext, memory_arena *TransientArena,
         // NOTE(zoubir): the ground surface: a batch per kind of surface, and
         // one per row, height and kind on raised ground; a quad per tile
         GroundTiles + GroundSurface_Count * (1 + ScreenRows * ELEVATION_MAX_STEPS) +
-        // NOTE(zoubir): the motes in the air, one batch, a quad each
-        AMBIENT_MOTES_MAX + 1 +
+        // NOTE(zoubir): the motes in the air and the rain, a batch each, a
+        // quad a mote or streak
+        AMBIENT_MOTES_MAX + 1 + RAIN_MAX + 1 +
         // NOTE(zoubir): ripples and footprints, two batches, a quad each
         GROUND_MARKS_MAX + 2;
     SetupBatchRenderer(RenderContext, TransientArena, BatchesCount);
@@ -425,8 +426,11 @@ DrawTileMap(render_context *RenderContext, app_state *AppState,
             DrawTerrainProps(RenderContext, AppState, TextureProgram, CameraOffset,
                              Visible);
         }
-        DrawAmbientMotes(RenderContext, AppState, CameraOffset,
-                         V2((float)Window->Width, (float)Window->Height));
+        v2 ViewSize = V2((float)Window->Width, (float)Window->Height);
+        float Rain = RainAmount(AppState);
+        SplashRain(AppState, CameraOffset, ViewSize, Rain);
+        DrawAmbientMotes(RenderContext, AppState, CameraOffset, ViewSize, 1.f - Rain);
+        DrawRain(RenderContext, AppState, CameraOffset, ViewSize);
         return;
     }
 

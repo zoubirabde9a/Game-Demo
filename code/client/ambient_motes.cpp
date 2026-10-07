@@ -65,12 +65,13 @@ MoteRoll(u32 Hash, u32 Shift)
 
 internal void
 DrawAmbientMotes(render_context *RenderContext, app_state *AppState, v3 CameraOffset,
-                 v2 View)
+                 v2 View, float Fade)
 {
     world *World = &AppState->World;
     render_program Program = RenderContext->Programs[Shader_Glow];
     mote_look *Look = MoteLookFor(World->MapId);
-    if (!Look || !Look->Count || Program.ID == RenderContext->TextureProgram.ID)
+    if (!Look || !Look->Count || Fade <= 0.f ||
+        Program.ID == RenderContext->TextureProgram.ID)
     {
         return;
     }
@@ -105,8 +106,8 @@ DrawAmbientMotes(render_context *RenderContext, app_state *AppState, v3 CameraOf
                 v2 Start = V2(((float)CellX + MoteRoll(Birth, 0)) * Look->Cell,
                               ((float)CellY + MoteRoll(Birth, 20)) * Look->Cell);
                 v2 P = Start + Look->Velocity * Time + V2(Swing, 0.3f * Swing);
-                float Fade = Sin(3.1416f * Phase);
-                float Strength = Look->Alpha * Fade * Fade;
+                float Life = Sin(3.1416f * Phase);
+                float Strength = Fade * Look->Alpha * Life * Life;
                 if (Look->Blink > 0.f)
                 {
                     float Pulse = 0.5f + 0.5f * Sin(4.f * Time + 6.283f * MoteRoll(Birth, 4));
