@@ -22,52 +22,6 @@
    The damage counts as the caster's, so their role and talents scale it
    and it makes threat for them. */
 
-// NOTE(zoubir): Monster's row in the table, 0 for none
-internal searing_mark *
-FindSearing(dungeon_run *Run, world *World, world_entity *Monster)
-{
-    u32 Slot = (u32)(Monster - World->Entities);
-    for(u32 Index = 0; Index < MAX_SEARING; Index++)
-    {
-        searing_mark *Mark = &Run->Searing[Index];
-        if (Mark->Stacks && Mark->Slot == Slot && Mark->Serial == Monster->MonsterSerial)
-        {
-            return Mark;
-        }
-    }
-    return 0;
-}
-
-// NOTE(zoubir): one more stack on Monster, its fade starting again; a
-// full table drops the mark closest to fading
-internal void
-AddSearing(dungeon_run *Run, world *World, world_entity *Monster)
-{
-    searing_mark *Mark = FindSearing(Run, World, Monster);
-    if (!Mark)
-    {
-        Mark = &Run->Searing[0];
-        for(u32 Index = 0; Index < MAX_SEARING; Index++)
-        {
-            searing_mark *Row = &Run->Searing[Index];
-            if (!Row->Stacks)
-            {
-                Mark = Row;
-                break;
-            }
-            if (Row->Seconds < Mark->Seconds)
-            {
-                Mark = Row;
-            }
-        }
-        *Mark = {};
-        Mark->Slot = (u32)(Monster - World->Entities);
-        Mark->Serial = Monster->MonsterSerial;
-    }
-    Mark->Stacks = Minimum(Mark->Stacks + 1, (u32)SEARING_MOST);
-    Mark->Seconds = SEARING_SECONDS;
-}
-
 // NOTE(zoubir): from DungeonScaleDamage: a striker's kunai or fireball
 // landed on a monster
 internal void
@@ -78,26 +32,6 @@ OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
         (Source->Type == EntityType_Kunai || Source->Type == EntityType_FireBall))
     {
         AddSearing(AppState->Dungeon, &AppState->World, Target);
-    }
-}
-
-// NOTE(zoubir): once a tick: marks fade, and go with their monster
-internal void
-UpdateSearing(dungeon_run *Run, world *World, float DeltaTime)
-{
-    for(u32 Index = 0; Index < MAX_SEARING; Index++)
-    {
-        searing_mark *Mark = &Run->Searing[Index];
-        if (!Mark->Stacks)
-        {
-            continue;
-        }
-        Mark->Seconds -= DeltaTime;
-        world_entity *Monster = FindMonsterBySerial(World, Mark->Slot, Mark->Serial);
-        if (Mark->Seconds <= 0.f || !Monster || Monster->Hp <= 0.f)
-        {
-            *Mark = {};
-        }
     }
 }
 
@@ -138,9 +72,9 @@ DetonateTarget(app_state *AppState, player_slot *Slot, world_entity *Player)
     v2 Point = AimPoint(Player);
     world_entity *Result = 0;
     float Best = DETONATE_PICK_RADIUS;
-    for(u32 Row = 0; Row < MAX_SEARING; Row++)
+    for(u32 Row = 0; Row < MAX_FOE_MARKS; Row++)
     {
-        searing_mark *Mark = &Run->Searing[Row];
+        foe_mark *Mark = &Run->Marks[Row];
         world_entity *Monster = Mark->Stacks ?
             FindMonsterBySerial(World, Mark->Slot, Mark->Serial) : 0;
         if (!Monster || Monster->Hp <= 0.f ||
@@ -165,11 +99,12 @@ DetonateMark(app_state *AppState, world_entity *Player, world_entity *Monster)
 {
     dungeon_run *Run = AppState->Dungeon;
     world *World = &AppState->World;
-    searing_mark *Mark = FindSearing(Run, World, Monster);
+    foe_mark *Mark = FindFoeMark(Run, World, Monster);
     u32 Stacks = Mark ? Mark->Stacks : 0;
     if (Mark)
     {
-        *Mark = {};
+        Mark->Stacks = 0;
+        Mark->Seconds = 0.f;
     }
     EmitBurst(&AppState->Events, SimBurst_InfernoBlast, (u8)Player->PlayerIndex,
               Monster->Position);
@@ -195,9 +130,9 @@ CastDetonate(app_state *AppState, player_slot *Slot, world_entity *Player)
     DetonateMark(AppState, Player, Target);
     if (Fire)
     {
-        for(u32 Row = 0; Row < MAX_SEARING; Row++)
+        for(u32 Row = 0; Row < MAX_FOE_MARKS; Row++)
         {
-            searing_mark *Mark = &Run->Searing[Row];
+            foe_mark *Mark = &Run->Marks[Row];
             world_entity *Monster = Mark->Stacks ?
                 FindMonsterBySerial(World, Mark->Slot, Mark->Serial) : 0;
             if (Monster && Monster != Target && Monster->Hp > 0.f &&
@@ -277,7 +212,7 @@ BurnAround(app_state *AppState, world *World, v3 Centre, float Radius, u32 By,
         }
         else
         {
-            searing_mark *Mark = FindSearing(Run, World, Monster);
+            foe_mark *Mark = FindFoeMark(Run, World, Monster);
             if (Mark)
             {
                 Mark->Seconds = SEARING_SECONDS;
@@ -292,7 +227,7 @@ internal void
 UpdateInfernos(app_state *AppState, dungeon_run *Run, float DeltaTime)
 {
     world *World = &AppState->World;
-    UpdateSearing(Run, World, DeltaTime);
+    UpdateFoeMarks(Run, World, DeltaTime);
     for(u32 Index = 0; Index < MAX_INFERNOS; Index++)
     {
         inferno *Zone = &Run->Infernos[Index];

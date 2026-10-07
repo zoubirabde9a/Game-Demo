@@ -74,7 +74,7 @@ struct inferno
 };
 
 #include "boss_clock.h"
-#include "role_kits/searing.h"
+#include "role_kits/foe_marks.h"
 
 struct dungeon_run
 {
@@ -116,7 +116,7 @@ struct dungeon_run
     sanctuary Sanctuaries[MAX_SANCTUARIES];
     inferno Infernos[MAX_INFERNOS];
     // NOTE(zoubir): the striker's marks on monsters (role_kits/striker.cpp)
-    searing_mark Searing[MAX_SEARING];
+    foe_mark Marks[MAX_FOE_MARKS];
     // NOTE(zoubir): what the HUD shows of the fight: the boss's kind
     // (MonsterKind_Count for none) and share of health, and the monsters
     // left. UpdateDungeon sets them; online the snapshot does
@@ -161,6 +161,10 @@ IsDungeon(app_state *AppState)
 // NOTE(zoubir): share of a hit a tank takes behind Shield Wall
 // (role_abilities.cpp)
 #define SHIELD_WALL_SCALE 0.4f
+// NOTE(zoubir): while a healer's ward holds, the warded ally deals this
+// much more (role_kits/healer.cpp): a ward on the striker is damage, a
+// ward on the tank is safety
+#define WARD_EMPOWER_SHARE 0.12f
 
 #include "party_scaling.cpp"
 
@@ -169,6 +173,7 @@ IsDungeon(app_state *AppState)
 internal void AddThreat(threat_table *Table, world *World, world_entity *Monster,
                        u32 PlayerSlot, float Amount);
 internal void OnRoleKill(player_slot *Attacker);
+internal float FoeMarkDamageScale(dungeon_run *Run, world *World, world_entity *Monster);
 internal void OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
                         world_entity *Source);
 
@@ -284,6 +289,13 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
     {
         role_def *Role = GetRoleDef(Attacker->Role);
         Result *= Role->DamageDealt * RoleTalentDealtScale(Attacker, Target);
+        // NOTE(zoubir): a sundered monster takes more (role_kits/tank.cpp),
+        // and a warded ally deals more (role_kits/healer.cpp)
+        Result *= FoeMarkDamageScale(AppState->Dungeon, &AppState->World, Target);
+        if (Attacker->WardAbsorb > 0.f)
+        {
+            Result *= 1.f + WARD_EMPOWER_SHARE;
+        }
         AddThreat(&AppState->Dungeon->Threat, &AppState->World, Target,
                   (u32)(Attacker - AppState->Players), Result * Role->ThreatScale);
         OnRoleHit(AppState, Attacker, Target, Source);

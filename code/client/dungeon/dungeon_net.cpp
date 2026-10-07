@@ -6,7 +6,7 @@
    Wall, a ward and revive progress; DungeonMore a rally, a renewal and
    how many monsters are after them. The snapshot's dungeon block gives
    the rooms, the fight, the healers' sanctuaries, the infernos and the
-   striker's Searing marks (on the replicas they were sent for); the
+   foe marks, Searing and Sunder (on the replicas they were sent for); the
    gate walls are then built or taken down
    locally from the room states (UpdateGates), so the local player's
    prediction stops at a closed gate as the server does. The role the
@@ -95,16 +95,18 @@ ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Sna
         }
     }
     // NOTE(zoubir): the marks, on the replicas they were sent for
-    for(u32 Index = 0; Index < MAX_SEARING; Index++)
+    for(u32 Index = 0; Index < MAX_FOE_MARKS; Index++)
     {
-        searing_mark *Mark = &Run->Searing[Index];
+        foe_mark *Mark = &Run->Marks[Index];
         *Mark = {};
-        u32 Id = Index < Snapshot->SearingCount ? Snapshot->SearingId[Index] : IdCount;
+        u32 Id = Index < Snapshot->MarkCount ? Snapshot->MarkId[Index] : IdCount;
         if (Id < IdCount && LocalOfId[Id])
         {
             Mark->Slot = LocalOfId[Id] - 1;
-            Mark->Stacks = Minimum((u32)Snapshot->SearingStacks[Index], (u32)SEARING_MOST);
-            Mark->Seconds = SEARING_SECONDS;
+            u8 Bits = Snapshot->MarkBits[Index];
+            Mark->Stacks = Minimum((u32)(Bits & NET_MARK_STACKS), (u32)SEARING_MOST);
+            Mark->Seconds = Mark->Stacks ? SEARING_SECONDS : 0.f;
+            Mark->SunderSeconds = (Bits & NET_MARK_SUNDER) ? SUNDER_SECONDS : 0.f;
         }
     }
     UpdateGates(AppState, &AppState->World, Arena, Run);

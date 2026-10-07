@@ -5,7 +5,12 @@
    ally, the healer only when alone), Ward also shields the allies round
    that one, and Sanctuary heals everyone standing where the cursor is.
    Renewal (role_talents.cpp) leaves healing over time on whoever a bolt
-   lands on, run by UpdateRenewals. */
+   lands on, run by UpdateRenewals.
+
+   A warded ally also deals WARD_EMPOWER_SHARE more while the ward holds
+   (DungeonScaleDamage), so the ward is the healer's call in a damage
+   race: on the tank before a big hit, on the striker the rest of the
+   time to beat the boss's clock. */
 
 internal void
 CastMendingBolt(app_state *AppState, player_slot *Slot, world_entity *Player)

@@ -335,16 +335,16 @@ NetSerializePacket(net_stream *S, net_packet *P)
                     NetI16(S, &P->Snapshot.InfernoY[Index]);
                     NetU8(S, &P->Snapshot.InfernoTenths[Index]);
                 }
-                NetU8(S, &P->Snapshot.SearingCount);
-                if (P->Snapshot.SearingCount > NET_MAX_SEARING) return false;
-                for (u32 Index = 0; Index < P->Snapshot.SearingCount; ++Index)
+                NetU8(S, &P->Snapshot.MarkCount);
+                if (P->Snapshot.MarkCount > NET_MAX_FOE_MARKS) return false;
+                for (u32 Index = 0; Index < P->Snapshot.MarkCount; ++Index)
                 {
-                    // NOTE(zoubir): the Id in 14 bits, the stacks in 2
-                    u16 Mark = (u16)((P->Snapshot.SearingId[Index] & 0x3fff) |
-                                     ((P->Snapshot.SearingStacks[Index] & 3) << 14));
+                    // NOTE(zoubir): the Id in 13 bits, the mark bits in 3
+                    u16 Mark = (u16)((P->Snapshot.MarkId[Index] & 0x1fff) |
+                                     ((P->Snapshot.MarkBits[Index] & 7) << 13));
                     NetU16(S, &Mark);
-                    P->Snapshot.SearingId[Index] = Mark & 0x3fff;
-                    P->Snapshot.SearingStacks[Index] = (u8)(Mark >> 14);
+                    P->Snapshot.MarkId[Index] = Mark & 0x1fff;
+                    P->Snapshot.MarkBits[Index] = (u8)(Mark >> 13);
                 }
             }
             NetU8(S, &P->Snapshot.HasOwnBody);

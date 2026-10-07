@@ -34,9 +34,9 @@ global_variable role_def RoleTable[PlayerRole_Count] =
     {"Striker",  110.f, 1.0f,  1.35f, 1.f, "Damage",
      "V Kunai and X Fireball mark foes   E Detonate the marks   A Inferno marks a pack"},
     {"Bulwark",  180.f, 0.7f,  0.7f,  4.f, "Tank",
-     "A Taunt   E Shield Slam, heals you per foe   V Intercept an ally"},
+     "A Taunt   E Shield Slam sunders foes, keep it on the boss   V Intercept an ally"},
     {"Mender",   100.f, 1.0f,  0.5f,  1.f, "Healer",
-     "A Sanctuary   E Ward the party   V Mending Bolt   on the ally you point at or click on the left"},
+     "A Sanctuary   E Ward: a shield and +12% damage   V Mending Bolt   on the ally you point at or click"},
 };
 
 inline role_def *

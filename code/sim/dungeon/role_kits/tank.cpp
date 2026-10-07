@@ -9,6 +9,12 @@
    RALLY_RADIUS takes RALLY_SHARE less for RALLY_SECONDS. A taunt raises
    Shield Wall for TAUNT_WALL_SECONDS too.
 
+   The slam also sunders what it strikes (foe_marks.cpp): for
+   SUNDER_SECONDS, as long as its cooldown, the monster takes SUNDER_SHARE
+   more from the whole party. So the tank has a rotation of its own in a
+   damage race: slam the boss on cooldown, taunt the adds, leap to an
+   ally in trouble.
+
    What keeps a tank standing late in a big party: it takes only the
    square root of the party's extra damage (PartySustainScale,
    party_scaling.cpp), and the slam's heal grows with it like a healer's. */
@@ -66,6 +72,7 @@ CastShieldSlam(app_state *AppState, world *World, player_slot *Slot, world_entit
             continue;
         }
         AddThreat(&AppState->Dungeon->Threat, World, Monster, SlotIndex, SHIELD_SLAM_THREAT);
+        AddSunder(AppState->Dungeon, World, Monster, SUNDER_SECONDS);
         ApplyHit(AppState, World, Monster, &Hit, DirectionTo(Offset), Player, SlotIndex);
         Struck++;
     }

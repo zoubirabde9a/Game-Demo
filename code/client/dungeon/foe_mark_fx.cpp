@@ -1,26 +1,48 @@
-/* Searing marks (sim/dungeon/role_kits/striker.cpp) as the party sees
-   them, included by role_fx.cpp: a little flame over a marked monster's
-   head for each stack, burning hotter at a full mark so the striker
-   knows Detonate is ready to spend; read from the run, so the same
-   offline and online (client/dungeon/dungeon_net.cpp). */
+/* Foe marks (sim/dungeon/role_kits/foe_marks.cpp) as the party sees
+   them, included by role_fx.cpp, read from the run so the same offline
+   and online (client/dungeon/dungeon_net.cpp):
+   - Searing: a little flame over the monster's head for each stack,
+     burning hotter at a full mark so the striker knows Detonate is
+     ready to spend.
+   - Sunder: a cracked steel ring at the monster's feet while it takes
+     more from everyone, so the tank sees when to slam again. */
 
 #define SEARING_PIP_GAP 11.f
 
 internal void
-DrawSearingMarks(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
+DrawFoeMarks(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
 {
     dungeon_run *Run = AppState->Dungeon;
     world *World = &AppState->World;
     float Clock = GetFxClock(AppState);
-    for(u32 Index = 0; Index < MAX_SEARING; Index++)
+    for(u32 Index = 0; Index < MAX_FOE_MARKS; Index++)
     {
-        searing_mark *Mark = &Run->Searing[Index];
-        if (!Mark->Stacks || Mark->Slot >= World->EntityCount)
+        foe_mark *Mark = &Run->Marks[Index];
+        if (Mark->Slot >= World->EntityCount)
         {
             continue;
         }
         world_entity *Monster = &World->Entities[Mark->Slot];
         if (!Monster->IsPresent || Monster->Type != EntityType_Monster || Monster->Hp <= 0.f)
+        {
+            continue;
+        }
+        if (Mark->SunderSeconds > 0.f)
+        {
+            v2 Feet = BurstToScreen(V3(Monster->Position.X, Monster->Position.Y,
+                                       Monster->GroundZ), CameraOffset);
+            float Radius = Maximum(16.f, 0.55f * Monster->Dimensions.X);
+            DrawCastPreviewArea(RenderContext, Feet, Radius, 0.f, Pi32, 0.25f, 0.8f,
+                                ROLE_FX_SLAM_RGB);
+            for(u32 Crack = 0; Crack < 5; Crack++)
+            {
+                float A = 2.f * Pi32 * ((float)Crack + 0.3f * BurstJitter(Crack + Index, 211)) / 5.f;
+                v2 Dir = GroundCircle(A, 1.f);
+                DrawFxStreak(RenderContext, Feet + (0.6f * Radius) * Dir, Feet + (1.1f * Radius) * Dir,
+                             2.f, FxColor(0.f, ROLE_FX_SLAM_RGB), FxColor(0.8f, ROLE_FX_SLAM_RGB));
+            }
+        }
+        if (!Mark->Stacks)
         {
             continue;
         }

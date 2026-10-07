@@ -19,7 +19,13 @@
 #define SHIELD_SLAM_STUN 1.f
 // NOTE(zoubir): threat each monster struck takes on, on top of the hit's
 #define SHIELD_SLAM_THREAT 80.f
-#define SHIELD_SLAM_COOLDOWN 14.f
+#define SHIELD_SLAM_COOLDOWN 10.f
+// NOTE(zoubir): every monster the slam strikes is sundered: it takes
+// SUNDER_SHARE more from everyone for SUNDER_SECONDS, as long as the
+// slam's cooldown, so a tank who slams on cooldown keeps the boss
+// sundered for the party
+#define SUNDER_SHARE 0.15f
+#define SUNDER_SECONDS 10.f
 // NOTE(zoubir): the tank heals this share of its health for each monster
 // the slam strikes, counting at most SHIELD_SLAM_HEAL_FOES; the bigger
 // the pack it holds, the more it gets back

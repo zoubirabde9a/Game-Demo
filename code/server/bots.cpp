@@ -182,6 +182,22 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
             Result |= NetButton_Shield;
             *Pick = (u16)(Low->ID + 1);
         }
+        // NOTE(zoubir): nobody in danger: the ward goes on the striker for
+        // its damage (role_kits/healer.cpp)
+        for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS && !Low && Ready[1] &&
+             !(Result & (NetButton_Kunai | NetButton_Shield)); ++SlotIndex)
+        {
+            world_entity *Ally = LivingPlayerInSlot(AppState, SlotIndex);
+            player_slot *AllySlot = &AppState->Players[SlotIndex];
+            if (Ally && AllySlot->Role == PlayerRole_Damage && AllySlot->WardAbsorb <= 0.f &&
+                AppState->Dungeon->FightingRoom &&
+                Length(Ally->Position.XY - Self->Position.XY) < MENDING_BOLT_RANGE &&
+                BotRandom(Bot) % 10 == 0)
+            {
+                Result |= NetButton_Shield;
+                *Pick = (u16)(Ally->ID + 1);
+            }
+        }
         // NOTE(zoubir): a sanctuary at its own feet when the party is hurt
         // round it
         u32 HurtNear = 0;
@@ -210,8 +226,8 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
         {
             Result |= NetButton_Kunai;
         }
-        searing_mark *Mark = FindSearing(AppState->Dungeon, &AppState->World, Target);
-        if (Mark && Ready[1] && Distance < DETONATE_RANGE &&
+        foe_mark *Mark = FindFoeMark(AppState->Dungeon, &AppState->World, Target);
+        if (Mark && Mark->Stacks && Ready[1] && Distance < DETONATE_RANGE &&
             (Mark->Stacks >= SEARING_MOST || Mark->Seconds < 1.5f))
         {
             Result |= NetButton_Shield;

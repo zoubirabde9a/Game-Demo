@@ -6,7 +6,7 @@
    Tank (Bulwark, role_kits/tank.cpp)
      A  Taunt: every monster near the tank attacks it, and Shield Wall
         goes up for a moment.
-     E  Shield Slam: stuns and hurts what is round the tank, heals it
+     E  Shield Slam: stuns, sunders and hurts what is round the tank, heals it
         for each one struck, raises Shield Wall on it and rallies the
         allies near it.
      V  Intercept: leaps to an ally and takes the threat off them.
@@ -85,13 +85,14 @@ global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
     {{"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you; Shield Wall 2 s",
       RoleAim_None, 0.f},
      {"Shield Slam", SHIELD_SLAM_COOLDOWN,
-      "Shield Slam: stun what is near, heal per foe hit, take 40%, shield allies",
+      "Shield Slam: stun and sunder what is near (+15% damage taken), heal per foe, shield allies",
       RoleAim_None, 0.f},
      {"Intercept", INTERCEPT_COOLDOWN, "Intercept: leap to an ally and pull their foes",
       RoleAim_Ally, INTERCEPT_RANGE}},
     {{"Sanctuary", SANCTUARY_COOLDOWN, "Sanctuary: a healing circle at the cursor",
       RoleAim_Ground, SANCTUARY_RADIUS},
-     {"Ward", WARD_COOLDOWN, "Ward: shield an ally, and half on allies near them", RoleAim_Ally,
+     {"Ward", WARD_COOLDOWN, "Ward: shield an ally (+12% damage while it holds), half on allies near",
+      RoleAim_Ally,
       MENDING_BOLT_RANGE},
      {"Mending Bolt", MENDING_BOLT_COOLDOWN, "Mending Bolt: heal an ally", RoleAim_Ally,
       MENDING_BOLT_RANGE}},
@@ -324,6 +325,7 @@ HealPlayer(app_state *AppState, u32 By, world_entity *Target, float Amount)
     return Given;
 }
 
+#include "role_kits/foe_marks.cpp"
 #include "role_kits/tank.cpp"
 #include "role_kits/healer.cpp"
 #include "role_kits/striker.cpp"

@@ -54,7 +54,7 @@ DungeonTenths(float Seconds, u32 Most)
 // NOTE(zoubir): where the viewer stands, for which marks are nearest:
 // its own body, else the middle of the map
 inline v2
-SearingCenter(app_state *AppState, net_snapshot *Out)
+FoeMarkCenter(app_state *AppState, net_snapshot *Out)
 {
     v2 Result = V2(0.f, 0.f);
     if (Out->HasOwnBody)
@@ -64,26 +64,26 @@ SearingCenter(app_state *AppState, net_snapshot *Out)
     return Result;
 }
 
-// NOTE(zoubir): the striker's marks nearest the viewer, at most
-// NET_MAX_SEARING, as entity Ids the client knows
+// NOTE(zoubir): the foe marks nearest the viewer, at most
+// NET_MAX_FOE_MARKS, as entity Ids the client knows
 internal void
-WriteSearingMarks(app_state *AppState, dungeon_run *Run, v2 Center, net_snapshot *Out)
+WriteFoeMarks(app_state *AppState, dungeon_run *Run, v2 Center, net_snapshot *Out)
 {
     world *World = &AppState->World;
-    float Distances[NET_MAX_SEARING];
-    Out->SearingCount = 0;
-    for(u32 Row = 0; Row < MAX_SEARING; Row++)
+    float Distances[NET_MAX_FOE_MARKS];
+    Out->MarkCount = 0;
+    for(u32 Row = 0; Row < MAX_FOE_MARKS; Row++)
     {
-        searing_mark *Mark = &Run->Searing[Row];
-        world_entity *Monster = Mark->Stacks ?
+        foe_mark *Mark = &Run->Marks[Row];
+        world_entity *Monster = FoeMarkUsed(Mark) ?
             FindMonsterBySerial(World, Mark->Slot, Mark->Serial) : 0;
         if (!Monster)
         {
             continue;
         }
         float Distance = LengthSq(Monster->Position.XY - Center);
-        u32 At = Out->SearingCount;
-        if (At == NET_MAX_SEARING)
+        u32 At = Out->MarkCount;
+        if (At == NET_MAX_FOE_MARKS)
         {
             if (Distance >= Distances[At - 1])
             {
@@ -93,19 +93,19 @@ WriteSearingMarks(app_state *AppState, dungeon_run *Run, v2 Center, net_snapshot
         }
         else
         {
-            Out->SearingCount++;
+            Out->MarkCount++;
         }
         // NOTE(zoubir): kept sorted, nearest first
         while (At > 0 && Distances[At - 1] > Distance)
         {
             Distances[At] = Distances[At - 1];
-            Out->SearingId[At] = Out->SearingId[At - 1];
-            Out->SearingStacks[At] = Out->SearingStacks[At - 1];
+            Out->MarkId[At] = Out->MarkId[At - 1];
+            Out->MarkBits[At] = Out->MarkBits[At - 1];
             At--;
         }
         Distances[At] = Distance;
-        Out->SearingId[At] = (u16)Mark->Slot;
-        Out->SearingStacks[At] = (u8)Mark->Stacks;
+        Out->MarkId[At] = (u16)Mark->Slot;
+        Out->MarkBits[At] = (u8)(Mark->Stacks | (Mark->SunderSeconds > 0.f ? NET_MARK_SUNDER : 0));
     }
 }
 
@@ -168,5 +168,5 @@ WriteDungeonSnapshot(app_state *AppState, net_snapshot *Out)
                 ((Zone->Radius > INFERNO_RADIUS + 1.f) ? NET_ZONE_WIDE : 0));
         }
     }
-    WriteSearingMarks(AppState, Run, SearingCenter(AppState, Out), Out);
+    WriteFoeMarks(AppState, Run, FoeMarkCenter(AppState, Out), Out);
 }
