@@ -22,14 +22,21 @@ struct role_def
     float DamageDealt;
     // NOTE(zoubir): threat made per point of damage (sim/dungeon/threat)
     float ThreatScale;
+    // NOTE(zoubir): what the role is called on screen, and what its keys
+    // do (role_abilities.cpp), for the role picker
+    char *Title;
+    char *Keys;
 };
 
 global_variable role_def RoleTable[PlayerRole_Count] =
 {
     // Name      MaxHp  Taken  Dealt  Threat
-    {"Striker",  110.f, 1.0f,  1.2f,  1.f},
-    {"Bulwark",  180.f, 0.7f,  0.7f,  4.f},
-    {"Mender",   100.f, 1.0f,  0.5f,  1.f},
+    {"Striker",  110.f, 1.0f,  1.2f,  1.f, "Damage",
+     "Fireball, Launch, Shield and Kunai hit 20% harder"},
+    {"Bulwark",  180.f, 0.7f,  0.7f,  4.f, "Tank",
+     "A Taunt   E Shield Wall   V Intercept an ally"},
+    {"Mender",   100.f, 1.0f,  0.5f,  1.f, "Healer",
+     "A Sanctuary   E Ward an ally   V Mending Bolt   stand over the fallen"},
 };
 
 inline role_def *

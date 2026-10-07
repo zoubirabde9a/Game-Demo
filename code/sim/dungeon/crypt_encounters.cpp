@@ -51,6 +51,24 @@ global_variable encounter_row CryptEncounters[] =
     {7, 0, MonsterKind_HollowKing, 1, Encounter_Boss},
 };
 
+// NOTE(zoubir): each room's name, by room number (index 0 unused)
+global_variable char *CryptRoomNames[] =
+{
+    "", "Antechamber", "Bone Halls", "Ossuary", "Webbed Galleries",
+    "Brood Nest", "Ashen Causeway", "Throne of Dust",
+};
+
+inline char *
+GetRoomName(u32 MapId, u32 Room)
+{
+    char *Result = "";
+    if (MapId == MapId_Crypt && Room < ArrayCount(CryptRoomNames))
+    {
+        Result = CryptRoomNames[Room];
+    }
+    return Result;
+}
+
 // NOTE(zoubir): the encounter table of a dungeon map
 inline encounter_row *
 GetEncounters(u32 MapId, u32 *Count)

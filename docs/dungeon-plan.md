@@ -87,7 +87,7 @@ Snapshots gain: each player's role (2 bits), downed state, the run's room and en
 - [x] Downed players and healer revives (`sim/dungeon/revive.cpp`): a healer within 60 of the body for 3 s brings them back there at 40% health.
 - [x] The three bosses (`sim/monsters/crypt_*.cpp`) and their scripted events (`sim/dungeon/boss_scripts.cpp`).
 - [ ] Online: role and run state on the wire, role pick request, server `--map crypt`.
-- [ ] Client: role picker, boss health bar, objective line, party frames.
+- [ ] Client: role picker, boss health bar, objective line, party frames. Done offline (`ui/dungeon/dungeon_hud.cpp`): the objective, the boss bar, the role picker in the Antechamber. Left: party frames, the role spells' own look, and all of it online.
 
 ## Known problems
 
