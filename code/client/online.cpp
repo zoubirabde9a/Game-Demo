@@ -74,10 +74,15 @@ internal u32
 NetButtonsFromKeyboard(app_input *Input)
 {
     u32 Result = 0;
-    if (LayoutKey(Input, 'Q')->EndedDown) Result |= NetButton_Left;
-    if (Input->ButtonD.EndedDown) Result |= NetButton_Right;
-    if (LayoutKey(Input, 'Z')->EndedDown) Result |= NetButton_Up;
-    if (Input->ButtonS.EndedDown) Result |= NetButton_Down;
+    // NOTE(zoubir): when the mouse moves these keys are spells; the walk
+    // comes in with the other bits (client/click_move.cpp, app.cpp)
+    if (!MouseMoves())
+    {
+        if (LayoutKey(Input, 'Q')->EndedDown) Result |= NetButton_Left;
+        if (Input->ButtonD.EndedDown) Result |= NetButton_Right;
+        if (LayoutKey(Input, 'Z')->EndedDown) Result |= NetButton_Up;
+        if (Input->ButtonS.EndedDown) Result |= NetButton_Down;
+    }
     Result |= ActionButtonsFromKeys(Input, false) << PLAYER_BUTTON_NET_SHIFT;
     return Result;
 }

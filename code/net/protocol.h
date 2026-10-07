@@ -19,7 +19,8 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d6bu // "GDMk", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d6cu // "GDMl", change it whenever the layout changes
+// (GDMl: an open map vote sends every player's answer)
 // (GDMk: two dungeon casts came in before the rewinds, so cast ids moved,
 // and two bursts for the Giant Fireball)
 // A player's health is sent in hundredths: the duel gives a player one
@@ -364,14 +365,17 @@ struct net_snapshot
     u8 MapId;
     // The map vote (sim/map_vote.cpp): the map asked for, NET_NO_VOTE
     // while none is open; who asked; whole seconds left; the yes and no
-    // answers so far; and the viewer's own answer (map_vote_request).
-    // Sent only while a vote is open, the slot, answer and counts in 4 bits.
+    // answers so far; the viewer's own answer (map_vote_request); and
+    // every slot's answer, two bits each, slot 0 lowest, so each player
+    // sees who has voted what. Sent only while a vote is open, the slot,
+    // answer and counts in 4 bits.
     u8 VoteMap;
     u8 VoteBy;
     u8 VoteSeconds;
     u8 VoteYes;
     u8 VoteNo;
     u8 OwnVote;
+    u16 VoteAnswers;
     // A dungeon run (sim/dungeon/), HasDungeon 0 on any other map: the
     // room being fought (0 for none), the rooms cleared (room N in bit
     // N - 1), the wipes, the fight's boss kind (NET_NO_BOSS for none) and

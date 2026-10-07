@@ -38,6 +38,9 @@
     struct world_bloom *WorldBloom; // the glow's quarter-size textures, client/world_bloom.cpp
     struct world_grade *WorldGrade; // the world pass's render target for the glow and colour grade, client/world_grade.cpp
     u32 KeyboardLayout; // keyboard_layout, AZERTY or QWERTY, client/keyboard_layout.cpp
+    u32 ControlScheme; // control_scheme, keys move or mouse moves, client/control_scheme.cpp
+    struct click_move *ClickMove; // the walk to a clicked spot, client/click_move.cpp
+    struct window_mode *WindowMode; // full screen or a window, saved for the next launch, client/window_mode.cpp
     bool32 OptionsOpen; // the Esc options menu is showing, ui/options_menu.cpp
     u32 VoteRequest; // a map vote request not yet sent (map_vote_request), client/vote_requests.cpp
     u32 VoteHolding; // the vote field held in the input now, 0 for none, client/vote_requests.cpp

@@ -421,24 +421,24 @@ MainLoop()
                 break;
             }
         }
-    }    
+    }
 
-    
     Input.MouseX = MouseX;
     Input.MouseY = MouseY;
     Input.MouseZ = 0;
-    
+
     render_context *RenderContext = &Thread->RenderContext;
     open_gl *OpenGL = RenderContext->OpenGL;
 
-    
-    #if 1
-    app_window AppWindow;
-    AppWindow.Width = WindowWidth;
-    AppWindow.Height = WindowHeight;
+    app_window AppWindow = {WindowWidth, WindowHeight};
+    AppWindow.Fullscreen = (SDL_GetWindowFlags(Window) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
     AppUpdateAndRender(Thread, &AppMemory, &Input, &AppWindow);
-    #endif
-    
+    // NOTE(zoubir): the browser goes full screen only from a click, which
+    // the options menu's button is
+    if (AppWindow.FullscreenRequest != FullscreenRequest_None)
+        SDL_SetWindowFullscreen(Window, AppWindow.FullscreenRequest == FullscreenRequest_On ?
+                                SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+
     SDL_GL_SwapWindow(Window);
 }
 

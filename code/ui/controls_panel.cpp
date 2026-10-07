@@ -6,9 +6,12 @@
    The panel stays above the ability bar: in a short window it switches to
    the small font, moves up toward the HUD lines, then splits into two
    columns.
-   A new key goes in ControlsRows; capital letters in its key text are
-   shown as the keys at those places on the player's layout
-   (client/keyboard_layout.cpp), so name letter keys as on AZERTY. */
+   A new key goes in ControlsRows. A row for a player action names its
+   button, and the key shown is the one the action table gives it on the
+   player's layout and control scheme (client/action_keys.cpp); in other
+   rows capital letters in the key text are shown as the keys at those
+   places on the layout (client/keyboard_layout.cpp), so name letter keys
+   as on AZERTY. Rows for one control scheme only say which. */
 
 #define CONTROLS_INTRO_SECONDS 10.f
 // NOTE(zoubir): the intro fades out over its last this-many seconds
@@ -34,31 +37,51 @@ enum controls_where
     Controls_Run,
 };
 
+// NOTE(zoubir): which control scheme a row is for (client/control_scheme.cpp)
+enum controls_scheme
+{
+    Controls_EitherScheme,
+    Controls_KeysMove,
+    Controls_MouseMoves,
+};
+
 struct controls_row
 {
+    // NOTE(zoubir): the key's text, for rows with no Buttons
     char *Key;
     char *Action;
     controls_where Where;
+    // NOTE(zoubir): the player_buttons the row is about; their keys are
+    // its key text
+    u32 Buttons;
+    controls_scheme Scheme;
 };
+
+#define CONTROLS_TALENT_BUTTONS (PlayerButton_Shockwave | PlayerButton_Push | PlayerButton_Slam | \
+                                 PlayerButton_FrostNova | PlayerButton_GravityWell)
 
 global_variable controls_row ControlsRows[] =
 {
-    {"ZQSD",        "Move"},
+    {"ZQSD",        "Move", Controls_Always, 0, Controls_KeysMove},
+    {"Left click",  "Walk there; hold to keep walking", Controls_Always, 0, Controls_MouseMoves},
     {"Mouse",       "Aim; you face the cursor"},
-    {"X",           "Fireball at the cursor, every 6 s"},
-    {"Space",       "Jump; fireballs and blasts pass under"},
-    {"E",           "Shield: nothing hurts you for 2 s"},
-    {"F",           "Blink to the cursor after 0.2 s"},
-    {"A",           "Launch: throws foes up, stuns", Controls_Duel},
-    {"V",           "Kunai at the foe under the cursor; follows it", Controls_Duel},
-    {"G T W R C",   "Talent abilities, once unlocked", Controls_Duel},
-    {"A",           "", Controls_Run},
-    {"R",           "", Controls_Run},
-    {"C",           "Your tree's first spell, once unlocked", Controls_Run},
-    {"V",           "Your tree's second spell, once unlocked", Controls_Run},
+    {"Click, X",    "Fireball at the cursor, every 6 s", Controls_Always, 0, Controls_KeysMove},
+    {"",            "Fireball at the cursor, every 6 s", Controls_Always, PlayerButton_Cast,
+                    Controls_MouseMoves},
+    {"",            "Jump; fireballs and blasts pass under", Controls_Always, PlayerButton_Jump},
+    {"",            "Shield: nothing hurts you for 2 s", Controls_Always, PlayerButton_Shield},
+    {"",            "Blink to the cursor after 0.2 s", Controls_Always, PlayerButton_Blink},
+    {"",            "Launch: throws foes up, stuns", Controls_Duel, PlayerButton_Launch},
+    {"",            "Kunai at the foe under the cursor; follows it", Controls_Duel,
+                    PlayerButton_Kunai},
+    {"",            "Talent abilities, once unlocked", Controls_Duel, CONTROLS_TALENT_BUTTONS},
+    {"",            "", Controls_Run, PlayerButton_Launch},
+    {"",            "", Controls_Run, PlayerButton_Push},
+    {"",            "Your tree's first spell, once unlocked", Controls_Run, PlayerButton_Slam},
+    {"",            "Your tree's second spell, once unlocked", Controls_Run, PlayerButton_Kunai},
     {"N",           "Talents: spend a point each level"},
     {"Tab",         "Scoreboard"},
-    {"Esc",         "Options: AZERTY or QWERTY"},
+    {"Esc",         "Close what is open, else options"},
     {"F4",          "Play: map and server"},
     {"F1",          "Fullscreen"},
     {"Hold H",      "This panel"},
@@ -70,10 +93,11 @@ internal u32
 ShownControlsRows(app_state *AppState, controls_row **Rows)
 {
     controls_where Hidden = IsDungeon(AppState) ? Controls_Duel : Controls_Run;
+    controls_scheme OtherScheme = MouseMoves() ? Controls_KeysMove : Controls_MouseMoves;
     u32 Result = 0;
     for(u32 Row = 0; Row < ArrayCount(ControlsRows); Row++)
     {
-        if (ControlsRows[Row].Where != Hidden)
+        if (ControlsRows[Row].Where != Hidden && ControlsRows[Row].Scheme != OtherScheme)
         {
             Rows[Result++] = &ControlsRows[Row];
         }
@@ -94,11 +118,7 @@ ControlsRowAction(app_state *AppState, controls_row *Row)
     {
         return Row->Action;
     }
-    u32 Button = 0;
-    if (strcmp(Row->Key, "A") == 0) Button = PlayerButton_Launch;
-    else if (strcmp(Row->Key, "R") == 0) Button = PlayerButton_Push;
-    else if (strcmp(Row->Key, "C") == 0) Button = PlayerButton_Slam;
-    else if (strcmp(Row->Key, "V") == 0) Button = PlayerButton_Kunai;
+    u32 Button = Row->Buttons;
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     bool32 Learned = (RunAllowedButtons(AppState, Slot, 0) & Button) != 0;
     char *Result = Learned ? RoleControlsLine(AppState, Button, Row->Action) : Row->Action;
@@ -106,8 +126,28 @@ ControlsRowAction(app_state *AppState, controls_row *Row)
 }
 
 internal void
-ControlsKeyText(char *Out, u32 OutSize, char *Text)
+ControlsKeyText(char *Out, u32 OutSize, controls_row *Row)
 {
+    if (Row->Buttons)
+    {
+        // NOTE(zoubir): in the action table's order, which keeps the keys
+        // of a group near each other
+        static app_input NoInput;
+        action_key Keys[ACTION_KEY_COUNT];
+        GetActionKeys(&NoInput, Keys);
+        Out[0] = 0;
+        for(u32 Index = 0; Index < ACTION_KEY_COUNT; Index++)
+        {
+            if (Keys[Index].Button & Row->Buttons)
+            {
+                u32 Length = (u32)strlen(Out);
+                snprintf(Out + Length, OutSize - Length, "%s%s", Length ? " " : "",
+                         Keys[Index].Label);
+            }
+        }
+        return;
+    }
+    char *Text = Row->Key;
     bool32 Letters = true;
     for(char *At = Text; *At; At++)
     {
@@ -182,7 +222,7 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
     char Keys[ArrayCount(ControlsRows)][16];
     for(u32 Row = 0; Row < RowCount; Row++)
     {
-        ControlsKeyText(Keys[Row], sizeof(Keys[Row]), Rows[Row]->Key);
+        ControlsKeyText(Keys[Row], sizeof(Keys[Row]), Rows[Row]);
         KeyWidth = Maximum(KeyWidth, UITextWidth(Font, Keys[Row]));
         ActionWidth = Maximum(ActionWidth,
                               UITextWidth(Font, ControlsRowAction(AppState, Rows[Row])));

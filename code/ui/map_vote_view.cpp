@@ -5,7 +5,9 @@
    which asks everyone to move there. While a vote is open: who asked for
    which map (and mode, when it changes), the answers so far and Yes / No
    buttons. Over the game, while a
-   vote is open, a slim plate at the top says so and how to answer.
+   vote is open, a slim plate at the top says so and how to answer. Both
+   list every player with their answer (DrawVoteAnswers), so everyone
+   sees who has voted and who is still deciding.
    Clicks become requests (client/vote_requests.cpp). */
 
 #define MAP_VOTE_COLUMNS 3
@@ -63,6 +65,49 @@ VoteMapText(app_state *AppState, char *Out, u32 OutSize)
     }
 }
 
+// NOTE(zoubir): one player's part of the answers line: "Gary: yes"
+internal u32
+VoteAnswerText(app_state *AppState, u32 SlotIndex, char *Out, u32 OutSize)
+{
+    char Name[24];
+    GetPlayerName(AppState, SlotIndex, Name, sizeof(Name));
+    u8 Answer = AppState->Votes[SlotIndex];
+    char *Word = (char *)(Answer == MapVote_Yes ? "yes" : Answer == MapVote_No ? "no" : "...");
+    snprintf(Out, OutSize, "%s: %s", Name, Word);
+    u32 Result = Answer == MapVote_Yes ? UI_COLOR_GOOD :
+        Answer == MapVote_No ? UI_COLOR_HEALTH : UI_COLOR_TEXT_MUTED;
+    return Result;
+}
+
+// NOTE(zoubir): every player in the game and their answer, green for
+// yes, red for no, grey while they decide, centred on CenterX
+internal void
+DrawVoteAnswers(render_context *RenderContext, app_state *AppState, float CenterX, float Y)
+{
+    font *Small = AppState->Fonts.Small;
+    float Spacing = UITextWidth(Small, "   ");
+    char Text[48];
+    float Total = 0.f;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        if (AppState->Players[SlotIndex].Active)
+        {
+            VoteAnswerText(AppState, SlotIndex, Text, sizeof(Text));
+            Total += (Total > 0.f ? Spacing : 0.f) + UITextWidth(Small, Text);
+        }
+    }
+    float X = CenterX - 0.5f * Total;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        if (AppState->Players[SlotIndex].Active)
+        {
+            u32 Color = VoteAnswerText(AppState, SlotIndex, Text, sizeof(Text));
+            UIText(RenderContext, Small, X, Y, Text, Color);
+            X += UITextWidth(Small, Text) + Spacing;
+        }
+    }
+}
+
 // NOTE(zoubir): the section's height under its heading
 internal float
 MapVoteSectionHeight(app_state *AppState)
@@ -72,7 +117,7 @@ MapVoteSectionHeight(app_state *AppState)
     float Result;
     if (AppState->VoteOpen)
     {
-        Result = UILineHeight(Body) + UILineHeight(Small) + UI_GAP_SMALL +
+        Result = UILineHeight(Body) + 2.f * UILineHeight(Small) + UI_GAP_SMALL +
             MAP_VOTE_BUTTON_HEIGHT;
     }
     else
@@ -116,6 +161,8 @@ DoMapVoteSection(render_context *RenderContext, app_state *AppState, app_input *
                  "everyone, back to level 1", AppState->VoteYes, AppState->VoteNo,
                  CountActivePlayers(AppState));
         UIText(RenderContext, Small, Left, Top, Text, UI_COLOR_TEXT_MUTED);
+        Top += UILineHeight(Small);
+        DrawVoteAnswers(RenderContext, AppState, Left + 0.5f * Width, Top);
         Top += UILineHeight(Small) + UI_GAP_SMALL;
 
         u8 Own = AppState->Votes[AppState->LocalPlayerIndex];
@@ -214,7 +261,7 @@ DrawMapVotePlate(render_context *RenderContext, app_state *AppState, u32 WindowW
     }
     font *Body = AppState->Fonts.Body;
     float Width = Minimum(MAP_VOTE_PLATE_WIDTH, (float)WindowWidth - 2.f * UI_GAP);
-    float Height = UILineHeight(Body) + 2.f * UI_GAP_SMALL;
+    float Height = UILineHeight(Body) + UILineHeight(AppState->Fonts.Small) + 2.f * UI_GAP_SMALL;
     float X = 0.5f * ((float)WindowWidth - Width);
     float Y = UI_GAP_LARGE;
     DrawUIPanel(RenderContext, X, Y, Width, Height, UI_COLOR_ACCENT);
@@ -229,4 +276,6 @@ DrawMapVotePlate(render_context *RenderContext, app_state *AppState, u32 WindowW
              Maximum(0.f, AppState->VoteSeconds));
     UIText(RenderContext, Body, X + 0.5f * Width, Y + UI_GAP_SMALL, Text,
            UI_COLOR_TEXT, UIAlign_Center);
+    DrawVoteAnswers(RenderContext, AppState, X + 0.5f * Width,
+                    Y + UI_GAP_SMALL + UILineHeight(Body));
 }

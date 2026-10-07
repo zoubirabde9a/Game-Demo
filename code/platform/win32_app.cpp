@@ -66,14 +66,22 @@ Win32RunFrame(win32_frame_loop *loop, bool32 readMessages)
     Win32RecordOrPlayBackInput(loop->state, NewInput);
     Win32ApplyScriptedKeys(loop->screenshot, NewInput);
 
-    app_window AppWindow;
+    app_window AppWindow = {};
     AppWindow.Width = drawable.Game.Width;
     AppWindow.Height = drawable.Game.Height;
+    AppWindow.Fullscreen = Win32IsFullscreen(loop->windowHandle);
     Win32SetViewport(drawable.Pixels);
     Win32ProfileGameStart();
     loop->appCode.updateAndRender(loop->thread, loop->appMemory, NewInput,
                                   &AppWindow);
     Win32ProfileGameEnd();
+    // NOTE(zoubir): the options menu asked for full screen or a window
+    bool32 WantsFullscreen = AppWindow.FullscreenRequest == FullscreenRequest_On;
+    if (AppWindow.FullscreenRequest != FullscreenRequest_None &&
+        WantsFullscreen != AppWindow.Fullscreen)
+    {
+        ToggleFullscreen(loop->windowHandle);
+    }
     Win32WriteFrameSound(loop->soundOutput, &loop->soundIsValid, loop->Samples,
                          loop->flipWallClock, loop->targetSecondsPerFrame,
                          loop->appUpdateHz, &loop->appCode, loop->thread,

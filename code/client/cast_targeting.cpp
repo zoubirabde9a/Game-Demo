@@ -24,8 +24,11 @@
    Everything happens before the input reaches the simulation: the keys
    of the ability being aimed, and the right click that cancels it, are
    swallowed until they are released, and the confirmed ability is
-   pressed for one frame. The left click casts nothing by itself (the
-   fireball is on X), so it is read straight from the mouse. Offline that edits player_input.Pressed
+   pressed for one frame. A left click that confirms nothing is free: in
+   the keys-move scheme (control_scheme.cpp) it throws the fireball at
+   once, in both modes, the way X then a click would; in the mouse-moves
+   scheme it walks (click_move.cpp). A click on a screen's button is
+   neither (MouseOnButton). Offline that edits player_input.Pressed
    (keyboard_input.cpp); online it edits the copy of the keys the server
    gets (cursor.cpp), which sends held keys and lets the server find the
    presses, so a one-frame press and a swallowed key read the same way
@@ -48,6 +51,9 @@ struct cast_targeting
     u32 Confirmed;
     // NOTE(zoubir): seconds since aiming began, for the preview's fade in
     float AimSeconds;
+    // NOTE(zoubir): this frame's left click confirmed no aim and was on no
+    // screen; the mouse-moves scheme walks on it (click_move.cpp)
+    bool32 FreeClick;
     // NOTE(zoubir): the mode checkbox, in window pixels, as drawn last
     // frame (ui/cast_mode_toggle.cpp); a click on it is not a cast
     float ToggleX, ToggleY, ToggleWidth, ToggleHeight;
@@ -70,6 +76,24 @@ GetCastTargeting(app_state *AppState)
         *AppState->CastTargeting = {};
     }
     return AppState->CastTargeting;
+}
+
+// NOTE(zoubir): set by a screen's button drawn under the mouse
+// (OptionsButton, ui/options_menu.cpp), cleared before the screens draw
+// (client/screen_pass.inc); the keys are read before that, so they see
+// last frame's buttons, which is what is on screen
+global_variable bool32 GlobalMouseOnButton;
+
+inline void
+ForgetMouseOnButton()
+{
+    GlobalMouseOnButton = false;
+}
+
+inline bool32
+MouseOnButton()
+{
+    return GlobalMouseOnButton;
 }
 
 inline bool32
@@ -156,12 +180,14 @@ UpdateCastTargeting(app_input *Input, app_state *AppState, u32 Blocked)
     u32 Held = ActionButtonsFromKeys(Input, false);
     u32 Pressed = ActionButtonsFromKeys(Input, true);
     Targeting->Confirmed = 0;
+    Targeting->FreeClick = false;
     Targeting->Swallowed &= Held | Pressed;
     bool32 Click = Input->LeftButton.Pressed;
     // NOTE(zoubir): a click that belongs to a screen (the tile editor, the
-    // talent panel, the mode checkbox) neither casts nor confirms
+    // talent panel, the mode checkbox, a button) neither casts nor confirms
     if (AppState->TileEditing || TalentPanelHasMouse(AppState, Input) ||
-        IsMouseOnCastModeToggle(Targeting, Input) || PartyFramesHaveMouse(AppState, Input))
+        IsMouseOnCastModeToggle(Targeting, Input) || PartyFramesHaveMouse(AppState, Input) ||
+        MouseOnButton())
     {
         Click = false;
         Pressed &= ~(u32)PlayerButton_Attack;
@@ -181,6 +207,7 @@ UpdateCastTargeting(app_input *Input, app_state *AppState, u32 Blocked)
         if (Click)
         {
             Confirm |= Targeting->Aiming;
+            Click = false;
         }
         if (Confirm && (Targeting->Aiming & (Blocked | Recharging)))
         {
@@ -228,7 +255,39 @@ UpdateCastTargeting(app_input *Input, app_state *AppState, u32 Blocked)
     {
         Targeting->AimSeconds += Input->DeltaTime;
     }
+    else if (Click && MouseMoves())
+    {
+        Targeting->FreeClick = true;
+    }
+    else if (Click)
+    {
+        // NOTE(zoubir): keys move, so the click is the fireball
+        world_entity *Player = GetLocalPlayer(AppState);
+        if (Player && Player->IsPresent && !IsDeadPlayer(Player))
+        {
+            if (IsCastReady(AppState, Player, PlayerButton_Cast))
+            {
+                Targeting->Confirmed |= PlayerButton_Cast;
+            }
+            else
+            {
+                Refused |= PlayerButton_Cast;
+            }
+        }
+    }
     return Refused;
+}
+
+// NOTE(zoubir): Esc while aiming drops the aim (ui/options_menu.cpp);
+// false when nothing was aimed. The aimed key stays swallowed until it
+// is released, so holding it does not aim again
+internal bool32
+CancelCastAim(app_state *AppState)
+{
+    cast_targeting *Targeting = GetCastTargeting(AppState);
+    bool32 Result = Targeting->Aiming != 0;
+    Targeting->Aiming = 0;
+    return Result;
 }
 
 // NOTE(zoubir): Buttons (pressed or held player_button bits) as the

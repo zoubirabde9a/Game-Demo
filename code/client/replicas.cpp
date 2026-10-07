@@ -180,6 +180,10 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
     AppState->VoteSeconds = (float)Snapshot->VoteSeconds;
     AppState->VoteYes = Snapshot->VoteYes;
     AppState->VoteNo = Snapshot->VoteNo;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        AppState->Votes[SlotIndex] = (u8)((Snapshot->VoteAnswers >> (2 * SlotIndex)) & 3);
+    }
     if (LocalSlot < MAX_PLAYERS)
     {
         AppState->Votes[LocalSlot] = Snapshot->OwnVote;

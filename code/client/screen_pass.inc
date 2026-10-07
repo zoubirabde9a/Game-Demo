@@ -7,6 +7,7 @@
 // in .gitattributes), so two agents adding a screen at once both keep
 // theirs without a conflict. Put the logic in your own file and call it
 // from here.
+ForgetMouseOnButton(); // the buttons drawn below say again whether the mouse is on one, client/cast_targeting.cpp
 RenderSetProjection(RenderContext, &WorldProjection); // world overlays below draw zoomed, like the world
 DrawMonsterTelegraphs(RenderContext, &AppState->World, CameraOffset);
 DrawMonsterCastTells(RenderContext, AppState, CameraOffset, Input->DeltaTime);
@@ -40,6 +41,7 @@ DrawBossAlerts(RenderContext, AppState, Window->Width, Window->Height); // a ban
 if (Input->TabButton.EndedDown) DrawScoreboard(RenderContext, AppState, Window->Width, Window->Height);
 DoTileEditor(RenderContext, AppState, UIContext, Input, Window, TextureProgram, CameraOffset);
 DoConnectScreen(RenderContext, AppState, UIContext, Input, Window->Width, Window->Height);
-DoOptionsMenu(RenderContext, AppState, Input, Window->Width, Window->Height); // Esc: keyboard layout, ui/options_menu.cpp
+UpdateWindowMode(AppState, Window); // full screen at launch, F1 or the options switch, saved, client/window_mode.cpp
+DoOptionsMenu(RenderContext, AppState, Input, Window->Width, Window->Height); // Esc: closes what is open, else the options, ui/options_menu.cpp
 DrawTargetNotice(RenderContext, AppState); // "No target" or "Out of range" by the cursor, client/targeting.cpp
 DrawShaderErrors(RenderContext, AppState, Window->Width);

@@ -293,8 +293,8 @@ NetSerializePacket(net_stream *S, net_packet *P)
             NetU8(S, &P->Snapshot.RoundBreak);
             NetU8(S, &P->Snapshot.MapId);
             // NOTE(zoubir): the map vote: one byte while none is open,
-            // four while one is (who and the own answer share one, and so
-            // do the yes and no counts)
+            // six while one is (who and the own answer share one, and so
+            // do the yes and no counts; every answer takes two)
             NetU8(S, &P->Snapshot.VoteMap);
             if (P->Snapshot.VoteMap != NET_NO_VOTE)
             {
@@ -303,6 +303,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU8(S, &WhoAndOwn);
                 NetU8(S, &P->Snapshot.VoteSeconds);
                 NetU8(S, &Counts);
+                NetU16(S, &P->Snapshot.VoteAnswers);
                 P->Snapshot.VoteBy = WhoAndOwn & 0xf;
                 P->Snapshot.OwnVote = WhoAndOwn >> 4;
                 P->Snapshot.VoteYes = Counts & 0xf;

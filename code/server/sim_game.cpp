@@ -278,6 +278,11 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     Out->VoteYes = (u8)AppState->VoteYes;
     Out->VoteNo = (u8)AppState->VoteNo;
     Out->OwnVote = AppState->Votes[ViewerSlot];
+    Out->VoteAnswers = 0;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        Out->VoteAnswers |= (u16)((AppState->Votes[SlotIndex] & 3) << (2 * SlotIndex));
+    }
     // The viewer's own body unrounded, for its prediction (net/protocol.h),
     // and the point the other positions are sent from
     Out->HasOwnBody = (Own && Own->IsPresent) ? 1 : 0;

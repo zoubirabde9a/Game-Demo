@@ -2,8 +2,10 @@
    GAME_SERVER and GAME_NAME environment variables or else the first two
    lines of server.txt in the folder the game runs from. A connect from
    the connect screen writes server.txt so the next launch reuses it.
-   Its third line is the keyboard layout (keyboard_layout.cpp), kept here
-   because the launcher carries server.txt over to each new version.
+   Its third line is the keyboard layout (keyboard_layout.cpp), the fourth
+   the control scheme (control_scheme.cpp) and the fifth the window,
+   "fullscreen" or "window"; they are kept here because the launcher
+   carries server.txt over to each new version.
    With neither, the game joins ONLINE_DEFAULT_SERVER, the first server in
    server_list.cpp; GAME_SERVER=offline keeps it offline.
    online.cpp uses ReadOnlineConfig and SaveOnlineConfig. */
@@ -13,6 +15,11 @@
 #define ONLINE_NAME_ENV "GAME_NAME"
 #define ONLINE_DEFAULT_SERVER (ServerList[0].Address)
 #define ONLINE_OFFLINE_WORD "offline"
+
+// NOTE(zoubir): the window setting, full screen or not, for the next
+// launch (ui/options_menu.cpp); a global like the layout so a save from
+// the connect screen keeps it
+global_variable bool32 GlobalFullscreen = true;
 
 // NOTE(zoubir): A and B hold the same letters, ignoring case
 internal bool32
@@ -95,10 +102,10 @@ ReadOnlineConfig(char *Address, u32 AddressSize, char *Name, u32 NameSize)
     return Address[0] != 0;
 }
 
-// NOTE(zoubir): the layout server.txt's third line names; AZERTY when it
-// names none
-internal keyboard_layout
-ReadSavedKeyboardLayout()
+// NOTE(zoubir): server.txt's line LineIndex (from 0) into Word, "" when
+// there is none
+internal void
+ReadSavedSetting(u32 LineIndex, char *Word, u32 WordSize)
 {
     char File[256] = {};
     FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "rb");
@@ -107,10 +114,40 @@ ReadSavedKeyboardLayout()
         fread(File, 1, sizeof(File) - 1, Handle);
         fclose(Handle);
     }
+    CopyFirstLine(Word, WordSize, SkipLines(File, LineIndex));
+}
+
+// NOTE(zoubir): the layout server.txt's third line names; AZERTY when it
+// names none
+internal keyboard_layout
+ReadSavedKeyboardLayout()
+{
     char Word[16];
-    CopyFirstLine(Word, sizeof(Word), SkipLines(File, 2));
+    ReadSavedSetting(2, Word, sizeof(Word));
     keyboard_layout Result = StringsMatchIgnoringCase(Word, (char *)"qwerty") ?
         KeyboardLayout_Qwerty : KeyboardLayout_Azerty;
+    return Result;
+}
+
+// NOTE(zoubir): the scheme the fourth line names; keys move when it names
+// none
+internal control_scheme
+ReadSavedControlScheme()
+{
+    char Word[16];
+    ReadSavedSetting(3, Word, sizeof(Word));
+    control_scheme Result = StringsMatchIgnoringCase(Word, ControlSchemeWord(ControlScheme_Mouse)) ?
+        ControlScheme_Mouse : ControlScheme_Keys;
+    return Result;
+}
+
+// NOTE(zoubir): the fifth line; full screen unless it says "window"
+internal bool32
+ReadSavedFullscreen()
+{
+    char Word[16];
+    ReadSavedSetting(4, Word, sizeof(Word));
+    bool32 Result = !StringsMatchIgnoringCase(Word, (char *)"window");
     return Result;
 }
 #if defined(_MSC_VER)
@@ -129,16 +166,18 @@ SaveOnlineConfig(char *Address, char *Name)
     FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "wb");
     if (Handle)
     {
-        fprintf(Handle, "%s\n%s\n%s\n", Address, Name,
-                KeyboardLayoutWord(GlobalKeyboardLayout));
+        fprintf(Handle, "%s\n%s\n%s\n%s\n%s\n", Address, Name,
+                KeyboardLayoutWord(GlobalKeyboardLayout),
+                ControlSchemeWord(GlobalControlScheme),
+                GlobalFullscreen ? "fullscreen" : "window");
         fclose(Handle);
     }
 }
 
-// NOTE(zoubir): rewrites server.txt with the layout in use, keeping the
-// address and name lines as they were in the file
+// NOTE(zoubir): rewrites server.txt with the layout, scheme and window in
+// use, keeping the address and name lines as they were in the file
 internal void
-SaveKeyboardLayout()
+SaveLocalSettings()
 {
     char File[256] = {};
     FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "rb");
@@ -157,5 +196,5 @@ SaveKeyboardLayout()
 #endif
 #else
 internal void SaveOnlineConfig(char *Address, char *Name) {}
-internal void SaveKeyboardLayout() {}
+internal void SaveLocalSettings() {}
 #endif

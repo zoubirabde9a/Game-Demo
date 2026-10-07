@@ -2,8 +2,10 @@
    one table. Offline play reads new presses from it (keyboard_input.cpp),
    online play sends the held keys as network buttons (online.cpp), which
    are the same bits moved up by PLAYER_BUTTON_NET_SHIFT. A new action is
-   one row here. Letter keys named as on AZERTY go through LayoutKey
-   (keyboard_layout.cpp) so they move on QWERTY. Every ability has a key; one the duel rules leave out
+   one row in each table. Letter keys named as on AZERTY go through LayoutKey
+   (keyboard_layout.cpp) so they move on QWERTY. The mouse-moves scheme
+   (control_scheme.cpp) has its own table, with the spells on the keys
+   movement leaves free. Every ability has a key; one the duel rules leave out
    (GameRules, sim/player_stats.cpp) does nothing until the talent tree
    unlocks it (sim/progression/talents.cpp). */
 
@@ -41,9 +43,27 @@ GetActionKeys(app_input *Input, action_key *Keys)
         // both layouts
         {&Input->ButtonV, PlayerButton_Kunai, "V"},
     };
+    // NOTE(zoubir): mouse moves: the spells on the keys under the left
+    // hand, the top row first (A Z E R on AZERTY, Q W E R on QWERTY)
+    action_key MouseTable[ACTION_KEY_COUNT] =
+    {
+        {&Input->SpaceButton, PlayerButton_Jump, "Space"},
+        {LayoutKey(Input, 'Z'), PlayerButton_Cast, LayoutKeyName('Z')},
+        {&Input->ButtonE, PlayerButton_Shield, "E"},
+        {&Input->ButtonF, PlayerButton_Blink, "F"},
+        {LayoutKey(Input, 'A'), PlayerButton_Launch, LayoutKeyName('A')},
+        {&Input->RightButton, PlayerButton_Attack, "RMB"},
+        {LayoutKey(Input, 'Q'), PlayerButton_Shockwave, LayoutKeyName('Q')},
+        {&Input->ButtonR, PlayerButton_Push, "R"},
+        {&Input->ButtonS, PlayerButton_Slam, "S"},
+        {&Input->ButtonG, PlayerButton_FrostNova, "G"},
+        {&Input->ButtonT, PlayerButton_GravityWell, "T"},
+        {&Input->ButtonD, PlayerButton_Kunai, "D"},
+    };
+    action_key *From = MouseMoves() ? MouseTable : Table;
     for(u32 Index = 0; Index < ACTION_KEY_COUNT; Index++)
     {
-        Keys[Index] = Table[Index];
+        Keys[Index] = From[Index];
     }
 }
 

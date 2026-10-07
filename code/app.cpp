@@ -83,7 +83,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     UpdateOnlineSession(AppState->Online, &ServerInput, KeysToUi, LocalInput->Aim,
                         OnlineTalentBits(AppState, Input->DeltaTime) |
                         OnlineVoteBits(AppState, Input->DeltaTime) |
-                        OnlineRoleBits(AppState, Input->DeltaTime),
+                        OnlineRoleBits(AppState, Input->DeltaTime) |
+                        MoveNetButtons(LocalInput->Move),
                         LocalInput->Target);
     RunWorldTick(AppState, &AppState->WorldArena, Input->DeltaTime);
     PlaySimEvents(AppState, Input->DeltaTime);

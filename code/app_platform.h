@@ -110,10 +110,22 @@ typedef PLATFORM_ADD_WORK_ENTRY(platform_add_work_entry);
 #define PLATFORM_WALL_SECONDS(Name) double Name(void)
 typedef PLATFORM_WALL_SECONDS(platform_wall_seconds);
 
+// NOTE(zoubir): the platform fills Width, Height and Fullscreen before
+// each frame; the game sets FullscreenRequest to change the window after
+// it (the options menu, client/window_mode.cpp)
+enum fullscreen_request
+{
+    FullscreenRequest_None,
+    FullscreenRequest_On,
+    FullscreenRequest_Off,
+};
+
 struct app_window
 {
     int Width;
     int Height;
+    bool32 Fullscreen;
+    u32 FullscreenRequest;
 };
 
 struct app_sound_output_buffer

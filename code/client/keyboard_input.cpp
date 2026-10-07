@@ -1,9 +1,11 @@
 /* Local controls: turns this machine's keyboard and mouse into the
    player_input the simulation understands. ZQSD move on AZERTY and
    WASD on QWERTY (picked in the Esc menu, keyboard_layout.cpp),
-   the mouse cursor aims, right click sword, X fireball, Space
-   jump, E shockwave, F blink, R push, A launch (the action keys
-   are one table, action_keys.cpp). In standard cast mode an area
+   the mouse cursor aims, left click or X fireball, right click sword,
+   Space jump, E shockwave, F blink, R push, A launch (the action keys
+   are one table, action_keys.cpp). In the mouse-moves scheme
+   (control_scheme.cpp) a left click walks instead (click_move.cpp) and
+   the spells sit on the keys movement leaves free. In standard cast mode an area
    ability's key, and the kunai's (V), aims it first and a left click
    casts it (cast_targeting.cpp). Holding Tab shows the scoreboard
    (read in app.cpp, it is not a player action). While the tile editor
@@ -39,10 +41,13 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
     player_input Result = {};
     Result.Aim = AimFromCursor(Input, AppState);
     Result.Target = UpdateCursorTarget(Input, AppState);
-    if (LayoutKey(Input, 'Z')->EndedDown) { Result.Move.Y = -1.f; }
-    if (Input->ButtonS.EndedDown) { Result.Move.Y = 1.f; }
-    if (Input->ButtonD.EndedDown) { Result.Move.X = 1.f; }
-    if (LayoutKey(Input, 'Q')->EndedDown) { Result.Move.X = -1.f; }
+    if (!MouseMoves())
+    {
+        if (LayoutKey(Input, 'Z')->EndedDown) { Result.Move.Y = -1.f; }
+        if (Input->ButtonS.EndedDown) { Result.Move.Y = 1.f; }
+        if (Input->ButtonD.EndedDown) { Result.Move.X = 1.f; }
+        if (LayoutKey(Input, 'Q')->EndedDown) { Result.Move.X = -1.f; }
+    }
 
     // NOTE(zoubir): standard cast holds an aimed ability back until it is
     // confirmed (cast_targeting.cpp); quick cast passes the keys through
@@ -54,6 +59,11 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
         ShowTargetNotice(AppState, Input, Kunai ? KunaiNo : (char *)"Not ready");
     }
     Result.Pressed = FilterCastButtons(AppState, ActionButtonsFromKeys(Input, true));
+    // NOTE(zoubir): the mouse-moves scheme walks to a free click
+    if (MouseMoves())
+    {
+        Result.Move = UpdateClickMove(Input, AppState);
+    }
     if (AppState->TileEditing)
     {
         Result.Pressed &= ~(u32)PlayerButton_Cast;

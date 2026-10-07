@@ -777,6 +777,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "online_tests.cpp"
 #include "player_ability_tests.cpp"
 #include "cursor_tests.cpp"
+#include "control_scheme_tests.cpp"
 #include "sound_tests.cpp"
 #include "camera_tests.cpp"
 #include "player_feel_tests.cpp"
@@ -831,6 +832,7 @@ main()
     RunOnlineTests();
     RunPlayerAbilityTests();
     RunCursorTests();
+    RunControlSchemeTests();
     RunSoundTests();
     RunCameraTests();
     RunPlayerFeelTests();

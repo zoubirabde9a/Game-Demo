@@ -1,6 +1,6 @@
-/* Cursor tests: X casts the fireball wherever the cursor is, a left
-   click alone casts nothing, and the tile editor's clicks paint without
-   casting, here or online. Standard cast
+/* Cursor tests: X casts the fireball wherever the cursor is, and so
+   does a left click on its own (keys move, client/control_scheme.cpp),
+   and the tile editor's clicks paint without casting, here or online. Standard cast
    aims an area ability on its key and casts it on the next left click
    (client/cast_targeting.cpp); quick cast casts it on the key. The
    cursor picks the unit whose body it is on (client/targeting.cpp). On QWERTY
@@ -44,6 +44,7 @@ NextInputFrame(app_input *Input)
     {
         Keys[Index].Key->Pressed = false;
     }
+    Input->LeftButton.Pressed = false;
 }
 
 inline void
@@ -76,19 +77,21 @@ AimAndThrowFireball(app_input *Input, app_state *AppState)
     return Local;
 }
 
-// NOTE(zoubir): the fireball is a key like the other abilities; a left
-// click on bare ground neither casts nor walks there
+// NOTE(zoubir): the fireball is on X like the other abilities, and a
+// left click on bare ground throws it at once without walking there; the
+// server sees X pressed
 internal void
-TestFireballIsOnX()
+TestFireballIsOnXAndTheClick()
 {
     test_world Test = CreateCursorTestWorld();
     world_entity *Player = AddPlayerToSlot(Test.AppState, Test.World,
                                            &Test.Arena, 0, {300, 300, 0});
     PressLeftButton(&Test.Input, 600, 300);
     player_input Local = ReadKeyboardPlayerInput(&Test.Input, Test.AppState);
-    Check(Local.Pressed == 0);
+    Check(Local.Pressed == PlayerButton_Cast);
     Check(Local.Move.X == 0.f && Local.Move.Y == 0.f);
     Check(Player->Position.X < 301.f);
+    Check(InputForServer(&Test.Input, Test.AppState).ButtonX.EndedDown);
 
     NextInputFrame(&Test.Input);
     ReleaseKey(&Test.Input.LeftButton);
@@ -149,15 +152,15 @@ TestStandardCastAimsThenClickCasts()
     Sent = InputForServer(Input, Test.AppState);
     Check(!Sent.ButtonA.EndedDown);
 
-    // NOTE(zoubir): with nothing aimed, a click casts nothing, and X
-    // still aims the fireball for the next click
+    // NOTE(zoubir): with nothing aimed, a click throws the fireball, and
+    // X still aims it for the next click
     NextInputFrame(Input);
     ReleaseKey(&Input->LeftButton);
     ReadKeyboardPlayerInput(Input, Test.AppState);
     NextInputFrame(Input);
     PressKey(&Input->LeftButton);
     Local = ReadKeyboardPlayerInput(Input, Test.AppState);
-    Check(Local.Pressed == 0);
+    Check(Local.Pressed == PlayerButton_Cast);
     NextInputFrame(Input);
     ReleaseKey(&Input->LeftButton);
     ReadKeyboardPlayerInput(Input, Test.AppState);
@@ -390,7 +393,7 @@ TestStandardCastAimsTheKunai()
 internal void
 RunCursorTests()
 {
-    CURSOR_TEST(TestFireballIsOnX);
+    CURSOR_TEST(TestFireballIsOnXAndTheClick);
     CURSOR_TEST(TestTileEditorClicksDoNotCast);
     CURSOR_TEST(TestStandardCastAimsThenClickCasts);
     CURSOR_TEST(TestStandardCastRightClickCancels);

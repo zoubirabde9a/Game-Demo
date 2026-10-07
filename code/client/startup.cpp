@@ -141,6 +141,8 @@ StartClient(app_state *AppState, transient_state *TransientState,
     AppState->Online = StartOnlineSession(MemoryArena, ONLINE_DEFAULT_SERVER);
     AppState->KeyboardLayout = ReadSavedKeyboardLayout();
     GlobalKeyboardLayout = (keyboard_layout)AppState->KeyboardLayout;
+    AppState->ControlScheme = ReadSavedControlScheme();
+    GlobalControlScheme = (control_scheme)AppState->ControlScheme;
     EndTemporaryMemory(TempMem);
     AppState->IsInitialized = true;
 }
