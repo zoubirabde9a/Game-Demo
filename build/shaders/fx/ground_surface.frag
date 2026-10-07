@@ -73,7 +73,7 @@ void main()
         float B = Ridge(P * 1.3 + vec2(-0.17, 0.19) * Flow + 31.0);
         float Lines = pow(A, 14.0) + pow(B, 14.0) + 1.2 * pow(A * B, 6.0);
         float Glint = Glints(fragmentUV, 5.0, 0.025, 5.0, 0.25);
-        Strength = mix(0.16, 0.12, Deep) * Lines + mix(0.7, 0.5, Deep) * Glint;
+        Strength = mix(0.10, 0.08, Deep) * Lines + mix(0.6, 0.4, Deep) * Glint;
     }
     else if (Surface < 2.5)
     {
@@ -84,7 +84,7 @@ void main()
         float Sheen = pow(0.5 + 0.5 * sin(Along * 6.2832), 10.0);
         float Glint = Glints(fragmentUV, 4.0, 0.04, 2.0, 0.26);
         Color = vec3(0.80, 0.92, 1.0);
-        Strength = 0.20 * Sheen + 1.0 * Glint;
+        Strength = 0.13 * Sheen + 0.8 * Glint;
     }
     else
     {

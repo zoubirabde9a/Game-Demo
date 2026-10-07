@@ -78,7 +78,9 @@ BeginWorldPass(render_context *RenderContext, memory_arena *TransientArena,
         World->EntityCount * 2 + GROUND_CRACK_MAX +
         // NOTE(zoubir): the ground surface: a batch per kind of surface, a quad
         // per tile
-        GroundTiles + GroundSurface_Count;
+        GroundTiles + GroundSurface_Count +
+        // NOTE(zoubir): the motes in the air, one batch, a quad each
+        AMBIENT_MOTES_MAX + 1;
     SetupBatchRenderer(RenderContext, TransientArena, BatchesCount);
     RenderBegin(RenderContext, 6 * BatchesCount, RENDER_ORDER_BACK_TO_FRONT);
 }
@@ -416,6 +418,8 @@ DrawTileMap(render_context *RenderContext, app_state *AppState,
             DrawTerrainProps(RenderContext, AppState, TextureProgram, CameraOffset,
                              Visible);
         }
+        DrawAmbientMotes(RenderContext, AppState, CameraOffset,
+                         V2((float)Window->Width, (float)Window->Height));
         return;
     }
 
