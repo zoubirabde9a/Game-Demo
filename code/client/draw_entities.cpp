@@ -150,6 +150,8 @@ DrawTileEntity(render_context *RenderContext,
 #define FOE_MARKER_COLOR UI_RGBA(235, 70, 60, 120)
 // NOTE(zoubir): the outline around players and monsters (DrawEntity)
 #define UNIT_OUTLINE_COLOR 0x9A000000
+// NOTE(zoubir): radians a leafy tree leans each way at most in the wind
+#define TREE_SWAY_ANGLE 0.018f
 // NOTE(zoubir): the borrowed shadow under monsters and props (DrawEntity):
 // its width as a share of the sprite's, and how dark next to a player's
 #define MONSTER_SHADOW_WIDTH 0.5f
@@ -275,6 +277,16 @@ DrawEntity(render_context *RenderContext,
     // NOTE(zoubir): squash and stretch about the sprite's origin (its
     // feet), tilt and hit flash, body_pose.cpp
     body_pose_draw Pose = GetBodyPose(AppState, Entity);
+    // NOTE(zoubir): leafy trees lean a little in the wind about their roots,
+    // each on its own beat, with a slower gust over the whole map
+    if (Entity->Texture.Type == AssetType_Tree)
+    {
+        float Seconds = (float)(AppState->UpdateID % 36000) / 60.f;
+        float Beat = 0.013f * Entity->Position.X + 0.021f * Entity->Position.Y;
+        float Gust = 0.6f + 0.4f * Sin(0.31f * Seconds + 0.002f * Entity->Position.X);
+        Pose.Angle = TREE_SWAY_ANGLE * Gust * Sin(1.3f * Seconds + Beat);
+        Pose.AboutFeet = true;
+    }
     
     if (Entity->Texture.Type)
     {
