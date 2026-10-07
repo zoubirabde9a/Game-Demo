@@ -391,6 +391,27 @@ UpdateShownFight(world *World, dungeon_run *Run)
     Run->ShownFoesLeft = Run->FightingRoom ? CountLiveFoes(World, Run) : 0;
 }
 
+// NOTE(zoubir): a cleared crypt stays cleared for DUNGEON_VICTORY_SECONDS,
+// then the same map is built again (StartNextRoundMap, setup.cpp): a new
+// run, everyone in the Antechamber keeping their role, level and talents
+#define DUNGEON_VICTORY_SECONDS 20.f
+
+internal void
+UpdateRunEnd(app_state *AppState, dungeon_run *Run, float DeltaTime)
+{
+    if (NextRoomToClear(Run->RoomStates, Run->RoomCount))
+    {
+        Run->Seconds += DeltaTime;
+        return;
+    }
+    bool32 WasWaiting = Run->VictorySeconds < DUNGEON_VICTORY_SECONDS;
+    Run->VictorySeconds += DeltaTime;
+    if (WasWaiting && Run->VictorySeconds >= DUNGEON_VICTORY_SECONDS)
+    {
+        AppState->RoundMapDue = true;
+    }
+}
+
 // NOTE(zoubir): once a tick, from SimulateTick, before anyone moves
 internal void
 UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
@@ -454,4 +475,5 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
     }
     UpdateGates(AppState, World, Arena, Run);
     UpdateShownFight(World, Run);
+    UpdateRunEnd(AppState, Run, DeltaTime);
 }

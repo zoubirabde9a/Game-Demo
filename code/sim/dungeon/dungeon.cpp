@@ -98,7 +98,26 @@ struct dungeon_run
     u32 ShownBossKind;
     float ShownBossShare;
     u32 ShownFoesLeft;
+    // NOTE(zoubir): seconds the run has lasted, until its last room is
+    // cleared; then the seconds since, until a new run starts
+    // (UpdateRunEnd, encounters.cpp)
+    float Seconds;
+    float VictorySeconds;
 };
+
+// NOTE(zoubir): the room the party has to clear next, 0 when all are
+inline u32
+NextRoomToClear(u8 *RoomStates, u32 RoomCount)
+{
+    for(u32 Room = 1; Room <= RoomCount; Room++)
+    {
+        if (RoomStates[Room] != RoomState_Cleared)
+        {
+            return Room;
+        }
+    }
+    return 0;
+}
 
 // NOTE(zoubir): whether the world being played is a dungeon run
 inline bool32

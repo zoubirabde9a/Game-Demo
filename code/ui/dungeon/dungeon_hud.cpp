@@ -3,7 +3,8 @@
    checkbox. Nothing here draws outside a run.
 
    - The objective: the room being fought and the enemies left in it, or
-     the next room to head for, or the crypt cleared; wipes so far.
+     the next room to head for, or the crypt cleared (offline with the
+     run's time and the seconds to the next run); wipes so far.
    - The boss bar while a boss fights: its name and its health.
    - Party frames, bottom left: each player's role, name and health, the
      local one first; a downed player's bar is grey.
@@ -33,20 +34,6 @@ global_variable u32 DungeonRoleColors[PlayerRole_Count] =
     UI_RGBA(110, 210, 120, 255),
 };
 
-// NOTE(zoubir): the next room the party has to clear, 0 when all are
-internal u32
-NextDungeonRoom(dungeon_run *Run)
-{
-    for(u32 Room = 1; Room <= Run->RoomCount; Room++)
-    {
-        if (Run->RoomStates[Room] != RoomState_Cleared)
-        {
-            return Room;
-        }
-    }
-    return 0;
-}
-
 // NOTE(zoubir): one centred line at Y; returns the line's height
 internal float
 DungeonHudLine(render_context *RenderContext, font *Font, float CenterX, float Y,
@@ -73,10 +60,18 @@ DrawDungeonObjective(render_context *RenderContext, app_state *AppState,
     }
     else
     {
-        u32 Next = NextDungeonRoom(Run);
-        if (!Next)
+        u32 Next = NextRoomToClear(Run->RoomStates, Run->RoomCount);
+        if (!Next && IsOnline(AppState->Online))
         {
-            snprintf(Text, sizeof(Text), "The crypt is cleared");
+            snprintf(Text, sizeof(Text), "The crypt is cleared!  A new run starts soon");
+        }
+        else if (!Next)
+        {
+            u32 Minutes = (u32)(Run->Seconds / 60.f);
+            u32 Seconds = (u32)Run->Seconds % 60;
+            snprintf(Text, sizeof(Text), "The crypt is cleared in %u:%02u!  A new run in %.0f",
+                     Minutes, Seconds,
+                     Maximum(1.f, DUNGEON_VICTORY_SECONDS - Run->VictorySeconds + 0.5f));
         }
         else if (Next == 1)
         {

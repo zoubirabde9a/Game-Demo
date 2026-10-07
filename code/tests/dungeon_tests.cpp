@@ -476,9 +476,39 @@ TestBossEventsFireOnce()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): a cleared crypt waits, then a new run starts with
+// everyone back in the Antechamber, keeping their role
+internal void
+TestClearedCryptStartsANewRun()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Tank);
+    dungeon_run *Run = AppState->Dungeon;
+    for(u32 Room = 1; Room <= Run->RoomCount; Room++)
+    {
+        Run->RoomStates[Room] = RoomState_Cleared;
+    }
+    Run->Wipes = 2;
+    TickCrypt(&Crypt, (u32)(10.f * 60.f));
+    Check(AppState->Dungeon->Wipes == 2);
+    Check(AppState->Dungeon->VictorySeconds > 9.f);
+    TickCrypt(&Crypt, (u32)(11.f * 60.f));
+    Run = AppState->Dungeon;
+    Check(Run && Run->Wipes == 0 && Run->VictorySeconds < 2.f);
+    Check(Run->RoomStates[1] == RoomState_Cleared);
+    Check(Run->RoomStates[2] == RoomState_Waiting);
+    world_entity *Player = AppState->Players[0].Entity;
+    Check(Player && !IsDeadPlayer(Player));
+    Check(RoomAtPosition(&AppState->World, Player->Position.XY) == 1);
+    Check(AppState->Players[0].Role == PlayerRole_Tank && Player->MaxHp == 180.f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDungeonTests()
 {
+    TestClearedCryptStartsANewRun();
     TestBossEventsFireOnce();
     TestHealersRevive();
     TestRoleKeys();

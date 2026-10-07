@@ -49,6 +49,8 @@ A room's encounter starts when a living player steps inside it. Its monsters are
 
 Death: a dead player lies downed where they fell. A healer standing next to them for 3 s brings them back at 40% health; otherwise they come back at the room's checkpoint when the encounter ends. When every player is down, the party wipes: the encounter resets with full health and everyone stands at the checkpoint (the entrance of the room they died in). Cleared rooms stay cleared.
 
+When the last room is cleared the run is won: the HUD shows the time it took (offline) and counts down 20 s, then the crypt is built again for a new run, everyone in the Antechamber with their role, level and talents.
+
 Scaling: every dungeon monster's health is multiplied by `0.6 + 0.4 x players`, so two players face 1.4x and five face 2.6x.
 
 ## Bosses
