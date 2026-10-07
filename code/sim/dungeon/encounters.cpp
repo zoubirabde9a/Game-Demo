@@ -165,8 +165,8 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
 {
     u32 Standing;
     u32 Players = CountPartyPlayers(AppState, &Standing);
-    float HealthScale = PartyHealthScale(Players);
-    Run->PartyDamage = PartyDamageScale(Players);
+    float HealthScale = DUNGEON_FOE_HEALTH * PartyHealthScale(Players);
+    Run->PartyDamage = DUNGEON_FOE_DAMAGE * PartyDamageScale(Players);
     Run->RoomStates[Room] = RoomState_Fighting;
     Run->FightingRoom = Room;
     Run->FoeCount = 0;

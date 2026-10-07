@@ -20,6 +20,14 @@
 #define PARTY_DAMAGE_GROWTH_PAST 1.06f
 #define PARTY_TUNED_SIZE 3
 
+// NOTE(zoubir): every dungeon monster, before the party's growth, has
+// DUNGEON_FOE_HEALTH of its health and hits DUNGEON_FOE_DAMAGE as hard.
+// Players asked for fights that are quick and dangerous rather than long:
+// at full health three bots spent up to 150 s on the Ossuary and two
+// wiped on most bosses with a tenth to a third of the boss left
+#define DUNGEON_FOE_HEALTH 0.6f
+#define DUNGEON_FOE_DAMAGE 1.15f
+
 // NOTE(zoubir): Growth to the power of the players past the first; a
 // loop rather than powf, so the ARM server and an x86 machine get the
 // same float
