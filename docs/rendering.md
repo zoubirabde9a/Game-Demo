@@ -61,7 +61,7 @@ On an endless map every `TerrainAt`, `PropAt` and `ElevationAt` runs the map's n
 | `GAME_PROFILE=file` | `file`: the frame, the game's CPU part and the GPU part, every 2 s. `file.parts.txt`: simulate, ground, entities, flush, grade and screens |
 | `powershell -File misc\web_shader_check.ps1` | every effect shader compiled in a browser's WebGL, as the web build loads it |
 | `powershell -File misc\art_check.ps1` | every code-drawn image is the same on two runs (no reads of memory never set) |
-| `powershell -File misc\render_check.ps1` | nine fixed scenes (every map, casting, ice, lava, rain, torches, night, dusk, footprints) still draw exactly what they drew; after a change meant to look different, run it with `-Update` and commit `misc\render_refs.txt` with the change |
+| `powershell -File misc\render_check.ps1` | nine fixed scenes (every map, casting, ice, lava, rain, torches, night, dusk, footprints) still draw what they drew, block by block within a twentieth of a colour level; after a change meant to look different, run it with `-Update` and commit `misc\render_refs.txt` with the change |
 | `build\crash.txt` | written by the Windows game when it crashes: the call stack; look game frames up in `build\app.map` |
 
 The game draws the same frame every time for the same map, keys and frame number, which is what lets `render_check` compare them; now and then the GPU draws a pixel one level off, which the block means absorb. The references hold for one machine (GPU, driver, display scale).
