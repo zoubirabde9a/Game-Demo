@@ -54,3 +54,4 @@
     struct cast_targeting *CastTargeting; // quick or standard cast, and the ability being aimed, client/cast_targeting.cpp
     struct cast_fx *CastFx; // each player's cast circle, hand glow and release, client/cast_fx.cpp
     struct danger_zones *DangerZones; // monster attack areas on the ground and their impacts, client/danger_zones.cpp
+    struct boss_alerts *BossAlerts; // the banner when a boss fight turns, ui/dungeon/boss_alerts.cpp

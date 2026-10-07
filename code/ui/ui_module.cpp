@@ -30,4 +30,5 @@
 #include "options_menu.cpp"
 #include "map_vote_view.cpp"
 #include "dungeon/dungeon_hud.cpp"
+#include "dungeon/boss_alerts.cpp"
 #include "shader_errors.cpp"
