@@ -11,6 +11,13 @@
 //   colour g:  which surface, 1 water, 2 ice, 3 snow (out of 255)
 //   colour r:  how much of the water is deep: dimmer, slower light
 
+// NOTE(zoubir): the noise hashes world coordinates; at the browser's
+// default medium precision (16 bits on phones) it turns to static, so ask
+// for full precision where the device has it. Desktop GLSL skips this
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#endif
+
 VARYING vec4 fragmentColor;
 VARYING vec2 fragmentUV;
 

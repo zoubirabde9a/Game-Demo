@@ -22,6 +22,13 @@
 // WorldView = camera x, y (world units), window pixels per world unit,
 // window height.
 
+// NOTE(zoubir): the noise hashes world coordinates; at the browser's
+// default medium precision (16 bits on phones) it turns to static, so ask
+// for full precision where the device has it. Desktop GLSL skips this
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#endif
+
 VARYING vec4 fragmentColor;
 VARYING vec2 fragmentUV;
 
