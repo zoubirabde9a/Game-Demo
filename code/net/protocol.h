@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d66u // "GDMf", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d67u // "GDMg", change it whenever the layout changes
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
 #define NET_PLAYER_HEALTH_STEPS 100.f
@@ -113,6 +113,7 @@ enum net_button
 #define NET_ROLE_SHIFT 29
 #define NET_ROLE_MASK 0x3u
 #define NET_NO_BOSS 0xFFu
+#define NET_BOSS_ENRAGED 0xFFu
 #define NET_MAX_SANCTUARIES 4
 #define NET_MAX_INFERNOS 4
 #define NET_ZONE_WIDE 0x80u
@@ -377,6 +378,9 @@ struct net_snapshot
     u8 BossKind;
     u8 BossHealth;
     u8 FoesLeft;
+    // The boss's enrage timer (sim/dungeon/boss_clock.cpp): whole seconds
+    // left, NET_BOSS_ENRAGED once it ran out, 0 with no timer running.
+    u8 BossClock;
     // The healers' sanctuaries on the ground (sim/dungeon/
     // role_abilities.cpp): whole-unit positions and tenths of a second
     // left (bits 0-6), so clients draw them; bit 7 is a sanctuary a

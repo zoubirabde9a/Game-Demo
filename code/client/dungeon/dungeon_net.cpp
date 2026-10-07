@@ -57,6 +57,11 @@ ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Sna
         (u32)Snapshot->BossKind : (u32)MonsterKind_Count;
     Run->ShownBossShare = (float)Snapshot->BossHealth / 255.f;
     Run->ShownFoesLeft = Snapshot->FoesLeft;
+    u8 BossClock = Snapshot->BossClock;
+    Run->Clock.ShownStage = BossClock == NET_BOSS_ENRAGED ? BossClock_Enraged :
+        (BossClock == 0 ? BossClock_None :
+         ((float)BossClock <= BOSS_CLOCK_WARNING ? BossClock_Warned : BossClock_Running));
+    Run->Clock.ShownSecondsLeft = BossClock == NET_BOSS_ENRAGED ? 0 : BossClock;
     for(u32 Index = 0; Index < MAX_SANCTUARIES; Index++)
     {
         sanctuary *Zone = &Run->Sanctuaries[Index];

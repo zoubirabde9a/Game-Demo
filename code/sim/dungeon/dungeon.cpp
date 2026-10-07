@@ -73,6 +73,8 @@ struct inferno
     u32 By;
 };
 
+#include "boss_clock.h"
+
 struct dungeon_run
 {
     u32 RoomCount;
@@ -96,6 +98,7 @@ struct dungeon_run
     u32 BossSlot;
     u32 BossSerial;
     u32 BossEventsFired;
+    boss_clock Clock;
     // NOTE(zoubir): the wall entities closing each gate, as slot + 1
     // (0 for none). Built on the first tick, so only a world that
     // simulates has them
@@ -256,6 +259,7 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         {
             Result *= Slot->Role == PlayerRole_Tank ? PartySustainScale(Run) : RunPartyDamage(Run);
         }
+        Result *= BossClockDamageScale(&Run->Clock, Run->FightingRoom, Run->BossSerial);
         if (Slot->ShieldWallSeconds > 0.f)
         {
             Result *= SHIELD_WALL_SCALE;

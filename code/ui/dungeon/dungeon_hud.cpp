@@ -5,7 +5,9 @@
    - The objective: the room being fought and the enemies left in it, or
      the next room to head for, or the crypt cleared (offline with the
      run's time and the seconds to the next run); wipes so far.
-   - The boss bar while a boss fights: its name and its health.
+   - The boss bar while a boss fights: its name, its health, and its
+     enrage timer under it (sim/dungeon/boss_clock.cpp), red in the last
+     seconds and once the boss has enraged.
    - Party frames, bottom left (party_frames.cpp): each player's role,
      health, shields and the monsters after them; clicking one picks the
      ally a tank's or healer's spells go to.
@@ -84,6 +86,38 @@ DrawDungeonObjective(render_context *RenderContext, app_state *AppState,
     return Result;
 }
 
+// NOTE(zoubir): the boss's enrage timer, one small line; returns its
+// height, 0 with no timer
+internal float
+DrawDungeonBossClock(render_context *RenderContext, app_state *AppState,
+                     float CenterX, float Y)
+{
+    boss_clock *Clock = &AppState->Dungeon->Clock;
+    if (Clock->ShownStage == BossClock_None)
+    {
+        return 0.f;
+    }
+    char Text[64];
+    u32 Color = UI_COLOR_TEXT_MUTED;
+    if (Clock->ShownStage == BossClock_Enraged)
+    {
+        snprintf(Text, sizeof(Text), "ENRAGED  -  every hit grows harder");
+        Color = DUNGEON_BOSS_COLOR;
+    }
+    else
+    {
+        u32 Left = Clock->ShownSecondsLeft;
+        snprintf(Text, sizeof(Text), "Enrage in %u:%02u", Left / 60, Left % 60);
+        if (Clock->ShownStage == BossClock_Warned)
+        {
+            Color = DUNGEON_BOSS_COLOR;
+        }
+    }
+    float Result = DungeonHudLine(RenderContext, AppState->Fonts.Small, CenterX, Y, Text, Color) +
+        UI_GAP_SMALL;
+    return Result;
+}
+
 internal float
 DrawDungeonBossBar(render_context *RenderContext, app_state *AppState,
                    float CenterX, float Y)
@@ -109,6 +143,7 @@ DrawDungeonBossBar(render_context *RenderContext, app_state *AppState,
     }
     DrawRoundOutline(RenderContext, X, BarY, Width, DUNGEON_BOSS_BAR_HEIGHT, UI_COLOR_BORDER);
     float Result = NameHeight + 2.f + DUNGEON_BOSS_BAR_HEIGHT + UI_GAP_SMALL;
+    Result += DrawDungeonBossClock(RenderContext, AppState, CenterX, Y + Result);
     return Result;
 }
 

@@ -73,6 +73,15 @@ WriteDungeonSnapshot(app_state *AppState, net_snapshot *Out)
     Out->BossKind = Run->ShownBossKind < MonsterKind_Count ? (u8)Run->ShownBossKind : NET_NO_BOSS;
     Out->BossHealth = (u8)(255.f * DungeonShare(Run->ShownBossShare) + 0.5f);
     Out->FoesLeft = (u8)Minimum(Run->ShownFoesLeft, 255u);
+    Out->BossClock = 0;
+    if (Out->BossKind != NET_NO_BOSS && Run->Clock.ShownStage == BossClock_Enraged)
+    {
+        Out->BossClock = NET_BOSS_ENRAGED;
+    }
+    else if (Out->BossKind != NET_NO_BOSS && Run->Clock.ShownStage != BossClock_None)
+    {
+        Out->BossClock = (u8)Minimum(Maximum(Run->Clock.ShownSecondsLeft, 1u), 254u);
+    }
     Out->SanctuaryCount = 0;
     for(u32 Index = 0; Index < MAX_SANCTUARIES && Out->SanctuaryCount < NET_MAX_SANCTUARIES; Index++)
     {

@@ -506,11 +506,13 @@ TestNoFriendlyFireInADungeon()
 }
 
 #include "dungeon_role_tests.cpp"
+#include "boss_clock_tests.cpp"
 
 internal void
 RunDungeonTests()
 {
     RunDungeonRoleTests();
+    RunBossClockTests();
     TestNoFriendlyFireInADungeon();
     TestBlinksStopAtClosedGates();
     TestClearedCryptStartsANewRun();

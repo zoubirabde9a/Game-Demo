@@ -93,6 +93,16 @@ The roles keep up at the square root of that damage: the tank takes only the squ
 
 ## Bosses
 
+Every boss fight is a damage race. The boss's enrage timer shows under its health bar (`sim/dungeon/boss_clock.cpp`) and turns red with 30 s left. When it runs out the boss goes berserk: faster, red, and every hit on a player 50% harder, 25% more every 5 s after, so the party dies within seconds. Surviving is not enough; the party has to keep its damage up and kill the adds in time.
+
+| Boss | Timer for three players |
+|---|---|
+| Gravecaller Ossian | 2:00 |
+| The Brood Queen | 2:30 |
+| The Hollow King | 3:15 |
+
+A timer is about 1.3 times what a party playing its rotations well needs: the boss's and its adds' health over the party's damage at 70% of its best (striker about 20 a second, tank 4, healer 1). Another party size scales it by its health growth over its head count. The clock starts again after a wipe. `tools/dungeon_balance.cpp` runs three server bots through the crypt and times every fight; the bots play far below people and run out of time on every boss, so it shows the clock at work rather than the target.
+
 Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, summon, burrow, mend), and the dungeon adds scripted phase events at health thresholds (adds, hazards) on top, in `sim/dungeon/boss_scripts.cpp`.
 
 **Gravecaller Ossian**, a lich in rusted bone armour.
@@ -105,17 +115,17 @@ Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, 
 - Web Nova: slam that slows and leaves webs.
 - Venom Rain: a fan of four poisoned barbs.
 - Hatch (below 50%): two Hexweaver Spiders.
-- At 50% two more Hexweaver Spiders crawl out of the nest.
+- At 70% two Hexweaver Spiders crawl out of the nest, at 40% three. Each one left alive 18 s crawls back into her and heals her 5%.
 
 **The Hollow King**, the last boss.
 - Soul Cleave: a huge slam. The tank keeps it facing away from the group.
 - Shadow Rush: a charge through the room.
 - Wail of the Dead (below 40%): four souls flying out in an X round its target.
-- At 75%, 50% and 25% two Hollow Shades rise at the room's edges.
+- At 75%, 50% and 25% Hollow Shades rise at the room's edges: two, then three, then four. A shade alive after 14 s returns to the king and heals him 6%, so the last wave left alone undoes a quarter of the fight.
 
 ## Online
 
-The protocol id is "GDMf". Each `net_score` has a `Dungeon` byte (the role, Shield Wall, a ward and revive progress) and a `DungeonMore` byte (a rally, a renewal, how many monsters are after the player). Each snapshot has a dungeon block (`HasDungeon` 0 elsewhere): the room being fought, the rooms cleared, the wipes, the boss's kind and health, the monsters left, the healers' sanctuaries and the infernos, each with a bit for a talent that widened it. The talent ranks the viewer gets cover the role branch too (24 instead of 18). To fit the fullest snapshot in a packet the entity cap went from 45 to 43. A role pick rides in bits 29-30 of the held buttons (`NET_ROLE_SHIFT`). The server packs in `server/sim_game/dungeon.cpp`; the client reads it in `client/dungeon/dungeon_net.cpp` and builds the gate walls itself from the room states, so its prediction stops at closed gates. `tests/dungeon_online_tests.cpp` runs a real server on the crypt with a real client.
+The protocol id is "GDMg". Each `net_score` has a `Dungeon` byte (the role, Shield Wall, a ward and revive progress) and a `DungeonMore` byte (a rally, a renewal, how many monsters are after the player). Each snapshot has a dungeon block (`HasDungeon` 0 elsewhere): the room being fought, the rooms cleared, the wipes, the boss's kind and health, the monsters left, the healers' sanctuaries and the infernos, each with a bit for a talent that widened it, and the boss's enrage timer (`BossClock`: whole seconds left, 255 once enraged). The talent ranks the viewer gets cover the role branch too (24 instead of 18). To fit the fullest snapshot in a packet the entity cap went from 45 to 43. A role pick rides in bits 29-30 of the held buttons (`NET_ROLE_SHIFT`). The server packs in `server/sim_game/dungeon.cpp`; the client reads it in `client/dungeon/dungeon_net.cpp` and builds the gate walls itself from the room states, so its prediction stops at closed gates. `tests/dungeon_online_tests.cpp` runs a real server on the crypt with a real client.
 
 ## Steps
 
@@ -129,6 +139,7 @@ The protocol id is "GDMf". Each `net_score` has a `Dungeon` byte (the role, Shie
 - [x] Online: role and run state on the wire, role pick request, server `--map crypt`.
 - [x] Client: role picker, boss health bar, objective line, party frames. Done offline (`ui/dungeon/dungeon_hud.cpp`): the objective, the boss bar, the role picker in the Antechamber. Party frames done too, and all of it online.
 - [x] Fireball on X instead of the left click; party scaling by a factor per player; Ward shields the allies round its target, healer spells prefer an ally to the healer; Taunt raises Shield Wall, Shield Slam heals the tank per monster struck.
+- [x] Boss enrage timers and adds that merge back into their boss (`sim/dungeon/boss_clock.cpp`), on the wire as one byte of the dungeon block.
 - [x] Role overhaul: heals and wards land on allies (cursor or party frames), clickable party frames with aggro and wards, Shield Slam for the tank, Inferno for the damage role, a talent branch per role, role looks and spell animations, heal numbers, rest between fights, bots that play their role.
 
 ## Known problems
