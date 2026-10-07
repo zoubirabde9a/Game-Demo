@@ -64,7 +64,9 @@ RainAmount(app_state *AppState)
         return 0.f;
     }
     float Phase = 6.2832f * WeatherSeconds(AppState) / WEATHER_CYCLE_SECONDS;
-    float Wave = 0.5f + 0.5f * Sin(Phase + 1.f);
+    // NOTE(zoubir): driest at 0, so a game starts dry; the first shower
+    // begins about a minute in and is hardest at two
+    float Wave = 0.5f - 0.5f * Cos(Phase);
     float T = Clamp01((Wave - 0.6f) / 0.15f);
     float Result = T * T * (3.f - 2.f * T);
     return Result;
