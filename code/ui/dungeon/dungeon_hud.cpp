@@ -27,6 +27,8 @@
 #define DUNGEON_ROLE_BUTTON_WIDTH 120.f
 #define DUNGEON_ROLE_BUTTON_HEIGHT 34.f
 #define DUNGEON_BOSS_COLOR UI_RGBA(176, 52, 60, 255)
+#define DUNGEON_ALARM_COLOR UI_RGBA(255, 120, 80, 255)
+#define DUNGEON_ADD_ALARM_SECONDS 10
 
 #include "party_frames.cpp"
 
@@ -117,19 +119,24 @@ DrawDungeonBossClock(render_context *RenderContext, app_state *AppState,
     }
     float Result = DungeonHudLine(RenderContext, AppState->Fonts.Small, CenterX, Y, Text, Color) +
         UI_GAP_SMALL;
-    if (Clock->ShownAddSeconds)
+    if (Clock->ShownAddSeconds && Clock->ShownAddBursts)
     {
-        if (Clock->ShownAddBursts)
+        // NOTE(zoubir): the line that decides the run: in the body font,
+        // bright, and beating in its last DUNGEON_ADD_ALARM_SECONDS
+        snprintf(Text, sizeof(Text), "Kill the champion: it erupts in %u s", Clock->ShownAddSeconds);
+        float Alpha = 1.f;
+        if (Clock->ShownAddSeconds <= DUNGEON_ADD_ALARM_SECONDS)
         {
-            snprintf(Text, sizeof(Text), "Kill the champion: it erupts in %u s", Clock->ShownAddSeconds);
+            Alpha = 0.55f + 0.45f * Absolute(Sin(6.f * GetFxClock(AppState)));
         }
-        else
-        {
-            snprintf(Text, sizeof(Text), "Adds return to the boss in %u s", Clock->ShownAddSeconds);
-        }
+        Result += DungeonHudLine(RenderContext, AppState->Fonts.Body, CenterX, Y + Result, Text,
+                                 WithAlpha(DUNGEON_ALARM_COLOR, Alpha)) + UI_GAP_SMALL;
+    }
+    else if (Clock->ShownAddSeconds)
+    {
+        snprintf(Text, sizeof(Text), "Adds return to the boss in %u s", Clock->ShownAddSeconds);
         Result += DungeonHudLine(RenderContext, AppState->Fonts.Small, CenterX, Y + Result, Text,
-                                 Clock->ShownAddBursts ? DUNGEON_BOSS_COLOR : UI_COLOR_TEXT_MUTED) +
-            UI_GAP_SMALL;
+                                 UI_COLOR_TEXT_MUTED) + UI_GAP_SMALL;
     }
     return Result;
 }

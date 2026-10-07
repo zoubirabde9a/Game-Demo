@@ -7,7 +7,8 @@
    sets the role directly. Developer builds also read GAME_ROLE at start
    (ApplyDeveloperRole), GAME_ROOM to start in a later room
    (ApplyDeveloperRoom) and GAME_MARKS to mark the fight's monsters
-   (ApplyDeveloperMarks), for scripted screenshots. */
+   (ApplyDeveloperMarks) and GAME_BOSS_HEALTH to start a boss part
+   spent (ApplyDeveloperBossHealth), for scripted screenshots. */
 
 internal void
 RequestDungeonRole(app_state *AppState, u32 Role)
@@ -93,6 +94,30 @@ ApplyDeveloperRoom(app_state *AppState, memory_arena *Arena)
         Run->RoomStates[Before] = RoomState_Cleared;
     }
     MovePlayerTo(AppState, &AppState->World, Arena, Slot->Entity, Run->RoomEntry[Room]);
+#endif
+}
+
+// NOTE(zoubir): developer builds, offline, once a fight with a boss
+// starts: GAME_BOSS_HEALTH=0.59 puts the boss at that share of its
+// health, so a screenshot can show a phase (a Hollow Champion at 60%)
+internal void
+ApplyDeveloperBossHealth(app_state *AppState)
+{
+#if APP_DEV
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    char *Value = getenv("GAME_BOSS_HEALTH");
+#pragma warning(pop)
+    local_persist u32 SetSerial = 0;
+    dungeon_run *Run = AppState->Dungeon;
+    world_entity *Boss = Run ? FightBoss(&AppState->World, Run) : 0;
+    if (!Value || !Value[0] || !Boss || Boss->MonsterSerial == SetSerial)
+    {
+        return;
+    }
+    SetSerial = Boss->MonsterSerial;
+    float Share = Clamp01((float)atof(Value));
+    Boss->Hp = Maximum(1.f, Share * Boss->MaxHp);
 #endif
 }
 

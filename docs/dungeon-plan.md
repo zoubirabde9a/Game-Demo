@@ -64,7 +64,7 @@ Each branch serves its role's rotation and its part in the damage race as much a
 
 Each role looks the part in a run (`client/dungeon/role_looks.cpp`): the tank carries a blue-fielded kite shield on the side it aims at, the healer has a gold halo, motes of light circling and a green glow at the feet, the damage role has flames on both hands and embers rising off the shoulders. Sprites are tinted lightly toward the role, and allies stand on a ring in their role's colour instead of the duel's red. Every role spell has its own animation (`client/dungeon/role_fx.cpp`): a red war cry for Taunt, a ring of force and a shield of light for Shield Slam, a streak of light from healer to healed with crosses rising, a blue hexagon closing for Ward, a gold pillar for Sanctuary, and Inferno's meteor falling onto its marked circle, its blast and its burning ground. Healing rises over the healed in green.
 
-`GAME_ROLE=tank` (or `healer`, `damage`) starts an offline crypt in that role in developer builds, for scripted screenshots; `GAME_ROOM=7` starts it in that room with the rooms before cleared, and `GAME_MARKS=1` puts Searing stacks and Sunder on the fight's monsters. With `GAME_SCREENSHOT_KEYS=2:F4` to close the Play screen, `misc\screenshot.bat` then shows a fight with its foe marks.
+`GAME_ROLE=tank` (or `healer`, `damage`) starts an offline crypt in that role in developer builds, for scripted screenshots; `GAME_ROOM=7` starts it in that room with the rooms before cleared, `GAME_MARKS=1` puts Searing stacks and Sunder on the fight's monsters, and `GAME_BOSS_HEALTH=0.59` starts the boss at that share of its health (the Hollow Champion's phase). With `GAME_SCREENSHOT_KEYS=2:F4` to close the Play screen, `misc\screenshot.bat` then shows a fight with its foe marks.
 
 ### Party frames
 
@@ -135,7 +135,7 @@ Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, 
 - Shadow Rush: a charge through the room.
 - Wail of the Dead (below 40%): four souls flying out in an X round its target.
 - At 75%, 50% and 25% Hollow Shades rise at the room's edges: two, then three, then four. A shade alive after 14 s returns to the king and heals him 6%, so the last wave left alone undoes a quarter of the fight.
-- At 60% and 30% he binds a Hollow Champion, an armoured elite Brute (about 650 health for three players). The party has 25 s to burn it down: alive past that it erupts for half of everyone's health and heals the king 10%. That is a second damage race inside the first, and the HUD counts it down in red under the enrage timer ("Kill the champion: it erupts in 12 s"). Lesser adds show their own count ("Adds return to the boss in 9 s").
+- At 60% and 30% he binds a Hollow Champion, an armoured elite Brute (about 650 health for three players). The party has 25 s to burn it down: alive past that it erupts for half of everyone's health and heals the king 10%. That is a second damage race inside the first, and the HUD counts it down under the enrage timer in larger, bright orange type that beats in the last 10 s ("Kill the champion: it erupts in 12 s"). Lesser adds show their own count ("Adds return to the boss in 9 s").
 
 ## Online
 
