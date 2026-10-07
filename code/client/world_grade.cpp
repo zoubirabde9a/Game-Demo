@@ -87,6 +87,14 @@ EndWorldGrade(render_context *RenderContext, app_state *AppState,
                              1, Screen);
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "WorldView"),
                              1, Grade->WorldView);
+        // NOTE(zoubir): the map's own grade (map_moods.cpp)
+        map_mood *Mood = MoodFor(AppState->World.MapId);
+        float MoodShadow[4] = {Mood->Shadow.X, Mood->Shadow.Y, Mood->Shadow.Z, Mood->Saturation};
+        float MoodLight[4] = {Mood->Light.X, Mood->Light.Y, Mood->Light.Z, Mood->Exposure};
+        float MoodShape[4] = {Mood->Contrast, Mood->Sky, 0.f, 0.f};
+        OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodShadow"), 1, MoodShadow);
+        OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodLight"), 1, MoodLight);
+        OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodShape"), 1, MoodShape);
         world_lights *Lights = &Grade->Lights;
         float LightCount[4] = {(float)Lights->Count, 0.f, 0.f, 0.f};
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "LightCount"),

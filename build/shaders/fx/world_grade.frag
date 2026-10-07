@@ -5,8 +5,8 @@
 //          light over their neighbours, sampled on two rings around the
 //          pixel; pale ground (snow, sand) does not
 //   shoulder: highlights past 0.8 roll off instead of clipping
-//   grade: a gentle S-curve for contrast, a little more saturation, cool
-//          shadows and warm highlights, so the ground stops looking flat
+//   grade: an S-curve for contrast, saturation, exposure and tints in the
+//          shadows and highlights, set per map (client/map_moods.cpp)
 //   dither: under one step of 8-bit noise, so the vignette and the glow
 //          fade without bands
 //   sky:   two kinds of slow light change pinned to the map, so a wide
@@ -41,6 +41,12 @@ uniform vec4 LightSpot[MAX_LIGHTS];
 uniform vec4 LightColor[MAX_LIGHTS];
 uniform vec4 LightCount;
 uniform vec4 WorldView;
+// NOTE(zoubir): the map's mood (client/map_moods.cpp): MoodShadow = tint
+// added to the shadows, saturation; MoodLight = tint added to the lights,
+// exposure; MoodShape = contrast curve, sky strength
+uniform vec4 MoodShadow;
+uniform vec4 MoodLight;
+uniform vec4 MoodShape;
 
 // NOTE(zoubir): the light every source throws on this pixel; a smooth
 // (1 - d^2)^2 falloff that reaches zero at the radius, and fire wavers
@@ -117,10 +123,10 @@ vec3 Sky(vec2 Pixel)
 {
     vec2 Point = vec2(Pixel.x, WorldView.w - Pixel.y) / max(WorldView.z, 0.001) +
         WorldView.xy;
-    float Patch = (Fbm(Point / 400.0) - 0.5) * 0.12;
+    float Patch = (Fbm(Point / 400.0) - 0.5) * 0.12 * MoodShape.y;
     vec2 Drift = vec2(9.0, 4.0) * mod(Time, 4000.0);
     float Cloud = smoothstep(0.52, 0.78, Fbm((Point + Drift) / 1000.0 + 5.3));
-    vec3 Shade = vec3(1.0 + Patch) - Cloud * vec3(0.16, 0.15, 0.12);
+    vec3 Shade = vec3(1.0 + Patch) - Cloud * MoodShape.y * vec3(0.16, 0.15, 0.12);
     return Shade;
 }
 
@@ -159,12 +165,12 @@ void main()
 
     float Grade = Screen.w;
     float Luma = dot(C, vec3(0.2126, 0.7152, 0.0722));
-    vec3 Graded = mix(vec3(Luma), C, 1.14);
+    vec3 Graded = mix(vec3(Luma), C, MoodShadow.w) * MoodLight.w;
     vec3 Curve = clamp(Graded, 0.0, 1.0);
     Curve = Curve * Curve * (3.0 - 2.0 * Curve);
-    Graded = mix(Graded, Curve, 0.30);
-    Graded += vec3(-0.012, 0.000, 0.022) * (1.0 - Luma) * (1.0 - Luma);
-    Graded += vec3(0.022, 0.010, -0.014) * Luma * Luma;
+    Graded = mix(Graded, Curve, MoodShape.x);
+    Graded += MoodShadow.rgb * (1.0 - Luma) * (1.0 - Luma);
+    Graded += MoodLight.rgb * Luma * Luma;
     C = mix(C, Graded, Grade);
 
     // NOTE(zoubir): a soft shoulder past 0.8, so snow and lit stone roll
