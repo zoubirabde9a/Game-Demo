@@ -207,25 +207,12 @@ DrawEntity(render_context *RenderContext,
             EntityTexturePosition.Y += FeetBelowMiddle * (1.f - Cos(Pose.Angle));
         }
         
-        u32 Reflection = (Entity->Type == EntityType_Player ||
-                          Entity->Type == EntityType_Monster) ?
-            ReflectionColorUnder(World, Entity, GroundZ, DrawZ) : 0;
-        if (Texture && Reflection)
+        if (Texture && GroundZ <= 0.f && (Entity->Type == EntityType_Player ||
+                                          Entity->Type == EntityType_Monster))
         {
-            // NOTE(zoubir): the body upside down in the water or ice:
-            // mirrored about the ground line, so a body Lift above it shows
-            // Lift below it; flipped by swapping the frame's top and bottom,
-            // faint, over the ground and under everything standing
-            float Ground = EntityCameraPosition.Y - GroundZ;
-            float Lift = DrawZ - GroundZ;
-            float Above = (1.f - TextureInfo->Origin.Y) * Dimensions.Y;
-            v4 Flipped = V4(Entity->Uvs.X, Entity->Uvs.W, Entity->Uvs.Z, Entity->Uvs.Y);
-            BeginBatch(RenderContext, Texture->ID, FLAT_GROUND_SORT_KEY + 2.f, TextureProgram);
-            RenderQuadTexture(RenderContext,
-                              EntityCameraPosition.X - TextureInfo->Origin.X * Dimensions.X,
-                              Ground + Lift - Above, Dimensions.X, Dimensions.Y, Flipped,
-                              Reflection, 0.f, -Pose.Angle);
-            EndBatch(RenderContext);
+            DrawReflection(RenderContext, TextureProgram, World, Entity, Texture->ID,
+                           EntityCameraPosition, DrawZ - GroundZ, Dimensions,
+                           TextureInfo->Origin, CameraOffset);
         }
         if (Texture && (Entity->Type == EntityType_Player ||
                         Entity->Type == EntityType_Monster))
