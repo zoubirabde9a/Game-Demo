@@ -83,7 +83,7 @@ BeginWorldPass(render_context *RenderContext, memory_arena *TransientArena,
         GroundTiles + GroundSurface_Count * (1 + ScreenRows * ELEVATION_MAX_STEPS) +
         // NOTE(zoubir): the motes in the air and the rain, a batch each, a
         // quad a mote or streak
-        AMBIENT_MOTES_MAX + 1 + RAIN_MAX + 1 +
+        AMBIENT_MOTES_MAX + 1 + RAIN_MAX + 1 + LEAVES_MAX + 1 +
         // NOTE(zoubir): a torch is a batch; at most one wall tile in five
         GroundTiles / 5 +
         // NOTE(zoubir): ripples and footprints, two batches, a quad each
@@ -434,6 +434,7 @@ DrawTileMap(render_context *RenderContext, app_state *AppState,
         float Rain = RainAmount(AppState);
         SplashRain(AppState, CameraOffset, ViewSize, Rain);
         DrawAmbientMotes(RenderContext, AppState, CameraOffset, ViewSize, 1.f - Rain);
+        DrawFallingLeaves(RenderContext, AppState, CameraOffset, ViewSize, Rain);
         DrawRain(RenderContext, AppState, CameraOffset, ViewSize);
         return;
     }

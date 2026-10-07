@@ -48,6 +48,7 @@
 #include "ambient_motes.cpp"
 #include "ground_marks.cpp"
 #include "weather.cpp"
+#include "falling_leaves.cpp"
 #include "map_moods.cpp"
 #include "wall_torches.cpp"
 #include "draw_tilemap.cpp"
