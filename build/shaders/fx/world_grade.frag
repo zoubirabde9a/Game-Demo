@@ -45,22 +45,34 @@ uniform vec4 MoodShadow;
 uniform vec4 MoodLight;
 uniform vec4 MoodShape;
 
-// NOTE(zoubir): the light every source throws on this pixel; a smooth
-// (1 - d^2)^2 falloff that reaches zero at the radius, and fire wavers
-vec3 Lights(vec2 Pixel)
+// NOTE(zoubir): the light every source throws on this pixel in rgb, a
+// smooth (1 - d^2)^2 falloff that reaches zero at the radius, fire
+// wavering; and in a how much the air shimmers here: near a light that
+// burns (a flicker of 1: fireballs and lava), within 0.4 of its reach.
+// One pass over the lights for both; the shimmer moves a pixel by two at
+// most, so the light read at the unmoved pixel is the same to the eye
+vec4 LightsAndHeat(vec2 Pixel)
 {
-    vec3 Sum = vec3(0.0);
+    vec4 Sum = vec4(0.0);
     for (int Index = 0; Index < MAX_LIGHTS; Index++)
     {
         if (float(Index) >= LightCount.x) break;
         vec4 Spot = LightSpot[Index];
-        vec4 Color = LightColor[Index];
         vec2 Away = (Pixel - Spot.xy) / Spot.z;
-        float Near = max(1.0 - dot(Away, Away), 0.0);
+        float Far = dot(Away, Away);
+        if (Far >= 1.0) continue;
+        vec4 Color = LightColor[Index];
+        float Near = 1.0 - Far;
         float Waver = 1.0 + Color.w * 0.12 *
             sin(Time * 13.0 + float(Index) * 2.3) * sin(Time * 7.1 + float(Index));
-        Sum += Color.rgb * (Spot.w * Waver * Near * Near);
+        Sum.rgb += Color.rgb * (Spot.w * Waver * Near * Near);
+        if (Color.w > 0.95)
+        {
+            float Close = max(1.0 - 6.25 * Far, 0.0);
+            Sum.a += Close * Close * min(Spot.w, 1.0);
+        }
     }
+    Sum.a = min(Sum.a, 1.0);
     return Sum;
 }
 
@@ -108,29 +120,13 @@ vec3 Sky(vec2 Pixel)
     return Shade;
 }
 
-// NOTE(zoubir): how much the air shimmers here: near a light that burns
-// (a flicker of 1: fireballs and lava), most at its middle
-float Heat(vec2 Pixel)
-{
-    float Sum = 0.0;
-    for (int Index = 0; Index < MAX_LIGHTS; Index++)
-    {
-        if (float(Index) >= LightCount.x) break;
-        vec4 Spot = LightSpot[Index];
-        if (LightColor[Index].w < 0.95) continue;
-        vec2 Away = (Pixel - Spot.xy) / (0.4 * Spot.z);
-        float Near = max(1.0 - dot(Away, Away), 0.0);
-        Sum += Near * Near * min(Spot.w, 1.0);
-    }
-    return min(Sum, 1.0);
-}
-
 void main()
 {
     vec2 Pixel = gl_FragCoord.xy;
     // NOTE(zoubir): heat shimmer: near fire the world is read from a
     // little to the side, wavering up the screen as hot air rises
-    float Hot = Heat(Pixel);
+    vec4 LightHeat = LightsAndHeat(Pixel);
+    float Hot = LightHeat.a;
     if (Hot > 0.0)
     {
         float Scale = Screen.y / 540.0;
@@ -143,7 +139,7 @@ void main()
     {
         C *= Sky(Pixel);
     }
-    vec3 Light = Lights(Pixel);
+    vec3 Light = LightHeat.rgb;
     // NOTE(zoubir): bright pixels take less of it, so the lava and the
     // fireball themselves keep their detail instead of clipping to yellow
     float Lit = 1.1 * (1.0 - 0.85 * max(C.r, max(C.g, C.b)));
