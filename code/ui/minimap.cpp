@@ -2,7 +2,7 @@
    one texel per tile, with every player as a dot, landmarks as rings
    (client/landmark_pointer.cpp knows which are reached) and the map's
    name under it; raised ground is lighter the higher it is. The texture
-   is repainted from TerrainAt, PropAt and ElevationAt only when
+   is repainted from the terrain cache only when
    the player steps onto another tile or the map changes, and drawn as one
    quad, so it costs the UI pass a handful of batches. */
 
@@ -73,8 +73,12 @@ LightenByElevation(u32 Color, i32 Steps)
 
 // NOTE(zoubir): row 0 of the texture is the top (smallest Y) row of tiles.
 // Past the edge of a bounded map is drawn as empty, not as wall
+// NOTE(zoubir): the tiles come from the terrain cache
+// (client/ground/terrain_cache.cpp): on an endless map each lookup is the
+// map's noise, and a full repaint of 64 x 64 tiles every time the player
+// stepped onto another tile made a frame 5 ms slower than the rest
 internal void
-PaintMinimap(minimap *Minimap, open_gl *OpenGL, map_def *Map)
+PaintMinimap(minimap *Minimap, open_gl *OpenGL, app_state *AppState, map_def *Map)
 {
     for(i32 Row = 0; Row < MINIMAP_TILES; Row++)
     {
@@ -89,13 +93,14 @@ PaintMinimap(minimap *Minimap, open_gl *OpenGL, map_def *Map)
                 Minimap->Pixels[Row * MINIMAP_TILES + Column] = 0;
                 continue;
             }
-            u32 Color = MinimapPropColors[PropAt(Map, X, Y)];
+            terrain_cache_tile *Tile = CachedTile(AppState, Map, X, Y);
+            u32 Color = MinimapPropColors[Tile->Prop];
             if (!Color)
             {
-                Color = MinimapGroundColors[TerrainAt(Map, X, Y)];
+                Color = MinimapGroundColors[Tile->Kind];
             }
             Minimap->Pixels[Row * MINIMAP_TILES + Column] =
-                LightenByElevation(Color, ElevationAt(Map, X, Y));
+                LightenByElevation(Color, Tile->Steps);
         }
     }
     if (!Minimap->Texture)
@@ -142,7 +147,7 @@ DrawMinimap(render_context *RenderContext, app_state *AppState,
         Minimap->MapId = World->MapId;
         Minimap->OriginX = OriginX;
         Minimap->OriginY = OriginY;
-        PaintMinimap(Minimap, AppState->OpenGL, Map);
+        PaintMinimap(Minimap, AppState->OpenGL, AppState, Map);
     }
 
     float Size = MINIMAP_PIXELS;
