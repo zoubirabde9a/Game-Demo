@@ -24,7 +24,10 @@
 
    Drawn: corner brackets on the picked unit that close in when it is
    picked, pale when the kunai is ready and in range, dim while it cools
-   down, red when the unit is out of range; and a short note by the
+   down, red when the unit is out of range. In standard cast only while
+   the kunai is being aimed (V pressed, cast_targeting.cpp), so hovering a
+   unit never looks like a throw is set up; in quick cast always, as V
+   throws at once at the unit marked; and a short note by the
    cursor ("No target", "Out of range") when the kunai key is pressed and
    cannot throw, or "Not ready" for any aimed ability still recharging
    (keyboard_input.cpp raises them, cast_targeting.cpp finds them). */
@@ -51,6 +54,9 @@ struct cursor_targeting
     float NoticeLeft;
     // NOTE(zoubir): the cursor in window pixels when the note came up
     v2 NoticeAt;
+    // NOTE(zoubir): the cursor on the ground this frame, for the kunai's
+    // aim (cast_targeting/previews.cpp)
+    v2 CursorAt;
 };
 
 struct target_box
@@ -203,7 +209,8 @@ UpdateCursorTarget(app_input *Input, app_state *AppState)
         Targeting->Picked = 0;
         return 0;
     }
-    u32 Picked = PickCursorTarget(AppState, Local, CursorInWorld(Input, AppState),
+    Targeting->CursorAt = CursorInWorld(Input, AppState);
+    u32 Picked = PickCursorTarget(AppState, Local, Targeting->CursorAt,
                                   Targeting->Picked);
     Targeting->PickedFor = (Picked == Targeting->Picked) ?
         Targeting->PickedFor + Input->DeltaTime : 0.f;
@@ -260,6 +267,11 @@ internal void
 DrawCursorTarget(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
 {
     cursor_targeting *Targeting = GetCursorTargeting(AppState);
+    cast_targeting *Cast = GetCastTargeting(AppState);
+    if (Cast->Mode == CastMode_Standard && Cast->Aiming != PlayerButton_Kunai)
+    {
+        return;
+    }
     world_entity *Local = GetLocalPlayer(AppState);
     world_entity *Target = Local ? PickedUnit(AppState, Local, Targeting->Picked) : 0;
     if (!Target)

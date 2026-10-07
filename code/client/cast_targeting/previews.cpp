@@ -5,8 +5,10 @@
    While standard mode aims an ability: its area at the cursor's angle (a
    disc, or a wedge for Push), a dotted line out to an area that lands
    away from the player, and for Blink the ring of its reach and the spot
-   it would land on; for the kunai the ring of its reach (the unit it
-   would hit is bracketed by targeting.cpp). Grey while the ability
+   it would land on. For the kunai: the ring of its reach, a ring under
+   every foe it could be thrown at (pulsing when in reach, faint red when
+   not) and a crosshair at the cursor while it is on no foe; the foe it
+   would hit is bracketed by targeting.cpp. Grey while the ability
    recharges, its icon's colour when it is ready.
 
    While the local player winds up an area ability, in either mode: the
@@ -141,6 +143,69 @@ DrawBlinkAimPreview(render_context *RenderContext, app_state *AppState,
                         1.f, Alpha, RGB);
 }
 
+// NOTE(zoubir): a crosshair of four arms round P, a gap in the middle
+internal void
+DrawCastCrosshair(render_context *RenderContext, v2 P, u32 Color)
+{
+    float Gap = 5.f;
+    float Arm = 8.f;
+    float W = 1.f;
+    for(u32 Side = 0; Side < 4; Side++)
+    {
+        v2 Dir = (Side == 0) ? V2(1.f, 0.f) : (Side == 1) ? V2(-1.f, 0.f) :
+            (Side == 2) ? V2(0.f, 1.f) : V2(0.f, -1.f);
+        v2 Across = V2(-Dir.Y, Dir.X) * W;
+        v2 From = P + Gap * Dir;
+        v2 To = P + (Gap + Arm) * Dir;
+        DrawFilledQuad(RenderContext, From - Across, To - Across, To + Across,
+                       From + Across, Color, Color, Color, Color);
+    }
+}
+
+// NOTE(zoubir): the kunai being aimed: its reach, the foes it could hit,
+// and the cursor as a crosshair until it is on one (the brackets then)
+internal void
+DrawKunaiAimPreview(render_context *RenderContext, app_state *AppState,
+                    world_entity *Player, v3 CameraOffset, float Seconds,
+                    float Alpha, u32 RGB)
+{
+    v2 Feet = BurstToScreen(V3(Player->Position.X, Player->Position.Y,
+                               Player->GroundZ), CameraOffset);
+    DrawCastPreviewArea(RenderContext, Feet, PlayerStats.KunaiRange, 0.f, Pi32,
+                        0.f, Alpha, RGB);
+    float Beat = 0.5f + 0.5f * Sin(6.f * Seconds);
+    world *World = &AppState->World;
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        world_entity *Unit = &World->Entities[Index];
+        if (!IsKunaiTarget(Unit, Player))
+        {
+            continue;
+        }
+        bool32 InReach = Length(Unit->Position.XY - Player->Position.XY) <=
+            PlayerStats.KunaiRange;
+        v2 UnitFeet = BurstToScreen(V3(Unit->Position.X, Unit->Position.Y,
+                                       Unit->GroundZ), CameraOffset);
+        float Radius = Maximum(12.f, 0.45f * Unit->Dimensions.X);
+        if (InReach)
+        {
+            DrawCastPreviewArea(RenderContext, UnitFeet, Radius + 3.f * Beat, 0.f, Pi32,
+                                0.6f, Alpha, RGB);
+        }
+        else
+        {
+            DrawCastPreviewArea(RenderContext, UnitFeet, Radius, 0.f, Pi32,
+                                0.f, 0.5f * Alpha, 0x004040F0);
+        }
+    }
+    cursor_targeting *Cursor = GetCursorTargeting(AppState);
+    if (!PickedUnit(AppState, Player, Cursor->Picked))
+    {
+        DrawCastCrosshair(RenderContext, Cursor->CursorAt - CameraOffset.XY,
+                          FxColor(0.9f * Alpha, RGB));
+    }
+}
+
 // NOTE(zoubir): once a frame, in the world pass's projection
 internal void
 DrawCastPreview(render_context *RenderContext, app_state *AppState,
@@ -200,9 +265,7 @@ DrawCastPreview(render_context *RenderContext, app_state *AppState,
     }
     else if (Button == PlayerButton_Kunai)
     {
-        v2 Feet = BurstToScreen(V3(Player->Position.X, Player->Position.Y,
-                                   Player->GroundZ), CameraOffset);
-        DrawCastPreviewArea(RenderContext, Feet, PlayerStats.KunaiRange, 0.f, Pi32,
-                            0.f, Alpha, RGB);
+        DrawKunaiAimPreview(RenderContext, AppState, Player, CameraOffset,
+                            Targeting->AimSeconds, Alpha, RGB);
     }
 }
