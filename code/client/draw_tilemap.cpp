@@ -95,7 +95,7 @@ DrawTerrainTile(render_context *RenderContext, world *World, map_def *Map,
                 loaded_texture *Texture, ground_grid *Grid, i32 TileX,
                 i32 TileY, u32 AnimationFrame, v3 CameraOffset)
 {
-    u32 Kind = (u32)TerrainAt(Map, TileX, TileY);
+    u32 Kind = GridKind(Grid, TileX, TileY);
     u32 Column = PickTerrainColumn(Map, Kind, TileX, TileY, AnimationFrame);
     i32 Steps = GridSteps(Grid, TileX, TileY);
     float Lift = (float)Steps * ELEVATION_STEP_HEIGHT;
@@ -124,9 +124,9 @@ DrawTerrainTile(render_context *RenderContext, world *World, map_def *Map,
         i32 CX = TileX + CornerX[Index];
         i32 CY = TileY + CornerY[Index];
         Sides[Index] = GridSteps(Grid, SX, SY) == Steps ?
-            (u32)TerrainAt(Map, SX, SY) : Kind;
+            GridKind(Grid, SX, SY) : Kind;
         Corners[Index] = GridSteps(Grid, CX, CY) == Steps ?
-            (u32)TerrainAt(Map, CX, CY) : Kind;
+            GridKind(Grid, CX, CY) : Kind;
     }
 
     u32 Layer = TerrainLayer[Kind];
@@ -270,7 +270,8 @@ DrawTerrainProps(render_context *RenderContext, app_state *AppState,
     {
         for(i32 TileX = Visible.MinX - 2; TileX <= Visible.MaxX + 2; TileX++)
         {
-            terrain_prop Prop = PropAt(Map, TileX, TileY);
+            terrain_cache_tile *Tile = CachedTile(AppState, Map, TileX, TileY);
+            terrain_prop Prop = (terrain_prop)Tile->Prop;
             if (Prop == TerrainProp_None)
             {
                 continue;
@@ -279,7 +280,7 @@ DrawTerrainProps(render_context *RenderContext, app_state *AppState,
             Stand.Type = EntityType_StaticObject;
             Stand.IsPresent = true;
             // NOTE(zoubir): standing on its tile's raised ground
-            float Ground = (float)ElevationAt(Map, TileX, TileY) * ELEVATION_STEP_HEIGHT;
+            float Ground = (float)Tile->Steps * ELEVATION_STEP_HEIGHT;
             Stand.Position = V3((TileX + 0.5f) * World->TileWidth,
                                 (TileY + 0.5f) * World->TileHeight, Ground);
             Stand.GroundZ = Ground;
@@ -320,7 +321,7 @@ DrawTerrainGround(render_context *RenderContext, app_state *AppState,
     }
     // NOTE(zoubir): the render arena is this frame's transient memory
     float Seconds = (float)(AppState->UpdateID % 36000) / 60.f;
-    ground_grid Grid = ReadGroundGrid(RenderContext->Arena, Map, Visible.MinX,
+    ground_grid Grid = ReadGroundGrid(RenderContext->Arena, AppState, Map, Visible.MinX,
                                       Visible.MinY, Visible.MaxX, LastY, Seconds);
     float Tile = (float)World->TileHeight;
 
@@ -337,7 +338,7 @@ DrawTerrainGround(render_context *RenderContext, app_state *AppState,
         }
     }
     EndBatch(RenderContext);
-    DrawGroundSurface(RenderContext, World, Map, &Grid, Visible.MinX, Visible.MinY,
+    DrawGroundSurface(RenderContext, World, &Grid, Visible.MinX, Visible.MinY,
                      Visible.MaxX, LastY, CameraOffset);
 
     for(i32 TileY = Visible.MinY; TileY <= LastY; TileY++)

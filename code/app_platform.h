@@ -105,6 +105,11 @@ typedef PLATFORM_WORK_QUEUE_CALLBACK(platform_work_queue_callback);
 #define PLATFORM_ADD_WORK_ENTRY(Name) void Name(platform_work_queue *Queue, platform_work_queue_callback *Callback, void *Data)
 typedef PLATFORM_ADD_WORK_ENTRY(platform_add_work_entry);
 
+// NOTE(zoubir): seconds on a steady clock, for timing parts of a frame
+// (client/frame_timing.cpp); a platform that has none leaves it 0
+#define PLATFORM_WALL_SECONDS(Name) double Name(void)
+typedef PLATFORM_WALL_SECONDS(platform_wall_seconds);
+
 struct app_window
 {
     int Width;
@@ -333,6 +338,7 @@ struct platform_api
     debug_platform_free_file_memory *FreeFileMemory;
     debug_platform_write_entire_file *WriteEntireFile;
     platform_add_work_entry *AddWorkEntry;
+    platform_wall_seconds *WallSeconds;
 };
 
 

@@ -169,7 +169,7 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
                     {
                         continue;
                     }
-                    if (TerrainAt(Map, X, Y) == TerrainKind_Lava)
+                    if (CachedTile(AppState, Map, X, Y)->Kind == TerrainKind_Lava)
                     {
                         Sum += V2((X + 0.5f) * Tile, (Y + 0.5f) * Tile);
                         LavaTiles++;

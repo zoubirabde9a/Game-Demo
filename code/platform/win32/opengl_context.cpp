@@ -16,6 +16,13 @@ Win32GetSecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end)
     return result;
 }
 
+// NOTE(zoubir): Platform.WallSeconds, for the game's frame timing
+internal PLATFORM_WALL_SECONDS(Win32WallSeconds)
+{
+    double Result = (double)Win32GetWallClock().QuadPart / (double)GlobalPerCounterFrequency;
+    return Result;
+}
+
 #define WGL_CONTEXT_MAJOR_VERSION_ARB           0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB           0x2092
 #define WGL_CONTEXT_LAYER_PLANE_ARB             0x2093

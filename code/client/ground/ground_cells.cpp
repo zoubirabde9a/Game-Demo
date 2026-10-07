@@ -12,14 +12,18 @@
    (GroundShutIn), so a drop reads as one. Client only; the noise is the terrain's integer noise, so every
    client paints the same patches. */
 
-// NOTE(zoubir): what the ground pass reads once a frame: heights of the
-// tiles drawn plus one on each side, and the tint fields at their corners
+// NOTE(zoubir): what the ground pass reads once a frame: kinds and heights
+// of the tiles drawn plus one on each side, and the tint fields at their
+// corners. On an endless map every TerrainAt runs the map's noise, and the
+// pass asks about each tile up to ten times (itself, its neighbours, the
+// surface pass), so it reads them once here
 struct ground_grid
 {
     i32 MinX;
     i32 MinY;
     i32 Width;
     i32 Height;
+    u8 *Kinds;
     u8 *Steps;
     // NOTE(zoubir): (Width + 1) x (Height + 1) corners, 0..255
     u8 *Shade;
@@ -27,9 +31,11 @@ struct ground_grid
     float Seconds;
 };
 
+// NOTE(zoubir): from the terrain cache (terrain_cache.cpp), so only tiles
+// that just came into view run the map's noise
 internal ground_grid
-ReadGroundGrid(memory_arena *Arena, map_def *Map, i32 MinX, i32 MinY,
-               i32 MaxX, i32 MaxY, float Seconds)
+ReadGroundGrid(memory_arena *Arena, app_state *AppState, map_def *Map, i32 MinX,
+               i32 MinY, i32 MaxX, i32 MaxY, float Seconds)
 {
     ground_grid Grid;
     Grid.MinX = MinX - 1;
@@ -37,30 +43,40 @@ ReadGroundGrid(memory_arena *Arena, map_def *Map, i32 MinX, i32 MinY,
     Grid.Width = MaxX - MinX + 3;
     Grid.Height = MaxY - MinY + 3;
     Grid.Seconds = Seconds;
+    Grid.Kinds = AllocateArray(Arena, (memory_index)(Grid.Width * Grid.Height), u8);
     Grid.Steps = AllocateArray(Arena, (memory_index)(Grid.Width * Grid.Height), u8);
-    for(i32 Y = 0; Y < Grid.Height; Y++)
-    {
-        for(i32 X = 0; X < Grid.Width; X++)
-        {
-            Grid.Steps[Y * Grid.Width + X] =
-                (u8)ElevationAt(Map, Grid.MinX + X, Grid.MinY + Y);
-        }
-    }
     memory_index Corners = (memory_index)((Grid.Width + 1) * (Grid.Height + 1));
     Grid.Shade = AllocateArray(Arena, Corners, u8);
     Grid.Warmth = AllocateArray(Arena, Corners, u8);
+    // NOTE(zoubir): one row and column of corners more than tiles; a
+    // corner's fields are kept on the tile it is the top-left of
     for(i32 Y = 0; Y <= Grid.Height; Y++)
     {
         for(i32 X = 0; X <= Grid.Width; X++)
         {
-            i32 WorldX = Grid.MinX + X;
-            i32 WorldY = Grid.MinY + Y;
-            i32 Index = Y * (Grid.Width + 1) + X;
-            Grid.Shade[Index] = (u8)(FractalNoise(0x5ADEu, WorldX, WorldY, 6, 2) >> (NOISE_SHIFT - 8));
-            Grid.Warmth[Index] = (u8)(FractalNoise(0xFA11u, WorldX, WorldY, 11, 2) >> (NOISE_SHIFT - 8));
+            terrain_cache_tile *Tile = CachedTile(AppState, Map, Grid.MinX + X, Grid.MinY + Y);
+            i32 Corner = Y * (Grid.Width + 1) + X;
+            Grid.Shade[Corner] = Tile->Shade;
+            Grid.Warmth[Corner] = Tile->Warmth;
+            if (X < Grid.Width && Y < Grid.Height)
+            {
+                Grid.Kinds[Y * Grid.Width + X] = Tile->Kind;
+                Grid.Steps[Y * Grid.Width + X] = Tile->Steps;
+            }
         }
     }
     return Grid;
+}
+
+// NOTE(zoubir): TerrainAt for a tile inside the grid
+inline u32
+GridKind(ground_grid *Grid, i32 X, i32 Y)
+{
+    i32 GX = X - Grid->MinX;
+    i32 GY = Y - Grid->MinY;
+    Assert(GX >= 0 && GY >= 0 && GX < Grid->Width && GY < Grid->Height);
+    u32 Result = Grid->Kinds[GY * Grid->Width + GX];
+    return Result;
 }
 
 inline i32

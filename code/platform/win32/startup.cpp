@@ -132,6 +132,7 @@ Win32FillPlatformApi(platform_api *PlatformApi)
     PlatformApi->FreeFileMemory = DEBUGPlatformFreeFileMemory;
     PlatformApi->WriteEntireFile = DEBUGPlatformWriteEntireFile;
     PlatformApi->AddWorkEntry = PlatformAddWorkEntry;
+    PlatformApi->WallSeconds = Win32WallSeconds;
 }
 
 // NOTE(zoubir): one block for the game's permanent and transient storage

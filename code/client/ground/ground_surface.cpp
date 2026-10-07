@@ -74,7 +74,7 @@ SurfaceCornerColor(u8 *Flags, i32 Pitch, i32 X, i32 Y, u32 Surface)
 }
 
 internal void
-DrawGroundSurface(render_context *RenderContext, world *World, map_def *Map,
+DrawGroundSurface(render_context *RenderContext, world *World,
                   ground_grid *Grid, i32 MinX, i32 MinY, i32 MaxX, i32 MaxY,
                   v3 CameraOffset)
 {
@@ -85,6 +85,10 @@ DrawGroundSurface(render_context *RenderContext, world *World, map_def *Map,
     }
     i32 Pitch = MaxX - MinX + 3;
     i32 Rows = MaxY - MinY + 3;
+    // NOTE(zoubir): the ground grid covers the same tiles, one past the
+    // drawn ones on each side
+    Assert(Grid->MinX == MinX - 1 && Grid->MinY == MinY - 1 &&
+           Grid->Width == Pitch && Grid->Height >= Rows);
     u8 *Flags = AllocateArray(RenderContext->Arena, Pitch * Rows, u8);
     bool32 Present[GroundSurface_Count] = {};
     for(i32 Y = 0; Y < Rows; Y++)
@@ -97,9 +101,9 @@ DrawGroundSurface(render_context *RenderContext, world *World, map_def *Map,
             bool32 Inside = World->Unbounded ||
                 (TileX >= 0 && TileY >= 0 && TileX < (i32)World->NumTilesX &&
                  TileY < (i32)World->NumTilesY);
-            if (Inside && ElevationAt(Map, TileX, TileY) == 0)
+            if (Inside && GridSteps(Grid, TileX, TileY) == 0)
             {
-                u32 Kind = (u32)TerrainAt(Map, TileX, TileY);
+                u32 Kind = GridKind(Grid, TileX, TileY);
                 ground_surface Surface = SurfaceOfKind(Kind);
                 Flag = (u8)(Surface | (Kind == TerrainKind_DeepWater ? GROUND_SURFACE_DEEP : 0));
                 Present[Surface] = true;

@@ -44,6 +44,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     {
         StartClient(AppState, TransientState, Memory, Thread);
     }
+    FrameTimingStart(AppState);
     LoadOpenglTexturesFromQueue(&AppState->Assets, OpenGL,
                                 &AppState->OpenglTextureQueue);
     temporary_memory FrameMemory = BeginTemporaryMemory(TransientArena);
@@ -82,6 +83,7 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     RunWorldTick(AppState, &AppState->WorldArena, Input->DeltaTime);
     PlaySimEvents(AppState, Input->DeltaTime);
     UpdateRewindFx(AppState, Input->DeltaTime);
+    FrameTimingMark(AppState, FramePart_Simulate);
     // NOTE(zoubir): the world is drawn zoomed in (client/camera.cpp):
     // View is the window measured in world units, and WorldProjection
     // maps it onto the whole window. Screens over it use ProjectionMatrix
@@ -100,12 +102,16 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     BeginWorldGrade(RenderContext, AppState, CameraOffset, &View, Window);
     BeginWorldPass(RenderContext, TransientArena, &AppState->World, &View);
     DrawTileMap(RenderContext, AppState, TextureProgram, CameraOffset, &View);
+    FrameTimingMark(AppState, FramePart_Ground);
     DrawWorldEntities(RenderContext, AppState, &AppState->Assets,
                       TextureProgram, CameraOffset);
+    FrameTimingMark(AppState, FramePart_Entities);
     RenderFlush(RenderContext);
+    FrameTimingMark(AppState, FramePart_Flush);
     EndWorldGrade(RenderContext, AppState, TransientArena, &ProjectionMatrix, Window);
     EndTimeWarp(RenderContext, AppState, TransientArena, &ProjectionMatrix,
                 CameraOffset, Window);
+    FrameTimingMark(AppState, FramePart_Grade);
 
     // Screens over the world.
     ui_context *UIContext = AppState->UIContext;
@@ -121,6 +127,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
 
     EndTemporaryMemory(FrameMemory);
     EvictAssetsAsNecessary(OpenGL, &AppState->Assets);
+    FrameTimingMark(AppState, FramePart_Screens);
+    FrameTimingEnd(AppState);
 }
 
 extern "C" APP_GET_SOUND_SAMPLES(AppGetSoundSamples)
