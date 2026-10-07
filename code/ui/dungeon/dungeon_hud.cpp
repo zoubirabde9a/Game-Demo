@@ -7,7 +7,9 @@
      run's time and the seconds to the next run); wipes so far.
    - The boss bar while a boss fights: its name, its health, and its
      enrage timer under it (sim/dungeon/boss_clock.cpp), red in the last
-     seconds and once the boss has enraged.
+     seconds and once the boss has enraged; and while the boss has timed
+     adds, the seconds until the soonest returns to it, red for one that
+     erupts on the party.
    - Party frames, bottom left (party_frames.cpp): each player's role,
      health, shields and the monsters after them; clicking one picks the
      ally a tank's or healer's spells go to.
@@ -115,6 +117,20 @@ DrawDungeonBossClock(render_context *RenderContext, app_state *AppState,
     }
     float Result = DungeonHudLine(RenderContext, AppState->Fonts.Small, CenterX, Y, Text, Color) +
         UI_GAP_SMALL;
+    if (Clock->ShownAddSeconds)
+    {
+        if (Clock->ShownAddBursts)
+        {
+            snprintf(Text, sizeof(Text), "Kill the champion: it erupts in %u s", Clock->ShownAddSeconds);
+        }
+        else
+        {
+            snprintf(Text, sizeof(Text), "Adds return to the boss in %u s", Clock->ShownAddSeconds);
+        }
+        Result += DungeonHudLine(RenderContext, AppState->Fonts.Small, CenterX, Y + Result, Text,
+                                 Clock->ShownAddBursts ? DUNGEON_BOSS_COLOR : UI_COLOR_TEXT_MUTED) +
+            UI_GAP_SMALL;
+    }
     return Result;
 }
 

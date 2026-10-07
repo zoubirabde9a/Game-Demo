@@ -91,12 +91,9 @@ EnrageBoss(app_state *AppState, world_entity *Boss)
     EmitBurst(&AppState->Events, SimBurst_Spawn, SIM_NOBODY, Boss->Position);
 }
 
-// NOTE(zoubir): a Doom pulse: every living player in the fight's room
-// takes BOSS_DOOM_SHARE of their health, times the enrage's scale. It
-// comes from nowhere, so the party's scaling does not grow it again, but
-// a ward, Shield Wall and a rally still soften it
+// NOTE(zoubir): Share of the health of every player in the fight's room
 internal void
-DoomPulse(app_state *AppState, dungeon_run *Run)
+HitPartyInRoom(app_state *AppState, dungeon_run *Run, float Share)
 {
     world *World = &AppState->World;
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
@@ -105,10 +102,19 @@ DoomPulse(app_state *AppState, dungeon_run *Run)
         if (Player && RoomAtPosition(World, Player->Position.XY) == Run->FightingRoom)
         {
             EmitBurst(&AppState->Events, SimBurst_Impact, SIM_NOBODY, ChestOf(Player));
-            DamageEntity(AppState, World, Player,
-                         BOSS_DOOM_SHARE * Player->MaxHp * Run->Clock.DamageScale, 0);
+            DamageEntity(AppState, World, Player, Share * Player->MaxHp, 0);
         }
     }
+}
+
+// NOTE(zoubir): a Doom pulse: every living player in the fight's room
+// takes BOSS_DOOM_SHARE of their health, times the enrage's scale. It
+// comes from nowhere, so the party's scaling does not grow it again, but
+// a ward, Shield Wall and a rally still soften it
+internal void
+DoomPulse(app_state *AppState, dungeon_run *Run)
+{
+    HitPartyInRoom(AppState, Run, BOSS_DOOM_SHARE * Run->Clock.DamageScale);
 }
 
 // NOTE(zoubir): once a tick while a fight lasts, from UpdateBossEvents;
@@ -162,7 +168,8 @@ UpdateBossClock(app_state *AppState, dungeon_run *Run, world_entity *Boss)
 // NOTE(zoubir): Add merges into the boss Seconds from now unless it dies
 // first; an add past BOSS_MAX_TIMED_ADDS is not timed
 internal void
-TimeBossAdd(dungeon_run *Run, world *World, world_entity *Add, float Seconds, float Heal)
+TimeBossAdd(dungeon_run *Run, world *World, world_entity *Add, float Seconds, float Heal,
+            float Burst)
 {
     boss_clock *Clock = &Run->Clock;
     if (Clock->AddCount < BOSS_MAX_TIMED_ADDS)
@@ -172,11 +179,12 @@ TimeBossAdd(dungeon_run *Run, world *World, world_entity *Add, float Seconds, fl
         Clock->AddSerials[Index] = Add->MonsterSerial;
         Clock->AddDeadline[Index] = Run->Seconds + Seconds;
         Clock->AddHeal[Index] = Heal;
+        Clock->AddBurst[Index] = Burst;
     }
 }
 
 // NOTE(zoubir): once a tick while a fight lasts: adds whose time is up
-// die and heal the boss; dead ones leave the list
+// die, heal the boss and maybe erupt; dead ones leave the list
 internal void
 UpdateBossAdds(app_state *AppState, world *World, dungeon_run *Run, world_entity *Boss)
 {
@@ -196,13 +204,33 @@ UpdateBossAdds(app_state *AppState, world *World, dungeon_run *Run, world_entity
             EmitBurst(&AppState->Events, SimBurst_Spawn, SIM_NOBODY, Boss->Position);
             Boss->Hp = Minimum(Boss->MaxHp, Boss->Hp + Clock->AddHeal[Index] * Boss->MaxHp);
             DamageEntity(AppState, World, Add, Add->Hp, 0);
+            if (Clock->AddBurst[Index] > 0.f)
+            {
+                HitPartyInRoom(AppState, Run, Clock->AddBurst[Index]);
+            }
             continue;
         }
         Clock->AddSlots[Kept] = Clock->AddSlots[Index];
         Clock->AddSerials[Kept] = Clock->AddSerials[Index];
         Clock->AddDeadline[Kept] = Clock->AddDeadline[Index];
         Clock->AddHeal[Kept] = Clock->AddHeal[Index];
+        Clock->AddBurst[Kept] = Clock->AddBurst[Index];
         Kept++;
     }
     Clock->AddCount = Kept;
+    // NOTE(zoubir): the soonest, for the HUD; one that erupts first
+    float Soonest = 0.f;
+    Clock->ShownAddBursts = false;
+    for(u32 Index = 0; Index < Clock->AddCount; Index++)
+    {
+        float Left = Maximum(0.f, Clock->AddDeadline[Index] - Run->Seconds);
+        bool32 Bursts = Clock->AddBurst[Index] > 0.f;
+        if ((Bursts && !Clock->ShownAddBursts) || Soonest == 0.f ||
+            (Bursts == Clock->ShownAddBursts && Left < Soonest))
+        {
+            Soonest = Maximum(Left, 0.001f);
+            Clock->ShownAddBursts = Bursts;
+        }
+    }
+    Clock->ShownAddSeconds = Soonest > 0.f ? (u32)(Soonest + 0.999f) : 0;
 }

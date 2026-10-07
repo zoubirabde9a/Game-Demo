@@ -140,6 +140,7 @@ FullSnapshot()
     P.Snapshot.BossHealth = 200;
     P.Snapshot.FoesLeft = 4;
     P.Snapshot.BossClock = 37;
+    P.Snapshot.AddClock = 25 | NET_ADD_BURSTS;
     P.Snapshot.MarkCount = NET_MAX_FOE_MARKS;
     for (u32 Index = 0; Index < NET_MAX_FOE_MARKS; ++Index)
     {
@@ -1041,8 +1042,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d69u
-#define NET_GOLDEN_LAYOUT 0x489d8e2bu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d6au
+#define NET_GOLDEN_LAYOUT 0x22b1f78cu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -1073,6 +1074,7 @@ TestDungeonBlockRoundTrip()
     P.Snapshot.BossHealth = 1;
     P.Snapshot.FoesLeft = 12;
     P.Snapshot.BossClock = NET_BOSS_ENRAGED;
+    P.Snapshot.AddClock = 9;
     P.Snapshot.MarkCount = NET_MAX_FOE_MARKS;
     for (u32 Index = 0; Index < NET_MAX_FOE_MARKS; ++Index)
     {
@@ -1103,6 +1105,7 @@ TestDungeonBlockRoundTrip()
     Check(Out.Snapshot.RoomsCleared == 0x3f && Out.Snapshot.Wipes == 9);
     Check(Out.Snapshot.BossKind == NET_NO_BOSS && Out.Snapshot.FoesLeft == 12);
     Check(Out.Snapshot.BossClock == NET_BOSS_ENRAGED);
+    Check(Out.Snapshot.AddClock == 9);
     Check(Out.Snapshot.MarkCount == NET_MAX_FOE_MARKS);
     for (u32 Index = 0; Index < NET_MAX_FOE_MARKS; ++Index)
     {

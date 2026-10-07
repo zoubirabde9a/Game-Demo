@@ -93,9 +93,50 @@ TestBossAddsMergeAndHeal()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the Hollow King binds an armoured champion at 60%; left
+// alive past its time it erupts on the party and heals him
+internal void
+TestHollowChampionErupts()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    world_entity *Player = AppState->Players[0].Entity;
+    world_entity *Boss = StartBossRoom(&Crypt, 7);
+    Check(Boss && Boss->MonsterKind == MonsterKind_HollowKing);
+    // NOTE(zoubir): past the 75% shades, then down to 59%
+    Boss->Hp = 0.7f * Boss->MaxHp;
+    TickCrypt(&Crypt, 1);
+    u32 ShadesTimed = Run->Clock.AddCount;
+    Boss->Hp = 0.59f * Boss->MaxHp;
+    TickCrypt(&Crypt, 1);
+    Check(Run->Clock.AddCount == ShadesTimed + 1);
+    u32 Champion = Run->Clock.AddCount - 1;
+    world_entity *Add = FindMonsterBySerial(World, Run->Clock.AddSlots[Champion],
+                                            Run->Clock.AddSerials[Champion]);
+    Check(Add && Add->MonsterKind == MonsterKind_Brute && Add->EliteAffix == MonsterAffix_Armored);
+    // NOTE(zoubir): the HUD's count is the next tick's
+    TickCrypt(&Crypt, 1);
+    Check(Run->Clock.ShownAddBursts && Run->Clock.ShownAddSeconds > 20);
+
+    for(u32 Index = 0; Index < Run->Clock.AddCount; Index++)
+    {
+        Run->Clock.AddDeadline[Index] = Run->Seconds;
+    }
+    Player->Hp = Player->MaxHp;
+    float BossBefore = Boss->Hp;
+    TickCrypt(&Crypt, 1);
+    Check(Run->Clock.AddCount == 0);
+    Check(Player->Hp < 0.55f * Player->MaxHp);
+    Check(Boss->Hp > BossBefore + 0.09f * Boss->MaxHp);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunBossClockTests()
 {
+    TestHollowChampionErupts();
     TestBossClockEnragesAndHitsHarder();
     TestBossAddsMergeAndHeal();
 }

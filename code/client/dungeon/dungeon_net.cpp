@@ -64,6 +64,8 @@ ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Sna
         (BossClock == 0 ? BossClock_None :
          ((float)BossClock <= BOSS_CLOCK_WARNING ? BossClock_Warned : BossClock_Running));
     Run->Clock.ShownSecondsLeft = BossClock == NET_BOSS_ENRAGED ? 0 : BossClock;
+    Run->Clock.ShownAddSeconds = Snapshot->AddClock & ~NET_ADD_BURSTS;
+    Run->Clock.ShownAddBursts = (Snapshot->AddClock & NET_ADD_BURSTS) != 0;
     for(u32 Index = 0; Index < MAX_SANCTUARIES; Index++)
     {
         sanctuary *Zone = &Run->Sanctuaries[Index];

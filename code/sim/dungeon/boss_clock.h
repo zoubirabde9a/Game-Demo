@@ -6,7 +6,7 @@
    times the adds a boss calls (boss_scripts.cpp): one left alive too
    long merges back into the boss and heals it. */
 
-#define BOSS_MAX_TIMED_ADDS 8
+#define BOSS_MAX_TIMED_ADDS 12
 
 enum boss_clock_stage
 {
@@ -47,6 +47,13 @@ struct boss_clock
     u32 AddSerials[BOSS_MAX_TIMED_ADDS];
     float AddDeadline[BOSS_MAX_TIMED_ADDS];
     float AddHeal[BOSS_MAX_TIMED_ADDS];
+    // NOTE(zoubir): the share of every player's health the add hits for
+    // as it goes, 0 for none
+    float AddBurst[BOSS_MAX_TIMED_ADDS];
+    // NOTE(zoubir): what the HUD shows of the add soonest to go: whole
+    // seconds left (0 for none) and whether it erupts
+    u32 ShownAddSeconds;
+    bool32 ShownAddBursts;
 };
 
 // NOTE(zoubir): from DungeonScaleDamage, for a hit on a player: the

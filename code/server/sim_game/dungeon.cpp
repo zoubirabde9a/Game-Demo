@@ -132,6 +132,8 @@ WriteDungeonSnapshot(app_state *AppState, net_snapshot *Out)
     Out->BossHealth = (u8)(255.f * DungeonShare(Run->ShownBossShare) + 0.5f);
     Out->FoesLeft = (u8)Minimum(Run->ShownFoesLeft, 255u);
     Out->BossClock = 0;
+    Out->AddClock = (u8)(Minimum(Run->Clock.ShownAddSeconds, 127u) |
+                         (Run->Clock.ShownAddBursts ? NET_ADD_BURSTS : 0));
     if (Out->BossKind != NET_NO_BOSS && Run->Clock.ShownStage == BossClock_Enraged)
     {
         Out->BossClock = NET_BOSS_ENRAGED;

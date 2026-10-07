@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d69u // "GDMi", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d6au // "GDMj", change it whenever the layout changes
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
 #define NET_PLAYER_HEALTH_STEPS 100.f
@@ -116,7 +116,8 @@ enum net_button
 #define NET_BOSS_ENRAGED 0xFFu
 #define NET_MAX_SANCTUARIES 4
 #define NET_MAX_INFERNOS 4
-#define NET_MAX_FOE_MARKS 5
+#define NET_MAX_FOE_MARKS 4
+#define NET_ADD_BURSTS 0x80u
 #define NET_MARK_STACKS 3
 #define NET_MARK_SUNDER 4
 #define NET_ZONE_WIDE 0x80u
@@ -384,6 +385,10 @@ struct net_snapshot
     // The boss's enrage timer (sim/dungeon/boss_clock.cpp): whole seconds
     // left, NET_BOSS_ENRAGED once it ran out, 0 with no timer running.
     u8 BossClock;
+    // The boss's timed add soonest to go (sim/dungeon/boss_clock.cpp):
+    // whole seconds left in bits 0-6, 0 for none, and NET_ADD_BURSTS when
+    // it erupts on the party as it goes.
+    u8 AddClock;
     // The healers' sanctuaries on the ground (sim/dungeon/
     // role_abilities.cpp): whole-unit positions and tenths of a second
     // left (bits 0-6), so clients draw them; bit 7 is a sanctuary a
@@ -400,7 +405,8 @@ struct net_snapshot
     i16 InfernoY[NET_MAX_INFERNOS];
     u8 InfernoTenths[NET_MAX_INFERNOS];
     // The foe marks (sim/dungeon/role_kits/foe_marks.cpp) on the monsters
-    // nearest the viewer: the entity Id (13 bits) and the mark bits, the
+    // nearest the viewer (four, all a full packet has room for): the
+    // entity Id (13 bits) and the mark bits, the
     // striker's Searing stacks (NET_MARK_STACKS) and the tank's Sunder
     // (NET_MARK_SUNDER), two bytes each.
     u8 MarkCount;

@@ -319,6 +319,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU8(S, &P->Snapshot.BossHealth);
                 NetU8(S, &P->Snapshot.FoesLeft);
                 NetU8(S, &P->Snapshot.BossClock);
+                NetU8(S, &P->Snapshot.AddClock);
                 NetU8(S, &P->Snapshot.SanctuaryCount);
                 if (P->Snapshot.SanctuaryCount > NET_MAX_SANCTUARIES) return false;
                 for (u32 Index = 0; Index < P->Snapshot.SanctuaryCount; ++Index)
