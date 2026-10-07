@@ -278,7 +278,6 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     Out->VoteYes = (u8)AppState->VoteYes;
     Out->VoteNo = (u8)AppState->VoteNo;
     Out->OwnVote = AppState->Votes[ViewerSlot];
-    WriteDungeonSnapshot(AppState, Out);
     // The viewer's own body unrounded, for its prediction (net/protocol.h),
     // and the point the other positions are sent from
     Out->HasOwnBody = (Own && Own->IsPresent) ? 1 : 0;
@@ -289,6 +288,8 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
         Out->OwnPosition[Axis] = Out->HasOwnBody ? Own->Position.Data[Axis] : 0.f;
         Out->OwnVelocity[Axis] = Out->HasOwnBody ? Own->Velocity.Data[Axis] : 0.f;
     }
+    // NOTE(zoubir): after the own body, which picks the marks sent
+    WriteDungeonSnapshot(AppState, Out);
     static_assert(StatusEffect_Count - 1 == NET_STATUS_COUNT, "one clock per status");
     for (u32 Index = 0; Index < NET_STATUS_COUNT; ++Index)
     {

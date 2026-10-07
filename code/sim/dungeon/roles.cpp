@@ -32,7 +32,7 @@ global_variable role_def RoleTable[PlayerRole_Count] =
 {
     // Name      MaxHp  Taken  Dealt  Threat
     {"Striker",  110.f, 1.0f,  1.35f, 1.f, "Damage",
-     "A Inferno   E Shield   V Kunai   every hit 35% harder"},
+     "V Kunai and X Fireball mark foes   E Detonate the marks   A Inferno marks a pack"},
     {"Bulwark",  180.f, 0.7f,  0.7f,  4.f, "Tank",
      "A Taunt   E Shield Slam, heals you per foe   V Intercept an ally"},
     {"Mender",   100.f, 1.0f,  0.5f,  1.f, "Healer",

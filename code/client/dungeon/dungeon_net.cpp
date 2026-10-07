@@ -5,7 +5,8 @@
    brings, so the party frames and the bar show the right share), Shield
    Wall, a ward and revive progress; DungeonMore a rally, a renewal and
    how many monsters are after them. The snapshot's dungeon block gives
-   the rooms, the fight, the healers' sanctuaries and the infernos; the
+   the rooms, the fight, the healers' sanctuaries, the infernos and the
+   striker's Searing marks (on the replicas they were sent for); the
    gate walls are then built or taken down
    locally from the room states (UpdateGates), so the local player's
    prediction stops at a closed gate as the server does. The role the
@@ -37,7 +38,8 @@ ApplyDungeonScore(app_state *AppState, player_slot *Slot, u8 Packed, u8 More)
 }
 
 internal void
-ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Snapshot)
+ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Snapshot,
+                     u32 *LocalOfId, u32 IdCount)
 {
     dungeon_run *Run = AppState->Dungeon;
     if (!Run || !Snapshot->HasDungeon)
@@ -90,6 +92,19 @@ ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Sna
             // time will do for the drawing, which only asks whether it burns
             Zone->Seconds = (Packed & NET_INFERNO_FALLING) ? INFERNO_BURN_SECONDS : Seconds;
             Zone->Radius = INFERNO_RADIUS * ((Packed & NET_ZONE_WIDE) ? CATACLYSM_RADIUS : 1.f);
+        }
+    }
+    // NOTE(zoubir): the marks, on the replicas they were sent for
+    for(u32 Index = 0; Index < MAX_SEARING; Index++)
+    {
+        searing_mark *Mark = &Run->Searing[Index];
+        *Mark = {};
+        u32 Id = Index < Snapshot->SearingCount ? Snapshot->SearingId[Index] : IdCount;
+        if (Id < IdCount && LocalOfId[Id])
+        {
+            Mark->Slot = LocalOfId[Id] - 1;
+            Mark->Stacks = Minimum((u32)Snapshot->SearingStacks[Index], (u32)SEARING_MOST);
+            Mark->Seconds = SEARING_SECONDS;
         }
     }
     UpdateGates(AppState, &AppState->World, Arena, Run);

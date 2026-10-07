@@ -74,6 +74,7 @@ struct inferno
 };
 
 #include "boss_clock.h"
+#include "role_kits/searing.h"
 
 struct dungeon_run
 {
@@ -114,6 +115,8 @@ struct dungeon_run
     threat_table Threat;
     sanctuary Sanctuaries[MAX_SANCTUARIES];
     inferno Infernos[MAX_INFERNOS];
+    // NOTE(zoubir): the striker's marks on monsters (role_kits/striker.cpp)
+    searing_mark Searing[MAX_SEARING];
     // NOTE(zoubir): what the HUD shows of the fight: the boss's kind
     // (MonsterKind_Count for none) and share of health, and the monsters
     // left. UpdateDungeon sets them; online the snapshot does
@@ -166,6 +169,8 @@ IsDungeon(app_state *AppState)
 internal void AddThreat(threat_table *Table, world *World, world_entity *Monster,
                        u32 PlayerSlot, float Amount);
 internal void OnRoleKill(player_slot *Attacker);
+internal void OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
+                        world_entity *Source);
 
 // NOTE(zoubir): the world was just built for its map in Arena
 // (InitSimulation, RebuildWorldForMap): a dungeon map starts a fresh run
@@ -281,6 +286,7 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         Result *= Role->DamageDealt * RoleTalentDealtScale(Attacker, Target);
         AddThreat(&AppState->Dungeon->Threat, &AppState->World, Target,
                   (u32)(Attacker - AppState->Players), Result * Role->ThreatScale);
+        OnRoleHit(AppState, Attacker, Target, Source);
         if (Result >= Target->Hp)
         {
             OnRoleKill(Attacker);

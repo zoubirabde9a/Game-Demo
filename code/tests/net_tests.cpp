@@ -140,6 +140,12 @@ FullSnapshot()
     P.Snapshot.BossHealth = 200;
     P.Snapshot.FoesLeft = 4;
     P.Snapshot.BossClock = 37;
+    P.Snapshot.SearingCount = NET_MAX_SEARING;
+    for (u32 Index = 0; Index < NET_MAX_SEARING; ++Index)
+    {
+        P.Snapshot.SearingId[Index] = (u16)(40 * Index + 1);
+        P.Snapshot.SearingStacks[Index] = 3;
+    }
     P.Snapshot.SanctuaryCount = NET_MAX_SANCTUARIES;
     for (u32 Index = 0; Index < NET_MAX_SANCTUARIES; ++Index)
     {
@@ -1035,8 +1041,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d67u
-#define NET_GOLDEN_LAYOUT 0x9cfca42au
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d68u
+#define NET_GOLDEN_LAYOUT 0xea08bfd0u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -1067,6 +1073,12 @@ TestDungeonBlockRoundTrip()
     P.Snapshot.BossHealth = 1;
     P.Snapshot.FoesLeft = 12;
     P.Snapshot.BossClock = NET_BOSS_ENRAGED;
+    P.Snapshot.SearingCount = NET_MAX_SEARING;
+    for (u32 Index = 0; Index < NET_MAX_SEARING; ++Index)
+    {
+        P.Snapshot.SearingId[Index] = (u16)(700 + 13 * Index);
+        P.Snapshot.SearingStacks[Index] = (u8)(1 + Index % 3);
+    }
     P.Snapshot.SanctuaryCount = NET_MAX_SANCTUARIES;
     for (u32 Index = 0; Index < NET_MAX_SANCTUARIES; ++Index)
     {
@@ -1091,6 +1103,12 @@ TestDungeonBlockRoundTrip()
     Check(Out.Snapshot.RoomsCleared == 0x3f && Out.Snapshot.Wipes == 9);
     Check(Out.Snapshot.BossKind == NET_NO_BOSS && Out.Snapshot.FoesLeft == 12);
     Check(Out.Snapshot.BossClock == NET_BOSS_ENRAGED);
+    Check(Out.Snapshot.SearingCount == NET_MAX_SEARING);
+    for (u32 Index = 0; Index < NET_MAX_SEARING; ++Index)
+    {
+        Check(Out.Snapshot.SearingId[Index] == P.Snapshot.SearingId[Index]);
+        Check(Out.Snapshot.SearingStacks[Index] == P.Snapshot.SearingStacks[Index]);
+    }
     Check(Out.Snapshot.SanctuaryCount == NET_MAX_SANCTUARIES);
     for (u32 Index = 0; Index < NET_MAX_SANCTUARIES; ++Index)
     {

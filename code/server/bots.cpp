@@ -196,10 +196,26 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
             Result |= NetButton_Launch;
         }
     }
-    else if (Target && Distance > 80.f && Distance < PLAYER_AIM_REACH && Ready[0] &&
-             BotRandom(Bot) % 25 == 0)
+    else if (Target && Target->Type == EntityType_Monster)
     {
-        Result |= NetButton_Launch;
+        // NOTE(zoubir): the striker's rotation (role_kits/striker.cpp):
+        // the kunai builds Searing on what it fights, Detonate spends a
+        // full mark, or one about to fade, and Inferno opens on a pack
+        if (Distance > 80.f && Distance < PLAYER_AIM_REACH && Ready[0] &&
+            BotRandom(Bot) % 25 == 0)
+        {
+            Result |= NetButton_Launch;
+        }
+        if (Distance < PlayerStats.KunaiRange && BotRandom(Bot) % 8 == 0)
+        {
+            Result |= NetButton_Kunai;
+        }
+        searing_mark *Mark = FindSearing(AppState->Dungeon, &AppState->World, Target);
+        if (Mark && Ready[1] && Distance < DETONATE_RANGE &&
+            (Mark->Stacks >= SEARING_MOST || Mark->Seconds < 1.5f))
+        {
+            Result |= NetButton_Shield;
+        }
     }
     return Result;
 }

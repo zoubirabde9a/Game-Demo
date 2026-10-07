@@ -51,6 +51,64 @@ DungeonTenths(float Seconds, u32 Most)
     return Result;
 }
 
+// NOTE(zoubir): where the viewer stands, for which marks are nearest:
+// its own body, else the middle of the map
+inline v2
+SearingCenter(app_state *AppState, net_snapshot *Out)
+{
+    v2 Result = V2(0.f, 0.f);
+    if (Out->HasOwnBody)
+    {
+        Result = V2(Out->OwnPosition[0], Out->OwnPosition[1]);
+    }
+    return Result;
+}
+
+// NOTE(zoubir): the striker's marks nearest the viewer, at most
+// NET_MAX_SEARING, as entity Ids the client knows
+internal void
+WriteSearingMarks(app_state *AppState, dungeon_run *Run, v2 Center, net_snapshot *Out)
+{
+    world *World = &AppState->World;
+    float Distances[NET_MAX_SEARING];
+    Out->SearingCount = 0;
+    for(u32 Row = 0; Row < MAX_SEARING; Row++)
+    {
+        searing_mark *Mark = &Run->Searing[Row];
+        world_entity *Monster = Mark->Stacks ?
+            FindMonsterBySerial(World, Mark->Slot, Mark->Serial) : 0;
+        if (!Monster)
+        {
+            continue;
+        }
+        float Distance = LengthSq(Monster->Position.XY - Center);
+        u32 At = Out->SearingCount;
+        if (At == NET_MAX_SEARING)
+        {
+            if (Distance >= Distances[At - 1])
+            {
+                continue;
+            }
+            At--;
+        }
+        else
+        {
+            Out->SearingCount++;
+        }
+        // NOTE(zoubir): kept sorted, nearest first
+        while (At > 0 && Distances[At - 1] > Distance)
+        {
+            Distances[At] = Distances[At - 1];
+            Out->SearingId[At] = Out->SearingId[At - 1];
+            Out->SearingStacks[At] = Out->SearingStacks[At - 1];
+            At--;
+        }
+        Distances[At] = Distance;
+        Out->SearingId[At] = (u16)Mark->Slot;
+        Out->SearingStacks[At] = (u8)Mark->Stacks;
+    }
+}
+
 internal void
 WriteDungeonSnapshot(app_state *AppState, net_snapshot *Out)
 {
@@ -110,4 +168,5 @@ WriteDungeonSnapshot(app_state *AppState, net_snapshot *Out)
                 ((Zone->Radius > INFERNO_RADIUS + 1.f) ? NET_ZONE_WIDE : 0));
         }
     }
+    WriteSearingMarks(AppState, Run, SearingCenter(AppState, Out), Out);
 }

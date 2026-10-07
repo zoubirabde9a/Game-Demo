@@ -61,9 +61,10 @@ TestRoleKeys()
             Check(Full == TAUNT_COOLDOWN);
         }
     }
-    // NOTE(zoubir): the damage role owns A, and keeps the game's E and V
+    // NOTE(zoubir): the damage role owns A and E (Detonate), and keeps
+    // the game's V
     Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Launch) != 0);
-    Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Shield) == 0);
+    Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Shield) != 0);
     Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Kunai) == 0);
 
     PressOnce(&Crypt, 0, PlayerButton_Shield);

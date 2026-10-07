@@ -17,7 +17,9 @@
      V  Mending Bolt: heals an ally.
    Damage (Striker, role_kits/striker.cpp)
      A  Inferno: a meteor at the cursor, then burning ground.
-     E, V  the game's Shield and kunai.
+     E  Detonate: blows up the Searing marks the striker's kunai,
+        fireballs and Infernos leave on a monster.
+     V  the game's kunai.
 
    Who an ally spell lands on: the player the client says is under the
    cursor or picked on the party frames (player_input.Target, which may
@@ -74,9 +76,12 @@ struct role_spell
 
 global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
 {
-    {{"Inferno", INFERNO_COOLDOWN, "Inferno: a meteor at the cursor, then burning ground",
+    {{"Inferno", INFERNO_COOLDOWN, "Inferno: a meteor at the cursor, marks all it hits, then burns",
       RoleAim_Ground, INFERNO_RADIUS},
-     {0}, {0}},
+     {"Detonate", DETONATE_COOLDOWN,
+      "Detonate: blow up the Searing marks on a foe; in fire, every marked foe there",
+      RoleAim_None, DETONATE_RANGE},
+     {0}},
     {{"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you; Shield Wall 2 s",
       RoleAim_None, 0.f},
      {"Shield Slam", SHIELD_SLAM_COOLDOWN,

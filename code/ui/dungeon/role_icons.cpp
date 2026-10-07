@@ -160,15 +160,40 @@ PaintRoleInfernoIcon(icon_canvas *Canvas)
     IconCircle(Canvas, V2(0.5f, 0.6f), 0.06f, Solid(IconColor(255, 250, 225)));
 }
 
+// NOTE(zoubir): Detonate: a starburst of fire over three Searing flames
+internal void
+PaintRoleDetonateIcon(icon_canvas *Canvas)
+{
+    v4 Yellow = IconColor(255, 230, 120);
+    v4 Orange = IconColor(255, 120, 30);
+    v4 Red = IconColor(190, 30, 20);
+    IconGlow(Canvas, V2(0.5f, 0.42f), 0.5f, IconColor(255, 90, 30, 150));
+    for(u32 Ray = 0; Ray < 8; Ray++)
+    {
+        float Angle = 2.f * Pi32 * (float)Ray / 8.f + 0.2f;
+        v2 Tip = V2(0.5f + 0.4f * Cos(Angle), 0.42f + 0.34f * Sin(Angle));
+        IconCapsule(Canvas, V2(0.5f, 0.42f), Tip, Ray % 2 ? 0.035f : 0.055f,
+                    Gradient(Yellow, IconColor(255, 110, 30, 40), V2(0.5f, 0.42f), Tip));
+    }
+    IconCircle(Canvas, V2(0.5f, 0.42f), 0.16f, Gradient(Yellow, Red, V2(0.44f, 0.34f), V2(0.6f, 0.54f)));
+    IconCircle(Canvas, V2(0.5f, 0.42f), 0.07f, Solid(IconColor(255, 250, 230)));
+    for(u32 Pip = 0; Pip < 3; Pip++)
+    {
+        float X = 0.28f + 0.22f * (float)Pip;
+        IconCircle(Canvas, V2(X, 0.84f), 0.07f, Gradient(Yellow, Orange, V2(X, 0.78f), V2(X, 0.9f)));
+        IconTriangle(Canvas, V2(X - 0.06f, 0.82f), V2(X + 0.06f, 0.82f), V2(X, 0.7f), Solid(Orange));
+    }
+}
+
 // NOTE(zoubir): the painters in RoleSpells' order for the keys a role
-// owns: tank A, E, V, healer A, E, V, then the damage role's A
-#define ROLE_ICON_COUNT 7
+// owns: tank A, E, V, healer A, E, V, then the damage role's A and E
+#define ROLE_ICON_COUNT 8
 typedef void role_icon_painter(icon_canvas *Canvas);
 global_variable role_icon_painter *RoleIconPainters[ROLE_ICON_COUNT] =
 {
     PaintRoleTauntIcon, PaintRoleShieldSlamIcon, PaintRoleInterceptIcon,
     PaintRoleSanctuaryIcon, PaintRoleWardIcon, PaintRoleMendingBoltIcon,
-    PaintRoleInfernoIcon,
+    PaintRoleInfernoIcon, PaintRoleDetonateIcon,
 };
 
 // NOTE(zoubir): the icon for Role's Key, as an index into RoleIconPainters,
@@ -185,9 +210,9 @@ RoleIconIndex(u32 Role, u32 Key)
     {
         Result = ROLE_KEYS + Key;
     }
-    else if (Role == PlayerRole_Damage && Key == 0)
+    else if (Role == PlayerRole_Damage && Key < 2)
     {
-        Result = 2 * ROLE_KEYS;
+        Result = 2 * ROLE_KEYS + Key;
     }
     return Result;
 }

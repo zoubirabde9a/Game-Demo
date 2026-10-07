@@ -14,11 +14,13 @@
    - Ward: a blue six-sided shell closing round the warded.
    - Sanctuary: a gold pillar blooming where the circle goes down.
    - Inferno: fire gathering at the caster's hands, and when the meteor
-     lands a flash, a ring of fire and embers thrown out.
+     lands a flash, a ring of fire and embers thrown out. Detonate plays
+     the same blast on each monster it blows up.
 
    Lasting things are drawn from the run instead, the same offline and
    online: an Inferno's meteor falling onto its marked circle, then the
-   ground burning; and for a tank or healer, a ring under the ally their
+   ground burning; the striker's Searing marks over the monsters
+   (searing_fx.cpp); and for a tank or healer, a ring under the ally their
    spells would land on now (client/dungeon/role_targeting.cpp). */
 
 #define MAX_ROLE_BURSTS 32
@@ -382,11 +384,14 @@ DrawAllyTargetMark(render_context *RenderContext, app_state *AppState, v3 Camera
     }
 }
 
+#include "searing_fx.cpp"
+
 // NOTE(zoubir): from DrawDungeonFx, over the world
 internal void
 DrawRoleFx(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
 {
     DrawInfernos(RenderContext, AppState, CameraOffset);
+    DrawSearingMarks(RenderContext, AppState, CameraOffset);
     DrawAllyTargetMark(RenderContext, AppState, CameraOffset);
     DrawRoleLooks(RenderContext, AppState, CameraOffset);
     role_fx *Fx = GetRoleFx(AppState);

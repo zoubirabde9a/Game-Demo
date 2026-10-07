@@ -61,3 +61,19 @@
 #define INFERNO_BURN_PER_SECOND 10.f
 #define INFERNO_BURN_TICK 0.5f
 #define INFERNO_COOLDOWN 9.f
+// NOTE(zoubir): Searing marks: each kunai, fireball or Inferno blast a
+// striker lands adds a stack, up to SEARING_MOST, and the mark fades
+// SEARING_SECONDS after its last stack; burning ground keeps it alive
+#define SEARING_MOST 3
+#define SEARING_SECONDS 6.f
+// NOTE(zoubir): Detonate (E) blows up the marks on the monster under the
+// cursor (or the marked one nearest the cursor within
+// DETONATE_PICK_RADIUS of it): DETONATE_DAMAGE plus DETONATE_PER_STACK a
+// stack, so a full mark hits for 72 before the role's 35%. A monster
+// standing in burning ground takes every other marked monster in that
+// fire with it
+#define DETONATE_RANGE 560.f
+#define DETONATE_PICK_RADIUS 140.f
+#define DETONATE_DAMAGE 12.f
+#define DETONATE_PER_STACK 20.f
+#define DETONATE_COOLDOWN 7.f
