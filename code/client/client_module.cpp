@@ -20,6 +20,7 @@
 #include "draw_entities.cpp"
 #include "kill_feed.cpp"
 #include "ground_cracks.cpp"
+#include "danger_zones.cpp"
 #include "fx_bursts.cpp"
 #include "sounds/sounds.cpp"
 #include "play_events.cpp"

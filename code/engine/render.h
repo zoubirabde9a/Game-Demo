@@ -85,6 +85,7 @@ enum shader_id
     Shader_Bloom,         // the world's glow at a quarter size, client/world_bloom.cpp
     Shader_GroundSurface, // light moving on water, ice and snow, client/ground/ground_surface.cpp
     Shader_CastSigil,     // the circle of light under a player winding up a spell, client/cast_fx.cpp
+    Shader_DangerZone,    // where a monster's attack will land, on the ground, client/danger_zones.cpp
     Shader_Count
 };
 

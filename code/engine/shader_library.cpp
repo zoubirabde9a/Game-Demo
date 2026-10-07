@@ -58,6 +58,7 @@ global_variable shader_def ShaderDefs[Shader_Count] =
     {"bloom", "shaders/fx/quad.vert", "shaders/fx/bloom.frag", 3, true},
     {"ground surface", "shaders/fx/quad.vert", "shaders/fx/ground_surface.frag", 3, true, "shaders/fx/noise.glsl"},
     {"cast sigil", "shaders/fx/quad.vert", "shaders/fx/cast_sigil.frag", 3, true},
+    {"danger zone", "shaders/fx/quad.vert", "shaders/fx/danger_zone.frag", 3, true},
 };
 
 global_variable char *ShaderAttributes[] =

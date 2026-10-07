@@ -151,8 +151,9 @@ DrawDottedCircle(render_context *RenderContext, v2 Center, float Radius,
     for(u32 Dot = 0; Dot < TELEGRAPH_DOTS; Dot++)
     {
         float Angle = 2.f * Pi32 * (float)Dot / (float)TELEGRAPH_DOTS;
-        // NOTE(zoubir): squashed vertically to sit on the ground plane
-        v2 P = Center + V2(Radius * Cos(Angle), 0.6f * Radius * Sin(Angle));
+        // NOTE(zoubir): round, like the area the hit checks; the ground is
+        // seen from straight above
+        v2 P = Center + V2(Radius * Cos(Angle), Radius * Sin(Angle));
         DrawFilledRectangle(RenderContext, P.X - 0.5f * DotSize,
                             P.Y - 0.5f * DotSize, DotSize, DotSize, Color, 0.f);
     }
@@ -363,6 +364,8 @@ DrawMonsterTelegraphs(render_context *RenderContext, world *World,
     DrawEnrageBursts(RenderContext, World, CameraOffset);
     DrawBurrowTelegraphs(RenderContext, World, CameraOffset);
     DrawStatusPips(RenderContext, World, CameraOffset);
+    bool32 PaintsDangerZones = RenderContext->Programs[Shader_DangerZone].ID !=
+        RenderContext->TextureProgram.ID;
     for(u32 EntityIndex = 0;
         EntityIndex < World->EntityCount;
         EntityIndex++)
@@ -375,6 +378,16 @@ DrawMonsterTelegraphs(render_context *RenderContext, world *World,
         }
         monster_def *Def = GetMonsterDef(Entity->MonsterKind);
         monster_ability *Ability = &Def->Abilities[Entity->AbilityIndex];
+        // NOTE(zoubir): these are painted on the ground under the units
+        // (client/danger_zones.cpp) when its shader loaded
+        bool32 Painted = PaintsDangerZones &&
+            (Ability->Kind == MonsterAbility_Slam || Ability->Kind == MonsterAbility_Charge ||
+             Ability->Kind == MonsterAbility_Mortar || Ability->Kind == MonsterAbility_Blink ||
+             Ability->Kind == MonsterAbility_Volley || Ability->Kind == MonsterAbility_Summon);
+        if (Painted)
+        {
+            continue;
+        }
         float Progress = Ability->Windup > 0.f ?
             1.f - Entity->AbilityTimer / Ability->Windup : 1.f;
         Progress = ArtClamp01(Progress);

@@ -293,6 +293,7 @@ DrawTileMap(render_context *RenderContext, app_state *AppState,
         DrawTerrainGround(RenderContext, AppState, Texture, TextureProgram,
                           CameraOffset, Visible);
         DrawGroundCracks(RenderContext, AppState, CameraOffset, GetFxClock(AppState));
+        DrawDangerZones(RenderContext, AppState, CameraOffset);
         DrawWallTorches(RenderContext, AppState, CameraOffset, Visible.MinX, Visible.MinY,
                         Visible.MaxX, Visible.MaxY + ELEVATION_LOOKAHEAD_ROWS);
         UpdateGroundMarks(AppState, GetFxClock(AppState));
@@ -333,4 +334,5 @@ DrawTileMap(render_context *RenderContext, app_state *AppState,
     }
     EndBatch(RenderContext);
     DrawGroundCracks(RenderContext, AppState, CameraOffset, GetFxClock(AppState));
+    DrawDangerZones(RenderContext, AppState, CameraOffset);
 }
