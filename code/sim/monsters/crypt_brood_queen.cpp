@@ -17,7 +17,7 @@ internal void
 DefineMonster_BroodQueen(monster_def *Def)
 {
     Def->Name = "The Brood Queen";
-    Def->MaxHp = 1000.f;
+    Def->MaxHp = 1500.f;
     Def->Acceleration = 24000.f;
     Def->AggroRange = 640.f;
     Def->StopRange = 50.f;

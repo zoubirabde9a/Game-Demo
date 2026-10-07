@@ -19,7 +19,7 @@ internal void
 DefineMonster_Gravecaller(monster_def *Def)
 {
     Def->Name = "Gravecaller Ossian";
-    Def->MaxHp = 600.f;
+    Def->MaxHp = 900.f;
     Def->Acceleration = 22000.f;
     Def->AggroRange = 600.f;
     Def->StopRange = 45.f;
