@@ -9,13 +9,20 @@
 # build\render_check\, so it can be looked at. Run -Update and commit the
 # new hashes along with a change that is meant to look different.
 #
-# The hashes hold for one machine and one build: another GPU, driver or
-# display scale draws other pixels, and so does the release build
-# (misc\land.bat leaves build\ holding it): run build.bat first, and
-# -Update once on a new machine.
-param([switch]$Update)
+# The hashes hold for one machine and the debug build: another GPU,
+# driver or display scale draws other pixels, and so does the release
+# build. It runs build.bat first (-NoBuild skips that); run -Update once
+# on a new machine.
+param([switch]$Update, [switch]$NoBuild)
 
 $Root = Split-Path -Parent $PSScriptRoot
+# NOTE(zoubir): the hashes are of the debug build of the code as it is
+# now; a stale build, or the release build misc\land.bat leaves behind,
+# draws other pixels. So build first, unless told the build is current
+if (-not $NoBuild) {
+    & "$Root\build.bat" | Out-Null
+    if ($LASTEXITCODE -ne 0) { Write-Host "render_check: build.bat failed"; exit 1 }
+}
 $Refs = "$PSScriptRoot\render_refs.txt"
 $Out = "$Root\build\render_check"
 New-Item -ItemType Directory -Force $Out | Out-Null
