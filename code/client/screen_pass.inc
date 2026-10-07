@@ -13,6 +13,7 @@ DrawMonsterCastTells(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawPlayerAbilityFx(RenderContext, AppState, CameraOffset, Input->DeltaTime);
 DrawCastPreview(RenderContext, AppState, CameraOffset); // range and area of the ability being aimed or wound up, client/cast_targeting/previews.cpp
 DrawTalentFx(RenderContext, AppState, CameraOffset); // frost on slowed and frozen units, the Ward talent's shell, client/talent_fx.cpp
+DrawDungeonFx(RenderContext, AppState, CameraOffset); // dungeon gates, sanctuaries, shield wall, wards and revives, client/dungeon/dungeon_fx.cpp
 DrawRewindFx(RenderContext, AppState, CameraOffset); // time rewinds' sigils, ghosts and flashes, client/rewind_fx/
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);
 DrawCursorTarget(RenderContext, AppState, CameraOffset); // brackets on the unit the cursor is on, client/targeting.cpp

@@ -52,6 +52,7 @@
 #include "player_fx.cpp"
 #include "cast_targeting/previews.cpp"
 #include "talent_fx.cpp"
+#include "dungeon/dungeon_fx.cpp"
 #include "screen_edge.cpp"
 #include "rewind_fx/rewind_fx.cpp"
 #include "frame_timing.cpp"
