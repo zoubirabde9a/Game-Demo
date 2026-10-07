@@ -1,7 +1,7 @@
-/* Ground surface: light that moves on the ground, drawn over the flat
-   ground by build/shaders/fx/ground_surface.frag, added as light. The tile
-   art (art/terrain/) steps through a few frames at most, so on its own a
-   lake or an ice field reads as a still pattern. One row per surface:
+/* Ground surface: light that moves on the ground, drawn over the ground by
+   build/shaders/fx/ground_surface.frag, added as light. The tile art
+   (art/terrain/) steps through a few frames at most, so on its own a lake
+   or an ice field reads as a still pattern. One row per surface:
      water: bright wavering lines, as sun through ripples, and glints;
             deep water dimmer and slower
      ice:   a slow sheen sliding across, and sharp glints
@@ -10,13 +10,16 @@
      wet:   mud and bog: a dull sheen sliding over puddled patches, as a
             damp surface catches the sky
 
-   One quad per flat tile that has a surface, its UVs the tile's place on
-   the map in tiles, so the pattern runs across tiles without a seam. Each
-   surface is its own batch; a corner's alpha is the share of the four
-   tiles meeting there that have this surface, so its light fades out at
-   the edge instead of stopping at a tile's border. Green tells the shader
-   which surface, red the share of deep water. Drawn by DrawTerrainGround
-   (draw_tilemap.cpp) right after the flat ground. */
+   One quad per tile that has a surface, lifted with its ground, its UVs
+   the tile's place on the map in tiles, so the pattern runs across tiles
+   without a seam. A corner's alpha is the share of the four tiles meeting
+   there with this surface at this height, so its light fades out at the
+   edge, and stops at a drop, instead of stopping at a tile's border.
+   Green tells the shader which surface, red the share of deep water.
+   Flat ground is one batch a surface, right after the flat ground; raised
+   ground one batch a row, height and surface, just over that row's raised
+   tops, as the ground cracks are (ground_cracks.cpp). Drawn by
+   DrawTerrainGround (draw_tilemap.cpp). */
 
 enum ground_surface
 {
@@ -46,29 +49,33 @@ SurfaceOfKind(u32 Kind)
     return Result;
 }
 
-// NOTE(zoubir): Flags has one byte per tile from MinX - 1, MinY - 1 to
-// MaxX + 1, MaxY + 1: the surface in the low bits, GROUND_SURFACE_DEEP for
-// deep water
+// NOTE(zoubir): Flags has one byte per tile of the ground grid (one past
+// the drawn tiles on each side): the surface in the low bits,
+// GROUND_SURFACE_DEEP for deep water
 #define GROUND_SURFACE_DEEP 0x80
 #define GROUND_SURFACE_MASK 0x7F
 
-// NOTE(zoubir): the colour of the tile corner at X, Y for Surface. Alpha
-// is the share of the four tiles meeting there with that surface,
-// squared, so a corner with one of four gives almost nothing; red is the
-// share of those that are deep water; green names the surface
+// NOTE(zoubir): the colour of the tile corner at grid X, Y for Surface on
+// ground Steps high. Alpha is the share of the four tiles meeting there
+// with that surface at that height, squared, so a corner with one of four
+// gives almost nothing; red is the share of those that are deep water;
+// green names the surface
 internal u32
-SurfaceCornerColor(u8 *Flags, i32 Pitch, i32 X, i32 Y, u32 Surface)
+SurfaceCornerColor(u8 *Flags, ground_grid *Grid, i32 X, i32 Y, u32 Surface, i32 Steps)
 {
-    u8 Tiles[4] = {Flags[(Y - 1) * Pitch + (X - 1)], Flags[(Y - 1) * Pitch + X],
-                   Flags[Y * Pitch + (X - 1)], Flags[Y * Pitch + X]};
+    i32 Pitch = Grid->Width;
+    i32 Index[4] = {(Y - 1) * Pitch + (X - 1), (Y - 1) * Pitch + X,
+                    Y * Pitch + (X - 1), Y * Pitch + X};
     u32 Same = 0;
     u32 Deep = 0;
-    for(u32 Index = 0; Index < 4; Index++)
+    for(u32 Corner = 0; Corner < 4; Corner++)
     {
-        if ((u32)(Tiles[Index] & GROUND_SURFACE_MASK) == Surface)
+        u8 Flag = Flags[Index[Corner]];
+        if ((u32)(Flag & GROUND_SURFACE_MASK) == Surface &&
+            (i32)Grid->Steps[Index[Corner]] == Steps)
         {
             Same++;
-            Deep += (Tiles[Index] & GROUND_SURFACE_DEEP) ? 1 : 0;
+            Deep += (Flag & GROUND_SURFACE_DEEP) ? 1 : 0;
         }
     }
     float Share = (float)Same / 4.f;
@@ -76,6 +83,35 @@ SurfaceCornerColor(u8 *Flags, i32 Pitch, i32 X, i32 Y, u32 Surface)
     u32 Red = Same ? (u32)(255.f * (float)Deep / (float)Same) : 0;
     u32 Result = (Alpha << 24) | (Surface << 8) | Red;
     return Result;
+}
+
+// NOTE(zoubir): snow is near white already, so light added to it would
+// not show: it is blended instead, shaded into drifts
+inline void
+BeginSurfaceBatch(render_context *RenderContext, render_program Program, u32 Surface,
+                  float SortKey)
+{
+    BeginBatch(RenderContext, 0, SortKey, Program);
+    RenderContext->AllocatedBatches[RenderContext->BatchCount].Blend =
+        Surface == GroundSurface_Snow ? RenderBlend_Alpha : RenderBlend_Additive;
+}
+
+inline void
+DrawSurfaceTile(render_context *RenderContext, world *World, ground_grid *Grid, u8 *Flags,
+                i32 TileX, i32 TileY, u32 Surface, i32 Steps, v3 CameraOffset)
+{
+    i32 X = TileX - Grid->MinX;
+    i32 Y = TileY - Grid->MinY;
+    float Tile = (float)World->TileWidth;
+    float Lift = (float)Steps * ELEVATION_STEP_HEIGHT;
+    // NOTE(zoubir): U, V run with the map's X and Y in tiles
+    v4 Uvs = V4((float)TileX, (float)(TileY + 1), (float)(TileX + 1), (float)TileY);
+    RenderTintedQuad(RenderContext, TileX * Tile - CameraOffset.X,
+                     TileY * Tile - CameraOffset.Y - Lift, Tile, Tile, Uvs,
+                     SurfaceCornerColor(Flags, Grid, X, Y, Surface, Steps),
+                     SurfaceCornerColor(Flags, Grid, X + 1, Y, Surface, Steps),
+                     SurfaceCornerColor(Flags, Grid, X + 1, Y + 1, Surface, Steps),
+                     SurfaceCornerColor(Flags, Grid, X, Y + 1, Surface, Steps));
 }
 
 internal void
@@ -91,7 +127,7 @@ DrawGroundSurface(render_context *RenderContext, world *World,
     i32 Pitch = MaxX - MinX + 3;
     i32 Rows = MaxY - MinY + 3;
     // NOTE(zoubir): the ground grid covers the same tiles, one past the
-    // drawn ones on each side
+    // drawn ones on each side, so Flags lines up with it
     Assert(Grid->MinX == MinX - 1 && Grid->MinY == MinY - 1 &&
            Grid->Width == Pitch && Grid->Height >= Rows);
     u8 *Flags = AllocateArray(RenderContext->Arena, Pitch * Rows, u8);
@@ -106,7 +142,7 @@ DrawGroundSurface(render_context *RenderContext, world *World,
             bool32 Inside = World->Unbounded ||
                 (TileX >= 0 && TileY >= 0 && TileX < (i32)World->NumTilesX &&
                  TileY < (i32)World->NumTilesY);
-            if (Inside && GridSteps(Grid, TileX, TileY) == 0)
+            if (Inside)
             {
                 u32 Kind = GridKind(Grid, TileX, TileY);
                 ground_surface Surface = SurfaceOfKind(Kind);
@@ -125,33 +161,50 @@ DrawGroundSurface(render_context *RenderContext, world *World,
             continue;
         }
         // NOTE(zoubir): +1, the smallest step a float keeps this far out
-        BeginBatch(RenderContext, 0, FLAT_GROUND_SORT_KEY + 1.f, Program);
-        // NOTE(zoubir): snow is near white already, so light added to it
-        // would not show; it is blended instead, shaded into drifts
-        RenderContext->AllocatedBatches[RenderContext->BatchCount].Blend =
-            Surface == GroundSurface_Snow ? RenderBlend_Alpha : RenderBlend_Additive;
+        BeginSurfaceBatch(RenderContext, Program, Surface, FLAT_GROUND_SORT_KEY + 1.f);
         for(i32 TileY = MinY; TileY <= MaxY; TileY++)
         {
             for(i32 TileX = MinX; TileX <= MaxX; TileX++)
             {
-                i32 X = TileX - MinX + 1;
-                i32 Y = TileY - MinY + 1;
-                if ((u32)(Flags[Y * Pitch + X] & GROUND_SURFACE_MASK) != Surface ||
-                    GridSteps(Grid, TileX, TileY) != 0)
+                i32 Index = (TileY - MinY + 1) * Pitch + (TileX - MinX + 1);
+                if ((u32)(Flags[Index] & GROUND_SURFACE_MASK) == Surface &&
+                    Grid->Steps[Index] == 0)
                 {
-                    continue;
+                    DrawSurfaceTile(RenderContext, World, Grid, Flags, TileX, TileY,
+                                    Surface, 0, CameraOffset);
                 }
-                u32 TopLeft = SurfaceCornerColor(Flags, Pitch, X, Y, Surface);
-                u32 TopRight = SurfaceCornerColor(Flags, Pitch, X + 1, Y, Surface);
-                u32 BottomRight = SurfaceCornerColor(Flags, Pitch, X + 1, Y + 1, Surface);
-                u32 BottomLeft = SurfaceCornerColor(Flags, Pitch, X, Y + 1, Surface);
-                // NOTE(zoubir): U, V run with the map's X and Y in tiles
-                v4 Uvs = V4((float)TileX, (float)(TileY + 1), (float)(TileX + 1), (float)TileY);
-                RenderTintedQuad(RenderContext, TileX * Tile - CameraOffset.X,
-                                 TileY * Tile - CameraOffset.Y, Tile, Tile, Uvs,
-                                 TopLeft, TopRight, BottomRight, BottomLeft);
             }
         }
         EndBatch(RenderContext);
+
+        for(i32 TileY = MinY; TileY <= MaxY; TileY++)
+        {
+            for(i32 Steps = 1; Steps <= ELEVATION_MAX_STEPS; Steps++)
+            {
+                bool32 Open = false;
+                for(i32 TileX = MinX; TileX <= MaxX; TileX++)
+                {
+                    i32 Index = (TileY - MinY + 1) * Pitch + (TileX - MinX + 1);
+                    if ((u32)(Flags[Index] & GROUND_SURFACE_MASK) != Surface ||
+                        (i32)Grid->Steps[Index] != Steps)
+                    {
+                        continue;
+                    }
+                    if (!Open)
+                    {
+                        float Top = RaisedTopSortKey(TileY, Tile,
+                                                     (float)Steps * ELEVATION_STEP_HEIGHT);
+                        BeginSurfaceBatch(RenderContext, Program, Surface, Top + 0.4f);
+                        Open = true;
+                    }
+                    DrawSurfaceTile(RenderContext, World, Grid, Flags, TileX, TileY,
+                                    Surface, Steps, CameraOffset);
+                }
+                if (Open)
+                {
+                    EndBatch(RenderContext);
+                }
+            }
+        }
     }
 }
