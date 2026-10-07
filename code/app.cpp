@@ -45,6 +45,10 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
         StartClient(AppState, TransientState, Memory, Thread);
     }
     FrameTimingStart(AppState);
+    // NOTE(zoubir): the drawing clock, one a frame: water and lava frames,
+    // ground shimmer, tree sway, offline weather. The simulation's own
+    // counter left with SimulateTick, and this stood at 0 since
+    AppState->UpdateID++;
     LoadOpenglTexturesFromQueue(&AppState->Assets, OpenGL,
                                 &AppState->OpenglTextureQueue);
     temporary_memory FrameMemory = BeginTemporaryMemory(TransientArena);
