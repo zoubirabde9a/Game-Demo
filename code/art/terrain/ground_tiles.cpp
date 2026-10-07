@@ -13,6 +13,23 @@ DrawGrassTile(sprite_canvas *Canvas, u32 Seed, u32 Variant)
     color_ramp Grass = Ramp(ART_RGB(62, 108, 44), ART_RGB(76, 126, 52),
                             ART_RGB(92, 144, 60), ART_RGB(120, 168, 74));
     FillGround(Canvas, Grass, Seed, Variant, 0.f, 0.55f);
+    // NOTE(zoubir): the sward: short blades all over, a shaded root and a
+    // lit tip, thicker where a noise says so, so the field reads as grass
+    // and not as a painted green. Per pixel, so nothing lines up at a
+    // tile's edge; blades never reach above the tile's top row
+    for(i32 Y = 1; Y < TERRAIN_TILE_PIXELS; Y++)
+    {
+        for(i32 X = 0; X < TERRAIN_TILE_PIXELS; X++)
+        {
+            float Thick = GroundNoise(Seed + 21, Variant, X, Y, 8, 8);
+            u32 Roll = HashLattice(Detail + 5, X, Y) >> 24;
+            if ((float)Roll > 255.f * (0.55f + 0.35f * (1.f - Thick)))
+            {
+                BlendPixel(Canvas, X, Y, Grass.C[0], 0.6f);
+                BlendPixel(Canvas, X, Y - 1, Roll & 1 ? Grass.C[3] : Grass.C[2], 0.7f);
+            }
+        }
+    }
     // NOTE(zoubir): darker clumps of clover, then tufts of blades over them
     for(u32 Clump = 0; Clump < 4; Clump++)
     {
