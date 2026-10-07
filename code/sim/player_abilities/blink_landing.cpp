@@ -60,6 +60,9 @@ internal v2
 FindBlinkLanding(app_state *AppState, world_entity *Player, v2 Target)
 {
     v2 From = Player->Position.XY;
+    // NOTE(zoubir): a dungeon's closed gates stop a blink (sim/dungeon/
+    // gate_crossing.cpp); elsewhere the target is left as it is
+    Target = DungeonClampBlinkTarget(AppState, From, Target);
     v2 Way = Target - From;
     float Distance = Length(Way);
     u32 Steps = (u32)(Distance / BLINK_LANDING_STEP) + 1;

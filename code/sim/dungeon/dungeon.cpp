@@ -105,6 +105,8 @@ struct dungeon_run
     float VictorySeconds;
 };
 
+#include "gate_crossing.cpp"
+
 // NOTE(zoubir): the room the party has to clear next, 0 when all are
 inline u32
 NextRoomToClear(u8 *RoomStates, u32 RoomCount)

@@ -95,5 +95,5 @@ Not sent yet: the healer's sanctuaries, so online they heal but are not drawn.
 
 ## Known problems
 
-- A long soak on the crypt (`build\soak_tests.exe 2 6 crypt`) stops on seeds 3 and 4 at about 80 to 120 s: a player 1.1 units into a corridor wall, and a player and a monster overlapping by 1.5. The default one-minute soak passes. Not yet traced; the corridors are narrower than anything on the duel maps.
+- Blink jumps through walls, and a closed gate is walls: a blink aimed past one now lands short of it (`sim/dungeon/gate_crossing.cpp`). Before that, a player could blink past a locked gate, and a long soak (`build\soak_tests.exe 2 6 crypt`) caught one landing inside a corridor wall. All six seeds pass now.
 - Players thrown over a wall (the same escape as `.agents/issues/keep-edge-escape.md`) are put back at the party's checkpoint by `RescueStrayPlayers`, so they cannot skip rooms.

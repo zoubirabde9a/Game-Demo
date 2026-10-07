@@ -7,7 +7,8 @@
      A  Taunt: every monster within TAUNT_RADIUS attacks the tank.
      E  Shield Wall: SHIELD_WALL_SCALE of the damage for a few seconds.
      V  Intercept: leaps to the ally under the cursor (or the one nearest
-        the aim) and takes the threat off them.
+        the aim), landing just short of them, and takes the threat off
+        them. Only within the tank's own room: never through a gate.
    Healer (Mender)
      A  Sanctuary: a circle at the cursor that heals allies inside.
      E  Ward: the ally under the cursor (or the most hurt one) absorbs
@@ -26,6 +27,8 @@
 #define SHIELD_WALL_COOLDOWN 15.f
 #define INTERCEPT_RANGE 420.f
 #define INTERCEPT_COOLDOWN 10.f
+// NOTE(zoubir): how far short of the ally an intercept lands
+#define INTERCEPT_LANDING_GAP 36.f
 #define SANCTUARY_RADIUS 110.f
 #define SANCTUARY_SECONDS 5.f
 #define SANCTUARY_HEAL_PER_SECOND 8.f
@@ -105,8 +108,19 @@ MostHurtAlly(app_state *AppState, v2 From, float Range)
     return Result;
 }
 
-// NOTE(zoubir): the living player other than Self nearest to Point within
-// Range of Self, or 0
+// NOTE(zoubir): an ally Self can leap to: alive, within Range, and in the
+// same room, so a leap never crosses a gate
+inline bool32
+CanInterceptTo(app_state *AppState, world_entity *Self, world_entity *Ally, float Range)
+{
+    world *World = &AppState->World;
+    bool32 Result = Ally && Ally != Self && !IsDeadPlayer(Ally) &&
+        Length(Ally->Position.XY - Self->Position.XY) <= Range &&
+        RoomAtPosition(World, Ally->Position.XY) == RoomAtPosition(World, Self->Position.XY);
+    return Result;
+}
+
+// NOTE(zoubir): the ally Self can intercept to nearest to Point, or 0
 internal world_entity *
 NearestAllyTo(app_state *AppState, world_entity *Self, v2 Point, float Range)
 {
@@ -115,8 +129,7 @@ NearestAllyTo(app_state *AppState, world_entity *Self, v2 Point, float Range)
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         world_entity *Player = LivingPlayerInSlot(AppState, SlotIndex);
-        if (Player && Player != Self &&
-            Length(Player->Position.XY - Self->Position.XY) <= Range)
+        if (Player && CanInterceptTo(AppState, Self, Player, Range))
         {
             float Distance = Length(Player->Position.XY - Point);
             if (!Result || Distance < Best)
@@ -187,7 +200,7 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
         case 2:
         {
             world_entity *Ally = CursorAlly(AppState, Slot, Player);
-            if (!Ally || Length(Ally->Position.XY - Player->Position.XY) > INTERCEPT_RANGE)
+            if (!CanInterceptTo(AppState, Player, Ally, INTERCEPT_RANGE))
             {
                 Ally = NearestAllyTo(AppState, Player, AimPoint(Player), INTERCEPT_RANGE);
             }
@@ -198,7 +211,10 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
             float Angle = ATan2(Ally->Position.Y - Player->Position.Y,
                                 Ally->Position.X - Player->Position.X);
             EmitBurst(&AppState->Events, SimBurst_Lunge, SlotIndex, ChestOf(Player), Angle);
-            MovePlayerTo(AppState, World, Arena, Player, Ally->Position);
+            v2 Toward = DirectionTo(Ally->Position.XY - Player->Position.XY);
+            v3 Landing = Ally->Position;
+            Landing.XY -= INTERCEPT_LANDING_GAP * Toward;
+            MovePlayerTo(AppState, World, Arena, Player, Landing);
             // NOTE(zoubir): what was after the ally comes for the tank
             TauntAround(AppState, &AppState->Dungeon->Threat, Player, TAUNT_RADIUS * 0.5f);
             Slot->RoleCooldowns[Key] = INTERCEPT_COOLDOWN;

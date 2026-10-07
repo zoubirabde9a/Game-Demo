@@ -172,13 +172,6 @@ TickCrypt(crypt_world *Crypt, u32 Ticks)
     }
 }
 
-inline bool32
-IsGateClosed(dungeon_run *Run, u32 Gate)
-{
-    bool32 Result = Run->GateWalls[Gate][0] != 0;
-    return Result;
-}
-
 internal void
 KillRoomMonsters(crypt_world *Crypt, u32 Room)
 {
@@ -505,9 +498,33 @@ TestClearedCryptStartsANewRun()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): a blink aimed past a closed gate lands short of it; with
+// the gate open it goes through
+internal void
+TestBlinksStopAtClosedGates()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Crypt, 1);
+    world_entity *Player = AppState->Players[0].Entity;
+    float Tile = (float)World->TileWidth;
+    // NOTE(zoubir): in the corridor west of the first gate (column 18)
+    MovePlayerTo(AppState, World, &Crypt.Arena, Player, TileCenter(World, 16, 11));
+    v2 Beyond = TileCenter(World, 23, 11).XY;
+    Check(!IsGateClosed(Run, 0));
+    Check(FindBlinkLanding(AppState, Player, Beyond).X > 20.f * Tile);
+    SetGateClosed(AppState, World, &Crypt.Arena, Run, 0, true);
+    Check(IsGateClosed(Run, 0));
+    Check(FindBlinkLanding(AppState, Player, Beyond).X < 18.f * Tile);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDungeonTests()
 {
+    TestBlinksStopAtClosedGates();
     TestClearedCryptStartsANewRun();
     TestBossEventsFireOnce();
     TestHealersRevive();

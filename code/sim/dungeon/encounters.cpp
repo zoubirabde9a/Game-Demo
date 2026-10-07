@@ -242,10 +242,19 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
             continue;
         }
         Slot->SpawnPosition = Run->RoomCheckpoint[Room];
-        if (!IsDeadPlayer(Slot->Entity) &&
-            RoomAtPosition(World, Slot->Entity->Position.XY) != Room)
+        if (RoomAtPosition(World, Slot->Entity->Position.XY) == Room)
+        {
+            continue;
+        }
+        // NOTE(zoubir): the dead stay outside, but never on the gates'
+        // tiles, where the walls are about to stand
+        if (!IsDeadPlayer(Slot->Entity))
         {
             MovePlayerTo(AppState, World, Arena, Slot->Entity, Run->RoomEntry[Room]);
+        }
+        else if (RoomAtPosition(World, Slot->Entity->Position.XY) == 0)
+        {
+            MovePlayerTo(AppState, World, Arena, Slot->Entity, Run->RoomCheckpoint[Room]);
         }
     }
 }
