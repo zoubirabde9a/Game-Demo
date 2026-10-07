@@ -53,6 +53,19 @@ global_variable controls_row ControlsRows[] =
 // NOTE(zoubir): a row's key text on the player's layout; only runs of
 // capital letters are letter keys ("ZQSD", "G T W R C"), so "Alt", "Tab"
 // and "F4" stay as they are
+// NOTE(zoubir): a row's action: in a dungeon run the keys a tank's or a
+// healer's role owns say what its spell does (sim/dungeon/role_abilities.cpp)
+internal char *
+ControlsRowAction(app_state *AppState, controls_row *Row)
+{
+    u32 Button = 0;
+    if (strcmp(Row->Key, "A") == 0) Button = PlayerButton_Launch;
+    else if (strcmp(Row->Key, "E") == 0) Button = PlayerButton_Shield;
+    else if (strcmp(Row->Key, "V") == 0) Button = PlayerButton_Kunai;
+    char *Result = Button ? RoleControlsLine(AppState, Button, Row->Action) : Row->Action;
+    return Result;
+}
+
 internal void
 ControlsKeyText(char *Out, u32 OutSize, char *Text)
 {
@@ -132,7 +145,7 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
         ControlsKeyText(Keys[Row], sizeof(Keys[Row]), ControlsRows[Row].Key);
         KeyWidth = Maximum(KeyWidth, UITextWidth(Font, Keys[Row]));
         ActionWidth = Maximum(ActionWidth,
-                              UITextWidth(Font, ControlsRows[Row].Action));
+                              UITextWidth(Font, ControlsRowAction(AppState, &ControlsRows[Row])));
     }
     float ColumnWidth = KeyWidth + UI_GAP_LARGE + ActionWidth;
     float Width = Pad + Columns * ColumnWidth + (Columns - 1) * UI_GAP_LARGE + Pad;
@@ -152,6 +165,6 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
         UIText(RenderContext, Font, KeyRight, Y, Keys[Row],
                WithAlpha(UI_COLOR_ACCENT, Fade), UIAlign_Right);
         UIText(RenderContext, Font, KeyRight + UI_GAP_LARGE, Y,
-               ControlsRows[Row].Action, WithAlpha(UI_COLOR_TEXT, Fade));
+               ControlsRowAction(AppState, &ControlsRows[Row]), WithAlpha(UI_COLOR_TEXT, Fade));
     }
 }

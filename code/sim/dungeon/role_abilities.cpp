@@ -63,15 +63,19 @@ struct role_spell
 {
     char *Name;
     float Cooldown;
+    // NOTE(zoubir): one line for the controls panel (ui/controls_panel.cpp)
+    char *Help;
 };
 
 global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
 {
-    {{0, 0.f}, {0, 0.f}, {0, 0.f}},
-    {{"Taunt", TAUNT_COOLDOWN}, {"Shield Wall", SHIELD_WALL_COOLDOWN},
-     {"Intercept", INTERCEPT_COOLDOWN}},
-    {{"Sanctuary", SANCTUARY_COOLDOWN}, {"Ward", WARD_COOLDOWN},
-     {"Mending Bolt", MENDING_BOLT_COOLDOWN}},
+    {{0, 0.f, 0}, {0, 0.f, 0}, {0, 0.f, 0}},
+    {{"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you"},
+     {"Shield Wall", SHIELD_WALL_COOLDOWN, "Shield Wall: take 40% damage for 4 s"},
+     {"Intercept", INTERCEPT_COOLDOWN, "Intercept: leap to the ally under the cursor"}},
+    {{"Sanctuary", SANCTUARY_COOLDOWN, "Sanctuary: a healing circle at the cursor"},
+     {"Ward", WARD_COOLDOWN, "Ward: the next 30 damage on an ally is absorbed"},
+     {"Mending Bolt", MENDING_BOLT_COOLDOWN, "Mending Bolt: heal an ally for 30"}},
 };
 
 // NOTE(zoubir): the role key Button is, or ROLE_KEYS for none
@@ -103,6 +107,17 @@ RoleSpellOnButton(app_state *AppState, world_entity *Player, u32 Button)
             Result = &RoleSpells[Slot->Role][Key];
         }
     }
+    return Result;
+}
+
+// NOTE(zoubir): the controls panel's line for Button: the role spell's in
+// a dungeon run where the local role owns the key, else Default
+internal char *
+RoleControlsLine(app_state *AppState, u32 Button, char *Default)
+{
+    world_entity *Player = AppState->Players[AppState->LocalPlayerIndex].Entity;
+    role_spell *Spell = RoleSpellOnButton(AppState, Player, Button);
+    char *Result = Spell ? Spell->Help : Default;
     return Result;
 }
 
