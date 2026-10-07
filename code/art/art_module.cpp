@@ -15,3 +15,4 @@
 #include "terrain_art.cpp"
 #include "terrain_hazard_art.cpp"
 #include "monster_render.cpp"
+#include "monster_telegraphs.cpp"
