@@ -52,6 +52,8 @@ Three branches of four tiers. A tier opens once you have spent 2 points per tier
 - Ward: a charge that takes one hit whole, shove and stun included. It comes back after 18 s, or 11 s at rank 2. Everyone sees a gold hexagon round a player whose ward is up.
 - Second Wind: back from death in 1.5 s instead of 3, with a 3 s shield instead of 1.5 s.
 
+In a dungeon run the tree has a fourth branch, the role's own (docs/dungeon-plan.md, "Role talents"): six talents that change the role's spells, which take points only in a run and give them back when the role changes.
+
 Experience and talents live on the player slot, not the entity, so a time rewind never takes them back. Leaving the server resets them.
 
 ## On screen

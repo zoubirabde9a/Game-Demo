@@ -16,7 +16,7 @@ How it was built, step by step, is in [multiplayer-history.md](multiplayer-histo
 
 ## How full snapshots get
 
-Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot carries about 20 entities (median), the 48-entity cap was never reached, nothing needed trimming, and the largest was 514 bytes of the 1200 allowed. So there is room for more fields; size work is not needed until the server's stats line shows `capped` or `trimmed` snapshots. The cap is 45 since the dungeon block (2026-10-07, GDMe): the fullest possible snapshot has to fit in one packet.
+Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot carries about 20 entities (median), the 48-entity cap was never reached, nothing needed trimming, and the largest was 514 bytes of the 1200 allowed. So there is room for more fields; size work is not needed until the server's stats line shows `capped` or `trimmed` snapshots. The cap is 45 since the dungeon block (2026-10-07, GDMe), and 43 since the role overhaul added infernos, a second dungeon byte per score and the role talents (2026-10-07, GDMf): the fullest possible snapshot has to fit in one packet.
 
 ## Where things live
 
