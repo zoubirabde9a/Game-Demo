@@ -7,7 +7,9 @@
    - Sunder: a cracked steel ring at the monster's feet while it takes
      more from everyone, so the tank sees when to slam again. */
 
-#define SEARING_PIP_GAP 11.f
+#define SEARING_PIP_GAP 15.f
+// NOTE(zoubir): over the head and clear of the health bar above it
+#define SEARING_PIP_LIFT 24.f
 
 internal void
 DrawFoeMarks(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
@@ -47,20 +49,23 @@ DrawFoeMarks(render_context *RenderContext, app_state *AppState, v3 CameraOffset
             continue;
         }
         bool32 Full = Mark->Stacks >= SEARING_MOST;
-        float Height = Maximum(24.f, Monster->Dimensions.Y) + 10.f;
+        float Height = Maximum(24.f, Monster->Dimensions.Y) + SEARING_PIP_LIFT;
         v2 Head = BurstToScreen(V3(Monster->Position.X, Monster->Position.Y,
                                    Monster->Position.Z + Height), CameraOffset);
         float Left = -0.5f * SEARING_PIP_GAP * (float)(SEARING_MOST - 1);
         for(u32 Pip = 0; Pip < SEARING_MOST; Pip++)
         {
             v2 At = Head + V2(Left + SEARING_PIP_GAP * (float)Pip, 0.f);
+            // NOTE(zoubir): a dark socket under every pip, so an empty one
+            // shows what is missing and a lit one stands off the floor
+            DrawFxDot(RenderContext, At, 7.5f, FxColor(0.7f, 0x00101418));
             if (Pip >= Mark->Stacks)
             {
-                DrawFxDot(RenderContext, At, 3.f, FxColor(0.35f, 0x00203040));
+                DrawFxDot(RenderContext, At, 4.f, FxColor(0.5f, 0x00404850));
                 continue;
             }
             float Flicker = 0.5f + 0.5f * Sin(14.f * Clock + 2.f * (float)Pip + (float)Index);
-            float Size = (Full ? 6.f : 4.5f) + 1.5f * Flicker;
+            float Size = (Full ? 7.5f : 6.f) + 1.5f * Flicker;
             if (Full)
             {
                 DrawShaderQuad(RenderContext, Shader_Glow, At.X - 12.f, At.Y - 12.f, 24.f, 24.f,

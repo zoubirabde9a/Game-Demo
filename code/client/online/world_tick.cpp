@@ -88,4 +88,5 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
         ResetTimeRewind(AppState->Rewind);
     }
     SimulateTick(AppState, Arena, DeltaTime);
+    ApplyDeveloperMarks(AppState);
 }

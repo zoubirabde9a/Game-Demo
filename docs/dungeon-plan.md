@@ -64,7 +64,7 @@ Each branch serves its role's rotation and its part in the damage race as much a
 
 Each role looks the part in a run (`client/dungeon/role_looks.cpp`): the tank carries a blue-fielded kite shield on the side it aims at, the healer has a gold halo, motes of light circling and a green glow at the feet, the damage role has flames on both hands and embers rising off the shoulders. Sprites are tinted lightly toward the role, and allies stand on a ring in their role's colour instead of the duel's red. Every role spell has its own animation (`client/dungeon/role_fx.cpp`): a red war cry for Taunt, a ring of force and a shield of light for Shield Slam, a streak of light from healer to healed with crosses rising, a blue hexagon closing for Ward, a gold pillar for Sanctuary, and Inferno's meteor falling onto its marked circle, its blast and its burning ground. Healing rises over the healed in green.
 
-`GAME_ROLE=tank` (or `healer`, `damage`) starts an offline crypt in that role in developer builds, for scripted screenshots.
+`GAME_ROLE=tank` (or `healer`, `damage`) starts an offline crypt in that role in developer builds, for scripted screenshots; `GAME_ROOM=7` starts it in that room with the rooms before cleared, and `GAME_MARKS=1` puts Searing stacks and Sunder on the fight's monsters. With `GAME_SCREENSHOT_KEYS=2:F4` to close the Play screen, `misc\screenshot.bat` then shows a fight with its foe marks.
 
 ### Party frames
 
