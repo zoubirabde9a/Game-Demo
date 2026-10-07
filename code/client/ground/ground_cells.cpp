@@ -8,7 +8,8 @@
    corners and blended across each quad by its vertex colours, make broad
    patches lighter and darker, warmer and cooler, that run across tiles.
    Liquids get a slow shimmer rolling over them instead, and runes a
-   pulse. Client only; the noise is the terrain's integer noise, so every
+   pulse. Ground at the foot of higher ground darkens toward it
+   (GroundShutIn), so a drop reads as one. Client only; the noise is the terrain's integer noise, so every
    client paints the same patches. */
 
 // NOTE(zoubir): what the ground pass reads once a frame: heights of the
@@ -182,10 +183,41 @@ global_variable float GroundTintStrength[TerrainKind_Count] =
     0.f,   // rune
 };
 
+// NOTE(zoubir): how much the ground at corner X, Y of a tile Steps high
+// is shut in by higher ground: the four tiles meeting there, each counted
+// by how much higher it is (two steps at most), weighted toward the upper
+// left where the light comes from. Lower ground at the foot of a rise
+// darkens, so it reads as sunk below it
+#define GROUND_SHUT_IN_DARKEN 0.07f
+#define GROUND_SHUT_IN_MAX 0.32f
+
+internal float
+GroundShutIn(ground_grid *Grid, i32 X, i32 Y, i32 Steps)
+{
+    i32 TileX[4] = {X - 1, X, X - 1, X};
+    i32 TileY[4] = {Y - 1, Y - 1, Y, Y};
+    float Weight[4] = {1.f, 0.6f, 0.6f, 0.3f};
+    float Sum = 0.f;
+    for(u32 Index = 0; Index < 4; Index++)
+    {
+        i32 GX = TileX[Index] - Grid->MinX;
+        i32 GY = TileY[Index] - Grid->MinY;
+        if (GX < 0 || GY < 0 || GX >= Grid->Width || GY >= Grid->Height)
+        {
+            continue;
+        }
+        i32 Higher = (i32)Grid->Steps[GY * Grid->Width + GX] - Steps;
+        Sum += Weight[Index] * (float)Minimum(Maximum(Higher, 0), 2);
+    }
+    float Result = Minimum(GROUND_SHUT_IN_MAX, GROUND_SHUT_IN_DARKEN * Sum);
+    return Result;
+}
+
 // NOTE(zoubir): the colour a kind's cell is multiplied by at world corner
-// X, Y (a tile's top-left corner has the tile's coordinates)
+// X, Y (a tile's top-left corner has the tile's coordinates) of a tile
+// Steps high
 internal u32
-GroundCornerTint(ground_grid *Grid, u32 Kind, i32 X, i32 Y)
+GroundCornerTint(ground_grid *Grid, u32 Kind, i32 X, i32 Y, i32 Steps)
 {
     i32 Index = (Y - Grid->MinY) * (Grid->Width + 1) + (X - Grid->MinX);
     float Shade = (float)Grid->Shade[Index] / 255.f;
@@ -226,6 +258,13 @@ GroundCornerTint(ground_grid *Grid, u32 Kind, i32 X, i32 Y)
             G = Light * (1.f - Strength * 0.04f * Warmth);
             B = Light * (1.f - Strength * 0.12f * Warmth);
         } break;
+    }
+    if (Kind != TerrainKind_Lava)
+    {
+        float Keep = 1.f - GroundShutIn(Grid, X, Y, Steps);
+        R *= Keep;
+        G *= Keep;
+        B *= Keep;
     }
     u32 Result = ART_RGB((u32)(ArtClamp01(R) * 255.f), (u32)(ArtClamp01(G) * 255.f),
                          (u32)(ArtClamp01(B) * 255.f));
@@ -285,13 +324,14 @@ DrawGroundCell(render_context *RenderContext, world *World, ground_grid *Grid,
                loaded_texture *Texture, i32 TileX, i32 TileY, u32 Kind,
                u32 Column, float Lift, v3 CameraOffset)
 {
+    i32 Steps = GridSteps(Grid, TileX, TileY);
     RenderTintedQuad(RenderContext,
                      (float)TileX * World->TileWidth - CameraOffset.X,
                      (float)TileY * World->TileHeight - CameraOffset.Y - Lift,
                      (float)World->TileWidth, (float)World->TileHeight,
                      TerrainAtlasUvs(Texture, Kind, Column),
-                     GroundCornerTint(Grid, Kind, TileX, TileY),
-                     GroundCornerTint(Grid, Kind, TileX + 1, TileY),
-                     GroundCornerTint(Grid, Kind, TileX + 1, TileY + 1),
-                     GroundCornerTint(Grid, Kind, TileX, TileY + 1));
+                     GroundCornerTint(Grid, Kind, TileX, TileY, Steps),
+                     GroundCornerTint(Grid, Kind, TileX + 1, TileY, Steps),
+                     GroundCornerTint(Grid, Kind, TileX + 1, TileY + 1, Steps),
+                     GroundCornerTint(Grid, Kind, TileX, TileY + 1, Steps));
 }
