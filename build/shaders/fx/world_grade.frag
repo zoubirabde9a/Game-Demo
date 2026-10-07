@@ -40,7 +40,7 @@ uniform vec4 LightCount;
 uniform vec4 WorldView;
 // NOTE(zoubir): the map's mood (client/map_moods.cpp): MoodShadow = tint
 // added to the shadows, saturation; MoodLight = tint added to the lights,
-// exposure; MoodShape = contrast curve, sky strength
+// exposure; MoodShape = contrast curve, sky strength, sun shafts
 uniform vec4 MoodShadow;
 uniform vec4 MoodLight;
 uniform vec4 MoodShape;
@@ -97,6 +97,14 @@ vec3 Sky(vec2 Pixel)
     vec2 Drift = vec2(9.0, 4.0) * mod(Time, 4000.0);
     float Cloud = smoothstep(0.52, 0.78, Fbm((Point + Drift) / 1000.0 + 5.3));
     vec3 Shade = vec3(1.0 + Patch) - Cloud * MoodShape.y * vec3(0.16, 0.15, 0.12);
+    // NOTE(zoubir): sun shafts: soft bands along the light from the upper
+    // left, a few hundred units apart, each swelling and fading on its own
+    // as they drift; warm, and gone under the clouds
+    float Along = (Point.x * 0.8 + Point.y * 0.6) / 180.0 + 0.02 * mod(Time, 4000.0);
+    float Band = pow(0.5 + 0.5 * sin(Along * 6.2832 +
+                                     2.0 * Noise(vec2(Along * 0.4, 1.7))), 4.0);
+    float Swell = smoothstep(0.25, 0.60, Noise(vec2(floor(Along) * 0.61, Time * 0.03)));
+    Shade += vec3(0.22, 0.18, 0.09) * Band * Swell * MoodShape.z * (1.0 - Cloud);
     return Shade;
 }
 
