@@ -276,8 +276,16 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
 
         float Icon = 0.8f * Slot;
         u32 IconTint = (Ready && !Dead) ? 0xFFFFFFFF : UI_RGBA(150, 150, 160, 255);
+        // NOTE(zoubir): a dungeon role's spell on the key shows its own
+        // icon (ui/dungeon/role_icons.cpp)
+        u32 Cell = Index;
+        if (RoleSpellOnButton(AppState, Player, Def->Button))
+        {
+            u32 RoleIcon = RoleIconIndex(LocalSlot->Role, RoleKeyForButton(Def->Button));
+            Cell = RoleIcon < ROLE_ICON_COUNT ? ABILITY_SLOT_DEF_COUNT + RoleIcon : Index;
+        }
         DrawTexturedQuad(RenderContext, Bar->Atlas, CentreX - 0.5f * Icon,
-                         CentreY - 0.5f * Icon, Icon, Icon, AbilityIconUvs(Index), IconTint);
+                         CentreY - 0.5f * Icon, Icon, Icon, AbilityIconUvs(Cell), IconTint);
         if (Press > 0.f)
         {
             DrawShaderQuad(RenderContext, Shader_Glow, CentreX - 0.5f * Quad,

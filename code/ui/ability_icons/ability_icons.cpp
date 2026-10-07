@@ -2,7 +2,9 @@
    icons, painted in code by icon_canvas.cpp into one texture on first use.
 
    A new ability icon: a file here with its Paint function, an #include
-   line below, and an ABILITY_ICON line in icon_list.inc. */
+   line below, and an ABILITY_ICON line in icon_list.inc. The dungeon
+   roles' spells have their icons in ../dungeon/role_icons.cpp, painted
+   into cells after the slots'. */
 
 #include "icon_canvas.cpp"
 #include "fireball.cpp"
@@ -19,6 +21,8 @@
 #include "frost_nova.cpp"
 #include "gravity_well.cpp"
 #include "kunai.cpp"
+// NOTE(zoubir): the dungeon roles' spells, in cells after the slots
+#include "../dungeon/role_icons.cpp"
 
 // NOTE(zoubir): pixels per icon in the texture; the bar draws them at
 // about 36, so they are always scaled down and stay crisp
@@ -46,10 +50,13 @@ global_variable ability_slot_def AbilitySlotDefs[] =
 
 #define ABILITY_SLOT_DEF_COUNT ArrayCount(AbilitySlotDefs)
 
+// NOTE(zoubir): the atlas's cells: one per slot, then the role icons
+#define ABILITY_ATLAS_CELLS (ABILITY_SLOT_DEF_COUNT + ROLE_ICON_COUNT)
+
 inline u32
 AbilityAtlasRows()
 {
-    u32 Result = (ABILITY_SLOT_DEF_COUNT + ABILITY_ATLAS_COLUMNS - 1) / ABILITY_ATLAS_COLUMNS;
+    u32 Result = (ABILITY_ATLAS_CELLS + ABILITY_ATLAS_COLUMNS - 1) / ABILITY_ATLAS_COLUMNS;
     return Result;
 }
 
@@ -66,15 +73,16 @@ BuildAbilityIconAtlas(open_gl *OpenGL, memory_arena *Scratch)
     icon_canvas Canvas = {};
     Canvas.Size = ABILITY_ICON_SIZE;
     Canvas.Pixels = AllocateArray(Scratch, ABILITY_ICON_SIZE * ABILITY_ICON_SIZE, v4);
-    for(u32 Index = 0; Index < ABILITY_SLOT_DEF_COUNT; Index++)
+    for(u32 Index = 0; Index < ABILITY_ATLAS_CELLS; Index++)
     {
-        ability_slot_def *Def = &AbilitySlotDefs[Index];
-        if (!Def->Paint)
+        ability_icon_painter *Paint = Index < ABILITY_SLOT_DEF_COUNT ?
+            AbilitySlotDefs[Index].Paint : RoleIconPainters[Index - ABILITY_SLOT_DEF_COUNT];
+        if (!Paint)
         {
             continue;
         }
         memset(Canvas.Pixels, 0, ABILITY_ICON_SIZE * ABILITY_ICON_SIZE * sizeof(v4));
-        Def->Paint(&Canvas);
+        Paint(&Canvas);
         u32 Column = Index % ABILITY_ATLAS_COLUMNS;
         u32 Row = Index / ABILITY_ATLAS_COLUMNS;
         IconFinish(&Canvas, Pixels + Row * ABILITY_ICON_SIZE * Width + Column * ABILITY_ICON_SIZE,

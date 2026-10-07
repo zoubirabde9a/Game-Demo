@@ -138,7 +138,8 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
     u32 Order[PlayerRole_Count] = {PlayerRole_Tank, PlayerRole_Healer, PlayerRole_Damage};
     float Width = PlayerRole_Count * DUNGEON_ROLE_BUTTON_WIDTH +
         (PlayerRole_Count - 1) * UI_GAP_SMALL;
-    float PlateWidth = Width + 2.f * UI_GAP;
+    float PlateWidth = Maximum(Width, UITextWidth(Small, GetRoleDef(Slot->Role)->Keys)) +
+        2.f * UI_GAP;
     float PlateHeight = UILineHeight(Body) + DUNGEON_ROLE_BUTTON_HEIGHT +
         UILineHeight(Small) + 2.f * UI_GAP + 2.f * UI_GAP_SMALL;
     DrawUIPanel(RenderContext, CenterX - 0.5f * PlateWidth, Y, PlateWidth, PlateHeight);
