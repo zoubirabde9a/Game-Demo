@@ -141,6 +141,38 @@ FillGround(sprite_canvas *Canvas, color_ramp Ramp, u32 Seed, u32 Variant,
     }
 }
 
+// NOTE(zoubir): ripples the wind combed into soft ground (ash, snow):
+// crests mixed toward Crest, troughs toward Trough, faded in and out by a
+// second noise so they do not stripe a whole plain. WavesDown and
+// WavesAcross are whole numbers of waves a tile, and the waves bend by tile
+// noise whose border every variant shares, so they run on into any
+// neighbour without a seam
+internal void
+PutWindRipples(sprite_canvas *Canvas, u32 Seed, u32 Variant, i32 WavesDown,
+               i32 WavesAcross, u32 Crest, float CrestStrength, u32 Trough,
+               float TroughStrength)
+{
+    for(i32 Y = 0; Y < TERRAIN_TILE_PIXELS; Y++)
+    {
+        for(i32 X = 0; X < TERRAIN_TILE_PIXELS; X++)
+        {
+            float Bend = 1.6f * GroundNoise(Seed + 11, Variant, X, Y, 8, 8);
+            float Phase = 6.2832f * ((float)(WavesDown * Y + WavesAcross * X) /
+                                     (float)TERRAIN_TILE_PIXELS + Bend);
+            float Wave = Sin(Phase);
+            float Fade = GroundNoise(Seed + 12, Variant, X, Y, 16, 16);
+            if (Wave > 0.55f)
+            {
+                BlendPixel(Canvas, X, Y, Crest, CrestStrength * Fade);
+            }
+            else if (Wave < -0.75f)
+            {
+                BlendPixel(Canvas, X, Y, Trough, TroughStrength * Fade);
+            }
+        }
+    }
+}
+
 // NOTE(zoubir): the Index-th detail spot of a tile, at least Margin
 // pixels in from every edge
 inline void

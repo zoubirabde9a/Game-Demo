@@ -144,29 +144,9 @@ DrawAshTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Seed, u32 Variant)
     FillGround(Canvas, Ground, Seed, Variant, 0.f, 0.5f, IsAsh);
     if (IsAsh)
     {
-        // NOTE(zoubir): ripples the wind combed into the ash, crests lit
-        // and troughs in shade. The waves repeat a whole number of times
-        // a tile and bend by tile noise whose border every variant shares,
-        // so they run on into any neighbour without a seam
-        for(i32 Y = 0; Y < TERRAIN_TILE_PIXELS; Y++)
-        {
-            for(i32 X = 0; X < TERRAIN_TILE_PIXELS; X++)
-            {
-                float Bend = 1.6f * GroundNoise(Seed + 11, Variant, X, Y, 8, 8);
-                float Phase = 6.2832f * ((3.f * (float)Y + (float)X) /
-                                         (float)TERRAIN_TILE_PIXELS + Bend);
-                float Wave = Sin(Phase);
-                float Fade = GroundNoise(Seed + 12, Variant, X, Y, 16, 16);
-                if (Wave > 0.55f)
-                {
-                    BlendPixel(Canvas, X, Y, Ground.C[3], 0.45f * Fade);
-                }
-                else if (Wave < -0.75f)
-                {
-                    BlendPixel(Canvas, X, Y, ART_RGB(84, 78, 76), 0.40f * Fade);
-                }
-            }
-        }
+        // NOTE(zoubir): fine ripples the wind combed into the ash
+        PutWindRipples(Canvas, Seed, Variant, 3, 1, Ground.C[3], 0.45f,
+                       ART_RGB(84, 78, 76), 0.40f);
         // NOTE(zoubir): stones half buried in it, lit on top with a shadow
         // under
         u32 Stones = 2 + DetailRoll(Detail, 17, 2);
@@ -378,17 +358,10 @@ DrawSnowTile(sprite_canvas *Canvas, u32 Seed, u32 Variant)
     color_ramp Snow = Ramp(ART_RGB(196, 208, 230), ART_RGB(214, 223, 240),
                            ART_RGB(230, 236, 248), ART_RGB(244, 247, 255));
     FillGround(Canvas, Snow, Seed, Variant, 0.08f, 0.55f, true);
-    // NOTE(zoubir): wind scallops: a shaded dip under a lit crest
-    for(u32 Scallop = 0; Scallop < 3; Scallop++)
-    {
-        i32 X, Y;
-        ScatterSpot(Detail + 1, Scallop, 4, &X, &Y);
-        for(i32 Step = 0; Step < 4; Step++)
-        {
-            PutPixel(Canvas, X + Step, Y, Snow.C[3]);
-            PutPixel(Canvas, X + Step + 1, Y + 1, Snow.C[0]);
-        }
-    }
+    // NOTE(zoubir): broad ridges the wind carved, bright on the crest and a
+    // cold blue in the hollow behind it
+    PutWindRipples(Canvas, Seed, Variant, 2, 1, ART_RGB(250, 252, 255), 0.6f,
+                   ART_RGB(168, 184, 220), 0.45f);
     for(u32 Sparkle = 0; Sparkle < 3; Sparkle++)
     {
         i32 X, Y;
