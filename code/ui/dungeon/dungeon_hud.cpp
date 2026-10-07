@@ -5,6 +5,8 @@
    - The objective: the room being fought and the enemies left in it, or
      the next room to head for, or the crypt cleared; wipes so far.
    - The boss bar while a boss fights: its name and its health.
+   - Party frames, bottom left: each player's role, name and health, the
+     local one first; a downed player's bar is grey.
    - The role picker, in the Antechamber between fights: three buttons,
      the picked one outlined, and what its keys do. Picking only works
      offline for now: online the server does not hear role requests yet
@@ -16,6 +18,17 @@
 #define DUNGEON_ROLE_BUTTON_WIDTH 120.f
 #define DUNGEON_ROLE_BUTTON_HEIGHT 34.f
 #define DUNGEON_BOSS_COLOR UI_RGBA(176, 52, 60, 255)
+#define DUNGEON_PARTY_WIDTH 190.f
+#define DUNGEON_PARTY_BAR_HEIGHT 6.f
+#define DUNGEON_PARTY_MARGIN 14.f
+
+// NOTE(zoubir): each role's colour on the party frames, by player_role
+global_variable u32 DungeonRoleColors[PlayerRole_Count] =
+{
+    UI_RGBA(230, 110, 70, 255),
+    UI_RGBA(90, 150, 240, 255),
+    UI_RGBA(110, 210, 120, 255),
+};
 
 // NOTE(zoubir): the next room the party has to clear, 0 when all are
 internal u32
@@ -157,10 +170,65 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
                    UI_COLOR_TEXT_MUTED);
 }
 
+// NOTE(zoubir): one player's frame with its top at Y; returns its height
+internal float
+DrawPartyFrame(render_context *RenderContext, app_state *AppState, u32 SlotIndex,
+               float X, float Y)
+{
+    player_slot *Slot = &AppState->Players[SlotIndex];
+    world_entity *Player = Slot->Entity;
+    font *Small = AppState->Fonts.Small;
+    role_def *Role = GetRoleDef(Slot->Role);
+    u32 RoleColor = DungeonRoleColors[Slot->Role < PlayerRole_Count ? Slot->Role : 0];
+    bool32 Down = IsDeadPlayer(Player);
+    char Name[32];
+    GetPlayerName(AppState, SlotIndex, Name, sizeof(Name));
+    char Line[64];
+    snprintf(Line, sizeof(Line), "%s  %s", Role->Title, Name);
+    UIText(RenderContext, Small, X, Y, Line,
+           SlotIndex == AppState->LocalPlayerIndex ? UI_COLOR_ACCENT : UI_COLOR_TEXT);
+    float BarY = Y + UILineHeight(Small) + 2.f;
+    float Share = (Player->MaxHp > 0.f && !Down) ? Clamp01(Player->Hp / Player->MaxHp) : 0.f;
+    DrawRoundRect(RenderContext, X, BarY, DUNGEON_PARTY_WIDTH, DUNGEON_PARTY_BAR_HEIGHT,
+                  Down ? UI_COLOR_DIM : UI_COLOR_TRACK);
+    if (Share > 0.f)
+    {
+        DrawRoundRect(RenderContext, X, BarY,
+                      Maximum(DUNGEON_PARTY_BAR_HEIGHT, Share * DUNGEON_PARTY_WIDTH),
+                      DUNGEON_PARTY_BAR_HEIGHT, RoleColor);
+    }
+    float Result = UILineHeight(Small) + 2.f + DUNGEON_PARTY_BAR_HEIGHT + UI_GAP_SMALL;
+    return Result;
+}
+
+// NOTE(zoubir): the local player at the bottom, the others stacked above
+internal void
+DrawDungeonParty(render_context *RenderContext, app_state *AppState, u32 WindowHeight)
+{
+    float FrameHeight = UILineHeight(AppState->Fonts.Small) + 2.f +
+        DUNGEON_PARTY_BAR_HEIGHT + UI_GAP_SMALL;
+    float X = DUNGEON_PARTY_MARGIN;
+    float Y = (float)WindowHeight - DUNGEON_PARTY_MARGIN - FrameHeight;
+    for(u32 Pass = 0; Pass < 2; Pass++)
+    {
+        for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+        {
+            player_slot *Slot = &AppState->Players[SlotIndex];
+            bool32 Local = SlotIndex == AppState->LocalPlayerIndex;
+            if (!Slot->Active || !Slot->Entity || Local != (Pass == 0))
+            {
+                continue;
+            }
+            DrawPartyFrame(RenderContext, AppState, SlotIndex, X, Y);
+            Y -= FrameHeight;
+        }
+    }
+}
+
 // NOTE(zoubir): from the screen pass, every frame
 internal void
 DoDungeonHud(render_context *RenderContext, app_state *AppState, app_input *Input,
-             u32 WindowWidth)
+             u32 WindowWidth, u32 WindowHeight)
 {
     if (!IsDungeon(AppState))
     {
@@ -171,4 +239,5 @@ DoDungeonHud(render_context *RenderContext, app_state *AppState, app_input *Inpu
     Y += DrawDungeonObjective(RenderContext, AppState, CenterX, Y) + UI_GAP_SMALL;
     Y += DrawDungeonBossBar(RenderContext, AppState, CenterX, Y);
     DoDungeonRolePicker(RenderContext, AppState, Input, CenterX, Y);
+    DrawDungeonParty(RenderContext, AppState, WindowHeight);
 }
