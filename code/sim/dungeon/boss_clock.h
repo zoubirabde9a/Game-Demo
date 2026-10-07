@@ -32,6 +32,8 @@ struct boss_clock
     // NOTE(zoubir): what the boss's hits are multiplied by, 1 until it
     // enrages
     float DamageScale;
+    // NOTE(zoubir): Doom pulses dealt since the boss enraged
+    u32 DoomPulses;
     // NOTE(zoubir): what the HUD shows: whole seconds left (0 once
     // enraged) and the stage. Offline the clock sets them; online the
     // snapshot does (client/dungeon/dungeon_net.cpp)

@@ -49,10 +49,14 @@ TestBossClockEnragesAndHitsHarder()
     float Enraged = DungeonScaleDamage(AppState, Player, Boss, 10.f);
     Check(Enraged > 1.45f * Calm && Enraged < 1.55f * Calm);
 
-    // NOTE(zoubir): it grows the longer the party stays
+    // NOTE(zoubir): it grows the longer the party stays, and Doom hits
+    // the party wherever it stands in the room
+    float HpBeforeDoom = Player->Hp;
     Run->Clock.StartSeconds -= 2.f * BOSS_ENRAGE_RAMP_SECONDS;
     TickCrypt(&Crypt, 1);
     Check(Run->Clock.DamageScale > BOSS_ENRAGE_DAMAGE + BOSS_ENRAGE_RAMP);
+    Check(Run->Clock.DoomPulses >= 5);
+    Check(Player->Hp < HpBeforeDoom - BOSS_DOOM_SHARE * Player->MaxHp);
 
     // NOTE(zoubir): the boss dies, the fight ends, hits are plain again
     KillRoomMonsters(&Crypt, 3);

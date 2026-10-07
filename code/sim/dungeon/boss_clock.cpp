@@ -5,8 +5,11 @@
    the HUD turns the clock red. When it runs out the boss goes berserk:
    it moves faster, turns its enraged colour if it had not yet, and every
    hit on a player is BOSS_ENRAGE_DAMAGE harder, growing by
-   BOSS_ENRAGE_RAMP every BOSS_ENRAGE_RAMP_SECONDS until the party wipes
-   or kills it.
+   BOSS_ENRAGE_RAMP every BOSS_ENRAGE_RAMP_SECONDS. On top of that, every
+   BOSS_DOOM_SECONDS a Doom pulse hits every player in the room for
+   BOSS_DOOM_SHARE of their health times the same growing scale, so even
+   a boss whose own blows are few (Gravecaller Ossian lobs shells and
+   raises the dead) wipes the party within seconds.
 
    The limits are for the three players the dungeon is made for, about
    1.3 times what a party playing its rotations well needs (the boss's
@@ -25,6 +28,8 @@
 #define BOSS_ENRAGE_MOST 4.f
 #define BOSS_ENRAGE_SPEED 1.25f
 #define BOSS_ENRAGE_TINT 0xFF4040FF
+#define BOSS_DOOM_SECONDS 2.f
+#define BOSS_DOOM_SHARE 0.08f
 
 struct boss_clock_def
 {
@@ -35,7 +40,7 @@ struct boss_clock_def
 global_variable boss_clock_def BossClockDefs[] =
 {
     {MonsterKind_Gravecaller, 135.f},
-    {MonsterKind_BroodQueen, 150.f},
+    {MonsterKind_BroodQueen, 135.f},
     {MonsterKind_HollowKing, 180.f},
 };
 
@@ -86,6 +91,26 @@ EnrageBoss(app_state *AppState, world_entity *Boss)
     EmitBurst(&AppState->Events, SimBurst_Spawn, SIM_NOBODY, Boss->Position);
 }
 
+// NOTE(zoubir): a Doom pulse: every living player in the fight's room
+// takes BOSS_DOOM_SHARE of their health, times the enrage's scale. It
+// comes from nowhere, so the party's scaling does not grow it again, but
+// a ward, Shield Wall and a rally still soften it
+internal void
+DoomPulse(app_state *AppState, dungeon_run *Run)
+{
+    world *World = &AppState->World;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        world_entity *Player = LivingPlayerInSlot(AppState, SlotIndex);
+        if (Player && RoomAtPosition(World, Player->Position.XY) == Run->FightingRoom)
+        {
+            EmitBurst(&AppState->Events, SimBurst_Impact, SIM_NOBODY, ChestOf(Player));
+            DamageEntity(AppState, World, Player,
+                         BOSS_DOOM_SHARE * Player->MaxHp * Run->Clock.DamageScale, 0);
+        }
+    }
+}
+
 // NOTE(zoubir): once a tick while a fight lasts, from UpdateBossEvents;
 // Boss is the fight's boss, 0 for none
 internal void
@@ -119,6 +144,12 @@ UpdateBossClock(app_state *AppState, dungeon_run *Run, world_entity *Boss)
         float Steps = (float)(u32)(-Left / BOSS_ENRAGE_RAMP_SECONDS);
         Clock->DamageScale = Minimum(BOSS_ENRAGE_MOST,
                                      BOSS_ENRAGE_DAMAGE + BOSS_ENRAGE_RAMP * Steps);
+        u32 Pulses = (u32)(-Left / BOSS_DOOM_SECONDS);
+        while (Clock->DoomPulses < Pulses)
+        {
+            Clock->DoomPulses++;
+            DoomPulse(AppState, Run);
+        }
     }
     else if (Left <= BOSS_CLOCK_WARNING)
     {

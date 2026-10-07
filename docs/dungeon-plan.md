@@ -23,11 +23,15 @@ A player picks a role in the lobby room before the first gate, and can change it
 | Threat per damage | 4x | 1x (heals make threat on every monster in the fight, half the healing) | 1x |
 | X | Fireball | Fireball (weak, at half damage) | Fireball |
 | A | Taunt: every monster within 260 attacks you for 4 s, and you stay ahead after; Shield Wall for 2 s (8 s cooldown) | Sanctuary: a circle at the cursor that heals allies inside 8 a second for 5 s (14 s) | Inferno: a meteor at the cursor lands 0.6 s later for 32 on everything in a circle of 90 and marks each, then the ground burns 10 a second for 3 s and keeps their marks alive (9 s) |
-| E | Shield Slam: monsters within 110 take 15, are stunned 1 s and shoved, and turn on you; you heal 5% of your health for each one struck (up to five); you take 40% for 4 s and allies within 170 take 25% less for 4 s (14 s) | Ward an ally: absorbs the next 36, and every ally within 150 of them absorbs 18 (10 s) | Detonate: blows up the Searing marks on the foe under the cursor for 12 plus 20 a stack; a foe standing in burning ground takes every marked foe in that fire with it (7 s) |
+| E | Shield Slam: monsters within 110 take 15, are stunned 1 s and shoved, and turn on you; you heal 5% of your health for each one struck (up to five); you take 40% for 4 s and allies within 170 take 25% less for 4 s; every monster struck is Sundered, taking 15% more from everyone for 10 s (10 s) | Ward an ally: absorbs the next 36, and every ally within 150 of them absorbs 18; while it holds the warded deal 12% more (10 s) | Detonate: blows up the Searing marks on the foe under the cursor for 12 plus 20 a stack; a foe standing in burning ground takes every marked foe in that fire with it (7 s) |
 | V | Intercept: leap to an ally and pull what was on them (10 s) | Mending Bolt: heal an ally for 34 (2.2 s) | Kunai: marks the foe it hits |
 | F | Blink | Blink | Blink |
 
 The numbers are `sim/dungeon/role_kits/role_numbers.h`; each kit is a file in `sim/dungeon/role_kits/`.
+
+### How the roles feed each other
+
+Each role has one job in the damage race besides its own. The tank keeps the boss Sundered: Shield Slam's sunder lasts as long as its cooldown, so a tank who slams on cooldown keeps the party's damage 15% up. The healer's Ward makes its ally deal 12% more while it holds, so the ward is a choice every 10 s: on the tank before a big hit, on the striker otherwise. The striker spends Searing marks. All three stack: a warded striker detonating a full mark on a sundered boss hits 1.29 times as hard as a lone one. The marks a monster carries live in one table (`sim/dungeon/role_kits/foe_marks.cpp`); a sundered monster shows a cracked steel ring at its feet.
 
 ### The striker's rotation
 
@@ -39,7 +43,7 @@ At its best the striker deals about 34 a second to one target. One who detonates
 
 Between fights every living player heals 8% of their health a second, so a party walks into the next room whole with or without a healer.
 
-Players cannot hurt each other in a run: a player's hit on another player does nothing, not even a shove (`IsFriendlyFire`, called by `DamageEntity` and `ApplyHit`). Server bots (`server --bots N`) fight only monsters there and take a role by their slot, tank, healer and damage in turn, so a lone player online gets a party. They play it: a tank bot slams and taunts what is near it and leaps to an ally with monsters on them, a healer bot stays out of melee and heals, wards and lays sanctuaries on whoever is hurt, a damage bot throws kunai at what it fights, detonates a full mark or one about to fade, and drops infernos (`server/bots.cpp`).
+Players cannot hurt each other in a run: a player's hit on another player does nothing, not even a shove (`IsFriendlyFire`, called by `DamageEntity` and `ApplyHit`). Server bots (`server --bots N`) fight only monsters there and take a role by their slot, tank, healer and damage in turn, so a lone player online gets a party. They play it: a tank bot slams and taunts what is near it and leaps to an ally with monsters on them, a healer bot stays out of melee and heals, wards and lays sanctuaries on whoever is hurt and wards the striker when nobody is, a damage bot throws kunai at what it fights, detonates a full mark or one about to fade, and drops infernos (`server/bots.cpp`).
 
 ### Role talents
 
@@ -99,15 +103,15 @@ The roles keep up at the square root of that damage: the tank takes only the squ
 
 ## Bosses
 
-Every boss fight is a damage race. The boss's enrage timer shows under its health bar (`sim/dungeon/boss_clock.cpp`) and turns red with 30 s left. When it runs out the boss goes berserk: faster, red, and every hit on a player 50% harder, 25% more every 5 s after, so the party dies within seconds. Surviving is not enough; the party has to keep its damage up and kill the adds in time.
+Every boss fight is a damage race. The boss's enrage timer shows under its health bar (`sim/dungeon/boss_clock.cpp`) and turns red with 30 s left. When it runs out the boss goes berserk: faster, red, and every hit on a player 50% harder, 25% more every 5 s after. Every 2 s a Doom pulse hits everyone in the room for 8% of their health times the same scale, so even Gravecaller Ossian, who hits rarely, wipes the party within about 15 s. Surviving is not enough; the party has to keep its damage up and kill the adds in time.
 
 | Boss | Timer for three players |
 |---|---|
 | Gravecaller Ossian | 2:15 |
-| The Brood Queen | 2:30 |
+| The Brood Queen | 2:15 |
 | The Hollow King | 3:00 |
 
-A timer is about 1.3 times what a party playing its rotations well needs: the boss's and its adds' health over the party's damage at 70% of its best (striker about 24 a second, tank 4, healer 1). Another party size scales it by its health growth over its head count. The clock starts again after a wipe. `tools/dungeon_balance.cpp` runs three server bots through the crypt and times every fight; with the bots playing the striker rotation they kill the Brood Queen in about 2:05 and the Hollow King in 2:00 to 2:30, and are closest to the timer on Gravecaller Ossian, where they are the lowest level. People should do better than bots.
+A timer is about 1.3 times what a party playing its rotations well needs: the boss's and its adds' health over the party's damage at 70% of its best (striker about 24 a second, tank 4, healer 1). Another party size scales it by its health growth over its head count. The clock starts again after a wipe. `tools/dungeon_balance.cpp` runs three server bots through the crypt and times every fight; with the bots playing the striker rotation, sunder and wards they kill the Brood Queen in 1:20 to 2:10 and the Hollow King in 1:45 to 2:30, and can run out of time on Gravecaller Ossian, where they are the lowest level. People should do better than bots.
 
 Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, summon, burrow, mend), and the dungeon adds scripted phase events at health thresholds (adds, hazards) on top, in `sim/dungeon/boss_scripts.cpp`.
 
@@ -124,7 +128,7 @@ Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, 
 - At 70% two Hexweaver Spiders crawl out of the nest, at 40% three. Each one left alive 18 s crawls back into her and heals her 5%.
 
 **The Hollow King**, the last boss.
-- 1400 health before party scaling, nearly twice the Brood Queen's.
+- 1700 health before party scaling, more than twice the Brood Queen's.
 - Soul Cleave: a huge slam. The tank keeps it facing away from the group.
 - Shadow Rush: a charge through the room.
 - Wail of the Dead (below 40%): four souls flying out in an X round its target.
@@ -132,7 +136,7 @@ Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, 
 
 ## Online
 
-The protocol id is "GDMh". Each `net_score` has a `Dungeon` byte (the role, Shield Wall, a ward and revive progress) and a `DungeonMore` byte (a rally, a renewal, how many monsters are after the player). Each snapshot has a dungeon block (`HasDungeon` 0 elsewhere): the room being fought, the rooms cleared, the wipes, the boss's kind and health, the monsters left, the healers' sanctuaries and the infernos, each with a bit for a talent that widened it, the boss's enrage timer (`BossClock`: whole seconds left, 255 once enraged), and the five Searing marks nearest the viewer (entity Id and stacks in two bytes each). The talent ranks the viewer gets cover the role branch too (24 instead of 18). To fit the fullest snapshot in a packet the entity cap went from 45 to 43. A role pick rides in bits 29-30 of the held buttons (`NET_ROLE_SHIFT`). The server packs in `server/sim_game/dungeon.cpp`; the client reads it in `client/dungeon/dungeon_net.cpp` and builds the gate walls itself from the room states, so its prediction stops at closed gates. `tests/dungeon_online_tests.cpp` runs a real server on the crypt with a real client.
+The protocol id is "GDMi". Each `net_score` has a `Dungeon` byte (the role, Shield Wall, a ward and revive progress) and a `DungeonMore` byte (a rally, a renewal, how many monsters are after the player). Each snapshot has a dungeon block (`HasDungeon` 0 elsewhere): the room being fought, the rooms cleared, the wipes, the boss's kind and health, the monsters left, the healers' sanctuaries and the infernos, each with a bit for a talent that widened it, the boss's enrage timer (`BossClock`: whole seconds left, 255 once enraged), and the foe marks on the five marked monsters nearest the viewer (entity Id, Searing stacks and Sunder in two bytes each). The talent ranks the viewer gets cover the role branch too (24 instead of 18). To fit the fullest snapshot in a packet the entity cap went from 45 to 43. A role pick rides in bits 29-30 of the held buttons (`NET_ROLE_SHIFT`). The server packs in `server/sim_game/dungeon.cpp`; the client reads it in `client/dungeon/dungeon_net.cpp` and builds the gate walls itself from the room states, so its prediction stops at closed gates. `tests/dungeon_online_tests.cpp` runs a real server on the crypt with a real client.
 
 ## Steps
 
