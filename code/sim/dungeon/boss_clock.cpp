@@ -14,7 +14,7 @@
    The limits are for the three players the dungeon is made for, and are
    tuned with tools/dungeon_balance.cpp over several seeds of full runs
    (docs/dungeon-plan.md, "Bosses"): the bots, playing the class kits,
-   finish the first boss with 40 s to spare, the second with 20 s, and
+   finish the first boss with 40 s to spare, the second with 25 s, and
    the last within seconds of its clock or not at all, so a
    party that loses its damage for long, or lets the adds merge, runs
    out. When the class kits change how hard they hit, the boss health in
@@ -40,8 +40,8 @@ struct boss_clock_def
 
 global_variable boss_clock_def BossClockDefs[] =
 {
-    {MonsterKind_Gravecaller, 100.f},
-    {MonsterKind_BroodQueen, 105.f},
+    {MonsterKind_Gravecaller, 120.f},
+    {MonsterKind_BroodQueen, 80.f},
     {MonsterKind_HollowKing, 140.f},
 };
 

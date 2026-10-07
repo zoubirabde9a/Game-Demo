@@ -7,6 +7,8 @@
             ground there, leaving the struck bleeding; Raise the Honour
             Guard lifts two Skeletal Thralls, four at most, which the
             healer and the damage players clear while the tank holds it.
+            Grave Circle rings its target with bone: hold still in the
+            middle and it misses, keep moving and it does not.
    Enraged (below half health): faster, glows a sickly green, and adds
             Grave Lunge: it vanishes and strikes from behind its target.
    The dungeon adds the rest of the fight (sim/dungeon/boss_scripts.cpp):
@@ -64,6 +66,25 @@ DefineMonster_Gravecaller(monster_def *Def)
     Spikes->Knockback = 200.f;
     Spikes->Status = StatusEffect_Bleeding;
     Spikes->StatusSeconds = 3.f;
+
+    // NOTE(zoubir): the answer to Bone Spikes: those make the party run,
+    // this one punishes running. One ring of bone round where its target
+    // will be; whoever holds still in the middle is spared, and so is
+    // anyone well clear, but a player who keeps moving runs into it
+    monster_ability *Circle = AddMonsterAbility(Def, MonsterAbility_Mortar,
+                                                "Grave Circle");
+    Circle->MaxRange = 420.f;
+    Circle->Cooldown = 9.f;
+    Circle->Windup = 1.3f;
+    Circle->Active = 0.3f;
+    Circle->Recover = 0.4f;
+    Circle->Damage = 24.f;
+    Circle->Radius = 130.f;
+    Circle->InnerRadius = 45.f;
+    Circle->Count = 1;
+    Circle->Knockback = 250.f;
+    Circle->Status = StatusEffect_Bleeding;
+    Circle->StatusSeconds = 3.f;
 
     monster_ability *Guard = AddMonsterAbility(Def, MonsterAbility_Summon,
                                                "Raise the Honour Guard");

@@ -4,7 +4,8 @@
    cluster of red eyes. Never roams (SpawnWeight 0).
 
    Calm:    Web Nova slams the ground round her and leaves webs that slow
-            anyone in them; Venom Rain throws a fan of four poisoned barbs.
+            anyone in them; Venom Rain throws a fan of four poisoned barbs;
+            Pounce leaps along a locked line onto a player far from her.
    Enraged (below half health): faster, flushed red, and Hatch: two
             Hexweaver Spiders crawl out of the sacs, four at most.
    The dungeon adds two more spiders at half health
@@ -62,6 +63,21 @@ DefineMonster_BroodQueen(monster_def *Def)
     Nova->StatusSeconds = 2.f;
     Nova->HazardSeconds = 5.f;
     Nova->HazardStyle = HazardStyle_Web;
+
+    // NOTE(zoubir): she does not wait for the ones who keep their
+    // distance: a leap along a locked line onto whoever is far off
+    monster_ability *Pounce = AddMonsterAbility(Def, MonsterAbility_Charge,
+                                                "Pounce");
+    Pounce->MinRange = 180.f;
+    Pounce->MaxRange = 520.f;
+    Pounce->Cooldown = 7.f;
+    Pounce->Windup = 0.9f;
+    Pounce->Active = 0.6f;
+    Pounce->Recover = 0.5f;
+    Pounce->Damage = 20.f;
+    Pounce->Radius = 50.f;
+    Pounce->Speed = 760.f;
+    Pounce->Knockback = 500.f;
 
     monster_ability *Rain = AddMonsterAbility(Def, MonsterAbility_Volley,
                                               "Venom Rain");

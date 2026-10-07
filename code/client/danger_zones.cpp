@@ -141,9 +141,12 @@ DrawDangerZones(render_context *RenderContext, app_state *AppState, v3 CameraOff
             {
                 for(u32 Point = 0; Point < Entity->AbilityPointCount; Point++)
                 {
+                    u32 Shape = Ability->InnerRadius > 0.f ?
+                        DangerRingShape(Ability->InnerRadius / Ability->Radius) : 0;
                     DrawDangerDisc(RenderContext, World, CameraOffset,
                                    Entity->AbilityPoints[Point],
-                                   Ability->Radius, Progress, DANGER_PALETTE_HARM);
+                                   Ability->Radius, Progress, DANGER_PALETTE_HARM,
+                                   Shape);
                 }
             } break;
 

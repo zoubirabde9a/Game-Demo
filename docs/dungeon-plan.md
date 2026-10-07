@@ -109,16 +109,17 @@ Every boss fight is a damage race. The boss's enrage timer shows under its healt
 
 | Boss | Timer for three players |
 |---|---|
-| Gravecaller Ossian | 1:40 |
-| The Brood Queen | 1:45 |
+| Gravecaller Ossian | 2:00 |
+| The Brood Queen | 1:20 |
 | The Hollow King | 2:20 |
 
-A timer is about 1.3 times what a party playing its rotations well needs: the boss's and its adds' health over the party's damage at 70% of its best (striker about 24 a second, tank 4, healer 1). A smaller party, short of a role, gets the time its health growth over its head count makes up (one player 1.43 times as long); a bigger one only half of that extra, so each player who joins still makes the race harder (four players 1.04 times, eight 1.7). The clock starts again after a wipe. `tools/dungeon_balance.cpp` runs three server bots through the crypt and times every fight, over several seeds (`dungeon_balance 30 3 2 8`): one run is too noisy to tune by, as elite affixes, pack spots and the bots' choices change a fight a lot. Tune against full runs, not bots dropped into a room: a party gains levels and talents on the way, and a boss that is a race for a party placed at it with a few rooms' experience is easy for one that walked there. Bosses were cut to two thirds of their health and made faster (shorter recoveries and cooldowns, quicker on their feet), so a fight is a tighter race with more to dodge rather than a long one: over eight full runs the bots kill Gravecaller Ossian in 38 to 60 s, the Brood Queen in 37 to 81 s, and the Hollow King in 90 to 137 s, running out of time about once in eight. `PROBE_DEATHS=1` prints the monsters standing round each player who falls. On the Ashen Causeway a Carapace Warden is the nearest at three deaths in four, for parties of three and four alike: its carapace takes hits from the front, so the damage players have to strike it from behind or the side while the tank holds it, which the bots did not do. Since striker bots fight from behind a shelled monster, three bots wipe there about 1.5 times a run before clearing it, four about 4 and five about 8: the Causeway is the dungeon's positioning check, and grows harder with every player past three as party scaling means it to.
+A timer is about 1.3 times what a party playing its rotations well needs: the boss's and its adds' health over the party's damage at 70% of its best (striker about 24 a second, tank 4, healer 1). A smaller party, short of a role, gets the time its health growth over its head count makes up (one player 1.43 times as long); a bigger one only half of that extra, so each player who joins still makes the race harder (four players 1.04 times, eight 1.7). The clock starts again after a wipe. `tools/dungeon_balance.cpp` runs three server bots through the crypt and times every fight, over several seeds (`dungeon_balance 30 3 2 8`): one run is too noisy to tune by, as elite affixes, pack spots and the bots' choices change a fight a lot. Tune against full runs, not bots dropped into a room: a party gains levels and talents on the way, and a boss that is a race for a party placed at it with a few rooms' experience is easy for one that walked there. Bosses were cut to two thirds of their health and made faster (shorter recoveries and cooldowns, quicker on their feet), so a fight is a tighter race with more to dodge rather than a long one: with each boss's signature attack (below), over eight full runs the bots kill Gravecaller Ossian in 43 to 78 s, the Brood Queen in 36 to 56 s, and the Hollow King in 105 to 149 s, running out of time about once in eight. The bots walk between rooms slowly (`.agents/issues/crypt-bots-wander.md`), so give the probe 60 minutes: `dungeon_balance 60 3 2 8`. `PROBE_DEATHS=1` prints the monsters standing round each player who falls. On the Ashen Causeway a Carapace Warden is the nearest at three deaths in four, for parties of three and four alike: its carapace takes hits from the front, so the damage players have to strike it from behind or the side while the tank holds it, which the bots did not do. Since striker bots fight from behind a shelled monster, three bots wipe there about 1.5 times a run before clearing it, four about 4 and five about 8: the Causeway is the dungeon's positioning check, and grows harder with every player past three as party scaling means it to.
 
 Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, summon, burrow, mend), and the dungeon adds scripted phase events at health thresholds (adds, hazards) on top, in `sim/dungeon/boss_scripts.cpp`.
 
 **Gravecaller Ossian**, a lich in rusted bone armour.
 - Bone Spikes: mortar, four spots around its target (the most a mortar marks); the struck bleed.
+- Grave Circle: one ring of bone round where its target is heading. The middle and the far side are safe: a player who holds still is spared, one who keeps running into it is not. It answers Bone Spikes, which make the party run.
 - Raise the Honour Guard: two Skeletal Thralls, four at most. The healer and damage players have to deal with them while the tank holds the boss.
 - Grave Lunge (below 50%): blinks behind its target and strikes.
 - At 66% and 33% the walls of the Ossuary crack and a Bone Shaman climbs out.
@@ -126,6 +127,7 @@ Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, 
 **The Brood Queen**, a spider the size of a house.
 - Web Nova: slam that slows and leaves webs.
 - Venom Rain: a fan of four poisoned barbs.
+- Pounce: from 180 to 520 away she leaps along a locked line at her target, so keeping your distance is no longer safe.
 - Hatch (below 50%): two Hexweaver Spiders.
 - At 70% two Hexweaver Spiders crawl out of the nest, at 40% three. Each one left alive 18 s crawls back into her and heals her 5%.
 
@@ -133,6 +135,7 @@ Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, 
 - 2300 health before party scaling, more than twice the Brood Queen's 1000 (Gravecaller Ossian has 620).
 - Soul Cleave: a huge slam. The tank keeps it facing away from the group.
 - Shadow Rush: a charge through the room.
+- Hollow Ring: the whole hall from 100 out to 420, everything but the ground at his feet. Soul Cleave sends the party out; the ring calls it back in.
 - Wail of the Dead (below 40%): four souls flying out in an X round its target.
 - At 75%, 50% and 25% Hollow Shades rise at the room's edges: two, then three, then four. A shade alive after 14 s returns to the king and heals him 6%, so the last wave left alone undoes a quarter of the fight.
 - At 60% and 30% he binds a Hollow Champion, an armoured elite Brute (about 650 health for three players). The party has 25 s to burn it down: alive past that it erupts for half of everyone's health and heals the king 10%. That is a second damage race inside the first, and the HUD counts it down under the enrage timer in larger, bright orange type that beats in the last 10 s ("Kill the champion: it erupts in 12 s"). Lesser adds show their own count ("Adds return to the boss in 9 s").
