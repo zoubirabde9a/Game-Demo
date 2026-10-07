@@ -64,6 +64,14 @@ DrawReflection(render_context *RenderContext, render_program TextureProgram,
     }
     float Tile = (float)World->TileHeight;
     i32 TileX = FloorDiv((i32)floorf(Entity->Position.X), (i32)World->TileWidth);
+    // NOTE(zoubir): only a body standing over water or ice is reflected;
+    // one on the bank above a river is not, though its reflection would
+    // fall on the river's rows
+    i32 FootY = FloorDiv((i32)floorf(Entity->Position.Y), (i32)World->TileHeight);
+    if (!ReflectionColorAt(World, TileX, FootY))
+    {
+        return;
+    }
     float Top = Feet.Y + Lift - (1.f - Origin.Y) * Quad.Y;
     float Left = Feet.X - Origin.X * Quad.X;
     v4 Uvs = Entity->Uvs;
