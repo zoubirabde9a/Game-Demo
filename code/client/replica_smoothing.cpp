@@ -163,6 +163,10 @@ SetSmoothingTarget(app_state *AppState, memory_arena *Arena,
         return;
     }
     v3 Target = Replica->Position;
+    // NOTE(zoubir): during the duel's final blow the server moves things
+    // slower than their velocity says (sim/round_break.cpp); the curve
+    // must leave each sample at the speed it really moves
+    v3 Velocity = RoundTimeScale(AppState) * Replica->Velocity;
     u32 Count = Smoothing->Count[Id];
     bool32 Restart = !Reused || Count == 0;
     if (!Restart)
@@ -178,14 +182,14 @@ SetSmoothingTarget(app_state *AppState, memory_arena *Arena,
         Smoothing->Head[Id] = 0;
         Smoothing->SampleTick[Id][0] = Tick;
         Smoothing->SamplePosition[Id][0] = Target;
-        Smoothing->SampleVelocity[Id][0] = Replica->Velocity;
+        Smoothing->SampleVelocity[Id][0] = Velocity;
         return;
     }
     u32 Head = (Smoothing->Head[Id] + 1) % REPLICA_HISTORY;
     Smoothing->Head[Id] = (u8)Head;
     Smoothing->SampleTick[Id][Head] = Tick;
     Smoothing->SamplePosition[Id][Head] = Target;
-    Smoothing->SampleVelocity[Id][Head] = Replica->Velocity;
+    Smoothing->SampleVelocity[Id][Head] = Velocity;
     if (Count < REPLICA_HISTORY)
     {
         Smoothing->Count[Id] = (u8)(Count + 1);

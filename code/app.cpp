@@ -87,6 +87,9 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
                         MoveNetButtons(LocalInput->Move),
                         LocalInput->Target);
     RunWorldTick(AppState, &AppState->WorldArena, Input->DeltaTime);
+    // NOTE(zoubir): the duel's final blow slows the rest of the frame's
+    // effects with the world (client/final_blow.cpp)
+    Input->DeltaTime *= RoundTimeScale(AppState);
     PlaySimEvents(AppState, Input->DeltaTime);
     UpdateRewindFx(AppState, Input->DeltaTime);
     FrameTimingMark(AppState, FramePart_Simulate);

@@ -3,7 +3,8 @@
    the round gave them, and closes again when the next round starts
    (unless the player closed it first). Under it, above the ability bar,
    a slim plate counts down to the next round with a bar that drains as
-   the break runs out. */
+   the break runs out. Both wait for the final blow (client/final_blow.cpp)
+   to finish playing. */
 
 #define ROUND_BREAK_PLATE_WIDTH 380.f
 
@@ -12,7 +13,8 @@ internal void
 OpenTalentsForRoundBreak(app_state *AppState)
 {
     talent_panel *Panel = GetTalentPanel(AppState);
-    if (AppState->RoundBreak > 0.f && !Panel->OpenedForBreak)
+    if (AppState->RoundBreak > 0.f && FinalBlowLeft(AppState) <= 0.f &&
+        !Panel->OpenedForBreak)
     {
         Panel->Open = true;
         Panel->OpenedForBreak = true;
@@ -31,7 +33,7 @@ DrawRoundBreak(render_context *RenderContext, app_state *AppState,
                u32 WindowWidth, u32 WindowHeight)
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
-    if (AppState->RoundBreak <= 0.f || !Slot->Active)
+    if (AppState->RoundBreak <= 0.f || FinalBlowLeft(AppState) > 0.f || !Slot->Active)
     {
         return;
     }
@@ -46,11 +48,11 @@ DrawRoundBreak(render_context *RenderContext, app_state *AppState,
 
     char Text[96];
     snprintf(Text, sizeof(Text), "Next round in %.0f  -  pick your talents",
-             Maximum(1.f, AppState->RoundBreak + 0.5f));
+             Maximum(1.f, RoundBreakLeft(AppState) + 0.5f));
     UIText(RenderContext, Body, X + 0.5f * Width, Y + UI_GAP_SMALL, Text,
            UI_COLOR_TEXT, UIAlign_Center);
 
-    float Share = Clamp01(AppState->RoundBreak / ROUND_BREAK_SECONDS);
+    float Share = Clamp01(RoundBreakLeft(AppState) / ROUND_BREAK_SECONDS);
     float BarX = X + UI_GAP_LARGE;
     float BarWidth = Width - 2.f * UI_GAP_LARGE;
     float BarY = Y + Height - 6.f;

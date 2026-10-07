@@ -3,8 +3,11 @@
    fading out in its last second; lines with the local player in them are
    gold. While the local player is dead, a glass plate in the middle of
    the screen names who killed it and counts down to the respawn with a
-   bar that fills as it comes. Both read only what offline and online
-   play fill the same way: the feed's events and the slot's RespawnTimer. */
+   bar that fills as it comes; in a dungeon it also says how to fly the
+   loose camera (client/free_camera.cpp). The plate waits while the
+   duel's final blow plays (ui/final_blow_view.cpp). Both read only what
+   offline and online play fill the same way: the feed's events and the
+   slot's RespawnTimer. */
 
 #define KILL_FEED_TOP (UI_GAP_LARGE + MINIMAP_PIXELS + 34.f)
 #define KILL_FEED_FADE_SECONDS 1.f
@@ -79,14 +82,23 @@ DrawDeathPlate(render_context *RenderContext, app_state *AppState,
                u32 WindowWidth, u32 WindowHeight)
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
-    if (!Slot->Active || !IsDeadPlayer(Slot->Entity))
+    if (!Slot->Active || !IsDeadPlayer(Slot->Entity) || FinalBlowLeft(AppState) > 0.f)
     {
         return;
     }
     font *Title = AppState->Fonts.Title ? AppState->Fonts.Title : AppState->Fonts.Body;
     font *Body = AppState->Fonts.Body;
+    bool32 FreeCamera = GetMapDef((map_id)AppState->World.MapId)->Dungeon;
+    char Hint[96];
+    snprintf(Hint, sizeof(Hint), "%s%sSD or arrows look around, Space comes back",
+             LayoutKeyName('Z'), LayoutKeyName('Q'));
     float Width = DEATH_PLATE_WIDTH;
     float Height = UILineHeight(Title) + UILineHeight(Body) + 4.f * UI_GAP;
+    if (FreeCamera)
+    {
+        Width = Maximum(Width, UITextWidth(Body, Hint) + 2.f * UI_GAP_LARGE);
+        Height += UILineHeight(Body) + UI_GAP_SMALL;
+    }
     float X = 0.5f * ((float)WindowWidth - Width);
     float Y = 0.32f * (float)WindowHeight;
     DrawUIPanel(RenderContext, X, Y, Width, Height, UI_COLOR_HEALTH);
@@ -108,7 +120,8 @@ DrawDeathPlate(render_context *RenderContext, app_state *AppState,
 
     // NOTE(zoubir): during a round break the respawn waits for it to end
     // (sim/round_break.cpp); online the client only knows the break's
-    float Seconds = Maximum(0.f, Maximum(Slot->RespawnTimer, AppState->RoundBreak));
+    float Seconds = AppState->RoundBreak > 0.f ? RoundBreakLeft(AppState) :
+        Maximum(0.f, Slot->RespawnTimer);
     // NOTE(zoubir): on a round map the dead are out until one player is
     // left standing; the round break then counts down
     bool32 OutForRound = IsRoundMap(AppState) && AppState->RoundBreak <= 0.f;
@@ -123,6 +136,12 @@ DrawDeathPlate(render_context *RenderContext, app_state *AppState,
     }
     float TextY = Y + UI_GAP + UILineHeight(Title) + UI_GAP_SMALL;
     UIText(RenderContext, Body, CentreX, TextY, Text, UI_COLOR_TEXT_MUTED, UIAlign_Center);
+    if (FreeCamera)
+    {
+        TextY += UILineHeight(Body) + UI_GAP_SMALL;
+        UIText(RenderContext, Body, CentreX, TextY, Hint, UI_COLOR_TEXT_MUTED,
+               UIAlign_Center);
+    }
 
     // NOTE(zoubir): fills toward the respawn; the full length is the
     // player's own respawn time (Second Wind shortens it)

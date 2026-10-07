@@ -13,9 +13,23 @@
    each player respawns on their own, as under the classic rules. Online
    the server sends the time left in every snapshot
    (net_snapshot.RoundBreak), so prediction blocks the same keys and the
-   client draws the countdown (ui/round_break_view.cpp). */
+   client draws the countdown (ui/round_break_view.cpp).
+
+   A break that a death started opens with the final blow: for
+   FINAL_BLOW_SECONDS the whole world runs in slow motion (RoundTimeScale,
+   which SimulateTick applies), nobody can move or press a key, and the
+   client plays the death as a cinematic (client/final_blow.cpp). The
+   break counts those seconds on top of its own, so RoundBreak starts at
+   ROUND_BREAK_SECONDS + FINAL_BLOW_SECONDS and the client tells the two
+   apart from the one number every snapshot already carries. */
 
 #define ROUND_BREAK_SECONDS 10.f
+// NOTE(zoubir): the final blow's slow motion: the world runs at
+// FINAL_BLOW_SLOWEST of its speed, easing back to full over the last
+// FINAL_BLOW_EASE_OUT seconds
+#define FINAL_BLOW_SECONDS 3.f
+#define FINAL_BLOW_SLOWEST 0.2f
+#define FINAL_BLOW_EASE_OUT 0.6f
 
 // NOTE(zoubir): a dead player on a round map waits this long, which no
 // round lasts; the next round's start brings them back (setup.cpp)
@@ -29,6 +43,34 @@ IsRoundMap(app_state *AppState)
     map_def *Map = GetMapDef((map_id)AppState->World.MapId);
     bool32 Result = GameRules.RoundBreaks && Map->MonsterPopulation == 0 &&
         !Map->Dungeon;
+    return Result;
+}
+
+// NOTE(zoubir): seconds of the final blow's slow motion left, 0 when
+// none plays
+inline float
+FinalBlowLeft(app_state *AppState)
+{
+    float Result = Maximum(0.f, AppState->RoundBreak - ROUND_BREAK_SECONDS);
+    return Result;
+}
+
+// NOTE(zoubir): seconds of the break proper left, not counting the
+// final blow; what the countdowns show
+inline float
+RoundBreakLeft(app_state *AppState)
+{
+    float Result = Minimum(AppState->RoundBreak, ROUND_BREAK_SECONDS);
+    return Result;
+}
+
+// NOTE(zoubir): how fast the world runs this tick, 1 outside the final blow
+inline float
+RoundTimeScale(app_state *AppState)
+{
+    float Left = FinalBlowLeft(AppState);
+    float Slow = Minimum(1.f, Left / FINAL_BLOW_EASE_OUT);
+    float Result = 1.f - (1.f - FINAL_BLOW_SLOWEST) * Slow;
     return Result;
 }
 
@@ -57,11 +99,12 @@ CountStandingPlayers(app_state *AppState, bool32 *AnyoneOut)
 }
 
 // NOTE(zoubir): the round is over: a level for everyone, and the dead
-// wait for the break to end
+// wait for the break to end. FinalBlow is true when a death ended it,
+// not a player leaving: the break then opens with the slow motion
 internal void
-BeginRoundBreak(app_state *AppState)
+BeginRoundBreak(app_state *AppState, bool32 FinalBlow)
 {
-    AppState->RoundBreak = ROUND_BREAK_SECONDS;
+    AppState->RoundBreak = ROUND_BREAK_SECONDS + (FinalBlow ? FINAL_BLOW_SECONDS : 0.f);
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];
@@ -80,7 +123,7 @@ BeginRoundBreak(app_state *AppState)
             Slot->DelayedInputCount = 0;
             if (IsDeadPlayer(Slot->Entity))
             {
-                Slot->RespawnTimer = ROUND_BREAK_SECONDS;
+                Slot->RespawnTimer = AppState->RoundBreak;
             }
         }
     }
@@ -105,16 +148,17 @@ StartRoundBreak(app_state *AppState, player_slot *Victim)
     bool32 AnyoneOut;
     if (CountStandingPlayers(AppState, &AnyoneOut) <= 1)
     {
-        BeginRoundBreak(AppState);
+        BeginRoundBreak(AppState, true);
     }
 }
 
 // NOTE(zoubir): the keys a player may press now; everything but jump is
-// held back during a break
+// held back during a break, and jump too while the final blow plays
 inline u32
 RoundBreakButtons(app_state *AppState)
 {
-    u32 Result = AppState->RoundBreak > 0.f ? (u32)PlayerButton_Jump : ~0u;
+    u32 Result = FinalBlowLeft(AppState) > 0.f ? 0u :
+        AppState->RoundBreak > 0.f ? (u32)PlayerButton_Jump : ~0u;
     return Result;
 }
 
@@ -129,7 +173,7 @@ UpdateRoundBreak(app_state *AppState, float DeltaTime)
         if (IsRoundMap(AppState) &&
             CountStandingPlayers(AppState, &AnyoneOut) <= 1 && AnyoneOut)
         {
-            BeginRoundBreak(AppState);
+            BeginRoundBreak(AppState, false);
         }
         return;
     }
@@ -145,6 +189,13 @@ UpdateRoundBreak(app_state *AppState, float DeltaTime)
         {
             Slot->Entity->SpawnShield = Maximum(Slot->Entity->SpawnShield,
                                                 AppState->RoundBreak);
+        }
+        // NOTE(zoubir): the dead come back as the break ends; their own
+        // countdown runs on the slowed clock (simulate.cpp), the break's
+        // on the real one
+        else if (Slot->Active && Slot->Entity)
+        {
+            Slot->RespawnTimer = AppState->RoundBreak;
         }
     }
 }

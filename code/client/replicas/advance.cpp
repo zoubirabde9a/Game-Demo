@@ -12,6 +12,12 @@ AdvanceReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
 {
     world *World = &AppState->World;
     AppState->RoundBreak = Maximum(0.f, AppState->RoundBreak - DeltaTime);
+    // NOTE(zoubir): the server runs the world slower while the duel's
+    // final blow plays (sim/round_break.cpp), so the timers and animation
+    // frames below do too. The render clock follows the server's ticks,
+    // which keep their real pace
+    float RealTime = DeltaTime;
+    DeltaTime *= RoundTimeScale(AppState);
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];
@@ -20,7 +26,7 @@ AdvanceReplicas(app_state *AppState, memory_arena *Arena, replica_table *Table,
             Slot->RespawnTimer = Maximum(0.f, Slot->RespawnTimer - DeltaTime);
         }
     }
-    AdvanceSmoothing(&Table->Smoothing, DeltaTime, (float)NET_TICK_RATE);
+    AdvanceSmoothing(&Table->Smoothing, RealTime, (float)NET_TICK_RATE);
     for(u32 Id = 0; Id < MAX_REPLICAS; Id++)
     {
         if (Table->LocalIndexPlusOne[Id])

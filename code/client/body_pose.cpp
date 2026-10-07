@@ -315,6 +315,10 @@ SetBodySwing(app_state *AppState, world_entity *Entity, float Angle,
         V2(Absolute(Sideways), 0.6f * Absolute(Sin(Angle)));
 }
 
+// NOTE(zoubir): in client/final_blow.cpp, included later
+internal bool32 FinalBlowPose(app_state *AppState, world_entity *Entity,
+                              body_pose_draw *Pose);
+
 // NOTE(zoubir): width and height multipliers for the sprite (the area
 // stays about the same, so a squash reads as weight, not shrinking), its
 // turn in radians and its flash
@@ -322,6 +326,11 @@ internal body_pose_draw
 GetBodyPose(app_state *AppState, world_entity *Entity)
 {
     body_pose_draw Result = {V2(1.f, 1.f), 0.f, false, 0.f, 0.f};
+    // NOTE(zoubir): the duel's last death topples on its own clock
+    if (FinalBlowPose(AppState, Entity, &Result))
+    {
+        return Result;
+    }
     u32 Index = (u32)(Entity - AppState->World.Entities);
     if (!AppState->BodyPoses || Index >= BODY_POSE_SLOTS || !HasBodyPose(Entity))
     {

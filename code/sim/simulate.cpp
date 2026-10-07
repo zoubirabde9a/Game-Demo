@@ -41,6 +41,9 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
     // NOTE(zoubir): the break after a death, when nobody fights
     // (sim/round_break.cpp)
     UpdateRoundBreak(AppState, DeltaTime);
+    // NOTE(zoubir): the duel's final blow plays in slow motion; the
+    // break above counts real seconds, everything below the slowed ones
+    DeltaTime *= RoundTimeScale(AppState);
     // NOTE(zoubir): a map vote passing moves everyone on the next tick
     // (sim/map_vote.cpp)
     UpdateMapVote(AppState, DeltaTime);

@@ -25,6 +25,7 @@
 #include "ability_slot_order.cpp"
 #include "ability_bar.cpp"
 #include "round_break_view.cpp"
+#include "final_blow_view.cpp"
 #include "status_strip.cpp"
 #include "cast_mode_toggle.cpp"
 #include "options_menu.cpp"

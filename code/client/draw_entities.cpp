@@ -13,6 +13,8 @@ internal u32 RoleBodyTint(app_state *AppState, world_entity *Entity);
 internal u32 RoleMarkerColor(app_state *AppState, world_entity *Entity, u32 Duel);
 // NOTE(zoubir): in client/fx_bursts.cpp: seconds of effect time, for beats
 internal float GetFxClock(app_state *AppState);
+// NOTE(zoubir): in client/final_blow.cpp, included later
+internal world_entity *FinalBlowVictim(app_state *AppState);
 
 // NOTE(zoubir): sort keys of the back-to-front world pass, in world units;
 // lower draws first. Flat ground is one batch under everything
@@ -366,12 +368,15 @@ DrawWorldEntities(render_context *RenderContext, app_state *AppState,
                   v3 CameraOffset)
 {
     world *World = &AppState->World;
+    // NOTE(zoubir): the dead are not drawn, but for the duel's last death
+    // while it topples (final_blow.cpp)
+    world_entity *Falling = FinalBlowVictim(AppState);
     for(u32 EntityIndex = 0;
         EntityIndex < World->EntityCount;
         EntityIndex++)
     {
         world_entity *Entity = &World->Entities[EntityIndex];
-        if (!Entity->IsPresent || IsDeadPlayer(Entity))
+        if (!Entity->IsPresent || (IsDeadPlayer(Entity) && Entity != Falling))
         {
             continue;
         }

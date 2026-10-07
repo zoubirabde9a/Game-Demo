@@ -128,6 +128,12 @@ UpdatePlayer(player_slot *Slot, world *World,
         RoundBreakButtons(AppState);
     Slot->Input.Pressed &= Allowed;
     Slot->Input.ServerPressed &= Allowed;
+    // NOTE(zoubir): while the final blow plays nobody walks either
+    // (sim/round_break.cpp)
+    if (FinalBlowLeft(AppState) > 0.f)
+    {
+        Slot->Input.Move = V2(0.f, 0.f);
+    }
     // NOTE(zoubir): a rooted player cannot walk; a stunned or falling one
     // can neither move nor act
     if (IsRooted(Player))

@@ -1,11 +1,24 @@
 /* Duel rules tests (GameRules, sim/player_stats.cpp): only fireball,
    launch, blink, dash, jump, the world rewind and the shield do anything;
    a player has 75 health, three fireballs; a death starts a 10 s break in
-   which every player levels up and nobody can be hurt or attack; the shield keeps every hit off for 2 s and
+   which every player levels up and nobody can be hurt or attack, after
+   3 s of the world in slow motion with every key held back; the shield keeps every hit off for 2 s and
    comes back after 6; a fireball goes once every 6 s; the sword swings
    once every 1.2 s for 15 a cut; the Old Arena has
    no monsters. Every test runs under the duel rules and puts the classic
    ones back. Included by sim_tests.cpp, which calls RunDuelTests. */
+
+// NOTE(zoubir): a fireball from Player flying straight down the screen
+internal world_entity *
+SpawnFireBallForTest(test_world *Test, world_entity *Player)
+{
+    u32 Before = Test->World->EntityCount;
+    SpawnFireBall(Test->AppState, Test->World, &Test->Arena, Player, V2(0.f, 1.f), 0);
+    Check(Test->World->EntityCount == Before + 1);
+    world_entity *Result = &Test->World->Entities[Before];
+    Check(Result->Type == EntityType_FireBall);
+    return Result;
+}
 
 internal void
 TestDuelRulesDropOtherAbilities()
@@ -153,8 +166,9 @@ TestOldArenaHasNoMonsters()
 }
 
 // NOTE(zoubir): on the Old Arena a death that leaves one player standing
-// ends the round: for 10 s everyone has a level more, nobody can be hurt,
-// only jump works, and the dead come back as it ends
+// ends the round: after the 3 s of the final blow, for 10 s everyone has
+// a level more, nobody can be hurt, only jump works, and the dead come
+// back as it ends
 internal void
 TestDeathStartsRoundBreak()
 {
@@ -173,11 +187,11 @@ TestDeathStartsRoundBreak()
     Check(AppState->RoundBreak == 0.f);
     DamageEntity(AppState, Test.World, Victim, Victim->MaxHp, Killer);
     Check(IsDeadPlayer(Victim));
-    Check(AppState->RoundBreak == ROUND_BREAK_SECONDS);
+    Check(AppState->RoundBreak == ROUND_BREAK_SECONDS + FINAL_BLOW_SECONDS);
     // NOTE(zoubir): the killer's kill is worth more on top
     Check(KillerSlot->Level >= KillerLevel + 1);
     Check(VictimSlot->Level == VictimLevel + 1);
-    Check(VictimSlot->RespawnTimer >= ROUND_BREAK_SECONDS - 0.001f);
+    Check(VictimSlot->RespawnTimer >= ROUND_BREAK_SECONDS + FINAL_BLOW_SECONDS - 0.001f);
 
     float Dt = Test.Input.DeltaTime;
     SimulateTick(AppState, &Test.Arena, Dt);
@@ -190,13 +204,14 @@ TestDeathStartsRoundBreak()
     Check(Killer->ActionCooldowns[PlayerAction_FireBall] == 0.f);
     Check(Killer->AreaCooldowns[PlayerArea_Launch] == 0.f);
 
+    // NOTE(zoubir): the break counts real seconds, the final blow's too
     u32 Ticks = 2;
-    while (IsDeadPlayer(Victim) && Ticks < 1000)
+    while (!AppState->RoundMapDue && Ticks < 2000)
     {
         SimulateTick(AppState, &Test.Arena, Dt);
         Ticks++;
     }
-    Check(Absolute((float)Ticks * Dt - ROUND_BREAK_SECONDS) < 0.05f);
+    Check(Absolute((float)Ticks * Dt - (ROUND_BREAK_SECONDS + FINAL_BLOW_SECONDS)) < 0.05f);
     Check(AppState->RoundBreak < 0.05f);
     // NOTE(zoubir): the next round starts over on the same map
     // (TestRoundReplaysTheMap in round_map_tests.cpp)
@@ -240,6 +255,72 @@ TestDuelSwordIsSlowAndLight()
     GameRules = ClassicRules;
 }
 
+// NOTE(zoubir): the death that ends a round plays in slow motion: for
+// FINAL_BLOW_SECONDS a fireball in flight covers a fraction of its usual
+// ground, and nobody walks or jumps. Then the world runs at full speed
+// and jump works again
+internal void
+TestFinalBlowSlowsTheWorld()
+{
+    GameRules = DuelRules;
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *Killer = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    world_entity *Victim = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           1, {360, 300, 0});
+    player_slot *KillerSlot = &AppState->Players[0];
+    Killer->SpawnShield = Victim->SpawnShield = 0.f;
+    float Dt = Test.Input.DeltaTime;
+    DamageEntity(AppState, Test.World, Victim, Victim->MaxHp, Killer);
+    Check(FinalBlowLeft(AppState) == FINAL_BLOW_SECONDS);
+
+    world_entity *Slow = SpawnFireBallForTest(&Test, Killer);
+    float SlowStart = Slow->Position.Y;
+    v3 Standing = Killer->Position;
+    KillerSlot->Input.Move = V2(1.f, 0.f);
+    KillerSlot->Input.Pressed = PlayerButton_Jump;
+    for(u32 Tick = 0; Tick < 10; Tick++)
+    {
+        SimulateTick(AppState, &Test.Arena, Dt);
+    }
+    float SlowDistance = Slow->Position.Y - SlowStart;
+    Check(Killer->Position.X == Standing.X);
+    Check(Killer->Position.Z == Standing.Z);
+    Check(Absolute(RoundTimeScale(AppState) - FINAL_BLOW_SLOWEST) < 0.001f);
+    KillerSlot->Input.Move = V2(0.f, 0.f);
+    KillerSlot->Input.Pressed = 0;
+
+    u32 Ticks = 10;
+    while (FinalBlowLeft(AppState) > 0.f && Ticks < 1000)
+    {
+        SimulateTick(AppState, &Test.Arena, Dt);
+        Ticks++;
+    }
+    Check(Absolute((float)Ticks * Dt - FINAL_BLOW_SECONDS) < 0.05f);
+    Check(RoundTimeScale(AppState) == 1.f);
+    Check(Absolute(RoundBreakLeft(AppState) - ROUND_BREAK_SECONDS) < 0.05f);
+
+    world_entity *Fast = SpawnFireBallForTest(&Test, Killer);
+    float FastStart = Fast->Position.Y;
+    for(u32 Tick = 0; Tick < 10; Tick++)
+    {
+        SimulateTick(AppState, &Test.Arena, Dt);
+    }
+    float FastDistance = Fast->Position.Y - FastStart;
+    Check(FastDistance > 0.f);
+    Check(SlowDistance < 0.25f * FastDistance);
+
+    // NOTE(zoubir): only jump works for the rest of the break
+    KillerSlot->Input.Pressed = PlayerButton_Jump;
+    SimulateTick(AppState, &Test.Arena, Dt);
+    SimulateTick(AppState, &Test.Arena, Dt);
+    KillerSlot->Input.Pressed = 0;
+    Check(Killer->Position.Z > Standing.Z);
+    DestroyTestWorld(&Test);
+    GameRules = ClassicRules;
+}
+
 #define DUEL_TEST(Test) printf("%s\n", #Test); Test()
 
 internal void
@@ -252,4 +333,5 @@ RunDuelTests()
     DUEL_TEST(TestDuelSwordIsSlowAndLight);
     DUEL_TEST(TestOldArenaHasNoMonsters);
     DUEL_TEST(TestDeathStartsRoundBreak);
+    DUEL_TEST(TestFinalBlowSlowsTheWorld);
 }

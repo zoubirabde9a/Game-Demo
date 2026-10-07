@@ -47,6 +47,8 @@
 #include "targeting.cpp"
 #include "server_browser.cpp"
 #include "keyboard_input.cpp"
+#include "final_blow.cpp"
+#include "free_camera.cpp"
 #include "camera.cpp"
 #include "ground/terrain_cache.cpp"
 #include "ground/ground_cells.cpp"

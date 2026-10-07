@@ -30,8 +30,8 @@ TestRoundEndsAtLastOneStanding()
 
     // NOTE(zoubir): one left: the round is over
     DamageEntity(AppState, Test.World, C, C->MaxHp, A);
-    Check(AppState->RoundBreak == ROUND_BREAK_SECONDS);
-    Check(AppState->Players[1].RespawnTimer <= ROUND_BREAK_SECONDS);
+    Check(AppState->RoundBreak == ROUND_BREAK_SECONDS + FINAL_BLOW_SECONDS);
+    Check(AppState->Players[1].RespawnTimer <= ROUND_BREAK_SECONDS + FINAL_BLOW_SECONDS);
     DestroyTestWorld(&Test);
     GameRules = ClassicRules;
 }
@@ -51,6 +51,8 @@ TestLeavingCanEndTheRound()
     RemovePlayerFromSlot(AppState, Test.World, 2);
     SimulateTick(AppState, &Test.Arena, Test.Input.DeltaTime);
     Check(AppState->RoundBreak > 0.f);
+    // NOTE(zoubir): nobody died to end it, so no slow motion
+    Check(FinalBlowLeft(AppState) == 0.f);
     DestroyTestWorld(&Test);
     GameRules = ClassicRules;
 }

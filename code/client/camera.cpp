@@ -19,6 +19,13 @@
    Easing the offset means starting, stopping and flicking the mouse glide
    the view instead of yanking it.
 
+   Two things take the camera off the player. While the duel's last
+   death plays in slow motion, it centres on the falling body and pushes
+   in (final_blow.cpp). While the local player lies dead in a dungeon, it
+   flies where the movement keys send it (free_camera.cpp). Either way
+   the spring still carries it there, and it comes back to the player
+   when that ends.
+
    Near the edge of a bounded map the target does not stop dead at the
    limit: over the last CAMERA_EDGE_SOFT units it slows down evenly and
    comes to rest exactly on the edge (SoftClampAxis), so running into a
@@ -79,6 +86,8 @@ GetWorldView(app_state *AppState, app_window *Window)
 {
     float Zoom = (float)Window->Height / WORLD_VIEW_HEIGHT;
     Zoom = Maximum(WORLD_ZOOM_MIN, Minimum(WORLD_ZOOM_MAX, Zoom));
+    // NOTE(zoubir): the final blow's push-in goes past the usual limit
+    Zoom *= FinalBlowZoom(AppState);
     AppState->WorldZoom = Zoom;
     app_window Result = *Window;
     Result.Width = (u32)ceilf((float)Window->Width / Zoom);
@@ -290,7 +299,8 @@ CameraLookTarget(app_state *AppState, world_entity *Player, app_window *View,
 }
 
 // NOTE(zoubir): keeps heading for the previous target when there is no
-// local player. Window is the view in world units (GetWorldView)
+// local player. Window is the view in world units (GetWorldView). Lean
+// is false while a screen has the keyboard and mouse
 internal v3
 UpdateCamera(app_state *AppState, app_window *Window, app_input *Input,
              bool32 Lean)
@@ -306,9 +316,19 @@ UpdateCamera(app_state *AppState, app_window *Window, app_input *Input,
     if (Player)
     {
         v2 LookTarget = CameraLookTarget(AppState, Player, Window, Input, Lean, Zoom);
+        // NOTE(zoubir): what the view centres on: the player, or the duel's
+        // falling body, or a dead player's loose camera in a dungeon
+        v2 Anchor = Player->Position.XY;
+        v2 Focus;
+        if (FinalBlowFocus(AppState, &Focus) ||
+            FreeCameraFocus(AppState, Input, Player, Lean, &Focus))
+        {
+            Anchor = Focus;
+            LookTarget = V2(0.f, 0.f);
+        }
         // NOTE(zoubir): judged on where the camera would go with the look
         // already there, so a respawn far away cuts straight to it
-        v2 Settled = SoftClampCamera(&Bounds, Player->Position.XY + LookTarget - HalfView);
+        v2 Settled = SoftClampCamera(&Bounds, Anchor + LookTarget - HalfView);
         float CutDistance = CAMERA_CUT_SCREENS * (float)Maximum(Window->Width, Window->Height);
         if (Length(Settled - Camera->XY) > CutDistance)
         {
@@ -323,7 +343,7 @@ UpdateCamera(app_state *AppState, app_window *Window, app_input *Input,
             float Share = 1.f - expf(-CAMERA_LOOK_RATE * DeltaTime);
             AppState->CameraLook += Share * (LookTarget - AppState->CameraLook);
         }
-        v2 Corner = SoftClampCamera(&Bounds, Player->Position.XY + AppState->CameraLook - HalfView);
+        v2 Corner = SoftClampCamera(&Bounds, Anchor + AppState->CameraLook - HalfView);
         AppState->TargetCamera = V3(Corner.X, Corner.Y, Player->Position.Z);
     }
 

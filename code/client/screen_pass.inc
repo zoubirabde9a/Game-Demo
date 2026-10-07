@@ -32,6 +32,7 @@ DrawMinimap(RenderContext, AppState, Window->Width);
 DrawKillFeed(RenderContext, AppState, Window->Width); // recent kills under the minimap, ui/kill_feed_view.cpp
 DrawControlsPanel(RenderContext, AppState, Input, Window->Height);
 DrawDeathPlate(RenderContext, AppState, Window->Width, Window->Height); // who killed you and the respawn countdown, ui/kill_feed_view.cpp
+DrawFinalBlow(RenderContext, AppState, Window->Width, Window->Height); // over the HUD: film bars and the title while the duel's last death plays in slow motion, ui/final_blow_view.cpp
 OpenTalentsForRoundBreak(AppState); // the talent panel opens for the break between rounds, ui/round_break_view.cpp
 DrawTalentPanel(RenderContext, AppState, Input, Window->Width, Window->Height); // the talent tree (N), ui/talent_panel/
 DrawRoundBreak(RenderContext, AppState, Window->Width, Window->Height); // countdown to the next round, over the talent panel, ui/round_break_view.cpp
