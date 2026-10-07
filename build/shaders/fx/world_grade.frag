@@ -40,7 +40,8 @@ uniform vec4 LightCount;
 uniform vec4 WorldView;
 // NOTE(zoubir): the map's mood (client/map_moods.cpp): MoodShadow = tint
 // added to the shadows, saturation; MoodLight = tint added to the lights,
-// exposure; MoodShape = contrast curve, sky strength, sun shafts
+// exposure; MoodShape = contrast curve, sky strength, sun shafts, how much
+// they are the moon's
 uniform vec4 MoodShadow;
 uniform vec4 MoodLight;
 uniform vec4 MoodShape;
@@ -116,7 +117,10 @@ vec3 Sky(vec2 Pixel)
     float Band = pow(0.5 + 0.5 * sin(Along * 6.2832 +
                                      2.0 * Noise(vec2(Along * 0.4, 1.7))), 4.0);
     float Swell = smoothstep(0.25, 0.60, Noise(vec2(floor(Along) * 0.61, Time * 0.03)));
-    Shade += vec3(0.22, 0.18, 0.09) * Band * Swell * MoodShape.z * (1.0 - Cloud);
+    // NOTE(zoubir): at night (MoodShape.w) they are the moon's: cool and
+    // pale
+    vec3 Beam = mix(vec3(0.22, 0.18, 0.09), vec3(0.07, 0.10, 0.17), MoodShape.w);
+    Shade += Beam * Band * Swell * MoodShape.z * (1.0 - Cloud);
     return Shade;
 }
 

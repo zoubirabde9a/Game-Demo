@@ -114,7 +114,9 @@ EndWorldGrade(render_context *RenderContext, app_state *AppState,
                               Mood->Exposure * (1.f - 0.2f * Rain) * (1.f + 0.9f * Flash) *
                               (1.f - 0.42f * Night)};
         // NOTE(zoubir): rain hides the sun
-        float MoodShape[4] = {Mood->Contrast, Mood->Sky, Mood->SunShafts * (1.f - Rain) * (1.f - Night + 1.5f * Twilight), 0.f};
+        float MoodShape[4] = {Mood->Contrast, Mood->Sky, Mood->SunShafts * (1.f - Rain) * (1.f - Night + 1.5f * Twilight +
+                                                               0.6f * Night * Night),
+                               Night * Night};
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodShadow"), 1, MoodShadow);
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodLight"), 1, MoodLight);
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodShape"), 1, MoodShape);
