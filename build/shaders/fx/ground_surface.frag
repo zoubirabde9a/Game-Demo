@@ -9,7 +9,8 @@
 //          a fine glitter of white points twinkling in turn over them
 //   uv:        place on the map in tiles, so tiles join without a seam
 //   colour a:  how much of this point has the surface (0 at its edge)
-//   colour g:  which surface, 1 water, 2 ice, 3 snow (out of 255)
+//   wet:   mud and bog: puddled patches that catch a slow, dull sheen
+//   colour g:  which surface, 1 water, 2 ice, 3 snow, 4 wet (out of 255)
 //   colour r:  how much of the water is deep: dimmer, slower light
 
 // Hash and Noise come from fx/noise.glsl (the shader library puts it
@@ -78,6 +79,18 @@ void main()
         float Glint = Glints(fragmentUV, 4.0, 0.04, 2.0, 0.26);
         Color = vec3(0.80, 0.92, 1.0);
         Strength = 0.13 * Sheen + 0.8 * Glint;
+    }
+    else if (Surface > 3.5)
+    {
+        // NOTE(zoubir): puddles where a noise is high; a soft band of sky
+        // slides over them, and they glint now and then
+        float Puddle = smoothstep(0.45, 0.62, Noise(fragmentUV * 1.7 + 3.1));
+        float Along = (fragmentUV.x - 0.6 * fragmentUV.y) / 2.5 - T * 0.05 +
+            0.4 * Noise(fragmentUV * 0.9);
+        float Sheen = pow(0.5 + 0.5 * sin(Along * 6.2832), 6.0);
+        float Glint = Glints(fragmentUV, 5.0, 0.02, 1.5, 0.2);
+        Color = vec3(0.70, 0.78, 0.85);
+        Strength = Puddle * (0.08 + 0.28 * Sheen + 0.7 * Glint);
     }
     else
     {

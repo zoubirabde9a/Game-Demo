@@ -7,6 +7,8 @@
      ice:   a slow sheen sliding across, and sharp glints
      snow:  soft blue-grey drifts the wind has combed, and a fine glitter
             twinkling over them (blended, not added: snow is near white)
+     wet:   mud and bog: a dull sheen sliding over puddled patches, as a
+            damp surface catches the sky
 
    One quad per flat tile that has a surface, its UVs the tile's place on
    the map in tiles, so the pattern runs across tiles without a seam. Each
@@ -22,6 +24,7 @@ enum ground_surface
     GroundSurface_Water,
     GroundSurface_Ice,
     GroundSurface_Snow,
+    GroundSurface_Wet,
     GroundSurface_Count
 };
 
@@ -36,6 +39,8 @@ SurfaceOfKind(u32 Kind)
         case TerrainKind_Spring: Result = GroundSurface_Water; break;
         case TerrainKind_Ice: Result = GroundSurface_Ice; break;
         case TerrainKind_Snow: Result = GroundSurface_Snow; break;
+        case TerrainKind_Mud:
+        case TerrainKind_Bog: Result = GroundSurface_Wet; break;
         default: break;
     }
     return Result;
