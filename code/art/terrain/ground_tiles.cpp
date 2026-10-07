@@ -262,15 +262,27 @@ DrawCragTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Seed, u32 Variant)
         PutGlow(Canvas, (float)X + 0.5f, (float)Y + 0.5f, 3.f, ART_RGB(200, 70, 30), 0.55f);
         PutPixel(Canvas, X, Y, ART_RGB(250, 150, 60));
     }
-    // NOTE(zoubir): one or two big stones, then smaller ones around them
-    u32 Stones = 5 + DetailRoll(Detail, 17, 3);
+    // NOTE(zoubir): every stone keeps clear of its tile's edges (a
+    // neighbour of another variant would cut it), so wide margins left an
+    // empty band along every border and the stones fell into a grid. Big
+    // stones only on two variants in eight, small ones up to the edge, and
+    // loose grit filling the bands
+    for(u32 Grain = 0; Grain < 8; Grain++)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 3, Grain, 1, &X, &Y);
+        PutPebble(Canvas, X, Y, 1 + (i32)DetailRoll(Detail + 4, Grain, 2), 1,
+                  Stone.C[3], Stone.C[2], Shadow);
+    }
+    bool32 HasBig = Variant == 1 || Variant == 4;
+    u32 Stones = 6 + DetailRoll(Detail, 17, 3);
     for(u32 Index = 0; Index < Stones; Index++)
     {
-        bool32 Big = Index < 1 + (Variant & 1);
+        bool32 Big = HasBig && Index == 0;
         float RX = Big ? 4.5f + (float)DetailRoll(Detail, Index, 3) :
             1.5f + (float)DetailRoll(Detail, Index, 2);
         float RY = Big ? RX - 1.5f : RX - 0.5f;
-        i32 Margin = (i32)RX + 3;
+        i32 Margin = (i32)RX + (Big ? 3 : 1);
         i32 X, Y;
         ScatterSpot(Detail + 7 + Index, Index, Margin, &X, &Y);
         PutStone(Canvas, (float)X, (float)Y, RX, RY, Stone, Shadow);
