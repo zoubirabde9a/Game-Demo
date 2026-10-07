@@ -1,5 +1,5 @@
 /* World lights: the coloured light that players' lanterns (on dark maps),
-   bodies on fire, fireballs, monster shots, kunai, bursts (a hit, a nova, a level up) and
+   bodies under a glowing status (on fire, poisoned...), fireballs, monster shots, kunai, bursts (a hit, a nova, a level up) and
    lava throw on the ground and the bodies near them. Gathered once a frame
    into a short list in window pixels; the world grade shader
    (build/shaders/fx/world_grade.frag) brightens and tints every pixel
@@ -44,9 +44,25 @@ global_variable world_light_look KunaiLight = {45.f, 0.35f, {0.70f, 0.85f, 1.0f}
 // NOTE(zoubir): a lantern, carried by every living player on a map whose
 // mood asks for one (map_moods.cpp); its strength comes from the mood
 global_variable world_light_look LanternLight = {170.f, 1.f, {1.0f, 0.78f, 0.50f}, 0.4f};
-// NOTE(zoubir): a body on fire (StatusEffect_Burning) burns like a torch;
-// a flicker of 1 also gives it the heat shimmer (world_grade.frag)
-global_variable world_light_look BurningLight = {95.f, 0.7f, {1.0f, 0.5f, 0.18f}, 1.f};
+// NOTE(zoubir): the light a body gives off while a status runs on it, in
+// status_effect order (sim/status_effects.cpp); strength 0 for none. Fire
+// burns like a torch, and its flicker of 1 also shimmers with heat
+// (world_grade.frag)
+global_variable world_light_look StatusLights[StatusEffect_Count] =
+{
+    {},                                          // None
+    {95.f, 0.7f, {1.0f, 0.5f, 0.18f}, 1.f},      // Burning
+    {70.f, 0.35f, {0.45f, 1.0f, 0.35f}, 0.3f},   // Poisoned
+    {},                                          // Slowed: frost, talent_fx.cpp
+    {},                                          // Stunned: stars, fx_bursts.cpp
+    {},                                          // Bleeding
+    {70.f, 0.3f, {0.6f, 1.0f, 0.6f}, 0.f},       // Regenerating
+    {60.f, 0.25f, {1.0f, 0.95f, 0.5f}, 0.f},     // Hasted
+    {},                                          // Rooted
+    {},                                          // Soaked
+    {},                                          // Falling
+};
+static_assert(ArrayCount(StatusLights) == StatusEffect_Count, "one light per status");
 global_variable world_light_look LavaLight = {175.f, 0.75f, {1.0f, 0.42f, 0.12f}, 1.f};
 
 internal void
@@ -114,12 +130,19 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
             AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
                           0.5f * Entity->Position.Z, *Look, Scale);
         }
-        if ((Entity->Type == EntityType_Player || Entity->Type == EntityType_Monster) &&
-            !IsDeadPlayer(Entity) && HasStatus(Entity, StatusEffect_Burning) &&
+        bool32 Unit = Entity->Type == EntityType_Player || Entity->Type == EntityType_Monster;
+        if (Unit && !IsDeadPlayer(Entity) &&
             P.X > Min.X && P.X < Max.X && P.Y > Min.Y && P.Y < Max.Y)
         {
-            AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
-                          Entity->Position.Z + 12.f, BurningLight, 1.f);
+            for(u32 Effect = 1; Effect < StatusEffect_Count; Effect++)
+            {
+                if (StatusLights[Effect].Strength > 0.f &&
+                    HasStatus(Entity, (status_effect)Effect))
+                {
+                    AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
+                                  Entity->Position.Z + 12.f, StatusLights[Effect], 1.f);
+                }
+            }
         }
     }
 
