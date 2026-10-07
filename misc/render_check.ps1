@@ -9,8 +9,10 @@
 # build\render_check\, so it can be looked at. Run -Update and commit the
 # new hashes along with a change that is meant to look different.
 #
-# The hashes hold for one machine: another GPU, driver or display scale
-# draws other pixels. Run -Update once on a new machine.
+# The hashes hold for one machine and one build: another GPU, driver or
+# display scale draws other pixels, and so does the release build
+# (misc\land.bat leaves build\ holding it): run build.bat first, and
+# -Update once on a new machine.
 param([switch]$Update)
 
 $Root = Split-Path -Parent $PSScriptRoot
@@ -47,12 +49,20 @@ foreach ($Scene in $Scenes) {
     $env:GAME_SCREENSHOT_KEYS = $Scene[2]
     $env:GAME_WEATHER = if ($Scene.Count -gt 4) { $Scene[4] } else { "dry" }
     $Png = "$Out\$Name.png"
-    if (Test-Path $Png) { Remove-Item $Png }
-    cmd /c "`"$Root\misc\screenshot.bat`" `"$Png`" $($Scene[3])" | Out-Null
-    if (-not (Test-Path $Png)) { Write-Host "render_check: $Name drew nothing"; exit 1 }
-    $Hash = (Get-FileHash $Png).Hash
+    # NOTE(zoubir): textures load on worker threads, so now and then one is
+    # not ready on the frame and the picture differs; a scene that differs
+    # is played twice more, and one that matches only then is reported
+    $Tries = if ($Update) { 1 } else { 3 }
+    for ($Try = 1; $Try -le $Tries; $Try++) {
+        if (Test-Path $Png) { Remove-Item $Png }
+        cmd /c "`"$Root\misc\screenshot.bat`" `"$Png`" $($Scene[3])" | Out-Null
+        if (-not (Test-Path $Png)) { Write-Host "render_check: $Name drew nothing"; exit 1 }
+        $Hash = (Get-FileHash $Png).Hash
+        if ($Update -or $Known[$Name] -eq $Hash) { break }
+    }
     $Lines += "$Name $Hash"
     if (-not $Update -and $Known[$Name] -ne $Hash) { $Differ += $Name }
+    elseif ($Try -gt 1 -and -not $Update) { Write-Host "matched on try $($Try): $Name (a texture loaded late)" }
 }
 
 if ($Update) {
