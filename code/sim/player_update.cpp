@@ -104,6 +104,11 @@ UsePlayerAbilities(app_state *AppState, world *World, memory_arena *Arena,
     UpdatePlayerCast(AppState, World, Arena, Player, Input, DeltaTime, Tick);
 }
 
+// NOTE(zoubir): in sim/dungeon/role_abilities.cpp: a tank's and a
+// healer's keys cast their role's spells in a dungeon run
+internal void UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
+                               player_slot *Slot, float DeltaTime);
+
 internal void
 UpdatePlayer(player_slot *Slot, world *World,
              memory_arena *Arena,
@@ -134,6 +139,9 @@ UpdatePlayer(player_slot *Slot, world *World,
         CancelPlayerCast(Player);
         Slot->DelayedInputCount = 0;
     }
+    // NOTE(zoubir): a dungeon role's keys, before the game's abilities read
+    // them (sim/dungeon/role_abilities.cpp)
+    UseRoleAbilities(AppState, World, Arena, Slot, DeltaTime);
     *AnimationType = AnimationType_Stand;
     *AnimationDirection = Player->AnimationState.LastAnimationDirection;
     *AnimationSpeedRate = 1.f;

@@ -323,6 +323,8 @@ CanStartRoom(dungeon_run *Run, u32 Room)
     return Result;
 }
 
+#include "role_abilities.cpp"
+
 // NOTE(zoubir): a player thrown over a wall (a launch, a blast) lands on
 // it or behind it, out of every room: back to the party's spot, so walls
 // keep the run in order (.agents/issues/keep-edge-escape.md is the same
@@ -361,6 +363,7 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
     }
     world *World = &AppState->World;
     UpdateThreat(&Run->Threat, DeltaTime);
+    UpdateSanctuaries(AppState, Run, DeltaTime);
     RescueStrayPlayers(AppState, World, Arena);
     if (!Run->FightingRoom)
     {

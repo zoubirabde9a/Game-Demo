@@ -21,10 +21,10 @@ A player picks a role in the lobby room before the first gate, and can change it
 | Damage taken | 70% | 100% | 100% |
 | Damage dealt | 70% | 50% | 120% |
 | Threat per damage | 4x | 1x (heals make threat on every monster in the fight, half the healing) | 1x |
-| Left click | Sword cleave, wide arc | Smite: a weak bolt | Fireball |
-| A | Taunt: every monster within 260 attacks you for 4 s | Sanctuary: a circle at the cursor that heals allies inside over 5 s | Launch |
-| E | Shield Wall: 60% less damage for 4 s | Ward an ally under the cursor: absorbs 30 | Shield |
-| V | Intercept: leap to an ally under the cursor and take the next hit for them | Mending Bolt: heal the ally under the cursor for 30 | Kunai |
+| Left click | Fireball | Fireball (weak, at half damage) | Fireball |
+| A | Taunt: every monster within 260 attacks you for 4 s, and you stay ahead after (8 s cooldown) | Sanctuary: a circle at the cursor that heals allies inside 8 a second for 5 s (14 s) | Launch |
+| E | Shield Wall: 40% of the damage for 4 s (15 s) | Ward the ally under the cursor, or the most hurt one: absorbs the next 30 (10 s) | Shield |
+| V | Intercept: leap to the ally under the cursor, or the one nearest the aim, and pull what was on them (10 s) | Mending Bolt: heal the ally under the cursor, or the most hurt one, for 30 (2.5 s) | Kunai |
 | F | Blink | Blink | Blink |
 
 ## Threat
@@ -83,7 +83,7 @@ Snapshots gain: each player's role (2 bits), downed state, the run's room and en
 - [x] The Sunken Crypt map, flagged `Dungeon`, left out of the duel rotation and the map vote.
 - [x] Encounters: room triggers, spawning packs, leashing, gates that open, checkpoints, wipe and reset.
 - [x] Threat and taunt, through `DungeonPickTarget`. Taunt is `TauntAround` in `sim/dungeon/threat.cpp`; the tank's key for it comes with the role kits.
-- [ ] Role kits: what A, E and V cast for each role.
+- [x] Role kits: what A, E and V cast for each role (`sim/dungeon/role_abilities.cpp`). They borrow existing bursts for now; their own look comes with the client step.
 - [ ] Downed players and healer revives.
 - [ ] The three bosses and their phase scripts.
 - [ ] Online: role and run state on the wire, role pick request, server `--map crypt`.

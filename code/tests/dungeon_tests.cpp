@@ -331,9 +331,74 @@ TestStrayPlayersComeBack()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): one press of Button for the player in SlotIndex, one tick
+internal void
+PressOnce(crypt_world *Crypt, u32 SlotIndex, u32 Button)
+{
+    Crypt->AppState->Players[SlotIndex].Input.Pressed = Button;
+    TickCrypt(Crypt, 1);
+    Crypt->AppState->Players[SlotIndex].Input.Pressed = 0;
+}
+
+// NOTE(zoubir): the tank's taunt, shield wall; the healer's bolt, ward
+// and sanctuary; and the damage role's A still launches
+internal void
+TestRoleKeys()
+{
+    crypt_world Crypt = CreateCryptWorld(3);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Crypt, 1);
+    SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Tank);
+    SetPlayerRole(AppState, &AppState->Players[1], PlayerRole_Healer);
+    world_entity *Tank = AppState->Players[0].Entity;
+    world_entity *Healer = AppState->Players[1].Entity;
+    world_entity *Striker = AppState->Players[2].Entity;
+
+    world_entity *Monster = SpawnMonster(AppState, World, &Crypt.Arena,
+                                         Tank->Position + V3(120.f, 0.f, 0.f),
+                                         MonsterKind_Brute);
+    DamageEntity(AppState, World, Monster, 5.f, Striker);
+    Check(FindMonsterTarget(AppState, World, Monster, 0) == Striker);
+    PressOnce(&Crypt, 0, PlayerButton_Launch);
+    Check(FindMonsterTarget(AppState, World, Monster, 0) == Tank);
+    Check(AppState->Players[0].RoleCooldowns[0] > 0.f);
+    Check(Tank->CastSpell == 0);
+
+    PressOnce(&Crypt, 0, PlayerButton_Shield);
+    float Before = Tank->Hp;
+    DamageEntity(AppState, World, Tank, 10.f, Monster);
+    Check(Before - Tank->Hp > 2.7f && Before - Tank->Hp < 2.9f);
+
+    Striker->Hp = Striker->MaxHp - 50.f;
+    PressOnce(&Crypt, 1, PlayerButton_Kunai);
+    Check(Striker->Hp == Striker->MaxHp - 20.f);
+    PressOnce(&Crypt, 1, PlayerButton_Shield);
+    Check(AppState->Players[2].WardAbsorb == 30.f);
+    Before = Striker->Hp;
+    DamageEntity(AppState, World, Striker, 20.f, Monster);
+    Check(Striker->Hp == Before);
+    Check(AppState->Players[2].WardAbsorb == 10.f);
+    RemoveEntity(World, Monster);
+
+    // NOTE(zoubir): a sanctuary at the healer's own feet
+    Healer->Hp = Healer->MaxHp - 30.f;
+    Healer->AimReach = 0.f;
+    PressOnce(&Crypt, 1, PlayerButton_Launch);
+    TickCrypt(&Crypt, 120);
+    Check(Healer->Hp > Healer->MaxHp - 15.f);
+    Check(Run->Sanctuaries[0].Seconds > 0.f);
+
+    PressOnce(&Crypt, 2, PlayerButton_Launch);
+    Check(Striker->CastSpell != 0);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDungeonTests()
 {
+    TestRoleKeys();
     TestStrayPlayersComeBack();
     TestThreatAndTaunt();
     TestRoomsStartClearAndOpenGates();

@@ -49,6 +49,15 @@ struct threat_table
     threat_row Rows[THREAT_ROWS];
 };
 
+// NOTE(zoubir): a healer's Sanctuary on the ground (role_abilities.cpp)
+#define MAX_SANCTUARIES 8
+struct sanctuary
+{
+    v3 Position;
+    float Seconds;
+    u32 By;
+};
+
 struct dungeon_run
 {
     u32 RoomCount;
@@ -75,6 +84,7 @@ struct dungeon_run
     random_series Series;
     // NOTE(zoubir): who each monster attacks (threat.cpp)
     threat_table Threat;
+    sanctuary Sanctuaries[MAX_SANCTUARIES];
 };
 
 // NOTE(zoubir): whether the world being played is a dungeon run
@@ -86,6 +96,10 @@ IsDungeon(app_state *AppState)
 }
 
 #include "roles.cpp"
+
+// NOTE(zoubir): share of a hit a tank takes behind Shield Wall
+// (role_abilities.cpp)
+#define SHIELD_WALL_SCALE 0.4f
 
 // NOTE(zoubir): in threat.cpp, included by encounters.cpp later
 internal void AddThreat(threat_table *Table, world *World, world_entity *Monster,
@@ -158,7 +172,16 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
     }
     if (Target->Type == EntityType_Player && Target->PlayerIndex < MAX_PLAYERS)
     {
-        Result *= GetRoleDef(AppState->Players[Target->PlayerIndex].Role)->DamageTaken;
+        player_slot *Slot = &AppState->Players[Target->PlayerIndex];
+        Result *= GetRoleDef(Slot->Role)->DamageTaken;
+        if (Slot->ShieldWallSeconds > 0.f)
+        {
+            Result *= SHIELD_WALL_SCALE;
+        }
+        // NOTE(zoubir): a healer's ward takes what it can
+        float Absorbed = Minimum(Result, Slot->WardAbsorb);
+        Slot->WardAbsorb -= Absorbed;
+        Result -= Absorbed;
     }
     player_slot *Attacker = DungeonAttackerSlot(AppState, Source);
     if (Attacker && Target->Type == EntityType_Monster)
