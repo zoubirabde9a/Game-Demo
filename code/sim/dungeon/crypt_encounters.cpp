@@ -41,12 +41,16 @@ global_variable encounter_row CryptEncounters[] =
     {4, 2, MonsterKind_Toad, 1, 0},
     // 5, Brood Nest: the second boss, the Brood Queen
     {5, 0, MonsterKind_BroodQueen, 1, Encounter_Boss},
-    // 6, Ashen Causeway: shells and fire over the lava
+    // 6, Ashen Causeway: shells and fire over the lava, the hardest
+    // room before the last boss. Each pack has one imp throwing fire from
+    // the back, so the striker has a target to burn down while the tank
+    // holds the shells
     {6, 0, MonsterKind_Warden, 2, 0},
-    {6, 0, MonsterKind_Imp, 2, 0},
+    {6, 0, MonsterKind_Imp, 1, 0},
     {6, 1, MonsterKind_Warden, 1, Encounter_Elite},
-    {6, 1, MonsterKind_Imp, 2, 0},
+    {6, 1, MonsterKind_Imp, 1, 0},
     {6, 2, MonsterKind_Ravager, 1, Encounter_Elite},
+    {6, 2, MonsterKind_Imp, 1, 0},
     // 7, Throne of Dust: the last boss, the Hollow King
     {7, 0, MonsterKind_HollowKing, 1, Encounter_Boss},
 };

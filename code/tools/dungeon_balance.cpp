@@ -10,7 +10,9 @@
    A room past 2 marks the rooms before it cleared, puts the bots inside
    it once they have joined, and gives each the experience of
    PROBE_SECONDS_PER_ROOM of play per room skipped, to time one fight
-   over and over at about the level a party reaches it.
+   over and over at about the level a party reaches it. Bots that wiped
+   there are walked back in after PROBE_RETRY_SECONDS, as they only chase
+   what they see and would wait at the checkpoint for good.
    Build: cl -nologo -O2 -DAPP_DEV=1 -DAPP_SLOW=0 -DAPP_WIN32=1
           ..\code\tools\dungeon_balance.cpp /link user32.lib Gdi32.lib Winmm.lib OpenGL32.lib */
 
@@ -21,6 +23,22 @@
 // NOTE(zoubir): about how long a party takes over a room, walking and
 // resting included
 #define PROBE_SECONDS_PER_ROOM 90
+#define PROBE_RETRY_SECONDS 12.f
+
+// NOTE(zoubir): every bot with a body to Position
+internal void
+PlaceBots(server_game *Game, v3 Position)
+{
+    for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
+    {
+        player_slot *Player = &Game->AppState->Players[Slot];
+        if (Player->Active && Player->Entity && !IsDeadPlayer(Player->Entity))
+        {
+            MovePlayerTo(Game->AppState, &Game->AppState->World, Game->Arena,
+                         Player->Entity, Position);
+        }
+    }
+}
 
 int
 main(int ArgCount, char **Args)
@@ -51,6 +69,11 @@ main(int ArgCount, char **Args)
         if (!Run)
         {
             continue;
+        }
+        if (Placed && FirstRoom > 2 && !Run->FightingRoom &&
+            Run->RoomStates[FirstRoom] != RoomState_Cleared && Seconds > PROBE_RETRY_SECONDS)
+        {
+            PlaceBots(&Game, Run->RoomEntry[FirstRoom]);
         }
         if (!Placed && Tick > SERVER_TICK_RATE)
         {
@@ -119,6 +142,12 @@ main(int ArgCount, char **Args)
             BossShare = 0.f;
         }
         Seconds += Dt;
+    }
+    dungeon_run *Run = Game.AppState->Dungeon;
+    if (Run && Room)
+    {
+        printf("  still in the %s after %.1f s, %u foes left\n",
+               GetRoomName(MapId_Crypt, Room), Seconds, Run->ShownFoesLeft);
     }
     printf("dungeon balance: %u runs cleared\n", Runs);
     GameShutdown(&Game);

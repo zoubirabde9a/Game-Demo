@@ -11,11 +11,12 @@
    The limits are for the three players the dungeon is made for, about
    1.3 times what a party playing its rotations well needs (the boss's
    and its adds' health over the party's damage at 70% of its best:
-   striker about 20 a second, tank 4, healer 1, so a party that loses
+   striker about 24 a second, tank 4, healer 1), so a party that loses
    its striker for long, or lets the adds merge, runs out. Another party
    size scales the limit with its health over its damage
    (BossClockPartyScale). tools/dungeon_balance.cpp shows the clock at
-   work; its bots play far below a party of people and do run out. */
+   work; its bots, playing the striker rotation, come within a minute
+   of each limit, and a party of people should do better. */
 
 #define BOSS_CLOCK_WARNING 30.f
 #define BOSS_ENRAGE_DAMAGE 1.5f
@@ -33,9 +34,9 @@ struct boss_clock_def
 
 global_variable boss_clock_def BossClockDefs[] =
 {
-    {MonsterKind_Gravecaller, 120.f},
+    {MonsterKind_Gravecaller, 135.f},
     {MonsterKind_BroodQueen, 150.f},
-    {MonsterKind_HollowKing, 195.f},
+    {MonsterKind_HollowKing, 180.f},
 };
 
 // NOTE(zoubir): the party the limits are tuned for
