@@ -28,6 +28,7 @@
     float ScreenEdgeClock; // seconds, drives the low-health pulse, client/screen_edge.cpp
     u32 ScreenEdgeLastKills; // the local player's kills last frame plus one (0: not seen yet), client/screen_edge.cpp
     float ScreenEdgeKill; // gold flash at the screen edge after a kill, 1 fading to 0, client/screen_edge.cpp
+    struct ground_marks *GroundMarks; // ripples and footprints walking leaves, client/ground_marks.cpp
     struct terrain_cache *TerrainCache; // what the client draws knows of each tile in view, client/ground/terrain_cache.cpp
     struct frame_timing *FrameTiming; // where the game's time in a frame goes, client/frame_timing.cpp
     struct world_bloom *WorldBloom; // the glow's quarter-size textures, client/world_bloom.cpp

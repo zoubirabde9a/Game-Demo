@@ -44,6 +44,7 @@
 #include "ground/pit_walls.cpp"
 #include "ground/ground_surface.cpp"
 #include "ambient_motes.cpp"
+#include "ground_marks.cpp"
 #include "draw_tilemap.cpp"
 #include "landmark_pointer.cpp"
 #include "threat_pointers.cpp"
