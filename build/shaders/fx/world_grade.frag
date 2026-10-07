@@ -45,6 +45,8 @@ uniform vec4 WorldView;
 uniform vec4 MoodShadow;
 uniform vec4 MoodLight;
 uniform vec4 MoodShape;
+// NOTE(zoubir): MoodAir.x = smoke strength
+uniform vec4 MoodAir;
 
 // NOTE(zoubir): the light every source throws on this pixel in rgb, a
 // smooth (1 - d^2)^2 falloff that reaches zero at the radius, fire
@@ -121,6 +123,18 @@ vec3 Sky(vec2 Pixel)
     // pale
     vec3 Beam = mix(vec3(0.22, 0.18, 0.09), vec3(0.07, 0.10, 0.17), MoodShape.w);
     Shade += Beam * Band * Swell * MoodShape.z * (1.0 - Cloud);
+    // NOTE(zoubir): smoke: long streaks blown along the wind at 60 units a
+    // second, darkening and browning the ground under them, lit warm from
+    // below where they are thin
+    if (MoodAir.x > 0.0)
+    {
+        vec2 Wind = vec2(60.0, 18.0) * mod(Time, 4000.0);
+        vec2 P = (Point - Wind) / vec2(700.0, 260.0);
+        float Smoke = smoothstep(0.45, 0.80, Fbm(P + 2.7) + 0.3 * Noise(P * 3.0 + 6.0));
+        Shade *= mix(vec3(1.0), vec3(0.62, 0.55, 0.50), Smoke * MoodAir.x);
+        Shade += vec3(0.05, 0.02, 0.0) * smoothstep(0.0, 0.5, Smoke) *
+            (1.0 - Smoke) * MoodAir.x;
+    }
     return Shade;
 }
 

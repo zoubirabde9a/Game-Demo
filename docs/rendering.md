@@ -45,7 +45,7 @@ At 1e7 a float cannot tell `x + 0.5` from `x`. Steps off the flat ground key mus
 | Ripples and footprints | `client/ground_marks.cpp` | a `ground_mark_kind` and its drawing |
 | Shadows, player rings, reflections, tree sway | `client/draw_entities/ground_contact.cpp` | tuning numbers at its top |
 | Ground textures | `art/terrain/*_tiles.cpp`, brushes in `ground_paint.cpp` | a painter per kind; 16 variants a kind |
-| Cloud shadows, ground patches, heat shimmer | `fx/world_grade.frag` | |
+| Cloud shadows, ground patches, heat shimmer, smoke | `fx/world_grade.frag` | smoke: the map mood's `Smoke` |
 
 Shaders live in `build/shaders/fx/`, are listed in `ShaderDefs` (`engine/shader_library.cpp`), and reload while the game runs. A row can name a library of shared functions; `fx/noise.glsl` holds `Hash`, `Noise` and `Fbm`.
 

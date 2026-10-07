@@ -120,6 +120,8 @@ EndWorldGrade(render_context *RenderContext, app_state *AppState,
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodShadow"), 1, MoodShadow);
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodLight"), 1, MoodLight);
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodShape"), 1, MoodShape);
+        float MoodAir[4] = {Mood->Smoke, 0.f, 0.f, 0.f};
+        OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodAir"), 1, MoodAir);
         world_lights *Lights = &Grade->Lights;
         float LightCount[4] = {(float)Lights->Count, 0.f, 0.f, 0.f};
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "LightCount"),

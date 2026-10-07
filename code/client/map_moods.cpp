@@ -21,15 +21,17 @@ struct map_mood
                       // 0 indoors and under smoke
     float Torches;    // strength of the torches on stone walls
                       // (wall_torches.cpp); 0 for none
+    float Smoke;      // strength of the smoke blowing across the map; 0 for
+                      // clean air
 };
 
-global_variable map_mood DefaultMood = {{-0.012f, 0.f, 0.022f}, 1.14f, {0.022f, 0.010f, -0.014f}, 1.f, 0.30f, 1.f, 0.f, 0.5f, 0.f};
-global_variable map_mood KeepMood = {{-0.020f, 0.f, 0.050f}, 1.00f, {0.f, 0.010f, 0.020f}, 0.97f, 0.25f, 1.f, 0.f, 0.35f, 0.4f};
-global_variable map_mood WastesMood = {{0.020f, -0.010f, 0.030f}, 1.08f, {0.050f, 0.015f, -0.030f}, 0.92f, 0.40f, 0.6f, 0.f, 0.f, 0.f};
-global_variable map_mood WildsMood = {{-0.015f, 0.010f, 0.020f}, 1.20f, {0.030f, 0.025f, -0.010f}, 1.f, 0.30f, 1.2f, 0.f, 1.f, 0.f};
+global_variable map_mood DefaultMood = {{-0.012f, 0.f, 0.022f}, 1.14f, {0.022f, 0.010f, -0.014f}, 1.f, 0.30f, 1.f, 0.f, 0.5f, 0.f, 0.f};
+global_variable map_mood KeepMood = {{-0.020f, 0.f, 0.050f}, 1.00f, {0.f, 0.010f, 0.020f}, 0.97f, 0.25f, 1.f, 0.f, 0.35f, 0.4f, 0.f};
+global_variable map_mood WastesMood = {{0.020f, -0.010f, 0.030f}, 1.08f, {0.050f, 0.015f, -0.030f}, 0.92f, 0.40f, 0.6f, 0.f, 0.f, 0.f, 1.f};
+global_variable map_mood WildsMood = {{-0.015f, 0.010f, 0.020f}, 1.20f, {0.030f, 0.025f, -0.010f}, 1.f, 0.30f, 1.2f, 0.f, 1.f, 0.f, 0.f};
 // NOTE(zoubir): the crypt is dark, and lit by the lanterns its players
 // carry and whatever burns or casts in it
-global_variable map_mood CryptMood = {{-0.010f, 0.f, 0.040f}, 0.85f, {0.020f, 0.010f, 0.f}, 0.55f, 0.45f, 0.f, 0.9f, 0.f, 1.f};
+global_variable map_mood CryptMood = {{-0.010f, 0.f, 0.040f}, 0.85f, {0.020f, 0.010f, 0.f}, 0.55f, 0.45f, 0.f, 0.9f, 0.f, 1.f, 0.f};
 
 internal map_mood *
 MoodFor(u32 MapId)
