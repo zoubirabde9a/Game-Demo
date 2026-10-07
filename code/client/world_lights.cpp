@@ -159,7 +159,9 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
         {
             case EntityType_Player:
             {
-                Scale = MoodFor(World->MapId)->Lantern;
+                // NOTE(zoubir): and on any map at night (weather.cpp)
+                Scale = Maximum(MoodFor(World->MapId)->Lantern,
+                                0.8f * (1.f - Daylight(AppState)));
                 Look = (Scale > 0.f && !IsDeadPlayer(Entity)) ? &LanternLight : 0;
             } break;
             case EntityType_FireBall: Look = &FireballLight; break;

@@ -433,7 +433,8 @@ DrawTileMap(render_context *RenderContext, app_state *AppState,
         v2 ViewSize = V2((float)Window->Width, (float)Window->Height);
         float Rain = RainAmount(AppState);
         SplashRain(AppState, CameraOffset, ViewSize, Rain);
-        DrawAmbientMotes(RenderContext, AppState, CameraOffset, ViewSize, 1.f - Rain);
+        DrawAmbientMotes(RenderContext, AppState, CameraOffset, ViewSize,
+                         MoteStrength(AppState, Rain));
         DrawFallingLeaves(RenderContext, AppState, CameraOffset, ViewSize, Rain);
         DrawRain(RenderContext, AppState, CameraOffset, ViewSize);
         return;

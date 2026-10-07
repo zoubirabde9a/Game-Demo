@@ -91,15 +91,20 @@ EndWorldGrade(render_context *RenderContext, app_state *AppState,
         map_mood *Mood = MoodFor(AppState->World.MapId);
         // NOTE(zoubir): rain dims and greys it (weather.cpp)
         float Rain = RainAmount(AppState);
-        float MoodShadow[4] = {Mood->Shadow.X, Mood->Shadow.Y, Mood->Shadow.Z,
-                               Mood->Saturation * (1.f - 0.25f * Rain)};
+        // NOTE(zoubir): night dims, cools and greys it, short of too dark
+        // to play (weather.cpp)
+        float Night = 1.f - Daylight(AppState);
+        float MoodShadow[4] = {Mood->Shadow.X - 0.015f * Night, Mood->Shadow.Y,
+                               Mood->Shadow.Z + 0.06f * Night,
+                               Mood->Saturation * (1.f - 0.25f * Rain) * (1.f - 0.3f * Night)};
         // NOTE(zoubir): a lightning strike lights the world blue-white
         float Flash = LightningFlash(AppState);
         float MoodLight[4] = {Mood->Light.X + 0.05f * Flash, Mood->Light.Y + 0.07f * Flash,
                               Mood->Light.Z + 0.12f * Flash,
-                              Mood->Exposure * (1.f - 0.2f * Rain) * (1.f + 0.9f * Flash)};
+                              Mood->Exposure * (1.f - 0.2f * Rain) * (1.f + 0.9f * Flash) *
+                              (1.f - 0.42f * Night)};
         // NOTE(zoubir): rain hides the sun
-        float MoodShape[4] = {Mood->Contrast, Mood->Sky, Mood->SunShafts * (1.f - Rain), 0.f};
+        float MoodShape[4] = {Mood->Contrast, Mood->Sky, Mood->SunShafts * (1.f - Rain) * (1.f - Night), 0.f};
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodShadow"), 1, MoodShadow);
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodLight"), 1, MoodLight);
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "MoodShape"), 1, MoodShape);
