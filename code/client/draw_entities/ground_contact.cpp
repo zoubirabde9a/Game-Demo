@@ -164,7 +164,13 @@ DrawEntityShadow(render_context *RenderContext, app_state *AppState,
     {
         return;
     }
-    v2 ShadowDims = {ShadowWidth * ScaleX, 0.5f * ShadowWidth};
+    // NOTE(zoubir): a low sun at dusk and dawn draws shadows out long to
+    // the east; at night only the moon throws them, faintly
+    float Low = AppState->SunShadow.X;
+    float Dark = AppState->SunShadow.Y;
+    v2 ShadowDims = {ShadowWidth * ScaleX * (1.f + 0.9f * Low), 0.5f * ShadowWidth};
+    ShadowShift.X += 0.35f * Low * ShadowWidth;
+    ShadowAlpha *= 1.f - 0.45f * Dark;
     if (Height > 1.f)
     {
         ShadowDims *= (1.f - Height / 200.f);

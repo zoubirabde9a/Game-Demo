@@ -28,6 +28,7 @@
     float ScreenEdgeClock; // seconds, drives the low-health pulse, client/screen_edge.cpp
     u32 ScreenEdgeLastKills; // the local player's kills last frame plus one (0: not seen yet), client/screen_edge.cpp
     float ScreenEdgeKill; // gold flash at the screen edge after a kill, 1 fading to 0, client/screen_edge.cpp
+    v2 SunShadow; // this frame's shadow stretch at a low sun and fade at night, set by BeginWorldGrade, client/world_grade.cpp
     u32 TimeOverride; // GAME_TIME, read once: 0 unread, 1 none, 2 day, 3 night; client/weather.cpp
     u32 WeatherOverride; // GAME_WEATHER, read once: 0 unread, 1 none, 2 rain, 3 dry; client/weather.cpp
     float RainSplash; // raindrops owed to the water since the last frame, client/weather.cpp

@@ -36,6 +36,11 @@ BeginWorldGrade(render_context *RenderContext, app_state *AppState,
         *AppState->WorldGrade = {};
     }
     world_grade *Grade = AppState->WorldGrade;
+    // NOTE(zoubir): shadows (draw_entities/ground_contact.cpp) stretch out
+    // under a low sun at dusk and dawn and fade at night; set before the
+    // world is drawn, whether or not the grade pass runs
+    float Day = Daylight(AppState);
+    AppState->SunShadow = V2(4.f * Day * (1.f - Day), 1.f - Day);
     bool32 RewindCaptures = AppState->RewindFx && AppState->RewindFx->Capturing;
     bool32 HasShader = RenderContext->Programs[Shader_WorldGrade].ID !=
         RenderContext->TextureProgram.ID;
