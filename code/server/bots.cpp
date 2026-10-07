@@ -11,7 +11,8 @@
    like anyone and spends each point on a random talent it may take, then
    uses Frost Nova, Shockwave and Gravity Well once it has them. In a
    dungeon run (sim/dungeon/) it fights only monsters, takes a role by
-   its slot, so a lone player gets a tank, a healer and damage, and plays
+   its slot, so a lone player gets a tank, a healer and damage (and a
+   bigger party more damage before a second healer or tank), and plays
    it (BotRoleButtons): the tank slams and taunts what is near and leaps
    to an ally being chased, the healer keeps out of melee and heals,
    wards and lays sanctuaries on whoever is hurt, the damage role drops
@@ -333,12 +334,16 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         Held |= (u32)MapVote_Yes << NET_VOTE_SHIFT;
     }
 
-    // In a dungeon run each bot asks for a role by its slot (tank, healer,
-    // damage in turn) until it has it, one tick at a time like a talent.
+    // In a dungeon run each bot asks for a role by its slot until it has
+    // it, one tick at a time like a talent: a tank, a healer and damage
+    // first, then more damage, as a party past three needs it to keep up
+    // with the boss's clock, a second healer at six and a second tank at
+    // eight.
     if (Slot && IsDungeon(AppState) && !AppState->Dungeon->FightingRoom &&
         !(Bot->Held >> NET_ROLE_SHIFT))
     {
-        u32 Wanted[] = {PlayerRole_Tank, PlayerRole_Healer, PlayerRole_Damage};
+        u32 Wanted[] = {PlayerRole_Tank, PlayerRole_Healer, PlayerRole_Damage, PlayerRole_Damage,
+                        PlayerRole_Damage, PlayerRole_Healer, PlayerRole_Damage, PlayerRole_Tank};
         u32 Role = Wanted[Self->PlayerIndex % ArrayCount(Wanted)];
         if (Slot->Role != Role)
         {

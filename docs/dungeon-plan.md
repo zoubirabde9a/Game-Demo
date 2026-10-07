@@ -45,7 +45,7 @@ At its best the striker deals about 34 a second to one target. One who detonates
 
 Between fights every living player heals 8% of their health a second, so a party walks into the next room whole with or without a healer.
 
-Players cannot hurt each other in a run: a player's hit on another player does nothing, not even a shove (`IsFriendlyFire`, called by `DamageEntity` and `ApplyHit`). Server bots (`server --bots N`) fight only monsters there and take a role by their slot, tank, healer and damage in turn, so a lone player online gets a party. They play it: a tank bot slams and taunts what is near it and leaps to an ally with monsters on them, a healer bot stays out of melee and heals, wards and lays sanctuaries on whoever is hurt and wards the striker when nobody is, a damage bot throws kunai at what it fights, detonates a full mark or one about to fade, and drops infernos (`server/bots.cpp`).
+Players cannot hurt each other in a run: a player's hit on another player does nothing, not even a shove (`IsFriendlyFire`, called by `DamageEntity` and `ApplyHit`). Server bots (`server --bots N`) fight only monsters there and take a role by their slot: tank, healer, damage, then damage twice, a second healer, damage and a second tank, so a lone player online gets a party and a bigger one adds damage first. They play it: a tank bot slams and taunts what is near it and leaps to an ally with monsters on them, a healer bot stays out of melee and heals, wards and lays sanctuaries on whoever is hurt and wards the striker when nobody is, a damage bot throws kunai at what it fights, detonates a full mark or one about to fade, and drops infernos (`server/bots.cpp`).
 
 ### Role talents
 
