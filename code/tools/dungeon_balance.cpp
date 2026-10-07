@@ -148,6 +148,30 @@ main(int ArgCount, char **Args)
     {
         printf("  still in the %s after %.1f s, %u foes left\n",
                GetRoomName(MapId_Crypt, Room), Seconds, Run->ShownFoesLeft);
+        // NOTE(zoubir): where the foes the party never finished are, to
+        // tell a stuck monster from a party that cannot win
+        world *World = &Game.AppState->World;
+        for (u32 Index = 0; Index < World->EntityCount; ++Index)
+        {
+            world_entity *Foe = &World->Entities[Index];
+            if (Foe->IsPresent && Foe->Type == EntityType_Monster && Foe->Hp > 0.f)
+            {
+                printf("    %s at (%.0f, %.0f), room %u, %.0f of %.0f health\n",
+                       GetMonsterDef((monster_kind)Foe->MonsterKind)->Name,
+                       Foe->Position.X, Foe->Position.Y,
+                       RoomAtPosition(World, Foe->Position.XY), Foe->Hp, Foe->MaxHp);
+            }
+        }
+        for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
+        {
+            world_entity *Player = Game.AppState->Players[Slot].Entity;
+            if (Player && Game.AppState->Players[Slot].Active)
+            {
+                printf("    player %u at (%.0f, %.0f), room %u%s\n", Slot, Player->Position.X,
+                       Player->Position.Y, RoomAtPosition(World, Player->Position.XY),
+                       IsDeadPlayer(Player) ? ", down" : "");
+            }
+        }
     }
     printf("dungeon balance: %u runs cleared\n", Runs);
     GameShutdown(&Game);
