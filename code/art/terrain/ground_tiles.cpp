@@ -144,6 +144,41 @@ DrawAshTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Seed, u32 Variant)
     FillGround(Canvas, Ground, Seed, Variant, 0.f, 0.5f, IsAsh);
     if (IsAsh)
     {
+        // NOTE(zoubir): ripples the wind combed into the ash, crests lit
+        // and troughs in shade. The waves repeat a whole number of times
+        // a tile and bend by tile noise whose border every variant shares,
+        // so they run on into any neighbour without a seam
+        for(i32 Y = 0; Y < TERRAIN_TILE_PIXELS; Y++)
+        {
+            for(i32 X = 0; X < TERRAIN_TILE_PIXELS; X++)
+            {
+                float Bend = 1.6f * GroundNoise(Seed + 11, Variant, X, Y, 8, 8);
+                float Phase = 6.2832f * ((3.f * (float)Y + (float)X) /
+                                         (float)TERRAIN_TILE_PIXELS + Bend);
+                float Wave = Sin(Phase);
+                float Fade = GroundNoise(Seed + 12, Variant, X, Y, 16, 16);
+                if (Wave > 0.55f)
+                {
+                    BlendPixel(Canvas, X, Y, Ground.C[3], 0.45f * Fade);
+                }
+                else if (Wave < -0.75f)
+                {
+                    BlendPixel(Canvas, X, Y, ART_RGB(84, 78, 76), 0.40f * Fade);
+                }
+            }
+        }
+        // NOTE(zoubir): stones half buried in it, lit on top with a shadow
+        // under
+        u32 Stones = 2 + DetailRoll(Detail, 17, 2);
+        for(u32 Stone = 0; Stone < Stones; Stone++)
+        {
+            i32 X, Y;
+            ScatterSpot(Detail + 7, Stone, 3, &X, &Y);
+            i32 Width = 2 + (i32)DetailRoll(Detail + 8, Stone, 2);
+            i32 Height = 1 + (i32)DetailRoll(Detail + 9, Stone, 2);
+            PutPebble(Canvas, X, Y, Width, Height, ART_RGB(168, 160, 150), ART_RGB(112, 104, 98),
+                      ART_RGB(80, 74, 72));
+        }
         for(u32 Soot = 0; Soot < 4; Soot++)
         {
             i32 X, Y;
