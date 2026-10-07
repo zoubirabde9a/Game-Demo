@@ -13,6 +13,8 @@
 //          plain stops reading as one tile repeated: broad patches a
 //          little lighter or darker, and soft cloud shadows drifting over
 //          it
+//   heat:  near fire (lava, fireballs) the world is read from a wavering
+//          offset, so the air above it shimmers
 //   lights: fireballs, shots and lava (client/world_lights.cpp) brighten
 //          and tint what is near them, the albedo times the light, so
 //          dark grass turns warm instead of grey
@@ -98,9 +100,36 @@ vec3 Sky(vec2 Pixel)
     return Shade;
 }
 
+// NOTE(zoubir): how much the air shimmers here: near a light that burns
+// (a flicker of 1: fireballs and lava), most at its middle
+float Heat(vec2 Pixel)
+{
+    float Sum = 0.0;
+    for (int Index = 0; Index < MAX_LIGHTS; Index++)
+    {
+        if (float(Index) >= LightCount.x) break;
+        vec4 Spot = LightSpot[Index];
+        if (LightColor[Index].w < 0.95) continue;
+        vec2 Away = (Pixel - Spot.xy) / (0.4 * Spot.z);
+        float Near = max(1.0 - dot(Away, Away), 0.0);
+        Sum += Near * Near * min(Spot.w, 1.0);
+    }
+    return min(Sum, 1.0);
+}
+
 void main()
 {
     vec2 Pixel = gl_FragCoord.xy;
+    // NOTE(zoubir): heat shimmer: near fire the world is read from a
+    // little to the side, wavering up the screen as hot air rises
+    float Hot = Heat(Pixel);
+    if (Hot > 0.0)
+    {
+        float Scale = Screen.y / 540.0;
+        vec2 Bend = vec2(sin(Pixel.y * 0.09 / Scale + Time * 7.0),
+                         sin(Pixel.x * 0.07 / Scale - Time * 5.0) * 0.5);
+        Pixel += Bend * Hot * 2.0 * Scale;
+    }
     vec3 C = World(Pixel);
     if (WorldView.z > 0.0)
     {
