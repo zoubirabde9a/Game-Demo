@@ -45,7 +45,7 @@ At its best the striker deals about 34 a second to one target. One who detonates
 
 Between fights every living player heals 8% of their health a second, so a party walks into the next room whole with or without a healer.
 
-Players cannot hurt each other in a run: a player's hit on another player does nothing, not even a shove (`IsFriendlyFire`, called by `DamageEntity` and `ApplyHit`). Server bots (`server --bots N`) fight only monsters there and take a role by their slot: tank, healer, damage, then damage twice, a second healer, damage and a second tank, so a lone player online gets a party and a bigger one adds damage first. They play it: a tank bot slams and taunts what is near it and leaps to an ally with monsters on them, a healer bot stays out of melee and heals, wards and lays sanctuaries on whoever is hurt and wards the striker when nobody is, a damage bot throws kunai at what it fights, detonates a full mark or one about to fade, and drops infernos (`server/bots.cpp`).
+Players cannot hurt each other in a run: a player's hit on another player does nothing, not even a shove (`IsFriendlyFire`, called by `DamageEntity` and `ApplyHit`). Server bots (`server --bots N`) fight only monsters there and take a role by their slot: tank, healer, damage, then damage twice, a second healer, damage and a second tank, so a lone player online gets a party and a bigger one adds damage first. They play it: a tank bot slams and taunts what is near it and leaps to an ally with monsters on them, a healer bot stays out of melee and heals, wards and lays sanctuaries on whoever is hurt and wards the striker when nobody is, and walks to a downed ally to revive them, a damage bot throws kunai at what it fights, detonates a full mark or one about to fade, and drops infernos (`server/bots.cpp`).
 
 ### Role talents
 
@@ -94,12 +94,12 @@ Death: a dead player lies downed where they fell. A healer standing next to them
 
 When the last room is cleared the run is won: the HUD shows the time it took (offline) and counts down 20 s, then the crypt is built again for a new run, everyone in the Antechamber with their role, level and talents.
 
-Scaling (`sim/dungeon/party_scaling.cpp`): each player past the first multiplies every dungeon monster's health by 1.45 and its damage by 1.12, so each player who joins makes the run harder than the one before did.
+Scaling (`sim/dungeon/party_scaling.cpp`): each player past the first multiplies every dungeon monster's health by 1.45 and its damage by 1.12, so each player who joins makes the run harder than the one before did. Past the three the dungeon is made for, damage grows by 1.06 a player instead: a bigger party still has one healer, and at the full growth four bots wiped on the Ashen Causeway six times running. The Causeway is still very hard for four; three-player numbers are unchanged.
 
 | Players | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---|---|---|---|---|---|---|---|
 | Monster health | 1 | 1.45 | 2.1 | 3.05 | 4.42 | 6.41 | 9.29 | 13.5 |
-| Monster damage | 1 | 1.12 | 1.25 | 1.4 | 1.57 | 1.76 | 1.97 | 2.21 |
+| Monster damage | 1 | 1.12 | 1.25 | 1.33 | 1.41 | 1.49 | 1.58 | 1.68 |
 
 The roles keep up at the square root of that damage: the tank takes only the square root of the party's extra damage (1.49x at eight players, where the others take 2.21x), and every heal and ward, the tank's Shield Slam heal included, grows by the same root. The damage scale holds while a room is being fought and drops back to 1 when it ends.
 
