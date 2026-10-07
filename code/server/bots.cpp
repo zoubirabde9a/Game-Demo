@@ -22,6 +22,8 @@
 #define BOT_SIGHT 700.f
 #define BOT_SWORD_RANGE 70.f
 #define BOT_FIREBALL_RANGE 380.f
+// NOTE(zoubir): how far from its target a striker bot holds in a dungeon
+#define BOT_STRIKER_RANGE 220.f
 // NOTE(zoubir): how long a bot sits on a new talent point before spending it
 #define BOT_LEARN_SECONDS 1.5f
 
@@ -386,6 +388,29 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     {
         float Distance = Target ? Length(Target->Position.XY - Self->Position.XY) : 0.f;
         Held &= ~(u32)NetButton_Kunai;
+        // NOTE(zoubir): the striker fights from range and, against a
+        // monster whose shell takes hits from the front (sim/monster_
+        // abilities/armor.cpp), from behind it, as the tank holds it
+        player_slot *Mine = &AppState->Players[Self->PlayerIndex];
+        if (Mine->Role == PlayerRole_Damage && Target && Target->Type == EntityType_Monster)
+        {
+            v2 Away = (Distance > 0.001f) ? -1.f * Direction : V2(1.f, 0.f);
+            v2 Side = Away;
+            monster_def *Def = GetMonsterDef((monster_kind)Target->MonsterKind);
+            if (Def->FrontArmor > 0.f && LengthSq(Target->Direction) > 0.0001f &&
+                DotProduct(Away, Target->Direction) > -0.3f)
+            {
+                Side = -1.f * Target->Direction;
+            }
+            v2 Want = Target->Position.XY + BOT_STRIKER_RANGE * Side;
+            v2 ToWant = Want - Self->Position.XY;
+            Held &= ~(u32)(NetButton_Left | NetButton_Right | NetButton_Up | NetButton_Down |
+                           NetButton_Sword);
+            if (Length(ToWant) > 40.f)
+            {
+                Held |= NetButtonsToward(DirectionTo(ToWant));
+            }
+        }
         Held |= BotRoleButtons(Bot, AppState, Self, Target, Distance, Direction, &Held, &Pick);
     }
 
