@@ -65,13 +65,15 @@ AddWorldLight(world_lights *Lights, v3 CameraOffset, float Zoom,
 
 // NOTE(zoubir): View is the window in world units (GetWorldView); lights
 // past its edge by more than their radius are left out
+// NOTE(zoubir): Zoom is framebuffer pixels per world unit and WindowHeight
+// the framebuffer's height: the shader works in gl_FragCoord, which on a
+// display scaled past 100% has more pixels than the window says
 internal void
 GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
-                  float WindowHeight, world_lights *Lights)
+                  float Zoom, float WindowHeight, world_lights *Lights)
 {
     Lights->Count = 0;
     world *World = &AppState->World;
-    float Zoom = AppState->WorldZoom;
     float Margin = 160.f;
     v2 Min = CameraOffset.XY - V2(Margin, Margin);
     v2 Max = CameraOffset.XY + V2((float)View->Width + Margin,

@@ -43,12 +43,16 @@ BeginWorldGrade(render_context *RenderContext, app_state *AppState,
         BeginRenderTarget(RenderContext, &Grade->Target);
     if (Grade->Capturing)
     {
-        GatherWorldLights(AppState, CameraOffset, View, (float)Window->Height,
-                          &Grade->Lights);
+        // NOTE(zoubir): the target is the framebuffer, which on a display
+        // scaled past 100% is bigger than the window; the shader's pixels
+        // are the framebuffer's
+        float Height = (float)Grade->Target.Height;
+        float Zoom = AppState->WorldZoom * Height / (float)Maximum(Window->Height, 1u);
+        GatherWorldLights(AppState, CameraOffset, View, Zoom, Height, &Grade->Lights);
         Grade->WorldView[0] = CameraOffset.X;
         Grade->WorldView[1] = CameraOffset.Y;
-        Grade->WorldView[2] = AppState->WorldZoom;
-        Grade->WorldView[3] = (float)Window->Height;
+        Grade->WorldView[2] = Zoom;
+        Grade->WorldView[3] = Height;
     }
     return Grade->Capturing;
 }
