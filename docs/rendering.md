@@ -64,7 +64,7 @@ On an endless map every `TerrainAt`, `PropAt` and `ElevationAt` runs the map's n
 | `powershell -File misc\render_check.ps1` | nine fixed scenes (every map, casting, ice, lava, rain, torches, night, dusk, footprints) still draw exactly what they drew; after a change meant to look different, run it with `-Update` and commit `misc\render_refs.txt` with the change |
 | `build\crash.txt` | written by the Windows game when it crashes: the call stack; look game frames up in `build\app.map` |
 
-The game draws the same frame every time for the same map, keys and frame number, which is what lets `render_check` compare hashes. The hashes hold for one machine (GPU, driver, display scale).
+The game draws the same frame every time for the same map, keys and frame number, which is what lets `render_check` compare them; now and then the GPU draws a pixel one level off, which the block means absorb. The references hold for one machine (GPU, driver, display scale).
 
 To see whether a new pass draws at all, have its shader output solid red for a run. Several effects here first drew nothing (sort key rounding, flat-only ground) or too much (bloom on cyan).
 
