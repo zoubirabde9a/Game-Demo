@@ -30,6 +30,7 @@
 #include "win32/frame.cpp"
 #include "win32/screenshot.cpp"
 #include "win32/profile.cpp"
+#include "win32/crash_log.cpp"
 
 // NOTE(zoubir): one game frame: messages (unless the window procedure is
 // already handling them), input, the game, sound, waiting out the frame,
@@ -101,6 +102,7 @@ WinMain(HINSTANCE instance,
         LPSTR commandLine,
         int showCode)
 {
+    Win32InstallCrashLog();
     platform_work_queue WorkQueue = {};
     Win32InitWorkQueue(&WorkQueue, 2);
 
