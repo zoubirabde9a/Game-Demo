@@ -104,26 +104,7 @@ UpdateGates(app_state *AppState, world *World, memory_arena *Arena,
     Run->GatesBuilt = true;
 }
 
-// NOTE(zoubir): a spot in Room for a pack: open ground away from the
-// party; the room's middle when none turns up
-internal v3
-PickPackSpot(world *World, dungeon_run *Run, u32 Room)
-{
-    map_def *Map = GetMapDef((map_id)World->MapId);
-    float Tile = (float)World->TileWidth;
-    for(u32 Try = 0; Try < DUNGEON_SPOT_TRIES; Try++)
-    {
-        i32 X = (i32)RandomChoice(&Run->Series, Map->Width);
-        i32 Y = (i32)RandomChoice(&Run->Series, Map->Height);
-        v3 Spot = V3(((float)X + 0.5f) * Tile, ((float)Y + 0.5f) * Tile, 0.f);
-        if (RoomAtTile(World->MapId, X, Y) == Room && IsOpenTile(Map, X, Y) &&
-            IsFarFromPlayers(World, Spot.XY, DUNGEON_PACK_DISTANCE))
-        {
-            return Spot;
-        }
-    }
-    return Run->RoomMiddle[Room];
-}
+#include "pack_spots.cpp"
 
 // NOTE(zoubir): one of a room's monsters near Spot; 0 when the run's
 // list is full
@@ -193,6 +174,10 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
 
     u32 RowCount;
     encounter_row *Rows = GetEncounters(World->MapId, &RowCount);
+    // NOTE(zoubir): where the packs placed so far stand, to keep the next
+    // apart from them
+    v3 PackSpots[8];
+    u32 PackSpotCount = 0;
     for(u32 Pack = 0; Pack < DUNGEON_MAX_FOES; Pack++)
     {
         bool32 PackUsed = false;
@@ -208,7 +193,11 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
             {
                 PackUsed = true;
                 Spot = (Row->Flags & Encounter_Boss) ? Run->RoomMiddle[Room] :
-                    PickPackSpot(World, Run, Room);
+                    PickPackSpotApart(World, Run, Room, PackSpots, PackSpotCount);
+                if (PackSpotCount < ArrayCount(PackSpots))
+                {
+                    PackSpots[PackSpotCount++] = Spot;
+                }
             }
             for(u32 Index = 0; Index < Row->Count; Index++)
             {
