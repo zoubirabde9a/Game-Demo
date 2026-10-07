@@ -34,7 +34,8 @@
    build's content id, the map id), then blocks: raw size u32, packed
    size u32, the 5 LZMA properties bytes, the packed bytes. Unpacked, a
    block is whole events, each starting with an op byte:
-     0x10 | slot  input: buttons u32, aim x i16, aim y i16 (1/32767 steps)
+     0x10 | slot  input: buttons u32, aim x i16, aim y i16 (1/32767 steps),
+                  the cursor's unit u16 (entity Id + 1, 0 for none)
      0x20 | slot  joined
      0x30 | slot  left
      0x40 | slot  named: name 16 bytes
@@ -48,7 +49,7 @@
 #include "../third_party/lzma/lzma.cpp"
 
 #define REPLAY_MAGIC 0x50524447u // "GDRP"
-#define REPLAY_VERSION 4u
+#define REPLAY_VERSION 5u
 #define REPLAY_NAME_SIZE 16
 #define REPLAY_BLOCK_SIZE (64 * 1024)
 #define REPLAY_PACKED_SIZE (REPLAY_BLOCK_SIZE + REPLAY_BLOCK_SIZE / 8 + 1024)

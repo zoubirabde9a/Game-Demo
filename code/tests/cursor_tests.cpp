@@ -1,7 +1,8 @@
 /* Cursor tests: a left click casts wherever it lands, and the tile
    editor's clicks paint without casting, here or online. Standard cast
    aims an area ability on its key and casts it on the next left click
-   (client/cast_targeting.cpp); quick cast casts it on the key. On QWERTY
+   (client/cast_targeting.cpp); quick cast casts it on the key. The
+   cursor picks the unit whose body it is on (client/targeting.cpp). On QWERTY
    the letter keys move to the same places (client/keyboard_layout.cpp).
    Included
    by sim_tests.cpp, which calls RunCursorTests. */
@@ -18,6 +19,7 @@ PressLeftButton(app_input *Input, i32 X, i32 Y)
 // NOTE(zoubir): the test world's app_state has no MemoryArena to make
 // the cast targeting state in, so it lives here
 global_variable cast_targeting TestCastTargeting;
+global_variable cursor_targeting TestCursorTargeting;
 
 internal test_world
 CreateCursorTestWorld(cast_mode Mode = CastMode_Standard)
@@ -26,6 +28,8 @@ CreateCursorTestWorld(cast_mode Mode = CastMode_Standard)
     TestCastTargeting = {};
     TestCastTargeting.Mode = Mode;
     Result.AppState->CastTargeting = &TestCastTargeting;
+    TestCursorTargeting = {};
+    Result.AppState->CursorTargeting = &TestCursorTargeting;
     return Result;
 }
 
@@ -194,6 +198,73 @@ TestQwertyMovesTheLetterKeys()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): the cursor at a world point, the camera at the origin and
+// one window pixel a world unit
+inline void
+PutCursorAt(test_world *Test, float X, float Y)
+{
+    Test->AppState->WorldZoom = 1.f;
+    Test->AppState->CameraOffset = {};
+    Test->Input.MouseX = (i32)X;
+    Test->Input.MouseY = (i32)Y;
+}
+
+// NOTE(zoubir): the body on screen, above the feet, is what the cursor
+// picks; a near miss snaps; overlapping bodies give the front one unless
+// one was already picked; far off picks nothing
+internal void
+TestCursorPicksTheBodyOnScreen()
+{
+    test_world Test = CreateCursorTestWorld();
+    app_state *AppState = Test.AppState;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    world_entity *A = AddPlayerToSlot(AppState, Test.World, &Test.Arena, 1, {500, 300, 0});
+    cursor_targeting *Targeting = AppState->CursorTargeting;
+
+    // NOTE(zoubir): on the chest, 25 units above the feet
+    PutCursorAt(&Test, 500, 275);
+    player_input Local = ReadKeyboardPlayerInput(&Test.Input, AppState);
+    Check(Local.Target == A->ID + 1);
+
+    // NOTE(zoubir): 10 units right of the body, fresh: snaps to it
+    Targeting->Picked = 0;
+    PutCursorAt(&Test, 525, 280);
+    Local = ReadKeyboardPlayerInput(&Test.Input, AppState);
+    Check(Local.Target == A->ID + 1);
+
+    // NOTE(zoubir): B stands just in front of A, the bodies overlap
+    world_entity *B = AddPlayerToSlot(AppState, Test.World, &Test.Arena, 2, {506, 312, 0});
+    Targeting->Picked = 0;
+    PutCursorAt(&Test, 503, 290);
+    Local = ReadKeyboardPlayerInput(&Test.Input, AppState);
+    Check(Local.Target == B->ID + 1);
+    Targeting->Picked = A->ID + 1;
+    Local = ReadKeyboardPlayerInput(&Test.Input, AppState);
+    Check(Local.Target == A->ID + 1);
+
+    // NOTE(zoubir): far off: nothing, even from a pick
+    PutCursorAt(&Test, 700, 300);
+    Local = ReadKeyboardPlayerInput(&Test.Input, AppState);
+    Check(Local.Target == 0);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): the local player is never its own target, and the kunai
+// key with nothing picked says so by the cursor
+internal void
+TestCursorSkipsSelfAndSaysNoTarget()
+{
+    test_world Test = CreateCursorTestWorld(CastMode_Quick);
+    app_state *AppState = Test.AppState;
+    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    PutCursorAt(&Test, 300, 280);
+    PressKey(&Test.Input.ButtonV);
+    player_input Local = ReadKeyboardPlayerInput(&Test.Input, AppState);
+    Check(Local.Target == 0);
+    Check(AppState->CursorTargeting->NoticeLeft > 0.f);
+    DestroyTestWorld(&Test);
+}
+
 #define CURSOR_TEST(Test) printf("%s\n", #Test); Test()
 
 internal void
@@ -205,4 +276,6 @@ RunCursorTests()
     CURSOR_TEST(TestStandardCastRightClickCancels);
     CURSOR_TEST(TestQuickCastCastsOnTheKey);
     CURSOR_TEST(TestQwertyMovesTheLetterKeys);
+    CURSOR_TEST(TestCursorPicksTheBodyOnScreen);
+    CURSOR_TEST(TestCursorSkipsSelfAndSaysNoTarget);
 }

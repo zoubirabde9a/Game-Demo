@@ -35,6 +35,7 @@
 #include "online.cpp"
 #include "cast_targeting.cpp"
 #include "cursor.cpp"
+#include "targeting.cpp"
 #include "server_browser.cpp"
 #include "keyboard_input.cpp"
 #include "camera.cpp"

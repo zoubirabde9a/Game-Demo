@@ -33,6 +33,7 @@ QueuePlayerActions(player_slot *Slot, player_tick *Tick)
         Player->Aim = Input->Aim * (1.f / AimLength);
         Player->AimReach = Minimum(1.f, AimLength);
     }
+    Player->CursorTarget = Input->Target;
 
     Tick->Jumping = !IsOnGround(Player);
     if (Tick->Jumping)

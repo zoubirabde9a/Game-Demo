@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d62u // "GDMb", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d63u // "GDMc", change it whenever the layout changes
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
 #define NET_PLAYER_HEALTH_STEPS 100.f
@@ -132,6 +132,7 @@ struct net_input
     u32 Buttons;   // net_button bits held down
     float AimX;    // aim direction in -1..1, sent at 1/32767 precision
     float AimY;
+    u16 Target;    // the unit the cursor is on: its entity Id + 1, 0 for none
 };
 
 struct net_entity_state

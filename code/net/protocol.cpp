@@ -124,6 +124,7 @@ NetSerializeInput(net_stream *S, net_input *Input)
     NetU32(S, &Input->Buttons);
     NetUnitFloat(S, &Input->AimX);
     NetUnitFloat(S, &Input->AimY);
+    NetU16(S, &Input->Target);
 }
 
 // One function both writes and reads, so the two directions cannot drift apart.

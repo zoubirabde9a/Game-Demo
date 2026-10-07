@@ -1,6 +1,7 @@
 /* Kunai tests (sim/player_abilities/kunai.cpp): the key throws one at the
-   unit under the cursor, on its cooldown; with the cursor on bare ground
-   the key does nothing and spends nothing; it follows its unit as it
+   unit the input names (player_input.Target, the cursor's pick), on its
+   cooldown; with no unit named, or one out of range, the key does
+   nothing and spends nothing; it follows its unit as it
    walks off and even when it blinks away; a shielded player sends it
    back into the thrower; two shielded players bounce it back and forth
    for as long as their shields last. Included by sim_tests.cpp, which
@@ -13,6 +14,7 @@ AimKunaiAt(world_entity *Player, world_entity *Target)
     v2 To = Target->Position.XY - Player->Position.XY;
     Player->Aim = NormalizeOr(To, V2(1.f, 0.f));
     Player->AimReach = Minimum(1.f, Length(To) / PLAYER_AIM_REACH);
+    Player->CursorTarget = Target->ID + 1;
 }
 
 // NOTE(zoubir): the one kunai in the world, 0 once it is gone
@@ -66,8 +68,8 @@ TestKunaiKeyThrowsOnCooldown()
                                            0, {300, 300, 0});
     world_entity *Target = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
                                            1, {450, 300, 0});
-    // NOTE(zoubir): the cursor 30 units short of the target, inside the pick
-    AppState->Players[0].Input.Aim = V2(120.f / PLAYER_AIM_REACH, 0.f);
+    AppState->Players[0].Input.Aim = V2(150.f / PLAYER_AIM_REACH, 0.f);
+    AppState->Players[0].Input.Target = Target->ID + 1;
     AppState->Players[0].Input.Pressed = PlayerButton_Kunai;
     RunPlayerFrames(&Test, 0, 2);
     world_entity *Kunai = FindKunai(Test.World);
@@ -79,8 +81,8 @@ TestKunaiKeyThrowsOnCooldown()
     DestroyTestWorld(&Test);
 }
 
-// NOTE(zoubir): the cursor on ground with nobody near: no kunai, and the
-// key is still ready
+// NOTE(zoubir): the cursor on no unit, then on one past the range: no
+// kunai, and the key is still ready
 internal void
 TestKunaiNeedsATarget()
 {
@@ -88,8 +90,14 @@ TestKunaiNeedsATarget()
     app_state *AppState = Test.AppState;
     world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
                                            0, {300, 300, 0});
-    AddPlayerToSlot(AppState, Test.World, &Test.Arena, 1, {300, 450, 0});
-    AppState->Players[0].Input.Aim = V2(150.f / PLAYER_AIM_REACH, 0.f);
+    world_entity *Far = AddPlayerToSlot(AppState, Test.World, &Test.Arena, 1,
+                                        {300.f + PlayerStats.KunaiRange + 100.f, 300, 0});
+    AppState->Players[0].Input.Aim = V2(1.f, 0.f);
+    AppState->Players[0].Input.Pressed = PlayerButton_Kunai;
+    RunPlayerFrames(&Test, 0, 30);
+    Check(!FindKunai(Test.World));
+    Check(Player->ActionCooldowns[PlayerAction_Kunai] == 0.f);
+    AppState->Players[0].Input.Target = Far->ID + 1;
     AppState->Players[0].Input.Pressed = PlayerButton_Kunai;
     RunPlayerFrames(&Test, 0, 30);
     Check(!FindKunai(Test.World));

@@ -37,4 +37,5 @@
     float VoteHoldLeft; // seconds the vote field stays held, client/vote_requests.cpp
     float VoteGapLeft; // seconds the vote field stays empty before the next request, client/vote_requests.cpp
     struct ground_cracks *GroundCracks; // broken ground where Launch and slams hit, client/ground_cracks.cpp
+    struct cursor_targeting *CursorTargeting; // the unit the cursor is on and its brackets, client/targeting.cpp
     struct cast_targeting *CastTargeting; // quick or standard cast, and the ability being aimed, client/cast_targeting.cpp

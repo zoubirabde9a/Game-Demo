@@ -15,6 +15,7 @@ DrawCastPreview(RenderContext, AppState, CameraOffset); // range and area of the
 DrawTalentFx(RenderContext, AppState, CameraOffset); // frost on slowed and frozen units, the Ward talent's shell, client/talent_fx.cpp
 DrawRewindFx(RenderContext, AppState, CameraOffset); // time rewinds' sigils, ghosts and flashes, client/rewind_fx/
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);
+DrawCursorTarget(RenderContext, AppState, CameraOffset); // brackets on the unit the cursor is on, client/targeting.cpp
 DrawThreatPointers(RenderContext, AppState, CameraOffset, &View); // close enemies off screen, client/threat_pointers.cpp
 RenderSetProjection(RenderContext, &ProjectionMatrix); // screens below draw in window pixels
 DrawScreenEdge(RenderContext, AppState, Window->Width, Window->Height, Input->DeltaTime); // vignette and hurt tint, client/screen_edge.cpp
@@ -36,4 +37,5 @@ if (Input->TabButton.EndedDown) DrawScoreboard(RenderContext, AppState, Window->
 DoTileEditor(RenderContext, AppState, UIContext, Input, Window, TextureProgram, CameraOffset);
 DoConnectScreen(RenderContext, AppState, UIContext, Input, Window->Width, Window->Height);
 DoOptionsMenu(RenderContext, AppState, Input, Window->Width, Window->Height); // Esc: keyboard layout, ui/options_menu.cpp
+DrawTargetNotice(RenderContext, AppState); // "No target" or "Out of range" by the cursor, client/targeting.cpp
 DrawShaderErrors(RenderContext, AppState, Window->Width);

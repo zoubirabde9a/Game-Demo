@@ -73,6 +73,10 @@ struct player_input
     // + 1, 0 for none (progression/talents.cpp). The server reads it from
     // spare bits of the held buttons (NET_LEARN_SHIFT, net/protocol.h)
     u32 Learn;
+    // NOTE(zoubir): the unit the cursor is on (client/targeting.cpp): its
+    // index in this world's entities + 1, 0 for none. Online the client
+    // sends the server's index (net_input.Target), offline its own
+    u32 Target;
     // NOTE(zoubir): a map asked for or a vote answered this tick
     // (map_vote_request, sim/map_vote.cpp), 0 for none. The server reads
     // it from spare bits of the held buttons (NET_VOTE_SHIFT)

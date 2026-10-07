@@ -64,7 +64,6 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
 
     DrawFireBallTrails(RenderContext, &Fx->Embers, CameraOffset);
     DrawKunaiFx(RenderContext, AppState, &Fx->Kunai, CameraOffset);
-    DrawKunaiTargetMark(RenderContext, AppState, CameraOffset);
     DrawDashGhosts(RenderContext, AppState, &Fx->Dashes, CameraOffset);
     DrawDashStreaks(RenderContext, &Fx->Dashes, CameraOffset);
     DrawStatusMotes(RenderContext, AppState, CameraOffset);

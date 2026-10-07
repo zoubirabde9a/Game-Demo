@@ -134,7 +134,8 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     // does change it
     bool32 ChangesGame = Held != Game->HeldButtons[Slot] ||
         Move.X != Out->Move.X || Move.Y != Out->Move.Y ||
-        Aim.X != Out->Aim.X || Aim.Y != Out->Aim.Y;
+        Aim.X != Out->Aim.X || Aim.Y != Out->Aim.Y ||
+        Input->Target != Out->Target;
     if (ChangesGame)
     {
         ReplayWriteInput(Game->Replay, Slot, Input);
@@ -144,6 +145,7 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     Game->LastInputTick[Slot] = Input->Tick;
     Out->Move = Move;
     Out->Aim = Aim;
+    Out->Target = Input->Target;
     Out->Pressed |= (u32)Pressed >> PLAYER_BUTTON_NET_SHIFT;
     if (Learn && Learn != LearnBefore)
     {

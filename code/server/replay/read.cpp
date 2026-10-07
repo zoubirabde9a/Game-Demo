@@ -155,7 +155,8 @@ ReplayNextEvent(replay_reader *Reader, replay_event *Event)
                 Event->Type = ReplayEvent_Input;
                 i16 AimX = 0, AimY = 0;
                 if (!ReplayTake(Reader, &Event->Input.Buttons, 4) ||
-                    !ReplayTake(Reader, &AimX, 2) || !ReplayTake(Reader, &AimY, 2))
+                    !ReplayTake(Reader, &AimX, 2) || !ReplayTake(Reader, &AimY, 2) ||
+                    !ReplayTake(Reader, &Event->Input.Target, 2))
                 {
                     return false;
                 }

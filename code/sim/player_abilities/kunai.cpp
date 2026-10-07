@@ -1,7 +1,8 @@
 /* Kunai (V): a thrown blade, faster than a fireball, aimed at a unit, not
-   at the ground. The throw needs an enemy (a player or a monster) within
-   KUNAI_PICK_RADIUS of the cursor and within its range; with none the key
-   does nothing and the cooldown is not spent (CanStartSpawnAction). Once
+   at the ground. The throw needs the enemy (a player or a monster) the
+   cursor is on, picked on screen by client/targeting.cpp and named in
+   player_input.Target, within its range; with none the key does nothing
+   and the cooldown is not spent (CanStartSpawnAction). Once
    thrown it heads straight for that unit every tick, so it follows it
    wherever it runs or blinks, for up to KUNAI_FLIGHT_SECONDS. A jump
    lets it pass under for a moment, a wall stops it, and it falls when
@@ -20,10 +21,9 @@
    spawn_actions.cpp. The server simulates it; clients draw the replica
    (client/player_fx/kunai_fx.cpp). */
 
-// NOTE(zoubir): how near the cursor a unit must stand to be the target;
-// with the cursor at the aim's limit (PLAYER_AIM_REACH) or past it, how
-// near the aim's line beyond that
-#define KUNAI_PICK_RADIUS 48.f
+// NOTE(zoubir): range the server allows past KunaiRange, for the time the
+// press takes to reach it while the target walks off
+#define KUNAI_RANGE_SLACK 40.f
 // NOTE(zoubir): the longest a kunai flies before it drops, chasing or
 // sent back by a shield
 #define KUNAI_FLIGHT_SECONDS 2.f
@@ -62,50 +62,27 @@ KunaiOwner(app_state *AppState, world_entity *Kunai)
     return Result;
 }
 
-// NOTE(zoubir): the enemy Owner's cursor is on: within KUNAI_PICK_RADIUS
-// of the cursor (Aim, a unit direction, times AimReach of the aim's
-// limit) and within the kunai's range, the nearest the cursor winning.
-// A cursor at the limit may be farther out, so then the spot slides out
-// along the aim to the unit, up to the range. 0 for none
+// NOTE(zoubir): the unit a kunai thrown now would go for: the one the
+// player's cursor is on (player_input.Target, picked on screen by
+// client/targeting.cpp), if it may be hit and is within range. The range
+// has KUNAI_RANGE_SLACK added here, so a unit the client still showed in
+// range when the press left is not refused by the time it lands. 0 for
+// none: spawn_actions.cpp then holds the press and spends nothing
 internal world_entity *
-FindKunaiTarget(world *World, world_entity *Owner, v2 Aim, float AimReach)
-{
-    world_entity *Result = 0;
-    float BestMiss = 0.f;
-    bool32 AtLimit = AimReach >= 0.999f;
-    for(u32 Index = 0; Index < World->EntityCount; Index++)
-    {
-        world_entity *Unit = &World->Entities[Index];
-        if (!IsKunaiTarget(Unit, Owner))
-        {
-            continue;
-        }
-        v2 To = Unit->Position.XY - Owner->Position.XY;
-        if (Length(To) > PlayerStats.KunaiRange)
-        {
-            continue;
-        }
-        float Along = DotProduct(To, Aim);
-        float Spot = AtLimit ?
-            Minimum(PlayerStats.KunaiRange, Maximum(PLAYER_AIM_REACH, Along)) :
-            AimReach * PLAYER_AIM_REACH;
-        float Miss = Length(To - Spot * Aim);
-        if (Miss <= KUNAI_PICK_RADIUS && (!Result || Miss < BestMiss))
-        {
-            Result = Unit;
-            BestMiss = Miss;
-        }
-    }
-    return Result;
-}
-
-// NOTE(zoubir): the unit a kunai thrown now would go for (spawn_actions.cpp
-// checks it before the key spends anything)
-inline world_entity *
 KunaiTargetFor(world *World, world_entity *Player)
 {
-    float Reach = Player->AimReach > 0.f ? Player->AimReach : 1.f;
-    world_entity *Result = FindKunaiTarget(World, Player, GetPlayerAim(Player), Reach);
+    world_entity *Result = 0;
+    u32 Index = Player->CursorTarget;
+    if (Index > 0 && Index <= World->EntityCount)
+    {
+        world_entity *Unit = &World->Entities[Index - 1];
+        if (IsKunaiTarget(Unit, Player) &&
+            Length(Unit->Position.XY - Player->Position.XY) <=
+            PlayerStats.KunaiRange + KUNAI_RANGE_SLACK)
+        {
+            Result = Unit;
+        }
+    }
     return Result;
 }
 

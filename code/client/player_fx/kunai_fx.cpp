@@ -3,12 +3,8 @@
    ring at the back, over a pale streak of motes it leaves behind that
    fade over KUNAI_TRAIL_SECONDS. Read from the kunai entities
    themselves, so replicas look the same online. The entity has no
-   sprite; this is all of its look.
-
-   DrawKunaiTargetMark puts four corner brackets round the unit a kunai
-   thrown now would go for (KunaiTargetFor, the cursor's pick): bright
-   when the key is ready, dim while it cools down, none when the cursor
-   is on no enemy. */
+   sprite; this is all of its look. The unit it would be thrown at is
+   marked by client/targeting.cpp. */
 
 #define MAX_KUNAI_MOTES 192
 #define KUNAI_TRAIL_SECONDS 0.16f
@@ -99,52 +95,6 @@ DrawKunai(render_context *RenderContext, world_entity *Kunai, v3 CameraOffset)
                   V2(-1.f, 1.f), V2(-7.f, 1.f), V2(-7.f, -1.f), V2(-1.f, -1.f), Grip);
     DrawKunaiPart(RenderContext, Centre, Dir, Side,
                   V2(-7.f, 0.f), V2(-9.f, 2.f), V2(-11.f, 0.f), V2(-9.f, -2.f), Steel);
-}
-
-#define KUNAI_MARK_HALF 17.f
-#define KUNAI_MARK_ARM 7.f
-// NOTE(zoubir): a unit's middle sits about this far above its feet
-#define KUNAI_MARK_LIFT 14.f
-
-internal void
-DrawKunaiTargetMark(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
-{
-    world_entity *Player = GetLocalPlayer(AppState);
-    player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
-    if (!Player || !Player->IsPresent || IsDeadPlayer(Player) ||
-        !AbilityLevel(Slot, PlayerButton_Kunai))
-    {
-        return;
-    }
-    world_entity *Target = KunaiTargetFor(&AppState->World, Player);
-    if (!Target)
-    {
-        return;
-    }
-    bool32 Ready = Player->ActionCooldowns[PlayerAction_Kunai] <= 0.f;
-    u32 Color = Ready ? 0xF0FFF0D8 : 0x80B0A8A0;
-    u32 Rim = Ready ? 0xC0201810 : 0x60201810;
-    v2 Centre = Target->Position.XY - V2(0.f, Target->Position.Z + KUNAI_MARK_LIFT) -
-        CameraOffset.XY;
-    float H = KUNAI_MARK_HALF;
-    float A = KUNAI_MARK_ARM;
-    for(u32 Corner = 0; Corner < 4; Corner++)
-    {
-        float SX = (Corner & 1) ? 1.f : -1.f;
-        float SY = (Corner & 2) ? 1.f : -1.f;
-        v2 Tip = Centre + V2(SX * H, SY * H);
-        v2 Across = V2(-SX * A, 0.f);
-        v2 Down = V2(0.f, -SY * A);
-        for(u32 Pass = 0; Pass < 2; Pass++)
-        {
-            float W = Pass ? 1.f : 2.f;
-            u32 C = Pass ? Color : Rim;
-            DrawFilledQuad(RenderContext, Tip + V2(0.f, -W * SY), Tip + Across + V2(0.f, -W * SY),
-                           Tip + Across + V2(0.f, W * SY), Tip + V2(0.f, W * SY), C, C, C, C);
-            DrawFilledQuad(RenderContext, Tip + V2(-W * SX, 0.f), Tip + Down + V2(-W * SX, 0.f),
-                           Tip + Down + V2(W * SX, 0.f), Tip + V2(W * SX, 0.f), C, C, C, C);
-        }
-    }
 }
 
 internal void

@@ -181,10 +181,11 @@ ReplayWriteEvent(replay_writer *Writer, replay_event *Event)
         i16 AimX = ReplayAimSteps(Event->Input.AimX);
         i16 AimY = ReplayAimSteps(Event->Input.AimY);
         ReplayPutTickRun(Writer);
-        u8 Op[9] = {(u8)(ReplayOp_Input | Slot)};
+        u8 Op[11] = {(u8)(ReplayOp_Input | Slot)};
         memcpy(Op + 1, &Event->Input.Buttons, 4);
         memcpy(Op + 5, &AimX, 2);
         memcpy(Op + 7, &AimY, 2);
+        memcpy(Op + 9, &Event->Input.Target, 2);
         ReplayPut(Writer, Op, sizeof(Op));
         return;
     }

@@ -10,6 +10,9 @@
     v2 Aim;
     // NOTE(zoubir): how far toward PLAYER_AIM_REACH the cursor is, 0..1
     float AimReach;
+    // NOTE(zoubir): player_input.Target as of the last tick: the entity
+    // index + 1 of the unit the cursor is on, 0 for none
+    u32 CursorTarget;
     // NOTE(zoubir): seconds left in which the player cannot walk, set when
     // a swing or cast starts; the rest of the animation can be walked out of
     float ActionLock;

@@ -2,7 +2,7 @@
    player_input the simulation understands. ZQSD move on AZERTY and
    WASD on QWERTY (picked in the Esc menu, keyboard_layout.cpp),
    the mouse cursor aims, right click sword, left click fireball, Space
-   jump, Alt dash, E shockwave, F blink, R push, A launch (the action keys
+   jump, E shockwave, F blink, R push, A launch (the action keys
    are one table, action_keys.cpp). In standard cast mode an area
    ability's key aims it first and a left click casts it
    (cast_targeting.cpp). Holding Tab shows the scoreboard
@@ -38,6 +38,7 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
 {
     player_input Result = {};
     Result.Aim = AimFromCursor(Input, AppState);
+    Result.Target = UpdateCursorTarget(Input, AppState);
     if (LayoutKey(Input, 'Z')->EndedDown) { Result.Move.Y = -1.f; }
     if (Input->ButtonS.EndedDown) { Result.Move.Y = 1.f; }
     if (Input->ButtonD.EndedDown) { Result.Move.X = 1.f; }

@@ -209,7 +209,8 @@ NetClientPoll(net_client *Client, float Dt)
 }
 
 internal u32
-NetClientQueueInput(net_client *Client, u32 Buttons, float AimX, float AimY)
+NetClientQueueInput(net_client *Client, u32 Buttons, float AimX, float AimY,
+                    u16 Target)
 {
     if (Client->State != NetClient_Connected) return 0;
     // Shift the history down and put this input first.
@@ -224,6 +225,7 @@ NetClientQueueInput(net_client *Client, u32 Buttons, float AimX, float AimY)
     Newest->Buttons = Buttons;
     Newest->AimX = AimX;
     Newest->AimY = AimY;
+    Newest->Target = Target;
     Client->RecentInputCount = Keep + 1;
     Client->InputsUnsent++;
     return Newest->Tick;

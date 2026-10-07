@@ -178,11 +178,31 @@ StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0)
     return Online;
 }
 
+// NOTE(zoubir): the server's Id + 1 of the replica at local entity index
+// + 1 Local, 0 for none: the unit the cursor is on, as the server knows it
+internal u16
+ReplicaServerTarget(replica_table *Table, u32 Local)
+{
+    u16 Result = 0;
+    for(u32 Id = 0; Local && Id < MAX_REPLICAS; Id++)
+    {
+        if (Table->LocalIndexPlusOne[Id] == Local)
+        {
+            Result = (u16)(Id + 1);
+            break;
+        }
+    }
+    return Result;
+}
+
 // NOTE(zoubir): KeysToUi while a screen takes the keyboard: the player
 // holds nothing. Aim is the unit vector toward the cursor (zero: no change).
+// Target is player_input.Target, the unit the cursor is on (local entity
+// index + 1, client/targeting.cpp), sent as the server's Id + 1
 internal void
 UpdateOnlineSession(online_session *Online, app_input *Input,
-                    bool32 KeysToUi = false, v2 Aim = {}, u32 LearnBits = 0)
+                    bool32 KeysToUi = false, v2 Aim = {}, u32 LearnBits = 0,
+                    u32 Target = 0)
 {
     if (Online && Online->Enabled)
     {
@@ -200,7 +220,8 @@ UpdateOnlineSession(online_session *Online, app_input *Input,
             for(u32 Index = 0; Index < Ticks; Index++)
             {
                 u32 Buttons = (Index == 0 ? Online->HeldSinceTick : Held) | LearnBits;
-                u32 Tick = NetClientQueueInput(&Online->Client, Buttons, Aim.X, Aim.Y);
+                u32 Tick = NetClientQueueInput(&Online->Client, Buttons, Aim.X, Aim.Y,
+                                               ReplicaServerTarget(&Online->Replicas, Target));
                 NoteOnlineFrame(&Online->Quality, ONLINE_TICK_SECONDS);
                 RecordPredictedInput(&Online->Prediction, Tick, Buttons,
                                      ONLINE_TICK_SECONDS, Aim);
@@ -453,7 +474,8 @@ StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0)
 
 internal void
 UpdateOnlineSession(online_session *Online, app_input *Input,
-                    bool32 KeysToUi = false, v2 Aim = {}, u32 LearnBits = 0) {}
+                    bool32 KeysToUi = false, v2 Aim = {}, u32 LearnBits = 0,
+                    u32 Target = 0) {}
 internal void OnlineDisconnect(online_session *Online) {}
 internal bool32
 OnlineConnect(online_session *Online, char *Address, char *Name)

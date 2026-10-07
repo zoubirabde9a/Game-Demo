@@ -84,7 +84,9 @@ internal void NetClientPoll(net_client *Client, float Dt);
 
 // Adds one input, one server tick's worth (NET_TICK_RATE), to the inputs
 // the next packet carries, and returns its tick (0 when not connected).
-internal u32 NetClientQueueInput(net_client *Client, u32 Buttons, float AimX, float AimY);
+// NOTE(zoubir): Target is the unit the cursor is on, its Id + 1 (0: none)
+internal u32 NetClientQueueInput(net_client *Client, u32 Buttons, float AimX, float AimY,
+                                 u16 Target = 0);
 
 // Sends the queued inputs, with the ones before them again, in one packet.
 // Nothing is sent when none was queued since the last call.

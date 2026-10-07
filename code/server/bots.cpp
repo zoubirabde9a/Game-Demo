@@ -198,5 +198,7 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     Input.Buttons = Held;
     Input.AimX = AimReach * Direction.X;
     Input.AimY = AimReach * Direction.Y;
+    // NOTE(zoubir): its cursor on the unit it chases, as a player's would be
+    Input.Target = Target ? (u16)(Target->ID + 1) : 0;
     return Input;
 }
