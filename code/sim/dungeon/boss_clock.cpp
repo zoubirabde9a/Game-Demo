@@ -11,15 +11,16 @@
    a boss whose own blows are few (Gravecaller Ossian lobs shells and
    raises the dead) wipes the party within seconds.
 
-   The limits are for the three players the dungeon is made for, about
-   1.3 times what a party playing its rotations well needs (the boss's
-   and its adds' health over the party's damage at 70% of its best:
-   striker about 24 a second, tank 4, healer 1), so a party that loses
-   its striker for long, or lets the adds merge, runs out. Another party
-   size scales the limit with its health over its damage
-   (BossClockPartyScale). tools/dungeon_balance.cpp shows the clock at
-   work; its bots, playing the striker rotation, come within a minute
-   of each limit, and a party of people should do better. */
+   The limits are for the three players the dungeon is made for, and are
+   tuned with tools/dungeon_balance.cpp over several seeds of full runs
+   (docs/dungeon-plan.md, "Bosses"): the bots, playing the class kits,
+   finish the first boss with a minute to spare, the second with half a
+   minute, and the last within seconds of its clock or not at all, so a
+   party that loses its damage for long, or lets the adds merge, runs
+   out. When the class kits change how hard they hit, the boss health in
+   sim/monsters/crypt_*.cpp moves with them rather than these limits, so
+   the fights keep their length. Another party size scales the limit
+   (BossClockPartyScale). */
 
 #define BOSS_CLOCK_WARNING 30.f
 #define BOSS_ENRAGE_DAMAGE 1.5f
