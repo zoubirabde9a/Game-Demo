@@ -17,13 +17,13 @@ internal void
 DefineMonster_BroodQueen(monster_def *Def)
 {
     Def->Name = "The Brood Queen";
-    Def->MaxHp = 1500.f;
-    Def->Acceleration = 24000.f;
+    Def->MaxHp = 1000.f;
+    Def->Acceleration = 29000.f;
     Def->AggroRange = 640.f;
     Def->StopRange = 50.f;
     Def->AttackRange = 62.f;
     Def->AttackDamage = 13.f;
-    Def->AttackInterval = 1.1f;
+    Def->AttackInterval = 0.9f;
     Def->SpawnWeight = 0;
     Def->MaxAlive = 1;
     Def->FrameSize = 64;
@@ -40,7 +40,7 @@ DefineMonster_BroodQueen(monster_def *Def)
     Hatch->Cooldown = 10.f;
     Hatch->Windup = 1.1f;
     Hatch->Active = 0.3f;
-    Hatch->Recover = 0.6f;
+    Hatch->Recover = 0.4f;
     Hatch->SummonKind = MonsterKind_Spider;
     Hatch->Count = 2;
     Hatch->MaxActive = 4;
@@ -51,10 +51,10 @@ DefineMonster_BroodQueen(monster_def *Def)
     monster_ability *Nova = AddMonsterAbility(Def, MonsterAbility_Slam,
                                               "Web Nova");
     Nova->MaxRange = 100.f;
-    Nova->Cooldown = 6.f;
+    Nova->Cooldown = 4.5f;
     Nova->Windup = 0.9f;
     Nova->Active = 0.3f;
-    Nova->Recover = 0.8f;
+    Nova->Recover = 0.5f;
     Nova->Damage = 20.f;
     Nova->Radius = 110.f;
     Nova->Knockback = 450.f;
@@ -67,10 +67,10 @@ DefineMonster_BroodQueen(monster_def *Def)
                                               "Venom Rain");
     Rain->MinRange = 90.f;
     Rain->MaxRange = 420.f;
-    Rain->Cooldown = 4.f;
+    Rain->Cooldown = 3.f;
     Rain->Windup = 0.7f;
     Rain->Active = 1.4f;
-    Rain->Recover = 0.5f;
+    Rain->Recover = 0.35f;
     Rain->Damage = 9.f;
     Rain->Radius = 16.f;
     Rain->Speed = 300.f;

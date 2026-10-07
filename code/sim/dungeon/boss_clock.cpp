@@ -14,8 +14,8 @@
    The limits are for the three players the dungeon is made for, and are
    tuned with tools/dungeon_balance.cpp over several seeds of full runs
    (docs/dungeon-plan.md, "Bosses"): the bots, playing the class kits,
-   finish the first boss with a minute to spare, the second with half a
-   minute, and the last within seconds of its clock or not at all, so a
+   finish the first boss with 40 s to spare, the second with 20 s, and
+   the last within seconds of its clock or not at all, so a
    party that loses its damage for long, or lets the adds merge, runs
    out. When the class kits change how hard they hit, the boss health in
    sim/monsters/crypt_*.cpp moves with them rather than these limits, so
@@ -40,9 +40,9 @@ struct boss_clock_def
 
 global_variable boss_clock_def BossClockDefs[] =
 {
-    {MonsterKind_Gravecaller, 170.f},
-    {MonsterKind_BroodQueen, 115.f},
-    {MonsterKind_HollowKing, 165.f},
+    {MonsterKind_Gravecaller, 100.f},
+    {MonsterKind_BroodQueen, 105.f},
+    {MonsterKind_HollowKing, 140.f},
 };
 
 // NOTE(zoubir): the party the limits are tuned for

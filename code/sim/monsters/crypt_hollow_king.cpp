@@ -19,13 +19,13 @@ internal void
 DefineMonster_HollowKing(monster_def *Def)
 {
     Def->Name = "The Hollow King";
-    Def->MaxHp = 3500.f;
-    Def->Acceleration = 22000.f;
+    Def->MaxHp = 2300.f;
+    Def->Acceleration = 27000.f;
     Def->AggroRange = 700.f;
     Def->StopRange = 50.f;
     Def->AttackRange = 66.f;
     Def->AttackDamage = 16.f;
-    Def->AttackInterval = 1.2f;
+    Def->AttackInterval = 1.f;
     Def->SpawnWeight = 0;
     Def->MaxAlive = 1;
     Def->FrameSize = 64;
@@ -39,7 +39,7 @@ DefineMonster_HollowKing(monster_def *Def)
     monster_ability *Wail = AddMonsterAbility(Def, MonsterAbility_Volley,
                                               "Wail of the Dead");
     Wail->MaxRange = 500.f;
-    Wail->Cooldown = 6.f;
+    Wail->Cooldown = 5.f;
     Wail->Windup = 0.9f;
     Wail->Active = 1.6f;
     Wail->Recover = 0.5f;
@@ -57,10 +57,10 @@ DefineMonster_HollowKing(monster_def *Def)
     monster_ability *Cleave = AddMonsterAbility(Def, MonsterAbility_Slam,
                                                 "Soul Cleave");
     Cleave->MaxRange = 90.f;
-    Cleave->Cooldown = 5.5f;
+    Cleave->Cooldown = 4.5f;
     Cleave->Windup = 1.2f;
     Cleave->Active = 0.3f;
-    Cleave->Recover = 0.9f;
+    Cleave->Recover = 0.6f;
     Cleave->Damage = 30.f;
     Cleave->Radius = 120.f;
     Cleave->Knockback = 700.f;
@@ -69,10 +69,10 @@ DefineMonster_HollowKing(monster_def *Def)
                                               "Shadow Rush");
     Rush->MinRange = 140.f;
     Rush->MaxRange = 520.f;
-    Rush->Cooldown = 8.f;
+    Rush->Cooldown = 6.f;
     Rush->Windup = 0.9f;
     Rush->Active = 0.8f;
-    Rush->Recover = 0.9f;
+    Rush->Recover = 0.6f;
     Rush->Damage = 24.f;
     Rush->Radius = 44.f;
     Rush->Speed = 680.f;

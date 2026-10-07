@@ -19,13 +19,13 @@ internal void
 DefineMonster_Gravecaller(monster_def *Def)
 {
     Def->Name = "Gravecaller Ossian";
-    Def->MaxHp = 900.f;
-    Def->Acceleration = 22000.f;
+    Def->MaxHp = 620.f;
+    Def->Acceleration = 27000.f;
     Def->AggroRange = 600.f;
     Def->StopRange = 45.f;
     Def->AttackRange = 58.f;
     Def->AttackDamage = 12.f;
-    Def->AttackInterval = 1.3f;
+    Def->AttackInterval = 1.f;
     Def->SpawnWeight = 0;
     Def->MaxAlive = 1;
     Def->FrameSize = 64;
@@ -40,10 +40,10 @@ DefineMonster_Gravecaller(monster_def *Def)
                                                "Grave Lunge");
     Lunge->MinRange = 80.f;
     Lunge->MaxRange = 420.f;
-    Lunge->Cooldown = 7.f;
+    Lunge->Cooldown = 5.f;
     Lunge->Windup = 0.7f;
     Lunge->Active = 0.2f;
-    Lunge->Recover = 0.7f;
+    Lunge->Recover = 0.45f;
     Lunge->Damage = 22.f;
     Lunge->Spread = 50.f;
     Lunge->Radius = 70.f;
@@ -53,10 +53,10 @@ DefineMonster_Gravecaller(monster_def *Def)
     monster_ability *Spikes = AddMonsterAbility(Def, MonsterAbility_Mortar,
                                                 "Bone Spikes");
     Spikes->MaxRange = 420.f;
-    Spikes->Cooldown = 5.f;
+    Spikes->Cooldown = 3.5f;
     Spikes->Windup = 1.f;
     Spikes->Active = 0.3f;
-    Spikes->Recover = 0.6f;
+    Spikes->Recover = 0.35f;
     Spikes->Damage = 18.f;
     Spikes->Radius = 48.f;
     Spikes->Count = MAX_ABILITY_POINTS;
@@ -68,10 +68,10 @@ DefineMonster_Gravecaller(monster_def *Def)
     monster_ability *Guard = AddMonsterAbility(Def, MonsterAbility_Summon,
                                                "Raise the Honour Guard");
     Guard->MaxRange = 500.f;
-    Guard->Cooldown = 12.f;
+    Guard->Cooldown = 10.f;
     Guard->Windup = 1.2f;
     Guard->Active = 0.3f;
-    Guard->Recover = 0.6f;
+    Guard->Recover = 0.4f;
     Guard->SummonKind = MonsterKind_Thrall;
     Guard->Count = 2;
     Guard->MaxActive = 4;
