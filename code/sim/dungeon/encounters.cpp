@@ -461,6 +461,7 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
         else
         {
             UpdateRevives(AppState, DeltaTime);
+            RescueStrayFoes(AppState, World, Arena, Run);
             UpdateBossEvents(AppState, World, Arena, Run);
             for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
             {

@@ -152,9 +152,31 @@ TestBossClockPartySizes()
     Check(PartyHealthScale(4) / PartyHealthScale(3) > Four * 4.f / 3.f);
 }
 
+// NOTE(zoubir): a fight's monster thrown out of its room (here into the
+// room before, through the closed gate) is put back in, so the room can
+// still be cleared
+internal void
+TestStrayFoesComeBack()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    world_entity *Boss = StartBossRoom(&Crypt, 3);
+    Check(Boss != 0);
+    v3 Old = Boss->Position;
+    Boss->Position = Run->RoomCheckpoint[3];
+    CheckAndChangeEntityChunk(AppState, World, &Crypt.Arena, Old, Boss);
+    Check(RoomAtPosition(World, Boss->Position.XY) != 3);
+    TickCrypt(&Crypt, 1);
+    Check(RoomAtPosition(World, Boss->Position.XY) == 3);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunBossClockTests()
 {
+    TestStrayFoesComeBack();
     TestBossClockPartySizes();
     TestHollowChampionErupts();
     TestBossClockEnragesAndHitsHarder();
