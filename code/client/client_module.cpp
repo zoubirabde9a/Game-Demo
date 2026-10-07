@@ -51,6 +51,7 @@
 #include "screen_edge.cpp"
 #include "rewind_fx/rewind_fx.cpp"
 #include "world_lights.cpp"
+#include "world_bloom.cpp"
 #include "world_grade.cpp"
 #include "monster_cast_tells.cpp"
 #include "startup.cpp"

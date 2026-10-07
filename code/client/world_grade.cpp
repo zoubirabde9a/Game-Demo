@@ -71,6 +71,10 @@ EndWorldGrade(render_context *RenderContext, app_state *AppState,
     }
     Grade->Capturing = false;
     EndRenderTarget(RenderContext);
+    // NOTE(zoubir): the glow comes from the bloom when the driver can make
+    // it, and from the grade shader's own short rings when not
+    bool32 Bloomed = MakeWorldBloom(RenderContext, AppState, TransientArena,
+                                    ScreenProjection, Window, &Grade->Target);
 
     open_gl *OpenGL = RenderContext->OpenGL;
     render_program *Program = &RenderContext->Programs[Shader_WorldGrade];
@@ -78,7 +82,7 @@ EndWorldGrade(render_context *RenderContext, app_state *AppState,
     {
         OpenGL->glUseProgram(Program->ID);
         float Screen[4] = {(float)Grade->Target.Width, (float)Grade->Target.Height,
-                           WORLD_GRADE_GLOW, WORLD_GRADE_STRENGTH};
+                           Bloomed ? 0.f : WORLD_GRADE_GLOW, WORLD_GRADE_STRENGTH};
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "Screen"),
                              1, Screen);
         OpenGL->glUniform4fv(OpenGL->glGetUniformLocation(Program->ID, "WorldView"),
@@ -105,4 +109,8 @@ EndWorldGrade(render_context *RenderContext, app_state *AppState,
                    (float)Window->Width, (float)Window->Height,
                    0xFFFFFFFF, RenderBlend_Alpha, Grade->Target.Texture);
     RenderFlush(RenderContext);
+    if (Bloomed)
+    {
+        AddWorldBloom(RenderContext, AppState, TransientArena, ScreenProjection, Window);
+    }
 }

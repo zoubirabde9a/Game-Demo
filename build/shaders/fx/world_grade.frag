@@ -135,12 +135,17 @@ void main()
     // covers the same part of the world at any resolution
     float Radius = Screen.y / 200.0;
     vec3 Glow = vec3(0.0);
-    for (int Index = 0; Index < 8; Index++)
+    // NOTE(zoubir): Screen.z is 0 when the bloom (fx/bloom.frag) makes the
+    // glow instead
+    if (Screen.z > 0.0)
     {
-        float Angle = float(Index) * 0.7854 + 0.39;
-        vec2 Ray = vec2(cos(Angle), sin(Angle)) * Radius;
-        Glow += Bright(World(Pixel + Ray));
-        Glow += Bright(World(Pixel + Ray * 2.6)) * 0.55;
+        for (int Index = 0; Index < 8; Index++)
+        {
+            float Angle = float(Index) * 0.7854 + 0.39;
+            vec2 Ray = vec2(cos(Angle), sin(Angle)) * Radius;
+            Glow += Bright(World(Pixel + Ray));
+            Glow += Bright(World(Pixel + Ray * 2.6)) * 0.55;
+        }
     }
     Glow *= 1.0 / 12.4;
     C += Glow * Screen.z * vec3(1.0, 0.93, 0.82);
