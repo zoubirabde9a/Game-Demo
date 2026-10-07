@@ -29,6 +29,7 @@
 #include "win32/startup.cpp"
 #include "win32/frame.cpp"
 #include "win32/screenshot.cpp"
+#include "win32/profile.cpp"
 
 // NOTE(zoubir): one game frame: messages (unless the window procedure is
 // already handling them), input, the game, sound, waiting out the frame,
@@ -75,6 +76,7 @@ Win32RunFrame(win32_frame_loop *loop, bool32 readMessages)
                          loop->appUpdateHz, &loop->appCode, loop->thread,
                          loop->appMemory);
 
+    Win32ProfileFrame(loop->lastCounter);
     Win32WaitForFrameEnd(&loop->lastCounter, loop->targetSecondsPerFrame,
                          loop->sleepIsGranular);
     if (Win32SaveScreenshotIfDue(loop->screenshot, drawable.Pixels.Width,
@@ -134,6 +136,7 @@ WinMain(HINSTANCE instance,
 
     win32_screenshot screenshot;
     Win32InitScreenshot(&screenshot);
+    Win32InitProfile();
 
     app_input input[2] = {};
     win32_frame_loop loop = {};
