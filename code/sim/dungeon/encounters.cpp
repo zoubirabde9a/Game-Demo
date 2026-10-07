@@ -5,7 +5,7 @@
 
    A room waits until a living player stands in it and the room before is
    cleared. Then its encounter starts: every row of the map's encounter
-   table for the room spawns (crypt_encounters.cpp), packs together on
+   table for the room spawns (crypt_encounters.cpp and the other levels), packs together on
    spots away from the party, a boss in the middle, each with health
    scaled to the party's size. The rest of the party is pulled in, and
    both of the room's gates close behind walls. The dead stay down while
@@ -17,7 +17,6 @@
    waits again, and everyone comes back at the checkpoint by its
    entrance gate, in the room before. Cleared rooms stay cleared. */
 
-#include "crypt_encounters.cpp"
 #include "threat.cpp"
 
 // NOTE(zoubir): packs appear at least this far from every player
@@ -167,7 +166,8 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
 {
     u32 Standing;
     u32 Players = CountPartyPlayers(AppState, &Standing);
-    float HealthScale = DUNGEON_FOE_HEALTH * PartyHealthScale(Players);
+    float HealthScale = DUNGEON_FOE_HEALTH * LevelFoeHealth(World->MapId) *
+        PartyHealthScale(Players);
     Run->PartyDamage = DUNGEON_FOE_DAMAGE * PartyDamageScale(Players);
     Run->RoomStates[Room] = RoomState_Fighting;
     Run->FightingRoom = Room;
@@ -316,9 +316,10 @@ UpdateShownFight(world *World, dungeon_run *Run)
     Run->ShownFoesLeft = Run->FightingRoom ? CountLiveFoes(World, Run) : 0;
 }
 
-// NOTE(zoubir): a cleared crypt stays cleared for DUNGEON_VICTORY_SECONDS,
-// then the same map is built again (StartNextRoundMap, setup.cpp): a new
-// run, everyone in the Antechamber keeping their role, level and talents
+// NOTE(zoubir): a cleared level stays cleared for DUNGEON_VICTORY_SECONDS,
+// then the next level's map is built (StartNextRoundMap, setup.cpp;
+// NextRunMap, levels.cpp): a new run, everyone in its first room keeping
+// their role, level and talents
 #define DUNGEON_VICTORY_SECONDS 20.f
 
 internal void

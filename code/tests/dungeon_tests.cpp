@@ -137,17 +137,17 @@ struct crypt_world
     memory_arena Constants;
 };
 
-// NOTE(zoubir): the real Sunken Crypt, built as the game builds it, with
-// Players players at their spawns in the Antechamber
+// NOTE(zoubir): a real dungeon map, built as the game builds it, with
+// Players players at their spawns in its first room
 internal crypt_world
-CreateCryptWorld(u32 Players)
+CreateDungeonWorld(u32 MapId, u32 Players)
 {
     crypt_world Result = {};
     Result.AppState = (app_state *)calloc(1, sizeof(app_state));
     memory_index Size = Megabytes(48);
     InitializeArena(&Result.Arena, (memory_index *)calloc(1, Size), Size);
     InitializeArena(&Result.Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
-    Result.AppState->World.MapId = MapId_Crypt;
+    Result.AppState->World.MapId = MapId;
     InitSimulation(Result.AppState, &Result.Arena, &Result.Constants);
     for(u32 SlotIndex = 0; SlotIndex < Players; SlotIndex++)
     {
@@ -156,6 +156,14 @@ CreateCryptWorld(u32 Players)
                             SlotIndex, PlayerSpawnPosition(&Result.AppState->World, SlotIndex));
         Player->SpawnShield = 0.f;
     }
+    return Result;
+}
+
+// NOTE(zoubir): the Sunken Crypt, the first level
+internal crypt_world
+CreateCryptWorld(u32 Players)
+{
+    crypt_world Result = CreateDungeonWorld(MapId_Crypt, Players);
     return Result;
 }
 
@@ -514,6 +522,7 @@ TestNoFriendlyFireInADungeon()
 #include "striker_tests.cpp"
 #include "class_kit_tests.cpp"
 #include "fight_end_tests.cpp"
+#include "depths_tests.cpp"
 
 internal void
 RunDungeonTests()
@@ -523,6 +532,7 @@ RunDungeonTests()
     RunStrikerTests();
     RunClassKitTests();
     RunFightEndTests();
+    RunDepthsTests();
     TestNoFriendlyFireInADungeon();
     TestBlinksStopAtClosedGates();
     TestClearedCryptStartsANewRun();

@@ -43,6 +43,11 @@ global_variable boss_clock_def BossClockDefs[] =
     {MonsterKind_Gravecaller, 120.f},
     {MonsterKind_BroodQueen, 80.f},
     {MonsterKind_HollowKing, 140.f},
+    // NOTE(zoubir): the Ember Depths (levels.cpp): tougher bosses for a
+    // party that levelled up through the crypt
+    {MonsterKind_Forgemaster, 130.f},
+    {MonsterKind_CinderWyrm, 110.f},
+    {MonsterKind_EmberTyrant, 170.f},
 };
 
 // NOTE(zoubir): the party the limits are tuned for

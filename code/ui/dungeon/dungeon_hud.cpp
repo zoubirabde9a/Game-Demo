@@ -59,21 +59,31 @@ DrawDungeonObjective(render_context *RenderContext, app_state *AppState,
     else
     {
         u32 Next = NextRoomToClear(Run->RoomStates, Run->RoomCount);
+        // NOTE(zoubir): a cleared level goes on to the next one
+        // (NextRunMap, sim/dungeon/levels.cpp)
+        char *Cleared = GetMapDef((map_id)World->MapId)->Name;
+        u32 NextMap = NextRunMap(World->MapId);
+        char *Onward = GetMapDef((map_id)NextMap)->Name;
+        dungeon_level *NextLevel = GetDungeonLevel(NextMap);
+        char *Verb = (NextLevel && NextLevel->Number > 1) ? "Down to" : "Back up to";
         if (!Next && IsOnline(AppState->Online))
         {
-            snprintf(Text, sizeof(Text), "The crypt is cleared!  A new run starts soon");
+            snprintf(Text, sizeof(Text), "%s cleared!  %s the %s soon",
+                     Cleared, Verb, Onward);
         }
         else if (!Next)
         {
             u32 Minutes = (u32)(Run->Seconds / 60.f);
             u32 Seconds = (u32)Run->Seconds % 60;
-            snprintf(Text, sizeof(Text), "The crypt is cleared in %u:%02u!  A new run in %.0f",
-                     Minutes, Seconds,
+            snprintf(Text, sizeof(Text), "%s cleared in %u:%02u!  %s the %s in %.0f",
+                     Cleared, Minutes, Seconds, Verb, Onward,
                      Maximum(1.f, DUNGEON_VICTORY_SECONDS - Run->VictorySeconds + 0.5f));
         }
         else if (Next == 1)
         {
-            snprintf(Text, sizeof(Text), "Gather in the %s", GetRoomName(World->MapId, 1));
+            dungeon_level *Level = GetDungeonLevel(World->MapId);
+            snprintf(Text, sizeof(Text), "Level %u, the %s: gather in the %s",
+                     Level ? Level->Number : 1, Cleared, GetRoomName(World->MapId, 1));
         }
         else
         {

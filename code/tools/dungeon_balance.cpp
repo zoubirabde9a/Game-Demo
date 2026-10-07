@@ -1,6 +1,7 @@
 /* Dungeon balance probe: three server bots (server/bots.cpp), a tank, a
-   healer and a damage player, walk the Sunken Crypt with nobody else,
-   and every fight is timed. Prints one line per fight: the room, how long
+   healer and a damage player, walk the dungeon with nobody else, the
+   Sunken Crypt and then the Ember Depths (sim/dungeon/levels.cpp), and
+   every fight is timed. Prints one line per fight: the room, how long
    it lasted, how it ended (cleared or wiped), the party's deaths, and for
    a boss whether its enrage timer ran out (sim/dungeon/boss_clock.cpp).
    Bots play worse than a party of people, so their times are an upper
@@ -18,6 +19,8 @@
    over and over at about the level a party reaches it. Bots that wiped
    there are walked back in after PROBE_RETRY_SECONDS, as they only chase
    what they see and would wait at the checkpoint for good.
+   PROBE_MAP=depths starts in the Ember Depths instead, the bots given
+   the experience of the whole crypt first (and of the rooms skipped).
    Build: cl -nologo -O2 -DAPP_DEV=1 -DAPP_SLOW=0 -DAPP_WIN32=1
           ..\code\tools\dungeon_balance.cpp /link user32.lib Gdi32.lib Winmm.lib OpenGL32.lib */
 
@@ -50,10 +53,17 @@ PlaceBots(server_game *Game, v3 Position)
 internal void
 ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
 {
-    bool32 Placed = FirstRoom <= 2;
+    bool32 Placed = false;
     static server_game Game;
     Game = {};
-    GameInit(&Game, MapId_Crypt);
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    char *MapName = getenv("PROBE_MAP");
+#pragma warning(pop)
+    u32 StartMap = (MapName && strcmp(MapName, "depths") == 0) ? MapId_Depths : MapId_Crypt;
+    // NOTE(zoubir): a party reaching the depths has played the crypt
+    u32 RoomsBefore = StartMap == MapId_Depths ? CountRooms(MapId_Crypt) : 0;
+    GameInit(&Game, StartMap);
     dungeon_run *SeededRun = 0;
     u32 SeededBots = 0;
     u32 SlotDeaths[MAX_PLAYERS] = {};
@@ -97,6 +107,7 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
             }
         }
         if (Placed && FirstRoom > 2 && !Run->FightingRoom &&
+            Game.AppState->World.MapId == StartMap &&
             Run->RoomStates[FirstRoom] != RoomState_Cleared && Seconds > PROBE_RETRY_SECONDS)
         {
             PlaceBots(&Game, Run->RoomEntry[FirstRoom]);
@@ -115,10 +126,13 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
                 player_slot *Player = &Game.AppState->Players[Slot];
                 if (Player->Active && Player->Entity)
                 {
-                    MovePlayerTo(Game.AppState, &Game.AppState->World, Game.Arena,
-                                 Player->Entity, Run->RoomEntry[FirstRoom]);
-                    AwardXp(Game.AppState, Player,
-                            (FirstRoom - 2) * PROBE_SECONDS_PER_ROOM * XP_PER_SECOND);
+                    if (FirstRoom > 2)
+                    {
+                        MovePlayerTo(Game.AppState, &Game.AppState->World, Game.Arena,
+                                     Player->Entity, Run->RoomEntry[FirstRoom]);
+                    }
+                    AwardXp(Game.AppState, Player, (RoomsBefore + FirstRoom - 2) *
+                            PROBE_SECONDS_PER_ROOM * XP_PER_SECOND);
                 }
             }
             continue;
@@ -168,7 +182,7 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
             {
                 bool32 Wiped = Run->Wipes != WipesAtStart;
                 printf("  run %u  %-18s %6.1f s  %s  deaths %u", Runs + 1,
-                       GetRoomName(MapId_Crypt, Room), Seconds,
+                       GetRoomName(Game.AppState->World.MapId, Room), Seconds,
                        Wiped ? "WIPED  " : "cleared", Deaths - DeathsAtStart);
                 if (Enraged)
                 {
@@ -189,7 +203,7 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
                 // NOTE(zoubir): a long walk between fights: lost bots, or
                 // a room that will not start
                 printf("  run %u  %.1f s between fights before the %s\n", Runs + 1,
-                       Seconds, GetRoomName(MapId_Crypt, Run->FightingRoom));
+                       Seconds, GetRoomName(Game.AppState->World.MapId, Run->FightingRoom));
             }
             Room = Run->FightingRoom;
             WipesAtStart = Run->Wipes;
@@ -204,7 +218,7 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
     if (Run && Room)
     {
         printf("  still in the %s after %.1f s, %u foes left\n",
-               GetRoomName(MapId_Crypt, Room), Seconds, Run->ShownFoesLeft);
+               GetRoomName(Game.AppState->World.MapId, Room), Seconds, Run->ShownFoesLeft);
         // NOTE(zoubir): where the foes the party never finished are, to
         // tell a stuck monster from a party that cannot win
         world *World = &Game.AppState->World;
@@ -236,7 +250,7 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
         // a party that cannot reach the next room from one that will not
         u32 Next = NextRoomToClear(Run->RoomStates, Run->RoomCount);
         printf("  between fights after %.1f s, the %s waits\n", Seconds,
-               GetRoomName(MapId_Crypt, Next));
+               GetRoomName(Game.AppState->World.MapId, Next));
         world *World = &Game.AppState->World;
         for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
         {

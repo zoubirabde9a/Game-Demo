@@ -1,21 +1,12 @@
 /* Rooms (dungeon.cpp): which room of the dungeon a tile is in, and the
    gates between rooms, from the map's room layout (CryptRooms in
-   sim/maps/crypt.cpp: a digit per room tile, a letter per gate tile). */
+   sim/maps/crypt.cpp: a digit per room tile, a letter per gate tile;
+   levels.cpp says which layout goes with which map). */
 
 #define DUNGEON_MAX_ROOMS 9
 #define DUNGEON_MAX_GATES (DUNGEON_MAX_ROOMS - 1)
 
-// NOTE(zoubir): the room layout of a dungeon map, 0 for any other map
-inline char **
-GetRoomLayout(u32 MapId)
-{
-    char **Result = 0;
-    if (MapId == MapId_Crypt)
-    {
-        Result = CryptRooms;
-    }
-    return Result;
-}
+#include "levels.cpp"
 
 inline char
 RoomSymbolAt(map_def *Map, char **Rooms, i32 X, i32 Y)

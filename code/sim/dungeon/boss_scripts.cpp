@@ -47,6 +47,23 @@ global_variable boss_event BossEvents[] =
     // it erupts for half of everyone's health and heals him 10%
     {MonsterKind_HollowKing, 0.6f, MonsterKind_Brute, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
     {MonsterKind_HollowKing, 0.3f, MonsterKind_Brute, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
+    // NOTE(zoubir): Forgemaster Kragg: an Anvil Guard, an armoured
+    // warden, steps off the wall twice; its shell takes hits from the
+    // front, so the party has to flank it before it walks back into him
+    {MonsterKind_Forgemaster, 0.7f, MonsterKind_Warden, 1, 20.f, 0.08f, 0.f, MonsterAffix_Armored},
+    {MonsterKind_Forgemaster, 0.35f, MonsterKind_Warden, 1, 20.f, 0.08f, 0.f, MonsterAffix_Armored},
+    // NOTE(zoubir): Sskarra: her young burst out of the floor twice and
+    // crawl back into her if left alone
+    {MonsterKind_CinderWyrm, 0.66f, MonsterKind_Lurker, 2, 16.f, 0.06f, 0.f, 0},
+    {MonsterKind_CinderWyrm, 0.33f, MonsterKind_Lurker, 2, 16.f, 0.06f, 0.f, MonsterAffix_Frenzied},
+    // NOTE(zoubir): Vol'karr: imps pour from the braziers three times,
+    // more each time, and he binds a Magma Champion, an armoured ravager,
+    // twice: kill it in 25 s or it erupts for half of everyone's health
+    {MonsterKind_EmberTyrant, 0.75f, MonsterKind_Imp, 2, 14.f, 0.05f, 0.f, 0},
+    {MonsterKind_EmberTyrant, 0.5f, MonsterKind_Imp, 3, 14.f, 0.05f, 0.f, 0},
+    {MonsterKind_EmberTyrant, 0.25f, MonsterKind_Imp, 4, 14.f, 0.05f, 0.f, 0},
+    {MonsterKind_EmberTyrant, 0.6f, MonsterKind_Ravager, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
+    {MonsterKind_EmberTyrant, 0.3f, MonsterKind_Ravager, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
 };
 
 // NOTE(zoubir): the fight's boss, as encounters.cpp spawned it, or 0 once
@@ -73,7 +90,8 @@ UpdateBossEvents(app_state *AppState, world *World, memory_arena *Arena,
     }
     float Share = Boss->Hp / Boss->MaxHp;
     u32 Standing;
-    float HealthScale = PartyHealthScale(CountPartyPlayers(AppState, &Standing));
+    float HealthScale = LevelFoeHealth(World->MapId) *
+        PartyHealthScale(CountPartyPlayers(AppState, &Standing));
     for(u32 Index = 0; Index < ArrayCount(BossEvents); Index++)
     {
         boss_event *Event = &BossEvents[Index];

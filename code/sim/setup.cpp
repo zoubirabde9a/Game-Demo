@@ -74,7 +74,8 @@ RebuildWorldForMap(app_state *AppState, memory_arena *Arena, u32 MapId)
     StartDungeonRun(AppState, Arena);
 }
 
-// NOTE(zoubir): a new round: the same map, or the one a vote picked
+// NOTE(zoubir): a new round: the same map (or a dungeon's next level),
+// or the one a vote picked
 // (sim/map_vote.cpp), built fresh with its monsters, and every player
 // back at their spawn there with full health. Each slot keeps its name
 // and score, and its level, experience and talents unless a vote moved
@@ -104,7 +105,9 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
     }
 
     bool32 StartOver = AppState->NextMapVoted;
-    u32 MapId = StartOver ? AppState->NextMap : World->MapId;
+    // NOTE(zoubir): a cleared dungeon level goes on to the next one
+    // (NextRunMap, sim/dungeon/levels.cpp), any other map plays again
+    u32 MapId = StartOver ? AppState->NextMap : NextRunMap(World->MapId);
     AppState->NextMapVoted = false;
     RebuildWorldForMap(AppState, Arena, MapId);
     FillMonsterPopulation(AppState, World, Arena, AppState->Monsters);

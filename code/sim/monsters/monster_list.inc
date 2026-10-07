@@ -19,3 +19,6 @@
 #include "crypt_gravecaller.cpp"
 #include "crypt_brood_queen.cpp"
 #include "crypt_hollow_king.cpp"
+#include "depths_forgemaster.cpp"
+#include "depths_cinder_wyrm.cpp"
+#include "depths_ember_tyrant.cpp"
