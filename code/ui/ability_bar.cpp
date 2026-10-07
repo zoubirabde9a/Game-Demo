@@ -415,14 +415,22 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
             snprintf(Level, sizeof(Level), "  level %u/%u", TalentLevel(LocalSlot, Talent),
                      TalentDefs[Talent].MaxLevel);
         }
+        // NOTE(zoubir): a dungeon role's spell on the key (sim/dungeon/
+        // role_abilities.cpp) goes by its own name
+        role_spell *RoleSpell = RoleSpellOnButton(AppState, Player, Def->Button);
+        char *Name = RoleSpell ? RoleSpell->Name : Def->Name;
+        if (RoleSpell)
+        {
+            Level[0] = 0;
+        }
         if (AbilityCooldownLeft(AppState, Player, Def->Button, &Share, &Seconds, &Full))
         {
-            snprintf(Text, sizeof(Text), "%s  (%s)%s  %.1f s cooldown", Def->Name,
+            snprintf(Text, sizeof(Text), "%s  (%s)%s  %.1f s cooldown", Name,
                      ActionKeyLabel(Def->Button), Level, Full);
         }
         else
         {
-            snprintf(Text, sizeof(Text), "%s  (%s)%s", Def->Name, ActionKeyLabel(Def->Button),
+            snprintf(Text, sizeof(Text), "%s  (%s)%s", Name, ActionKeyLabel(Def->Button),
                      Level);
         }
         font *Body = AppState->Fonts.Body;

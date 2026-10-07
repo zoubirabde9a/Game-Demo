@@ -358,6 +358,19 @@ TestRoleKeys()
     Check(FindMonsterTarget(AppState, World, Monster, 0) == Tank);
     Check(AppState->Players[0].RoleCooldowns[0] > 0.f);
     Check(Tank->CastSpell == 0);
+    // NOTE(zoubir): the cooldown list (what the HUD and the snapshot read)
+    // gives the taunt's, not Launch's
+    for(u32 Index = 0; Index < PLAYER_COOLDOWN_COUNT; Index++)
+    {
+        if (PlayerCooldownButton(Index) == PlayerButton_Launch)
+        {
+            float Full = 0.f;
+            float *Left = PlayerCooldown(AppState, Tank, Index, &Full);
+            Check(Left == &AppState->Players[0].RoleCooldowns[0]);
+            Check(Full == TAUNT_COOLDOWN);
+        }
+    }
+    Check(RoleSpellOnButton(AppState, Striker, PlayerButton_Launch) == 0);
 
     PressOnce(&Crypt, 0, PlayerButton_Shield);
     float Before = Tank->Hp;

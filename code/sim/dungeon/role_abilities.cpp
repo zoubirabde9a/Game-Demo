@@ -57,6 +57,71 @@ RoleOwnsKeys(app_state *AppState, player_slot *Slot)
     return Result;
 }
 
+// NOTE(zoubir): each role's spell on each key (RoleKeys order), as the
+// ability bar names it, and its full cooldown
+struct role_spell
+{
+    char *Name;
+    float Cooldown;
+};
+
+global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
+{
+    {{0, 0.f}, {0, 0.f}, {0, 0.f}},
+    {{"Taunt", TAUNT_COOLDOWN}, {"Shield Wall", SHIELD_WALL_COOLDOWN},
+     {"Intercept", INTERCEPT_COOLDOWN}},
+    {{"Sanctuary", SANCTUARY_COOLDOWN}, {"Ward", WARD_COOLDOWN},
+     {"Mending Bolt", MENDING_BOLT_COOLDOWN}},
+};
+
+// NOTE(zoubir): the role key Button is, or ROLE_KEYS for none
+inline u32
+RoleKeyForButton(u32 Button)
+{
+    for(u32 Key = 0; Key < ROLE_KEYS; Key++)
+    {
+        if (RoleKeys[Key] == Button)
+        {
+            return Key;
+        }
+    }
+    return ROLE_KEYS;
+}
+
+// NOTE(zoubir): the role spell Player casts on Button, 0 when the game's
+// own ability is on it
+internal role_spell *
+RoleSpellOnButton(app_state *AppState, world_entity *Player, u32 Button)
+{
+    role_spell *Result = 0;
+    if (Player && Player->Type == EntityType_Player && Player->PlayerIndex < MAX_PLAYERS)
+    {
+        player_slot *Slot = &AppState->Players[Player->PlayerIndex];
+        u32 Key = RoleKeyForButton(Button);
+        if (Key < ROLE_KEYS && RoleOwnsKeys(AppState, Slot))
+        {
+            Result = &RoleSpells[Slot->Role][Key];
+        }
+    }
+    return Result;
+}
+
+// NOTE(zoubir): from PlayerCooldown (sim/player_cooldowns.cpp): on a key a
+// role owns, the role spell's cooldown, so the ability bar shows it and
+// the snapshot carries it; 0 elsewhere
+internal float *
+RoleCooldownOnButton(app_state *AppState, world_entity *Player, u32 Button, float *Full)
+{
+    role_spell *Spell = RoleSpellOnButton(AppState, Player, Button);
+    if (!Spell)
+    {
+        return 0;
+    }
+    *Full = Spell->Cooldown;
+    player_slot *Slot = &AppState->Players[Player->PlayerIndex];
+    return &Slot->RoleCooldowns[RoleKeyForButton(Button)];
+}
+
 // NOTE(zoubir): where the cursor is on the ground, from the aim
 inline v2
 AimPoint(world_entity *Player)

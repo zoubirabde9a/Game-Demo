@@ -66,6 +66,13 @@ PlayerCooldownButton(u32 Index)
 internal float *
 PlayerCooldown(app_state *AppState, world_entity *Player, u32 Index, float *Full)
 {
+    // NOTE(zoubir): a dungeon role's spell on this key (sim/dungeon/
+    // role_abilities.cpp) shows and travels instead of the game's ability
+    float *Role = RoleCooldownOnButton(AppState, Player, PlayerCooldownButton(Index), Full);
+    if (Role)
+    {
+        return Role;
+    }
     float *Result = PlayerCooldownAtBase(Player, Index, Full);
     *Full *= PlayerCooldownScale(AppState, Player, PlayerCooldownButton(Index));
     return Result;
