@@ -39,9 +39,9 @@ struct boss_clock_def
 
 global_variable boss_clock_def BossClockDefs[] =
 {
-    {MonsterKind_Gravecaller, 150.f},
-    {MonsterKind_BroodQueen, 120.f},
-    {MonsterKind_HollowKing, 150.f},
+    {MonsterKind_Gravecaller, 170.f},
+    {MonsterKind_BroodQueen, 105.f},
+    {MonsterKind_HollowKing, 165.f},
 };
 
 // NOTE(zoubir): the party the limits are tuned for

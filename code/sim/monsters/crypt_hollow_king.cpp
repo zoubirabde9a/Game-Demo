@@ -19,7 +19,7 @@ internal void
 DefineMonster_HollowKing(monster_def *Def)
 {
     Def->Name = "The Hollow King";
-    Def->MaxHp = 1700.f;
+    Def->MaxHp = 2400.f;
     Def->Acceleration = 22000.f;
     Def->AggroRange = 700.f;
     Def->StopRange = 50.f;

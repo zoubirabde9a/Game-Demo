@@ -6,7 +6,11 @@
    Bots play worse than a party of people, so their times are an upper
    bound to tune timers against, not the target.
 
-   Usage: dungeon_balance [minutes] [players] [room]   (default 20, 3, 2)
+   Usage: dungeon_balance [minutes] [players] [room] [seeds]
+   (default 20, 3, 2, 1). With seeds N past 1 the whole probe runs N
+   times, each with the bots' choices and the run's own randomness (pack
+   spots, elite affixes) seeded differently, every line led by its seed:
+   one run is too noisy to tune by.
    A room past 2 marks the rooms before it cleared, puts the bots inside
    it once they have joined, and gives each the experience of
    PROBE_SECONDS_PER_ROOM of play per room skipped, to time one fight
@@ -40,15 +44,17 @@ PlaceBots(server_game *Game, v3 Position)
     }
 }
 
-int
-main(int ArgCount, char **Args)
+// NOTE(zoubir): one probe, its randomness seeded by SeedNumber (0 leaves
+// the game's own seeds)
+internal void
+ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
 {
-    u32 Minutes = ArgCount > 1 ? (u32)atoi(Args[1]) : 20;
-    u32 Players = ArgCount > 2 ? (u32)atoi(Args[2]) : 3;
-    u32 FirstRoom = ArgCount > 3 ? (u32)atoi(Args[3]) : 2;
     bool32 Placed = FirstRoom <= 2;
     static server_game Game;
+    Game = {};
     GameInit(&Game, MapId_Crypt);
+    dungeon_run *SeededRun = 0;
+    u32 SeededBots = 0;
     Game.BotTarget = Players;
     float Dt = 1.0f / SERVER_TICK_RATE;
     u32 Ticks = Minutes * 60 * SERVER_TICK_RATE;
@@ -69,6 +75,20 @@ main(int ArgCount, char **Args)
         if (!Run)
         {
             continue;
+        }
+        if (SeedNumber && Run != SeededRun)
+        {
+            SeededRun = Run;
+            Run->Series = Seed(SeedNumber * 7919 + 101);
+        }
+        for (u32 Slot = 0; Slot < MAX_PLAYERS && SeedNumber; ++Slot)
+        {
+            if (Game.Bots[Slot].Active && !(SeededBots & (1u << Slot)))
+            {
+                SeededBots |= 1u << Slot;
+                Game.Bots[Slot].Random ^= 2654435761u * SeedNumber;
+                Game.Bots[Slot].Random |= 1;
+            }
         }
         if (Placed && FirstRoom > 2 && !Run->FightingRoom &&
             Run->RoomStates[FirstRoom] != RoomState_Cleared && Seconds > PROBE_RETRY_SECONDS)
@@ -175,5 +195,19 @@ main(int ArgCount, char **Args)
     }
     printf("dungeon balance: %u runs cleared\n", Runs);
     GameShutdown(&Game);
+}
+
+int
+main(int ArgCount, char **Args)
+{
+    u32 Minutes = ArgCount > 1 ? (u32)atoi(Args[1]) : 20;
+    u32 Players = ArgCount > 2 ? (u32)atoi(Args[2]) : 3;
+    u32 FirstRoom = ArgCount > 3 ? (u32)atoi(Args[3]) : 2;
+    u32 Seeds = ArgCount > 4 ? (u32)atoi(Args[4]) : 1;
+    for (u32 SeedNumber = (Seeds > 1 ? 1 : 0); SeedNumber <= (Seeds > 1 ? Seeds : 0); ++SeedNumber)
+    {
+        printf("seed %u\n", SeedNumber);
+        ProbeOneSeed(Minutes, Players, FirstRoom, SeedNumber);
+    }
     return 0;
 }

@@ -88,7 +88,7 @@ The Sunken Crypt is a line of rooms joined by corridors:
 6. **Ashen Causeway.** The hardest room before the last boss: two packs of Wardens and a Ravager, each with an Imp throwing fire from the back; the second Warden pack and the Ravager are elite.
 7. **Throne of Dust.** Boss 3, the Hollow King.
 
-A room's encounter starts when a living player steps inside it. Its monsters are leashed to the room: one that strays too far walks home healing. The gate out stays shut (a wall of tiles that becomes floor) until every monster of the encounter is dead.
+A room's encounter starts when a living player steps inside it. Its packs stand apart, out of reach of the party at the entrance (460 units) and 300 from each other where the room has the space, so the party pulls them one at a time; a smaller room falls back to closer spots. Its monsters are leashed to the room: one that strays too far walks home healing. The gate out stays shut (a wall of tiles that becomes floor) until every monster of the encounter is dead.
 
 Death: a dead player lies downed where they fell. A healer standing next to them for 3 s brings them back at 40% health; otherwise they come back at the room's checkpoint when the encounter ends. When every player is down, the party wipes: the encounter resets with full health and everyone stands at the checkpoint (the entrance of the room they died in). Cleared rooms stay cleared.
 
@@ -109,11 +109,11 @@ Every boss fight is a damage race. The boss's enrage timer shows under its healt
 
 | Boss | Timer for three players |
 |---|---|
-| Gravecaller Ossian | 2:30 |
-| The Brood Queen | 2:00 |
-| The Hollow King | 2:30 |
+| Gravecaller Ossian | 2:50 |
+| The Brood Queen | 1:45 |
+| The Hollow King | 2:45 |
 
-A timer is about 1.3 times what a party playing its rotations well needs: the boss's and its adds' health over the party's damage at 70% of its best (striker about 24 a second, tank 4, healer 1). A smaller party, short of a role, gets the time its health growth over its head count makes up (one player 1.43 times as long); a bigger one only half of that extra, so each player who joins still makes the race harder (four players 1.04 times, eight 1.7). The clock starts again after a wipe. `tools/dungeon_balance.cpp` runs three server bots through the crypt and times every fight; in a full run the bots clear the Bone Halls in about 1:15, Gravecaller Ossian in 2:25, the Webbed Galleries in under a minute and the Brood Queen in 1:10, wipe once on the Ashen Causeway and come within seconds of the Hollow King's clock. Placed straight at the Gravecaller with one room's experience, they run out of time: they never kill the Bone Shamans mending him first, which is the call the fight asks of players. People should do better than bots.
+A timer is about 1.3 times what a party playing its rotations well needs: the boss's and its adds' health over the party's damage at 70% of its best (striker about 24 a second, tank 4, healer 1). A smaller party, short of a role, gets the time its health growth over its head count makes up (one player 1.43 times as long); a bigger one only half of that extra, so each player who joins still makes the race harder (four players 1.04 times, eight 1.7). The clock starts again after a wipe. `tools/dungeon_balance.cpp` runs three server bots through the crypt and times every fight, over several seeds (`dungeon_balance 30 3 2 8`): one run is too noisy to tune by, as elite affixes, pack spots and the bots' choices change a fight a lot. Tune against full runs, not bots dropped into a room: a party gains levels and talents on the way, and a boss that is a race for a party placed at it with a few rooms' experience is easy for one that walked there. Over eight full runs the bots wipe once on Gravecaller Ossian about half the time, kill the Brood Queen in 40 to 110 s, wipe up to five times on the Ashen Causeway before clearing it, and kill the Hollow King in 90 to 150 s or run out of time.
 
 Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, summon, burrow, mend), and the dungeon adds scripted phase events at health thresholds (adds, hazards) on top, in `sim/dungeon/boss_scripts.cpp`.
 
@@ -130,7 +130,7 @@ Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, 
 - At 70% two Hexweaver Spiders crawl out of the nest, at 40% three. Each one left alive 18 s crawls back into her and heals her 5%.
 
 **The Hollow King**, the last boss.
-- 1700 health before party scaling, more than twice the Brood Queen's.
+- 2400 health before party scaling, more than twice the Brood Queen's 1000.
 - Soul Cleave: a huge slam. The tank keeps it facing away from the group.
 - Shadow Rush: a charge through the room.
 - Wail of the Dead (below 40%): four souls flying out in an X round its target.
