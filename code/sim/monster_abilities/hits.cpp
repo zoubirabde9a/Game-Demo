@@ -2,9 +2,23 @@
    single and area hits. Each hit lands through ApplyHit (sim/hit.cpp),
    the same as players' hits. */
 
+// NOTE(zoubir): in sim/dungeon/threat.cpp, included later: in a dungeon
+// run monsters attack by threat
+internal world_entity *DungeonPickTarget(app_state *AppState, world_entity *Monster,
+                                         float *DistanceOut);
+
+// NOTE(zoubir): the player Monster goes for: by threat in a dungeon run,
+// else the nearest living one
 internal world_entity *
-FindMonsterTarget(world *World, v2 From, float *DistanceOut)
+FindMonsterTarget(app_state *AppState, world *World, world_entity *Monster,
+                  float *DistanceOut)
 {
+    world_entity *Picked = DungeonPickTarget(AppState, Monster, DistanceOut);
+    if (Picked)
+    {
+        return Picked;
+    }
+    v2 From = Monster->Position.XY;
     world_entity *Result = 0;
     float BestDistance = 0.f;
     for(u32 EntityIndex = 0;

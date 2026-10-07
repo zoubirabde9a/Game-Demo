@@ -264,9 +264,78 @@ TestDownedWaitAndWipesReset()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): in a run a monster goes for whoever has the most threat
+// on it, the tank's damage counting four times; a taunt pulls it to the
+// taunter at once. Outside a run it goes for the nearest player
+internal void
+TestThreatAndTaunt()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    dungeon_run *Run = (dungeon_run *)calloc(1, sizeof(dungeon_run));
+    world_entity *Tank = AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {200, 300, 0});
+    world_entity *Striker = AddPlayerToSlot(AppState, Test.World, &Test.Arena, 1, {460, 300, 0});
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {500, 300, 0}, Test.UnitVolume);
+    Monster->MaxHp = Monster->Hp = 1000.f;
+    Monster->MonsterSerial = 1;
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Striker);
+
+    AppState->Dungeon = Run;
+    SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Tank);
+    // NOTE(zoubir): nobody has threat yet: the nearest
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Striker);
+    DamageEntity(AppState, Test.World, Monster, 20.f, Striker);
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Striker);
+    // NOTE(zoubir): 10 from the tank lands as 7, worth 28 threat to 24
+    DamageEntity(AppState, Test.World, Monster, 10.f, Tank);
+    float Distance = 0.f;
+    Check(FindMonsterTarget(AppState, Test.World, Monster, &Distance) == Tank);
+    Check(Distance > 299.f && Distance < 301.f);
+
+    DamageEntity(AppState, Test.World, Monster, 50.f, Striker);
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Striker);
+    Check(TauntAround(AppState, &Run->Threat, Tank, 400.f) == 1);
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Tank);
+    for(u32 Tick = 0; Tick < (u32)(TAUNT_SECONDS * 60.f) + 5; Tick++)
+    {
+        UpdateThreat(&Run->Threat, 1.f / 60.f);
+    }
+    // NOTE(zoubir): the taunt ran out but left the tank ahead
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Tank);
+    // NOTE(zoubir): a dead player is never the target
+    KillEntity(AppState, Test.World, Tank, 0);
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Striker);
+
+    AppState->Dungeon = 0;
+    free(Run);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): a player that ends up on top of a wall (thrown over it)
+// is put back where the party is
+internal void
+TestStrayPlayersComeBack()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    world_entity *Player = AppState->Players[0].Entity;
+    v3 OnWall = TileCenter(World, 40, 0);
+    v3 From = Player->Position;
+    Player->Position = OnWall;
+    Player->GroundZ = 0.f;
+    CheckAndChangeEntityChunk(AppState, World, &Crypt.Arena, From, Player);
+    TickCrypt(&Crypt, 2);
+    Check(RoomAtPosition(World, Player->Position.XY) == 1);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDungeonTests()
 {
+    TestStrayPlayersComeBack();
+    TestThreatAndTaunt();
     TestRoomsStartClearAndOpenGates();
     TestDownedWaitAndWipesReset();
     TestCryptRoomsMatchTheMap();

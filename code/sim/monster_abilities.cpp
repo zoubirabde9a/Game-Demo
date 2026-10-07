@@ -75,7 +75,7 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
     monster_def *Def = GetMonsterDef(Entity->MonsterKind);
     Entity->BlockFlash = Maximum(0.f, Entity->BlockFlash - DeltaTime);
     UpdateMonsterPhase(Entity, Def, DeltaTime);
-    UpdateMonsterFacing(World, Entity, Def, DeltaTime);
+    UpdateMonsterFacing(AppState, World, Entity, Def, DeltaTime);
     for(u32 AbilityIndex = 0;
         AbilityIndex < Def->AbilityCount;
         AbilityIndex++)
@@ -87,7 +87,7 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
     if (Entity->AbilityPhase == AbilityPhase_Ready)
     {
         float Distance;
-        world_entity *Target = FindMonsterTarget(World, Entity->Position.XY,
+        world_entity *Target = FindMonsterTarget(AppState, World, Entity,
                                                  &Distance);
         if (!Target || Distance > Def->AggroRange)
         {

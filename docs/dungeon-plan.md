@@ -82,9 +82,14 @@ Snapshots gain: each player's role (2 bits), downed state, the run's room and en
 - [x] The mode switch and roles in the simulation: `IsDungeon`, `player_role`, role health and damage scaling, tests.
 - [x] The Sunken Crypt map, flagged `Dungeon`, left out of the duel rotation and the map vote.
 - [x] Encounters: room triggers, spawning packs, leashing, gates that open, checkpoints, wipe and reset.
-- [ ] Threat and taunt, through `DungeonPickTarget`.
+- [x] Threat and taunt, through `DungeonPickTarget`. Taunt is `TauntAround` in `sim/dungeon/threat.cpp`; the tank's key for it comes with the role kits.
 - [ ] Role kits: what A, E and V cast for each role.
 - [ ] Downed players and healer revives.
 - [ ] The three bosses and their phase scripts.
 - [ ] Online: role and run state on the wire, role pick request, server `--map crypt`.
 - [ ] Client: role picker, boss health bar, objective line, party frames.
+
+## Known problems
+
+- A long soak on the crypt (`build\soak_tests.exe 2 6 crypt`) stops on seeds 3 and 4 at about 80 to 120 s: a player 1.1 units into a corridor wall, and a player and a monster overlapping by 1.5. The default one-minute soak passes. Not yet traced; the corridors are narrower than anything on the duel maps.
+- Players thrown over a wall (the same escape as `.agents/issues/keep-edge-escape.md`) are put back at the party's checkpoint by `RescueStrayPlayers`, so they cannot skip rooms.

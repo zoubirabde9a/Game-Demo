@@ -77,17 +77,17 @@ UpdateCharge(app_state *AppState, world *World, world_entity *Entity,
     }
 }
 
-// NOTE(zoubir): turns Direction toward the nearest player at the kind's
-// TurnRate, so slow turners can be flanked
+// NOTE(zoubir): turns Direction toward its target (FindMonsterTarget) at
+// the kind's TurnRate, so slow turners can be flanked
 internal void
-UpdateMonsterFacing(world *World, world_entity *Entity, monster_def *Def,
-                    float DeltaTime)
+UpdateMonsterFacing(app_state *AppState, world *World, world_entity *Entity,
+                    monster_def *Def, float DeltaTime)
 {
     if (LengthSq(Entity->Direction) < 0.0001f)
     {
         Entity->Direction = V2(1.f, 0.f);
     }
-    world_entity *Target = FindMonsterTarget(World, Entity->Position.XY, 0);
+    world_entity *Target = FindMonsterTarget(AppState, World, Entity, 0);
     if (!Target)
     {
         return;

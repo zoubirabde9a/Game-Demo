@@ -18,6 +18,7 @@
    entrance gate, in the room before. Cleared rooms stay cleared. */
 
 #include "crypt_encounters.cpp"
+#include "threat.cpp"
 
 // NOTE(zoubir): a dungeon monster's health is MaxHp times this, so two
 // players face 1.4 times the health and five face 2.6 times
@@ -322,6 +323,33 @@ CanStartRoom(dungeon_run *Run, u32 Room)
     return Result;
 }
 
+// NOTE(zoubir): a player thrown over a wall (a launch, a blast) lands on
+// it or behind it, out of every room: back to the party's spot, so walls
+// keep the run in order (.agents/issues/keep-edge-escape.md is the same
+// escape on the duel maps)
+internal void
+RescueStrayPlayers(app_state *AppState, world *World, memory_arena *Arena)
+{
+    map_def *Map = GetMapDef((map_id)World->MapId);
+    float Tile = (float)World->TileWidth;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        world_entity *Player = Slot->Entity;
+        if (!Slot->Active || !Player || IsDeadPlayer(Player) ||
+            Player->Position.Z > Player->GroundZ + 1.f)
+        {
+            continue;
+        }
+        i32 X = (i32)floorf(Player->Position.X / Tile);
+        i32 Y = (i32)floorf(Player->Position.Y / Tile);
+        if (GetTerrainDef(TerrainAt(Map, X, Y))->Blocks)
+        {
+            MovePlayerTo(AppState, World, Arena, Player, Slot->SpawnPosition);
+        }
+    }
+}
+
 // NOTE(zoubir): once a tick, from SimulateTick, before anyone moves
 internal void
 UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
@@ -332,6 +360,8 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
         return;
     }
     world *World = &AppState->World;
+    UpdateThreat(&Run->Threat, DeltaTime);
+    RescueStrayPlayers(AppState, World, Arena);
     if (!Run->FightingRoom)
     {
         for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)

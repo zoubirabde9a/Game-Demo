@@ -153,7 +153,7 @@ UpdateMonster(world_entity *Entity, world *World,
     v3 DDEntity = {};
     float DistanceToTarget = 0.f;
     world_entity *Target = Stunned ? 0 :
-        FindNearestPlayer(AppState, Entity->Position.XY, &DistanceToTarget);
+        FindMonsterTarget(AppState, World, Entity, &DistanceToTarget);
     if (Target)
     {
         v2 ToTarget = Target->Position.XY - Entity->Position.XY;

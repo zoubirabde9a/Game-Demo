@@ -27,6 +27,28 @@ enum room_state
 // NOTE(zoubir): tiles from a gate to where the party is put either side
 #define DUNGEON_ENTRY_DEPTH 4.f
 
+#define THREAT_ROWS 64
+#define TAUNT_SECONDS 4.f
+// NOTE(zoubir): a taunt also lifts the taunter's threat to this much
+// above the top, so the monster stays on them once it runs out
+#define TAUNT_THREAT_LEAD 1.1f
+
+struct threat_row
+{
+    u32 Slot;
+    u32 Serial;
+    float Threat[MAX_PLAYERS];
+    // NOTE(zoubir): the player slot + 1 that taunted it (0 for none), and
+    // the seconds left of it
+    u32 TauntedBy;
+    float TauntSeconds;
+};
+
+struct threat_table
+{
+    threat_row Rows[THREAT_ROWS];
+};
+
 struct dungeon_run
 {
     u32 RoomCount;
@@ -51,6 +73,8 @@ struct dungeon_run
     u32 GateWalls[DUNGEON_MAX_GATES][DUNGEON_GATE_TILES];
     u32 Wipes;
     random_series Series;
+    // NOTE(zoubir): who each monster attacks (threat.cpp)
+    threat_table Threat;
 };
 
 // NOTE(zoubir): whether the world being played is a dungeon run
@@ -62,6 +86,10 @@ IsDungeon(app_state *AppState)
 }
 
 #include "roles.cpp"
+
+// NOTE(zoubir): in threat.cpp, included by encounters.cpp later
+internal void AddThreat(threat_table *Table, world *World, world_entity *Monster,
+                       u32 PlayerSlot, float Amount);
 
 // NOTE(zoubir): the world was just built for its map in Arena
 // (InitSimulation, RebuildWorldForMap): a dungeon map starts a fresh run
@@ -135,7 +163,10 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
     player_slot *Attacker = DungeonAttackerSlot(AppState, Source);
     if (Attacker && Target->Type == EntityType_Monster)
     {
-        Result *= GetRoleDef(Attacker->Role)->DamageDealt;
+        role_def *Role = GetRoleDef(Attacker->Role);
+        Result *= Role->DamageDealt;
+        AddThreat(&AppState->Dungeon->Threat, &AppState->World, Target,
+                  (u32)(Attacker - AppState->Players), Result * Role->ThreatScale);
     }
     return Result;
 }
