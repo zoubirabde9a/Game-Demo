@@ -29,6 +29,8 @@
 #define DUNGEON_DOWNED_SECONDS 1000000.f
 #define DUNGEON_CLEAR_RESPAWN_SECONDS 1.f
 #define DUNGEON_WIPE_RESPAWN_SECONDS 2.f
+// NOTE(zoubir): how long a fight lasts with no living player in its room
+#define DUNGEON_EMPTY_ROOM_SECONDS 2.f
 
 inline u32
 CountPartyPlayers(app_state *AppState, u32 *Standing)
@@ -240,88 +242,7 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
     }
 }
 
-// NOTE(zoubir): the encounter's monsters still alive, and anything they
-// brought into the room (summons, a slime's split): a room is cleared
-// when it holds no monster at all
-internal u32
-CountLiveFoes(world *World, dungeon_run *Run)
-{
-    u32 Result = 0;
-    for(u32 Index = 0; Index < Run->FoeCount; Index++)
-    {
-        Result += FindMonsterBySerial(World, Run->FoeSlots[Index],
-                                      Run->FoeSerials[Index]) ? 1 : 0;
-    }
-    // NOTE(zoubir): and the monsters in the room the list does not hold,
-    // each counted once
-    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
-    {
-        world_entity *Entity = &World->Entities[EntityIndex];
-        if (!Entity->IsPresent || Entity->Type != EntityType_Monster ||
-            RoomAtPosition(World, Entity->Position.XY) != Run->FightingRoom)
-        {
-            continue;
-        }
-        bool32 Listed = false;
-        for(u32 Index = 0; Index < Run->FoeCount && !Listed; Index++)
-        {
-            Listed = Run->FoeSlots[Index] == EntityIndex &&
-                Run->FoeSerials[Index] == Entity->MonsterSerial;
-        }
-        Result += Listed ? 0 : 1;
-    }
-    return Result;
-}
-
-// NOTE(zoubir): the fight is over, either way: the dead come back at
-// Position after Seconds, and later deaths respawn there too
-internal void
-EndEncounter(app_state *AppState, dungeon_run *Run, v3 Position, float Seconds)
-{
-    Run->FightingRoom = 0;
-    Run->FoeCount = 0;
-    Run->PartyDamage = 0.f;
-    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
-    {
-        player_slot *Slot = &AppState->Players[SlotIndex];
-        if (!Slot->Active || !Slot->Entity)
-        {
-            continue;
-        }
-        Slot->SpawnPosition = Position;
-        if (IsDeadPlayer(Slot->Entity))
-        {
-            Slot->RespawnTimer = Seconds;
-        }
-    }
-}
-
-internal void
-WipeEncounter(app_state *AppState, world *World, dungeon_run *Run)
-{
-    u32 Room = Run->FightingRoom;
-    for(u32 Index = 0; Index < Run->FoeCount; Index++)
-    {
-        world_entity *Foe = FindMonsterBySerial(World, Run->FoeSlots[Index],
-                                                Run->FoeSerials[Index]);
-        if (Foe)
-        {
-            RemoveEntity(World, Foe);
-        }
-    }
-    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
-    {
-        world_entity *Entity = &World->Entities[EntityIndex];
-        if (Entity->IsPresent && Entity->Type == EntityType_Monster &&
-            RoomAtPosition(World, Entity->Position.XY) == Room)
-        {
-            RemoveEntity(World, Entity);
-        }
-    }
-    Run->RoomStates[Room] = RoomState_Waiting;
-    Run->Wipes++;
-    EndEncounter(AppState, Run, Run->RoomCheckpoint[Room], DUNGEON_WIPE_RESPAWN_SECONDS);
-}
+#include "fight_end.cpp"
 
 // NOTE(zoubir): the next room may start once the one before is cleared
 inline bool32
@@ -340,9 +261,11 @@ CanStartRoom(dungeon_run *Run, u32 Room)
 // NOTE(zoubir): a player thrown over a wall (a launch, a blast) lands on
 // it or behind it, out of every room: back to the party's spot, so walls
 // keep the run in order (.agents/issues/keep-edge-escape.md is the same
-// escape on the duel maps)
+// escape on the duel maps). During a fight that spot is the room's
+// entrance, not its checkpoint, which is behind the closed gate
 internal void
-RescueStrayPlayers(app_state *AppState, world *World, memory_arena *Arena)
+RescueStrayPlayers(app_state *AppState, world *World, memory_arena *Arena,
+                   dungeon_run *Run)
 {
     map_def *Map = GetMapDef((map_id)World->MapId);
     float Tile = (float)World->TileWidth;
@@ -359,7 +282,9 @@ RescueStrayPlayers(app_state *AppState, world *World, memory_arena *Arena)
         i32 Y = (i32)floorf(Player->Position.Y / Tile);
         if (GetTerrainDef(TerrainAt(Map, X, Y))->Blocks)
         {
-            MovePlayerTo(AppState, World, Arena, Player, Slot->SpawnPosition);
+            v3 Spot = Run->FightingRoom ? Run->RoomEntry[Run->FightingRoom] :
+                Slot->SpawnPosition;
+            MovePlayerTo(AppState, World, Arena, Player, Spot);
         }
     }
 }
@@ -425,7 +350,7 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
     TakeRoleRequests(AppState, Run);
     UpdateThreat(&Run->Threat, DeltaTime);
     UpdateRoleEffects(AppState, Run, DeltaTime);
-    RescueStrayPlayers(AppState, World, Arena);
+    RescueStrayPlayers(AppState, World, Arena, Run);
     if (!Run->FightingRoom)
     {
         for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
@@ -443,34 +368,18 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
         }
     }
 
-    if (Run->FightingRoom)
+    if (Run->FightingRoom && !UpdateFightEnd(AppState, World, Run, DeltaTime))
     {
-        u32 Standing;
-        u32 Players = CountPartyPlayers(AppState, &Standing);
-        if (CountLiveFoes(World, Run) == 0)
+        UpdateRevives(AppState, DeltaTime);
+        RescueStrayFoes(AppState, World, Arena, Run);
+        UpdateBossEvents(AppState, World, Arena, Run);
+        for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
         {
-            u32 Room = Run->FightingRoom;
-            Run->RoomStates[Room] = RoomState_Cleared;
-            EndEncounter(AppState, Run, Run->RoomEntry[Room],
-                         DUNGEON_CLEAR_RESPAWN_SECONDS);
-        }
-        else if (Players > 0 && Standing == 0)
-        {
-            WipeEncounter(AppState, World, Run);
-        }
-        else
-        {
-            UpdateRevives(AppState, DeltaTime);
-            RescueStrayFoes(AppState, World, Arena, Run);
-            UpdateBossEvents(AppState, World, Arena, Run);
-            for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+            player_slot *Slot = &AppState->Players[SlotIndex];
+            if (Slot->Active && Slot->Entity && IsDeadPlayer(Slot->Entity))
             {
-                player_slot *Slot = &AppState->Players[SlotIndex];
-                if (Slot->Active && Slot->Entity && IsDeadPlayer(Slot->Entity))
-                {
-                    Slot->RespawnTimer = Maximum(Slot->RespawnTimer,
-                                                 DUNGEON_DOWNED_SECONDS);
-                }
+                Slot->RespawnTimer = Maximum(Slot->RespawnTimer,
+                                             DUNGEON_DOWNED_SECONDS);
             }
         }
     }

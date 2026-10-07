@@ -103,6 +103,9 @@ struct dungeon_run
     // NOTE(zoubir): the room being fought, 0 for none, and its monsters,
     // as entity slot and MonsterSerial (slots are reused)
     u32 FightingRoom;
+    // NOTE(zoubir): seconds the room being fought has had no living
+    // player in it (UpdateFightEnd, fight_end.cpp)
+    float EmptySeconds;
     u32 FoeCount;
     u32 FoeSlots[DUNGEON_MAX_FOES];
     u32 FoeSerials[DUNGEON_MAX_FOES];
