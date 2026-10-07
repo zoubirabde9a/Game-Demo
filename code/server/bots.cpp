@@ -9,7 +9,9 @@
    monster in sight, swing the sword up close, throw fireballs from range,
    dash now and then, and wander when nothing is near. It earns experience
    like anyone and spends each point on a random talent it may take, then
-   uses Frost Nova, Shockwave and Gravity Well once it has them. Included
+   uses Frost Nova, Shockwave and Gravity Well once it has them. In a
+   dungeon run (sim/dungeon/) it fights only monsters and takes a role by
+   its slot, so a lone player gets a tank, a healer and damage. Included
    by sim_game.cpp; GameKeepBots runs it every tick. */
 
 #define BOT_SIGHT 700.f
@@ -64,6 +66,8 @@ BotFindTarget(app_state *AppState, world_entity *Self)
         world_entity *Other = &World->Entities[Index];
         if (!Other->IsPresent || Other == Self) continue;
         if (Other->Type != EntityType_Player && Other->Type != EntityType_Monster) continue;
+        // NOTE(zoubir): a dungeon party fights the monsters together
+        if (Other->Type == EntityType_Player && IsDungeon(AppState)) continue;
         if (IsDeadPlayer(Other)) continue;
         float DistanceSq = LengthSq(Other->Position.XY - Self->Position.XY);
         if (DistanceSq < BestSq)
@@ -187,6 +191,19 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         AppState->Votes[Self->PlayerIndex] == MapVote_None)
     {
         Held |= (u32)MapVote_Yes << NET_VOTE_SHIFT;
+    }
+
+    // In a dungeon run each bot asks for a role by its slot (tank, healer,
+    // damage in turn) until it has it, one tick at a time like a talent.
+    if (Slot && IsDungeon(AppState) && !AppState->Dungeon->FightingRoom &&
+        !(Bot->Held >> NET_ROLE_SHIFT))
+    {
+        u32 Wanted[] = {PlayerRole_Tank, PlayerRole_Healer, PlayerRole_Damage};
+        u32 Role = Wanted[Self->PlayerIndex % ArrayCount(Wanted)];
+        if (Slot->Role != Role)
+        {
+            Held |= (Role + 1) << NET_ROLE_SHIFT;
+        }
     }
 
     // A press needs the button up the tick before; drop repeats.

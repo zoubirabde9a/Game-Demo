@@ -194,6 +194,20 @@ DungeonAttackerSlot(app_state *AppState, world_entity *Source)
     return Result;
 }
 
+// NOTE(zoubir): from DamageEntity and ApplyHit: in a dungeon run a player
+// never hurts, shoves or stuns another; outside one this is never true
+internal bool32
+IsFriendlyFire(app_state *AppState, world_entity *Target, world_entity *Source)
+{
+    bool32 Result = false;
+    if (IsDungeon(AppState) && Target->Type == EntityType_Player)
+    {
+        player_slot *Attacker = DungeonAttackerSlot(AppState, Source);
+        Result = Attacker && Attacker->Entity != Target;
+    }
+    return Result;
+}
+
 // NOTE(zoubir): from DamageEntity: a player's role changes what it takes
 // and what it deals. Outside a dungeon run the damage is left alone
 internal float

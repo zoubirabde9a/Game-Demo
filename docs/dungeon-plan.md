@@ -27,6 +27,8 @@ A player picks a role in the lobby room before the first gate, and can change it
 | V | Intercept: leap to the ally under the cursor, or the one nearest the aim, and pull what was on them (10 s) | Mending Bolt: heal the ally under the cursor, or the most hurt one, for 30 (2.5 s) | Kunai |
 | F | Blink | Blink | Blink |
 
+Players cannot hurt each other in a run: a player's hit on another player does nothing, not even a shove (`IsFriendlyFire`, called by `DamageEntity` and `ApplyHit`). Server bots (`server --bots N`) fight only monsters there and take a role by their slot, tank, healer and damage in turn, so a lone player online gets a party.
+
 ## Threat
 
 On dungeon maps a monster attacks the player with the most threat on it among those within its aggro range, not the nearest one. Damage makes threat, scaled by the role. A taunt puts the taunter on top for its duration. Threat lives in the dungeon state as a small table keyed by monster serial, so monster fields do not grow. Outside the dungeon, monsters keep picking the nearest player.

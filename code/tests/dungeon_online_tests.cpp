@@ -105,8 +105,37 @@ TestDungeonRolesAndRoomsOnline()
     free(DungeonSessionArena.Base);
 }
 
+// NOTE(zoubir): three bots in the crypt take a tank, a healer and a
+// damage role, one each
+internal void
+TestDungeonBotsTakeRoles()
+{
+    static server_game Game;
+    GameInit(&Game, MapId_Crypt);
+    app_state *AppState = Game.AppState;
+    float Dt = 1.f / 60.f;
+    Game.BotTarget = 3;
+    for (u32 Tick = 0; Tick < 120; ++Tick)
+    {
+        GameKeepBots(&Game, 0, Dt);
+        GameTick(&Game, Dt);
+    }
+    u32 Seen = 0;
+    for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
+    {
+        if (AppState->Players[Slot].Active)
+        {
+            Seen |= 1u << AppState->Players[Slot].Role;
+        }
+    }
+    Check(Seen == ((1u << PlayerRole_Tank) | (1u << PlayerRole_Healer) |
+                   (1u << PlayerRole_Damage)));
+    GameShutdown(&Game);
+}
+
 internal void
 RunDungeonOnlineTests()
 {
+    TestDungeonBotsTakeRoles();
     TestDungeonRolesAndRoomsOnline();
 }

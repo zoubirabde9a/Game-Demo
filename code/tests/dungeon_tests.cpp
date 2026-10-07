@@ -521,9 +521,43 @@ TestBlinksStopAtClosedGates()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): in a run a player's hit on another does nothing, not even
+// a shove; outside one the duel's rules hold
+internal void
+TestNoFriendlyFireInADungeon()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    world_entity *A = AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
+    world_entity *B = AddPlayerToSlot(AppState, Test.World, &Test.Arena, 1, {400, 300, 0});
+    A->SpawnShield = B->SpawnShield = 0.f;
+    dungeon_run *Run = (dungeon_run *)calloc(1, sizeof(dungeon_run));
+    AppState->Dungeon = Run;
+    float Hp = B->Hp;
+    DamageEntity(AppState, Test.World, B, 20.f, A);
+    Check(B->Hp == Hp);
+    hit Hit = {20.f, 500.f, 0.f, 0.f, 1.f, SimBurst_Count, StatusEffect_None, 0.f};
+    Check(!ApplyHit(AppState, Test.World, B, &Hit, V2(1.f, 0.f), A, 0));
+    Check(B->Hp == Hp && B->Velocity.X == 0.f);
+    // NOTE(zoubir): monsters still hurt players
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster, {500, 300, 0},
+                                          Test.UnitVolume);
+    Monster->MaxHp = Monster->Hp = 100.f;
+    DamageEntity(AppState, Test.World, B, 10.f, Monster);
+    Check(B->Hp < Hp);
+
+    AppState->Dungeon = 0;
+    Hp = B->Hp;
+    DamageEntity(AppState, Test.World, B, 5.f, A);
+    Check(B->Hp == Hp - 5.f);
+    free(Run);
+    DestroyTestWorld(&Test);
+}
+
 internal void
 RunDungeonTests()
 {
+    TestNoFriendlyFireInADungeon();
     TestBlinksStopAtClosedGates();
     TestClearedCryptStartsANewRun();
     TestBossEventsFireOnce();

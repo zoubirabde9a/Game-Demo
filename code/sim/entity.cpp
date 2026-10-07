@@ -320,9 +320,11 @@ internal void StartRoundBreak(app_state *AppState, player_slot *Victim);
 internal bool32 IsTimeLocked(app_state *AppState, world_entity *Entity);
 internal bool32 IsRewindInvulnerable(app_state *AppState, world_entity *Entity);
 // NOTE(zoubir): in sim/dungeon/dungeon.cpp, included later: roles scale
-// damage in a dungeon run
+// damage in a dungeon run, and the party cannot hurt itself
 internal float DungeonScaleDamage(app_state *AppState, world_entity *Target,
                                   world_entity *Source, float Damage);
+internal bool32 IsFriendlyFire(app_state *AppState, world_entity *Target,
+                               world_entity *Source);
 
 internal void
 KillEntity(app_state *AppState, world *World, world_entity *Target,
@@ -336,7 +338,8 @@ DamageEntity(app_state *AppState, world *World,
     // further hits that frame do not count as more kills. A unit frozen
     // by a rewind is outside time and takes nothing
     if (!Target->IsPresent || Target->Hp <= 0.f || IsDodging(Target) ||
-        IsRewindInvulnerable(AppState, Target))
+        IsRewindInvulnerable(AppState, Target) ||
+        IsFriendlyFire(AppState, Target, Source))
     {
         return false;
     }
