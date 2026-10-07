@@ -9,6 +9,7 @@
             twinkling over them (blended, not added: snow is near white)
      wet:   mud and bog: a dull sheen sliding over puddled patches, as a
             damp surface catches the sky
+     grass: gusts of wind rolling across a field as soft bands of light
      lava:  plates of dark crust drifting down the river, glowing cracks
             between them (blended, like snow: lava is near white already)
 
@@ -31,6 +32,7 @@ enum ground_surface
     GroundSurface_Snow,
     GroundSurface_Wet,
     GroundSurface_Lava,
+    GroundSurface_Grass,
     GroundSurface_Count
 };
 
@@ -48,6 +50,7 @@ SurfaceOfKind(u32 Kind)
         case TerrainKind_Mud:
         case TerrainKind_Bog: Result = GroundSurface_Wet; break;
         case TerrainKind_Lava: Result = GroundSurface_Lava; break;
+        case TerrainKind_Grass: Result = GroundSurface_Grass; break;
         default: break;
     }
     return Result;

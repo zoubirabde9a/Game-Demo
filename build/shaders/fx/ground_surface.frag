@@ -12,7 +12,10 @@
 //   wet:   mud and bog: puddled patches that catch a slow, dull sheen
 //   lava:  blended: plates of dark crust drifting, their edges cooling red,
 //          the open lava between them left to glow
-//   colour g:  which surface, 1 water, 2 ice, 3 snow, 4 wet, 5 lava (of 255)
+//   grass: gusts rolling across the field, long soft bands of light that
+//          swell and fade with the wind
+//   colour g:  which surface, 1 water, 2 ice, 3 snow, 4 wet, 5 lava, 6 grass
+//              (of 255)
 //   colour r:  how much of the water is deep: dimmer, slower light
 
 // Hash and Noise come from fx/noise.glsl (the shader library puts it
@@ -81,6 +84,19 @@ void main()
         float Glint = Glints(fragmentUV, 4.0, 0.04, 2.0, 0.26);
         Color = vec3(0.80, 0.92, 1.0);
         Strength = 0.13 * Sheen + 0.8 * Glint;
+    }
+    else if (Surface > 5.5)
+    {
+        // NOTE(zoubir): bands across the wind's way, a gust every few
+        // tiles, sweeping on at a tile a second; noise bends and breaks
+        // them so they read as wind on blades, not stripes
+        vec2 Wind = normalize(vec2(1.0, 0.35));
+        float Along = dot(fragmentUV, Wind) / 4.0 - T * 0.25 +
+            0.6 * Noise(fragmentUV * 0.35 + 11.0);
+        float Gust = pow(0.5 + 0.5 * sin(Along * 6.2832), 5.0);
+        float Patchy = smoothstep(0.3, 0.7, Noise(fragmentUV * 0.5 - vec2(T * 0.1, 0.0)));
+        Color = vec3(0.85, 1.0, 0.55);
+        Strength = 0.14 * Gust * Patchy;
     }
     else if (Surface > 4.5)
     {
