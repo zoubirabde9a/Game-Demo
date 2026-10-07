@@ -93,7 +93,12 @@ StartSpawnAction(app_state *AppState, world *World, memory_arena *Arena,
     Player->ActionLock = Action->Lock;
     Player->ActionCooldowns[Index] = SpawnActionInterval(Index) *
         PlayerCooldownScale(AppState, Player, Action->Button);
-    Player->CastingDirection = Dir;
+    // NOTE(zoubir): a swing or shot during a wind-up keeps the wind-up's
+    // aim, which its spell goes off along when the cast ends
+    if (!IsPlayerCasting(Player))
+    {
+        Player->CastingDirection = Dir;
+    }
     Player->AnimationState.SlotIndex = 0;
     *Tick->AnimationType = Action->Animation;
     // NOTE(zoubir): a combo that ends here spawns its own thing instead

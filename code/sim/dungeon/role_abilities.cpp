@@ -204,6 +204,16 @@ RoleOwnsKey(app_state *AppState, player_slot *Slot, u32 Key)
     return Result;
 }
 
+// NOTE(zoubir): whether Slot's spell on Key only starts a wind-up
+// (sim/player_casts.cpp) when pressed: the striker's Meteor and Giant
+// Fireball
+inline bool32
+RoleKeyWindsUp(player_slot *Slot, u32 Key)
+{
+    bool32 Result = Slot->Role == PlayerRole_Damage && Key <= 1;
+    return Result;
+}
+
 // NOTE(zoubir): whether Talent does nothing for Slot in this run, so it
 // takes no point (LearnTalent, the talent panel): in a dungeon run only
 // the class's own tree counts
@@ -327,8 +337,11 @@ UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
         bool32 Pressed = WasPressed(&Slot->Input, Button);
         Slot->Input.Pressed &= ~Button;
         Slot->Input.ServerPressed &= ~Button;
-        // NOTE(zoubir): one cast at a time: nothing while a spell winds up
-        if (!Pressed || Slot->Predicted || Slot->RoleCooldowns[Key] > 0.f ||
+        // NOTE(zoubir): one cast at a time: nothing while a spell winds up.
+        // A client predicting its own player starts only the wind-ups
+        // (the pose, the slowdown, the bar); the rest waits for the server
+        if (!Pressed || (Slot->Predicted && !RoleKeyWindsUp(Slot, Key)) ||
+            Slot->RoleCooldowns[Key] > 0.f ||
             IsDeadPlayer(Player) || !RoleSpellLearned(Slot, Key) ||
             IsPlayerCasting(Player))
         {

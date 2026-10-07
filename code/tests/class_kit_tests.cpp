@@ -1,8 +1,9 @@
 /* Class kit tests (sim/dungeon/role_abilities.cpp, role_kits/), included
    by dungeon_tests.cpp: in a run a class casts only its own spells and
    the shared fireball, shield and blink; its C and V spells wait for
-   their talent; the Giant Fireball winds up, flies and blows up a pack;
-   and the tree's V spells (Combustion, Last Stand, Radiance) do what
+   their talent; the Giant Fireball winds up, flies and blows up a pack,
+   toward the spot it was cast at; a client predicting its own striker
+   shows the Meteor and Giant Fireball wind-ups but fires neither; and the tree's V spells (Combustion, Last Stand, Radiance) do what
    they say. */
 
 // NOTE(zoubir): the run lets through the shared keys and the class's
@@ -85,6 +86,76 @@ TestGiantFireballBlowsUp()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the striker casts at a spot, then walks off and turns
+// the cursor away and throws a fireball mid-cast: the Giant Fireball
+// still flies toward the spot
+internal void
+TestGiantFireballFliesToTheCastSpot()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Crypt, 1);
+    player_slot *Slot = &AppState->Players[0];
+    SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    world_entity *Striker = Slot->Entity;
+    // NOTE(zoubir): the aim reaches the body a tick before the press
+    Slot->Input.Aim = V2(1.f, 0.f);
+    TickCrypt(&Crypt, 1);
+    PressOnce(&Crypt, 0, PlayerButton_Push);
+    Check(Striker->CastSpell == PlayerSpell_GiantFireball);
+    v2 Spot = Striker->Position.XY + V2(PLAYER_AIM_REACH, 0.f);
+    Slot->Input.Aim = V2(0.f, 1.f);
+    Slot->Input.Move = V2(0.f, 1.f);
+    PressOnce(&Crypt, 0, PlayerButton_Cast);
+    giant_fireball *Ball = &Run->GiantFireballs[0];
+    for(u32 Tick = 0; Tick < 120 && Ball->Distance <= 0.f; Tick++)
+    {
+        TickCrypt(&Crypt, 1);
+    }
+    Slot->Input.Move = {};
+    Check(Ball->Distance > 0.f);
+    Check(LengthSq(Striker->Position.XY + V2(PLAYER_AIM_REACH, 0.f) - Spot) > Square(40.f));
+    v2 Flying = DirectionTo(Ball->Velocity);
+    v2 ToSpot = DirectionTo(Spot - Ball->Position.XY);
+    Check(DotProduct(Flying, ToSpot) > 0.999f);
+    DestroyCryptWorld(&Crypt);
+}
+
+// NOTE(zoubir): online, the client predicting its own striker starts
+// both wind-ups the moment they are pressed, so the cast pose and bar
+// show, but leaves the meteor and the ball to the server
+internal void
+TestPredictedStrikerWindsUp()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Crypt, 1);
+    player_slot *Slot = &AppState->Players[0];
+    SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    world_entity *Striker = Slot->Entity;
+    Slot->Input.Aim = V2(1.f, 0.f);
+    Slot->Predicted = true;
+    u32 Keys[2] = {PlayerButton_Launch, PlayerButton_Push};
+    player_spell Spells[2] = {PlayerSpell_Meteor, PlayerSpell_GiantFireball};
+    for(u32 Key = 0; Key < 2; Key++)
+    {
+        PressOnce(&Crypt, 0, Keys[Key]);
+        Check(Striker->CastSpell == (u32)Spells[Key]);
+        Check(Slot->RoleCooldowns[Key] > 0.f);
+        TickCrypt(&Crypt, 120);
+        Check(Striker->CastSpell == 0);
+    }
+    Check(Run->GiantFireballs[0].Distance <= 0.f);
+    for(u32 Index = 0; Index < MAX_INFERNOS; Index++)
+    {
+        Check(Run->Infernos[Index].Delay <= 0.f && Run->Infernos[Index].Seconds <= 0.f);
+    }
+    Slot->Predicted = false;
+    DestroyCryptWorld(&Crypt);
+}
+
 // NOTE(zoubir): the V spells: Combustion raises the striker's damage,
 // Last Stand heals the tank behind Shield Wall, Radiance heals and wards
 // everyone round the healer
@@ -138,5 +209,7 @@ RunClassKitTests()
 {
     TestRunKeepsTheClassKeys();
     TestGiantFireballBlowsUp();
+    TestGiantFireballFliesToTheCastSpot();
+    TestPredictedStrikerWindsUp();
     TestTreeFinishers();
 }

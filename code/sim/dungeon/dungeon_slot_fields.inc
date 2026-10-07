@@ -17,7 +17,7 @@
     float WardEmpower;
     float CastRefund;
     // NOTE(zoubir): where a role spell with a cast lands, fixed when it
-    // was pressed (Meteor), and the seconds left of a striker's
+    // was pressed (Meteor, and where a Giant Fireball flies), and the seconds left of a striker's
     // Combustion (role_kits/striker.cpp)
     v2 RoleCastPoint;
     float CombustSeconds;

@@ -17,7 +17,9 @@
    burning ground detonates every other marked monster in that fire too.
 
    Giant Fireball winds up for 1.5 s (PlayerSpell_GiantFireball), then a
-   slow ball flies along the aim the striker cast with. It blows up on the
+   slow ball flies from the striker toward the spot the cursor was on
+   when it was pressed, wherever the striker walked meanwhile, and on past
+   it. It blows up on the
    first monster it reaches, when it leaves the room it was cast in, or
    at the end of its flight: everything within GIANT_FIREBALL_RADIUS takes
    GIANT_FIREBALL_DAMAGE and a stack. Combustion makes every hit the
@@ -153,8 +155,9 @@ CastDetonate(app_state *AppState, player_slot *Slot, world_entity *Player)
 }
 
 // NOTE(zoubir): returns whether the key cast. Meteor and Giant Fireball
-// only start their cast here (FinishStrikerCast fires them); Detonate
-// with no marked monster in reach does not cast
+// only start their cast here (FinishRoleCast fires them), which a client
+// predicting its own player does too, without the sound the server sends;
+// Detonate with no marked monster in reach does not cast
 internal bool32
 CastStrikerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 Key)
 {
@@ -162,16 +165,15 @@ CastStrikerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32
     switch(Key)
     {
         case 0:
-        {
-            Slot->RoleCastPoint = AimPoint(Player);
-            StartPlayerCast(Player, PlayerSpell_Meteor, Player->Aim);
-            EmitSound(&AppState->Events, AssetType_SfxMeteorCast, Player->Position);
-        } break;
-
         case 1:
         {
-            StartPlayerCast(Player, PlayerSpell_GiantFireball, Player->Aim);
-            EmitSound(&AppState->Events, AssetType_SfxMeteorCast, Player->Position);
+            Slot->RoleCastPoint = AimPoint(Player);
+            StartPlayerCast(Player, Key == 0 ? PlayerSpell_Meteor : PlayerSpell_GiantFireball,
+                            Player->Aim);
+            if (!Slot->Predicted)
+            {
+                EmitSound(&AppState->Events, AssetType_SfxMeteorCast, Player->Position);
+            }
         } break;
 
         case 2:
@@ -222,14 +224,17 @@ CallMeteor(app_state *AppState, player_slot *Slot, world_entity *Player)
               ATan2(Point.Y - Player->Position.Y, Point.X - Player->Position.X));
 }
 
-// NOTE(zoubir): a Giant Fireball leaves Player's hand along Direction;
-// nothing when all are in flight
+// NOTE(zoubir): a Giant Fireball leaves Player's hand toward Point, or
+// along Direction when Player stands on Point; nothing when all are in
+// flight
 internal void
-LaunchGiantFireball(app_state *AppState, world_entity *Player, v2 Direction)
+LaunchGiantFireball(app_state *AppState, world_entity *Player, v2 Point, v2 Direction)
 {
     dungeon_run *Run = AppState->Dungeon;
     world *World = &AppState->World;
-    v2 Dir = LengthSq(Direction) > 0.f ? DirectionTo(Direction) : V2(1.f, 0.f);
+    v2 ToPoint = Point - Player->Position.XY;
+    v2 Dir = LengthSq(ToPoint) > Square(24.f) ? DirectionTo(ToPoint) :
+        LengthSq(Direction) > 0.f ? DirectionTo(Direction) : V2(1.f, 0.f);
     for(u32 Index = 0; Index < MAX_GIANT_FIREBALLS; Index++)
     {
         giant_fireball *Ball = &Run->GiantFireballs[Index];
@@ -267,7 +272,7 @@ FinishRoleCast(app_state *AppState, world_entity *Player, player_spell Spell)
     }
     else if (Spell == PlayerSpell_GiantFireball)
     {
-        LaunchGiantFireball(AppState, Player, Player->CastingDirection);
+        LaunchGiantFireball(AppState, Player, Slot->RoleCastPoint, Player->CastingDirection);
     }
 }
 
