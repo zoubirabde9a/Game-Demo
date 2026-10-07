@@ -395,9 +395,63 @@ TestRoleKeys()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): a healer standing over a downed ally for three seconds
+// brings them back there; stepping away loses the progress
+internal void
+TestHealersRevive()
+{
+    crypt_world Crypt = CreateCryptWorld(3);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    Run->RoomStates[1] = RoomState_Cleared;
+    SetPlayerRole(AppState, &AppState->Players[1], PlayerRole_Healer);
+    world_entity *Down = AppState->Players[0].Entity;
+    world_entity *Healer = AppState->Players[1].Entity;
+    world_entity *Other = AppState->Players[2].Entity;
+    MovePlayerTo(AppState, World, &Crypt.Arena, Down, Run->RoomEntry[2]);
+    TickCrypt(&Crypt, 1);
+    Check(Run->FightingRoom == 2);
+    // NOTE(zoubir): the room's monsters are taken out of the way; one
+    // stays, stunned, so the fight goes on
+    for(u32 Index = 1; Index < Run->FoeCount; Index++)
+    {
+        world_entity *Foe = FindMonsterBySerial(World, Run->FoeSlots[Index], Run->FoeSerials[Index]);
+        if (Foe)
+        {
+            RemoveEntity(World, Foe);
+        }
+    }
+    world_entity *Last = FindMonsterBySerial(World, Run->FoeSlots[0], Run->FoeSerials[0]);
+    Check(Last != 0);
+    ApplyStatus(Last, StatusEffect_Stunned, 100.f);
+
+    // NOTE(zoubir): the fight pulled the healer in beside the body
+    v3 Lying = Down->Position;
+    MovePlayerTo(AppState, World, &Crypt.Arena, Healer, Lying + V3(300.f, 0.f, 0.f));
+    KillEntity(AppState, World, Down, 0);
+    MovePlayerTo(AppState, World, &Crypt.Arena, Other, Lying + V3(0.f, 40.f, 0.f));
+    TickCrypt(&Crypt, 4 * 60);
+    Check(IsDeadPlayer(Down));
+
+    MovePlayerTo(AppState, World, &Crypt.Arena, Healer, Lying + V3(30.f, 0.f, 0.f));
+    TickCrypt(&Crypt, 2 * 60);
+    Check(IsDeadPlayer(Down));
+    MovePlayerTo(AppState, World, &Crypt.Arena, Healer, Lying + V3(300.f, 0.f, 0.f));
+    TickCrypt(&Crypt, 2 * 60);
+    Check(IsDeadPlayer(Down));
+    Check(AppState->Players[0].ReviveSeconds == 0.f);
+    MovePlayerTo(AppState, World, &Crypt.Arena, Healer, Lying + V3(30.f, 0.f, 0.f));
+    TickCrypt(&Crypt, (u32)(3.2f * 60.f));
+    Check(!IsDeadPlayer(Down));
+    Check(Length(Down->Position.XY - Lying.XY) < 1.f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDungeonTests()
 {
+    TestHealersRevive();
     TestRoleKeys();
     TestStrayPlayersComeBack();
     TestThreatAndTaunt();

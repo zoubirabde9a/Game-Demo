@@ -9,3 +9,6 @@
     float RoleCooldowns[ROLE_KEYS];
     float ShieldWallSeconds;
     float WardAbsorb;
+    // NOTE(zoubir): while downed, the seconds a healer has stood over the
+    // body (sim/dungeon/revive.cpp)
+    float ReviveSeconds;

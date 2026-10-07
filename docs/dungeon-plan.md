@@ -84,7 +84,7 @@ Snapshots gain: each player's role (2 bits), downed state, the run's room and en
 - [x] Encounters: room triggers, spawning packs, leashing, gates that open, checkpoints, wipe and reset.
 - [x] Threat and taunt, through `DungeonPickTarget`. Taunt is `TauntAround` in `sim/dungeon/threat.cpp`; the tank's key for it comes with the role kits.
 - [x] Role kits: what A, E and V cast for each role (`sim/dungeon/role_abilities.cpp`). They borrow existing bursts for now; their own look comes with the client step.
-- [ ] Downed players and healer revives.
+- [x] Downed players and healer revives (`sim/dungeon/revive.cpp`): a healer within 60 of the body for 3 s brings them back there at 40% health.
 - [ ] The three bosses and their phase scripts.
 - [ ] Online: role and run state on the wire, role pick request, server `--map crypt`.
 - [ ] Client: role picker, boss health bar, objective line, party frames.

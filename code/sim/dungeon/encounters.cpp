@@ -324,6 +324,7 @@ CanStartRoom(dungeon_run *Run, u32 Room)
 }
 
 #include "role_abilities.cpp"
+#include "revive.cpp"
 
 // NOTE(zoubir): a player thrown over a wall (a launch, a blast) lands on
 // it or behind it, out of every room: back to the party's spot, so walls
@@ -399,6 +400,7 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
         }
         else
         {
+            UpdateRevives(AppState, DeltaTime);
             for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
             {
                 player_slot *Slot = &AppState->Players[SlotIndex];
