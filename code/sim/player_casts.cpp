@@ -44,7 +44,10 @@ struct player_spell_cast
 {
     // NOTE(zoubir): seconds from the press to the spell going off
     float CastTime;
-    // NOTE(zoubir): share of the walk speed left while it winds up
+    // NOTE(zoubir): share of the walk speed left while it winds up. It was
+    // 0.35 (0.5 for the long casts), which felt like wading through mud;
+    // casting on the move is part of the fight now, and the slowdown only
+    // says a cast is running
     float MoveScale;
     // NOTE(zoubir): the caster hangs in the air instead of falling
     bool32 Hover;
@@ -57,28 +60,28 @@ global_variable player_spell_cast PlayerSpells[PlayerSpell_Count] =
     {0.f, 1.f, false, ""},
     // NOTE(zoubir): Shockwave (E), Push (R) and Launch (A), the area
     // abilities (player_abilities/area_abilities.cpp)
-    {0.3f, 0.35f, false, "Shockwave"},
-    {0.2f, 0.35f, false, "Push"},
-    {0.4f, 0.35f, false, "Launch"},
+    {0.3f, 0.75f, false, "Shockwave"},
+    {0.2f, 0.75f, false, "Push"},
+    {0.4f, 0.75f, false, "Launch"},
     // NOTE(zoubir): Slam (C): the player hangs in the air, then dives
     // (player_abilities/movement_abilities.cpp)
-    {0.25f, 0.35f, true, "Slam"},
+    {0.25f, 0.75f, true, "Slam"},
     // NOTE(zoubir): Blink (F): the jump goes to where the cursor is when
     // the cast ends (player_abilities/movement_abilities.cpp), 0.2 s on
-    {0.2f, 0.35f, false, "Blink"},
+    {0.2f, 0.75f, false, "Blink"},
     // NOTE(zoubir): Frost Nova (G) and Gravity Well (T), area abilities
     // only the talent tree unlocks
-    {0.25f, 0.35f, false, "Frost Nova"},
-    {0.35f, 0.35f, false, "Gravity Well"},
+    {0.25f, 0.75f, false, "Frost Nova"},
+    {0.35f, 0.75f, false, "Gravity Well"},
     // NOTE(zoubir): Meteor (A) and Giant Fireball (R) in a dungeon run:
-    // the striker walks at half speed while they wind up
-    {1.f, 0.5f, false, "Meteor"},
-    {1.5f, 0.5f, false, "Giant Fireball"},
+    // the long casts slow the striker more than the quick ones
+    {1.f, 0.7f, false, "Meteor"},
+    {1.5f, 0.7f, false, "Giant Fireball"},
     // NOTE(zoubir): the time rewinds (time_rewind/rewind_abilities.cpp):
     // the hold and the playback follow the cast
-    {0.5f, 0.5f, false, "Rewind"},
-    {0.5f, 0.5f, false, "Rewind bubble"},
-    {0.5f, 0.5f, false, "Rewind world"},
+    {0.5f, 0.7f, false, "Rewind"},
+    {0.5f, 0.7f, false, "Rewind bubble"},
+    {0.5f, 0.7f, false, "Rewind world"},
 };
 static_assert(PlayerSpell_Count <= 16, "Spell is 4 bits on the wire");
 
