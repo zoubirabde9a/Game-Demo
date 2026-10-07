@@ -1,9 +1,10 @@
-/* Damage meter (dungeon_hud.cpp): the last room fought, bottom right,
+/* Damage meter (dungeon_hud.cpp): the last room fought, on the right
+   just above the ability bar's height (clear of the buttons beside it),
    read from the run's meter (sim/dungeon/meter.cpp). A title with the
    room and how long the fight has lasted, then one row per player, the
    most damage first: their role's emblem and name, and three columns,
    damage dealt, healing done and damage taken, each the fight's total
-   and, dimmer, its share a second. A bar behind each number shows it
+   and, dimmer, the same per second. A bar behind each number shows it
    against the column's best. It starts again from 0 when the next fight
    starts, and shows nothing before the run's first real fight. */
 
@@ -11,8 +12,6 @@
 #define METER_NAME_WIDTH 112.f
 #define METER_PAD 8.f
 #define METER_ROW_GAP 2.f
-// NOTE(zoubir): room left under it, level with the party frames
-#define METER_BOTTOM PARTY_FRAME_BOTTOM
 
 enum meter_column
 {
@@ -101,7 +100,7 @@ DrawDamageMeter(render_context *RenderContext, app_state *AppState,
     float Width = 2.f * METER_PAD + METER_NAME_WIDTH + MeterColumn_Count * METER_COLUMN_WIDTH;
     float Height = 2.f * METER_PAD + 2.f * Line + UI_GAP_SMALL + (float)Count * RowHeight;
     float X = (float)WindowWidth - UI_GAP_LARGE - Width;
-    float Y = (float)WindowHeight - METER_BOTTOM - Height;
+    float Y = AbilityBarPlateTop(WindowHeight) - UI_GAP - Height;
     DrawUIPanel(RenderContext, X, Y, Width, Height);
 
     char Text[96];
@@ -114,6 +113,8 @@ DrawDamageMeter(render_context *RenderContext, app_state *AppState,
     float Top = Y + METER_PAD;
     UIText(RenderContext, Small, Left, Top, Text,
            Run->FightingRoom ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED);
+    UIText(RenderContext, Small, X + Width - METER_PAD, Top, (char *)"total  /  per second",
+           UI_COLOR_TEXT_MUTED, UIAlign_Right);
     Top += Line + UI_GAP_SMALL;
     for(u32 Column = 0; Column < MeterColumn_Count; Column++)
     {
