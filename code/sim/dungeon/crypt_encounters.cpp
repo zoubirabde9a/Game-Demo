@@ -3,8 +3,9 @@
    same Pack stand together around one spot; a boss stands in the middle
    of its room. Elites roll a random affix (sim/monster_affixes.cpp).
 
-   The three bosses are the Ashen Warlord for now; each room's own boss
-   (docs/dungeon-plan.md) replaces it when its kind lands. */
+   Bosses: Gravecaller Ossian in the Ossuary (sim/monsters/
+   crypt_gravecaller.cpp). The Brood Nest and the Throne of Dust hold the
+   Ashen Warlord until their own bosses land (docs/dungeon-plan.md). */
 
 enum encounter_flag
 {
@@ -30,8 +31,8 @@ global_variable encounter_row CryptEncounters[] =
     {2, 1, MonsterKind_Thrall, 3, 0},
     {2, 1, MonsterKind_Brute, 1, 0},
     {2, 2, MonsterKind_Shaman, 1, Encounter_Elite},
-    // 3, Ossuary: the first boss
-    {3, 0, MonsterKind_Warlord, 1, Encounter_Boss},
+    // 3, Ossuary: the first boss, Gravecaller Ossian
+    {3, 0, MonsterKind_Gravecaller, 1, Encounter_Boss},
     // 4, Webbed Galleries: spiders, slimes and bats
     {4, 0, MonsterKind_Spider, 3, 0},
     {4, 1, MonsterKind_Slime, 2, 0},

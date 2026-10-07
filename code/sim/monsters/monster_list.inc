@@ -16,3 +16,4 @@
 #include "warden.cpp"
 #include "warlord.cpp"
 #include "lurker.cpp"
+#include "crypt_gravecaller.cpp"

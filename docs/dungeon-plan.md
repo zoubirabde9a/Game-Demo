@@ -56,7 +56,7 @@ Scaling: every dungeon monster's health is multiplied by `0.6 + 0.4 x players`, 
 Each boss uses the existing ability kinds (slam, charge, mortar, blink, volley, summon, burrow, mend), and the dungeon adds scripted phase events at health thresholds (adds, hazards) on top, in `sim/dungeon/boss_scripts.cpp`.
 
 **Gravecaller Ossian**, a lich in rusted bone armour.
-- Bone Spikes: mortar, five spots around its target.
+- Bone Spikes: mortar, four spots around its target (the most a mortar marks); the struck bleed.
 - Raise the Honour Guard: two Skeletal Thralls, four at most. The healer and damage players have to deal with them while the tank holds the boss.
 - Grave Lunge (below 50%): blinks behind its target and strikes.
 - At 66% and 33% the walls of the Ossuary crack and a Bone Shaman climbs out.
