@@ -84,6 +84,8 @@ BeginWorldPass(render_context *RenderContext, memory_arena *TransientArena,
         // NOTE(zoubir): the motes in the air and the rain, a batch each, a
         // quad a mote or streak
         AMBIENT_MOTES_MAX + 1 + RAIN_MAX + 1 +
+        // NOTE(zoubir): a torch is a batch; at most one wall tile in five
+        GroundTiles / 5 +
         // NOTE(zoubir): ripples and footprints, two batches, a quad each
         GROUND_MARKS_MAX + 2;
     SetupBatchRenderer(RenderContext, TransientArena, BatchesCount);
@@ -419,6 +421,8 @@ DrawTileMap(render_context *RenderContext, app_state *AppState,
         DrawTerrainGround(RenderContext, AppState, Texture, TextureProgram,
                           CameraOffset, Visible);
         DrawGroundCracks(RenderContext, AppState, CameraOffset, GetFxClock(AppState));
+        DrawWallTorches(RenderContext, AppState, CameraOffset, Visible.MinX, Visible.MinY,
+                        Visible.MaxX, Visible.MaxY + ELEVATION_LOOKAHEAD_ROWS);
         UpdateGroundMarks(AppState, GetFxClock(AppState));
         DrawGroundMarks(RenderContext, AppState, CameraOffset, GetFxClock(AppState));
         if (World->Unbounded)

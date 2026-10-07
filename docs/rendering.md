@@ -39,6 +39,7 @@ At 1e7 a float cannot tell `x + 0.5` from `x`. Steps off the flat ground key mus
 | A map's colour grade and lantern | `client/map_moods.cpp` | a `map_mood` row, matched by map name |
 | Moving light on water, ice, snow, mud | `client/ground/ground_surface.cpp`, `fx/ground_surface.frag` | a `ground_surface` value, a case in `SurfaceOfKind`, a branch in the shader |
 | Motes in the air per map | `client/ambient_motes.cpp` | a `mote_look`, matched by map name |
+| Torches on stone walls | `client/wall_torches.cpp` | the map mood's `Torches` strength; placed by a hash of the wall tile |
 | Rain showers | `client/weather.cpp` | a case in `MapHasRain`; `GAME_WEATHER=rain` or `dry` fixes it |
 | Ripples and footprints | `client/ground_marks.cpp` | a `ground_mark_kind` and its drawing |
 | Shadows, player rings, reflections, tree sway | `client/draw_entities/ground_contact.cpp` | tuning numbers at its top |

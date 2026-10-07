@@ -1,5 +1,6 @@
 /* World lights: the coloured light that players' lanterns (on dark maps),
-   bodies under a glowing status (on fire, poisoned...), fireballs, monster shots, kunai, bursts (a hit, a nova, a level up) and
+   bodies under a glowing status (on fire, poisoned...), wall torches,
+   fireballs, monster shots, kunai, bursts (a hit, a nova, a level up) and
    lava throw on the ground and the bodies near them. Gathered once a frame
    into a short list in window pixels; the world grade shader
    (build/shaders/fx/world_grade.frag) brightens and tints every pixel
@@ -63,6 +64,9 @@ global_variable world_light_look StatusLights[StatusEffect_Count] =
     {},                                          // Falling
 };
 static_assert(ArrayCount(StatusLights) == StatusEffect_Count, "one light per status");
+// NOTE(zoubir): a torch on a wall (wall_torches.cpp); its strength comes
+// from the map's mood
+global_variable world_light_look TorchLight = {150.f, 1.f, {1.0f, 0.62f, 0.28f}, 0.6f};
 global_variable world_light_look LavaLight = {175.f, 0.75f, {1.0f, 0.42f, 0.12f}, 1.f};
 
 internal void
@@ -181,6 +185,23 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
     }
     map_def *Map = GetMapDef((map_id)World->MapId);
     i32 Tile = (i32)World->TileWidth;
+    float Torches = MoodFor(World->MapId)->Torches;
+    for(i32 Y = FloorDiv((i32)floorf(Min.Y), Tile); Torches > 0.f &&
+            Y <= FloorDiv((i32)floorf(Max.Y), Tile); Y++)
+    {
+        for(i32 X = FloorDiv((i32)floorf(Min.X), Tile); X <= FloorDiv((i32)floorf(Max.X), Tile); X++)
+        {
+            float Lift;
+            if (WallTorchAt(AppState, Map, X, Y, &Lift))
+            {
+                // NOTE(zoubir): the light sits at the foot of the wall, out in
+                // front of it, so it falls on the floor and not the wall top
+                AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight,
+                              V2(((float)X + 0.5f) * Tile, (float)(Y + 1) * Tile + 10.f),
+                              0.f, TorchLight, Torches);
+            }
+        }
+    }
     i32 Block = WORLD_LIGHT_LAVA_BLOCK;
     i32 MinBlockX = FloorDiv(FloorDiv((i32)floorf(Min.X), Tile), Block);
     i32 MinBlockY = FloorDiv(FloorDiv((i32)floorf(Min.Y), Tile), Block);
