@@ -15,6 +15,8 @@
 #define FOE_MARKER_COLOR UI_RGBA(235, 70, 60, 120)
 // NOTE(zoubir): the outline around players and monsters (DrawEntity)
 #define UNIT_OUTLINE_COLOR 0x9A000000
+// NOTE(zoubir): the health bar over a unit (DrawEntity), in world units
+#define HEALTH_BAR_HEIGHT 2.f
 // NOTE(zoubir): radians a leafy tree leans each way at most in the wind
 #define TREE_SWAY_ANGLE 0.018f
 // NOTE(zoubir): a body's reflection in water (DrawEntity): faint, tinted

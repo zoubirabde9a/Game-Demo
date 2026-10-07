@@ -75,7 +75,9 @@ BeginWorldPass(render_context *RenderContext, memory_arena *TransientArena,
     u32 ElevationBatches = ScreenRows * (2 * ELEVATION_MAX_STEPS + 1);
     u32 PropBatches = World->Unbounded ? 3 * ScreenTiles : 0;
     u32 BatchesCount = 6 * GroundTiles + ElevationBatches + PropBatches +
-        World->EntityCount * 2 + GROUND_CRACK_MAX +
+        // NOTE(zoubir): an entity's shadow, ring, outline, sprite, flash,
+        // reflection and health bar
+        World->EntityCount * 6 + GROUND_CRACK_MAX +
         // NOTE(zoubir): the ground surface: a batch per kind of surface, and
         // one per row, height and kind on raised ground; a quad per tile
         GroundTiles + GroundSurface_Count * (1 + ScreenRows * ELEVATION_MAX_STEPS) +

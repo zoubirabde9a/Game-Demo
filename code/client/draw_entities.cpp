@@ -290,14 +290,22 @@ DrawEntity(render_context *RenderContext,
                 EndBatch(RenderContext);
             }
         }
-        // NOTE(zoubir): a thin health line over the sprite
+        // NOTE(zoubir): a health bar over the sprite: a dark backing one unit
+        // larger all round, and a fill from green through yellow to red as
+        // health runs out
         if (Entity->MaxHp > 0.f && Entity->Hp > 0.f)
         {
-            DrawRectangle(RenderContext,
-                          EntityTexturePosition.X + Entity->Dimensions.X * 0.25f,
-                          EntityTexturePosition.Y - 10,
-                          (Entity->Hp / Entity->MaxHp) * (Entity->Dimensions.X * 0.5f),
-                          1, RGBA8_WHITE, SortingValue);
+            float Health = Clamp01(Entity->Hp / Entity->MaxHp);
+            float Width = Entity->Dimensions.X * 0.5f;
+            float X = EntityTexturePosition.X + Entity->Dimensions.X * 0.25f;
+            float Y = EntityTexturePosition.Y - 10.f;
+            u32 Red = (u32)(255.f * Minimum(1.f, 2.f * (1.f - Health)));
+            u32 Green = (u32)(220.f * Minimum(1.f, 2.f * Health));
+            DrawFilledRectangle(RenderContext, X - 1.f, Y - 1.f, Width + 2.f,
+                                HEALTH_BAR_HEIGHT + 2.f, UI_RGBA(12, 10, 14, 170),
+                                SortingValue + 0.002f);
+            DrawFilledRectangle(RenderContext, X, Y, Health * Width, HEALTH_BAR_HEIGHT,
+                                UI_RGBA(Red, Green, 40, 235), SortingValue + 0.003f);
         }
     }
 
