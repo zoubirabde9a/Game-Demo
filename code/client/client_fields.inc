@@ -53,3 +53,4 @@
     struct party_pick *PartyPick; // the party frames' places and the ally picked on them, client/dungeon/role_targeting.cpp
     struct cast_targeting *CastTargeting; // quick or standard cast, and the ability being aimed, client/cast_targeting.cpp
     struct cast_fx *CastFx; // each player's cast circle, hand glow and release, client/cast_fx.cpp
+    struct danger_zones *DangerZones; // monster attack areas on the ground and their impacts, client/danger_zones.cpp
