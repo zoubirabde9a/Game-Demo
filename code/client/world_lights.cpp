@@ -6,9 +6,11 @@
    (build/shaders/fx/world_grade.frag) brightens and tints every pixel
    within reach of each one, so a fireball lights the grass it flies over.
 
-   Moving things come first, then bursts, then lava. A burst flashes in
-   its own colour (fx_bursts.cpp) and fades over its life; dust and
-   targeting marks give no light. Lava is summed over blocks of
+   Moving things come first, then bursts, then torches, then lava; past
+   WORLD_LIGHTS_MAX a new light replaces the one that matters least
+   (LightWorth: weak, small, far from the middle of the screen). A burst
+   flashes in its own colour (fx_bursts.cpp) and fades over its life; dust
+   and targeting marks give no light. Lava is summed over blocks of
    WORLD_LIGHT_LAVA_BLOCK tiles aligned to the map, so a block's light stays
    put while the camera moves and only its edge ones come and go. */
 
@@ -23,7 +25,23 @@ struct world_lights
     float Spot[4 * WORLD_LIGHTS_MAX];
     // NOTE(zoubir): per light, r g b and a flicker (0 steady, 1 fire)
     float Color[4 * WORLD_LIGHTS_MAX];
+    // NOTE(zoubir): how much each light matters (LightWorth); when the list
+    // is full a new light takes the place of the least one, if it is worth
+    // more
+    float Worth[WORLD_LIGHTS_MAX];
+    // NOTE(zoubir): the middle of the window, in the same pixels as Spot
+    v2 Middle;
 };
+
+// NOTE(zoubir): bright, wide lights near the middle of the screen matter
+// most; one far out at the edge, little
+inline float
+LightWorth(world_lights *Lights, float X, float Y, float Radius, float Strength)
+{
+    float Away = Length(V2(X, Y) - Lights->Middle);
+    float Result = Strength * Radius / (Radius + Away);
+    return Result;
+}
 
 struct world_light_look
 {
@@ -74,15 +92,37 @@ AddWorldLight(world_lights *Lights, v3 CameraOffset, float Zoom,
               float WindowHeight, v2 WorldXY, float Z,
               world_light_look Look, float StrengthScale)
 {
-    if (Lights->Count >= WORLD_LIGHTS_MAX)
+    float X = (WorldXY.X - CameraOffset.X) * Zoom;
+    float Y = WindowHeight - (WorldXY.Y - CameraOffset.Y - Z) * Zoom;
+    float Radius = Look.Radius * Zoom;
+    float Strength = Look.Strength * StrengthScale;
+    float Worth = LightWorth(Lights, X, Y, Radius, Strength);
+    u32 Slot = Lights->Count;
+    if (Slot >= WORLD_LIGHTS_MAX)
     {
-        return;
+        Slot = 0;
+        for(u32 Other = 1; Other < WORLD_LIGHTS_MAX; Other++)
+        {
+            if (Lights->Worth[Other] < Lights->Worth[Slot])
+            {
+                Slot = Other;
+            }
+        }
+        if (Lights->Worth[Slot] >= Worth)
+        {
+            return;
+        }
     }
-    u32 Index = 4 * Lights->Count++;
-    Lights->Spot[Index + 0] = (WorldXY.X - CameraOffset.X) * Zoom;
-    Lights->Spot[Index + 1] = WindowHeight - (WorldXY.Y - CameraOffset.Y - Z) * Zoom;
-    Lights->Spot[Index + 2] = Look.Radius * Zoom;
-    Lights->Spot[Index + 3] = Look.Strength * StrengthScale;
+    else
+    {
+        Lights->Count++;
+    }
+    Lights->Worth[Slot] = Worth;
+    u32 Index = 4 * Slot;
+    Lights->Spot[Index + 0] = X;
+    Lights->Spot[Index + 1] = Y;
+    Lights->Spot[Index + 2] = Radius;
+    Lights->Spot[Index + 3] = Strength;
     Lights->Color[Index + 0] = Look.Color.X;
     Lights->Color[Index + 1] = Look.Color.Y;
     Lights->Color[Index + 2] = Look.Color.Z;
@@ -99,6 +139,7 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
                   float Zoom, float WindowHeight, world_lights *Lights)
 {
     Lights->Count = 0;
+    Lights->Middle = 0.5f * V2((float)View->Width * Zoom, WindowHeight);
     world *World = &AppState->World;
     float Margin = 160.f;
     v2 Min = CameraOffset.XY - V2(Margin, Margin);
