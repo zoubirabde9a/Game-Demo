@@ -23,7 +23,9 @@ GetActionKeys(app_input *Input, action_key *Keys)
     action_key Table[ACTION_KEY_COUNT] =
     {
         {&Input->SpaceButton, PlayerButton_Jump, "Space"},
-        {&Input->LeftButton, PlayerButton_Cast, "LMB"},
+        // NOTE(zoubir): the fireball, X on both layouts; the left click
+        // only confirms an aimed ability (cast_targeting.cpp)
+        {&Input->ButtonX, PlayerButton_Cast, "X"},
         {&Input->ButtonE, PlayerButton_Shield, "E"},
         {&Input->ButtonF, PlayerButton_Blink, "F"},
         {LayoutKey(Input, 'A'), PlayerButton_Launch, LayoutKeyName('A')},

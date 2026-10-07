@@ -35,7 +35,7 @@ global_variable controls_row ControlsRows[] =
 {
     {"ZQSD",        "Move"},
     {"Mouse",       "Aim; you face the cursor"},
-    {"Left click",  "Fireball at the cursor, every 6 s"},
+    {"X",           "Fireball at the cursor, every 6 s"},
     {"Space",       "Jump; fireballs and blasts pass under"},
     {"E",           "Shield: nothing hurts you for 2 s"},
     {"F",           "Blink to the cursor after 0.2 s"},

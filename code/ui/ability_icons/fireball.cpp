@@ -1,4 +1,4 @@
-/* Fireball icon (left click): a burning orb with a tail of flame behind it. */
+/* Fireball icon (X): a burning orb with a tail of flame behind it. */
 
 internal void
 PaintFireballIcon(icon_canvas *Canvas)

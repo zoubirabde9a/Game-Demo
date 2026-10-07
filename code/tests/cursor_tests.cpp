@@ -1,5 +1,6 @@
-/* Cursor tests: a left click casts wherever it lands, and the tile
-   editor's clicks paint without casting, here or online. Standard cast
+/* Cursor tests: X casts the fireball wherever the cursor is, a left
+   click alone casts nothing, and the tile editor's clicks paint without
+   casting, here or online. Standard cast
    aims an area ability on its key and casts it on the next left click
    (client/cast_targeting.cpp); quick cast casts it on the key. The
    cursor picks the unit whose body it is on (client/targeting.cpp). On QWERTY
@@ -59,20 +60,28 @@ ReleaseKey(app_button_state *Key)
     Key->EndedDown = false;
 }
 
-// NOTE(zoubir): a click on bare ground used to walk there instead
+// NOTE(zoubir): the fireball is a key like the other abilities; a left
+// click on bare ground neither casts nor walks there
 internal void
-TestLeftClickOnGroundCasts()
+TestFireballIsOnX()
 {
     test_world Test = CreateCursorTestWorld();
     world_entity *Player = AddPlayerToSlot(Test.AppState, Test.World,
                                            &Test.Arena, 0, {300, 300, 0});
     PressLeftButton(&Test.Input, 600, 300);
     player_input Local = ReadKeyboardPlayerInput(&Test.Input, Test.AppState);
-    Check((Local.Pressed & PlayerButton_Cast) != 0);
+    Check(Local.Pressed == 0);
     Check(Local.Move.X == 0.f && Local.Move.Y == 0.f);
-    app_input Sent = InputForServer(&Test.Input, Test.AppState);
-    Check(Sent.LeftButton.EndedDown);
     Check(Player->Position.X < 301.f);
+
+    NextInputFrame(&Test.Input);
+    ReleaseKey(&Test.Input.LeftButton);
+    PressKey(&Test.Input.ButtonX);
+    Local = ReadKeyboardPlayerInput(&Test.Input, Test.AppState);
+    Check(Local.Pressed == PlayerButton_Cast);
+    app_input Sent = InputForServer(&Test.Input, Test.AppState);
+    Check(Sent.ButtonX.EndedDown);
+    Check(strcmp(ActionKeyLabel(PlayerButton_Cast), "X") == 0);
     DestroyTestWorld(&Test);
 }
 
@@ -91,8 +100,8 @@ TestTileEditorClicksDoNotCast()
 }
 
 // NOTE(zoubir): standard cast: A aims Launch and sends nothing; the left
-// click casts it, and is no fireball, here or online; holding the click
-// on does not fire one either
+// click casts it, here or online, and holding the click on casts nothing
+// more
 internal void
 TestStandardCastAimsThenClickCasts()
 {
@@ -115,20 +124,25 @@ TestStandardCastAimsThenClickCasts()
     Check(Local.Pressed == PlayerButton_Launch);
     Check(Test.AppState->CastTargeting->Aiming == 0);
     Sent = InputForServer(Input, Test.AppState);
-    Check(Sent.ButtonA.EndedDown && !Sent.LeftButton.EndedDown);
+    Check(Sent.ButtonA.EndedDown);
 
     NextInputFrame(Input);
     Local = ReadKeyboardPlayerInput(Input, Test.AppState);
     Check(Local.Pressed == 0);
     Sent = InputForServer(Input, Test.AppState);
-    Check(!Sent.ButtonA.EndedDown && !Sent.LeftButton.EndedDown);
+    Check(!Sent.ButtonA.EndedDown);
 
-    // NOTE(zoubir): once released, the left button is a fireball again
+    // NOTE(zoubir): with nothing aimed, a click casts nothing and X still
+    // throws the fireball
     NextInputFrame(Input);
     ReleaseKey(&Input->LeftButton);
     ReadKeyboardPlayerInput(Input, Test.AppState);
     NextInputFrame(Input);
     PressKey(&Input->LeftButton);
+    Local = ReadKeyboardPlayerInput(Input, Test.AppState);
+    Check(Local.Pressed == 0);
+    NextInputFrame(Input);
+    PressKey(&Input->ButtonX);
     Local = ReadKeyboardPlayerInput(Input, Test.AppState);
     Check(Local.Pressed == PlayerButton_Cast);
     DestroyTestWorld(&Test);
@@ -302,7 +316,7 @@ TestStandardCastRechargingAimsNothing()
 
     NextInputFrame(Input);
     ReleaseKey(&Input->ButtonA);
-    PressKey(&Input->LeftButton);
+    PressKey(&Input->ButtonX);
     Local = ReadKeyboardPlayerInput(Input, AppState);
     Check(Local.Pressed == PlayerButton_Cast);
     DestroyTestWorld(&Test);
@@ -349,7 +363,7 @@ TestStandardCastAimsTheKunai()
     Check(Local.Target == Enemy->ID + 1);
     Check(AppState->CastTargeting->Aiming == 0);
     Sent = InputForServer(Input, AppState);
-    Check(Sent.ButtonV.EndedDown && !Sent.LeftButton.EndedDown);
+    Check(Sent.ButtonV.EndedDown);
     DestroyTestWorld(&Test);
 }
 
@@ -358,7 +372,7 @@ TestStandardCastAimsTheKunai()
 internal void
 RunCursorTests()
 {
-    CURSOR_TEST(TestLeftClickOnGroundCasts);
+    CURSOR_TEST(TestFireballIsOnX);
     CURSOR_TEST(TestTileEditorClicksDoNotCast);
     CURSOR_TEST(TestStandardCastAimsThenClickCasts);
     CURSOR_TEST(TestStandardCastRightClickCancels);

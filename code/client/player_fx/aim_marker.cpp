@@ -1,6 +1,6 @@
 /* Aim marker: four dots from the local player's feet toward the cursor,
    growing and brightening toward the tip, with a dark rim to read on
-   grass. It also says whether the fireball (left click, PlayerButton_Cast)
+   grass. It also says whether the fireball (X, PlayerButton_Cast)
    is ready: gold when it is, grey while it recharges, the dots filling
    back to gold from the player outward as the cooldown runs down. Online
    the cooldown comes from the server (sim/player_cooldowns.cpp). */

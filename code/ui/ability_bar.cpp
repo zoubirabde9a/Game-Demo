@@ -405,7 +405,7 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         }
     }
     Bar->ShownSeen = true;
-    // NOTE(zoubir): clicks on the plate are the bar's, not a fireball
+    // NOTE(zoubir): clicks on the plate are the bar's, not a cast
     // (client/talent_requests.cpp)
     talent_requests *Requests = GetTalentRequests(AppState);
     Requests->BarX = Left - PlatePad - 14.f - XP_BADGE_SIZE;

@@ -1,4 +1,4 @@
-/* Fireball (left click): a piercing shot along the aim at any angle,
+/* Fireball (X): a piercing shot along the aim at any angle,
    hitting each target once (HandleCollision, collision.cpp, calls
    FireBallHit, which lands FireBallHitRow through ApplyHit). Its numbers are in player_stats.cpp and its timing row
    in spawn_actions.cpp: a click sooner than the interval waits in the

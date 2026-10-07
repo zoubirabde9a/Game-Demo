@@ -19,9 +19,10 @@
    why instead of spending the press.
 
    Everything happens before the input reaches the simulation: the keys
-   of the ability being aimed, and the click that confirms or cancels it,
-   are swallowed until they are released, and the confirmed ability is
-   pressed for one frame. Offline that edits player_input.Pressed
+   of the ability being aimed, and the right click that cancels it, are
+   swallowed until they are released, and the confirmed ability is
+   pressed for one frame. The left click casts nothing by itself (the
+   fireball is on X), so it is read straight from the mouse. Offline that edits player_input.Pressed
    (keyboard_input.cpp); online it edits the copy of the keys the server
    gets (cursor.cpp), which sends held keys and lets the server find the
    presses, so a one-frame press and a swallowed key read the same way
@@ -147,16 +148,16 @@ UpdateCastTargeting(app_input *Input, app_state *AppState, u32 Blocked)
     cast_targeting *Targeting = GetCastTargeting(AppState);
     u32 Held = ActionButtonsFromKeys(Input, false);
     u32 Pressed = ActionButtonsFromKeys(Input, true);
-    u32 Clicks = PlayerButton_Cast | PlayerButton_Attack;
     Targeting->Confirmed = 0;
     Targeting->Swallowed &= Held | Pressed;
+    bool32 Click = Input->LeftButton.Pressed;
     // NOTE(zoubir): a click that belongs to a screen (the tile editor, the
     // talent panel, the mode checkbox) neither casts nor confirms
     if (AppState->TileEditing || TalentPanelHasMouse(AppState, Input) ||
         IsMouseOnCastModeToggle(Targeting, Input) || PartyFramesHaveMouse(AppState, Input))
     {
-        Targeting->Swallowed |= Pressed & PlayerButton_Cast;
-        Pressed &= ~Clicks;
+        Click = false;
+        Pressed &= ~(u32)PlayerButton_Attack;
     }
     u32 Learned = LearnedTargetedButtons(AppState);
     u32 Recharging = RechargingButtons(AppState, Learned);
@@ -169,7 +170,11 @@ UpdateCastTargeting(app_input *Input, app_state *AppState, u32 Blocked)
     u32 Fresh = Pressed & ~Targeting->Swallowed;
     if (Targeting->Aiming)
     {
-        u32 Confirm = Fresh & (PlayerButton_Cast | Targeting->Aiming);
+        u32 Confirm = Fresh & Targeting->Aiming;
+        if (Click)
+        {
+            Confirm |= Targeting->Aiming;
+        }
         if (Confirm && (Targeting->Aiming & (Blocked | Recharging)))
         {
             // NOTE(zoubir): it would not go: the aim stays, the press is

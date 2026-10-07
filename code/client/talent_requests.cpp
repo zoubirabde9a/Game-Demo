@@ -10,7 +10,7 @@
    talent again, as new.
 
    The panel also leaves here the screen rectangle it covered last frame,
-   so a click on it does not cast a fireball as well. */
+   so a click on it does not swing the sword or confirm an aim as well. */
 
 #define TALENT_REQUEST_QUEUE 8
 #define TALENT_HOLD_SECONDS 0.12f

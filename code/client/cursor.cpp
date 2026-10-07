@@ -1,7 +1,8 @@
 /* The mouse cursor on the ground: where it points in the world, for the
    aim (keyboard_input.cpp), and the input the online session sends. A
-   left click always casts; while the tile editor (F3) is open the left
-   button paints tiles instead, so it is never sent as a cast. */
+   left click casts nothing by itself (the fireball is on X); while the
+   tile editor (F3) is open the left button paints tiles, and the server
+   never sees it. */
 
 // NOTE(zoubir): a world coordinate rounded down to a whole window pixel
 // at Zoom pixels per unit; the camera snaps this way (camera.cpp) so pixel

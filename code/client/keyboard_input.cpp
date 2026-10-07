@@ -1,7 +1,7 @@
 /* Local controls: turns this machine's keyboard and mouse into the
    player_input the simulation understands. ZQSD move on AZERTY and
    WASD on QWERTY (picked in the Esc menu, keyboard_layout.cpp),
-   the mouse cursor aims, right click sword, left click fireball, Space
+   the mouse cursor aims, right click sword, X fireball, Space
    jump, E shockwave, F blink, R push, A launch (the action keys
    are one table, action_keys.cpp). In standard cast mode an area
    ability's key, and the kunai's (V), aims it first and a left click
@@ -62,7 +62,7 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
     // the party frames picks an ally (dungeon/role_targeting.cpp)
     if (TalentPanelHasMouse(AppState, Input) || PartyFramesHaveMouse(AppState, Input))
     {
-        Result.Pressed &= ~(u32)(PlayerButton_Cast | PlayerButton_Attack);
+        Result.Pressed &= ~(u32)PlayerButton_Attack;
     }
     // NOTE(zoubir): offline the local simulation spends the points the
     // panel asked for; online they go in the held buttons (online.cpp)

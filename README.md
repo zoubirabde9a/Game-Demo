@@ -6,7 +6,8 @@ controls:
 - Z, Q, S, D: move
 - Space: jump (from the ground)
 - Alt: dash (recharges in 0.8 s, shown by the small bar under health)
-- Left click: fireball
+- X: fireball
+- Left click: casts an aimed ability
 - Right click: sword
 - F3: tile editor
 
