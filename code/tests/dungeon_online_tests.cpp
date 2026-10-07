@@ -101,6 +101,21 @@ TestDungeonRolesAndRoomsOnline()
     sanctuary *Shown = &Client->Dungeon->Sanctuaries[0];
     Check(Shown->Seconds > 3.f && Shown->Seconds <= 4.1f);
     Check(Shown->Position.X == 300.f && Shown->Position.Y == 400.f);
+
+    // NOTE(zoubir): the meter comes over one player a snapshot; with one
+    // player each snapshot has it. A new fight count zeroes the others
+    Client->Players[5].MeterDamage = 77.f;
+    Game->Dungeon->MeterFight = 3;
+    Game->Dungeon->MeterSeconds = 12.34f;
+    Game->Players[SlotIndex].MeterDamage = 1234.4f;
+    Game->Players[SlotIndex].MeterHealing = 56.f;
+    Game->Players[SlotIndex].MeterTaken = 78.6f;
+    RunDungeonOnlineTest(&Test, 30);
+    player_slot *Mine = &Client->Players[Client->LocalPlayerIndex];
+    Check(Client->Dungeon->MeterFight == 3);
+    Check(Client->Dungeon->MeterSeconds > 12.2f && Client->Dungeon->MeterSeconds < 12.4f);
+    Check(Mine->MeterDamage == 1234.f && Mine->MeterHealing == 56.f && Mine->MeterTaken == 79.f);
+    Check(Client->Players[5].MeterDamage == 0.f);
     StopRoundMapTest(&Test);
     free(DungeonSessionArena.Base);
 }

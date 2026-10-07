@@ -19,7 +19,8 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d6cu // "GDMl", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d6du // "GDMm", change it whenever the layout changes
+// (GDMm: a dungeon run sends one player's meter a snapshot)
 // (GDMl: an open map vote sends every player's answer)
 // (GDMk: two dungeon casts came in before the rewinds, so cast ids moved,
 // and two bursts for the Giant Fireball)
@@ -418,6 +419,10 @@ struct net_snapshot
     u8 MarkCount;
     u16 MarkId[NET_MAX_FOE_MARKS];
     u8 MarkBits[NET_MAX_FOE_MARKS];
+    // With HasMeter, one player's meter (sim/dungeon/meter.cpp): slot, fights started
+    // (0..31), the fight's tenths of a second, and damage, healing, taken, whole points.
+    u8 HasMeter, MeterSlot, MeterFight;
+    u16 MeterTenths, MeterDamage, MeterHealing, MeterTaken;
     // The viewer's own player exactly: position and velocity as floats.
     // Entities are sent rounded to 1/8 unit, and a prediction replayed
     // from a rounded start went round a wall's corner the other way from

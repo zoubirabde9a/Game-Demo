@@ -6,7 +6,8 @@
    Wall, a ward and revive progress; DungeonMore a rally, a renewal and
    how many monsters are after them. The snapshot's dungeon block gives
    the rooms, the fight, the healers' sanctuaries, the infernos and the
-   foe marks, Searing and Sunder (on the replicas they were sent for); the
+   foe marks, Searing and Sunder (on the replicas they were sent for), and
+   one player's meter, kept until that player comes round again; the
    gate walls are then built or taken down
    locally from the room states (UpdateGates), so the local player's
    prediction stops at a closed gate as the server does. The role the
@@ -35,6 +36,31 @@ ApplyDungeonScore(app_state *AppState, player_slot *Slot, u8 Packed, u8 More)
     Slot->RallySeconds = (More & 1) ? RALLY_SECONDS : 0.f;
     Slot->RenewSeconds = (More & (1 << 1)) ? RENEWAL_SECONDS : 0.f;
     Slot->Aggro = (u8)((More >> 2) & 7);
+}
+
+// NOTE(zoubir): a new fight count zeroes every player's meter, as
+// StartMeter did on the server; then the one player sent is filled in
+internal void
+ApplyMeterSnapshot(app_state *AppState, dungeon_run *Run, net_snapshot *Snapshot)
+{
+    if (!Snapshot->HasMeter)
+    {
+        return;
+    }
+    if (Snapshot->MeterFight != (Run->MeterFight & 31))
+    {
+        StartMeter(AppState, Run, Run->FightingRoom);
+        Run->MeterFight = Snapshot->MeterFight;
+    }
+    if (Run->FightingRoom)
+    {
+        Run->MeterRoom = Run->FightingRoom;
+    }
+    Run->MeterSeconds = 0.1f * (float)Snapshot->MeterTenths;
+    player_slot *Slot = &AppState->Players[Snapshot->MeterSlot & 7];
+    Slot->MeterDamage = (float)Snapshot->MeterDamage;
+    Slot->MeterHealing = (float)Snapshot->MeterHealing;
+    Slot->MeterTaken = (float)Snapshot->MeterTaken;
 }
 
 internal void
@@ -113,5 +139,6 @@ ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Sna
             Mark->SunderShare = (Bits & NET_MARK_SUNDER) ? SUNDER_SHARE : 0.f;
         }
     }
+    ApplyMeterSnapshot(AppState, Run, Snapshot);
     UpdateGates(AppState, &AppState->World, Arena, Run);
 }

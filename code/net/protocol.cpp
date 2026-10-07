@@ -309,8 +309,12 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 P->Snapshot.VoteYes = Counts & 0xf;
                 P->Snapshot.VoteNo = Counts >> 4;
             }
-            NetU8(S, &P->Snapshot.HasDungeon);
-            if (P->Snapshot.HasDungeon > 1) return false;
+            // NOTE(zoubir): bit 1 of the dungeon byte says a meter follows
+            u8 DungeonByte = (u8)(P->Snapshot.HasDungeon | (P->Snapshot.HasMeter << 1));
+            NetU8(S, &DungeonByte);
+            if (DungeonByte > 3 || DungeonByte == 2) return false;
+            P->Snapshot.HasDungeon = DungeonByte & 1;
+            P->Snapshot.HasMeter = DungeonByte >> 1;
             if (P->Snapshot.HasDungeon)
             {
                 NetU8(S, &P->Snapshot.FightingRoom);
@@ -347,6 +351,18 @@ NetSerializePacket(net_stream *S, net_packet *P)
                     NetU16(S, &Mark);
                     P->Snapshot.MarkId[Index] = Mark & 0x1fff;
                     P->Snapshot.MarkBits[Index] = (u8)(Mark >> 13);
+                }
+                if (P->Snapshot.HasMeter)
+                {
+                    // NOTE(zoubir): the meter's slot in 3 bits, the fight count in 5
+                    u8 MeterSlot = (u8)((P->Snapshot.MeterSlot & 7) | ((P->Snapshot.MeterFight & 31) << 3));
+                    NetU8(S, &MeterSlot);
+                    P->Snapshot.MeterSlot = MeterSlot & 7;
+                    P->Snapshot.MeterFight = MeterSlot >> 3;
+                    NetU16(S, &P->Snapshot.MeterTenths);
+                    NetU16(S, &P->Snapshot.MeterDamage);
+                    NetU16(S, &P->Snapshot.MeterHealing);
+                    NetU16(S, &P->Snapshot.MeterTaken);
                 }
             }
             NetU8(S, &P->Snapshot.HasOwnBody);
@@ -450,6 +466,13 @@ NetWriteSnapshotFitting(net_packet *Packet, u8 *Buffer, u32 BufferSize, u32 *Dro
     net_snapshot *Snapshot = &Packet->Snapshot;
     u32 Start = Snapshot->Count;
     u32 Size = NetWritePacket(Packet, Buffer, BufferSize);
+    // NOTE(zoubir): the dungeon meter goes first: the next snapshot
+    // brings another player's numbers anyway (server/sim_game/dungeon.cpp)
+    if (Size == 0 && Snapshot->HasMeter)
+    {
+        Snapshot->HasMeter = 0;
+        Size = NetWritePacket(Packet, Buffer, BufferSize);
+    }
     while (Size == 0 && Snapshot->Count > 1)
     {
         Snapshot->Count--;

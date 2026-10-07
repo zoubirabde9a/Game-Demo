@@ -35,3 +35,8 @@
     // NOTE(zoubir): while downed, the seconds a healer has stood over the
     // body (sim/dungeon/revive.cpp)
     float ReviveSeconds;
+    // NOTE(zoubir): the last room fought's damage dealt to monsters,
+    // health given and health lost (sim/dungeon/meter.cpp)
+    float MeterDamage;
+    float MeterHealing;
+    float MeterTaken;

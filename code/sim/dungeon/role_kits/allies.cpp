@@ -98,6 +98,7 @@ HealPlayer(app_state *AppState, u32 By, world_entity *Target, float Amount)
     float Given = Minimum(Amount * PartySustainScale(AppState->Dungeon),
                           Target->MaxHp - Target->Hp);
     Target->Hp += Given;
+    CountMeterHealing(AppState, By, Given);
     dungeon_run *Run = AppState->Dungeon;
     if (Run && Given > 0.f && By < MAX_PLAYERS)
     {

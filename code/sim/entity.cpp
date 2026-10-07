@@ -325,6 +325,10 @@ internal float DungeonScaleDamage(app_state *AppState, world_entity *Target,
                                   world_entity *Source, float Damage);
 internal bool32 IsFriendlyFire(app_state *AppState, world_entity *Target,
                                world_entity *Source);
+// NOTE(zoubir): in sim/dungeon/meter.cpp, included later: the run's meter
+// counts the health each hit took
+internal void CountMeterDamage(app_state *AppState, world_entity *Target,
+                               world_entity *Source, float Lost);
 
 internal void
 KillEntity(app_state *AppState, world *World, world_entity *Target,
@@ -350,7 +354,9 @@ DamageEntity(app_state *AppState, world *World,
     {
         return false;
     }
+    float Lost = Minimum(Damage, Maximum(0.f, Target->Hp));
     Target->Hp -= Damage;
+    CountMeterDamage(AppState, Target, Source, Lost);
     if (Target->Hp > 0.f)
     {
         return false;

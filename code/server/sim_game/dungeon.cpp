@@ -1,7 +1,7 @@
 /* A dungeon run on the wire (sim/dungeon/, net/protocol.h): each
    player's role and what is drawn on them, in net_score.Dungeon and
-   DungeonMore, and the run's rooms, wipes, boss, sanctuaries and
-   infernos, in the snapshot's dungeon block. Read back by
+   DungeonMore, and the run's rooms, wipes, boss, sanctuaries, infernos
+   and one player's meter, in the snapshot's dungeon block. Read back by
    client/dungeon/dungeon_net.cpp. */
 
 // NOTE(zoubir): X held to 0..1
@@ -109,11 +109,47 @@ WriteFoeMarks(app_state *AppState, dungeon_run *Run, v2 Center, net_snapshot *Ou
     }
 }
 
+// NOTE(zoubir): X in whole points, at most what a u16 holds
+inline u16
+MeterPoints(float X)
+{
+    u16 Result = (u16)Minimum(65535.f, Maximum(0.f, X + 0.5f));
+    return Result;
+}
+
+// NOTE(zoubir): one player's meter, a different one each snapshot: all
+// eight would cost every snapshot 56 bytes it has no room for. At 20
+// snapshots a second a party of four each get theirs five times a second.
+// A snapshot too full for it leaves it out (NetWriteSnapshotFitting)
+internal void
+WriteMeter(app_state *AppState, dungeon_run *Run, net_snapshot *Out)
+{
+    u32 Active[MAX_PLAYERS];
+    u32 ActiveCount = 0;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        if (AppState->Players[SlotIndex].Active)
+        {
+            Active[ActiveCount++] = SlotIndex;
+        }
+    }
+    u32 SlotIndex = ActiveCount ? Active[(Out->Tick / 3) % ActiveCount] : 0;
+    player_slot *Slot = &AppState->Players[SlotIndex];
+    Out->HasMeter = 1;
+    Out->MeterSlot = (u8)SlotIndex;
+    Out->MeterFight = (u8)(Run->MeterFight & 31);
+    Out->MeterTenths = MeterPoints(10.f * Run->MeterSeconds);
+    Out->MeterDamage = MeterPoints(Slot->MeterDamage);
+    Out->MeterHealing = MeterPoints(Slot->MeterHealing);
+    Out->MeterTaken = MeterPoints(Slot->MeterTaken);
+}
+
 internal void
 WriteDungeonSnapshot(app_state *AppState, net_snapshot *Out)
 {
     dungeon_run *Run = AppState->Dungeon;
     Out->HasDungeon = Run ? 1 : 0;
+    Out->HasMeter = 0;
     if (!Run)
     {
         return;
@@ -171,4 +207,5 @@ WriteDungeonSnapshot(app_state *AppState, net_snapshot *Out)
     }
 
     WriteFoeMarks(AppState, Run, FoeMarkCenter(AppState, Out), Out);
+    WriteMeter(AppState, Run, Out);
 }

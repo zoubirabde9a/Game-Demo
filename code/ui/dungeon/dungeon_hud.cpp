@@ -13,6 +13,8 @@
    - Party frames, bottom left (party_frames.cpp): each player's role,
      health, shields and the monsters after them; clicking one picks the
      ally a tank's or healer's spells go to.
+   - The damage meter, bottom right (damage_meter.cpp): each player's
+     damage, healing and damage taken in the last room fought.
    - The role picker, in the Antechamber between fights: three buttons,
      the picked one outlined, and what its keys do. Offline the pick
      takes at once; online it goes to the server as a request
@@ -31,6 +33,7 @@
 #define DUNGEON_ADD_ALARM_SECONDS 10
 
 #include "party_frames.cpp"
+#include "damage_meter.cpp"
 
 // NOTE(zoubir): one centred line at Y; returns the line's height
 internal float
@@ -252,4 +255,5 @@ DoDungeonHud(render_context *RenderContext, app_state *AppState, app_input *Inpu
     Y += DrawDungeonBossBar(RenderContext, AppState, CenterX, Y);
     DoDungeonRolePicker(RenderContext, AppState, Input, CenterX, Y);
     DrawDungeonParty(RenderContext, AppState, Input, WindowHeight);
+    DrawDamageMeter(RenderContext, AppState, WindowWidth, WindowHeight);
 }

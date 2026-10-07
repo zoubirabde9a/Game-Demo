@@ -523,6 +523,7 @@ TestNoFriendlyFireInADungeon()
 #include "class_kit_tests.cpp"
 #include "fight_end_tests.cpp"
 #include "depths_tests.cpp"
+#include "meter_tests.cpp"
 
 internal void
 RunDungeonTests()
@@ -533,6 +534,7 @@ RunDungeonTests()
     RunClassKitTests();
     RunFightEndTests();
     RunDepthsTests();
+    RunMeterTests();
     TestNoFriendlyFireInADungeon();
     TestBlinksStopAtClosedGates();
     TestClearedCryptStartsANewRun();

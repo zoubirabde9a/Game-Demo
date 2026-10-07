@@ -7,7 +7,7 @@
    map is not a dungeon; each
    player's role is in player_slot (dungeon_slot_fields.inc). The rest of
    the simulation calls in through a few hooks: DungeonScaleDamage
-   (DamageEntity, entity.cpp), ApplyRoleToPlayer (players.cpp) and
+   and CountMeterDamage (DamageEntity, entity.cpp), ApplyRoleToPlayer (players.cpp) and
    StartDungeonRun (setup.cpp).
 
    Included by sim_module.cpp after players.cpp: it reads player slots
@@ -146,6 +146,12 @@ struct dungeon_run
     // (UpdateRunEnd, encounters.cpp)
     float Seconds;
     float VictorySeconds;
+    // NOTE(zoubir): the meter's fight (meter.cpp): its room (0 before the
+    // first), its length, and how many fights have started, which tells
+    // an online client the meter started again
+    u32 MeterRoom;
+    float MeterSeconds;
+    u32 MeterFight;
 };
 
 #include "gate_crossing.cpp"
@@ -251,6 +257,8 @@ DungeonAttackerSlot(app_state *AppState, world_entity *Source)
     }
     return Result;
 }
+
+#include "meter.cpp"
 
 // NOTE(zoubir): from DamageEntity and ApplyHit: in a dungeon run a player
 // never hurts, shoves or stuns another; outside one this is never true

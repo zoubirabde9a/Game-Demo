@@ -171,6 +171,7 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
     Run->PartyDamage = DUNGEON_FOE_DAMAGE * PartyDamageScale(Players);
     Run->RoomStates[Room] = RoomState_Fighting;
     Run->FightingRoom = Room;
+    StartMeter(AppState, Run, Room);
     Run->FoeCount = 0;
     Run->BossSlot = Run->BossSerial = Run->BossEventsFired = 0;
 
@@ -350,6 +351,7 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
     world *World = &AppState->World;
     TakeRoleRequests(AppState, Run);
     UpdateThreat(&Run->Threat, DeltaTime);
+    UpdateMeter(Run, DeltaTime);
     UpdateRoleEffects(AppState, Run, DeltaTime);
     RescueStrayPlayers(AppState, World, Arena, Run);
     if (!Run->FightingRoom)
