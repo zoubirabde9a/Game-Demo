@@ -20,6 +20,7 @@
 #include "kill_feed.cpp"
 #include "ground_cracks.cpp"
 #include "fx_bursts.cpp"
+#include "sounds/sounds.cpp"
 #include "play_events.cpp"
 #include "replica_smoothing.cpp"
 #include "dungeon/dungeon_net.cpp"

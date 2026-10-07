@@ -135,7 +135,7 @@ UseJump(app_state *AppState, world *World, memory_arena *Arena,
         }
         Player->JumpsUsed++;
         Tick->Jumping = true;
-        EmitSound(&AppState->Events, AssetType_ZoubirAudio, Player->Position);
+        EmitSound(&AppState->Events, AssetType_SfxJump, Player->Position);
         RunPlayerCombo(AppState, World, Arena, Player, ComboMove_Jump, Tick);
     }
 }

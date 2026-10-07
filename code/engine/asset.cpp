@@ -128,10 +128,11 @@ InitializeAssets(assets *Assets, open_gl *OpenGL, app_state *AppState,
                                       FileAssetInfos);
             Assets->Infos = FileAssetInfos;
         
+            // NOTE(zoubir): slot indices start at 1, as the infos' do
             Assets->Assets =
-                AllocateArray(AssetArena, AssetCount + MAX_GENERATED_ASSETS, asset);
+                AllocateArray(AssetArena, AssetCount + 1 + MAX_GENERATED_ASSETS, asset);
             ZeroSize(Assets->Assets,
-                     (AssetCount + MAX_GENERATED_ASSETS) * sizeof(asset));
+                     (AssetCount + 1 + MAX_GENERATED_ASSETS) * sizeof(asset));
             Assets->AssetCount = AssetCount;
         }
     }

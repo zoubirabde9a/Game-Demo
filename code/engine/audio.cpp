@@ -1,5 +1,6 @@
 /* Audio: the sound mixer. PlaySound starts a sound at full volume, or
-   returns 0 when its audio is not loaded yet (GetAudio starts the load).
+   returns 0 when its audio is not loaded yet (GetAudio starts the load)
+   or every voice is busy.
    ChangeVolume fades to a new volume over a set time and ChangePitch sets
    the playback rate. OutputAudio mixes every playing sound with SSE, four
    samples at a time (the buffer's sample count must be a multiple of 4),
@@ -21,7 +22,12 @@ PlaySound(app_state *AppState, asset_id ID)
     loaded_audio *Audio = GetAudio(Assets, AppState, ID);
     if (Audio)
     {
-        Assert(AudioState->PlayingSoundsCount < ArrayCount(AudioState->PlayingSounds));
+        // NOTE(zoubir): with every voice in use the new sound is dropped;
+        // in a big fight that is a sound nobody would pick out
+        if (AudioState->PlayingSoundsCount >= ArrayCount(AudioState->PlayingSounds))
+        {
+            return 0;
+        }
         playing_sound *NewSound =
             &AudioState->PlayingSounds[AudioState->PlayingSoundsCount++];
         NewSound->Audio = Audio;

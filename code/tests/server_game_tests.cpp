@@ -141,19 +141,19 @@ TestSoundsReachPlayersNearby()
         Out[Slot] = {};
         GameWriteSnapshot(&Game, Slot, &Out[Slot]);
     }
-    Check(SnapshotHasSound(&Out[0], (u8)AssetType_FireCast));
-    Check(SnapshotHasSound(&Out[1], (u8)AssetType_FireCast));
-    Check(!SnapshotHasSound(&Out[2], (u8)AssetType_FireCast));
+    Check(SnapshotHasSound(&Out[0], (u8)AssetType_SfxFireCast));
+    Check(SnapshotHasSound(&Out[1], (u8)AssetType_SfxFireCast));
+    Check(!SnapshotHasSound(&Out[2], (u8)AssetType_SfxFireCast));
 
     // Heard once: the next snapshot does not repeat it.
     GameTick(&Game, 1.f / 60.f);
     Out[0] = {};
     GameWriteSnapshot(&Game, 0, &Out[0]);
-    Check(!SnapshotHasSound(&Out[0], (u8)AssetType_FireCast));
+    Check(!SnapshotHasSound(&Out[0], (u8)AssetType_SfxFireCast));
 
     // And it survives the trip through the protocol.
     Out[1].SoundCount = 1;
-    Out[1].Sounds[0] = (u8)AssetType_FireCast;
+    Out[1].Sounds[0] = (u8)AssetType_SfxFireCast;
     static net_packet Packet;
     Packet = {};
     Packet.Header.Type = NetPacket_Snapshot;
@@ -163,7 +163,7 @@ TestSoundsReachPlayersNearby()
     Check(Size > 0);
     static net_packet Back;
     Check(NetReadPacket(Buffer, Size, &Back));
-    Check(Back.Snapshot.SoundCount == 1 && Back.Snapshot.Sounds[0] == (u8)AssetType_FireCast);
+    Check(Back.Snapshot.SoundCount == 1 && Back.Snapshot.Sounds[0] == (u8)AssetType_SfxFireCast);
     GameShutdown(&Game);
 }
 

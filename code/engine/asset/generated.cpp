@@ -1,5 +1,7 @@
-/* Generated textures: slots for textures drawn by code (code/art) rather
-   than read from the pack, and filling them. */
+/* Generated assets: slots for textures drawn by code (code/art) and
+   sounds made by code (client/sounds) rather than read from the pack,
+   and filling them. A generated asset is loaded for good: nothing reads
+   it from the pack again. */
 
 // NOTE(zoubir): textures drawn by code (code/art) instead of read from the
 // pack. Reserve a type's slots once, then fill each slot; the pixels are
@@ -48,4 +50,23 @@ AddGeneratedTexture(assets *Assets, open_gl *OpenGL, asset_id ID,
         LoadOpenglTexture(Assets, OpenGL, Width, Height, GL_RGBA,
                           Width * Height * 4, Pixels, Filter);
     UploadTexture(Assets, Texture, ID);
+}
+
+// NOTE(zoubir): one channel of SampleCount samples, at the mixer's rate;
+// Samples must outlive the assets (the permanent arena)
+internal void
+AddGeneratedAudio(assets *Assets, asset_id ID, i16 *Samples, u32 SampleCount)
+{
+    zas_asset_info *Info = GetAssetInfo(Assets, ID);
+    *Info = {};
+    Info->Family = AssetFamily_Audio;
+    Info->Audio.Channels = 1;
+    Info->Audio.SampleCount = SampleCount;
+    loaded_audio Audio = {};
+    Audio.Data = Samples;
+    Audio.Samples[0] = Samples;
+    Audio.Channels = 1;
+    Audio.SampleCount = SampleCount;
+    Audio.Size = SampleCount * sizeof(i16);
+    UploadAudio(Assets, Audio, ID);
 }

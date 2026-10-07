@@ -139,6 +139,10 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
     float HpBefore = Target->Hp;
     bool32 Killed = DamageEntity(AppState, World, Target, Damage, Source);
     float Dealt = HpBefore - Maximum(0.f, Target->Hp);
+    if (Dealt > 0.f)
+    {
+        EmitSound(&AppState->Events, AssetType_SfxHit, Target->Position);
+    }
     if (Source && Source->Type == EntityType_Monster && Source->IsPresent &&
         Affix->LifeSteal > 0.f && Dealt > 0.f)
     {

@@ -1,8 +1,32 @@
 /* Handles what the simulation reported during the last tick: plays its
-   sounds, adds its kills to the kill feed (kill_feed.cpp) and starts its
+   sounds (a made sound at its level in the mix and a slightly different
+   pitch each time, client/sounds/sounds.cpp), adds its kills to the kill feed (kill_feed.cpp) and starts its
    bursts (fx_bursts.cpp), then empties
    the queue for the next tick. Online the queue holds what the server's
    snapshot carried. */
+
+// NOTE(zoubir): the pitch wander's dice, the client's alone
+global_variable u32 GlobalSoundDice = 0x1234567u;
+
+// NOTE(zoubir): Type at its level and a pitch that wanders a little;
+// sounds read from the pack play as they are
+internal void
+PlayGameSound(app_state *AppState, asset_type_id Type)
+{
+    sound_effect *Effect = FindSoundEffect(Type);
+    if (!Effect && Type >= AssetType_PackCount)
+    {
+        return;
+    }
+    playing_sound *Sound = PlaySound(AppState, {Type});
+    if (Sound && Effect)
+    {
+        GlobalSoundDice = GlobalSoundDice * 1664525u + 1013904223u;
+        float Roll = (float)(GlobalSoundDice >> 8) / 16777216.f;
+        ChangeVolume(Sound, 0.f, V2(Effect->Gain, Effect->Gain));
+        ChangePitch(Sound, 1.f + Effect->PitchJitter * (2.f * Roll - 1.f));
+    }
+}
 
 internal void
 PlaySimEvents(app_state *AppState, float DeltaTime)
@@ -20,7 +44,7 @@ PlaySimEvents(app_state *AppState, float DeltaTime)
         sim_event *Event = &Queue->Events[EventIndex];
         if (Event->Type == SimEvent_Sound)
         {
-            PlaySound(AppState, {Event->Sound});
+            PlayGameSound(AppState, Event->Sound);
         }
         else if (Event->Type == SimEvent_Kill)
         {

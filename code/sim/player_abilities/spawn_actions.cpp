@@ -47,18 +47,18 @@ global_variable player_spawn_action PlayerSpawnActions[PlayerAction_Count] =
     // without it every click swung at once
     {PlayerButton_Attack, EntityState_Attacking, AnimationType_Attack,
      PlayerStats.SwordLock, PlayerStats.SwordInterval, PLAYER_ACTION_LINGER,
-     true, AssetType_Dash, SpawnSwordSwing, ComboMove_Attack},
+     true, AssetType_SfxSword, SpawnSwordSwing, ComboMove_Attack},
     // NOTE(zoubir): Fireball (X), one every 6 s. A press waits
     // only as long as any other, so a click well before it is ready does
     // not fire seconds later on its own
     {PlayerButton_Cast, EntityState_Casting, AnimationType_Cast,
      PlayerStats.FireballLock, PlayerStats.FireballInterval,
-     PLAYER_ACTION_LINGER, false, AssetType_FireCast,
+     PLAYER_ACTION_LINGER, false, AssetType_SfxFireCast,
      CastFireBall, ComboMove_Cast},
     // NOTE(zoubir): Kunai (V), one every 3.5 s, homing (kunai.cpp)
     {PlayerButton_Kunai, EntityState_Casting, AnimationType_Cast,
      PlayerStats.KunaiLock, PlayerStats.KunaiInterval,
-     PLAYER_ACTION_LINGER, false, AssetType_Dash,
+     PLAYER_ACTION_LINGER, false, AssetType_SfxKunai,
      ThrowKunai, ComboMove_None},
 };
 

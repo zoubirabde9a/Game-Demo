@@ -125,7 +125,7 @@ ReflectKunai(app_state *AppState, world_entity *Kunai, world_entity *Shielded)
     Kunai->TimeLeft = KUNAI_FLIGHT_SECONDS;
     EmitBurst(&AppState->Events, SimBurst_KunaiReflect, (u8)Shielded->PlayerIndex,
               Kunai->Position, ATan2(Back.Y, Back.X));
-    EmitSound(&AppState->Events, AssetType_Dash, Kunai->Position);
+    EmitSound(&AppState->Events, AssetType_SfxSword, Kunai->Position);
 }
 
 internal void

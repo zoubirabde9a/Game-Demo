@@ -108,6 +108,7 @@ StartClient(app_state *AppState, transient_state *TransientState,
 
     InitializeAssets(Assets, OpenGL, AppState, MemoryArena);
     AddMonsterTextures(Assets, OpenGL, TransientArena);
+    AddSoundEffects(Assets, MemoryArena, TransientArena);
 
     temporary_memory TempMem = BeginTemporaryMemory(TransientArena);
     AppState->TextureCache = TextureCacheCreate(MemoryArena, 8, 20 * 8);

@@ -42,6 +42,7 @@ CastMendingBolt(app_state *AppState, player_slot *Slot, world_entity *Player)
         (float)RoleRank(Slot, PlayerRole_Healer, HealerTalent_SwiftMending));
     HealPlayer(AppState, SlotIndex, Ally, Heal);
     EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Ally));
+    EmitSound(&AppState->Events, AssetType_SfxHeal, Ally->Position);
     if (RoleRank(Slot, PlayerRole_Healer, HealerTalent_Renewal))
     {
         player_slot *AllySlot = &AppState->Players[Ally->PlayerIndex];
@@ -66,6 +67,7 @@ CastWard(app_state *AppState, player_slot *Slot, world_entity *Player)
     AllySlot->WardFull = Absorb;
     AllySlot->WardEmpower = WARD_EMPOWER_SHARE;
     EmitBurst(&AppState->Events, SimBurst_WardCast, SlotIndex, ChestOf(Ally));
+    EmitSound(&AppState->Events, AssetType_SfxWard, Ally->Position);
     float Splash = WARD_SPLASH_SHARE * Absorb;
     for(u32 Other = 0; Other < MAX_PLAYERS; Other++)
     {
@@ -106,6 +108,7 @@ CastRadiance(app_state *AppState, world_entity *Player)
         EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Near));
     }
     EmitBurst(&AppState->Events, SimBurst_SanctuaryCast, SlotIndex, Player->Position);
+    EmitSound(&AppState->Events, AssetType_SfxHeal, Player->Position);
 }
 
 // NOTE(zoubir): returns whether the key cast (a sanctuary with every
@@ -151,6 +154,7 @@ CastHealerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 
             Free->Radius = RoleSpellRadius(Slot, Key);
             Free->HealPerSecond = SANCTUARY_HEAL_PER_SECOND * (Hallowed ? HALLOWED_HEAL : 1.f);
             EmitBurst(&AppState->Events, SimBurst_SanctuaryCast, SlotIndex, Free->Position);
+            EmitSound(&AppState->Events, AssetType_SfxSanctuary, Free->Position);
         } break;
 
         case 3:

@@ -119,7 +119,7 @@ UseRewindAbilities(app_state *AppState, world_entity *Player,
             Cast->Centre = Player->Position;
             Cast->Radius = Ability->Radius;
             Cast->AffectedCount = 0;
-            EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
+            EmitSound(&AppState->Events, AssetType_SfxRewind, Player->Position);
             break;
         }
     }
@@ -231,7 +231,7 @@ BeginRewindHold(app_state *AppState, time_rewind *Rewind, world *World,
             InvalidCodePath;
         } break;
     }
-    EmitSound(&AppState->Events, AssetType_Dash, Cast->Centre);
+    EmitSound(&AppState->Events, AssetType_SfxBlink, Cast->Centre);
 }
 
 // NOTE(zoubir): one tick of one player's rewind
@@ -281,7 +281,7 @@ UpdateRewindCast(app_state *AppState, time_rewind *Rewind, world *World,
             {
                 Cast->Phase = RewindPhase_Playback;
                 Cast->PhaseLeft = REWIND_PLAYBACK_SECONDS;
-                EmitSound(&AppState->Events, AssetType_FireCast, Cast->Centre);
+                EmitSound(&AppState->Events, AssetType_SfxRewind, Cast->Centre);
             }
         } break;
 
@@ -310,7 +310,7 @@ UpdateRewindCast(app_state *AppState, time_rewind *Rewind, world *World,
                 {
                     TruncateRewindHistory(Rewind, Frame);
                 }
-                EmitSound(&AppState->Events, AssetType_Dash, Cast->Centre);
+                EmitSound(&AppState->Events, AssetType_SfxBlink, Cast->Centre);
                 // NOTE(zoubir): unfrozen first, so what it landed on counts
                 rewind_kind Kind = Cast->Kind;
                 u32 Count = Cast->AffectedCount;

@@ -190,7 +190,14 @@ FinishMovement(app_state *AppState, world *World, memory_arena *Arena,
                player_tick *Tick)
 {
     Player->DashFlash = Maximum(Player->DashFlash, Ability->FlashSeconds);
-    EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
+    asset_type_id Sound = AssetType_SfxDash;
+    switch(Ability->Button)
+    {
+        case PlayerButton_Blink: Sound = AssetType_SfxBlink; break;
+        case PlayerButton_Slam: Sound = AssetType_SfxAreaCast; break;
+        case PlayerButton_Shield: Sound = AssetType_SfxShield; break;
+    }
+    EmitSound(&AppState->Events, Sound, Player->Position);
     if (Ability->Move != ComboMove_None)
     {
         RunPlayerCombo(AppState, World, Arena, Player, Ability->Move, Tick);

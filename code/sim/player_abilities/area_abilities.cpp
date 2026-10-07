@@ -162,7 +162,7 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
     }
     EmitBurst(&AppState->Events, Ability->Burst, (u8)Player->PlayerIndex,
               Centre, ATan2(Aim.Y, Aim.X));
-    EmitSound(&AppState->Events, AssetType_Dash, Player->Position);
+    EmitSound(&AppState->Events, AssetType_SfxAreaCast, Player->Position);
     return HitCount;
 }
 
@@ -236,7 +236,7 @@ UseAreaAbilities(app_state *AppState, world_entity *Player,
         // snapshot
         if (!IsPredictedPlayer(AppState, Player))
         {
-            EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
+            EmitSound(&AppState->Events, AssetType_SfxDash, Player->Position);
             EmitBurst(&AppState->Events, SimBurst_CastGather,
                       (u8)Player->PlayerIndex, Player->Position);
             if (Ability->Telegraph != SimBurst_Count)

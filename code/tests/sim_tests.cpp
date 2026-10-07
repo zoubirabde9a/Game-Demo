@@ -764,7 +764,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
     AppState->Players[0].Input.Pressed = PlayerButton_Jump;
     SimulateTick(AppState, &Test.Arena, 1.f / 60.f);
     Check(AppState->Events.Count == 1);
-    Check(AppState->Events.Events[0].Sound == AssetType_ZoubirAudio);
+    Check(AppState->Events.Events[0].Sound == AssetType_SfxJump);
     Check(Player->Position.Z > 0.f);
     DestroyTestWorld(&Test);
 }
@@ -777,6 +777,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "online_tests.cpp"
 #include "player_ability_tests.cpp"
 #include "cursor_tests.cpp"
+#include "sound_tests.cpp"
 #include "camera_tests.cpp"
 #include "player_feel_tests.cpp"
 #include "duel_tests.cpp"
@@ -830,6 +831,7 @@ main()
     RunOnlineTests();
     RunPlayerAbilityTests();
     RunCursorTests();
+    RunSoundTests();
     RunCameraTests();
     RunPlayerFeelTests();
     RunDuelTests();

@@ -120,6 +120,7 @@ CastShieldSlam(app_state *AppState, world *World, player_slot *Slot, world_entit
     }
     EmitBurst(&AppState->Events, SimBurst_ShieldSlam, SlotIndex, Player->Position,
               ATan2(Player->Aim.Y, Player->Aim.X));
+    EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Player->Position);
 }
 
 // NOTE(zoubir): returns whether the key cast (an intercept with nobody
@@ -138,6 +139,7 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
             TauntAround(AppState, &AppState->Dungeon->Threat, Player, Reach);
             Slot->ShieldWallSeconds = Maximum(Slot->ShieldWallSeconds, TAUNT_WALL_SECONDS);
             EmitBurst(&AppState->Events, SimBurst_Taunt, SlotIndex, Player->Position);
+            EmitSound(&AppState->Events, AssetType_SfxTaunt, Player->Position);
         } break;
 
         case 1:
@@ -173,12 +175,14 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
                 AllySlot->WardFull = Maximum(AllySlot->WardAbsorb, AllySlot->WardFull);
             }
             EmitBurst(&AppState->Events, SimBurst_InterceptLand, SlotIndex, Player->Position, Angle);
+            EmitSound(&AppState->Events, AssetType_SfxDash, Player->Position);
         } break;
 
         case 3:
         {
             HealPlayer(AppState, SlotIndex, Player, LAST_STAND_HEAL_SHARE * Player->MaxHp);
             Slot->ShieldWallSeconds = Maximum(Slot->ShieldWallSeconds, LAST_STAND_SECONDS);
+            EmitSound(&AppState->Events, AssetType_SfxShield, Player->Position);
             EmitBurst(&AppState->Events, SimBurst_ShieldSlam, SlotIndex, Player->Position,
                       ATan2(Player->Aim.Y, Player->Aim.X));
         } break;

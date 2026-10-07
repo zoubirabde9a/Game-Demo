@@ -152,7 +152,7 @@ WardTakesHit(app_state *AppState, world_entity *Target, float Damage)
         Chest.Z += 16.f;
         EmitBurst(&AppState->Events, SimBurst_WardBreak,
                   (u8)Target->PlayerIndex, Chest);
-        EmitSound(&AppState->Events, AssetType_Dash, Target->Position);
+        EmitSound(&AppState->Events, AssetType_SfxWardBreak, Target->Position);
         Result = true;
     }
     return Result;

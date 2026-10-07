@@ -186,7 +186,7 @@ ImpactOnHit(app_state *AppState, world *World, world_entity *Entity,
     Contact.XY -= 12.f * Normal.XY;
     Contact.Z += 16.f;
     EmitBurst(&AppState->Events, SimBurst_Impact, SIM_NOBODY, Contact);
-    EmitSound(&AppState->Events, AssetType_Dash, Contact);
+    EmitSound(&AppState->Events, AssetType_SfxHit, Contact);
 
     float Bounce = 0.f;
     world_entity *Thrower = GetThrower(AppState, Entity);

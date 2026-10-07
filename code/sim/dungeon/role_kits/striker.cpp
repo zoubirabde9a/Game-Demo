@@ -107,6 +107,7 @@ DetonateMark(app_state *AppState, world_entity *Player, world_entity *Monster)
     }
     EmitBurst(&AppState->Events, SimBurst_InfernoBlast, (u8)Player->PlayerIndex,
               Monster->Position);
+    EmitSound(&AppState->Events, AssetType_SfxExplosion, Monster->Position);
     player_slot *Slot = &AppState->Players[Player->PlayerIndex];
     // NOTE(zoubir): Detonate's second rank, once Searing Heat
     float PerStack = DETONATE_PER_STACK +
@@ -164,11 +165,13 @@ CastStrikerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32
         {
             Slot->RoleCastPoint = AimPoint(Player);
             StartPlayerCast(Player, PlayerSpell_Meteor, Player->Aim);
+            EmitSound(&AppState->Events, AssetType_SfxMeteorCast, Player->Position);
         } break;
 
         case 1:
         {
             StartPlayerCast(Player, PlayerSpell_GiantFireball, Player->Aim);
+            EmitSound(&AppState->Events, AssetType_SfxMeteorCast, Player->Position);
         } break;
 
         case 2:
@@ -179,6 +182,7 @@ CastStrikerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32
         case 3:
         {
             Slot->CombustSeconds = COMBUSTION_SECONDS;
+            EmitSound(&AppState->Events, AssetType_SfxCombustion, Player->Position);
             EmitBurst(&AppState->Events, SimBurst_InfernoCast, SlotIndex, ChestOf(Player),
                       ATan2(Player->Aim.Y, Player->Aim.X));
         } break;
@@ -241,6 +245,7 @@ LaunchGiantFireball(app_state *AppState, world_entity *Player, v2 Direction)
             // (client/dungeon/giant_fireball_fx.cpp); it is not in the snapshot
             EmitBurst(&AppState->Events, SimBurst_GiantFireball, (u8)Player->PlayerIndex,
                       Ball->Position, ATan2(Dir.Y, Dir.X));
+            EmitSound(&AppState->Events, AssetType_SfxGiantFireball, Ball->Position);
             return;
         }
     }
@@ -321,6 +326,7 @@ UpdateInfernos(app_state *AppState, dungeon_run *Run, float DeltaTime)
                 BurnAround(AppState, World, Zone->Position, Zone->Radius, Zone->By,
                            INFERNO_DAMAGE, true);
                 EmitBurst(&AppState->Events, SimBurst_InfernoBlast, (u8)Zone->By, Zone->Position);
+                EmitSound(&AppState->Events, AssetType_SfxExplosion, Zone->Position);
             }
         }
         else if (Zone->Seconds > 0.f)
@@ -372,6 +378,7 @@ UpdateGiantFireballs(app_state *AppState, dungeon_run *Run, float DeltaTime)
                            GIANT_FIREBALL_DAMAGE, true);
             }
             EmitBurst(&AppState->Events, SimBurst_GiantFireballBlast, (u8)Ball->By, Ball->Position);
+            EmitSound(&AppState->Events, AssetType_SfxExplosion, Ball->Position);
         }
     }
 }

@@ -87,7 +87,7 @@ AwardXp(app_state *AppState, player_slot *Slot, u32 Amount)
         {
             EmitBurst(&AppState->Events, SimBurst_LevelUp,
                       (u8)Player->PlayerIndex, Player->Position);
-            EmitSound(&AppState->Events, AssetType_FireCast, Player->Position);
+            EmitSound(&AppState->Events, AssetType_SfxLevelUp, Player->Position);
         }
     }
 }
