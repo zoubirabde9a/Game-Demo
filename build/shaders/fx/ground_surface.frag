@@ -2,7 +2,8 @@
 // ground, drawn additive over the tiles of one surface.
 //   water: two layers of noise drift different ways; where a ridge of one
 //          meets a ridge of the other the light gathers into thin wavering
-//          lines, as sun through ripples does. Now and then a cell glints
+//          lines, as sun through ripples does. Now and then a cell glints,
+//          and foam laps along the shore
 //   ice:   a broad sheen sliding slowly across, and rarer, sharper glints
 //   snow:  blended, not added: cold grey drifts combed by the wind, and
 //          a fine glitter of white points twinkling in turn over them
@@ -57,6 +58,15 @@ void main()
         float Lines = pow(A, 14.0) + pow(B, 14.0) + 1.2 * pow(A * B, 6.0);
         float Glint = Glints(fragmentUV, 5.0, 0.025, 5.0, 0.25);
         Strength = mix(0.10, 0.08, Deep) * Lines + mix(0.6, 0.4, Deep) * Glint;
+        // NOTE(zoubir): foam along the shore. Here falls from 1 to 0 across
+        // the last tile before land, so the band where it is about half is
+        // the water's edge; broken up by noise, lapping in and out
+        float Shore = smoothstep(0.15, 0.35, Here) * (1.0 - smoothstep(0.45, 0.70, Here));
+        float Lap = 0.5 + 0.5 * sin(T * 1.6 - (fragmentUV.x + fragmentUV.y) * 2.0);
+        float Froth = smoothstep(0.54, 0.68, Noise(fragmentUV * 11.0 + vec2(0.3, -0.2) * T) +
+                                 0.18 * Lap);
+        Strength += 0.55 * Shore * Froth;
+        Color = mix(Color, vec3(0.95, 1.0, 1.0), Shore * Froth);
     }
     else if (Surface < 2.5)
     {
