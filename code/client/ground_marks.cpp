@@ -1,16 +1,17 @@
 /* Ground marks: what walking leaves on soft or wet ground. A player or
    monster wading through water leaves rings spreading out behind it; one
-   crossing snow leaves footprints, left and right, that fade after a few
-   seconds. Client only and read from positions, so they show the same
-   offline and online, for every unit on screen.
+   crossing snow, ash or mud leaves footprints, left and right, that fade
+   after a few seconds. Client only and read from positions, so they show
+   the same offline and online, for every unit on screen.
 
    Each frame UpdateGroundMarks adds up how far every unit on the ground
-   has moved since the last frame; past a stride on water or snow (read
-   from the terrain cache) it puts down a mark. Marks live in a ring of
-   GROUND_MARKS_MAX, oldest replaced first, and are drawn flat on the
-   ground right after the ground cracks (DrawTileMap, draw_tilemap.cpp):
-   ripples with the ring shader added as light, footprints with the glow
-   shader in a dark, cold colour. Only flat ground gets marks. */
+   has moved since the last frame; past a stride on ground that keeps
+   marks (GroundMarkLooks, read from the terrain cache) it puts down a
+   mark. Marks live in a ring of GROUND_MARKS_MAX, oldest replaced first,
+   and are drawn flat on the ground right after the ground cracks
+   (DrawTileMap, draw_tilemap.cpp): ripples with the ring shader added as
+   light, footprints with the glow shader in their ground's colour. Only
+   flat ground gets marks. */
 
 #define GROUND_MARKS_MAX 192
 #define GROUND_MARK_UNITS 4096
@@ -37,7 +38,40 @@ struct ground_mark
     v2 Direction;
     float Born;
     u32 Kind;
+    // NOTE(zoubir): 0x00BBGGRR, a footprint's colour
+    u32 RGB;
 };
+
+// NOTE(zoubir): what walking leaves on each kind of ground that keeps it,
+// and a footprint's colour there; any other ground keeps nothing
+struct ground_mark_look
+{
+    u32 Terrain;
+    u32 Kind;
+    u32 RGB;
+};
+
+global_variable ground_mark_look GroundMarkLooks[] =
+{
+    {TerrainKind_ShallowWater, GroundMark_Ripple, 0},
+    {TerrainKind_DeepWater, GroundMark_Ripple, 0},
+    {TerrainKind_Snow, GroundMark_Footprint, 0x00705A48},   // cold blue-grey
+    {TerrainKind_Ash, GroundMark_Footprint, 0x00181A1C},    // near black, the ash pressed down
+    {TerrainKind_Mud, GroundMark_Footprint, 0x00182434},    // wet and nearly black
+};
+
+internal ground_mark_look *
+GroundMarkLookFor(u32 Terrain)
+{
+    for(u32 Index = 0; Index < ArrayCount(GroundMarkLooks); Index++)
+    {
+        if (GroundMarkLooks[Index].Terrain == Terrain)
+        {
+            return &GroundMarkLooks[Index];
+        }
+    }
+    return 0;
+}
 
 struct ground_marks
 {
@@ -115,18 +149,10 @@ UpdateGroundMarks(app_state *AppState, float Now)
         i32 TileY = FloorDiv((i32)floorf(P.Y), (i32)World->TileHeight);
         terrain_cache_tile *Tile = CachedTile(AppState, Map, TileX, TileY);
         float Ground = (float)Tile->Steps * ELEVATION_STEP_HEIGHT;
-        u32 Kind = GroundMark_None;
-        if (Tile->Steps == 0 && Entity->Position.Z <= Ground + GROUND_MARK_MAX_HEIGHT)
-        {
-            if (Tile->Kind == TerrainKind_ShallowWater || Tile->Kind == TerrainKind_DeepWater)
-            {
-                Kind = GroundMark_Ripple;
-            }
-            else if (Tile->Kind == TerrainKind_Snow)
-            {
-                Kind = GroundMark_Footprint;
-            }
-        }
+        ground_mark_look *Look = (Tile->Steps == 0 &&
+                                  Entity->Position.Z <= Ground + GROUND_MARK_MAX_HEIGHT) ?
+            GroundMarkLookFor(Tile->Kind) : 0;
+        u32 Kind = Look ? Look->Kind : GroundMark_None;
         if (!Kind)
         {
             Marks->Walked[Index] = 0.f;
@@ -147,6 +173,7 @@ UpdateGroundMarks(app_state *AppState, float Now)
                 At += V2(-Direction.Y, Direction.X) * Side;
             }
             AddGroundMark(Marks, Kind, At, Direction, Now);
+            Marks->Marks[(Marks->Next + GROUND_MARKS_MAX - 1) % GROUND_MARKS_MAX].RGB = Look->RGB;
         }
     }
 }
@@ -183,7 +210,7 @@ DrawGroundMarks(render_context *RenderContext, app_state *AppState, v3 CameraOff
         float Angle = atan2f(Mark->Direction.Y, Mark->Direction.X) + 1.5708f;
         RenderQuadTexture(RenderContext, Mark->Position.X - 0.5f * Wide - CameraOffset.X,
                           Mark->Position.Y - 0.5f * Long - CameraOffset.Y, Wide, Long,
-                          V4(0.f, 1.f, 1.f, 0.f), (Alpha << 24) | 0x00705A48, 0.f, Angle);
+                          V4(0.f, 1.f, 1.f, 0.f), (Alpha << 24) | Mark->RGB, 0.f, Angle);
     }
     EndBatch(RenderContext);
 
