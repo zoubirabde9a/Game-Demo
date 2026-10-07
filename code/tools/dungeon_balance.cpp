@@ -184,6 +184,13 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
                     Runs++;
                 }
             }
+            else if (Seconds > 60.f)
+            {
+                // NOTE(zoubir): a long walk between fights: lost bots, or
+                // a room that will not start
+                printf("  run %u  %.1f s between fights before the %s\n", Runs + 1,
+                       Seconds, GetRoomName(MapId_Crypt, Run->FightingRoom));
+            }
             Room = Run->FightingRoom;
             WipesAtStart = Run->Wipes;
             DeathsAtStart = Deaths;
@@ -212,6 +219,25 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
                        RoomAtPosition(World, Foe->Position.XY), Foe->Hp, Foe->MaxHp);
             }
         }
+        for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
+        {
+            world_entity *Player = Game.AppState->Players[Slot].Entity;
+            if (Player && Game.AppState->Players[Slot].Active)
+            {
+                printf("    player %u at (%.0f, %.0f), room %u%s\n", Slot, Player->Position.X,
+                       Player->Position.Y, RoomAtPosition(World, Player->Position.XY),
+                       IsDeadPlayer(Player) ? ", down" : "");
+            }
+        }
+    }
+    else if (Run)
+    {
+        // NOTE(zoubir): no fight going: where the party stands, to tell
+        // a party that cannot reach the next room from one that will not
+        u32 Next = NextRoomToClear(Run->RoomStates, Run->RoomCount);
+        printf("  between fights after %.1f s, the %s waits\n", Seconds,
+               GetRoomName(MapId_Crypt, Next));
+        world *World = &Game.AppState->World;
         for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
         {
             world_entity *Player = Game.AppState->Players[Slot].Entity;
