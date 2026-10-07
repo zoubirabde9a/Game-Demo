@@ -86,6 +86,7 @@ enum shader_id
     Shader_GroundSurface, // light moving on water, ice and snow, client/ground/ground_surface.cpp
     Shader_CastSigil,     // the circle of light under a player winding up a spell, client/cast_fx.cpp
     Shader_DangerZone,    // where a monster's attack will land, on the ground, client/danger_zones.cpp
+    Shader_Silhouette,    // a sprite's shape in one flat colour, client/draw_entities/windup_glow.cpp
     Shader_Count
 };
 

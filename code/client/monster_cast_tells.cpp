@@ -29,26 +29,8 @@ struct monster_cast_tells
     float ReleaseLeft[CAST_TELL_TRACKED];
 };
 
-// NOTE(zoubir): one color per ability kind, so the same color means the
-// same kind of danger on every monster
-inline u32
-CastTellColor(monster_ability_kind Kind, u32 Alpha)
-{
-    u32 Result;
-    switch(Kind)
-    {
-        case MonsterAbility_Slam:   Result = UI_RGBA(255, 140,  50, Alpha); break;
-        case MonsterAbility_Charge: Result = UI_RGBA(255,  70,  60, Alpha); break;
-        case MonsterAbility_Mortar: Result = UI_RGBA(255, 190,  60, Alpha); break;
-        case MonsterAbility_Blink:  Result = UI_RGBA(190, 110, 255, Alpha); break;
-        case MonsterAbility_Volley: Result = UI_RGBA(255, 230,  90, Alpha); break;
-        case MonsterAbility_Summon: Result = UI_RGBA(120, 255, 150, Alpha); break;
-        case MonsterAbility_Mend:   Result = UI_RGBA(140, 255, 210, Alpha); break;
-        case MonsterAbility_Burrow: Result = UI_RGBA(220, 170, 110, Alpha); break;
-        default:                    Result = UI_RGBA(255, 255, 255, Alpha); break;
-    }
-    return Result;
-}
+// NOTE(zoubir): CastTellColor, the colour of each kind of attack, is in
+// draw_entities/windup_glow.cpp
 
 inline monster_ability *
 GetCastTellAbility(world_entity *Entity, u32 AbilityIndex)
