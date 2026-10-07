@@ -139,18 +139,35 @@ OutputAudio(audio_state *AudioState,
 
         u32 ChunksToMix = ChunkCount;
         
+        // NOTE(zoubir): whole chunks only, and one sample short of the
+        // end: each sample also reads the one after it to blend between
+        // them. Rounding up here read past the sound's samples, and the
+        // game crashed when they ended at a page's edge
         float FloatChunksRemainingInSound =
-            (LoadedAudio->SampleCount -
-             RoundFloatToI32(ThisSound->SamplesPlayed)) /
+            ((float)LoadedAudio->SampleCount - 1.f - ThisSound->SamplesPlayed) /
             DeltaSampleChunk;
         
-        u32 ChunksRemainingInSound =
-            RoundFloatToU32(FloatChunksRemainingInSound);
+        u32 ChunksRemainingInSound = FloatChunksRemainingInSound > 0.f ?
+            (u32)FloatChunksRemainingInSound : 0;
         
         if (ChunksToMix >= ChunksRemainingInSound)
         {
             ChunksToMix = ChunksRemainingInSound;
             SoundFinished = true;
+        }
+        if (ChunksToMix == 0)
+        {
+            // NOTE(zoubir): less than a chunk was left: it ends here
+            if (SoundFinished)
+            {
+                AudioState->PlayingSounds[PlayingIndex] =
+                    AudioState->PlayingSounds[(AudioState->PlayingSoundsCount--) - 1];
+            }
+            else
+            {
+                PlayingIndex++;
+            }
+            continue;
         }
 
         u32 VolumeEndsAt[OutputChannelCount] = {};
