@@ -86,8 +86,8 @@ BeginWorldPass(render_context *RenderContext, memory_arena *TransientArena,
         AMBIENT_MOTES_MAX + 1 + RAIN_MAX + 1 + LEAVES_MAX + 1 +
         // NOTE(zoubir): a torch is a batch; at most one wall tile in five
         GroundTiles / 5 +
-        // NOTE(zoubir): ripples and footprints, two batches, a quad each
-        GROUND_MARKS_MAX + 2;
+        // NOTE(zoubir): ripples and footprints, two batches, two quads a mark
+        2 * GROUND_MARKS_MAX + 2;
     SetupBatchRenderer(RenderContext, TransientArena, BatchesCount);
     RenderBegin(RenderContext, 6 * BatchesCount, RENDER_ORDER_BACK_TO_FRONT);
 }

@@ -202,15 +202,23 @@ DrawGroundMarks(render_context *RenderContext, app_state *AppState, v3 CameraOff
             continue;
         }
         float Fade = 1.f - Age / FOOTPRINT_SECONDS;
-        u32 Alpha = (u32)(150.f * Fade * Fade);
-        // NOTE(zoubir): an oval along the way it walked, drawn three times
-        // its size since the glow fades to nothing at the quad's edge
-        float Long = 7.f * 2.2f;
-        float Wide = 4.f * 2.2f;
+        u32 Alpha = (u32)(230.f * Fade * Fade);
+        u32 Color = (Alpha << 24) | Mark->RGB;
+        // NOTE(zoubir): a heel and, ahead of it along the way walked, a
+        // wider toe; each a glow, which fades to nothing well inside its
+        // quad, so the quads are about twice the print
         float Angle = atan2f(Mark->Direction.Y, Mark->Direction.X) + 1.5708f;
-        RenderQuadTexture(RenderContext, Mark->Position.X - 0.5f * Wide - CameraOffset.X,
-                          Mark->Position.Y - 0.5f * Long - CameraOffset.Y, Wide, Long,
-                          V4(0.f, 1.f, 1.f, 0.f), (Alpha << 24) | Mark->RGB, 0.f, Angle);
+        v2 Ahead = Mark->Direction * 3.f;
+        v2 Parts[2] = {Mark->Position - Ahead, Mark->Position + Ahead};
+        v2 Sizes[2] = {V2(6.f, 7.f), V2(8.f, 9.f)};
+        for(u32 Part = 0; Part < 2; Part++)
+        {
+            RenderQuadTexture(RenderContext,
+                              Parts[Part].X - 0.5f * Sizes[Part].X - CameraOffset.X,
+                              Parts[Part].Y - 0.5f * Sizes[Part].Y - CameraOffset.Y,
+                              Sizes[Part].X, Sizes[Part].Y, V4(0.f, 1.f, 1.f, 0.f),
+                              Color, 0.f, Angle);
+        }
     }
     EndBatch(RenderContext);
 

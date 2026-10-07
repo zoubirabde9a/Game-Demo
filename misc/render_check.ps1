@@ -39,7 +39,8 @@ $Scenes = @(
     @("wilds-rain",   "wilds",  "2:F4 3:H M:700,300", 120, "rain"),
     @("crypt-torches","crypt",  "2:F4 3:H M:700,300", 120),
     @("arena-night",  "arena",  "2:F4 3:H M:700,300 10-60:D", 120, "dry", "night"),
-    @("wilds-dusk",   "wilds",  "2:F4 3:H M:700,300", 120, "dry", "dusk")
+    @("wilds-dusk",   "wilds",  "2:F4 3:H M:700,300", 120, "dry", "dusk"),
+    @("wastes-prints","ashen",  "2:F4 3:H M:900,400 10-150:D", 160)
 )
 
 $Known = @{}
