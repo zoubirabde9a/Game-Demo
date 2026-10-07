@@ -47,15 +47,28 @@ global_variable boss_clock_def BossClockDefs[] =
 // NOTE(zoubir): the party the limits are tuned for
 #define BOSS_CLOCK_PARTY 3
 
+// NOTE(zoubir): the share of the extra time a party bigger than the tuned
+// one gets: party scaling means each player who joins makes the run
+// harder (party_scaling.cpp), and a timer that made up the whole
+// difference would undo that
+#define BOSS_CLOCK_BIG_PARTY_SHARE 0.5f
+
 // NOTE(zoubir): a party of Players has the boss's health grow by the
 // party scaling and its own damage grow about by head count, so the
-// limit grows by the one over the other, against the tuned party
+// limit grows by the one over the other, against the tuned party. A
+// smaller party, short of a role, gets all of it (one player 1.43 times
+// the time); a bigger one only BOSS_CLOCK_BIG_PARTY_SHARE of what it
+// would gain (four players 1.04 times, eight 1.7)
 inline float
 BossClockPartyScale(u32 Players)
 {
     Players = Maximum(Players, 1u);
     float Result = (PartyHealthScale(Players) / PartyHealthScale(BOSS_CLOCK_PARTY)) *
         ((float)BOSS_CLOCK_PARTY / (float)Players);
+    if (Players > BOSS_CLOCK_PARTY && Result > 1.f)
+    {
+        Result = 1.f + BOSS_CLOCK_BIG_PARTY_SHARE * (Result - 1.f);
+    }
     return Result;
 }
 

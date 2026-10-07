@@ -136,9 +136,26 @@ TestHollowChampionErupts()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the tuned party gets the table's time, a lone player
+// more, and a bigger party only part of what it would make up, so each
+// player who joins still makes the race harder
+internal void
+TestBossClockPartySizes()
+{
+    Check(BossClockPartyScale(3) > 0.999f && BossClockPartyScale(3) < 1.001f);
+    Check(BossClockPartyScale(1) > 1.4f && BossClockPartyScale(1) < 1.45f);
+    float Four = BossClockPartyScale(4);
+    float Eight = BossClockPartyScale(8);
+    Check(Four > 1.f && Four < 1.05f);
+    Check(Eight > Four && Eight < 1.75f);
+    // NOTE(zoubir): the boss's health grows faster than the time does
+    Check(PartyHealthScale(4) / PartyHealthScale(3) > Four * 4.f / 3.f);
+}
+
 internal void
 RunBossClockTests()
 {
+    TestBossClockPartySizes();
     TestHollowChampionErupts();
     TestBossClockEnragesAndHitsHarder();
     TestBossAddsMergeAndHeal();
