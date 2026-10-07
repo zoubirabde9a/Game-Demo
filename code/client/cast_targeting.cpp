@@ -7,8 +7,11 @@
    (cast_targeting/previews.cpp); a left click or the same key again
    casts it, a right click cancels. The kunai aims the same way: its key
    shows its reach, and the click throws it at the unit the cursor is on
-   (targeting.cpp). Keys that only move or guard the player (jump, dash,
-   shield, slam) and the two basic attacks cast at once in both modes.
+   (targeting.cpp). The fireball aims too, showing the line it will fly
+   along; it used to cast at once like a basic attack, which read as
+   quick cast being on when it was off. Keys that only move or guard the
+   player (jump, dash, shield, slam) and the sword cast at once in both
+   modes.
    In a dungeon run a role's spells aim only when they land on the
    ground (dungeon/role_targeting.cpp).
 
@@ -55,7 +58,7 @@ struct cast_targeting
 #define CAST_TARGETED_BUTTONS (PlayerButton_Shockwave | PlayerButton_Push | \
                                PlayerButton_Launch | PlayerButton_FrostNova | \
                                PlayerButton_GravityWell | PlayerButton_Blink | \
-                               PlayerButton_RewindBubble | PlayerButton_Kunai)
+                               PlayerButton_RewindBubble | PlayerButton_Kunai |                                PlayerButton_Cast)
 
 // NOTE(zoubir): made on first use, in MemoryArena so a map switch keeps it
 internal cast_targeting *

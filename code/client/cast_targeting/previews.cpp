@@ -5,7 +5,8 @@
    While standard mode aims an ability: its area at the cursor's angle (a
    disc, or a wedge for Push), a dotted line out to an area that lands
    away from the player, and for Blink the ring of its reach and the spot
-   it would land on. For the kunai: the ring of its reach, a ring under
+   it would land on. For the fireball: dots along the line it will fly,
+   out to its range, and a ring where it runs out. For the kunai: the ring of its reach, a ring under
    every foe it could be thrown at (pulsing when in reach, faint red when
    not) and a crosshair at the cursor while it is on no foe; the foe it
    would hit is bracketed by targeting.cpp. Grey while the ability
@@ -45,6 +46,7 @@ CastPreviewRGB(u32 Button)
         case PlayerButton_Blink:        { Result = 0x00E66EF0; } break;
         case PlayerButton_RewindBubble: { Result = 0x00E6F06E; } break;
         case PlayerButton_Kunai:        { Result = 0x00FFF0D8; } break;
+        case PlayerButton_Cast:         { Result = 0x0040A0FF; } break;
     }
     return Result;
 }
@@ -279,6 +281,14 @@ DrawCastPreview(render_context *RenderContext, app_state *AppState,
         DrawCastPreviewArea(RenderContext, Feet,
                             RewindAbilities[RewindKind_Bubble].Radius, 0.f, Pi32,
                             1.f, Alpha, RGB);
+    }
+    else if (Button == PlayerButton_Cast)
+    {
+        v2 Feet = BurstToScreen(V3(Player->Position.X, Player->Position.Y,
+                                   Player->GroundZ), CameraOffset);
+        v2 End = Feet + PlayerStats.FireballRange * Aim;
+        DrawCastPreviewLine(RenderContext, Feet, End, FxColor(0.8f * Alpha, RGB));
+        DrawCastPreviewArea(RenderContext, End, 10.f, 0.f, Pi32, 0.5f, Alpha, RGB);
     }
     else if (Button == PlayerButton_Kunai)
     {
