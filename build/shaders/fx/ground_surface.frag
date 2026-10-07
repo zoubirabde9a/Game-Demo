@@ -10,7 +10,9 @@
 //   uv:        place on the map in tiles, so tiles join without a seam
 //   colour a:  how much of this point has the surface (0 at its edge)
 //   wet:   mud and bog: puddled patches that catch a slow, dull sheen
-//   colour g:  which surface, 1 water, 2 ice, 3 snow, 4 wet (out of 255)
+//   lava:  blended: plates of dark crust drifting, their edges cooling red,
+//          the open lava between them left to glow
+//   colour g:  which surface, 1 water, 2 ice, 3 snow, 4 wet, 5 lava (of 255)
 //   colour r:  how much of the water is deep: dimmer, slower light
 
 // Hash and Noise come from fx/noise.glsl (the shader library puts it
@@ -79,6 +81,18 @@ void main()
         float Glint = Glints(fragmentUV, 4.0, 0.04, 2.0, 0.26);
         Color = vec3(0.80, 0.92, 1.0);
         Strength = 0.13 * Sheen + 0.8 * Glint;
+    }
+    else if (Surface > 4.5)
+    {
+        // NOTE(zoubir): crust where a slow noise is high, so plates come in
+        // uneven shapes; it drifts down the river. Thin red rims where a
+        // plate meets the open lava, which is left to glow
+        vec2 P = fragmentUV * 0.55 + vec2(0.0, -0.035) * T;
+        float Crust = Fbm(P) + 0.15 * Noise(P * 5.0);
+        float Plate = smoothstep(0.50, 0.56, Crust);
+        float Rim = 1.0 - smoothstep(0.56, 0.64, Crust);
+        Color = mix(vec3(0.10, 0.04, 0.04), vec3(0.70, 0.16, 0.04), Rim);
+        Strength = 0.92 * Plate;
     }
     else if (Surface > 3.5)
     {

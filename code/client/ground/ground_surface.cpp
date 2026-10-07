@@ -9,6 +9,8 @@
             twinkling over them (blended, not added: snow is near white)
      wet:   mud and bog: a dull sheen sliding over puddled patches, as a
             damp surface catches the sky
+     lava:  plates of dark crust drifting down the river, glowing cracks
+            between them (blended, like snow: lava is near white already)
 
    One quad per tile that has a surface, lifted with its ground, its UVs
    the tile's place on the map in tiles, so the pattern runs across tiles
@@ -28,6 +30,7 @@ enum ground_surface
     GroundSurface_Ice,
     GroundSurface_Snow,
     GroundSurface_Wet,
+    GroundSurface_Lava,
     GroundSurface_Count
 };
 
@@ -44,6 +47,7 @@ SurfaceOfKind(u32 Kind)
         case TerrainKind_Snow: Result = GroundSurface_Snow; break;
         case TerrainKind_Mud:
         case TerrainKind_Bog: Result = GroundSurface_Wet; break;
+        case TerrainKind_Lava: Result = GroundSurface_Lava; break;
         default: break;
     }
     return Result;
@@ -85,15 +89,16 @@ SurfaceCornerColor(u8 *Flags, ground_grid *Grid, i32 X, i32 Y, u32 Surface, i32 
     return Result;
 }
 
-// NOTE(zoubir): snow is near white already, so light added to it would
-// not show: it is blended instead, shaded into drifts
+// NOTE(zoubir): snow and lava are near white already, so light added to
+// them would not show: they are blended instead
 inline void
 BeginSurfaceBatch(render_context *RenderContext, render_program Program, u32 Surface,
                   float SortKey)
 {
     BeginBatch(RenderContext, 0, SortKey, Program);
     RenderContext->AllocatedBatches[RenderContext->BatchCount].Blend =
-        Surface == GroundSurface_Snow ? RenderBlend_Alpha : RenderBlend_Additive;
+        (Surface == GroundSurface_Snow || Surface == GroundSurface_Lava) ?
+        RenderBlend_Alpha : RenderBlend_Additive;
 }
 
 inline void
