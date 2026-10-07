@@ -52,8 +52,12 @@ Win32CreateMainWindow(HINSTANCE instance)
     {
         return 0;
     }
+    char Offscreen[8];
+    GlobalOffscreenWindow =
+        GetEnvironmentVariableA("GAME_OFFSCREEN", Offscreen, sizeof(Offscreen)) &&
+        Offscreen[0] == '1';
     HWND windowHandle =
-        CreateWindowEx(0,
+        CreateWindowEx(GlobalOffscreenWindow ? (WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE) : 0,
                        WindowClass.lpszClassName,
                        "Zoubir",
                        WS_OVERLAPPEDWINDOW,
@@ -69,7 +73,7 @@ Win32CreateMainWindow(HINSTANCE instance)
     {
         Win32SizeWindowClient(windowHandle, WIN32_DEFAULT_CLIENT_WIDTH,
                               WIN32_DEFAULT_CLIENT_HEIGHT);
-        ShowWindow(windowHandle, SW_SHOW);
+        ShowWindow(windowHandle, GlobalOffscreenWindow ? SW_SHOWNOACTIVATE : SW_SHOW);
     }
     return windowHandle;
 }

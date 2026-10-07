@@ -26,6 +26,10 @@ global_variable win32_frame_loop *GlobalFrameLoop;
 // NOTE(zoubir): GAME_WINDOW asked for a size; the window may then be
 // larger than the screen (developer screenshots at 4K on a small monitor)
 global_variable bool32 GlobalAllowOversizeWindow;
+// NOTE(zoubir): GAME_OFFSCREEN=1: the window opens far off every screen,
+// unfocused and without a taskbar button, so scripted screenshots
+// (misc\screenshot.bat) never pop up over what the user is doing
+global_variable bool32 GlobalOffscreenWindow;
 
 // NOTE(zoubir): the DPI functions arrived in Windows 10 (1607 and 1703);
 // loaded by name so the game still starts, scaled by Windows, on older
@@ -222,8 +226,12 @@ Win32SizeWindowClient(HWND window, int Width, int Height)
     }
     int x = work.left + Maximum(0, (workWidth - (int)outer.cx) / 2);
     int y = work.top + Maximum(0, (workHeight - (int)outer.cy) / 2);
+    if (GlobalOffscreenWindow)
+    {
+        x = y = -30000;
+    }
     SetWindowPos(window, 0, x, y, outer.cx, outer.cy,
-                 SWP_NOZORDER | SWP_NOOWNERZORDER);
+                 SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
 }
 
 // NOTE(zoubir): GAME_WINDOW=1920x1080 opens the drawing area at that size
