@@ -59,9 +59,9 @@ struct player_stats
     float FireballRange;
     float FireballLock;
     float FireballInterval;
-    // NOTE(zoubir): the kunai (player_abilities/kunai.cpp): faster than a
-    // fireball and it follows the unit it was thrown at, so it hits for
-    // half as much; how far away that unit may be when it is thrown
+    // NOTE(zoubir): the kunai (player_abilities/kunai.cpp): a little
+    // faster than a fireball (it was 900, too quick to see fly) and it
+    // follows the unit it was thrown at, so it hits for half as much; how far away that unit may be when it is thrown
     float KunaiDamage;
     float KunaiSpeed;
     float KunaiRange;
@@ -94,7 +94,7 @@ global_variable player_stats PlayerStats =
     0.05f,                          // FireballLock
     6.f,                            // FireballInterval
     12.f,                           // KunaiDamage
-    900.f,                          // KunaiSpeed
+    600.f,                          // KunaiSpeed
     560.f,                          // KunaiRange
     0.05f,                          // KunaiLock
     3.5f,                           // KunaiInterval
