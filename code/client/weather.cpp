@@ -198,7 +198,7 @@ SplashRain(app_state *AppState, v3 CameraOffset, v2 View, float Amount)
     }
 }
 
-// NOTE(zoubir): day and night on the open maps: a cycle of
+// NOTE(zoubir): day and night on the open maps and Frostbite Keep: a cycle of
 // DAY_CYCLE_SECONDS on the weather clock, starting at noon, dark for about
 // a third of it. Daylight is 1 by day and 0 at the depth of night; the
 // grade dims and cools (world_grade.cpp), players' lanterns light
@@ -210,7 +210,7 @@ SplashRain(app_state *AppState, v3 CameraOffset, v2 View, float Amount)
 inline bool32
 MapHasNight(u32 MapId)
 {
-    bool32 Result = MapId == MapId_Wilds || MapId == MapId_Arena;
+    bool32 Result = MapId == MapId_Wilds || MapId == MapId_Arena || MapId == MapId_Keep;
     return Result;
 }
 

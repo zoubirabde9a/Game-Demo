@@ -228,7 +228,8 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
     }
     map_def *Map = GetMapDef((map_id)World->MapId);
     i32 Tile = (i32)World->TileWidth;
-    float Torches = MoodFor(World->MapId)->Torches;
+    // NOTE(zoubir): torches burn brighter as the day goes
+    float Torches = MoodFor(World->MapId)->Torches * (1.f + 1.2f * (1.f - Daylight(AppState)));
     for(i32 Y = FloorDiv((i32)floorf(Min.Y), Tile); Torches > 0.f &&
             Y <= FloorDiv((i32)floorf(Max.Y), Tile); Y++)
     {
