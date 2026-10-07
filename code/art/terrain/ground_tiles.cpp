@@ -119,6 +119,33 @@ DrawSoilTile(sprite_canvas *Canvas, terrain_kind Kind, u32 Seed, u32 Variant)
         }
         return;
     }
+    // NOTE(zoubir): the grain of packed earth: single grains a little
+    // darker or lighter than the ground, thicker where a noise says so;
+    // per pixel, so nothing lines up at a tile's edge
+    for(i32 Y = 0; Y < TERRAIN_TILE_PIXELS; Y++)
+    {
+        for(i32 X = 0; X < TERRAIN_TILE_PIXELS; X++)
+        {
+            float Thick = GroundNoise(Seed + 23, Variant, X, Y, 8, 8);
+            u32 Roll = HashLattice(Detail + 6, X, Y) >> 24;
+            float Odds = 255.f * (0.18f + 0.14f * Thick);
+            if ((float)Roll < 0.5f * Odds)
+            {
+                BlendPixel(Canvas, X, Y, Soil.C[0], 0.55f);
+            }
+            else if ((float)Roll < Odds)
+            {
+                BlendPixel(Canvas, X, Y, Soil.C[3], 0.45f);
+            }
+        }
+    }
+    // NOTE(zoubir): clods of earth, darker, lit on top
+    for(u32 Clod = 0; Clod < 2; Clod++)
+    {
+        i32 X, Y;
+        ScatterSpot(Detail + 7, Clod, 2, &X, &Y);
+        PutPebble(Canvas, X, Y, 2, 1, Soil.C[2], ART_RGB(96, 70, 46), ART_RGB(84, 60, 40));
+    }
     // NOTE(zoubir): pebbles, a crack on some variants, a sprig of green
     u32 Pebbles = 3 + DetailRoll(Detail, 11, 4);
     for(u32 Pebble = 0; Pebble < Pebbles; Pebble++)
