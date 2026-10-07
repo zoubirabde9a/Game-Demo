@@ -20,7 +20,7 @@ DrawTalentColumn(render_context *RenderContext, app_state *AppState, talent_pane
                  talent_panel_layout *L, u32 Branch, i32 Hovered)
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
-    u32 Accent = TalentBranchAccents[Branch];
+    u32 Accent = TalentBranchAccent(Slot, Branch);
     float X = L->ColumnX[Branch];
     u32 Spent = TalentPointsSpent(Slot, Branch);
     DrawShaderQuad(RenderContext, Shader_TalentBackdrop, X, L->ColumnTop, L->ColumnWidth,
@@ -28,7 +28,7 @@ DrawTalentColumn(render_context *RenderContext, app_state *AppState, talent_pane
 
     font *Strong = AppState->Fonts.Strong ? AppState->Fonts.Strong : AppState->Fonts.Body;
     font *Small = AppState->Fonts.Small;
-    UIText(RenderContext, Strong, X + 16.f, L->ColumnTop + 12.f, TalentBranchNames[Branch],
+    UIText(RenderContext, Strong, X + 16.f, L->ColumnTop + 12.f, TalentBranchName(Slot, Branch),
            Accent);
     char Text[32];
     snprintf(Text, sizeof(Text), "%u spent", Spent);
@@ -118,8 +118,8 @@ DrawTalentNode(render_context *RenderContext, app_state *AppState, app_input *In
                talent_panel *Panel, talent_panel_layout *L, u32 Talent, bool32 Hot)
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
-    talent_def *Def = &TalentDefs[Talent];
-    u32 Accent = TalentBranchAccents[Def->Branch];
+    talent_def *Def = ShownTalentDef(Slot, Talent);
+    u32 Accent = TalentBranchAccent(Slot, Def->Branch);
     v2 Centre = TalentNodeCentre(L, Talent);
     float Denied = Panel->Denied[Talent];
     Centre.X += 5.f * Denied * Sin(Panel->Clock * 70.f);
@@ -155,7 +155,7 @@ DrawTalentNode(render_context *RenderContext, app_state *AppState, app_input *In
         Tint = State >= 0.5f ? UI_RGBA(205, 205, 215, 255) : UI_RGBA(90, 90, 104, 255);
     }
     DrawTexturedQuad(RenderContext, Panel->Atlas, Centre.X - 0.5f * Icon,
-                     Centre.Y - 0.5f * Icon, Icon, Icon, TalentIconUvs(Talent), Tint);
+                     Centre.Y - 0.5f * Icon, Icon, Icon, TalentIconUvs(TalentIconCell(Slot, Talent)), Tint);
     if (Hot)
     {
         DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 0.5f * Quad,

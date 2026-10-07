@@ -44,6 +44,8 @@ enum burst_shape
     BurstShape_Shatter, // a six-sided shell breaking into shards
     BurstShape_LevelUp, // a pillar of light and climbing sparks
     BurstShape_Learned, // motes swirling up to gather over the head
+    // NOTE(zoubir): a dungeon role spell, drawn by client/dungeon/role_fx.cpp
+    BurstShape_Role,
 };
 
 enum burst_pose
@@ -114,6 +116,15 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Learned, 0.7f, 34.f, 0x008CE6FF, false, 0.f, BurstPose_None},        // TalentLearned, pale gold
     {BurstShape_Slash, 0.3f, 30.f, 0x00FFE070, false, 0.25f, BurstPose_None},        // KunaiReflect, sky blue
     {BurstShape_Slash, 0.22f, 22.f, 0x00FFE0B0, false, 0.08f, BurstPose_None},       // SwordHit, steel blue
+    // NOTE(zoubir): dungeon role spells; their look is client/dungeon/role_fx.cpp
+    {BurstShape_Role, 0.5f, 260.f, 0x003040FF, false, 0.3f, BurstPose_Release},  // Taunt
+    {BurstShape_Role, 0.55f, 110.f, 0x00D0E0F0, false, 0.55f, BurstPose_Release}, // ShieldSlam
+    {BurstShape_Role, 0.4f, 60.f, 0x00D0E0F0, false, 0.35f, BurstPose_None},     // InterceptLand
+    {BurstShape_Role, 0.75f, 30.f, 0x0090F0B0, false, 0.f, BurstPose_Release},   // MendingBolt
+    {BurstShape_Role, 0.5f, 52.f, 0x00FFC070, false, 0.f, BurstPose_Release},    // WardCast
+    {BurstShape_Role, 0.7f, 110.f, 0x0060E0FF, false, 0.f, BurstPose_Release},   // SanctuaryCast
+    {BurstShape_Role, 0.6f, 40.f, 0x002080FF, false, 0.f, BurstPose_Charge},     // InfernoCast
+    {BurstShape_Role, 0.8f, 90.f, 0x002080FF, false, 0.6f, BurstPose_None},      // InfernoBlast
 };
 static_assert(ArrayCount(BurstLooks) == SimBurst_Count, "one look per burst");
 
@@ -220,6 +231,10 @@ GetFxClock(app_state *AppState)
     return Result;
 }
 
+// NOTE(zoubir): in client/dungeon/role_fx.cpp, included later
+internal void AddRoleBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,
+                           float Angle);
+
 // NOTE(zoubir): a full pool skips a footstep's dust, or else drops the
 // oldest burst
 internal void
@@ -266,6 +281,11 @@ AddBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,
         float Near = 1.f - Clamp01((Distance - SHAKE_NEAR) /
                                    (SHAKE_FAR - SHAKE_NEAR));
         Fx->Trauma = Minimum(1.f, Fx->Trauma + Near * BurstLooks[Kind].Shake);
+    }
+    if (BurstLooks[Kind].Shape == BurstShape_Role)
+    {
+        AddRoleBurst(AppState, Kind, Slot, Position, Angle);
+        return;
     }
     player_combo *Combo = FindComboByBurst(Kind);
     if (Combo && Slot < MAX_PLAYERS)

@@ -34,6 +34,13 @@
    online and in replays the same tick spends them. The client draws the
    tree (ui/talent_panel/) and the server sends each player its ranks.
 
+   In a dungeon run each role has a fourth branch of its own
+   (sim/dungeon/role_talents.cpp): six slots at the end of the table,
+   Talent_RoleFirst on, whose shape (tier, column, ranks) is the same for
+   every role and whose meaning is the role's. Their ranks ride with the
+   others; picking another role gives their points back. They take no
+   point outside a run.
+
    This file is the table, the point rules and learning; what each level
    and rank changes in play is talents/effects.cpp. */
 
@@ -51,8 +58,14 @@ enum talent_branch
     TalentBranch_Fire,
     TalentBranch_Motion,
     TalentBranch_Guard,
+    // NOTE(zoubir): the dungeon role's own branch, shown only in a run
+    TalentBranch_Role,
     TalentBranch_Count
 };
+// NOTE(zoubir): the branches every map shows
+#define TALENT_GAME_BRANCHES 3
+// NOTE(zoubir): slots in the role branch, Talent_RoleFirst on
+#define ROLE_TALENTS 6
 
 // NOTE(zoubir): by branch, then tier; the order the panel lists them in
 // and the order snapshots carry their ranks in
@@ -78,6 +91,9 @@ enum talent_id
     Talent_Ward,
     Talent_GravityWell,
     Talent_SecondWind,
+
+    Talent_RoleFirst,
+    Talent_RoleLast = Talent_RoleFirst + ROLE_TALENTS - 1,
 
     Talent_Count
 };
@@ -151,12 +167,29 @@ global_variable talent_def TalentDefs[Talent_Count] =
      TalentBranch_Guard, 1, 0, 3, PlayerButton_GravityWell, 0.f, 0.15f},
     {"Second Wind", "Back from death in half the time, shielded longer", "faster respawn",
      TalentBranch_Guard, 2, 0, 1, 0},
+
+    // NOTE(zoubir): the role branch's shape; names and effects are the
+    // role's (sim/dungeon/role_talents.cpp)
+    {"", "", "", TalentBranch_Role, 0, 0, 2, 0},
+    {"", "", "", TalentBranch_Role, 0, 1, 2, 0},
+    {"", "", "", TalentBranch_Role, 1, 0, 1, 0},
+    {"", "", "", TalentBranch_Role, 1, 1, 1, 0},
+    {"", "", "", TalentBranch_Role, 2, 0, 1, 0},
+    {"", "", "", TalentBranch_Role, 3, 0, 1, 0},
 };
+static_assert(ArrayCount(TalentDefs) == Talent_Count, "one row per talent");
 
 global_variable char *TalentBranchNames[TalentBranch_Count] =
 {
-    "Fire", "Motion", "Guard",
+    "Fire", "Motion", "Guard", "Role",
 };
+
+inline bool32
+IsRoleTalent(u32 Talent)
+{
+    bool32 Result = Talent >= Talent_RoleFirst && Talent <= Talent_RoleLast;
+    return Result;
+}
 
 // NOTE(zoubir): the passives' numbers, per rank
 #define TALENT_SWIFT_FLAMES_SCALE 0.15f
@@ -314,6 +347,17 @@ PlayerAllowedButtons(player_slot *Slot)
 
 #include "talents/effects.cpp"
 
+// NOTE(zoubir): the role branch's points back, when its role changes
+// (sim/dungeon/roles.cpp)
+internal void
+ResetRoleTalents(player_slot *Slot)
+{
+    for(u32 Talent = Talent_RoleFirst; Talent <= Talent_RoleLast; Talent++)
+    {
+        Slot->Ranks[Talent] = 0;
+    }
+}
+
 // NOTE(zoubir): every point back: ranks to nothing, the abilities they
 // unlocked locked again, the ward gone. Cooldowns under way stay
 internal void
@@ -344,7 +388,8 @@ LearnTalent(app_state *AppState, u32 SlotIndex, u32 Talent)
 {
     player_slot *Slot = &AppState->Players[SlotIndex];
     if (Talent >= Talent_Count || !Slot->Active ||
-        CanLearnTalent(Slot, Talent) != TalentRefusal_None)
+        CanLearnTalent(Slot, Talent) != TalentRefusal_None ||
+        (IsRoleTalent(Talent) && !AppState->Dungeon))
     {
         return false;
     }

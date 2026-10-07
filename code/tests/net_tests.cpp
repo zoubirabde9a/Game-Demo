@@ -146,6 +146,13 @@ FullSnapshot()
         P.Snapshot.SanctuaryY[Index] = (i16)(1500 - 300 * Index);
         P.Snapshot.SanctuaryTenths[Index] = (u8)(41 + Index);
     }
+    P.Snapshot.InfernoCount = NET_MAX_INFERNOS;
+    for (u32 Index = 0; Index < NET_MAX_INFERNOS; ++Index)
+    {
+        P.Snapshot.InfernoX[Index] = (i16)(-600 * Index + 7);
+        P.Snapshot.InfernoY[Index] = (i16)(250 * Index - 9);
+        P.Snapshot.InfernoTenths[Index] = (u8)(0x80 | 0x40 | Index);
+    }
     // One burst, for the same reason.
     P.Snapshot.BurstCount = 1;
     P.Snapshot.Bursts[0].Kind = 2;
@@ -164,7 +171,7 @@ FullSnapshot()
     P.Snapshot.Rewinds[0].Y = -77.25f;
     P.Snapshot.Rewinds[0].Radius = 160.f;
     P.Snapshot.Rewinds[0].Frozen[0] = 0x81;
-    P.Snapshot.Rewinds[0].Frozen[5] = 0x10; // entity 44, the last of 45
+    P.Snapshot.Rewinds[0].Frozen[5] = 0x04; // entity 42, the last of 43
     // Every player winding up a spell, pointing at the last (farthest)
     // entities so a trimmed snapshot has to drop them.
     P.Snapshot.CastCount = NET_MAX_SNAPSHOT_CASTS;
@@ -372,7 +379,7 @@ TestFullSnapshotFits()
     Check(Rewind->Slot == 6 && Rewind->Kind == 1 && Rewind->Phase == 2);
     Check(Rewind->PhaseLeft > 0.355f && Rewind->PhaseLeft < 0.365f);
     Check(Rewind->X == 512.5f && Rewind->Y == -77.25f && Rewind->Radius == 160.f);
-    Check(Rewind->Frozen[0] == 0x81 && Rewind->Frozen[5] == 0x10);
+    Check(Rewind->Frozen[0] == 0x81 && Rewind->Frozen[5] == 0x04);
     Check(Out.Snapshot.CastCount == NET_MAX_SNAPSHOT_CASTS);
     net_player_cast *LastCast = &Out.Snapshot.Casts[NET_MAX_SNAPSHOT_CASTS - 1];
     Check(LastCast->EntityIndex == NET_MAX_SNAPSHOT_ENTITIES - NET_MAX_SNAPSHOT_CASTS);
@@ -1027,8 +1034,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d65u
-#define NET_GOLDEN_LAYOUT 0x509def32u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d66u
+#define NET_GOLDEN_LAYOUT 0xae6725bfu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -1065,6 +1072,13 @@ TestDungeonBlockRoundTrip()
         P.Snapshot.SanctuaryY[Index] = (i16)(3000 - 700 * Index);
         P.Snapshot.SanctuaryTenths[Index] = (u8)(10 + Index);
     }
+    P.Snapshot.InfernoCount = NET_MAX_INFERNOS;
+    for (u32 Index = 0; Index < NET_MAX_INFERNOS; ++Index)
+    {
+        P.Snapshot.InfernoX[Index] = (i16)(-2000 + 900 * Index);
+        P.Snapshot.InfernoY[Index] = (i16)(40 * Index);
+        P.Snapshot.InfernoTenths[Index] = (u8)((Index & 1) ? 0x40 | (6 - Index) : 31 + Index);
+    }
     static u8 Buffer[NET_MAX_PACKET_SIZE];
     u32 Size = NetWritePacket(&P, Buffer, sizeof(Buffer));
     Check(Size > 0);
@@ -1081,8 +1095,22 @@ TestDungeonBlockRoundTrip()
         Check(Out.Snapshot.SanctuaryY[Index] == P.Snapshot.SanctuaryY[Index]);
         Check(Out.Snapshot.SanctuaryTenths[Index] == P.Snapshot.SanctuaryTenths[Index]);
     }
-    // NOTE(zoubir): more sanctuaries than there is room for is refused
-    Buffer[Size - 1 - 4 * 5] = NET_MAX_SANCTUARIES + 1;
+    Check(Out.Snapshot.InfernoCount == NET_MAX_INFERNOS);
+    for (u32 Index = 0; Index < NET_MAX_INFERNOS; ++Index)
+    {
+        Check(Out.Snapshot.InfernoX[Index] == P.Snapshot.InfernoX[Index]);
+        Check(Out.Snapshot.InfernoY[Index] == P.Snapshot.InfernoY[Index]);
+        Check(Out.Snapshot.InfernoTenths[Index] == P.Snapshot.InfernoTenths[Index]);
+    }
+    // NOTE(zoubir): more infernos than there is room for is refused: the
+    // count sits before the last own-body byte and NET_MAX_INFERNOS rows
+    // of 5 bytes
+    Buffer[Size - 1 - NET_MAX_INFERNOS * 5 - 1] = NET_MAX_INFERNOS + 1;
+    Check(!NetReadPacket(Buffer, Size, &Out) || Out.Snapshot.InfernoCount <= NET_MAX_INFERNOS);
+    Size = NetWritePacket(&P, Buffer, sizeof(Buffer));
+    // NOTE(zoubir): and so are more sanctuaries: before the infernos and
+    // NET_MAX_SANCTUARIES rows of 5 bytes
+    Buffer[Size - 1 - NET_MAX_INFERNOS * 5 - 1 - NET_MAX_SANCTUARIES * 5 - 1] = NET_MAX_SANCTUARIES + 1;
     Check(!NetReadPacket(Buffer, Size, &Out) || Out.Snapshot.SanctuaryCount <= NET_MAX_SANCTUARIES);
 }
 

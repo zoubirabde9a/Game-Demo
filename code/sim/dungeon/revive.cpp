@@ -4,35 +4,50 @@
    row brings them back there with REVIVE_HP_SHARE of their health. A
    healer who steps away loses the progress. A revived player is a
    moment out of reach (REVIVE_SHIELD_SECONDS), so a monster standing
-   over the body cannot kill them again the same tick. */
+   over the body cannot kill them again the same tick. A healer with the
+   Miracle talent (role_talents.cpp) revives faster and with more health. */
 
 #define REVIVE_RADIUS 60.f
 #define REVIVE_SECONDS 3.f
 #define REVIVE_HP_SHARE 0.4f
 #define REVIVE_SHIELD_SECONDS 1.f
 
-// NOTE(zoubir): a living healer within REVIVE_RADIUS of Body
-internal bool32
-IsHealerNear(app_state *AppState, world_entity *Body)
+// NOTE(zoubir): a living healer within REVIVE_RADIUS of Body, the one
+// with Miracle first; 0 for none
+internal player_slot *
+HealerNear(app_state *AppState, world_entity *Body)
 {
+    player_slot *Result = 0;
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
+        player_slot *Slot = &AppState->Players[SlotIndex];
         world_entity *Player = LivingPlayerInSlot(AppState, SlotIndex);
-        if (Player && AppState->Players[SlotIndex].Role == PlayerRole_Healer &&
-            Length(Player->Position.XY - Body->Position.XY) <= REVIVE_RADIUS)
+        if (Player && Slot->Role == PlayerRole_Healer &&
+            Length(Player->Position.XY - Body->Position.XY) <= REVIVE_RADIUS &&
+            (!Result || RoleRank(Slot, PlayerRole_Healer, HealerTalent_Miracle)))
         {
-            return true;
+            Result = Slot;
         }
     }
-    return false;
+    return Result;
+}
+
+// NOTE(zoubir): the seconds Healer takes to revive someone
+inline float
+ReviveSecondsFor(player_slot *Healer)
+{
+    float Result = RoleRank(Healer, PlayerRole_Healer, HealerTalent_Miracle) ?
+        MIRACLE_SECONDS : REVIVE_SECONDS;
+    return Result;
 }
 
 // NOTE(zoubir): the downed player stands up where they lie
 internal void
-RevivePlayer(app_state *AppState, player_slot *Slot)
+RevivePlayer(app_state *AppState, player_slot *Slot, player_slot *Healer)
 {
     world_entity *Player = Slot->Entity;
-    Player->Hp = REVIVE_HP_SHARE * Player->MaxHp;
+    Player->Hp = (RoleRank(Healer, PlayerRole_Healer, HealerTalent_Miracle) ?
+                  MIRACLE_HP_SHARE : REVIVE_HP_SHARE) * Player->MaxHp;
     Player->Velocity = {};
     ZeroArray(Player->StatusTimers, StatusEffect_Count, float);
     Player->SpawnShield = REVIVE_SHIELD_SECONDS;
@@ -55,15 +70,18 @@ UpdateRevives(app_state *AppState, float DeltaTime)
             Slot->ReviveSeconds = 0.f;
             continue;
         }
-        if (!IsHealerNear(AppState, Slot->Entity))
+        player_slot *Healer = HealerNear(AppState, Slot->Entity);
+        if (!Healer)
         {
             Slot->ReviveSeconds = 0.f;
             continue;
         }
-        Slot->ReviveSeconds += DeltaTime;
+        // NOTE(zoubir): counted in shares of REVIVE_SECONDS, so the ring
+        // clients draw from it fills whoever revives
+        Slot->ReviveSeconds += DeltaTime * REVIVE_SECONDS / ReviveSecondsFor(Healer);
         if (Slot->ReviveSeconds >= REVIVE_SECONDS)
         {
-            RevivePlayer(AppState, Slot);
+            RevivePlayer(AppState, Slot, Healer);
         }
     }
 }

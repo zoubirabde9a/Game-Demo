@@ -1,7 +1,9 @@
 /* Talent icons: one per talent, painted in code like the ability bar's
    (ui/ability_icons/icon_canvas.cpp) into one texture on first use. An
    ability talent reuses its ability's icon; the passives have theirs
-   here. TalentIconPainters lists them in talent_id order. */
+   here. TalentIconPainters lists them in talent_id order; the role
+   branch's slots take their icon from the player's role
+   (ui/dungeon/role_talent_icons.cpp, after the game's in the atlas). */
 
 // NOTE(zoubir): Swift Flames: a fireball streaking right, speed lines
 // behind it
@@ -165,7 +167,7 @@ PaintSecondWindIcon(icon_canvas *Canvas)
 
 typedef void talent_icon_painter(icon_canvas *Canvas);
 
-global_variable talent_icon_painter *TalentIconPainters[Talent_Count] =
+global_variable talent_icon_painter *TalentIconPainters[Talent_RoleFirst] =
 {
     PaintFireballIcon,
     PaintSwiftFlamesIcon,
@@ -189,9 +191,25 @@ global_variable talent_icon_painter *TalentIconPainters[Talent_Count] =
     PaintSecondWindIcon,
 };
 
+#include "../dungeon/role_talent_icons.cpp"
+
 #define TALENT_ICON_SIZE 96
 #define TALENT_ATLAS_COLUMNS 8
-#define TALENT_ATLAS_ROWS ((Talent_Count + TALENT_ATLAS_COLUMNS - 1) / TALENT_ATLAS_COLUMNS)
+#define TALENT_ICON_CELLS (Talent_RoleFirst + PlayerRole_Count * ROLE_TALENTS)
+#define TALENT_ATLAS_ROWS ((TALENT_ICON_CELLS + TALENT_ATLAS_COLUMNS - 1) / TALENT_ATLAS_COLUMNS)
+
+// NOTE(zoubir): the atlas cell of Talent as Slot sees it
+inline u32
+TalentIconCell(player_slot *Slot, u32 Talent)
+{
+    u32 Result = Talent;
+    if (IsRoleTalent(Talent))
+    {
+        u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
+        Result = Talent_RoleFirst + Role * ROLE_TALENTS + (Talent - Talent_RoleFirst);
+    }
+    return Result;
+}
 
 // NOTE(zoubir): every talent's icon in one texture, cell N for talent N
 internal u32
@@ -205,12 +223,20 @@ BuildTalentIconAtlas(open_gl *OpenGL, memory_arena *Scratch)
     icon_canvas Canvas = {};
     Canvas.Size = TALENT_ICON_SIZE;
     Canvas.Pixels = AllocateArray(Scratch, TALENT_ICON_SIZE * TALENT_ICON_SIZE, v4);
-    for(u32 Talent = 0; Talent < Talent_Count; Talent++)
+    for(u32 Cell = 0; Cell < TALENT_ICON_CELLS; Cell++)
     {
         memset(Canvas.Pixels, 0, TALENT_ICON_SIZE * TALENT_ICON_SIZE * sizeof(v4));
-        TalentIconPainters[Talent](&Canvas);
-        u32 Column = Talent % TALENT_ATLAS_COLUMNS;
-        u32 Row = Talent / TALENT_ATLAS_COLUMNS;
+        if (Cell < Talent_RoleFirst)
+        {
+            TalentIconPainters[Cell](&Canvas);
+        }
+        else
+        {
+            u32 Role = (Cell - Talent_RoleFirst) / ROLE_TALENTS;
+            RoleTalentIconPainters[Role][(Cell - Talent_RoleFirst) % ROLE_TALENTS](&Canvas);
+        }
+        u32 Column = Cell % TALENT_ATLAS_COLUMNS;
+        u32 Row = Cell / TALENT_ATLAS_COLUMNS;
         IconFinish(&Canvas, Pixels + Row * TALENT_ICON_SIZE * Width + Column * TALENT_ICON_SIZE,
                    Width);
     }
@@ -219,7 +245,8 @@ BuildTalentIconAtlas(open_gl *OpenGL, memory_arena *Scratch)
     return Result;
 }
 
-// NOTE(zoubir): talent Talent's cell, as AbilityIconUvs gives a slot's
+// NOTE(zoubir): atlas cell Talent's place, as AbilityIconUvs gives a
+// slot's (TalentIconCell for a talent as a player sees it)
 inline v4
 TalentIconUvs(u32 Talent)
 {

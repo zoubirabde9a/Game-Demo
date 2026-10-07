@@ -247,6 +247,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 Score->Level = LevelAndWard & 0x7f;
                 Score->Ward = LevelAndWard >> 7;
                 NetU8(S, &Score->Dungeon);
+                NetU8(S, &Score->DungeonMore);
                 if (Score->Slot >= NET_MAX_SNAPSHOT_SCORES) return false;
             }
             NetU8(S, &P->Snapshot.NameSlot);
@@ -324,6 +325,14 @@ NetSerializePacket(net_stream *S, net_packet *P)
                     NetI16(S, &P->Snapshot.SanctuaryX[Index]);
                     NetI16(S, &P->Snapshot.SanctuaryY[Index]);
                     NetU8(S, &P->Snapshot.SanctuaryTenths[Index]);
+                }
+                NetU8(S, &P->Snapshot.InfernoCount);
+                if (P->Snapshot.InfernoCount > NET_MAX_INFERNOS) return false;
+                for (u32 Index = 0; Index < P->Snapshot.InfernoCount; ++Index)
+                {
+                    NetI16(S, &P->Snapshot.InfernoX[Index]);
+                    NetI16(S, &P->Snapshot.InfernoY[Index]);
+                    NetU8(S, &P->Snapshot.InfernoTenths[Index]);
                 }
             }
             NetU8(S, &P->Snapshot.HasOwnBody);

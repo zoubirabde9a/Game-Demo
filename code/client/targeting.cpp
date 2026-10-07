@@ -17,6 +17,10 @@
    5. else nothing.
    The radii are window pixels, so they feel the same at any zoom.
 
+   In a dungeon run, a tank or healer picks allies instead, for the
+   spells that land on one (dungeon/role_targeting.cpp, which also lets
+   the party frames pick); its marker is drawn there, not here.
+
    The pick goes into player_input.Target as the local entity index + 1
    (keyboard_input.cpp); online, client/online.cpp turns it into the
    server's Id, so the server throws at the very unit the player saw
@@ -115,7 +119,7 @@ PickedUnit(app_state *AppState, world_entity *Local, u32 Picked)
     world *World = &AppState->World;
     world_entity *Result = 0;
     if (Picked > 0 && Picked <= World->EntityCount &&
-        IsKunaiTarget(&World->Entities[Picked - 1], Local))
+        IsCursorPickable(AppState, &World->Entities[Picked - 1], Local))
     {
         Result = &World->Entities[Picked - 1];
     }
@@ -142,7 +146,7 @@ PickCursorTarget(app_state *AppState, world_entity *Local, v2 Cursor, u32 Previo
     for(u32 Index = 0; Index < World->EntityCount; Index++)
     {
         world_entity *Unit = &World->Entities[Index];
-        if (!IsKunaiTarget(Unit, Local))
+        if (!IsCursorPickable(AppState, Unit, Local))
         {
             continue;
         }
@@ -181,7 +185,7 @@ KunaiRefusal(app_state *AppState, world_entity *Local, world_entity *Target)
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     char *Result = 0;
-    if (AbilityLevel(Slot, PlayerButton_Kunai) &&
+    if (AbilityLevel(Slot, PlayerButton_Kunai) && !LocalRoleSpell(AppState, PlayerButton_Kunai) &&
         Local->ActionCooldowns[PlayerAction_Kunai] <= 0.f)
     {
         if (!Target)
@@ -215,7 +219,12 @@ UpdateCursorTarget(app_input *Input, app_state *AppState)
     Targeting->PickedFor = (Picked == Targeting->Picked) ?
         Targeting->PickedFor + Input->DeltaTime : 0.f;
     Targeting->Picked = Picked;
-    return Picked;
+    u32 Result = Picked;
+    if (LocalPicksAllies(AppState))
+    {
+        Result = PickAllyTarget(AppState, Input, Picked);
+    }
+    return Result;
 }
 
 // NOTE(zoubir): why the kunai would not go at the unit picked this frame,
@@ -268,7 +277,8 @@ DrawCursorTarget(render_context *RenderContext, app_state *AppState, v3 CameraOf
 {
     cursor_targeting *Targeting = GetCursorTargeting(AppState);
     cast_targeting *Cast = GetCastTargeting(AppState);
-    if (Cast->Mode == CastMode_Standard && Cast->Aiming != PlayerButton_Kunai)
+    if ((Cast->Mode == CastMode_Standard && Cast->Aiming != PlayerButton_Kunai) ||
+        LocalPicksAllies(AppState))
     {
         return;
     }

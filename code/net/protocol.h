@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d65u // "GDMe", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d66u // "GDMf", change it whenever the layout changes
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
 #define NET_PLAYER_HEALTH_STEPS 100.f
@@ -29,7 +29,7 @@
 // client sends one per tick, whatever its frame rate, and the server
 // applies one per tick.
 #define NET_TICK_RATE 60
-#define NET_MAX_SNAPSHOT_ENTITIES 45 // moving things only; walls and trees are never sent (45 leaves room for the map vote and a dungeon run)
+#define NET_MAX_SNAPSHOT_ENTITIES 43 // moving things only; walls and trees are never sent (43 leaves room for the map vote and a dungeon run with its sanctuaries and infernos)
 #define NET_MAX_SNAPSHOT_ABILITIES 8 // monsters winding up or striking at once
 #define NET_MAX_ABILITY_POINTS 4    // matches MAX_ABILITY_POINTS in entity.h
 #define NET_MAX_SNAPSHOT_SCORES 8   // one per player slot (MAX_PLAYERS)
@@ -40,7 +40,7 @@
 #define NET_MAX_SNAPSHOT_REWINDS 4  // time rewinds under way the viewer can see
 #define NET_MAX_SNAPSHOT_CASTS 8    // players winding up a spell (MAX_PLAYERS)
 #define NET_COOLDOWN_COUNT 16       // the viewer's own ability cooldowns
-#define NET_TALENT_COUNT 18         // the viewer's own talent ranks (sim/progression/talents.cpp)
+#define NET_TALENT_COUNT 24         // the viewer's own talent ranks (sim/progression/talents.cpp)
 #define NET_STATUS_COUNT 10        // status effects (sim/status_effects.cpp)
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_SERVER_NAME_SIZE 24     // server name, 23 characters plus the terminator
@@ -114,6 +114,9 @@ enum net_button
 #define NET_ROLE_MASK 0x3u
 #define NET_NO_BOSS 0xFFu
 #define NET_MAX_SANCTUARIES 4
+#define NET_MAX_INFERNOS 4
+#define NET_ZONE_WIDE 0x80u
+#define NET_INFERNO_FALLING 0x40u
 
 enum net_deny_reason
 {
@@ -261,6 +264,10 @@ struct net_score
     // bits 0-1, Shield Wall up in bit 2, a healer's ward in bit 3, and a
     // downed player's revive progress in bits 4-7 (0..15 of the way).
     u8 Dungeon;
+    // More of the same: a tank's rally on them in bit 0, a healer's
+    // Renewal in bit 1, and how many monsters are after them (0..7) in
+    // bits 2-4 (sim/dungeon/role_abilities.cpp).
+    u8 DungeonMore;
 };
 
 struct net_kill
@@ -372,11 +379,19 @@ struct net_snapshot
     u8 FoesLeft;
     // The healers' sanctuaries on the ground (sim/dungeon/
     // role_abilities.cpp): whole-unit positions and tenths of a second
-    // left, so clients draw them.
+    // left (bits 0-6), so clients draw them; bit 7 is a sanctuary a
+    // talent widened (NET_ZONE_WIDE).
     u8 SanctuaryCount;
     i16 SanctuaryX[NET_MAX_SANCTUARIES];
     i16 SanctuaryY[NET_MAX_SANCTUARIES];
     u8 SanctuaryTenths[NET_MAX_SANCTUARIES];
+    // The damage role's Infernos: where, and tenths of a second (bits
+    // 0-5) until the meteor lands while bit 6 (NET_INFERNO_FALLING) is
+    // set, else of burning ground left; bit 7 a talent widened it.
+    u8 InfernoCount;
+    i16 InfernoX[NET_MAX_INFERNOS];
+    i16 InfernoY[NET_MAX_INFERNOS];
+    u8 InfernoTenths[NET_MAX_INFERNOS];
     // The viewer's own player exactly: position and velocity as floats.
     // Entities are sent rounded to 1/8 unit, and a prediction replayed
     // from a rounded start went round a wall's corner the other way from

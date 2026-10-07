@@ -107,7 +107,7 @@ ApplySnapshotScores(app_state *AppState, net_snapshot *Snapshot)
             Slot->MonsterKills = Score->MonsterKills;
             Slot->Level = Score->Level;
             Slot->WardReady = Score->Ward;
-            ApplyDungeonScore(AppState, Slot, Score->Dungeon);
+            ApplyDungeonScore(AppState, Slot, Score->Dungeon, Score->DungeonMore);
         }
     }
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)

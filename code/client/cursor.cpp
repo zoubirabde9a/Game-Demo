@@ -34,7 +34,7 @@ InputForServer(app_input *Input, app_state *AppState)
     {
         Result.LeftButton = {};
     }
-    if (TalentPanelHasMouse(AppState, Input))
+    if (TalentPanelHasMouse(AppState, Input) || PartyFramesHaveMouse(AppState, Input))
     {
         Result.LeftButton = {};
         Result.RightButton = {};

@@ -1,44 +1,45 @@
-/* Role abilities (docs/dungeon-plan.md, "Roles"): in a dungeon run the
-   tank's and the healer's A, E and V keys cast their role's spells
-   instead of Launch, Shield and the kunai. The damage role keeps the
-   game's own kit. Left click, blink and jump are the same for everyone.
+/* Role abilities (docs/dungeon-plan.md, "Roles"): in a dungeon run each
+   role's A, E and V keys cast that role's spells instead of the game's
+   Launch, Shield and kunai, where its row in RoleSpells names one. Left
+   click, blink and jump are the same for everyone.
 
-   Tank (Bulwark)
-     A  Taunt: every monster within TAUNT_RADIUS attacks the tank.
-     E  Shield Wall: SHIELD_WALL_SCALE of the damage for a few seconds.
-     V  Intercept: leaps to the ally under the cursor (or the one nearest
-        the aim), landing just short of them, and takes the threat off
-        them. Only within the tank's own room: never through a gate.
-   Healer (Mender)
+   Tank (Bulwark, role_kits/tank.cpp)
+     A  Taunt: every monster near the tank attacks it.
+     E  Shield Slam: stuns and hurts what is round the tank, raises
+        Shield Wall on it and rallies the allies near it.
+     V  Intercept: leaps to an ally and takes the threat off them.
+   Healer (Mender, role_kits/healer.cpp)
      A  Sanctuary: a circle at the cursor that heals allies inside.
-     E  Ward: the ally under the cursor (or the most hurt one) absorbs
-        the next WARD_ABSORB of damage.
-     V  Mending Bolt: heals the ally under the cursor (or the most hurt).
+     E  Ward: an ally absorbs the next hits.
+     V  Mending Bolt: heals an ally.
+   Damage (Striker, role_kits/striker.cpp)
+     A  Inferno: a meteor at the cursor, then burning ground.
+     E, V  the game's Shield and kunai.
+
+   Who an ally spell lands on: the player the client says is under the
+   cursor or picked on the party frames (player_input.Target, which may
+   be the caster), else the most hurt ally in reach, else the caster.
 
    UseRoleAbilities runs from UpdatePlayer before the game's abilities and
    takes the role's keys out of the input, so the game's spells on those
    keys never see them. While the client predicts its own player the keys
-   are taken but nothing is cast: the server casts it. Healing makes
-   threat on every monster with threat already, half the health given. */
+   are taken but nothing is cast: the server casts it. What lasts after a
+   cast (sanctuaries, infernos, rallies, renewals) runs once a tick in
+   UpdateRoleEffects. The role branch of the talent tree changes the
+   numbers (role_talents.cpp).
 
-#define TAUNT_RADIUS 260.f
-#define TAUNT_COOLDOWN 8.f
-#define SHIELD_WALL_SECONDS 4.f
-#define SHIELD_WALL_COOLDOWN 15.f
-#define INTERCEPT_RANGE 420.f
-#define INTERCEPT_COOLDOWN 10.f
-// NOTE(zoubir): how far short of the ally an intercept lands
-#define INTERCEPT_LANDING_GAP 36.f
-#define SANCTUARY_RADIUS 110.f
-#define SANCTUARY_SECONDS 5.f
-#define SANCTUARY_HEAL_PER_SECOND 8.f
-#define SANCTUARY_COOLDOWN 14.f
-#define WARD_ABSORB 30.f
-#define WARD_COOLDOWN 10.f
-#define MENDING_BOLT_HEAL 30.f
-#define MENDING_BOLT_RANGE 500.f
-#define MENDING_BOLT_COOLDOWN 2.5f
-#define HEAL_THREAT_SHARE 0.5f
+   Between fights every living player heals REST_SHARE_PER_SECOND of
+   their health a second, so a party walks into the next room whole
+   whether or not it has a healer. */
+
+// NOTE(zoubir): what a role key does with the cursor, for the client's
+// aim (client/cast_targeting.cpp): nothing, an ally, or a ground circle
+enum role_aim
+{
+    RoleAim_None,
+    RoleAim_Ally,
+    RoleAim_Ground,
+};
 
 // NOTE(zoubir): the keys a role casts on, and the slot each one's
 // cooldown has in player_slot.RoleCooldowns
@@ -49,34 +50,72 @@ global_variable u32 RoleKeys[ROLE_KEYS] =
     PlayerButton_Kunai,
 };
 
-inline bool32
-RoleOwnsKeys(app_state *AppState, player_slot *Slot)
-{
-    bool32 Result = IsDungeon(AppState) &&
-        (Slot->Role == PlayerRole_Tank || Slot->Role == PlayerRole_Healer);
-    return Result;
-}
-
 // NOTE(zoubir): each role's spell on each key (RoleKeys order), as the
-// ability bar names it, and its full cooldown
+// ability bar names it, and its cooldown before talents; a 0 name leaves
+// the game's ability on the key
 struct role_spell
 {
     char *Name;
     float Cooldown;
     // NOTE(zoubir): one line for the controls panel (ui/controls_panel.cpp)
     char *Help;
+    role_aim Aim;
+    // NOTE(zoubir): a ground spell's radius before talents, and how far
+    // out an ally spell reaches
+    float Reach;
 };
+
+#include "role_kits/role_numbers.h"
 
 global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
 {
-    {{0, 0.f, 0}, {0, 0.f, 0}, {0, 0.f, 0}},
-    {{"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you"},
-     {"Shield Wall", SHIELD_WALL_COOLDOWN, "Shield Wall: take 40% damage for 4 s"},
-     {"Intercept", INTERCEPT_COOLDOWN, "Intercept: leap to the ally under the cursor"}},
-    {{"Sanctuary", SANCTUARY_COOLDOWN, "Sanctuary: a healing circle at the cursor"},
-     {"Ward", WARD_COOLDOWN, "Ward: the next 30 damage on an ally is absorbed"},
-     {"Mending Bolt", MENDING_BOLT_COOLDOWN, "Mending Bolt: heal an ally for 30"}},
+    {{"Inferno", INFERNO_COOLDOWN, "Inferno: a meteor at the cursor, then burning ground",
+      RoleAim_Ground, INFERNO_RADIUS},
+     {0}, {0}},
+    {{"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you", RoleAim_None, 0.f},
+     {"Shield Slam", SHIELD_SLAM_COOLDOWN,
+      "Shield Slam: stun what is near, take 40% damage, shield allies near you",
+      RoleAim_None, 0.f},
+     {"Intercept", INTERCEPT_COOLDOWN, "Intercept: leap to an ally and pull their foes",
+      RoleAim_Ally, INTERCEPT_RANGE}},
+    {{"Sanctuary", SANCTUARY_COOLDOWN, "Sanctuary: a healing circle at the cursor",
+      RoleAim_Ground, SANCTUARY_RADIUS},
+     {"Ward", WARD_COOLDOWN, "Ward: an ally absorbs the next hits", RoleAim_Ally,
+      MENDING_BOLT_RANGE},
+     {"Mending Bolt", MENDING_BOLT_COOLDOWN, "Mending Bolt: heal an ally", RoleAim_Ally,
+      MENDING_BOLT_RANGE}},
 };
+
+// NOTE(zoubir): Key's cooldown for Slot's role after its talents
+internal float
+RoleSpellCooldown(player_slot *Slot, u32 Key)
+{
+    u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
+    float Result = Key < ROLE_KEYS ? RoleSpells[Role][Key].Cooldown : 0.f;
+    if (Key == 0)
+    {
+        Result -= PROVOKE_COOLDOWN * (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_Provoke);
+        Result -= KINDLING_COOLDOWN * (float)RoleRank(Slot, PlayerRole_Damage, StrikerTalent_Kindling);
+    }
+    return Result;
+}
+
+// NOTE(zoubir): a ground spell's radius for Slot after its talents
+internal float
+RoleSpellRadius(player_slot *Slot, u32 Key)
+{
+    u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
+    float Result = Key < ROLE_KEYS ? RoleSpells[Role][Key].Reach : 0.f;
+    if (Key == 0 && RoleRank(Slot, PlayerRole_Healer, HealerTalent_HallowedGround))
+    {
+        Result *= HALLOWED_RADIUS;
+    }
+    if (Key == 0 && RoleRank(Slot, PlayerRole_Damage, StrikerTalent_Cataclysm))
+    {
+        Result *= CATACLYSM_RADIUS;
+    }
+    return Result;
+}
 
 // NOTE(zoubir): the role key Button is, or ROLE_KEYS for none
 inline u32
@@ -92,6 +131,15 @@ RoleKeyForButton(u32 Button)
     return ROLE_KEYS;
 }
 
+// NOTE(zoubir): whether Slot's role casts its own spell on Key here
+inline bool32
+RoleOwnsKey(app_state *AppState, player_slot *Slot, u32 Key)
+{
+    bool32 Result = IsDungeon(AppState) && Key < ROLE_KEYS &&
+        Slot->Role < PlayerRole_Count && RoleSpells[Slot->Role][Key].Name != 0;
+    return Result;
+}
+
 // NOTE(zoubir): the role spell Player casts on Button, 0 when the game's
 // own ability is on it
 internal role_spell *
@@ -102,7 +150,7 @@ RoleSpellOnButton(app_state *AppState, world_entity *Player, u32 Button)
     {
         player_slot *Slot = &AppState->Players[Player->PlayerIndex];
         u32 Key = RoleKeyForButton(Button);
-        if (Key < ROLE_KEYS && RoleOwnsKeys(AppState, Slot))
+        if (RoleOwnsKey(AppState, Slot, Key))
         {
             Result = &RoleSpells[Slot->Role][Key];
         }
@@ -132,9 +180,10 @@ RoleCooldownOnButton(app_state *AppState, world_entity *Player, u32 Button, floa
     {
         return 0;
     }
-    *Full = Spell->Cooldown;
     player_slot *Slot = &AppState->Players[Player->PlayerIndex];
-    return &Slot->RoleCooldowns[RoleKeyForButton(Button)];
+    u32 Key = RoleKeyForButton(Button);
+    *Full = RoleSpellCooldown(Slot, Key);
+    return &Slot->RoleCooldowns[Key];
 }
 
 // NOTE(zoubir): where the cursor is on the ground, from the aim
@@ -145,10 +194,19 @@ AimPoint(world_entity *Player)
     return Result;
 }
 
-// NOTE(zoubir): the living player under the cursor (player_input.Target)
-// other than Self, or 0
+inline v3
+ChestOf(world_entity *Unit)
+{
+    v3 Result = Unit->Position;
+    Result.Z += 16.f;
+    return Result;
+}
+
+// NOTE(zoubir): the living player the client picked (player_input.Target:
+// under the cursor or on the party frames), Self included when AllowSelf;
+// else 0
 inline world_entity *
-CursorAlly(app_state *AppState, player_slot *Slot, world_entity *Self)
+CursorAlly(app_state *AppState, player_slot *Slot, world_entity *Self, bool32 AllowSelf)
 {
     world *World = &AppState->World;
     u32 Index = Slot->Input.Target;
@@ -156,8 +214,8 @@ CursorAlly(app_state *AppState, player_slot *Slot, world_entity *Self)
     if (Index && Index - 1 < World->EntityCount)
     {
         world_entity *Unit = &World->Entities[Index - 1];
-        if (Unit != Self && Unit->IsPresent && Unit->Type == EntityType_Player &&
-            !IsDeadPlayer(Unit))
+        if ((Unit != Self || AllowSelf) && Unit->IsPresent &&
+            Unit->Type == EntityType_Player && !IsDeadPlayer(Unit))
         {
             Result = Unit;
         }
@@ -166,16 +224,16 @@ CursorAlly(app_state *AppState, player_slot *Slot, world_entity *Self)
 }
 
 // NOTE(zoubir): the living player within Range of From missing the most
-// health (Self counts), or 0 when nobody is hurt
+// health, Skip left out (Self counts), or 0 when nobody is hurt
 internal world_entity *
-MostHurtAlly(app_state *AppState, v2 From, float Range)
+MostHurtAlly(app_state *AppState, v2 From, float Range, world_entity *Skip = 0)
 {
     world_entity *Result = 0;
     float Worst = 0.f;
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         world_entity *Player = LivingPlayerInSlot(AppState, SlotIndex);
-        if (Player && Length(Player->Position.XY - From) <= Range)
+        if (Player && Player != Skip && Length(Player->Position.XY - From) <= Range)
         {
             float Missing = Player->MaxHp - Player->Hp;
             if (Missing > Worst)
@@ -188,36 +246,18 @@ MostHurtAlly(app_state *AppState, v2 From, float Range)
     return Result;
 }
 
-// NOTE(zoubir): an ally Self can leap to: alive, within Range, and in the
-// same room, so a leap never crosses a gate
-inline bool32
-CanInterceptTo(app_state *AppState, world_entity *Self, world_entity *Ally, float Range)
-{
-    world *World = &AppState->World;
-    bool32 Result = Ally && Ally != Self && !IsDeadPlayer(Ally) &&
-        Length(Ally->Position.XY - Self->Position.XY) <= Range &&
-        RoomAtPosition(World, Ally->Position.XY) == RoomAtPosition(World, Self->Position.XY);
-    return Result;
-}
-
-// NOTE(zoubir): the ally Self can intercept to nearest to Point, or 0
+// NOTE(zoubir): who a healer's ally spell lands on (the rules at the top)
 internal world_entity *
-NearestAllyTo(app_state *AppState, world_entity *Self, v2 Point, float Range)
+PickAllyFor(app_state *AppState, player_slot *Slot, world_entity *Player, float Range)
 {
-    world_entity *Result = 0;
-    float Best = 0.f;
-    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    world_entity *Result = CursorAlly(AppState, Slot, Player, true);
+    if (!Result || Length(Result->Position.XY - Player->Position.XY) > Range)
     {
-        world_entity *Player = LivingPlayerInSlot(AppState, SlotIndex);
-        if (Player && CanInterceptTo(AppState, Self, Player, Range))
-        {
-            float Distance = Length(Player->Position.XY - Point);
-            if (!Result || Distance < Best)
-            {
-                Best = Distance;
-                Result = Player;
-            }
-        }
+        Result = MostHurtAlly(AppState, Player->Position.XY, Range);
+    }
+    if (!Result)
+    {
+        Result = Player;
     }
     return Result;
 }
@@ -248,119 +288,9 @@ HealPlayer(app_state *AppState, u32 By, world_entity *Target, float Amount)
     return Given;
 }
 
-inline v3
-ChestOf(world_entity *Unit)
-{
-    v3 Result = Unit->Position;
-    Result.Z += 16.f;
-    return Result;
-}
-
-internal bool32
-CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
-            player_slot *Slot, world_entity *Player, u32 Key)
-{
-    u8 SlotIndex = (u8)Player->PlayerIndex;
-    switch(Key)
-    {
-        case 0:
-        {
-            TauntAround(AppState, &AppState->Dungeon->Threat, Player, TAUNT_RADIUS);
-            EmitBurst(&AppState->Events, SimBurst_ShockwaveRing, SlotIndex, Player->Position);
-            Slot->RoleCooldowns[Key] = TAUNT_COOLDOWN;
-        } break;
-
-        case 1:
-        {
-            Slot->ShieldWallSeconds = SHIELD_WALL_SECONDS;
-            EmitBurst(&AppState->Events, SimBurst_WardBreak, SlotIndex, ChestOf(Player));
-            Slot->RoleCooldowns[Key] = SHIELD_WALL_COOLDOWN;
-        } break;
-
-        case 2:
-        {
-            world_entity *Ally = CursorAlly(AppState, Slot, Player);
-            if (!CanInterceptTo(AppState, Player, Ally, INTERCEPT_RANGE))
-            {
-                Ally = NearestAllyTo(AppState, Player, AimPoint(Player), INTERCEPT_RANGE);
-            }
-            if (!Ally)
-            {
-                return false;
-            }
-            float Angle = ATan2(Ally->Position.Y - Player->Position.Y,
-                                Ally->Position.X - Player->Position.X);
-            EmitBurst(&AppState->Events, SimBurst_Lunge, SlotIndex, ChestOf(Player), Angle);
-            v2 Toward = DirectionTo(Ally->Position.XY - Player->Position.XY);
-            v3 Landing = Ally->Position;
-            Landing.XY -= INTERCEPT_LANDING_GAP * Toward;
-            MovePlayerTo(AppState, World, Arena, Player, Landing);
-            // NOTE(zoubir): what was after the ally comes for the tank
-            TauntAround(AppState, &AppState->Dungeon->Threat, Player, TAUNT_RADIUS * 0.5f);
-            Slot->RoleCooldowns[Key] = INTERCEPT_COOLDOWN;
-        } break;
-    }
-    return true;
-}
-
-internal bool32
-CastHealerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 Key)
-{
-    u8 SlotIndex = (u8)Player->PlayerIndex;
-    dungeon_run *Run = AppState->Dungeon;
-    switch(Key)
-    {
-        case 0:
-        {
-            sanctuary *Free = 0;
-            for(u32 Index = 0; Index < MAX_SANCTUARIES; Index++)
-            {
-                if (Run->Sanctuaries[Index].Seconds <= 0.f)
-                {
-                    Free = &Run->Sanctuaries[Index];
-                    break;
-                }
-            }
-            if (!Free)
-            {
-                return false;
-            }
-            v2 Point = AimPoint(Player);
-            Free->Position = V3(Point.X, Point.Y, 0.f);
-            Free->Seconds = SANCTUARY_SECONDS;
-            Free->By = SlotIndex;
-            EmitBurst(&AppState->Events, SimBurst_LaunchMark, SlotIndex, Free->Position);
-            Slot->RoleCooldowns[Key] = SANCTUARY_COOLDOWN;
-        } break;
-
-        case 1:
-        case 2:
-        {
-            world_entity *Ally = CursorAlly(AppState, Slot, Player);
-            if (!Ally || Length(Ally->Position.XY - Player->Position.XY) > MENDING_BOLT_RANGE)
-            {
-                Ally = MostHurtAlly(AppState, Player->Position.XY, MENDING_BOLT_RANGE);
-            }
-            if (!Ally)
-            {
-                Ally = Player;
-            }
-            if (Key == 1)
-            {
-                player_slot *AllySlot = &AppState->Players[Ally->PlayerIndex];
-                AllySlot->WardAbsorb = WARD_ABSORB;
-                Slot->RoleCooldowns[Key] = WARD_COOLDOWN;
-            }
-            else
-            {
-                HealPlayer(AppState, SlotIndex, Ally, MENDING_BOLT_HEAL);
-                Slot->RoleCooldowns[Key] = MENDING_BOLT_COOLDOWN;
-            }
-            EmitBurst(&AppState->Events, SimBurst_Spawn, (u8)Ally->PlayerIndex, Ally->Position);
-        } break;
-    }
-    return true;
-}
+#include "role_kits/tank.cpp"
+#include "role_kits/healer.cpp"
+#include "role_kits/striker.cpp"
 
 // NOTE(zoubir): from UpdatePlayer, before the game's abilities
 internal void
@@ -373,12 +303,12 @@ UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
         Slot->RoleCooldowns[Key] = Maximum(0.f, Slot->RoleCooldowns[Key] - DeltaTime);
     }
     Slot->ShieldWallSeconds = Maximum(0.f, Slot->ShieldWallSeconds - DeltaTime);
-    if (!RoleOwnsKeys(AppState, Slot))
-    {
-        return;
-    }
     for(u32 Key = 0; Key < ROLE_KEYS; Key++)
     {
+        if (!RoleOwnsKey(AppState, Slot, Key))
+        {
+            continue;
+        }
         u32 Button = RoleKeys[Key];
         bool32 Pressed = WasPressed(&Slot->Input, Button);
         Slot->Input.Pressed &= ~Button;
@@ -388,36 +318,74 @@ UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
         {
             continue;
         }
-        if (Slot->Role == PlayerRole_Tank)
+        bool32 Cast = false;
+        switch(Slot->Role)
         {
-            CastTankKey(AppState, World, Arena, Slot, Player, Key);
+            case PlayerRole_Tank: Cast = CastTankKey(AppState, World, Arena, Slot, Player, Key); break;
+            case PlayerRole_Healer: Cast = CastHealerKey(AppState, Slot, Player, Key); break;
+            case PlayerRole_Damage: Cast = CastStrikerKey(AppState, Slot, Player, Key); break;
         }
-        else
+        if (Cast)
         {
-            CastHealerKey(AppState, Slot, Player, Key);
+            Slot->RoleCooldowns[Key] = RoleSpellCooldown(Slot, Key);
         }
     }
 }
 
-// NOTE(zoubir): once a tick: each sanctuary heals the living players in it
+// NOTE(zoubir): how many monsters of the fight are after each player,
+// for the party frames
 internal void
-UpdateSanctuaries(app_state *AppState, dungeon_run *Run, float DeltaTime)
+CountAggro(app_state *AppState, dungeon_run *Run)
 {
-    for(u32 Index = 0; Index < MAX_SANCTUARIES; Index++)
+    world *World = &AppState->World;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
-        sanctuary *Zone = &Run->Sanctuaries[Index];
-        if (Zone->Seconds <= 0.f)
+        AppState->Players[SlotIndex].Aggro = 0;
+    }
+    for(u32 Foe = 0; Foe < Run->FoeCount && Run->FightingRoom; Foe++)
+    {
+        world_entity *Monster = FindMonsterBySerial(World, Run->FoeSlots[Foe], Run->FoeSerials[Foe]);
+        world_entity *Target = Monster ? FindMonsterTarget(AppState, World, Monster, 0) : 0;
+        if (Target && Target->PlayerIndex < MAX_PLAYERS)
         {
-            continue;
-        }
-        Zone->Seconds -= DeltaTime;
-        for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
-        {
-            world_entity *Player = LivingPlayerInSlot(AppState, SlotIndex);
-            if (Player && Length(Player->Position.XY - Zone->Position.XY) <= SANCTUARY_RADIUS)
-            {
-                HealPlayer(AppState, Zone->By, Player, SANCTUARY_HEAL_PER_SECOND * DeltaTime);
-            }
+            u8 *Aggro = &AppState->Players[Target->PlayerIndex].Aggro;
+            *Aggro = (u8)Minimum(7u, (u32)*Aggro + 1);
         }
     }
+}
+
+// NOTE(zoubir): no room being fought: everyone standing heals up
+internal void
+RestBetweenFights(app_state *AppState, dungeon_run *Run, float DeltaTime)
+{
+    if (Run->FightingRoom)
+    {
+        return;
+    }
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        world_entity *Player = LivingPlayerInSlot(AppState, SlotIndex);
+        if (Player && Player->Hp < Player->MaxHp)
+        {
+            Player->Hp = Minimum(Player->MaxHp,
+                                 Player->Hp + REST_SHARE_PER_SECOND * Player->MaxHp * DeltaTime);
+        }
+    }
+}
+
+// NOTE(zoubir): once a tick, from UpdateDungeon: what the role spells
+// left behind, and the rest between fights
+internal void
+UpdateRoleEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
+{
+    UpdateSanctuaries(AppState, Run, DeltaTime);
+    UpdateRenewals(AppState, DeltaTime);
+    UpdateInfernos(AppState, Run, DeltaTime);
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        Slot->RallySeconds = Maximum(0.f, Slot->RallySeconds - DeltaTime);
+    }
+    CountAggro(AppState, Run);
+    RestBetweenFights(AppState, Run, DeltaTime);
 }

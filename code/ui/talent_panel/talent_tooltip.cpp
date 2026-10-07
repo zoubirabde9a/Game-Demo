@@ -32,8 +32,8 @@ DrawTalentTooltip(render_context *RenderContext, app_state *AppState,
                   talent_panel_layout *L, u32 Talent, v2 Node)
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
-    talent_def *Def = &TalentDefs[Talent];
-    u32 Accent = TalentBranchAccents[Def->Branch];
+    talent_def *Def = ShownTalentDef(Slot, Talent);
+    u32 Accent = TalentBranchAccent(Slot, Def->Branch);
     font *Body = AppState->Fonts.Body;
     font *Small = AppState->Fonts.Small;
     font *Strong = AppState->Fonts.Strong ? AppState->Fonts.Strong : Body;
@@ -51,12 +51,12 @@ DrawTalentTooltip(render_context *RenderContext, app_state *AppState,
         if (Def->Button)
         {
             snprintf(Line, 112, "%s ability  key %s   level %u of %u",
-                     TalentBranchNames[Def->Branch], ActionKeyLabel(Def->Button), Level,
+                     TalentBranchName(Slot, Def->Branch), ActionKeyLabel(Def->Button), Level,
                      Def->MaxLevel);
         }
         else
         {
-            snprintf(Line, 112, "%s passive   rank %u of %u", TalentBranchNames[Def->Branch],
+            snprintf(Line, 112, "%s passive   rank %u of %u", TalentBranchName(Slot, Def->Branch),
                      Level, Def->MaxLevel);
         }
     }

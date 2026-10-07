@@ -3,14 +3,16 @@
 
    Each score's Dungeon byte gives a player's role (with the health it
    brings, so the party frames and the bar show the right share), Shield
-   Wall, a ward and revive progress. The snapshot's dungeon block gives
-   the rooms, the fight and the healers' sanctuaries; the gate walls are then built or taken down
+   Wall, a ward and revive progress; DungeonMore a rally, a renewal and
+   how many monsters are after them. The snapshot's dungeon block gives
+   the rooms, the fight, the healers' sanctuaries and the infernos; the
+   gate walls are then built or taken down
    locally from the room states (UpdateGates), so the local player's
    prediction stops at a closed gate as the server does. The role the
    player picks goes the other way, in role_requests.cpp. */
 
 internal void
-ApplyDungeonScore(app_state *AppState, player_slot *Slot, u8 Packed)
+ApplyDungeonScore(app_state *AppState, player_slot *Slot, u8 Packed, u8 More)
 {
     if (!IsDungeon(AppState))
     {
@@ -27,7 +29,11 @@ ApplyDungeonScore(app_state *AppState, player_slot *Slot, u8 Packed)
     }
     Slot->ShieldWallSeconds = (Packed & (1 << 2)) ? SHIELD_WALL_SECONDS : 0.f;
     Slot->WardAbsorb = (Packed & (1 << 3)) ? WARD_ABSORB : 0.f;
+    Slot->WardFull = WARD_ABSORB;
     Slot->ReviveSeconds = REVIVE_SECONDS * (float)(Packed >> 4) / 15.f;
+    Slot->RallySeconds = (More & 1) ? RALLY_SECONDS : 0.f;
+    Slot->RenewSeconds = (More & (1 << 1)) ? RENEWAL_SECONDS : 0.f;
+    Slot->Aggro = (u8)((More >> 2) & 7);
 }
 
 internal void
@@ -59,7 +65,26 @@ ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Sna
         {
             Zone->Position = V3((float)Snapshot->SanctuaryX[Index],
                                 (float)Snapshot->SanctuaryY[Index], 0.f);
-            Zone->Seconds = 0.1f * (float)Snapshot->SanctuaryTenths[Index];
+            u8 Tenths = Snapshot->SanctuaryTenths[Index];
+            Zone->Seconds = 0.1f * (float)(Tenths & ~NET_ZONE_WIDE);
+            Zone->Radius = SANCTUARY_RADIUS * ((Tenths & NET_ZONE_WIDE) ? HALLOWED_RADIUS : 1.f);
+        }
+    }
+    for(u32 Index = 0; Index < MAX_INFERNOS; Index++)
+    {
+        inferno *Zone = &Run->Infernos[Index];
+        *Zone = {};
+        if (Index < Snapshot->InfernoCount)
+        {
+            Zone->Position = V3((float)Snapshot->InfernoX[Index],
+                                (float)Snapshot->InfernoY[Index], 0.f);
+            u8 Packed = Snapshot->InfernoTenths[Index];
+            float Seconds = 0.1f * (float)(Packed & 63);
+            Zone->Delay = (Packed & NET_INFERNO_FALLING) ? Seconds : 0.f;
+            // NOTE(zoubir): a falling meteor's burn is still to come; any
+            // time will do for the drawing, which only asks whether it burns
+            Zone->Seconds = (Packed & NET_INFERNO_FALLING) ? INFERNO_BURN_SECONDS : Seconds;
+            Zone->Radius = INFERNO_RADIUS * ((Packed & NET_ZONE_WIDE) ? CATACLYSM_RADIUS : 1.f);
         }
     }
     UpdateGates(AppState, &AppState->World, Arena, Run);

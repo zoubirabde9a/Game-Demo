@@ -7,6 +7,11 @@
    ground under it (draw_tilemap.cpp lists the keys raised ground uses),
    and is never drawn below that ground. */
 
+// NOTE(zoubir): in client/dungeon/role_looks.cpp, included later: a
+// player's sprite and ground ring take their dungeon role's colour
+internal u32 RoleBodyTint(app_state *AppState, world_entity *Entity);
+internal u32 RoleMarkerColor(app_state *AppState, world_entity *Entity, u32 Duel);
+
 // NOTE(zoubir): sort keys of the back-to-front world pass, in world units;
 // lower draws first. Flat ground is one batch under everything
 #define FLAT_GROUND_SORT_KEY -1.0e7f
@@ -239,7 +244,7 @@ DrawEntity(render_context *RenderContext,
                        SortingValue, TextureProgram);
 
             ColorRGBA8 Color;
-            Color.ColorU32 = Entity->Tint ? Entity->Tint : RGBA8_WHITE;
+            Color.ColorU32 = Entity->Tint ? Entity->Tint : RoleBodyTint(AppState, Entity);
             Color.A = 255;
             // NOTE(zoubir): a shielded player (respawn or Shield) is drawn
             // whole, inside a bubble (player_fx/shield_bubble.cpp)
@@ -300,7 +305,7 @@ DrawEntity(render_context *RenderContext,
     if (Entity->Type == EntityType_Player)
     {
         u32 MarkerColor = Entity == GetLocalPlayer(AppState) ?
-            SELF_MARKER_COLOR : FOE_MARKER_COLOR;
+            SELF_MARKER_COLOR : RoleMarkerColor(AppState, Entity, FOE_MARKER_COLOR);
         DrawSelfMarker(RenderContext,
                        V2(EntityCameraPosition.X, EntityCameraPosition.Y - GroundZ),
                        SortingValue, MarkerColor);

@@ -92,7 +92,7 @@ DrawTalentStats(render_context *RenderContext, app_state *AppState, talent_panel
             continue;
         }
         DrawTexturedQuad(RenderContext, Panel->Atlas, Left, Y - 1.f, Icon, Icon,
-                         TalentIconUvs(Talent), 0xFFFFFFFF);
+                         TalentIconUvs(TalentIconCell(Slot, Talent)), 0xFFFFFFFF);
         UIText(RenderContext, Small, Left + Icon + 6.f, Y, Def->Name, UI_COLOR_TEXT);
         float Cooldown = TalentBaseCooldown(Player, Def->Button) * CooldownScaleForLevel(Level);
         snprintf(Value, sizeof(Value), "%.1f s", Cooldown);

@@ -10,9 +10,13 @@
    dash now and then, and wander when nothing is near. It earns experience
    like anyone and spends each point on a random talent it may take, then
    uses Frost Nova, Shockwave and Gravity Well once it has them. In a
-   dungeon run (sim/dungeon/) it fights only monsters and takes a role by
-   its slot, so a lone player gets a tank, a healer and damage. Included
-   by sim_game.cpp; GameKeepBots runs it every tick. */
+   dungeon run (sim/dungeon/) it fights only monsters, takes a role by
+   its slot, so a lone player gets a tank, a healer and damage, and plays
+   it (BotRoleButtons): the tank slams and taunts what is near and leaps
+   to an ally being chased, the healer keeps out of melee and heals,
+   wards and lays sanctuaries on whoever is hurt, the damage role drops
+   infernos on what it fights. Included by sim_game.cpp; GameKeepBots
+   runs it every tick. */
 
 #define BOT_SIGHT 700.f
 #define BOT_SWORD_RANGE 70.f
@@ -82,17 +86,120 @@ BotFindTarget(app_state *AppState, world_entity *Self)
 // NOTE(zoubir): a talent Slot may put a point into, picked at random, as
 // the held buttons' talent field (net/protocol.h); 0 for none
 internal u32
-BotPickTalent(bot_brain *Bot, player_slot *Slot)
+BotPickTalent(bot_brain *Bot, app_state *AppState, player_slot *Slot)
 {
     u32 Result = 0;
     u32 Start = BotRandom(Bot) % Talent_Count;
     for (u32 Step = 0; Step < Talent_Count && !Result; ++Step)
     {
         u32 Talent = (Start + Step) % Talent_Count;
+        // NOTE(zoubir): the role branch takes points only in a run
+        if (IsRoleTalent(Talent) && !IsDungeon(AppState)) continue;
         if (CanLearnTalent(Slot, Talent) == TalentRefusal_None)
         {
             Result = (Talent + 1) << NET_LEARN_SHIFT;
         }
+    }
+    return Result;
+}
+
+// NOTE(zoubir): the living ally (not Self) missing the largest share of
+// its health within Range, or 0 when nobody is under Below of theirs
+internal world_entity *
+BotHurtAlly(app_state *AppState, world_entity *Self, float Range, float Below)
+{
+    world_entity *Result = 0;
+    float Worst = Below;
+    for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; ++SlotIndex)
+    {
+        world_entity *Ally = LivingPlayerInSlot(AppState, SlotIndex);
+        if (!Ally || Ally->MaxHp <= 0.f ||
+            Length(Ally->Position.XY - Self->Position.XY) > Range) continue;
+        float Share = Ally->Hp / Ally->MaxHp;
+        if (Share < Worst)
+        {
+            Worst = Share;
+            Result = Ally;
+        }
+    }
+    return Result;
+}
+
+// NOTE(zoubir): in a dungeon run, the role keys a bot presses this tick
+// (sim/dungeon/role_abilities.cpp); *Held may lose its movement for a
+// healer keeping its distance, and *Pick becomes the ally a spell goes to
+internal u32
+BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
+               world_entity *Target, float Distance, v2 Direction, u32 *Held, u16 *Pick)
+{
+    player_slot *Slot = &AppState->Players[Self->PlayerIndex];
+    u32 Result = 0;
+    bool32 Ready[ROLE_KEYS];
+    for (u32 Key = 0; Key < ROLE_KEYS; ++Key) Ready[Key] = Slot->RoleCooldowns[Key] <= 0.f;
+    if (Slot->Role == PlayerRole_Tank)
+    {
+        if (Target && Distance < SHIELD_SLAM_RADIUS && Ready[1] && BotRandom(Bot) % 20 == 0)
+        {
+            Result |= NetButton_Shield;
+        }
+        if (Target && Distance < TAUNT_RADIUS * 0.8f && Ready[0] && BotRandom(Bot) % 30 == 0)
+        {
+            Result |= NetButton_Launch;
+        }
+        // NOTE(zoubir): an ally with monsters on them, too far to taunt off
+        for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS && Ready[2]; ++SlotIndex)
+        {
+            world_entity *Ally = LivingPlayerInSlot(AppState, SlotIndex);
+            float Gap = Ally ? Length(Ally->Position.XY - Self->Position.XY) : 0.f;
+            if (Ally && Ally != Self && AppState->Players[SlotIndex].Aggro > 0 &&
+                Gap > 150.f && Gap < INTERCEPT_RANGE && BotRandom(Bot) % 40 == 0)
+            {
+                Result |= NetButton_Kunai;
+                *Pick = (u16)(Ally->ID + 1);
+                break;
+            }
+        }
+    }
+    else if (Slot->Role == PlayerRole_Healer)
+    {
+        // NOTE(zoubir): out of the melee: back off what comes close
+        if (Target && Distance < 180.f)
+        {
+            *Held &= ~(u32)(NetButton_Left | NetButton_Right | NetButton_Up | NetButton_Down |
+                            NetButton_Sword);
+            *Held |= NetButtonsToward(-Direction);
+        }
+        world_entity *Hurt = BotHurtAlly(AppState, Self, MENDING_BOLT_RANGE, 0.85f);
+        if (Hurt && Ready[2] && BotRandom(Bot) % 6 == 0)
+        {
+            Result |= NetButton_Kunai;
+            *Pick = (u16)(Hurt->ID + 1);
+        }
+        world_entity *Low = BotHurtAlly(AppState, Self, MENDING_BOLT_RANGE, 0.6f);
+        if (Low && Ready[1] && !(Result & NetButton_Kunai) &&
+            AppState->Players[Low->PlayerIndex].WardAbsorb <= 0.f && BotRandom(Bot) % 10 == 0)
+        {
+            Result |= NetButton_Shield;
+            *Pick = (u16)(Low->ID + 1);
+        }
+        // NOTE(zoubir): a sanctuary at its own feet when the party is hurt
+        // round it
+        u32 HurtNear = 0;
+        for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; ++SlotIndex)
+        {
+            world_entity *Ally = LivingPlayerInSlot(AppState, SlotIndex);
+            HurtNear += (Ally && Ally->Hp < 0.8f * Ally->MaxHp &&
+                         Length(Ally->Position.XY - Self->Position.XY) < SANCTUARY_RADIUS) ? 1 : 0;
+        }
+        if (HurtNear >= 2 && Ready[0] && BotRandom(Bot) % 20 == 0)
+        {
+            Result |= NetButton_Launch;
+        }
+    }
+    else if (Target && Distance > 80.f && Distance < PLAYER_AIM_REACH && Ready[0] &&
+             BotRandom(Bot) % 25 == 0)
+    {
+        Result |= NetButton_Launch;
     }
     return Result;
 }
@@ -181,7 +288,7 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     if (Slot && TalentPointsLeft(Slot) > 0 && Bot->LearnWait <= 0.f &&
         !(Bot->Held >> NET_LEARN_SHIFT))
     {
-        Held |= BotPickTalent(Bot, Slot);
+        Held |= BotPickTalent(Bot, AppState, Slot);
         Bot->LearnWait = BOT_LEARN_SECONDS;
     }
 
@@ -206,16 +313,26 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         }
     }
 
+    // NOTE(zoubir): its cursor on the unit it chases, as a player's would
+    // be, or on the ally a role spell goes to
+    u16 Pick = Target ? (u16)(Target->ID + 1) : 0;
+    if (Self && IsDungeon(AppState) && !IsDeadPlayer(Self))
+    {
+        float Distance = Target ? Length(Target->Position.XY - Self->Position.XY) : 0.f;
+        Held &= ~(u32)NetButton_Kunai;
+        Held |= BotRoleButtons(Bot, AppState, Self, Target, Distance, Direction, &Held, &Pick);
+    }
+
     // A press needs the button up the tick before; drop repeats.
     Held &= ~(Bot->Held & (NetButton_Sword | NetButton_Fireball | NetButton_Dash |
                            NetButton_RewindSelf | NetButton_RewindBubble |
                            NetButton_FrostNova | NetButton_Shockwave |
-                           NetButton_GravityWell | NetButton_Kunai));
+                           NetButton_GravityWell | NetButton_Kunai |
+                           NetButton_Launch | NetButton_Shield));
     Bot->Held = Held;
     Input.Buttons = Held;
     Input.AimX = AimReach * Direction.X;
     Input.AimY = AimReach * Direction.Y;
-    // NOTE(zoubir): its cursor on the unit it chases, as a player's would be
-    Input.Target = Target ? (u16)(Target->ID + 1) : 0;
+    Input.Target = Pick;
     return Input;
 }

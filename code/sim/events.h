@@ -62,6 +62,16 @@ enum sim_burst
     SimBurst_TalentLearned, // a player spending a talent point
     SimBurst_KunaiReflect, // a kunai glancing off a shield, back along Angle
     SimBurst_SwordHit,     // a sword's cut across what it struck, along Angle
+    // NOTE(zoubir): dungeon role spells (sim/dungeon/role_kits/), drawn by
+    // client/dungeon/role_fx.cpp
+    SimBurst_Taunt,        // a tank's war cry, a red ring out to its reach
+    SimBurst_ShieldSlam,   // a tank's shield slammed into the ground
+    SimBurst_InterceptLand, // where a tank's leap to an ally lands
+    SimBurst_MendingBolt,  // light from the healer in Slot to the healed at Position
+    SimBurst_WardCast,     // a ward closing round the player at Position
+    SimBurst_SanctuaryCast, // a sanctuary blooming on the ground
+    SimBurst_InfernoCast,  // the damage role calling a meteor down
+    SimBurst_InfernoBlast, // the meteor landing at Position
     SimBurst_Count
 };
 

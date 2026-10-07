@@ -49,12 +49,27 @@ struct threat_table
     threat_row Rows[THREAT_ROWS];
 };
 
-// NOTE(zoubir): a healer's Sanctuary on the ground (role_abilities.cpp)
+// NOTE(zoubir): a healer's Sanctuary on the ground (role_kits/healer.cpp)
 #define MAX_SANCTUARIES 8
 struct sanctuary
 {
     v3 Position;
     float Seconds;
+    u32 By;
+    float Radius;
+    float HealPerSecond;
+};
+
+// NOTE(zoubir): the damage role's Inferno (role_kits/striker.cpp): the
+// seconds until the meteor lands, then the seconds the ground burns
+#define MAX_INFERNOS 8
+struct inferno
+{
+    v3 Position;
+    float Delay;
+    float Seconds;
+    float Radius;
+    float TickTimer;
     u32 By;
 };
 
@@ -91,6 +106,7 @@ struct dungeon_run
     // NOTE(zoubir): who each monster attacks (threat.cpp)
     threat_table Threat;
     sanctuary Sanctuaries[MAX_SANCTUARIES];
+    inferno Infernos[MAX_INFERNOS];
     // NOTE(zoubir): what the HUD shows of the fight: the boss's kind
     // (MonsterKind_Count for none) and share of health, and the monsters
     // left. UpdateDungeon sets them; online the snapshot does
@@ -130,14 +146,17 @@ IsDungeon(app_state *AppState)
 }
 
 #include "roles.cpp"
+#include "role_talents.cpp"
 
 // NOTE(zoubir): share of a hit a tank takes behind Shield Wall
 // (role_abilities.cpp)
 #define SHIELD_WALL_SCALE 0.4f
 
-// NOTE(zoubir): in threat.cpp, included by encounters.cpp later
+// NOTE(zoubir): in threat.cpp and role_kits/striker.cpp, included by
+// encounters.cpp later
 internal void AddThreat(threat_table *Table, world *World, world_entity *Monster,
                        u32 PlayerSlot, float Amount);
+internal void OnRoleKill(player_slot *Attacker);
 
 // NOTE(zoubir): the world was just built for its map in Arena
 // (InitSimulation, RebuildWorldForMap): a dungeon map starts a fresh run
@@ -222,10 +241,15 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
     if (Target->Type == EntityType_Player && Target->PlayerIndex < MAX_PLAYERS)
     {
         player_slot *Slot = &AppState->Players[Target->PlayerIndex];
-        Result *= GetRoleDef(Slot->Role)->DamageTaken;
+        Result *= GetRoleDef(Slot->Role)->DamageTaken * RoleTalentTakenScale(Slot, Target);
         if (Slot->ShieldWallSeconds > 0.f)
         {
             Result *= SHIELD_WALL_SCALE;
+        }
+        // NOTE(zoubir): a tank's Shield Slam rallied them
+        if (Slot->RallySeconds > 0.f)
+        {
+            Result *= 1.f - Slot->RallyShare;
         }
         // NOTE(zoubir): a healer's ward takes what it can
         float Absorbed = Minimum(Result, Slot->WardAbsorb);
@@ -236,9 +260,13 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
     if (Attacker && Target->Type == EntityType_Monster)
     {
         role_def *Role = GetRoleDef(Attacker->Role);
-        Result *= Role->DamageDealt;
+        Result *= Role->DamageDealt * RoleTalentDealtScale(Attacker, Target);
         AddThreat(&AppState->Dungeon->Threat, &AppState->World, Target,
                   (u32)(Attacker - AppState->Players), Result * Role->ThreatScale);
+        if (Result >= Target->Hp)
+        {
+            OnRoleKill(Attacker);
+        }
     }
     return Result;
 }

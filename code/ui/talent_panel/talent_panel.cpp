@@ -21,6 +21,10 @@
    medallion and says why at the foot of the panel. Reset (two clicks)
    gives every point back.
 
+   In a dungeon run a fourth column holds the player's role branch
+   (sim/dungeon/role_talents.cpp), in the role's colour and under its
+   name; it changes with the role.
+
    The game goes on behind it: keys still move and fight, only clicks on
    the panel stay with the panel. */
 
@@ -39,12 +43,51 @@
 #define TALENT_RESET_ARM_SECONDS 3.f
 #define TALENT_TOOLTIP_WIDTH 320.f
 
-global_variable u32 TalentBranchAccents[TalentBranch_Count] =
+global_variable u32 TalentBranchAccents[TALENT_GAME_BRANCHES] =
 {
     UI_RGBA(255, 122, 52, 255),
     UI_RGBA(80, 215, 240, 255),
     UI_RGBA(176, 136, 255, 255),
 };
+
+// NOTE(zoubir): the role branch's colour, by player_role
+global_variable u32 RoleBranchAccents[PlayerRole_Count] =
+{
+    UI_RGBA(255, 150, 70, 255),
+    UI_RGBA(110, 170, 255, 255),
+    UI_RGBA(130, 230, 150, 255),
+};
+
+// NOTE(zoubir): how many columns the panel shows: the role's only in a run
+inline u32
+ShownTalentBranches(app_state *AppState)
+{
+    u32 Result = IsDungeon(AppState) ? TalentBranch_Count : TALENT_GAME_BRANCHES;
+    return Result;
+}
+
+inline bool32
+IsTalentShown(app_state *AppState, u32 Talent)
+{
+    bool32 Result = TalentDefs[Talent].Branch < ShownTalentBranches(AppState);
+    return Result;
+}
+
+inline u32
+TalentBranchAccent(player_slot *Slot, u32 Branch)
+{
+    u32 Result = Branch < TALENT_GAME_BRANCHES ? TalentBranchAccents[Branch] :
+        RoleBranchAccents[Slot->Role < PlayerRole_Count ? Slot->Role : 0];
+    return Result;
+}
+
+inline char *
+TalentBranchName(player_slot *Slot, u32 Branch)
+{
+    char *Result = Branch < TALENT_GAME_BRANCHES ? TalentBranchNames[Branch] :
+        GetRoleDef(Slot->Role)->Name;
+    return Result;
+}
 
 struct talent_panel
 {
@@ -114,7 +157,7 @@ struct talent_panel_layout
 };
 
 internal talent_panel_layout
-LayTalentPanel(u32 WindowWidth, u32 WindowHeight, float Shown)
+LayTalentPanel(u32 WindowWidth, u32 WindowHeight, float Shown, u32 Branches)
 {
     talent_panel_layout L = {};
     // NOTE(zoubir): above the ability bar, which keeps showing cooldowns
@@ -128,8 +171,8 @@ LayTalentPanel(u32 WindowWidth, u32 WindowHeight, float Shown)
     // NOTE(zoubir): the sidebar goes when the window is too narrow for it
     float Sidebar = L.Width >= 900.f ? TALENT_SIDEBAR_WIDTH : 0.f;
     float Inner = L.Width - 2.f * UI_GAP_LARGE - (Sidebar > 0.f ? Sidebar + TALENT_COLUMN_GAP : 0.f);
-    L.ColumnWidth = (Inner - 2.f * TALENT_COLUMN_GAP) / (float)TalentBranch_Count;
-    for(u32 Branch = 0; Branch < TalentBranch_Count; Branch++)
+    L.ColumnWidth = (Inner - (float)(Branches - 1) * TALENT_COLUMN_GAP) / (float)Branches;
+    for(u32 Branch = 0; Branch < Branches; Branch++)
     {
         L.ColumnX[Branch] = L.X + UI_GAP_LARGE +
             (float)Branch * (L.ColumnWidth + TALENT_COLUMN_GAP);
@@ -216,7 +259,7 @@ TalentNodeState(player_slot *Slot, u32 Talent)
 internal void
 TalentRefusalText(player_slot *Slot, u32 Talent, talent_refusal Refusal, char *Out, u32 OutSize)
 {
-    talent_def *Def = &TalentDefs[Talent];
+    talent_def *Def = ShownTalentDef(Slot, Talent);
     switch (Refusal)
     {
         case TalentRefusal_None:
@@ -232,7 +275,7 @@ TalentRefusalText(player_slot *Slot, u32 Talent, talent_refusal Refusal, char *O
             u32 Spent = TalentPointsSpent(Slot, Def->Branch);
             u32 Need = TalentTierCost(Def->Tier);
             snprintf(Out, OutSize, "Spend %u more in %s to open this tier",
-                     Need - Spent, TalentBranchNames[Def->Branch]);
+                     Need - Spent, TalentBranchName(Slot, Def->Branch));
         } break;
         case TalentRefusal_NoPoints:
         {
@@ -326,7 +369,8 @@ DrawTalentPanel(render_context *RenderContext, app_state *AppState, app_input *I
         Panel->Atlas = BuildTalentIconAtlas(RenderContext->OpenGL, RenderContext->Arena);
     }
 
-    talent_panel_layout L = LayTalentPanel(WindowWidth, WindowHeight, Panel->Shown);
+    talent_panel_layout L = LayTalentPanel(WindowWidth, WindowHeight, Panel->Shown,
+                                           ShownTalentBranches(AppState));
     Requests->PanelX = L.X;
     Requests->PanelY = L.Y;
     Requests->PanelWidth = L.Width;
@@ -344,6 +388,10 @@ DrawTalentPanel(render_context *RenderContext, app_state *AppState, app_input *I
     i32 Hovered = -1;
     for(u32 Talent = 0; Talent < Talent_Count; Talent++)
     {
+        if (!IsTalentShown(AppState, Talent))
+        {
+            continue;
+        }
         v2 Centre = TalentNodeCentre(&L, Talent);
         if (IsMouseOnRectangle(Input->MouseX, Input->MouseY, Centre.X - 0.5f * L.NodeSize,
                                Centre.Y - 0.5f * L.NodeSize, L.NodeSize, L.NodeSize))
@@ -351,12 +399,16 @@ DrawTalentPanel(render_context *RenderContext, app_state *AppState, app_input *I
             Hovered = (i32)Talent;
         }
     }
-    for(u32 Branch = 0; Branch < TalentBranch_Count; Branch++)
+    for(u32 Branch = 0; Branch < ShownTalentBranches(AppState); Branch++)
     {
         DrawTalentColumn(RenderContext, AppState, Panel, &L, Branch, Hovered);
     }
     for(u32 Talent = 0; Talent < Talent_Count; Talent++)
     {
+        if (!IsTalentShown(AppState, Talent))
+        {
+            continue;
+        }
         DrawTalentNode(RenderContext, AppState, Input, Panel, &L, Talent,
                        Hovered == (i32)Talent);
     }

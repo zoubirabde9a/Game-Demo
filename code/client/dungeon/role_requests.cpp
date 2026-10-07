@@ -4,7 +4,8 @@
    for a few inputs and let go like a map vote (vote_requests.cpp), so a
    lost packet loses nothing; the server takes it between fights
    (TakeRoleRequests, sim/dungeon/encounters.cpp). Offline the picker
-   sets the role directly. */
+   sets the role directly. Developer builds also read GAME_ROLE at start
+   (ApplyDeveloperRole), for scripted screenshots. */
 
 internal void
 RequestDungeonRole(app_state *AppState, u32 Role)
@@ -38,4 +39,32 @@ OnlineRoleBits(app_state *AppState, float DeltaTime)
     }
     u32 Result = (AppState->RoleHolding & NET_ROLE_MASK) << NET_ROLE_SHIFT;
     return Result;
+}
+
+// NOTE(zoubir): developer builds, offline: GAME_ROLE=tank, healer or
+// damage starts a dungeon run in that role, so a scripted screenshot
+// (misc\screenshot.bat) can show a role's look and spells
+internal void
+ApplyDeveloperRole(app_state *AppState)
+{
+#if APP_DEV
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    char *Value = getenv("GAME_ROLE");
+#pragma warning(pop)
+    if (!Value || !Value[0] || !IsDungeon(AppState))
+    {
+        return;
+    }
+    player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
+    for(u32 Role = 0; Role < PlayerRole_Count; Role++)
+    {
+        role_def *Def = GetRoleDef(Role);
+        if (strcmp(Value, Def->Title) == 0 || strcmp(Value, Def->Name) == 0 ||
+            (Value[0] | 32) == (Def->Title[0] | 32))
+        {
+            SetPlayerRole(AppState, Slot, Role);
+        }
+    }
+#endif
 }

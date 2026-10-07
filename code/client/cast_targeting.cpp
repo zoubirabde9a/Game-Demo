@@ -9,6 +9,8 @@
    shows its reach, and the click throws it at the unit the cursor is on
    (targeting.cpp). Keys that only move or guard the player (jump, dash,
    shield, slam) and the two basic attacks cast at once in both modes.
+   In a dungeon run a role's spells aim only when they land on the
+   ground (dungeon/role_targeting.cpp).
 
    A targeted key pressed while its ability recharges aims nothing: it
    is swallowed and the cursor says "Not ready" (targeting.cpp), so no
@@ -105,9 +107,10 @@ LearnedTargetedButtons(app_state *AppState)
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     if (Player && Player->IsPresent && !IsDeadPlayer(Player))
     {
-        for(u32 Bit = 1; Bit <= CAST_TARGETED_BUTTONS; Bit <<= 1)
+        u32 Targeted = RoleTargetedButtons(AppState, CAST_TARGETED_BUTTONS);
+        for(u32 Bit = 1; Bit <= Targeted; Bit <<= 1)
         {
-            if ((Bit & CAST_TARGETED_BUTTONS) && AbilityLevel(Slot, Bit) > 0)
+            if ((Bit & Targeted) && AbilityLevel(Slot, Bit) > 0)
             {
                 Result |= Bit;
             }
@@ -150,7 +153,7 @@ UpdateCastTargeting(app_input *Input, app_state *AppState, u32 Blocked)
     // NOTE(zoubir): a click that belongs to a screen (the tile editor, the
     // talent panel, the mode checkbox) neither casts nor confirms
     if (AppState->TileEditing || TalentPanelHasMouse(AppState, Input) ||
-        IsMouseOnCastModeToggle(Targeting, Input))
+        IsMouseOnCastModeToggle(Targeting, Input) || PartyFramesHaveMouse(AppState, Input))
     {
         Targeting->Swallowed |= Pressed & PlayerButton_Cast;
         Pressed &= ~Clicks;

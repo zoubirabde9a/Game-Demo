@@ -58,8 +58,9 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
     {
         Result.Pressed &= ~(u32)PlayerButton_Cast;
     }
-    // NOTE(zoubir): a click on the talent panel is the panel's
-    if (TalentPanelHasMouse(AppState, Input))
+    // NOTE(zoubir): a click on the talent panel is the panel's, one on
+    // the party frames picks an ally (dungeon/role_targeting.cpp)
+    if (TalentPanelHasMouse(AppState, Input) || PartyFramesHaveMouse(AppState, Input))
     {
         Result.Pressed &= ~(u32)(PlayerButton_Cast | PlayerButton_Attack);
     }

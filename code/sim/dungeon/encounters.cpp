@@ -433,7 +433,7 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
     world *World = &AppState->World;
     TakeRoleRequests(AppState, Run);
     UpdateThreat(&Run->Threat, DeltaTime);
-    UpdateSanctuaries(AppState, Run, DeltaTime);
+    UpdateRoleEffects(AppState, Run, DeltaTime);
     RescueStrayPlayers(AppState, World, Arena);
     if (!Run->FightingRoom)
     {

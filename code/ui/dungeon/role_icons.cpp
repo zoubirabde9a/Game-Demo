@@ -1,8 +1,8 @@
 /* Role icons: the ability bar's pictures for the dungeon roles' spells
    (sim/dungeon/role_abilities.cpp), painted with the ability icons'
    canvas (ui/ability_icons/icon_canvas.cpp) into the same atlas, after
-   the bar's own slots. The bar shows them on a key a tank's or healer's
-   role owns (RoleIconCell). Included by ui/ability_icons/ability_icons.cpp
+   the bar's own slots. The bar shows them on a key a role owns
+   (RoleIconIndex). The role talents reuse them (role_talent_icons.cpp). Included by ui/ability_icons/ability_icons.cpp
    after the canvas. */
 
 // NOTE(zoubir): Taunt: a horned helm roaring red rings outward
@@ -31,27 +31,31 @@ PaintRoleTauntIcon(icon_canvas *Canvas)
     IconSparkle(Canvas, V2(0.78f, 0.3f), 0.06f, Solid(Red));
 }
 
-// NOTE(zoubir): Shield Wall: three tower shields side by side
+// NOTE(zoubir): Shield Slam: a tower shield driven into the ground, the
+// ground cracking and rings of force running out from it
 internal void
-PaintRoleShieldWallIcon(icon_canvas *Canvas)
+PaintRoleShieldSlamIcon(icon_canvas *Canvas)
 {
-    IconGlow(Canvas, V2(0.5f, 0.52f), 0.46f, IconColor(140, 180, 255, 100));
-    for(u32 Shield = 0; Shield < 3; Shield++)
+    IconGlow(Canvas, V2(0.5f, 0.6f), 0.46f, IconColor(140, 180, 255, 110));
+    for(u32 Ring = 0; Ring < 2; Ring++)
     {
-        float X = 0.24f + 0.26f * (float)Shield;
-        float Lift = (Shield == 1) ? -0.05f : 0.f;
-        v2 Points[5] = {V2(X - 0.13f, 0.24f + Lift), V2(X + 0.13f, 0.24f + Lift),
-                        V2(X + 0.13f, 0.66f + Lift), V2(X, 0.82f + Lift),
-                        V2(X - 0.13f, 0.66f + Lift)};
-        IconPolygon(Canvas, Points, 5, Gradient(IconColor(225, 230, 240), IconColor(110, 120, 140),
-                                                V2(X, 0.24f), V2(X, 0.82f)));
-        v2 Inner[5] = {V2(X - 0.09f, 0.29f + Lift), V2(X + 0.09f, 0.29f + Lift),
-                       V2(X + 0.09f, 0.63f + Lift), V2(X, 0.75f + Lift),
-                       V2(X - 0.09f, 0.63f + Lift)};
-        IconPolygon(Canvas, Inner, 5, Gradient(IconColor(80, 110, 190), IconColor(30, 45, 100),
-                                               V2(X, 0.29f), V2(X, 0.75f)));
-        IconCircle(Canvas, V2(X, 0.47f + Lift), 0.035f, Solid(IconColor(235, 200, 90)));
+        float Radius = 0.3f + 0.12f * (float)Ring;
+        IconArc(Canvas, V2(0.5f, 0.8f), Radius, 0.03f,
+                Solid(IconColor(220, 230, 255, 220 - 80 * Ring)), Pi32 + 0.35f, 2.f * Pi32 - 0.35f);
     }
+    IconCapsule(Canvas, V2(0.14f, 0.84f), V2(0.86f, 0.84f), 0.025f, Solid(IconColor(120, 100, 80)));
+    IconCapsule(Canvas, V2(0.5f, 0.84f), V2(0.3f, 0.94f), 0.018f, Solid(IconColor(40, 30, 24)));
+    IconCapsule(Canvas, V2(0.5f, 0.84f), V2(0.72f, 0.95f), 0.018f, Solid(IconColor(40, 30, 24)));
+    v2 Shield[5] = {V2(0.32f, 0.16f), V2(0.68f, 0.16f), V2(0.68f, 0.62f), V2(0.5f, 0.84f),
+                    V2(0.32f, 0.62f)};
+    IconPolygon(Canvas, Shield, 5, Gradient(IconColor(235, 238, 245), IconColor(110, 120, 140),
+                                            V2(0.5f, 0.16f), V2(0.5f, 0.84f)));
+    v2 Field[5] = {V2(0.37f, 0.22f), V2(0.63f, 0.22f), V2(0.63f, 0.6f), V2(0.5f, 0.76f),
+                   V2(0.37f, 0.6f)};
+    IconPolygon(Canvas, Field, 5, Gradient(IconColor(80, 120, 210), IconColor(30, 50, 110),
+                                           V2(0.5f, 0.22f), V2(0.5f, 0.76f)));
+    IconCircle(Canvas, V2(0.5f, 0.42f), 0.06f, Solid(IconColor(240, 205, 90)));
+    IconSparkle(Canvas, V2(0.78f, 0.26f), 0.07f, Solid(IconColor(255, 255, 255)));
 }
 
 // NOTE(zoubir): Intercept: a leap arcing over to a shield raised before an
@@ -135,14 +139,36 @@ PaintRoleMendingBoltIcon(icon_canvas *Canvas)
     IconCapsule(Canvas, V2(0.49f, 0.42f), V2(0.71f, 0.42f), 0.04f, Solid(IconColor(255, 255, 255)));
 }
 
-// NOTE(zoubir): the painters in RoleSpells' order (tank then healer, each
-// key A, E, V); the damage role has none
-#define ROLE_ICON_COUNT 6
+// NOTE(zoubir): Inferno: a meteor plunging onto a ring of fire
+internal void
+PaintRoleInfernoIcon(icon_canvas *Canvas)
+{
+    v4 Yellow = IconColor(255, 225, 110);
+    v4 Orange = IconColor(255, 130, 40);
+    v4 Red = IconColor(200, 40, 20);
+    IconGlow(Canvas, V2(0.5f, 0.6f), 0.48f, IconColor(255, 110, 30, 140));
+    for(u32 Dot = 0; Dot < 14; Dot++)
+    {
+        float Angle = 2.f * Pi32 * (float)Dot / 14.f;
+        IconCircle(Canvas, V2(0.5f + 0.32f * Cos(Angle), 0.78f + 0.1f * Sin(Angle)), 0.04f,
+                   Solid(Dot % 2 ? Orange : Yellow));
+    }
+    IconCapsule(Canvas, V2(0.14f, 0.08f), V2(0.5f, 0.62f), 0.1f,
+                Gradient(IconColor(255, 120, 30, 0), IconColor(255, 150, 50, 230),
+                         V2(0.14f, 0.08f), V2(0.5f, 0.62f)));
+    IconCircle(Canvas, V2(0.54f, 0.64f), 0.15f, Gradient(Yellow, Red, V2(0.46f, 0.54f), V2(0.64f, 0.76f)));
+    IconCircle(Canvas, V2(0.5f, 0.6f), 0.06f, Solid(IconColor(255, 250, 225)));
+}
+
+// NOTE(zoubir): the painters in RoleSpells' order for the keys a role
+// owns: tank A, E, V, healer A, E, V, then the damage role's A
+#define ROLE_ICON_COUNT 7
 typedef void role_icon_painter(icon_canvas *Canvas);
 global_variable role_icon_painter *RoleIconPainters[ROLE_ICON_COUNT] =
 {
-    PaintRoleTauntIcon, PaintRoleShieldWallIcon, PaintRoleInterceptIcon,
+    PaintRoleTauntIcon, PaintRoleShieldSlamIcon, PaintRoleInterceptIcon,
     PaintRoleSanctuaryIcon, PaintRoleWardIcon, PaintRoleMendingBoltIcon,
+    PaintRoleInfernoIcon,
 };
 
 // NOTE(zoubir): the icon for Role's Key, as an index into RoleIconPainters,
@@ -158,6 +184,10 @@ RoleIconIndex(u32 Role, u32 Key)
     else if (Role == PlayerRole_Healer && Key < ROLE_KEYS)
     {
         Result = ROLE_KEYS + Key;
+    }
+    else if (Role == PlayerRole_Damage && Key == 0)
+    {
+        Result = 2 * ROLE_KEYS;
     }
     return Result;
 }

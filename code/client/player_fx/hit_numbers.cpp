@@ -4,6 +4,8 @@
    on replicas, with nothing extra sent. Damage over time (burning,
    poison) is added up and shown at most every HIT_NUMBER_GAP seconds per
    target instead of every frame. Hits on the local player are red.
+   Healing on a player (a dungeon healer's spells) rises in green with a
+   plus, added up the same way; coming back to life is not counted.
 
    The hit counter: monsters near the local player that lose at least
    HIT_COMBO_MIN at once count as hits; hits closer together than
@@ -30,6 +32,7 @@ struct hit_number
     float Age;
     u32 Amount;
     bool32 OnLocalPlayer;
+    bool32 Heal;
 };
 
 struct hit_numbers
@@ -44,6 +47,7 @@ struct hit_numbers
     float MaxHp[HIT_TRACKED];
     float LastHp[HIT_TRACKED];
     float Pending[HIT_TRACKED];
+    float PendingHeal[HIT_TRACKED];
     float Gap[HIT_TRACKED];
 
     u32 Combo;
@@ -62,7 +66,7 @@ ShowsHitNumbers(world_entity *Entity)
 
 internal void
 AddHitNumber(hit_numbers *Fx, world_entity *Entity, u32 Amount,
-             bool32 OnLocalPlayer)
+             bool32 OnLocalPlayer, bool32 Heal = false)
 {
     if (Fx->Count < MAX_HIT_NUMBERS)
     {
@@ -73,6 +77,7 @@ AddHitNumber(hit_numbers *Fx, world_entity *Entity, u32 Amount,
         Number->Age = 0.f;
         Number->Amount = Amount;
         Number->OnLocalPlayer = OnLocalPlayer;
+        Number->Heal = Heal;
     }
 }
 
@@ -98,15 +103,21 @@ UpdateHitNumbers(hit_numbers *Fx, app_state *AppState, float DeltaTime)
             Fx->MaxHp[Index] = Entity->MaxHp;
             Fx->LastHp[Index] = Entity->Hp;
             Fx->Pending[Index] = 0.f;
+            Fx->PendingHeal[Index] = 0.f;
             Fx->Gap[Index] = 0.f;
             continue;
         }
 
-        float Lost = Fx->LastHp[Index] - Entity->Hp;
+        float Before = Fx->LastHp[Index];
+        float Lost = Before - Entity->Hp;
         Fx->LastHp[Index] = Entity->Hp;
         if (Lost > 0.f)
         {
             Fx->Pending[Index] += Lost;
+        }
+        else if (Lost < 0.f && Before > 0.f && Entity->Type == EntityType_Player)
+        {
+            Fx->PendingHeal[Index] -= Lost;
         }
         // NOTE(zoubir): damage over time comes in small ticks and is not a hit
         if (Lost >= HIT_COMBO_MIN && Local && Entity->Type == EntityType_Monster &&
@@ -123,6 +134,12 @@ UpdateHitNumbers(hit_numbers *Fx, app_state *AppState, float DeltaTime)
             AddHitNumber(Fx, Entity, (u32)(Fx->Pending[Index] + 0.5f),
                          Entity == Local);
             Fx->Pending[Index] = 0.f;
+            Fx->Gap[Index] = HIT_NUMBER_GAP;
+        }
+        else if (Fx->PendingHeal[Index] >= 1.f && Fx->Gap[Index] <= 0.f)
+        {
+            AddHitNumber(Fx, Entity, (u32)(Fx->PendingHeal[Index] + 0.5f), false, true);
+            Fx->PendingHeal[Index] = 0.f;
             Fx->Gap[Index] = HIT_NUMBER_GAP;
         }
     }
@@ -165,7 +182,7 @@ DrawHitNumbers(render_context *RenderContext, app_state *AppState,
         u32 Alpha = (u32)(255.f * Fade);
         v2 Start = Number->Position - CameraOffset.XY;
 
-        if (Number->Age < HIT_SPARK_SECONDS)
+        if (Number->Age < HIT_SPARK_SECONDS && !Number->Heal)
         {
             float SparkT = Number->Age / HIT_SPARK_SECONDS;
             u32 SparkColor = ((u32)(255.f * (1.f - SparkT)) << 24) | 0x0060E0FF;
@@ -179,9 +196,13 @@ DrawHitNumbers(render_context *RenderContext, app_state *AppState,
         }
 
         char Text[16];
-        snprintf(Text, sizeof(Text), "%u", Number->Amount);
+        snprintf(Text, sizeof(Text), Number->Heal ? "+%u" : "%u", Number->Amount);
         u32 Color = Number->OnLocalPlayer ?
             UI_RGBA(255, 90, 70, Alpha) : UI_RGBA(255, 232, 120, Alpha);
+        if (Number->Heal)
+        {
+            Color = UI_RGBA(120, 245, 140, Alpha);
+        }
         if (Alpha > 30)
         {
             UIText(RenderContext, Font, Start.X,

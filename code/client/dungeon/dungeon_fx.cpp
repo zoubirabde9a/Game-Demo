@@ -6,6 +6,8 @@
      fought.
    - Sanctuaries: a healer's circle (role_abilities.cpp), a ring of gold
      on the ground with motes rising inside, fading as it runs out.
+   - The role spells' own effects and each role's look: role_fx.cpp and
+     role_looks.cpp.
    - Shield Wall and Ward: a ring of pale plates round a tank behind
      Shield Wall, and a blue ring round anyone a healer's ward still
      covers.
@@ -25,6 +27,9 @@
 #define SHIELD_WALL_RGB 0x00F0E0D0
 #define WARD_RGB 0x00FFC070
 #define REVIVE_RGB 0x0070F090
+
+// NOTE(zoubir): in role_fx.cpp, included after this
+internal void DrawRoleFx(render_context *RenderContext, app_state *AppState, v3 CameraOffset);
 
 // NOTE(zoubir): a world point on the ground (Z up) in the overlay's space
 inline v2
@@ -121,14 +126,15 @@ DrawSanctuaries(render_context *RenderContext, app_state *AppState, v3 CameraOff
             continue;
         }
         float Fade = Clamp01(Zone->Seconds / 0.6f);
-        DrawDungeonRing(RenderContext, Zone->Position, SANCTUARY_RADIUS, SANCTUARY_DOTS,
+        float Radius = Zone->Radius > 0.f ? Zone->Radius : SANCTUARY_RADIUS;
+        DrawDungeonRing(RenderContext, Zone->Position, Radius, SANCTUARY_DOTS,
                         1.f, 3.f, FxColor(0.8f * Fade, SANCTUARY_RGB), CameraOffset);
         // NOTE(zoubir): motes rising inside, each on its own slow loop
         for(u32 Mote = 0; Mote < 10; Mote++)
         {
             float Seed = (float)Mote * 2.39996f;
             float Rise = DungeonFxFraction(0.5f * Clock + 0.1f * (float)Mote);
-            float R = SANCTUARY_RADIUS * (0.2f + 0.7f * DungeonFxFraction(Seed * 0.37f));
+            float R = Radius * (0.2f + 0.7f * DungeonFxFraction(Seed * 0.37f));
             v3 Point = Zone->Position + V3(R * Cos(Seed), R * Sin(Seed), 30.f * Rise);
             DrawFxDot(RenderContext, DungeonFxPoint(Point, CameraOffset), 2.5f,
                       FxColor(Fade * (1.f - Rise), SANCTUARY_RGB));
@@ -172,7 +178,7 @@ DrawPartyMarks(render_context *RenderContext, app_state *AppState, v3 CameraOffs
         if (Slot->WardAbsorb > 0.f)
         {
             DrawDungeonRing(RenderContext, Player->Position + V3(0.f, 0.f, 16.f), 20.f, 16,
-                            Clamp01(Slot->WardAbsorb / WARD_ABSORB), 2.5f,
+                            Clamp01(Slot->WardAbsorb / Maximum(1.f, Slot->WardFull)), 2.5f,
                             FxColor(0.8f, WARD_RGB), CameraOffset);
         }
     }
@@ -189,4 +195,5 @@ DrawDungeonFx(render_context *RenderContext, app_state *AppState, v3 CameraOffse
     DrawDungeonGates(RenderContext, AppState, CameraOffset);
     DrawSanctuaries(RenderContext, AppState, CameraOffset);
     DrawPartyMarks(RenderContext, AppState, CameraOffset);
+    DrawRoleFx(RenderContext, AppState, CameraOffset);
 }

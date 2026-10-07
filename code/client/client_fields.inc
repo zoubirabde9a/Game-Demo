@@ -49,4 +49,6 @@
     float RoleGapLeft; // seconds the role field stays empty before the next request, client/dungeon/dungeon_net.cpp
     struct ground_cracks *GroundCracks; // broken ground where Launch and slams hit, client/ground_cracks.cpp
     struct cursor_targeting *CursorTargeting; // the unit the cursor is on and its brackets, client/targeting.cpp
+    struct role_fx *RoleFx; // the role spells' effects playing out, client/dungeon/role_fx.cpp
+    struct party_pick *PartyPick; // the party frames' places and the ally picked on them, client/dungeon/role_targeting.cpp
     struct cast_targeting *CastTargeting; // quick or standard cast, and the ability being aimed, client/cast_targeting.cpp

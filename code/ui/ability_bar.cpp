@@ -372,10 +372,12 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         }
 
         // NOTE(zoubir): a point can go into it: a gold plus on its
-        // top-right corner, and a click opens the tree on it
+        // top-right corner, and a click opens the tree on it. Not on a
+        // key a dungeon role has taken: its talent is the game's ability's
         bool32 SlotHot = IsMouseOnRectangle(Input->MouseX, Input->MouseY, SlotX, SlotTop,
                                             ABILITY_SLOT_SIZE, ABILITY_SLOT_SIZE);
-        if (Talent < Talent_Count && CanLearnTalent(LocalSlot, Talent) == TalentRefusal_None)
+        if (Talent < Talent_Count && CanLearnTalent(LocalSlot, Talent) == TalentRefusal_None &&
+            !RoleSpellOnButton(AppState, Player, Def->Button))
         {
             float Beat = 0.5f + 0.5f * Sin(5.f * Time + (float)Index);
             float BadgeX = CentreX + 0.5f * Slot - 4.f;

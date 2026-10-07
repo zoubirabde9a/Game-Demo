@@ -15,6 +15,9 @@
    area's rim where it will land, filling from the middle as the wind-up
    runs, so a quick cast shows its reach too.
 
+   In a dungeon run, a role's ground spell (Sanctuary, Inferno) shows its
+   circle at the cursor in its role's colour.
+
    The numbers come from the abilities' own tables (PlayerAreaAbilities,
    PlayerMovements, RewindAbilities), so a retuned radius shows as it is. */
 
@@ -246,7 +249,21 @@ DrawCastPreview(render_context *RenderContext, app_state *AppState,
         CastPreviewRGB(Button) : CAST_PREVIEW_WAIT_RGB;
     v2 Aim = GetPlayerAim(Player);
     player_area_ability *Area = AreaAbilityForButton(Button);
-    if (Area)
+    role_spell *RoleSpell = LocalRoleSpell(AppState, Button);
+    if (RoleSpell)
+    {
+        player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
+        float Radius = RoleSpellRadius(Slot, RoleKeyForButton(Button));
+        v2 Feet = BurstToScreen(V3(Player->Position.X, Player->Position.Y,
+                                   Player->GroundZ), CameraOffset);
+        v2 Point = AimPoint(Player);
+        v2 Centre = BurstToScreen(V3(Point.X, Point.Y, Player->GroundZ), CameraOffset);
+        u32 RoleRGB = IsCastReady(AppState, Player, Button) ?
+            RoleSpellRGB(Slot->Role) : CAST_PREVIEW_WAIT_RGB;
+        DrawCastPreviewLine(RenderContext, Feet, Centre, FxColor(0.7f * Alpha, RoleRGB));
+        DrawCastPreviewArea(RenderContext, Centre, Radius, 0.f, Pi32, 1.f, Alpha, RoleRGB);
+    }
+    else if (Area)
     {
         DrawAreaAbilityPreview(RenderContext, Player, Area, Aim, CameraOffset,
                                1.f, Alpha, RGB);
