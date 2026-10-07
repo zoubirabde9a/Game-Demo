@@ -24,7 +24,17 @@ $FragmentPrelude = "#extension GL_OES_standard_derivatives : enable`nprecision m
 # properties on what it returns and ConvertTo-Json would write them out
 $Shaders = [ordered]@{}
 foreach ($File in Get-ChildItem "$Root\build\shaders\fx" -File) {
+    if ($File.Extension -eq ".glsl") { continue }
     $Shaders[$File.Name] = [string](Get-Content $File.FullName -Raw)
+}
+# NOTE(zoubir): a ShaderDefs row that names a library (a .glsl of shared
+# functions) gets it between the prelude and the shader, as the game does
+$Defs = Get-Content "$Root\code\engine\shader_library.cpp" -Raw
+foreach ($Row in [regex]::Matches($Defs, 'shaders/fx/([\w.]+\.frag)", \d+, \w+, "shaders/fx/([\w.]+\.glsl)"')) {
+    $Name = $Row.Groups[1].Value
+    if ($Shaders.Contains($Name)) {
+        $Shaders[$Name] = [string](Get-Content "$Root\build\shaders\fx\$($Row.Groups[2].Value)" -Raw) + $Shaders[$Name]
+    }
 }
 $Contexts = if ($WebGL2) { '["webgl","webgl2"]' } else { '["webgl"]' }
 $Json = $Shaders | ConvertTo-Json -Compress

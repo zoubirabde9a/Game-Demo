@@ -16,18 +16,13 @@
 //   lights: fireballs, shots and lava (client/world_lights.cpp) brighten
 //          and tint what is near them, the albedo times the light, so
 //          dark grass turns warm instead of grey
+// Hash, Noise and Fbm come from fx/noise.glsl (the shader library puts it
+// first).
 // Uniforms: Screen = texture width, height in pixels, glow strength, grade
 // strength (both 0..1). LightSpot[i] = x, y, radius (window pixels),
 // strength; LightColor[i] = r, g, b, flicker; LightCount.x = how many.
 // WorldView = camera x, y (world units), window pixels per world unit,
 // window height.
-
-// NOTE(zoubir): the noise hashes world coordinates; at the browser's
-// default medium precision (16 bits on phones) it turns to static, so ask
-// for full precision where the device has it. Desktop GLSL skips this
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-precision highp float;
-#endif
 
 VARYING vec4 fragmentColor;
 VARYING vec2 fragmentUV;
@@ -86,33 +81,6 @@ vec3 Bright(vec3 C)
     float Knee = mix(0.97, 0.70, smoothstep(0.12, 0.45, Saturation));
     float Over = smoothstep(Knee, Knee + 0.28, Peak);
     return C * Over;
-}
-
-float Hash(vec2 P)
-{
-    return fract(sin(dot(P, vec2(12.9898, 78.233))) * 43758.5453);
-}
-
-// NOTE(zoubir): smooth value noise and three octaves of it; the cell
-// coordinates wrap at 289 so the hash keeps its precision far from the
-// origin of an endless map
-float Noise(vec2 P)
-{
-    vec2 Cell = floor(P);
-    vec2 F = P - Cell;
-    F = F * F * (3.0 - 2.0 * F);
-    Cell = mod(Cell, 289.0);
-    float A = Hash(Cell);
-    float B = Hash(mod(Cell + vec2(1.0, 0.0), 289.0));
-    float C = Hash(mod(Cell + vec2(0.0, 1.0), 289.0));
-    float D = Hash(mod(Cell + vec2(1.0, 1.0), 289.0));
-    return mix(mix(A, B, F.x), mix(C, D, F.x), F.y);
-}
-
-float Fbm(vec2 P)
-{
-    return 0.55 * Noise(P) + 0.30 * Noise(P * 2.03 + 17.0) +
-        0.15 * Noise(P * 4.11 + 41.0);
 }
 
 // NOTE(zoubir): how much of the open sky's light reaches a world point:

@@ -10,7 +10,9 @@
    defines ATTRIBUTE, VARYING, TEXTURE and FragColor for each. Every
    program gets the same three attributes (vertexPosition, vertexColor,
    vertexUV) and may use two uniforms: P, the projection, and Time,
-   seconds since launch.
+   seconds since launch. A row may also name a Library, a file of shared
+   functions (fx/noise.glsl) put between the prelude and the fragment
+   shader, so effects share code without copying it.
 
    Developer builds look at the files twice a second and rebuild the ones
    that changed, so a shader can be tuned with the game running. A file
@@ -29,6 +31,8 @@ struct shader_def
     u32 AttributeCount;
     // NOTE(zoubir): written in the shared dialect and given a prelude
     bool32 Shared;
+    // NOTE(zoubir): shared functions put before the fragment shader, or 0
+    char *Library;
 };
 
 global_variable shader_def ShaderDefs[Shader_Count] =
@@ -47,12 +51,12 @@ global_variable shader_def ShaderDefs[Shader_Count] =
     {"talent backdrop", "shaders/fx/quad.vert", "shaders/fx/talent_backdrop.frag", 3, true},
     {"talent arc", "shaders/fx/quad.vert", "shaders/fx/talent_arc.frag", 3, true},
     {"screen edge", "shaders/fx/quad.vert", "shaders/fx/screen_edge.frag", 3, true},
-    {"world grade", "shaders/fx/quad.vert", "shaders/fx/world_grade.frag", 3, true},
+    {"world grade", "shaders/fx/quad.vert", "shaders/fx/world_grade.frag", 3, true, "shaders/fx/noise.glsl"},
     {"round rect", "shaders/fx/quad.vert", "shaders/fx/round_rect.frag", 3, true},
     {"round outline", "shaders/fx/quad.vert", "shaders/fx/round_outline.frag", 3, true},
     {"ground crack", "shaders/fx/quad.vert", "shaders/fx/ground_crack.frag", 3, true},
     {"bloom", "shaders/fx/quad.vert", "shaders/fx/bloom.frag", 3, true},
-    {"ground surface", "shaders/fx/quad.vert", "shaders/fx/ground_surface.frag", 3, true},
+    {"ground surface", "shaders/fx/quad.vert", "shaders/fx/ground_surface.frag", 3, true, "shaders/fx/noise.glsl"},
 };
 
 global_variable char *ShaderAttributes[] =
@@ -117,24 +121,33 @@ LoadShaderProgram(render_context *RenderContext, u32 Index, bool32 Force)
     shader_def *Def = &ShaderDefs[Index];
     debug_read_file_result Vertex = Platform.ReadEntireFile(Def->Vertex);
     debug_read_file_result Fragment = Platform.ReadEntireFile(Def->Fragment);
+    debug_read_file_result Library = {};
+    if (Def->Library)
+    {
+        Library = Platform.ReadEntireFile(Def->Library);
+    }
     bool32 Result = false;
-    if (Vertex.Memory && Fragment.Memory)
+    if (Vertex.Memory && Fragment.Memory && (!Def->Library || Library.Memory))
     {
         u32 Hash = HashShaderBytes(2166136261u, (u8 *)Vertex.Memory, Vertex.Size);
         Hash = HashShaderBytes(Hash, (u8 *)Fragment.Memory, Fragment.Size);
+        Hash = HashShaderBytes(Hash, (u8 *)Library.Memory, Library.Size);
         if (Force || Hash != ShaderLibrary.Hash[Index])
         {
             ShaderLibrary.Hash[Index] = Hash;
-            char *VertexSources[2] = {Def->Shared ? ShaderVertexPrelude : (char *)"",
-                                      (char *)Vertex.Memory};
-            i32 VertexSizes[2] = {Def->Shared ? (i32)(sizeof(ShaderVertexPrelude) - 1) : 0,
-                                  (i32)Vertex.Size};
-            char *FragmentSources[2] = {Def->Shared ? ShaderFragmentPrelude : (char *)"",
+            // NOTE(zoubir): three pieces a stage: prelude, library (the
+            // vertex stage has none), the file
+            char *VertexSources[3] = {Def->Shared ? ShaderVertexPrelude : (char *)"",
+                                      (char *)"", (char *)Vertex.Memory};
+            i32 VertexSizes[3] = {Def->Shared ? (i32)(sizeof(ShaderVertexPrelude) - 1) : 0,
+                                  0, (i32)Vertex.Size};
+            char *FragmentSources[3] = {Def->Shared ? ShaderFragmentPrelude : (char *)"",
+                                        Library.Memory ? (char *)Library.Memory : (char *)"",
                                         (char *)Fragment.Memory};
-            i32 FragmentSizes[2] = {Def->Shared ? (i32)(sizeof(ShaderFragmentPrelude) - 1) : 0,
-                                    (i32)Fragment.Size};
+            i32 FragmentSizes[3] = {Def->Shared ? (i32)(sizeof(ShaderFragmentPrelude) - 1) : 0,
+                                    (i32)Library.Size, (i32)Fragment.Size};
             char Error[SHADER_ERROR_SIZE];
-            u32 ID = BuildProgram(OpenGL, 2, VertexSources, VertexSizes,
+            u32 ID = BuildProgram(OpenGL, 3, VertexSources, VertexSizes,
                                   FragmentSources, FragmentSizes,
                                   ShaderAttributes, Def->AttributeCount,
                                   Error, sizeof(Error));
@@ -180,7 +193,7 @@ LoadShaderProgram(render_context *RenderContext, u32 Index, bool32 Force)
     {
         snprintf(ShaderLibrary.Error, sizeof(ShaderLibrary.Error),
                  "shader \"%s\": cannot read %s", Def->Name,
-                 Vertex.Memory ? Def->Fragment : Def->Vertex);
+                 !Vertex.Memory ? Def->Vertex : !Fragment.Memory ? Def->Fragment : Def->Library);
         ShaderLibrary.ErrorShader = Index;
     }
     if (Vertex.Memory)
@@ -190,6 +203,10 @@ LoadShaderProgram(render_context *RenderContext, u32 Index, bool32 Force)
     if (Fragment.Memory)
     {
         Platform.FreeFileMemory(Fragment.Memory);
+    }
+    if (Library.Memory)
+    {
+        Platform.FreeFileMemory(Library.Memory);
     }
     RenderContext->TextureProgram = RenderContext->Programs[Shader_Texture];
     RenderContext->LineProgram = RenderContext->Programs[Shader_Line];

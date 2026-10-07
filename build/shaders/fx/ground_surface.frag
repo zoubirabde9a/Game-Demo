@@ -11,37 +11,13 @@
 //   colour g:  which surface, 1 water, 2 ice, 3 snow (out of 255)
 //   colour r:  how much of the water is deep: dimmer, slower light
 
-// NOTE(zoubir): the noise hashes world coordinates; at the browser's
-// default medium precision (16 bits on phones) it turns to static, so ask
-// for full precision where the device has it. Desktop GLSL skips this
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-precision highp float;
-#endif
+// Hash and Noise come from fx/noise.glsl (the shader library puts it
+// first).
 
 VARYING vec4 fragmentColor;
 VARYING vec2 fragmentUV;
 
 uniform float Time;
-
-float Hash(vec2 P)
-{
-    return fract(sin(dot(P, vec2(12.9898, 78.233))) * 43758.5453);
-}
-
-// NOTE(zoubir): value noise; cells wrap at 289 so the hash keeps its
-// precision far out on an endless map
-float Noise(vec2 P)
-{
-    vec2 Cell = floor(P);
-    vec2 F = P - Cell;
-    F = F * F * (3.0 - 2.0 * F);
-    Cell = mod(Cell, 289.0);
-    float A = Hash(Cell);
-    float B = Hash(mod(Cell + vec2(1.0, 0.0), 289.0));
-    float C = Hash(mod(Cell + vec2(0.0, 1.0), 289.0));
-    float D = Hash(mod(Cell + vec2(1.0, 1.0), 289.0));
-    return mix(mix(A, B, F.x), mix(C, D, F.x), F.y);
-}
 
 // NOTE(zoubir): 1 on the line where the noise crosses its middle, falling
 // away to either side
