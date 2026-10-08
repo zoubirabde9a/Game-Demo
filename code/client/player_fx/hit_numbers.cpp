@@ -4,8 +4,10 @@
    on replicas, with nothing extra sent. Damage over time (burning,
    poison) is added up and shown at most every HIT_NUMBER_GAP seconds per
    target instead of every frame. Hits on the local player are red.
-   Healing on a player (a dungeon healer's spells) rises in green with a
-   plus, added up the same way; coming back to life is not counted.
+   Healing rises in green with a plus, added up the same way: on a player
+   (a dungeon healer's spells), and on a monster (an elite stealing life,
+   a healer monster's spell, a boss's adds feeding it), so a foe that
+   will not die shows why. Coming back to life is not counted.
 
    The hit counter: monsters near the local player that lose at least
    HIT_COMBO_MIN at once count as hits; hits closer together than
@@ -115,7 +117,7 @@ UpdateHitNumbers(hit_numbers *Fx, app_state *AppState, float DeltaTime)
         {
             Fx->Pending[Index] += Lost;
         }
-        else if (Lost < 0.f && Before > 0.f && Entity->Type == EntityType_Player)
+        else if (Lost < 0.f && Before > 0.f)
         {
             Fx->PendingHeal[Index] -= Lost;
         }
