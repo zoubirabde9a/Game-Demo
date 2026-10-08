@@ -15,6 +15,8 @@
    INFERNO_DAMAGE and marks it; the ground then burns for
    INFERNO_BURN_SECONDS, keeping marks alive. Detonating a monster in
    burning ground detonates every other marked monster in that fire too.
+   With Molten Ground each burn also slows what stands in it, for
+   MOLTEN_GROUND_SLOW_SECONDS a rank.
 
    Giant Fireball winds up for 1.5 s (PlayerSpell_GiantFireball), then a
    slow ball flies from the striker toward the spot the cursor was on
@@ -22,7 +24,9 @@
    it. It blows up on the
    first monster it reaches, when it leaves the room it was cast in, or
    at the end of its flight: everything within GIANT_FIREBALL_RADIUS takes
-   GIANT_FIREBALL_DAMAGE and a stack. Combustion makes every hit the
+   GIANT_FIREBALL_DAMAGE and a stack, and with Cataclysm a stun of
+   CATACLYSM_STUN_SECONDS, which holds a monster's wind-up (sim/update.cpp)
+   until it ends. Combustion makes every hit the
    striker lands COMBUSTION_SHARE harder for COMBUSTION_SECONDS
    (DungeonScaleDamage).
 
@@ -282,13 +286,14 @@ FinishRoleCast(app_state *AppState, world_entity *Player, player_spell Spell)
 
 // NOTE(zoubir): Damage to every living monster within Radius of Centre,
 // by the player in slot By; with Blast, a full hit with its shove and a
-// Searing stack, else a burn that keeps the monster's mark alive
+// Searing stack, else a burn that keeps the monster's mark alive. Each
+// one is stunned StunSeconds and slowed SlowSeconds, when above 0
 internal void
 BurnAround(app_state *AppState, world *World, v3 Centre, float Radius, u32 By,
-           float Damage, bool32 Blast)
+           float Damage, bool32 Blast, float StunSeconds = 0.f, float SlowSeconds = 0.f)
 {
     world_entity *Caster = AppState->Players[By].Entity;
-    hit Hit = {Damage, 160.f, 140.f, 140.f, 0.f, SimBurst_Count, StatusEffect_Burning, 1.f};
+    hit Hit = {Damage, 160.f, 140.f, 140.f, StunSeconds, SimBurst_Count, StatusEffect_Burning, 1.f};
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Monster = &World->Entities[EntityIndex];
@@ -299,6 +304,10 @@ BurnAround(app_state *AppState, world *World, v3 Centre, float Radius, u32 By,
             continue;
         }
         dungeon_run *Run = AppState->Dungeon;
+        if (SlowSeconds > 0.f)
+        {
+            ApplyStatus(Monster, StatusEffect_Slowed, SlowSeconds);
+        }
         if (Blast)
         {
             AddSearing(Run, World, Monster);
@@ -345,8 +354,10 @@ UpdateInfernos(app_state *AppState, dungeon_run *Run, float DeltaTime)
             if (Zone->TickTimer >= INFERNO_BURN_TICK)
             {
                 Zone->TickTimer -= INFERNO_BURN_TICK;
+                float Slow = MOLTEN_GROUND_SLOW_SECONDS * (float)RoleRank(
+                    &AppState->Players[Zone->By], PlayerRole_Damage, StrikerTalent_MoltenGround);
                 BurnAround(AppState, World, Zone->Position, Zone->Radius, Zone->By,
-                           INFERNO_BURN_PER_SECOND * INFERNO_BURN_TICK, false);
+                           INFERNO_BURN_PER_SECOND * INFERNO_BURN_TICK, false, 0.f, Slow);
             }
         }
     }
@@ -381,10 +392,13 @@ UpdateGiantFireballs(app_state *AppState, dungeon_run *Run, float DeltaTime)
         if (Blow)
         {
             Ball->Distance = 0.f;
-            if (AppState->Players[Ball->By].Entity)
+            player_slot *Caster = &AppState->Players[Ball->By];
+            if (Caster->Entity)
             {
+                float Stun = RoleRank(Caster, PlayerRole_Damage, StrikerTalent_Cataclysm) ?
+                    CATACLYSM_STUN_SECONDS : 0.f;
                 BurnAround(AppState, World, Ball->Position, GIANT_FIREBALL_RADIUS, Ball->By,
-                           GIANT_FIREBALL_DAMAGE, true);
+                           GIANT_FIREBALL_DAMAGE, true, Stun);
             }
             EmitBurst(&AppState->Events, SimBurst_GiantFireballBlast, (u8)Ball->By, Ball->Position);
             EmitSound(&AppState->Events, AssetType_SfxExplosion, Ball->Position);

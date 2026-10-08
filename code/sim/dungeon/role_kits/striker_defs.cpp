@@ -9,6 +9,12 @@ enum striker_talent
     StrikerTalent_Executioner,
     StrikerTalent_Combustion,
     StrikerTalent_Overload,
+    StrikerTalent_Kindling,
+    StrikerTalent_EmberMantle,
+    StrikerTalent_MoltenGround,
+    StrikerTalent_QuickenedFlame,
+    StrikerTalent_HeatShield,
+    StrikerTalent_Cataclysm,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -19,6 +25,14 @@ enum striker_talent
 #define EXECUTIONER_BELOW 0.3f
 #define EXECUTIONER_SHARE 0.35f
 #define OVERLOAD_SECONDS 3.f
+// NOTE(zoubir): Molten Ground: seconds of Slowed a burn of Meteor's
+// ground leaves, per rank; it burns every INFERNO_BURN_TICK, so any rank
+// slows a monster for as long as it stands in the fire, and more ranks
+// keep it slow after it walks out
+#define MOLTEN_GROUND_SLOW_SECONDS 1.f
+// NOTE(zoubir): Cataclysm: a Giant Fireball's blast stuns everything it
+// catches this long, which also holds a monster's wind-up
+#define CATACLYSM_STUN_SECONDS 1.5f
 
 global_variable talent_def StrikerTalentDefs[ROLE_TALENTS] =
 {
@@ -38,14 +52,14 @@ global_variable talent_def StrikerTalentDefs[ROLE_TALENTS] =
          TalentBranch_Role, 2, 1, 4, 0},
         {"Ember Mantle", "More health", "+6% health",
          TalentBranch_Role, 3, 1, 4, 0},
-        // NOTE(zoubir): slot 8, a class spell made stronger, by rank: to be written
-        {"", "", "", TalentBranch_Role, 4, 0, 4, 0},
+        {"Molten Ground", "Meteor's burning ground slows the monsters in it",
+         "+1 s of slow after the fire", TalentBranch_Role, 4, 0, 4, 0},
         {"Quickened Flame", "Every spell comes back sooner", "-4% cooldowns",
          TalentBranch_Role, 4, 1, 4, 0},
         {"Heat Shield", "You take less damage", "-4% damage taken",
          TalentBranch_Role, 5, 0, 4, 0},
-        // NOTE(zoubir): slot 11, the capstone: to be written
-        {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
+        {"Cataclysm", "Giant Fireball's blast stuns every monster it catches",
+         "1.5 s stun", TalentBranch_Role, 5, 1, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None

@@ -103,6 +103,31 @@ PaintPyromancerIcon(icon_canvas *Canvas)
                                            V2(0.5f, 0.5f), V2(0.5f, 0.06f)));
 }
 
+// NOTE(zoubir): Molten Ground: Meteor's fire with a pale blue badge, an
+// arrow pointing down: the monsters in it walk slower
+internal void
+PaintMoltenGroundIcon(icon_canvas *Canvas)
+{
+    PaintRoleInfernoIcon(Canvas);
+    IconBadge(Canvas, IconColor(150, 210, 255));
+    IconTriangle(Canvas, V2(0.78f, 0.89f), V2(0.7f, 0.77f), V2(0.86f, 0.77f), Solid(IconColor(16, 24, 40)));
+    IconCapsule(Canvas, V2(0.78f, 0.78f), V2(0.78f, 0.68f), 0.025f, Solid(IconColor(16, 24, 40)));
+}
+
+// NOTE(zoubir): Cataclysm: the Giant Fireball with stun stars spinning
+// under it
+internal void
+PaintCataclysmIcon(icon_canvas *Canvas)
+{
+    PaintRoleGiantFireballIcon(Canvas);
+    for(u32 Star = 0; Star < 3; Star++)
+    {
+        float Angle = 2.f * Pi32 * (float)Star / 3.f + 0.5f;
+        IconSparkle(Canvas, V2(0.5f + 0.2f * Cos(Angle), 0.84f + 0.07f * Sin(Angle)), 0.07f,
+                    Solid(IconColor(255, 245, 150)));
+    }
+}
+
 // NOTE(zoubir): Executioner: an axe over a skull
 internal void
 PaintExecutionerIcon(icon_canvas *Canvas)
@@ -132,8 +157,8 @@ global_variable talent_icon_painter *StrikerTalentIconPainters[ROLE_TALENTS] =
 {
     PaintPyromancerIcon, PaintRoleDetonateIcon, PaintWildfireIcon, PaintExecutionerIcon,
     PaintRoleCombustionIcon, PaintOverloadIcon,
-    PaintStatDamageIcon, PaintStatVitalityIcon, 0, PaintStatHasteIcon,
-    PaintStatArmorIcon, 0,
+    PaintStatDamageIcon, PaintStatVitalityIcon, PaintMoltenGroundIcon, PaintStatHasteIcon,
+    PaintStatArmorIcon, PaintCataclysmIcon,
 };
 global_variable talent_icon_painter *TankTalentIconPainters[ROLE_TALENTS] =
 {

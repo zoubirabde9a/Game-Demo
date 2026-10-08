@@ -4,7 +4,8 @@
    takes every marked monster in it, and marks fade; the tank's slam
    sunders, and a sundered monster and a warded attacker both raise the
    damage dealt; and the role talents that build on them (Detonate's
-   second rank, Overload, Shatter Armor). */
+   second rank, Overload, Shatter Armor), and the crowd control from the
+   tree's bottom: Molten Ground's slowing fire and Cataclysm's stun. */
 
 // NOTE(zoubir): a big monster Offset from the striker, held still
 internal world_entity *
@@ -264,9 +265,62 @@ TestTankAndHealerShots()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Molten Ground slows what burns in Meteor's ground, longer
+// a rank; Cataclysm makes a Giant Fireball's blast stun. Neither does
+// anything untaken
+internal void
+TestStrikerCrowdControl()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Crypt, 1);
+    player_slot *Striker = &AppState->Players[0];
+    SetPlayerRole(AppState, Striker, PlayerRole_Damage);
+
+    world_entity *Burning = StrikerDummy(&Crypt, V3(150.f, 0.f, 0.f));
+    inferno *Fire = &Run->Infernos[0];
+    Fire->Position = Burning->Position;
+    Fire->Radius = INFERNO_RADIUS;
+    Fire->Seconds = INFERNO_BURN_SECONDS;
+    Fire->Delay = 0.f;
+    Fire->TickTimer = 0.f;
+    Fire->By = 0;
+    float Before = Burning->Hp;
+    UpdateInfernos(AppState, Run, INFERNO_BURN_TICK + 0.01f);
+    Check(Burning->Hp < Before);
+    Check(!HasStatus(Burning, StatusEffect_Slowed));
+    Striker->Ranks[Talent_RoleFirst + StrikerTalent_MoltenGround] = 3;
+    UpdateInfernos(AppState, Run, INFERNO_BURN_TICK);
+    float Slow = Burning->StatusTimers[StatusEffect_Slowed];
+    Check(Slow > 0.99f * 3.f * MOLTEN_GROUND_SLOW_SECONDS &&
+          Slow < 1.01f * 3.f * MOLTEN_GROUND_SLOW_SECONDS);
+
+    world_entity *Struck = StrikerDummy(&Crypt, V3(-150.f, 0.f, 0.f));
+    for(u32 Taken = 0; Taken < 2; Taken++)
+    {
+        Striker->Ranks[Talent_RoleFirst + StrikerTalent_Cataclysm] = (u8)Taken;
+        Struck->StatusTimers[StatusEffect_Stunned] = 0.f;
+        giant_fireball *Ball = &Run->GiantFireballs[0];
+        Ball->Position = Struck->Position + V3(10.f, 0.f, 0.f);
+        Ball->Velocity = V2(-GIANT_FIREBALL_SPEED, 0.f);
+        Ball->Distance = GIANT_FIREBALL_RANGE;
+        Ball->Room = RoomAtPosition(World, Ball->Position.XY);
+        Ball->By = 0;
+        UpdateGiantFireballs(AppState, Run, 0.01f);
+        Check(Ball->Distance <= 0.f);
+        float Stun = Struck->StatusTimers[StatusEffect_Stunned];
+        Check(Taken ? (Stun > 0.99f * CATACLYSM_STUN_SECONDS &&
+                       Stun < 1.01f * CATACLYSM_STUN_SECONDS) : Stun <= 0.f);
+    }
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunStrikerTests()
 {
+    TestStrikerCrowdControl();
     TestTankAndHealerShots();
     TestRotationTalents();
     TestSunderAndWardRaiseDamage();
