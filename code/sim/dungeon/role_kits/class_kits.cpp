@@ -109,3 +109,22 @@ UpdateClassEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
     UpdateBerserkerEffects(AppState, Run, DeltaTime);
     UpdateShadowbladeEffects(AppState, Run, DeltaTime);
 }
+
+// NOTE(zoubir): whether a class flies Player through the air on its own
+// course (a Berserker's Leap): MovePlayer (player_update/movement.cpp)
+// then lets neither the keys nor the drag touch its speed across, so the
+// flight is a plain arc. Read from ClassFlags, which snapshots carry, so
+// a client predicting its own Berserker flies the same arc the server
+// does instead of a long jump the server keeps correcting
+internal bool32
+ClassCarriesPlayer(app_state *AppState, world_entity *Player)
+{
+    if (!IsDungeon(AppState) || Player->PlayerIndex >= MAX_PLAYERS)
+    {
+        return false;
+    }
+    player_slot *Slot = &AppState->Players[Player->PlayerIndex];
+    bool32 Result = Slot->Role == PlayerRole_Berserker &&
+        (Slot->ClassFlags & BERSERKER_FLAG_LEAPING);
+    return Result;
+}

@@ -4,9 +4,11 @@
 
    The flight is the body's own physics: the jump's speed up, and across
    the speed that reaches the spot in that time, the air barely slowing it
-   (LongJump, as a long jump). Each tick of the flight the speed across is
-   set again toward the spot, so walls and the walk keys cannot throw it
-   off. It slams where it comes down; one that never does (over a pit,
+   (LongJump, as a long jump). While BERSERKER_FLAG_LEAPING is up the
+   walk keys and the drag leave the speed across alone (ClassCarriesPlayer,
+   class_kits.cpp), so the flight is a plain arc a predicting client flies
+   the same way; each tick the speed across is still set again toward the
+   spot, so a wall that slows it cannot throw it off. It slams where it comes down; one that never does (over a pit,
    against a wall that holds it up) gives up after LEAP_MOST_SECONDS. */
 
 // NOTE(zoubir): PLAYER_GRAVITY and IsOnGround are player_abilities/jump.cpp,

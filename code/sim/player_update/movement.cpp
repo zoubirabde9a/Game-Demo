@@ -114,7 +114,10 @@ MovePlayer(app_state *AppState, world *World, memory_arena *Arena,
         Tick->Acceleration *
         GetMoveSpeedScale(Player) / GetGroundFriction(Player);
     v3 DDPlayer = {};
-    if (DeltaTime > 0.f)
+    // NOTE(zoubir): a class carrying the body through the air (a
+    // Berserker's Leap, ClassCarriesPlayer) keeps its speed across
+    bool32 Carried = ClassCarriesPlayer(AppState, Player) && !IsOnGround(Player);
+    if (DeltaTime > 0.f && !Carried)
     {
         DDPlayer.XY = PlayerWalkAcceleration(Player, Push, TopSpeed,
                                              DragScale, DeltaTime);

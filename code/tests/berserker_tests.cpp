@@ -286,6 +286,37 @@ TestLeapLandsAndStuns()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): in a Leap's flight the walk keys and the drag leave the
+// speed across alone (ClassCarriesPlayer), as on a client predicting its
+// own Berserker, which has the flag from the snapshot but not the leap's
+// state that steers it on the server
+internal void
+TestLeapFlightIgnoresTheKeys()
+{
+    crypt_world Crypt = BerserkerCrypt();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *Player = Slot->Entity;
+    Slot->Input.Aim = V2(0.6f, 0.f);
+    TickCrypt(&Crypt, 1);
+    PressOnce(&Crypt, 0, PlayerButton_Launch);
+    TickCrypt(&Crypt, 2);
+    Check(!IsOnGround(Player) && (Slot->ClassFlags & BERSERKER_FLAG_LEAPING));
+    // NOTE(zoubir): one step of the player alone, as client/prediction.cpp
+    // runs it: no dungeon update, so no steering and the flag stays
+    v2 Across = Player->Velocity.XY;
+    Slot->Input.Move = V2(0.f, 1.f);
+    float AnimationSpeed;
+    animation_type AnimationType;
+    animation_direction AnimationDirection;
+    Slot->Predicted = true;
+    UpdatePlayer(Slot, &AppState->World, &Crypt.Arena, 1.f / 60.f, AppState,
+                 &AnimationSpeed, &AnimationType, &AnimationDirection);
+    Slot->Predicted = false;
+    Check(LengthSq(Player->Velocity.XY - Across) < 1.f);
+    DestroyCryptWorld(&Crypt);
+}
+
 // NOTE(zoubir): the hand axe lands after its flight, hurts and slows; with
 // no foe in reach it is not thrown
 internal void
@@ -370,6 +401,7 @@ RunBerserkerTests()
     TestWhirlwindSpinsForRage();
     TestExecuteSpendsRage();
     TestLeapLandsAndStuns();
+    TestLeapFlightIgnoresTheKeys();
     TestAxeThrowSlows();
     TestBloodthirstHeals();
     TestPredictedBerserkerWindsUp();
