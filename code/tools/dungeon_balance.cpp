@@ -33,17 +33,24 @@
 #define PROBE_SECONDS_PER_ROOM 90
 #define PROBE_RETRY_SECONDS 12.f
 
-// NOTE(zoubir): every bot with a body to Position
+// NOTE(zoubir): every bot with a body to Position, rested: full health
+// and no burning, as a party waits before pulling again. Waiting by the
+// Ashfall Bridge the bots walk into its lava, and came back into the
+// Throne of Embers at a tenth to two thirds of their health, dying in a
+// second: wipes the boss had no part in
 internal void
 PlaceBots(server_game *Game, v3 Position)
 {
     for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
     {
         player_slot *Player = &Game->AppState->Players[Slot];
-        if (Player->Active && Player->Entity && !IsDeadPlayer(Player->Entity))
+        world_entity *Entity = Player->Entity;
+        if (Player->Active && Entity && !IsDeadPlayer(Entity))
         {
             MovePlayerTo(Game->AppState, &Game->AppState->World, Game->Arena,
-                         Player->Entity, Position);
+                         Entity, Position);
+            Entity->Hp = Entity->MaxHp;
+            ZeroArray(Entity->StatusTimers, StatusEffect_Count, float);
         }
     }
 }
