@@ -238,4 +238,6 @@ global_variable talent_icon_painter *RangerTalentIconPainters[ROLE_TALENTS] =
 {
     PaintRangerMarksmanIcon, PaintRangerDisengageIcon, PaintRangerBarrageIcon, PaintRangerDeadeyeIcon,
     PaintRangerRapidFireIcon, PaintRangerLethalMarkIcon,
+    PaintStatDamageIcon, PaintStatVitalityIcon, 0, PaintStatHasteIcon,
+    PaintStatSwiftnessIcon, 0,
 };

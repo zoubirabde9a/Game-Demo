@@ -108,11 +108,15 @@ FireballSpeedScale(app_state *AppState, world_entity *Player)
     return Result;
 }
 
+// NOTE(zoubir): in sim/dungeon/role_stats.cpp: a class's Swiftness
+internal float RoleRunScale(app_state *AppState, world_entity *Player);
+
 inline float
 RunSpeedScale(app_state *AppState, world_entity *Player)
 {
     float Result = 1.f + TALENT_FLEET_FOOT_SCALE *
         (float)PlayerTalentRank(AppState, Player, Talent_FleetFoot);
+    Result *= RoleRunScale(AppState, Player);
     return Result;
 }
 

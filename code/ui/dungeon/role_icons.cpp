@@ -383,6 +383,7 @@ PaintRoleSmiteBoltIcon(icon_canvas *Canvas)
 typedef void role_icon_painter(icon_canvas *Canvas);
 typedef void talent_icon_painter(icon_canvas *Canvas);
 
+#include "stat_talent_icons.cpp"
 #include "classes/class_icons.cpp"
 
 // NOTE(zoubir): the painters in RoleSpells' order (RoleKeys order: A, R,

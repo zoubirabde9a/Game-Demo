@@ -104,9 +104,8 @@ enum ranger_talent
 #define LETHAL_MARK_SHARE 0.1f
 #define LETHAL_MARK_JUMP 320.f
 
-// NOTE(zoubir): the same shape as every class's branch (role_talents.cpp):
-// two talents of two ranks, two of one, one, one; slot 1 unlocks the C
-// spell, slot 4 the V spell
+// NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
+// slot 1 unlocks the C spell, slot 4 the V spell
 global_variable talent_def RangerTalentDefs[ROLE_TALENTS] =
 {
     {"Marksman", "All your damage is higher", "+6% damage",
@@ -121,6 +120,26 @@ global_variable talent_def RangerTalentDefs[ROLE_TALENTS] =
      TalentBranch_Role, 2, 0, 1, 0},
     {"Lethal Mark", "Hunter's Mark bites deeper and jumps to the next foe when its foe dies",
      "+10% marked, it spreads", TalentBranch_Role, 3, 0, 1, 0},
+    {"Keen Eye", "Your arrows hit harder", "+4% damage",
+     TalentBranch_Role, 2, 1, 4, 0},
+    {"Survivalist", "More health", "+6% health",
+     TalentBranch_Role, 3, 1, 4, 0},
+    // NOTE(zoubir): slot 8, a class spell made stronger, by rank: to be written
+    {"", "", "", TalentBranch_Role, 4, 0, 4, 0},
+    {"Steady Hands", "Every spell comes back sooner", "-4% cooldowns",
+     TalentBranch_Role, 4, 1, 4, 0},
+    {"Fleet Hunter", "You run faster", "+3% run speed",
+     TalentBranch_Role, 5, 0, 4, 0},
+    // NOTE(zoubir): slot 11, the capstone: to be written
+    {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
+};
+
+// NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
+// for a talent with code of its own
+global_variable u8 RangerTalentStats[ROLE_TALENTS] =
+{
+    RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
+    RoleStat_Damage, RoleStat_Vitality, RoleStat_None, RoleStat_Haste, RoleStat_Swiftness, RoleStat_None,
 };
 
 // NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click

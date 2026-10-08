@@ -242,4 +242,6 @@ global_variable talent_icon_painter *ShadowbladeTalentIconPainters[ROLE_TALENTS]
 {
     PaintLethalityIcon, PaintEnvenomIcon, PaintVenomIcon, PaintOpportunistIcon,
     PaintShadowDanceIcon, PaintRelentlessIcon,
+    PaintStatDamageIcon, PaintStatArmorIcon, 0, PaintStatHasteIcon,
+    PaintStatLifestealIcon, 0,
 };

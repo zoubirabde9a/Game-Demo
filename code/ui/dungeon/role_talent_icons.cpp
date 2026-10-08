@@ -132,16 +132,22 @@ global_variable talent_icon_painter *StrikerTalentIconPainters[ROLE_TALENTS] =
 {
     PaintPyromancerIcon, PaintRoleDetonateIcon, PaintWildfireIcon, PaintExecutionerIcon,
     PaintRoleCombustionIcon, PaintOverloadIcon,
+    PaintStatDamageIcon, PaintStatVitalityIcon, 0, PaintStatHasteIcon,
+    PaintStatArmorIcon, 0,
 };
 global_variable talent_icon_painter *TankTalentIconPainters[ROLE_TALENTS] =
 {
     PaintIronSkinIcon, PaintRoleInterceptIcon, PaintProvokeIcon, PaintBastionIcon,
     PaintRoleLastStandIcon, PaintShatterArmorIcon,
+    PaintStatVitalityIcon, PaintStatArmorIcon, 0, PaintStatDamageIcon,
+    PaintStatHasteIcon, 0,
 };
 global_variable talent_icon_painter *HealerTalentIconPainters[ROLE_TALENTS] =
 {
     PaintSwiftMendingIcon, PaintRoleSanctuaryIcon, PaintDeepWardIcon, PaintRenewalIcon,
     PaintRoleRadianceIcon, PaintMiracleIcon,
+    PaintStatHealingIcon, PaintStatVitalityIcon, 0, PaintStatHasteIcon,
+    PaintStatSwiftnessIcon, 0,
 };
 global_variable talent_icon_painter **RoleTalentIconPainters[PlayerRole_Count] =
 {

@@ -90,9 +90,8 @@ enum berserker_talent
     BerserkerTalent_Massacre,
 };
 
-// NOTE(zoubir): the same shape as every class's branch (role_talents.cpp):
-// two talents of two ranks, two of one, one, one; slot 4 unlocks the V
-// spell. The Berserker has no C spell: its five keys are A, R, V, W and
+// NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
+// slot 4 unlocks the V spell. The Berserker has no C spell: its five keys are A, R, V, W and
 // the right click
 global_variable talent_def BerserkerTalentDefs[ROLE_TALENTS] =
 {
@@ -107,6 +106,26 @@ global_variable talent_def BerserkerTalentDefs[ROLE_TALENTS] =
      "a new spell", TalentBranch_Role, 2, 0, 1, 0},
     {"Massacre", "Execute's big hit starts at 35% health; a kill gives 30 Rage back",
      "Execute under 35%, Rage on a kill", TalentBranch_Role, 3, 0, 1, 0},
+    {"Thick Hide", "More health", "+6% health",
+     TalentBranch_Role, 2, 1, 4, 0},
+    {"Bloodlust", "Your hits heal you", "2% of damage back as health",
+     TalentBranch_Role, 3, 1, 4, 0},
+    // NOTE(zoubir): slot 8, a class spell made stronger, by rank: to be written
+    {"", "", "", TalentBranch_Role, 4, 0, 4, 0},
+    {"Brute Force", "Your axe hits harder", "+4% damage",
+     TalentBranch_Role, 4, 1, 4, 0},
+    {"Unyielding", "You take less damage", "-4% damage taken",
+     TalentBranch_Role, 5, 0, 4, 0},
+    // NOTE(zoubir): slot 11, the capstone: to be written
+    {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
+};
+
+// NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
+// for a talent with code of its own
+global_variable u8 BerserkerTalentStats[ROLE_TALENTS] =
+{
+    RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
+    RoleStat_Vitality, RoleStat_Lifesteal, RoleStat_None, RoleStat_Damage, RoleStat_Armor, RoleStat_None,
 };
 
 // NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click

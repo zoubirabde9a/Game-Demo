@@ -279,17 +279,18 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU8(S, &P->Snapshot.Cooldowns[Index]);
             }
             NetU16(S, &P->Snapshot.Xp);
-            for (u32 Index = 0; Index < NET_TALENT_COUNT; Index += 4)
+            // NOTE(zoubir): two ranks a byte, 0..15 each
+            for (u32 Index = 0; Index < NET_TALENT_COUNT; Index += 2)
             {
                 u8 Packed = 0;
-                for (u32 Part = 0; Part < 4 && Index + Part < NET_TALENT_COUNT; ++Part)
+                for (u32 Part = 0; Part < 2 && Index + Part < NET_TALENT_COUNT; ++Part)
                 {
-                    Packed |= (u8)((P->Snapshot.TalentRanks[Index + Part] & 3) << (2 * Part));
+                    Packed |= (u8)((P->Snapshot.TalentRanks[Index + Part] & 15) << (4 * Part));
                 }
                 NetU8(S, &Packed);
-                for (u32 Part = 0; Part < 4 && Index + Part < NET_TALENT_COUNT; ++Part)
+                for (u32 Part = 0; Part < 2 && Index + Part < NET_TALENT_COUNT; ++Part)
                 {
-                    P->Snapshot.TalentRanks[Index + Part] = (Packed >> (2 * Part)) & 3;
+                    P->Snapshot.TalentRanks[Index + Part] = (Packed >> (4 * Part)) & 15;
                 }
             }
             NetU8(S, &P->Snapshot.Stagger);

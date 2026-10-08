@@ -230,4 +230,6 @@ global_variable talent_icon_painter *BerserkerTalentIconPainters[ROLE_TALENTS] =
 {
     PaintBrutalityIcon, PaintBloodthirstTalentIcon, PaintUnbridledWrathIcon, PaintSweepingStrikesIcon,
     PaintBerserkerBerserkIcon, PaintMassacreIcon,
+    PaintStatVitalityIcon, PaintStatLifestealIcon, 0, PaintStatDamageIcon,
+    PaintStatArmorIcon, 0,
 };

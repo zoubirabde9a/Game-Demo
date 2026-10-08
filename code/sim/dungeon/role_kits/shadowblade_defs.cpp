@@ -121,9 +121,8 @@ enum shadowblade_talent
     ShadowbladeTalent_Relentless,
 };
 
-// NOTE(zoubir): the same shape as every class's branch (role_talents.cpp):
-// two talents of two ranks, two of one, one, one; slot 4 unlocks the V
-// spell. The Shadowblade has no C spell: its five keys are A, R, V, W and
+// NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
+// slot 4 unlocks the V spell. The Shadowblade has no C spell: its five keys are A, R, V, W and
 // the right click
 global_variable talent_def ShadowbladeTalentDefs[ROLE_TALENTS] =
 {
@@ -139,6 +138,26 @@ global_variable talent_def ShadowbladeTalentDefs[ROLE_TALENTS] =
      "a new spell", TalentBranch_Role, 2, 0, 1, 0},
     {"Relentless", "An Eviscerate that kills gives back 3 combo points and Shadowstep",
      "kills refund", TalentBranch_Role, 3, 0, 1, 0},
+    {"Cutthroat", "Your blades cut deeper", "+4% damage",
+     TalentBranch_Role, 2, 1, 4, 0},
+    {"Evasion", "You take less damage", "-4% damage taken",
+     TalentBranch_Role, 3, 1, 4, 0},
+    // NOTE(zoubir): slot 8, a class spell made stronger, by rank: to be written
+    {"", "", "", TalentBranch_Role, 4, 0, 4, 0},
+    {"Quick Hands", "Every spell comes back sooner", "-4% cooldowns",
+     TalentBranch_Role, 4, 1, 4, 0},
+    {"Siphon", "Your hits heal you", "2% of damage back as health",
+     TalentBranch_Role, 5, 0, 4, 0},
+    // NOTE(zoubir): slot 11, the capstone: to be written
+    {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
+};
+
+// NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
+// for a talent with code of its own
+global_variable u8 ShadowbladeTalentStats[ROLE_TALENTS] =
+{
+    RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
+    RoleStat_Damage, RoleStat_Armor, RoleStat_None, RoleStat_Haste, RoleStat_Lifesteal, RoleStat_None,
 };
 
 // NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click

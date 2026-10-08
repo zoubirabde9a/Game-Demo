@@ -35,7 +35,7 @@ DrawTalentColumn(render_context *RenderContext, app_state *AppState, talent_pane
     UIText(RenderContext, Small, X + L->ColumnWidth - 16.f, L->ColumnTop + 15.f, Text,
            UI_COLOR_TEXT_MUTED, UIAlign_Right);
     // NOTE(zoubir): how far toward the last tier, as a thin bar under the name
-    float Toward = Minimum(1.f, (float)Spent / (float)TalentTierCost(TALENT_TIERS - 1));
+    float Toward = Minimum(1.f, (float)Spent / (float)TalentTierCost(TalentBranchTiers(Branch) - 1));
     float BarX = X + 16.f;
     float BarWidth = L->ColumnWidth - 32.f;
     DrawFilledRectangle(RenderContext, BarX, L->ColumnTop + 38.f, BarWidth, 2.f,
@@ -45,7 +45,7 @@ DrawTalentColumn(render_context *RenderContext, app_state *AppState, talent_pane
 
     // NOTE(zoubir): each tier's threshold on the left edge: a faint line
     // once open, a lock and the points it needs while shut
-    for(u32 Tier = 1; Tier < TALENT_TIERS; Tier++)
+    for(u32 Tier = 1; Tier < TalentBranchTiers(Branch); Tier++)
     {
         float Y = L->TierTop + (float)Tier * L->TierHeight - 8.f;
         bool32 Open = IsTalentTierOpen(Slot, Branch, Tier);

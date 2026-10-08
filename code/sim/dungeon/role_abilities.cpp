@@ -165,6 +165,7 @@ RoleSpellCooldown(player_slot *Slot, u32 Key)
         Result -= PROVOKE_COOLDOWN * (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_Provoke);
     }
     Result = ClassSpellCooldown(Slot, Key, Result);
+    Result *= RoleStatCooldownScale(Slot);
     return Result;
 }
 
@@ -350,6 +351,11 @@ OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
           world_entity *Source, float Damage)
 {
     OnClassHit(AppState, Attacker, Target, Source, Damage);
+    float Lifesteal = RoleStatShare(Attacker, RoleStat_Lifesteal);
+    if (Lifesteal > 0.f && Attacker->Entity && Damage > 0.f)
+    {
+        HealPlayer(AppState, Attacker->Entity->PlayerIndex, Attacker->Entity, Lifesteal * Damage);
+    }
     if (!Source || Source->Type != EntityType_FireBall)
     {
         return;

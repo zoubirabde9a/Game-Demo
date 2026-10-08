@@ -35,9 +35,10 @@
    tree (ui/talent_panel/) and the server sends each player its ranks.
 
    In a dungeon run each role has a fourth branch of its own
-   (sim/dungeon/role_talents.cpp): six slots at the end of the table,
-   Talent_RoleFirst on, whose shape (tier, column, ranks) is the same for
-   every role and whose meaning is the role's. Their ranks ride with the
+   (sim/dungeon/role_talents.cpp): twelve slots at the end of the table,
+   Talent_RoleFirst on, six tiers deep (ROLE_TALENT_TIERS), whose shape
+   (tier, column, ranks) is the same for every role and whose meaning is
+   the role's. Their ranks ride with the
    others; picking another role gives their points back. They take no
    point outside a run.
 
@@ -46,6 +47,9 @@
 
 #define TALENT_POINTS_PER_TIER 2
 #define TALENT_TIERS 4
+// NOTE(zoubir): the role branch goes deeper: 29 points, one a level up
+// to the dungeon's top level
+#define ROLE_TALENT_TIERS 6
 // NOTE(zoubir): share of an ability's cooldown each level after the first
 // takes off: 6 s at level 1 is 5.1 at 2 and 4.2 at 3
 #define TALENT_COOLDOWN_PER_LEVEL 0.15f
@@ -65,7 +69,7 @@ enum talent_branch
 // NOTE(zoubir): the branches every map shows
 #define TALENT_GAME_BRANCHES 3
 // NOTE(zoubir): slots in the role branch, Talent_RoleFirst on
-#define ROLE_TALENTS 6
+#define ROLE_TALENTS 12
 
 // NOTE(zoubir): by branch, then tier; the order the panel lists them in
 // and the order snapshots carry their ranks in
@@ -176,6 +180,12 @@ global_variable talent_def TalentDefs[Talent_Count] =
     {"", "", "", TalentBranch_Role, 1, 1, 1, 0},
     {"", "", "", TalentBranch_Role, 2, 0, 1, 0},
     {"", "", "", TalentBranch_Role, 3, 0, 1, 0},
+    {"", "", "", TalentBranch_Role, 2, 1, 4, 0},
+    {"", "", "", TalentBranch_Role, 3, 1, 4, 0},
+    {"", "", "", TalentBranch_Role, 4, 0, 4, 0},
+    {"", "", "", TalentBranch_Role, 4, 1, 4, 0},
+    {"", "", "", TalentBranch_Role, 5, 0, 4, 0},
+    {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
 };
 static_assert(ArrayCount(TalentDefs) == Talent_Count, "one row per talent");
 
@@ -188,6 +198,14 @@ inline bool32
 IsRoleTalent(u32 Talent)
 {
     bool32 Result = Talent >= Talent_RoleFirst && Talent <= Talent_RoleLast;
+    return Result;
+}
+
+// NOTE(zoubir): how many tiers Branch has
+inline u32
+TalentBranchTiers(u32 Branch)
+{
+    u32 Result = Branch == TalentBranch_Role ? ROLE_TALENT_TIERS : TALENT_TIERS;
     return Result;
 }
 
@@ -347,8 +365,12 @@ PlayerAllowedButtons(player_slot *Slot)
 
 #include "talents/effects.cpp"
 
+// NOTE(zoubir): in sim/dungeon/role_stats.cpp: the role's health on the
+// body again after its talents changed (a health talent raises it)
+internal void RefreshRoleHealth(app_state *AppState, player_slot *Slot);
+
 // NOTE(zoubir): the role branch's points back, when its role changes
-// (sim/dungeon/roles.cpp)
+// (sim/dungeon/roles.cpp, which sets the new role's health after)
 internal void
 ResetRoleTalents(player_slot *Slot)
 {
@@ -374,6 +396,7 @@ ResetTalents(app_state *AppState, u32 SlotIndex)
     }
     Slot->WardReady = false;
     Slot->WardRecharge = 0.f;
+    RefreshRoleHealth(AppState, Slot);
     if (Slot->Entity && Slot->Entity->IsPresent)
     {
         EmitBurst(&AppState->Events, SimBurst_TalentLearned, (u8)SlotIndex,
@@ -405,6 +428,10 @@ LearnTalent(app_state *AppState, u32 SlotIndex, u32 Talent)
     {
         Slot->WardReady = true;
         Slot->WardRecharge = 0.f;
+    }
+    if (IsRoleTalent(Talent))
+    {
+        RefreshRoleHealth(AppState, Slot);
     }
     if (Slot->Entity && Slot->Entity->IsPresent)
     {

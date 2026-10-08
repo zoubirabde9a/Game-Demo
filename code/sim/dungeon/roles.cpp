@@ -142,6 +142,9 @@ RoleRGB(u32 Role)
     return Result;
 }
 
+// NOTE(zoubir): in role_stats.cpp: the role's health after its talents
+internal float RoleMaxHealth(player_slot *Slot);
+
 // NOTE(zoubir): the role's health on the slot's body, full. Called when a
 // player joins and when it picks a role; outside a dungeon the body keeps
 // the game rules' health
@@ -153,7 +156,7 @@ ApplyRoleToPlayer(app_state *AppState, player_slot *Slot)
         return;
     }
     world_entity *Player = Slot->Entity;
-    Player->MaxHp = GetRoleDef(Slot->Role)->MaxHp;
+    Player->MaxHp = RoleMaxHealth(Slot);
     if (Player->Hp > 0.f)
     {
         Player->Hp = Player->MaxHp;

@@ -200,7 +200,9 @@ LayTalentPanel(u32 WindowWidth, u32 WindowHeight, float Shown, u32 First, u32 Br
     }
     L.SidebarX = Sidebar > 0.f ? L.X + L.Width - UI_GAP_LARGE - Sidebar : 0.f;
     L.TierTop = L.ColumnTop + TALENT_COLUMN_HEADER;
-    L.TierHeight = (L.ColumnHeight - TALENT_COLUMN_HEADER - 8.f) / (float)TALENT_TIERS;
+    // NOTE(zoubir): a class's tree, alone, is deeper than the game's three
+    L.TierHeight = (L.ColumnHeight - TALENT_COLUMN_HEADER - 8.f) /
+        (float)TalentBranchTiers(First);
     L.NodeSize = Minimum(TALENT_NODE_MAX, 0.5f * L.TierHeight);
     return L;
 }

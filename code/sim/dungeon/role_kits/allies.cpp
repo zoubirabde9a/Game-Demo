@@ -95,7 +95,9 @@ HealPlayer(app_state *AppState, u32 By, world_entity *Target, float Amount)
     {
         return 0.f;
     }
-    float Given = Minimum(Amount * PartySustainScale(AppState->Dungeon),
+    float Healing = By < MAX_PLAYERS ?
+        1.f + RoleStatShare(&AppState->Players[By], RoleStat_Healing) : 1.f;
+    float Given = Minimum(Amount * Healing * PartySustainScale(AppState->Dungeon),
                           Target->MaxHp - Target->Hp);
     Target->Hp += Given;
     CountMeterHealing(AppState, By, Given);
