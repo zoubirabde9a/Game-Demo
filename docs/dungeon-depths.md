@@ -73,6 +73,8 @@ Then the level got its pace (1.12). Over five seeds, the bots now wipe on each b
 
 Vol'karr was then made quicker and lighter: 2150 health instead of 2500, Cleave every 4 s, Flame Step every 8 s and Cinderfall every 7 s, each hitting for less (24, 12 and 10). Starting the bots in his hall over six seeds, he wipes them about as often as before (16 wipes against 14), the worst seed six times instead of nine, and falls in 72 to 122 s. Faster cooldowns at the old damage made him a wall (up to twelve wipes on a seed), so the extra hits had to be smaller.
 
+A full run over four seeds (`dungeon_balance 90 3 2 4`, the bots levelling through the crypt into the depths) shows how far apart the two levels now are. In the crypt the bots beat all three bosses on the first try every time, without a death, and wiped only at the Ashen Causeway (three times over four seeds). In the depths they wiped on Kragg on two seeds (up to three times), on Sskarra on three (up to twice), on the bridge on one (five times) and on Vol'karr on three (up to ten times on one seed). Vol'karr and the bridge each still have a seed where the bots are stuck for a long time; that spread is what to tune next, not the average.
+
 ## Online
 
 Nothing new on the wire. The map id and the boss's kind already travel in every snapshot, so a client rebuilds the depths when the server moves there and shows the new bosses' names on the boss bar. The map and the three bosses were added at the end of their lists, so client and server must be built from the same commit, as for any new map or monster.
