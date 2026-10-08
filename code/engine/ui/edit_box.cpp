@@ -1,5 +1,6 @@
 /* Edit boxes: clicking selects one, typing appends to its text, and
-   DrawEditBox draws the field and its cursor. */
+   DrawEditBox draws the field and its cursor. UISelectAllText selects the
+   whole text, so the first key typed replaces it. */
 
 internal void
 DrawEditBox(ui_element *EditBox, ui_context *UIContext)
@@ -18,6 +19,12 @@ DrawEditBox(ui_element *EditBox, ui_context *UIContext)
     DrawRoundOutline(RenderContext, EditBox->X, EditBox->Y,
                      EditBox->Width, EditBox->Height,
                      UIMixColor(UI_COLOR_BORDER, UI_COLOR_ACCENT, Hot));
+    if (IsSelected && State->AllSelected && State->TextCount > 0)
+    {
+        DrawRoundRect(RenderContext, Inner.X - 3.f, Inner.Y,
+                      UIContext->ElementCursor.Offset + 6.f, Inner.W,
+                      WithAlpha(UI_COLOR_ACCENT, 0.3f));
+    }
     if (IsSelected)
     {
         // NOTE(zoubir): the caret breathes rather than blinking hard
@@ -72,6 +79,15 @@ UISelectEditBox(ui_context *UIContext, ui_state *EditBox)
     }
 }
 
+// NOTE(zoubir): selects EditBox with all its text selected, like a field
+// a program filled in for the player to keep or type over
+internal void
+UISelectAllText(ui_context *UIContext, ui_state *EditBox)
+{
+    UISelectEditBox(UIContext, EditBox);
+    EditBox->AllSelected = true;
+}
+
 // NOTE(zoubir): MaxLength 0 means as much as Text holds
 internal void
 DoEditBox(ui_state *EditBox, app_state *AppState,
@@ -93,7 +109,14 @@ DoEditBox(ui_state *EditBox, app_state *AppState,
     v2 ContainerOffset = UIContext->ContainerOffset;
     ui_container *Container = UIContextGetCurrentContainer(UIContext);
         
+    // NOTE(zoubir): a box selected before it was first drawn had no font
+    // to measure its caret with; place the caret now
+    bool32 Unmeasured = !EditBox->Font;
     EditBox->Font = Font;
+    if (Unmeasured && UIContext->SelectedState == EditBox)
+    {
+        UISelectEditBox(UIContext, EditBox);
+    }
     X += ContainerOffset.X;
     Y += ContainerOffset.Y;
 
@@ -122,10 +145,21 @@ DoEditBox(ui_state *EditBox, app_state *AppState,
     if (IsPressed)
     {
         UISelectEditBox(UIContext, EditBox);
+        EditBox->AllSelected = false;
+    }
+    bool32 Replaced = false;
+    if (UIContext->SelectedState == EditBox && EditBox->AllSelected &&
+        (Input->TextErase || Input->TextInputCount > 0))
+    {
+        EditBox->Text[0] = 0;
+        EditBox->TextCount = 0;
+        EditBox->AllSelected = false;
+        UISelectEditBox(UIContext, EditBox);
+        Replaced = true;
     }
     if (UIContext->SelectedState == EditBox)
     {
-        if (Input->TextErase && EditBox->TextCount > 0)
+        if (Input->TextErase && EditBox->TextCount > 0 && !Replaced)
         {
             char *CharacterPtrToErase = &EditBox->Text[(EditBox->TextCount - 1)];
             char ErasedChar = *CharacterPtrToErase;

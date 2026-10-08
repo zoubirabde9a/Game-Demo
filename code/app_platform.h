@@ -283,8 +283,9 @@ struct app_input
     };
 
     // NOTE(zoubir): text typed this frame, null-terminated, printable
-    // ASCII; TextErase is one backspace
+    // ASCII; TextErase is one backspace, TextSubmit an Enter
     bool32 TextErase;
+    bool32 TextSubmit;
     char TextInput[64];
     u32 TextInputCount;
 };

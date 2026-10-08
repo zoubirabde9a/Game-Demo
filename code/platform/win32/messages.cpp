@@ -2,10 +2,11 @@
    message loop that turns key messages into input. */
 
 // NOTE(zoubir): characters typed since the last frame, from WM_CHAR;
-// printable ASCII only, and backspace as an erase
+// printable ASCII only, backspace as an erase and Enter as a submit
 global_variable char GlobalTypedText[64];
 global_variable u32 GlobalTypedCount;
 global_variable bool32 GlobalTypedErase;
+global_variable bool32 GlobalTypedSubmit;
 
 internal void
 Win32AddTypedCharacter(u32 Character)
@@ -13,6 +14,10 @@ Win32AddTypedCharacter(u32 Character)
     if (Character == '')
     {
         GlobalTypedErase = true;
+    }
+    else if (Character == '')
+    {
+        GlobalTypedSubmit = true;
     }
     else if (Character >= 32 && Character < 127 &&
              GlobalTypedCount + 1 < ArrayCount(GlobalTypedText))
@@ -34,8 +39,10 @@ Win32TakeTypedText(app_input *Input)
     }
     Input->TextInput[Input->TextInputCount] = 0;
     Input->TextErase = GlobalTypedErase;
+    Input->TextSubmit = GlobalTypedSubmit;
     GlobalTypedCount = 0;
     GlobalTypedErase = false;
+    GlobalTypedSubmit = false;
 }
 
 internal void

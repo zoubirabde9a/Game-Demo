@@ -49,6 +49,9 @@ struct ui_state
         struct
         {
             v4 Padding;
+            // NOTE(zoubir): the whole text is selected: drawn highlighted,
+            // and the next key typed replaces it (UISelectAllText)
+            bool32 AllSelected;
         };
         
         // Button
