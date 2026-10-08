@@ -85,7 +85,7 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
     // next level, to try the talent tree without playing for it
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     if (Input->ButtonF6.Pressed && !IsOnline(AppState->Online) && Slot->Active &&
-        Slot->Level < PLAYER_MAX_LEVEL)
+        Slot->Level < TopLevel(AppState))
     {
         AwardXp(AppState, Slot, XpToReach(Slot->Level + 1) - Slot->Xp);
     }

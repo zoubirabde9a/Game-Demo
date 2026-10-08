@@ -4,8 +4,10 @@
    how the players change mode. The vote stays open MAP_VOTE_SECONDS; the one who
    asked counts as a yes, and every other player can answer yes or no.
    When more than half of the players say yes, the world moves to that map
-   on the next tick (StartNextRoundMap, setup.cpp) and everyone starts
-   again from level 1, without experience or talents; names and scores
+   on the next tick (StartNextRoundMap, setup.cpp). From one dungeon map
+   to another everyone keeps their level and talents and a new run
+   starts; a change of mode starts everyone again from level 1, keeping
+   the dungeon character aside for the next dungeon. Names and scores
    stay. When it can no longer pass, or time runs out, it closes. Alone,
    asking is enough.
 

@@ -9,19 +9,22 @@
                           keeps losing still levels
 
    Level L takes XpToReach(L) in all: 80 for level 2, then each level
-   costs 20 more than the last; level 20, the most, takes 4940. At two a
-   second, time alone reaches level 2 in 40 s and level 10 in about 20
-   minutes; kills get there far sooner. Every level after the first is a
-   talent point (talents.cpp).
+   costs 20 more than the last; level 20, the most in a duel, takes 4940,
+   and level 30, the most in a dungeon, 10440. At two a second, time alone
+   reaches level 2 in 40 s and level 10 in about 20 minutes; kills get
+   there far sooner. Every level after the first is a talent point
+   (talents.cpp).
 
    In a dungeon run a player earns one level per room the party clears,
-   starting from level 1: the cap is DUNGEON_LEVELS_AHEAD plus the rooms
-   with monsters cleared, so waiting around cannot farm levels.
-   Experience past the cap stops one point short of the next level, which
-   comes the moment the next room is cleared. The cap sits below what
-   time alone would give at 90 s a room (level 7 leaving the Crypt where
-   the trickle reaches 9), so a dungeon party is a little lower than the
-   bosses were first tuned for. */
+   on top of the level it started the run at (RunStartLevel): the cap is
+   that plus the rooms with monsters cleared, so waiting around cannot
+   farm levels. A new run keeps the level and talents a player already
+   has (StartNextRoundMap, setup.cpp), so a party that clears the Crypt
+   again goes on climbing. Experience past the cap stops one point short
+   of the next level, which comes the moment the next room is cleared.
+   From level 1 the cap sits below what time alone would give at 90 s a
+   room (level 7 leaving the Crypt where the trickle reaches 9), so a
+   fresh party is a little lower than the bosses were first tuned for. */
 
 #define XP_PLAYER_KILL 100
 #define XP_PER_LEVEL_GAP 15
@@ -29,13 +32,13 @@
 #define XP_PLAYER_KILL_MAX 250
 #define XP_MONSTER_KILL 5
 #define XP_PER_SECOND 2
-#define PLAYER_MAX_LEVEL 20
+// NOTE(zoubir): the most any player can be, in a dungeon run; a duel
+// stops at DUEL_MAX_LEVEL (TopLevel)
+#define PLAYER_MAX_LEVEL 30
+#define DUEL_MAX_LEVEL 20
 // NOTE(zoubir): the first level's cost and how much more each costs
 #define XP_FIRST_LEVEL 80
 #define XP_LEVEL_STEP 20
-// NOTE(zoubir): the most a dungeon player can be is this plus the rooms
-// with monsters cleared: level 1 until the first fight is won
-#define DUNGEON_LEVELS_AHEAD 1
 
 // NOTE(zoubir): experience needed in all to be Level
 inline u32
@@ -58,13 +61,22 @@ LevelForXp(u32 Xp)
     return Result;
 }
 
+// NOTE(zoubir): the most a player can be in this mode: PLAYER_MAX_LEVEL
+// in a dungeon run, DUEL_MAX_LEVEL anywhere else
+inline u32
+TopLevel(app_state *AppState)
+{
+    u32 Result = AppState->Dungeon ? PLAYER_MAX_LEVEL : DUEL_MAX_LEVEL;
+    return Result;
+}
+
 // NOTE(zoubir): how far the player is from its level to the next, 0..1;
-// 1 at the top level
+// 1 at Top, the top level
 inline float
-LevelProgress(u32 Xp)
+LevelProgress(u32 Xp, u32 Top = PLAYER_MAX_LEVEL)
 {
     u32 Level = LevelForXp(Xp);
-    if (Level >= PLAYER_MAX_LEVEL)
+    if (Level >= Top)
     {
         return 1.f;
     }
@@ -74,16 +86,17 @@ LevelProgress(u32 Xp)
     return Result;
 }
 
-// NOTE(zoubir): the highest level a player can reach now:
-// PLAYER_MAX_LEVEL, or in a dungeon run DUNGEON_LEVELS_AHEAD past the
-// rooms cleared
+// NOTE(zoubir): the highest level Slot can reach now: TopLevel, or in a
+// dungeon run one past its RunStartLevel for each room with monsters
+// cleared (level 1 until the first fight is won, for a fresh player)
 inline u32
-LevelCap(app_state *AppState)
+LevelCap(app_state *AppState, player_slot *Slot)
 {
-    u32 Result = PLAYER_MAX_LEVEL;
+    u32 Result = TopLevel(AppState);
     if (AppState->Dungeon)
     {
-        Result = Minimum(Result, DUNGEON_LEVELS_AHEAD + AppState->DungeonRoomsCleared);
+        u32 Start = Maximum(1u, Slot->RunStartLevel);
+        Result = Minimum(Result, Start + AppState->DungeonRoomsCleared);
     }
     return Result;
 }
@@ -104,7 +117,7 @@ AwardXp(app_state *AppState, player_slot *Slot, u32 Amount)
 {
     // NOTE(zoubir): under a dungeon's cap, one point short of the level
     // past it; never taken back below what the player has
-    u32 Level = LevelCap(AppState);
+    u32 Level = LevelCap(AppState, Slot);
     u32 Cap = Level < PLAYER_MAX_LEVEL ? XpToReach(Level + 1) - 1 :
         XpToReach(PLAYER_MAX_LEVEL);
     Slot->Xp = Maximum(Slot->Xp, Minimum(Cap, Slot->Xp + Amount));

@@ -79,8 +79,11 @@ RebuildWorldForMap(app_state *AppState, memory_arena *Arena, u32 MapId)
 // (sim/map_vote.cpp), built fresh with its monsters, and every player
 // back at their spawn there with full health. Each slot keeps its name
 // and score, and its level, experience and talents unless a vote moved
-// everyone, which starts them over; a player that had a familiar and kept
-// its talents gets it back. Arena must hold the world and nothing else
+// everyone into or out of a duel, which starts them over; a vote from one
+// dungeon map to another starts a new run with the levels and talents
+// the party has, and a dungeon character set aside for a duel comes back
+// with the next dungeon. A player that had a familiar and kept its talents gets
+// it back. Arena must hold the world and nothing else
 // (RebuildWorldForMap)
 internal void
 StartNextRoundMap(app_state *AppState, memory_arena *Arena)
@@ -104,12 +107,17 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
         Kept[SlotIndex] = AppState->Players[SlotIndex];
     }
 
-    bool32 StartOver = AppState->NextMapVoted;
+    bool32 NewRun = AppState->NextMapVoted;
     // NOTE(zoubir): a cleared dungeon level goes on to the next one
     // (NextRunMap, sim/dungeon/levels.cpp), any other map plays again
-    u32 MapId = StartOver ? AppState->NextMap : NextRunMap(World->MapId);
+    u32 MapId = NewRun ? AppState->NextMap : NextRunMap(World->MapId);
+    // NOTE(zoubir): dungeon to dungeon keeps the characters; a change of
+    // mode starts them over, since a duel's tree and a class's are apart
+    bool32 FromDungeon = GetMapDef((map_id)World->MapId)->Dungeon;
+    bool32 ToDungeon = MapId < MapId_Count && GetMapDef((map_id)MapId)->Dungeon;
+    bool32 StartOver = NewRun && !(FromDungeon && ToDungeon);
     AppState->NextMapVoted = false;
-    if (StartOver)
+    if (NewRun)
     {
         AppState->DungeonRoomsCleared = 0;
     }
@@ -129,18 +137,34 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
         *Slot = Kept[SlotIndex];
         Slot->Entity = Player;
         Slot->SpawnPosition = SpawnPosition;
-        ApplyRoleToPlayer(AppState, Slot);
         Slot->RespawnTimer = 0.f;
         Slot->DelayedInputCount = 0;
         if (StartOver)
         {
+            if (FromDungeon)
+            {
+                Slot->DungeonXp = Slot->Xp;
+                memcpy(Slot->DungeonRanks, Slot->Ranks, sizeof(Slot->Ranks));
+            }
             Slot->Xp = 0;
             Slot->XpClock = 0.f;
             Slot->Level = 1;
             ZeroArray(Slot->Ranks, TALENT_SLOTS, u8);
             Slot->WardReady = false;
             Slot->WardRecharge = 0.f;
+            if (ToDungeon)
+            {
+                Slot->Xp = Slot->DungeonXp;
+                Slot->Level = LevelForXp(Slot->Xp);
+                memcpy(Slot->Ranks, Slot->DungeonRanks, sizeof(Slot->Ranks));
+            }
         }
+        if (NewRun)
+        {
+            Slot->RunStartLevel = Slot->Level;
+        }
+        // NOTE(zoubir): after the ranks, which can raise its health
+        ApplyRoleToPlayer(AppState, Slot);
         Player->SpawnShield = RespawnShieldSeconds(Slot);
         if (HadFamiliar[SlotIndex] && !StartOver)
         {

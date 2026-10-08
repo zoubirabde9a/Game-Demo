@@ -92,7 +92,7 @@ TrackExperience(app_state *AppState, xp_bar *Bar, float DeltaTime)
         Bar->Seen = true;
         Bar->LastXp = Slot->Xp;
         Bar->LastLevel = Level;
-        Bar->ShownShare = LevelProgress(Slot->Xp);
+        Bar->ShownShare = LevelProgress(Slot->Xp, TopLevel(AppState));
     }
     u32 Gain = Slot->Xp - Bar->LastXp;
     if (Gain >= XP_GAIN_SHOWN && Bar->Gains[0].Amount &&
@@ -122,7 +122,7 @@ TrackExperience(app_state *AppState, xp_bar *Bar, float DeltaTime)
         Bar->ShownShare = 0.f;
     }
     Bar->LastLevel = Level;
-    float Share = LevelProgress(Slot->Xp);
+    float Share = LevelProgress(Slot->Xp, TopLevel(AppState));
     Bar->ShownShare += (Share - Bar->ShownShare) * Minimum(1.f, 6.f * DeltaTime);
     Bar->BannerAge += DeltaTime;
     Bar->ToastAge += DeltaTime;

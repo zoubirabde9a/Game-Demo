@@ -19,12 +19,13 @@ TestLevelCurve()
     Check(XpToReach(1) == 0);
     Check(XpToReach(2) == 80);
     Check(XpToReach(3) == 180);
-    Check(XpToReach(PLAYER_MAX_LEVEL) == 4940);
+    Check(XpToReach(DUEL_MAX_LEVEL) == 4940);
+    Check(XpToReach(PLAYER_MAX_LEVEL) == 10440);
     Check(LevelForXp(0) == 1);
     Check(LevelForXp(79) == 1);
     Check(LevelForXp(80) == 2);
     Check(LevelForXp(4939) == 19);
-    Check(LevelForXp(4940) == PLAYER_MAX_LEVEL);
+    Check(LevelForXp(4940) == DUEL_MAX_LEVEL);
     Check(LevelForXp(100000) == PLAYER_MAX_LEVEL);
     Check(PlayerKillXp(1, 1) == 100);
     Check(PlayerKillXp(3, 5) == 130);

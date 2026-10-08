@@ -23,7 +23,7 @@ DrawTalentPanelHeader(render_context *RenderContext, app_state *AppState,
     snprintf(Text, sizeof(Text), "Level %u", Level);
     UIText(RenderContext, Body, BarX, CentreY - UILineHeight(Body) - 2.f, Text,
            UI_RGBA(255, 226, 150, 255));
-    if (Level < PLAYER_MAX_LEVEL)
+    if (Level < TopLevel(AppState))
     {
         snprintf(Text, sizeof(Text), "%u / %u XP", Slot->Xp, XpToReach(Level + 1));
     }
@@ -34,7 +34,7 @@ DrawTalentPanelHeader(render_context *RenderContext, app_state *AppState,
     UIText(RenderContext, Small, BarX + BarWidth, CentreY - UILineHeight(Small) - 3.f, Text,
            UI_COLOR_TEXT_MUTED, UIAlign_Right);
     DrawShaderQuad(RenderContext, Shader_XpBar, BarX, CentreY + 3.f, BarWidth, 10.f,
-                   WithAlpha(XP_COLOR, LevelProgress(Slot->Xp)));
+                   WithAlpha(XP_COLOR, LevelProgress(Slot->Xp, TopLevel(AppState))));
 
     // NOTE(zoubir): points to spend, then the close button, on the right
     float CloseSize = 30.f;

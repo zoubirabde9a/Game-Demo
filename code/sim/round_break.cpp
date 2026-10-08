@@ -112,7 +112,7 @@ BeginRoundBreak(app_state *AppState, bool32 FinalBlow)
         {
             continue;
         }
-        if (Slot->Level < PLAYER_MAX_LEVEL)
+        if (Slot->Level < TopLevel(AppState))
         {
             AwardXp(AppState, Slot, XpToReach(Slot->Level + 1) - Slot->Xp);
         }
