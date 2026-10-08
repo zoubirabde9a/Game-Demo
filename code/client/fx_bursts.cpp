@@ -141,13 +141,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     // puff of air where a dash slipped it
     {BurstShape_Spark, 0.25f, 24.f, 0x00FFD896, false, 0.f, BurstPose_None},      // Blocked, pale blue
     {BurstShape_Puff, 0.3f, 18.f, 0x00F0F0F0, false, 0.f, BurstPose_None},        // Dodged, white
-#include "dungeon/classes/ranger_bursts.inc"
-#include "dungeon/classes/berserker_bursts.inc"
-#include "dungeon/classes/shadowblade_bursts.inc"
-#include "dungeon/classes/stormcaller_bursts.inc"
-#include "dungeon/classes/duelist_bursts.inc"
-#include "dungeon/classes/frostmage_bursts.inc"
-#include "dungeon/classes/druid_bursts.inc"
+#include "dungeon/classes/class_bursts.inc"
 };
 static_assert(ArrayCount(BurstLooks) == SimBurst_Count, "one look per burst");
 
