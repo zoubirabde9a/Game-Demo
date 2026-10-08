@@ -10,7 +10,8 @@
             Magma Spit throws a fan of four burning globs. Tail Lash
             sweeps everything near her toward the lava round the rim.
             Molten Rain drops three spots of falling magma that set the
-            struck burning.
+            struck burning. Magma Geyser bursts up under whoever she
+            is hunting, with no ring to step out of.
    Enraged (below 45% health): faster and white-hot.
    The dungeon adds two Dune Lurkers at 66% and 33% that crawl back into
    her and heal her if they live too long (sim/dungeon/boss_scripts.cpp). */
@@ -103,6 +104,20 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Spit->ShotStyle = ShotStyle_Ember;
     Spit->Status = StatusEffect_Burning;
     Spit->StatusSeconds = 1.5f;
+
+    // NOTE(zoubir): magma bursts up under the one she is hunting, with no
+    // ring to step out of: only a tank stands in it comfortably
+    monster_ability *Geyser = AddMonsterAbility(Def, MonsterAbility_Smite,
+                                                "Magma Geyser");
+    Geyser->MaxRange = 520.f;
+    Geyser->Cooldown = 11.f;
+    Geyser->Windup = 1.f;
+    Geyser->Active = 0.3f;
+    Geyser->Recover = 0.5f;
+    Geyser->Damage = 28.f;
+    Geyser->Radius = 26.f;
+    Geyser->Status = StatusEffect_Burning;
+    Geyser->StatusSeconds = 2.f;
 }
 
 #else

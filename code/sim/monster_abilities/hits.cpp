@@ -47,15 +47,23 @@ FindMonsterTarget(app_state *AppState, world *World, world_entity *Monster,
 // NOTE(zoubir): every monster hit on a player is an ApplyHit
 // (sim/hit.cpp): damage scaled by the source's elite affix, life steal,
 // the push (Push, a velocity) and Lift, and the ability's status. Source
-// is the monster or shot, which earns no kill credit
+// is the monster or shot, which earns no kill credit. Burst is drawn on
+// the player, so a hit from behind or off screen still shows; Angle is
+// the way it is drawn when there is no push
 internal void
 HitPlayerWith(app_state *AppState, world *World, world_entity *Player,
               world_entity *Source, float Damage, v2 Push, float Lift,
-              status_effect Status, float StatusSeconds)
+              status_effect Status, float StatusSeconds, sim_burst Burst)
 {
     float Shove = Length(Push);
     v2 Away = Shove > 0.f ? Push * (1.f / Shove) : V2(0.f);
-    hit Hit = {Damage, Shove, Lift, Lift, 0.f, SimBurst_Count, Status,
+    if (Shove <= 0.f && Source)
+    {
+        v2 FromSource = Player->Position.XY - Source->Position.XY;
+        float Distance = Length(FromSource);
+        Away = Distance > 0.f ? (1.f / Distance) * FromSource : V2(0.f);
+    }
+    hit Hit = {Damage, Shove, Lift, Lift, 0.f, Burst, Status,
                StatusSeconds};
     ApplyHit(AppState, World, Player, &Hit, Away, Source, SIM_NOBODY);
 }
@@ -65,17 +73,37 @@ HitPlayer(app_state *AppState, world *World, world_entity *Player,
           world_entity *Source, monster_ability *Ability, v2 Push)
 {
     HitPlayerWith(AppState, World, Player, Source, Ability->Damage, Push, 0.f,
-                  Ability->Status, Ability->StatusSeconds);
+                  Ability->Status, Ability->StatusSeconds, SimBurst_MonsterHit);
 }
 
-// NOTE(zoubir): the plain bite every monster has, off AttackInterval
+// NOTE(zoubir): how long a monster plays its attack row after a bite
+// (sim/update.cpp), so the bite reads on the monster as well as on the
+// bitten
+#define MONSTER_BITE_SECONDS 0.3f
+
+// NOTE(zoubir): the plain bite every monster has, off AttackInterval. The
+// shove is 0, so a bite never moves the player; Away only aims its burst
 internal void
 MonsterBite(app_state *AppState, world *World, world_entity *Monster,
             world_entity *Player)
 {
     monster_def *Def = GetMonsterDef(Monster->MonsterKind);
     HitPlayerWith(AppState, World, Player, Monster, Def->AttackDamage,
-                  V2(0.f), 0.f, StatusEffect_None, 0.f);
+                  V2(0.f), 0.f, StatusEffect_None, 0.f, SimBurst_MonsterBite);
+}
+
+// NOTE(zoubir): a Smite's blow (trigger.cpp): only the victim, through a
+// dash or blink, never a jump's clearance
+internal void
+SmitePlayer(app_state *AppState, world *World, world_entity *Monster,
+            world_entity *Player, monster_ability *Ability)
+{
+    v2 Away = Player->Position.XY - Monster->Position.XY;
+    float Distance = Length(Away);
+    Away = Distance > 0.f ? (1.f / Distance) * Away : V2(1.f, 0.f);
+    hit Hit = {Ability->Damage, Ability->Knockback, 0.f, 0.f, 0.f,
+               SimBurst_Smite, Ability->Status, Ability->StatusSeconds, true};
+    ApplyHit(AppState, World, Player, &Hit, Away, Monster, SIM_NOBODY);
 }
 
 // NOTE(zoubir): an area hit (slam, mortar, blink, eruption) throws a player
@@ -112,7 +140,8 @@ HurtPlayersInRadius(app_state *AppState, world *World, world_entity *Source,
         float Lift = Minimum(AREA_HIT_MAX_LIFT,
                              AREA_HIT_LIFT_SHARE * Ability->Knockback);
         HitPlayerWith(AppState, World, Player, Source, Ability->Damage, Push,
-                      Lift, Ability->Status, Ability->StatusSeconds);
+                      Lift, Ability->Status, Ability->StatusSeconds,
+                      SimBurst_MonsterHit);
     }
     return HitCount;
 }

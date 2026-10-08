@@ -334,14 +334,18 @@ internal void
 KillEntity(app_state *AppState, world *World, world_entity *Target,
            world_entity *Source);
 
+// NOTE(zoubir): ThroughDodge lands even on a player mid-dash or blink
+// (an unavoidable boss blow, sim/hit.cpp); a fresh spawn's shield still
+// holds
 internal bool32
-DamageEntity(app_state *AppState, world *World,
-             world_entity *Target, float Damage, world_entity *Source)
+DealDamage(app_state *AppState, world *World, world_entity *Target,
+           float Damage, world_entity *Source, bool32 ThroughDodge)
 {
+    bool32 Dodges = ThroughDodge ? Target->SpawnShield > 0.f : IsDodging(Target);
     // NOTE(zoubir): a dead player waits for respawn with Hp <= 0, so
     // further hits that frame do not count as more kills. A unit frozen
     // by a rewind is outside time and takes nothing
-    if (!Target->IsPresent || Target->Hp <= 0.f || IsDodging(Target) ||
+    if (!Target->IsPresent || Target->Hp <= 0.f || Dodges ||
         IsRewindInvulnerable(AppState, Target) ||
         IsFriendlyFire(AppState, Target, Source))
     {
@@ -363,6 +367,14 @@ DamageEntity(app_state *AppState, world *World,
     }
     KillEntity(AppState, World, Target, Source);
     return true;
+}
+
+internal bool32
+DamageEntity(app_state *AppState, world *World,
+             world_entity *Target, float Damage, world_entity *Source)
+{
+    bool32 Result = DealDamage(AppState, World, Target, Damage, Source, false);
+    return Result;
 }
 
 // NOTE(zoubir): the death itself, after a hit took the last health or

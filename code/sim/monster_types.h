@@ -33,7 +33,12 @@ enum status_effect
     StatusEffect_Count
 };
 
-#define MAX_MONSTER_ABILITIES 4
+// NOTE(zoubir): a shot or hazard sends the index of the ability that made
+// it in 2 bits (server/sim_game/pack.cpp), so abilities that make them
+// sit in the first MAX_WIRED_ABILITIES slots; the fifth is for one that
+// makes neither (a Smite). monster_tests.cpp checks it
+#define MAX_MONSTER_ABILITIES 5
+#define MAX_WIRED_ABILITIES 4
 #define MAX_ABILITY_POINTS 4
 
 // NOTE(zoubir): every monster ability runs Windup (rooted, telegraphed,

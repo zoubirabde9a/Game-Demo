@@ -137,6 +137,10 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
             *AnimationType = AnimationType_Cast;
             *AnimationSpeed = AnimationSpeedToFit(Def, MonsterRow_Windup,
                                                   Ability->Windup);
+            if (Ability->Kind == MonsterAbility_Smite)
+            {
+                TrackSmiteVictim(AppState, World, Entity, Ability);
+            }
             if (Entity->AbilityTimer <= 0.f)
             {
                 TriggerMonsterAbility(AppState, World, Arena, Entity, Ability);

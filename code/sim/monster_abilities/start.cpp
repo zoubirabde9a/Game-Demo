@@ -177,6 +177,15 @@ StartMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
             Entity->AbilityPoints[Entity->AbilityPointCount++] = Entity->Position.XY;
         } break;
 
+        case MonsterAbility_Smite:
+        {
+            // NOTE(zoubir): AbilityPoints[0] follows the victim through the
+            // windup (TrackSmiteVictim), so every client sees the mark on
+            // them, and moves to whoever takes the threat meanwhile
+            Entity->AbilityTargetSlot = Target->ID;
+            Entity->AbilityPoints[Entity->AbilityPointCount++] = Target->Position.XY;
+        } break;
+
         case MonsterAbility_Mend:
         {
             world_entity *Ally = FindMendTarget(World, Entity, Ability->Radius);

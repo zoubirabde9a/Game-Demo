@@ -9,7 +9,8 @@
             lobs three white-hot ingots at the party's back line, setting
             the struck burning; Bellows Rush charges along a locked
             line at a player far from him. Stoke the Forge: two Cinder
-            Imps climb out of the coals, four at most.
+            Imps climb out of the coals, four at most. Searing Brand: a
+            white-hot brand on whoever holds him, which nobody can dodge.
    Enraged (below half health): faster and glowing red.
    The dungeon adds an armoured Anvil Guard at 70% and 35% that walks
    back into him if it lives too long (sim/dungeon/boss_scripts.cpp). */
@@ -98,6 +99,23 @@ DefineMonster_Forgemaster(monster_def *Def)
     Rush->Radius = 46.f;
     Rush->Speed = 640.f;
     Rush->Knockback = 700.f;
+
+    // NOTE(zoubir): the depths' first blow nobody dodges: a white-hot
+    // brand flung at whoever he is fighting. The tank shrugs it off (about
+    // a fifth of its health with three players); a mage holding him loses
+    // more than half
+    monster_ability *Brand = AddMonsterAbility(Def, MonsterAbility_Smite,
+                                               "Searing Brand");
+    Brand->MaxRange = 480.f;
+    Brand->Cooldown = 10.f;
+    Brand->Windup = 1.f;
+    Brand->Active = 0.3f;
+    Brand->Recover = 0.5f;
+    Brand->Damage = 26.f;
+    Brand->Radius = 22.f;
+    Brand->Knockback = 200.f;
+    Brand->Status = StatusEffect_Burning;
+    Brand->StatusSeconds = 1.5f;
 }
 
 #else

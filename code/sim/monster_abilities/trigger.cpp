@@ -1,6 +1,49 @@
 /* The moment a windup ends: what each ability kind does when it lands
    (TriggerMonsterAbility). */
 
+// NOTE(zoubir): the player a Smite is aimed at, while they are alive and
+// within reach (1.25 MaxRange, room to walk a little)
+internal world_entity *
+GetSmiteVictim(world *World, world_entity *Entity, monster_ability *Ability)
+{
+    world_entity *Result = 0;
+    if (Entity->AbilityTargetSlot < World->EntityCount)
+    {
+        world_entity *Victim = &World->Entities[Entity->AbilityTargetSlot];
+        if (Victim->IsPresent && Victim->Type == EntityType_Player && Victim->Hp > 0.f &&
+            Length(Victim->Position.XY - Entity->Position.XY) <= 1.25f * Ability->MaxRange)
+        {
+            Result = Victim;
+        }
+    }
+    return Result;
+}
+
+// NOTE(zoubir): during a Smite's windup the victim is whoever the monster
+// is after now (a taunt moves it), the mark follows them and the monster
+// turns to them
+internal void
+TrackSmiteVictim(app_state *AppState, world *World, world_entity *Entity,
+                 monster_ability *Ability)
+{
+    world_entity *Wanted = FindMonsterTarget(AppState, World, Entity, 0);
+    if (Wanted)
+    {
+        Entity->AbilityTargetSlot = Wanted->ID;
+    }
+    world_entity *Victim = GetSmiteVictim(World, Entity, Ability);
+    if (Victim && Entity->AbilityPointCount)
+    {
+        Entity->AbilityPoints[0] = Victim->Position.XY;
+        v2 ToVictim = Victim->Position.XY - Entity->Position.XY;
+        float Distance = Length(ToVictim);
+        if (Distance > 0.f)
+        {
+            Entity->AbilityAim = (1.f / Distance) * ToVictim;
+        }
+    }
+}
+
 // NOTE(zoubir): the moment the windup ends
 internal void
 TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
@@ -100,6 +143,33 @@ TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
         {
             Entity->Burrowed = true;
             Entity->Velocity = {};
+        } break;
+
+        case MonsterAbility_Smite:
+        {
+            world_entity *Victim = GetSmiteVictim(World, Entity, Ability);
+            if (!Victim)
+            {
+                break;
+            }
+            v2 ToVictim = Victim->Position.XY - Entity->Position.XY;
+            v2 Spot;
+            if (Ability->Spread > 0.f && Length(ToVictim) > Ability->Spread + 20.f &&
+                FindBlinkSpot(AppState, World, Entity, Victim, Ability->Spread, &Spot))
+            {
+                v3 OldPosition = Entity->Position;
+                Entity->Position = V3(Spot.X, Spot.Y, Entity->Position.Z);
+                Entity->Velocity = {};
+                CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Entity);
+                ToVictim = Victim->Position.XY - Spot;
+            }
+            float Distance = Length(ToVictim);
+            if (Distance > 0.f)
+            {
+                Entity->AbilityAim = (1.f / Distance) * ToVictim;
+            }
+            Entity->AbilityPoints[0] = Victim->Position.XY;
+            SmitePlayer(AppState, World, Entity, Victim, Ability);
         } break;
 
         case MonsterAbility_Mend:

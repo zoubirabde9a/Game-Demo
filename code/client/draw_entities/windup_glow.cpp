@@ -28,6 +28,7 @@ CastTellColor(monster_ability_kind Kind, u32 Alpha)
         case MonsterAbility_Summon: Result = UI_RGBA(120, 255, 150, Alpha); break;
         case MonsterAbility_Mend:   Result = UI_RGBA(140, 255, 210, Alpha); break;
         case MonsterAbility_Burrow: Result = UI_RGBA(220, 170, 110, Alpha); break;
+        case MonsterAbility_Smite:  Result = UI_RGBA(255,  40, 120, Alpha); break;
         default:                    Result = UI_RGBA(255, 255, 255, Alpha); break;
     }
     return Result;

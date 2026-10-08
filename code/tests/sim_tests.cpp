@@ -770,6 +770,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 }
 
 #include "monster_tests.cpp"
+#include "smite_tests.cpp"
 #include "sprite_sheet_tests.cpp"
 #include "terrain_tests.cpp"
 #include "hazard_tests.cpp"
@@ -826,6 +827,7 @@ main()
     RUN(TestSwitchingMapsReusesWorldMemory);
 
     RunMonsterTests();
+    RunSmiteTests();
     RunSpriteSheetTests();
     RunTerrainTests();
     RunHazardTests();

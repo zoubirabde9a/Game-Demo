@@ -6,7 +6,8 @@
    Calm:    Hellfire Cleave splits the floor round him and leaves it
             burning; Flame Step vanishes in a burst and comes down behind
             his target; Cinderfall drops three burning stones over the
-            hall, where the party is heading.
+            hall, where the party is heading; Tyrant's Judgement steps
+            beside whoever holds him and cleaves them, past any dodge.
    Enraged (below 40% health): faster, white with heat, and Crown of
             Fire: four fireballs out in a cross round his target.
    The dungeon raises Cinder Imps at 75%, 50% and 25% and binds a Magma
@@ -102,6 +103,23 @@ DefineMonster_EmberTyrant(monster_def *Def)
     Fall->Spread = 150.f;
     Fall->Status = StatusEffect_Burning;
     Fall->StatusSeconds = 2.f;
+
+    // NOTE(zoubir): he steps out of the fire beside whoever holds him and
+    // brings the cleaver down; it cannot be dodged, only taken by the
+    // tank or taunted off a friend before it lands
+    monster_ability *Judgement = AddMonsterAbility(Def, MonsterAbility_Smite,
+                                                   "Tyrant's Judgement");
+    Judgement->MaxRange = 560.f;
+    Judgement->Cooldown = 12.f;
+    Judgement->Windup = 1.1f;
+    Judgement->Active = 0.3f;
+    Judgement->Recover = 0.6f;
+    Judgement->Damage = 30.f;
+    Judgement->Radius = 24.f;
+    Judgement->Spread = 60.f;
+    Judgement->Knockback = 450.f;
+    Judgement->Status = StatusEffect_Burning;
+    Judgement->StatusSeconds = 1.5f;
 }
 
 #else

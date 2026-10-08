@@ -40,6 +40,15 @@ enum monster_ability_kind
     // BURROW_LOCK_SHARE of Active, then locks and is marked; the monster
     // erupts there, hitting everything within Radius
     MonsterAbility_Burrow,
+    // NOTE(zoubir): a blow nobody can step out of, dash through or jump
+    // over: it lands on the player the monster is after when the windup
+    // ends (by threat in a dungeon run), wherever they stand within
+    // MaxRange, so a party wants a tank to take it, and a tank that
+    // taunts during the windup takes it off a friend. Spread above 0
+    // first blinks the monster to Spread from the victim when it is
+    // farther than that. Hits only the victim; a ward still takes it.
+    // Radius is only the size of the mark drawn round the victim
+    MonsterAbility_Smite,
     MonsterAbility_Count
 };
 

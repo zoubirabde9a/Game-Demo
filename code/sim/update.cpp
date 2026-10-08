@@ -209,6 +209,27 @@ UpdateMonster(world_entity *Entity, world *World,
         *AnimationDirection = DDEntity.X >= 0.f ?
             AnimationDirection_Right : AnimationDirection_Left;
     }
+    // NOTE(zoubir): for MONSTER_BITE_SECONDS after a bite the monster plays
+    // its attack row toward the bitten, over the walk, so a bite shows on
+    // the biter and not only as the number on the player
+    float BiteInterval = Stats->AttackInterval;
+    if (Entity->PaceScale > 0.f)
+    {
+        BiteInterval /= Entity->PaceScale;
+    }
+    float SinceBite = BiteInterval - Entity->AttackCooldown;
+    if (Target && Entity->AttackCooldown > 0.f && SinceBite < MONSTER_BITE_SECONDS)
+    {
+        float BiteX = Target->Position.X - Entity->Position.X;
+        *AnimationType = AnimationType_Attack;
+        *AnimationSpeed = AnimationSpeedToFit(Stats, MonsterRow_Attack,
+                                              MONSTER_BITE_SECONDS);
+        if (Absolute(BiteX) > 0.05f)
+        {
+            *AnimationDirection = BiteX > 0.f ?
+                AnimationDirection_Right : AnimationDirection_Left;
+        }
+    }
 
     DDEntity *= Stats->Acceleration * GetMoveSpeedScale(Entity) * ACCELERATION_STEP;
     // Drag

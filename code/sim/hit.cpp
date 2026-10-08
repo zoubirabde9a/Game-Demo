@@ -32,6 +32,9 @@ struct hit
     sim_burst Burst;
     status_effect Status;
     float StatusSeconds;
+    // NOTE(zoubir): lands on a player mid-dash or blink too (a Smite,
+    // sim/monster_abilities/trigger.cpp)
+    bool32 Unavoidable;
 };
 
 // NOTE(zoubir): a monster's knockback is scaled by
@@ -120,7 +123,8 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
     {
         return false;
     }
-    if (Hit->Burst != SimBurst_Count && !IsDodging(Target))
+    bool32 Dodges = Hit->Unavoidable ? Target->SpawnShield > 0.f : IsDodging(Target);
+    if (Hit->Burst != SimBurst_Count && !Dodges)
     {
         v3 Chest = Target->Position;
         Chest.Z += 16.f;
@@ -132,12 +136,13 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
     float Damage = Hit->Damage * Affix->DamageScale;
     // NOTE(zoubir): a ward (sim/progression/talents.cpp) takes the whole
     // hit, the shove and the stun with it
-    if (!IsDodging(Target) && WardTakesHit(AppState, Target, Damage))
+    if (!Dodges && WardTakesHit(AppState, Target, Damage))
     {
         return false;
     }
     float HpBefore = Target->Hp;
-    bool32 Killed = DamageEntity(AppState, World, Target, Damage, Source);
+    bool32 Killed = DealDamage(AppState, World, Target, Damage, Source,
+                               Hit->Unavoidable);
     float Dealt = HpBefore - Maximum(0.f, Target->Hp);
     if (Dealt > 0.f)
     {
@@ -148,7 +153,7 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
     {
         Source->Hp = Minimum(Source->MaxHp, Source->Hp + Affix->LifeSteal * Dealt);
     }
-    if (Killed || !Target->IsPresent || Target->Hp <= 0.f || IsDodging(Target))
+    if (Killed || !Target->IsPresent || Target->Hp <= 0.f || Dodges)
     {
         return false;
     }

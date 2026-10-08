@@ -77,6 +77,11 @@ enum sim_burst
     SimBurst_InfernoBlast, // the meteor landing at Position
     SimBurst_GiantFireball, // a Giant Fireball leaving Position along Angle
     SimBurst_GiantFireballBlast, // the Giant Fireball of Slot bursting at Position
+    // NOTE(zoubir): monsters' hits, drawn on the player struck, across
+    // Angle (the way the hit came)
+    SimBurst_MonsterBite,  // a monster's plain bite or blow
+    SimBurst_MonsterHit,   // a monster ability or shot landing
+    SimBurst_Smite,        // a blow nobody can dodge (MonsterAbility_Smite)
     // NOTE(zoubir): the later classes' bursts, CLASS_BURSTS each: what
     // each is, the class's kit says (sim/dungeon/role_kits/<class>.cpp,
     // as SimBurst_<Class>First + n), and how it looks, its client file

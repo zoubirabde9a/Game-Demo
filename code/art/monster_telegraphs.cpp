@@ -10,6 +10,9 @@
 #define TELEGRAPH_COLOR_HOT 0xFF60D0FF
 #define TELEGRAPH_COLOR_SPIRIT 0xFFF0E070
 #define TELEGRAPH_COLOR_MEND 0xFF70F070
+// NOTE(zoubir): a Smite's mark: crimson, unlike any ground warning, since
+// it cannot be stepped out of; it says who is about to take the blow
+#define TELEGRAPH_COLOR_SMITE 0xFF7828FF
 
 // NOTE(zoubir): a ring of small squares; the renderer has no circles
 internal void
@@ -348,6 +351,33 @@ DrawMonsterTelegraphs(render_context *RenderContext, world *World,
                     DrawDottedCircle(RenderContext, AllySpot,
                                      0.5f * Ally->Dimensions.X * (2.f - Progress),
                                      TELEGRAPH_COLOR_MEND, 2.f);
+                }
+            } break;
+
+            case MonsterAbility_Smite:
+            {
+                // NOTE(zoubir): a chain of dots running from the monster to
+                // the victim as the windup fills, and four corners closing
+                // on the victim; both follow them, as the blow will
+                if (!Entity->AbilityPointCount)
+                {
+                    break;
+                }
+                u32 SmiteColor = Flash ? TELEGRAPH_COLOR_HOT : TELEGRAPH_COLOR_SMITE;
+                v2 Victim = Entity->AbilityPoints[0] - CameraOffset.XY;
+                DrawDottedLine(RenderContext, Self, Self + Progress * (Victim - Self),
+                               SmiteColor, 3.f, 9.f);
+                float Size = Ability->Radius * Closing;
+                float Arm = 0.45f * Size;
+                for(u32 Corner = 0; Corner < 4; Corner++)
+                {
+                    float SX = (Corner & 1) ? 1.f : -1.f;
+                    float SY = (Corner & 2) ? 1.f : -1.f;
+                    v2 Tip = Victim + V2(SX * Size, SY * Size);
+                    DrawDottedLine(RenderContext, Tip, Tip - V2(SX * Arm, 0.f),
+                                   SmiteColor, 3.f, 3.f);
+                    DrawDottedLine(RenderContext, Tip, Tip - V2(0.f, SY * Arm),
+                                   SmiteColor, 3.f, 3.f);
                 }
             } break;
 

@@ -40,7 +40,7 @@ static_assert(AnimationDirection_Count <= 4, "Facing is 2 bits on the wire");
 static_assert(AnimationType_Count <= 16, "Animation is 4 bits on the wire");
 static_assert(MonsterAffix_Count <= 8, "Affix is 3 bits on the wire");
 static_assert(StatusEffect_Count - 1 <= 11, "Status is 11 bits on the wire");
-static_assert(MAX_MONSTER_ABILITIES <= 4, "Ability is 2 bits on the wire");
+static_assert(MAX_WIRED_ABILITIES <= 4, "Ability is 2 bits on the wire");
 static_assert(EntityType_Count <= 32, "Type is 5 bits on the wire");
 static_assert(MAX_PLAYERS < 16, "HitBy is 4 bits on the wire");
 

@@ -130,6 +130,13 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Role, GIANT_FIREBALL_RANGE / GIANT_FIREBALL_SPEED, 22.f, 0x002080FF, false, 0.f,
      BurstPose_Release},                                                           // GiantFireball
     {BurstShape_Role, 0.8f, 110.f, 0x002080FF, false, 0.6f, BurstPose_None},     // GiantFireballBlast
+    // NOTE(zoubir): monsters' hits on players: a claw-red cut for a bite,
+    // orange sparks for an ability or shot, and for a Smite a crimson
+    // pillar that shakes the screen, so the blow nobody dodges is the
+    // one that looks heaviest
+    {BurstShape_Slash, 0.22f, 18.f, 0x005050FF, false, 0.12f, BurstPose_None},    // MonsterBite, red
+    {BurstShape_Spark, 0.25f, 22.f, 0x0040A0FF, false, 0.2f, BurstPose_None},     // MonsterHit, orange
+    {BurstShape_Column, 0.6f, 34.f, 0x002848FF, false, 0.55f, BurstPose_None},    // Smite, crimson
 #include "dungeon/classes/ranger_bursts.inc"
 #include "dungeon/classes/berserker_bursts.inc"
 #include "dungeon/classes/shadowblade_bursts.inc"

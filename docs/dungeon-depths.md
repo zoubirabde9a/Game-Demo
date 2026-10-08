@@ -44,6 +44,7 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 - Hammer Hurl: three white-hot ingots (13 each, every 5 s) lobbed at players 120 to 480 away; the struck burn. The back line has to keep moving.
 - Bellows Rush: a charge along a locked line at someone far off (22 damage).
 - Stoke the Forge: two Cinder Imps every 9 s from the start of the fight, four at most.
+- Searing Brand: a white-hot brand on whoever holds him, every 10 s (26). It cannot be dodged.
 - At 80%, 55% and 30% an Anvil Guard steps off the wall: an armoured elite Warden. Its shell blocks hits from the front, so the party has to flank it. Alive after 16 s it walks back into Kragg and heals him 8%.
 
 **Sskarra the Cinder Wyrm**, a worm as thick as a cart, plated in cooled rock that cracks orange where it bends.
@@ -51,6 +52,7 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 - Magma Spit: a fan of four burning globs.
 - Tail Lash: a sweep round her (105) with a hard shove toward the lava at the rim.
 - Molten Rain: three spots of falling magma that set the struck burning, from the start of the fight.
+- Magma Geyser: magma bursts up under whoever she is hunting, every 11 s (28). No ring to step out of.
 - At 66% three Dune Lurkers burst out of the floor, at 33% three frenzied ones. Alive after 16 s each crawls back into her and heals her 6%.
 
 **Vol'karr the Ember Tyrant**, a horned demon in charred plate, black wings, a mane of flame and a red-hot cleaver.
@@ -58,8 +60,17 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 - Flame Step: vanishes and comes down behind his target, 160 to 540 away, every 8 s. He leaves the tank for the back line; the tank has to taunt him back.
 - Cinderfall: three burning stones over the hall where the party is heading, every 7 s.
 - Crown of Fire (below 40%): four fireballs out in a cross round his target.
+- Tyrant's Judgement: steps beside whoever holds him and cleaves them, every 12 s (30). It cannot be dodged.
 - At 75%, 50% and 25% Cinder Imps pour from the braziers: two, three, then four. Alive after 14 s each returns to him and heals him 5%.
 - At 60% and 30% he binds a Magma Champion, an armoured elite Ravager. The party has 25 s to kill it, or it erupts for half of everyone's health and heals him 10%.
+
+### Blows nobody can dodge
+
+Each depths boss has one Smite (`MonsterAbility_Smite`, `sim/monster_abilities/trigger.cpp`): a blow on the player it is after when the windup ends, by threat, wherever they stand. Dashes and blinks do not save them and there is no ring on the floor to leave; a ward still takes it. During the 1 s windup the boss shows the name in crimson, a chain of dots runs from it to the victim and four corners close in on them, so everyone sees who is about to take it. A tank who taunts during the windup takes it off a friend.
+
+The point is that the depths want a tank. With three players the blow costs a tank about a fifth of its health and a Fire Mage or a Mender more than half, so a party without one has its threat holder at half health every 10 s on top of everything else. The crypt has none of these.
+
+Bosses have five ability slots for this. Shots and ground hazards send the index of the ability that made them in 2 bits, so only the first four slots may make them; the fifth is for a Smite (`TestOnlyWiredSlotsMakeShotsOrHazards`).
 
 ## Tuning
 
