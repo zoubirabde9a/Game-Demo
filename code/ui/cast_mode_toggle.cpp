@@ -2,7 +2,9 @@
    switches between quick cast (abilities cast on the key) and standard
    cast (an area ability's key shows its range first, a left click casts
    it), with a short line saying what the current mode does. While an
-   ability is aimed, a second line names it and how to cast or cancel it.
+   ability is aimed, that line names it instead and says how to cast or
+   cancel it, in the ability's colour. It stays inside the plate, as the
+   dungeon HUD's objective line sits just under it.
    The modes themselves are client/cast_targeting.cpp. */
 
 #define CAST_TOGGLE_TOP 12.f
@@ -26,6 +28,33 @@ DoCastModeToggle(render_context *RenderContext, app_state *AppState,
     char *Label = (char *)"Quick cast";
     char *Hint = Quick ? (char *)"keys cast at once" :
         (char *)"keys aim first, click to cast";
+    u32 HintColor = UI_COLOR_TEXT_MUTED;
+    // NOTE(zoubir): what is aimed takes the hint's place, in its slot's
+    // colour
+    char AimLine[96];
+    if (Targeting->Aiming)
+    {
+        char *Name = (char *)"";
+        HintColor = UI_COLOR_ACCENT;
+        for(u32 Index = 0; Index < ABILITY_SLOT_DEF_COUNT; Index++)
+        {
+            if (AbilitySlotDefs[Index].Button == Targeting->Aiming)
+            {
+                Name = AbilitySlotDefs[Index].Name;
+                HintColor = AbilitySlotDefs[Index].Accent;
+            }
+        }
+        // NOTE(zoubir): a dungeon class's spell on the key goes by its own
+        // name (sim/dungeon/role_abilities.cpp)
+        role_spell *Spell = LocalRoleSpell(AppState, Targeting->Aiming);
+        if (Spell)
+        {
+            Name = Spell->Name;
+        }
+        snprintf(AimLine, sizeof(AimLine), "%s: left click or %s to cast, right click to cancel",
+                 Name, ActionKeyLabel(Targeting->Aiming));
+        Hint = AimLine;
+    }
 
     float LineHeight = UILineHeight(Body);
     float LabelWidth = UITextWidth(Body, Label);
@@ -65,32 +94,5 @@ DoCastModeToggle(render_context *RenderContext, app_state *AppState,
     UIText(RenderContext, Body, TextX, Y + 0.5f * (Height - LineHeight) + 1.f, Label,
            Quick ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED);
     UIText(RenderContext, Small, TextX + LabelWidth + UI_GAP,
-           Y + 0.5f * (Height - UILineHeight(Small)), Hint, UI_COLOR_TEXT_MUTED);
-
-    // NOTE(zoubir): what is aimed, under the plate in its slot's colour
-    if (Targeting->Aiming)
-    {
-        char *Name = (char *)"";
-        u32 Accent = UI_COLOR_ACCENT;
-        for(u32 Index = 0; Index < ABILITY_SLOT_DEF_COUNT; Index++)
-        {
-            if (AbilitySlotDefs[Index].Button == Targeting->Aiming)
-            {
-                Name = AbilitySlotDefs[Index].Name;
-                Accent = AbilitySlotDefs[Index].Accent;
-            }
-        }
-        // NOTE(zoubir): a dungeon class's spell on the key goes by its own
-        // name (sim/dungeon/role_abilities.cpp)
-        role_spell *Spell = LocalRoleSpell(AppState, Targeting->Aiming);
-        if (Spell)
-        {
-            Name = Spell->Name;
-        }
-        char Line[96];
-        snprintf(Line, sizeof(Line), "%s: left click or %s to cast, right click to cancel",
-                 Name, ActionKeyLabel(Targeting->Aiming));
-        UIText(RenderContext, Small, 0.5f * (float)WindowWidth,
-               Y + Height + UI_GAP_SMALL, Line, Accent, UIAlign_Center);
-    }
+           Y + 0.5f * (Height - UILineHeight(Small)), Hint, HintColor);
 }
