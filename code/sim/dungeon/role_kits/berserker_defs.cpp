@@ -19,7 +19,7 @@
 // as far as CLEAVE_REACH, its body's width counting
 #define CLEAVE_REACH 84.f
 #define CLEAVE_HALF_ANGLE 1.5f
-#define CLEAVE_DAMAGE 9.f
+#define CLEAVE_DAMAGE 8.f
 #define CLEAVE_SHOVE 70.f
 #define CLEAVE_COOLDOWN 0.6f
 // NOTE(zoubir): Axe Throw (X): a hand axe at the foe aimed at; it lands
@@ -43,7 +43,7 @@
 // WHIRLWIND_RADIUS over the cast (PlayerSpell_BerserkerA), the last as it
 // ends; it costs WHIRLWIND_RAGE
 #define WHIRLWIND_RADIUS 100.f
-#define WHIRLWIND_DAMAGE 9.f
+#define WHIRLWIND_DAMAGE 7.f
 #define WHIRLWIND_HITS 5
 #define WHIRLWIND_RAGE 30
 #define WHIRLWIND_COOLDOWN 9.f

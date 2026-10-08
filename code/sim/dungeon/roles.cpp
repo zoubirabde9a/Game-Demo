@@ -98,7 +98,7 @@ global_variable role_def RoleTable[PlayerRole_Count] =
     {"Ranger",       110.f, 1.0f,  1.35f, 1.f, "Ranged",
      "A bow: arrows, a rain of arrows, a shot that pierces a line",
      RoleKind_Ranged, {90, 210, 170}},
-    {"Berserker",    130.f, 0.9f,  1.35f, 1.f, "Melee",
+    {"Berserker",    140.f, 0.85f, 1.35f, 1.f, "Melee",
      "A great axe: hits build Rage, Rage feeds the big swings",
      RoleKind_Melee, {225, 50, 50}},
     {"Shadowblade",  130.f, 0.85f, 1.35f, 1.f, "Melee",
