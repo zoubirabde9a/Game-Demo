@@ -6,14 +6,14 @@ Players can also vote for the Ember Depths from the Esc menu while in the dungeo
 
 ## How levels work
 
-`sim/dungeon/levels.cpp` holds one row per level: its map, room layout, encounter table, room names, the next level's map, and two numbers every monster on that level is scaled by on top of the dungeon's own (`party_scaling.cpp`):
+`sim/dungeon/levels.cpp` holds one row per level: its map, room layout, encounter table, room names, the next level's map, and three numbers every monster on that level is scaled by on top of the dungeon's own (`party_scaling.cpp`):
 
-| Level | Map | Monster health | Monster damage | Next |
-|---|---|---|---|---|
-| 1 | Sunken Crypt | 1 | 1 | Ember Depths |
-| 2 | Ember Depths | 1.35 | 1.1 | Sunken Crypt |
+| Level | Map | Monster health | Monster damage | Monster pace | Next |
+|---|---|---|---|---|---|
+| 1 | Sunken Crypt | 1 | 1 | 1 | Ember Depths |
+| 2 | Ember Depths | 1.35 | 1.1 | 1.12 | Sunken Crypt |
 
-The health scale applies to every monster an encounter spawns and to the adds bosses call (`boss_scripts.cpp`). The damage scale applies to every monster hit on a player, the tank included, and does not grow heals the way party size does. A party reaching the depths has the levels and talents of a whole crypt behind it; the numbers are set so the depths are a step up for that party, not a wall.
+The health scale applies to every monster an encounter spawns and to the adds bosses call (`boss_scripts.cpp`). The damage scale applies to every monster hit on a player, the tank included, and does not grow heals the way party size does. The pace is set on every monster an encounter or a boss event spawns (`PaceScale`): it moves that much faster, and its bite and its abilities come round that much sooner. A party reaching the depths has the levels and talents of a whole crypt behind it; the numbers are set so the depths are a step up for that party, not a wall.
 
 A third level is one more map file in `sim/maps/`, one encounter table, and one row in `DungeonLevels` (point the depths' `NextMapId` at it).
 
@@ -24,9 +24,9 @@ A third level is one more map file in `sim/maps/`, one encounter table, and one 
 1. **Cinder Stair.** Where the party arrives. No monsters; a spring by the spawns.
 2. **Slag Pits.** Three packs round three lava pits: three Cinder Imps with an elite Carapace Warden; a Tuskback Ravager with two Imps; two Dune Lurkers with an elite Imp. The striker burns the imps in the back while the tank holds the shell.
 3. **Anvil Hall.** Boss 1, Forgemaster Kragg. A ring of pillars, lava channels down both side walls.
-4. **Glasswing Hollow.** Things that get behind the tank: two Hollow Shades and three Duskwing bats; two Bilecaller Toads with an elite Hexweaver Spider; an elite Shade with a Gloomslime and two bats. Ash, dead trees and a bog in the middle.
+4. **Glasswing Hollow.** Things that get behind the tank: two Hollow Shades and three Duskwing bats; two Bilecaller Toads and a Cinder Imp with an elite Hexweaver Spider; an elite Shade with a Gloomslime and two bats. Ash, dead trees and a bog in the middle.
 5. **Wyrm's Gullet.** Boss 2, Sskarra the Cinder Wyrm. A round lair with a broken ring of lava at the rim, where Tail Lash throws people.
-6. **Ashfall Bridge.** The hardest room of the dungeon. A stone causeway six tiles wide over a lava lake, with side spurs. Two Wardens and two Imps; an elite Gravemaw Brute with a Bone Shaman raising Skeletal Thralls behind it; an elite Warden and an elite Ravager at once, with an Imp. A shove off the causeway lands in lava.
+6. **Ashfall Bridge.** The hardest room of the dungeon. A stone causeway six tiles wide over a lava lake, with side spurs. A Warden and two Imps; an elite Gravemaw Brute with a Bone Shaman raising Skeletal Thralls behind it; an elite Warden with a Ravager and an Imp. The causeway is too narrow to flank a shell, so the room has one plain Warden: with two and two elites the bots wiped up to seven times there. A shove off the causeway lands in lava.
 7. **Throne of Embers.** Boss 3, Vol'karr the Ember Tyrant. A great hall with two rows of pillars and lava braziers in the corners.
 
 ## Bosses
@@ -66,6 +66,8 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 Only the melee slams (Anvil Drop, Hellfire Cleave) leave burning ground. The first draft also left fire under every ranged rain, and three bots died in 6 to 15 s at every boss: the back line stood in it. Without it, over three seeds with the experience of a full crypt, the bots clear Kragg after one or two wipes in 50 to 70 s, Sskarra after one or two in 40 to 60 s, and Vol'karr after several, in 105 to 115 s. That is about what the same bots need for the Hollow King.
 
 Kragg and Sskarra were then sped up so the depths play faster than the crypt: Kragg swings every 0.9 s and turns Anvil Drop and Hammer Hurl round in 4 s and Bellows Rush in 5.5 s; Sskarra bites every 0.85 s, spits every 2.8 s, dives every 5.5 s and lashes every 3.8 s, and hits about a fifth harder. Over five seeds Kragg wipes the bots on two (up to four wipes), Sskarra on one, where before both fell on the first try every time.
+
+Then the level got its pace (1.12). Over five seeds, the bots now wipe on each boss on one or two seeds, up to four times on Kragg or Sskarra and up to three on Vol'karr, and once or twice on the bridge. The bots also die on the bridge after it is cleared, with nothing near them, walking into the lava; that is the bots, not the room.
 
 `tools/dungeon_balance.cpp` follows the bots from the crypt into the depths in one long run (`dungeon_balance 90 3 2 4`). `PROBE_MAP=depths dungeon_balance 45 3 2 3` starts three bots in the depths with the experience of a full crypt behind them. Tune boss health in the monster files before the clocks, as the crypt does.
 
