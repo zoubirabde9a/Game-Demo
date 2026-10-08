@@ -1,6 +1,6 @@
 /* Revives (encounters.cpp): during a fight a dead player lies downed
    where they fell (the fight keeps their respawn waiting). A living
-   healer standing within REVIVE_RADIUS of them for REVIVE_SECONDS in a
+   healer (the Mender or the Druid) standing within REVIVE_RADIUS of them for REVIVE_SECONDS in a
    row brings them back there with REVIVE_HP_SHARE of their health. A
    healer who steps away loses the progress. A revived player is a
    moment out of reach (REVIVE_SHIELD_SECONDS), so a monster standing
@@ -22,7 +22,7 @@ HealerNear(app_state *AppState, world_entity *Body)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];
         world_entity *Player = LivingPlayerInSlot(AppState, SlotIndex);
-        if (Player && Slot->Role == PlayerRole_Healer &&
+        if (Player && RoleKindOf(Slot->Role) == RoleKind_Healer &&
             Length(Player->Position.XY - Body->Position.XY) <= REVIVE_RADIUS &&
             (!Result || RoleRank(Slot, PlayerRole_Healer, HealerTalent_Miracle)))
         {
