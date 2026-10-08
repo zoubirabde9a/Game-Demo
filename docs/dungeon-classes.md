@@ -12,6 +12,7 @@ A player in a dungeon run picks a class. Each class plays one of four roles: tan
 | Shadowblade | Melee | 130 | 85% | 135% | 1x | Twin daggers; combo points (0 to 5) |
 | Frost Mage | Ranged | 110 | 100% | 135% | 0.7x | Ice; Icicles (0 to 5) |
 | Druid | Healer | 115 | 100% | 95% | 0.7x | Nature and moonlight; Bloom (0 to 5) |
+| Stormcaller | Ranged | 105 | 100% | 135% | 0.85x | Lightning; Charge (0 to 100), which overloads at the top |
 
 The rows are `RoleTable` in `code/sim/dungeon/roles.cpp`.
 
@@ -87,6 +88,33 @@ Half healer, half caster, in the healer column. Its damage spells grow Bloom and
 
 Talents, by slot: 1 Nature's Wrath (damage), 2 Entangling Roots (C), 3 Verdancy (Rejuvenation 30% more and 3 s longer), 4 Eclipse (Starfire 35% harder on a foe under your Moonfire), 5 Tranquility (V), 6 Symbiosis (Wrath and Starfire heal the most hurt ally for a quarter of what they deal), 7 Gift of the Wild (healing), 8 Barkskin (health), 9 Overgrowth (Regrowth 10% more a rank), 10 Swiftmend (cooldowns), 11 Starlit Fury (damage), 12 Wild Growth (Rejuvenation also lands on the two most hurt allies near its target).
 
+## Stormcaller
+
+A ranged caster whose lightning leaps from foe to foe: the pack and cleave class of the ranged column. Its resource, Charge (the class meter, 0 to 100), fills as it casts, and only Thunderclap and an overload empty it. It makes the lightning stronger from 70 on (Supercharged: Spark and Chain Lightning jump to one more foe and hit 20% harder, Thunderclap stuns and splashes), and at 100 it overloads. The skill is riding the band from 70 to the 90s and venting with Thunderclap before the top. It owns X, so it has no fireball, and leaves the right click to the game. Kit: `code/sim/dungeon/role_kits/stormcaller.cpp` and its `stormcaller/` folder.
+
+| Key | Spell |
+|---|---|
+| X | Spark: an instant bolt at a foe for 13 that jumps to the nearest other foe within 170 for 60%; +7 Charge; 1 s |
+| A | Chain Lightning: locks its foe at the press, a 0.6 s cast, then a bolt for 18 that leaps up to three more times within 170 of the last foe, 80% each leap, never on a foe twice; +4 Charge a foe struck; 6 s |
+| R | Static Field: a 95 circle at the cursor for 5 s; each foe inside takes 2.5 every 0.5 s and is slowed, and a Spark or Chain Lightning hit on a foe inside arcs to every other foe inside for 40%; 15 s |
+| W | Thunderclap: needs 20 Charge (with less, no cast and no cooldown, and the Charge bar shakes). Locks its foe at the press like Eviscerate, a 0.5 s cast, then a bolt from the sky for 14 + 0.6 a point of Charge, spending all of it. Spent at 70 or more it also stuns the foe 1 s and splashes every foe within 80 for half; 8 s |
+| C (tree) | Lightning Dash: 280 along the aim, stopping short of walls, pits, lava and closed gates; foes crossed take 8 and are slowed; +10 Charge; 12 s (9 s at rank 2) |
+| V (tree) | Eye of the Storm: 8 s in which Charge holds at 100 without overloading and counts as Supercharged, and a bolt strikes a random foe of the room every 0.6 s for 6; 50 s |
+
+The overload: Charge reaching 100 sets off a nova at once, 20 to every foe within 130, shoving them. Then Charge drops to 0, the Stormcaller loses a tenth of its health (never below 1), and every class key waits at least 2 s ("grounded", a class flag the HUD and the look show). The nova still hurts the foes near, so a cap costs health and time but is no wipe. After 4 s with no hit dealt, Charge drains 10 a second.
+
+Talents, by slot: 1 Voltage (+5% damage a rank), 2 Lightning Dash (C), 3 Conductor (Chain Lightning leaps two more times and keeps 90% a leap), 4 Live Wire (an overload costs no health and grounds nothing, and its nova is 50% wider and harder), 5 Eye of the Storm (V), 6 Capacitor (a Thunderclap of 70 or more gives 30 Charge back and readies Chain Lightning), 7 High Voltage (damage), 8 Grounding (health), 9 Arc Field (Static Field 10% wider and its shocks 25% harder a rank), 10 Quickening (cooldowns), 11 Tailwind (run speed), 12 Stormbringer (a Thunderclap of 70 or more calls bolts on the three nearest other foes within 250, each half of it). Live Wire against Capacitor is the build choice: overload on purpose in packs, or vent cleanly and loop Chain Lightning.
+
+Where the spec did not fit the engine as written:
+- Lightning lands at once instead of flying, so a hit and its bolt arrive together; each bolt is one burst, which carries where it came from (its length in its height, its way in its angle).
+- A Static Field arcs each foe at most once per spell, so a Chain Lightning leaping through a field full of foes cannot multiply its arcs without limit.
+- The grounded floor is applied every tick while the smoke lasts, so it also holds the key whose cast set off the overload (its cooldown is set after the cast).
+- Chain Lightning's damage was not given; it is 18. Spark, Chain Lightning and Thunderclap hit harder than the first numbers after the balance probe (below).
+
+Looks and online: everything is drawn from the bursts (`SimBurst_StormcallerFirst` on), the two casts and the class meter and flags (`STORMCALLER_FLAG_*`: Supercharged, Eye of the Storm, grounded, a field down, a refused Thunderclap), so it shows the same online. Hands crackle more with more Charge, an aura and orbiting sparks show Supercharged and turn red near the top; the Static Field's dome is drawn while its flag is up, where its burst came down. The HUD is a Charge bar with a line at 70 and a red end that beats faster as Charge nears 100.
+
+The bot rides the Charge: Spark as filler, kept on the boss through its adds; Static Field on a pack of three or under the boss; Chain Lightning when two more foes stand near its target; Thunderclap from 75 (at once from 88, on cooldown from 55 on a boss), unless it took Live Wire and three foes stand inside the nova, when it lets the Charge overload; Lightning Dash out of a telegraph when the dash lands clear; Eye of the Storm in a boss fight.
+
 ## Online
 
 What every client sees of a class comes from three things the server sends: its bursts (eight per class, `SimBurst_<Class>First` on, in `code/sim/events.h`), the cast bars of its two wind-up spells (`PlayerSpell_<Class>A` and `B`), and two bytes per player, `ClassMeter` (Focus, Rage or combo points) and `ClassFlags` (eight bits the class defines, such as Berserk being up or a leap in flight). Looks, HUD bars and lasting effects are drawn from those, so they show the same online as offline. A burst's angle goes over the wire as one byte; anything else a burst must carry rides in its height (the Ranger's effects do this).
@@ -113,10 +141,13 @@ Measured with the balance probe (`code/tools/dungeon_balance.cpp`) on a party of
 | Shadowblade | 16 | 494 | 48 | about 7% more boss damage; the healer, alone at range behind a melee party, draws Vol'karr's ranged attacks |
 | Fire Mage | 40 | 957 | 159 | before every bot dodged |
 | Ranger | 40 | 1081 | 188 | before every bot dodged; 0.185 wipes a cleared fight against 0.177; bosses 10 to 20% faster |
+| Stormcaller | 48 | 552 | 94 | against the Fire Mage and the Ranger on the same 48 seeds; see below |
 
 The Frost Mage, 16 seeds a level from each level's start, at 0.7x threat with Frostbolt 24 and Blizzard 4: between the Fire Mage and the Ranger. The Bone Halls take 12.1 s (Fire Mage 17.2, Ranger 13.8), Sskarra 39 s (33 and 46), Vol'karr 47 s (47.5). At 0.9x threat its bot drew bosses and stood idle until the tank took them back, which made the Throne of Embers wipe 0.6 a kill.
 
 The Druid as the party's only healer, 16 seeds a level from each level's start, against the Mender: the Throne of Embers wipes 0.19 a kill against 0.07 and Sskarra falls faster (32 s against 33), but the Throne of Dust wipes 0.56 against 0.25. The Druid bot casts the instant Wrath while it waits for Regrowth, which banks Bloom for that heal.
+
+The Stormcaller, 48 seeds crypt into depths, against the Fire Mage and the Ranger on the same seeds. Its packs go fastest of the three (Bone Halls 10.1 s against 16.6 and 13.7, Webbed Galleries 11.5 against 17.7 and 15.6) and its bosses slowest but near the Ranger: the Throne of Dust 66 s (Fire Mage 52, Ranger 73), the Wyrm's Gullet 52 s (35, 48), the Throne of Embers 74 s (46, 58). The twelve fights add up to 436 s against the Ranger's 437 and the Fire Mage's 391; the last boss wipes 0.62 a kill against 0.64 and 0.28. The first numbers (Spark 9, Chain Lightning 15, Thunderclap 10 + 0.32 a point) took 89 s and 91 s on the two thrones, so the single-target hits went up.
 
 ## Developer switches
 
@@ -126,6 +157,7 @@ Developer builds, offline:
 - `GAME_RANGER_TALENTS`, `GAME_RANGER_FOCUS` and `GAME_BERSERKER=full` give the local player talents and a full resource for screenshots.
 - `GAME_FROSTMAGE_ICICLES=5` keeps the local Frost Mage's Icicles full, and `GAME_FROSTMAGE_TALENTS` and `GAME_DRUID_TALENTS` ("221111", ranks slot by slot) give the local player talents, for screenshots of the tree spells.
 - `GAME_BOT_HEALER` makes every healer bot one class (`druid`), as `GAME_BOT_DAMAGE` does for damage bots.
+- `GAME_ROLE=stormcaller` plays the Stormcaller; `GAME_STORMCALLER` gives the local one what a screenshot needs: `full` every talent, a number the Charge held there, after an `@` the second the auto-casting starts, `!` health kept full, and after a colon the keys it casts by itself at the nearest foe whenever they are ready (`full85@11!:XRAW`; Lightning Dash is left out).
 
 ## Adding a class
 
