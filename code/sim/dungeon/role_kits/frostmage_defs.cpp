@@ -39,8 +39,8 @@
 // GLACIAL_SPIKE_PER_ICICLE for each Icicle it spends (all of them); on
 // five Icicles it freezes the foe (stunned) for GLACIAL_SPIKE_FREEZE
 #define GLACIAL_SPIKE_RANGE 600.f
-#define GLACIAL_SPIKE_DAMAGE 30.f
-#define GLACIAL_SPIKE_PER_ICICLE 12.f
+#define GLACIAL_SPIKE_DAMAGE 20.f
+#define GLACIAL_SPIKE_PER_ICICLE 9.f
 #define GLACIAL_SPIKE_FREEZE 1.5f
 #define GLACIAL_SPIKE_COOLDOWN 7.f
 // NOTE(zoubir): the spike flies faster than a bolt

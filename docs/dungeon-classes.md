@@ -64,7 +64,7 @@ A ranged caster built round freezing foes and then hitting them while they are f
 |---|---|
 | X | Frostbolt: a bolt at a foe for 24 that slows it 2 s and grows an Icicle; 1 s cooldown |
 | A | Blizzard: ice falls on a 95 circle at the cursor for 3 s, 4 every 0.5 s, slowing; 14 s |
-| R | Glacial Spike: a 1.25 s cast, then 30 + 12 an Icicle, spending them all; five Icicles also stun the foe 1.5 s; 7 s |
+| R | Glacial Spike: a 1.25 s cast, then 20 + 9 an Icicle, spending them all; five Icicles also stun the foe 1.5 s; 7 s |
 | W | Frost Nova: roots every foe within 150 for 3 s and deals 6; 16 s |
 | C (tree) | Ice Barrier: a shield that takes the next 45 damage (70 at rank 2) for 10 s; 20 s |
 | V (tree) | Frozen Orb: rolls 360 along the aim over 3 s, 3 every 0.4 s to foes within 70, slowing, an Icicle on each pulse that hits; 18 s |
