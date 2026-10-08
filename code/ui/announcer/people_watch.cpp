@@ -51,7 +51,7 @@ WatchPlayers(app_state *AppState, announcer *Announcer, float DeltaTime, bool32 
             char Name[24];
             GetPlayerName(AppState, SlotIndex, Name, sizeof(Name));
             snprintf(Text, sizeof(Text), "%s left the game", Known[0] ? Known : Name);
-            PushToast(AppState, UI_COLOR_TEXT_MUTED, Text);
+            PushToast(AppState, AnnounceIcon_Left, UI_COLOR_TEXT_MUTED, Text);
         }
         else if (!Human)
         {
@@ -67,7 +67,7 @@ WatchPlayers(app_state *AppState, announcer *Announcer, float DeltaTime, bool32 
                 char Name[24];
                 GetPlayerName(AppState, SlotIndex, Name, sizeof(Name));
                 snprintf(Text, sizeof(Text), "%s joined the game", Name);
-                PushToast(AppState, UI_COLOR_GOOD, Text);
+                PushToast(AppState, AnnounceIcon_Joined, UI_COLOR_GOOD, Text);
             }
         }
         Announcer->SlotHuman[SlotIndex] = Human;
@@ -106,7 +106,7 @@ WatchRevives(app_state *AppState, announcer *Announcer, bool32 Quiet)
                 GetPlayerName(AppState, SlotIndex, Name, sizeof(Name));
                 snprintf(Text, sizeof(Text), "%s is back up", Name);
             }
-            PushToast(AppState, UI_COLOR_GOOD, Text);
+            PushToast(AppState, AnnounceIcon_Heart, UI_COLOR_GOOD, Text);
         }
         Announcer->SlotDown[SlotIndex] = Down;
     }
@@ -121,13 +121,14 @@ WatchConnection(app_state *AppState, announcer *Announcer, bool32 Online)
     if (Announcer->WasOnline && !Online && Session && Session->Enabled)
     {
         Announcer->LostServer = true;
-        PushToast(AppState, UI_COLOR_HEALTH, (char *)(WillReconnect(Session) ?
-                  "Lost the server. Reconnecting..." : "Lost the server. F4 to join again"));
+        PushToast(AppState, AnnounceIcon_SignalLost, UI_COLOR_HEALTH,
+                  (char *)(WillReconnect(Session) ? "Lost the server. Reconnecting..." :
+                           "Lost the server. F4 to join again"));
     }
     else if (Online && !Announcer->WasOnline && Announcer->LostServer)
     {
         Announcer->LostServer = false;
-        PushToast(AppState, UI_COLOR_GOOD, (char *)"Back on the server");
+        PushToast(AppState, AnnounceIcon_Signal, UI_COLOR_GOOD, (char *)"Back on the server");
     }
 }
 
@@ -142,7 +143,7 @@ WatchVote(app_state *AppState, announcer *Announcer, float DeltaTime)
             char Who[24];
             GetPlayerName(AppState, AppState->VoteBy, Who, sizeof(Who));
             snprintf(Text, sizeof(Text), "%s started a map vote", Who);
-            PushToast(AppState, UI_COLOR_ACCENT, Text);
+            PushToast(AppState, AnnounceIcon_Ballot, UI_COLOR_ACCENT, Text);
             PlayGameSound(AppState, AssetType_SfxCountdown);
         }
         Announcer->VoteMapSeen = AppState->VoteMap;
@@ -169,13 +170,13 @@ WatchVote(app_state *AppState, announcer *Announcer, float DeltaTime)
             if (Passed)
             {
                 snprintf(Text, sizeof(Text), "Vote passed: on to %s", Name);
-                PushToast(AppState, UI_COLOR_GOOD, Text);
+                PushToast(AppState, AnnounceIcon_Check, UI_COLOR_GOOD, Text);
             }
             else
             {
                 snprintf(Text, sizeof(Text), "Vote failed: %s stays",
                          GetMapDef((map_id)AppState->World.MapId)->Name);
-                PushToast(AppState, UI_COLOR_HEALTH, Text);
+                PushToast(AppState, AnnounceIcon_Cross, UI_COLOR_HEALTH, Text);
             }
         }
     }

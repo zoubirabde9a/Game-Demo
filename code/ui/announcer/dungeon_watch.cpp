@@ -34,6 +34,7 @@ AnnounceFightStart(app_state *AppState, announcer *Announcer)
         monster_def *Boss = GetMonsterDef((monster_kind)Run->ShownBossKind);
         snprintf(Text, sizeof(Text), "%s. Stay out of the red, mind its enrage timer", Room);
         announce_card Card = MakeCard(AnnounceStyle_Title, AnnouncePriority_Title,
+                                      AnnounceIcon_Boss,
                                       ANNOUNCE_COLOR_RED, (char *)"BOSS FIGHT", Boss->Name, Text);
         Card.Seconds = 2.8f;
         Card.Sound = AssetType_SfxAnnounce;
@@ -46,6 +47,7 @@ AnnounceFightStart(app_state *AppState, announcer *Announcer)
         snprintf(Text, sizeof(Text), "%u %s. Tank first, then burn them down",
                  Run->ShownFoesLeft, Run->ShownFoesLeft == 1 ? "enemy" : "enemies");
         announce_card Card = MakeCard(AnnounceStyle_Callout, AnnouncePriority_Event,
+                                      AnnounceIcon_Gate,
                                       ANNOUNCE_COLOR_VIOLET, Kicker, Room, Text);
         Card.Sound = AssetType_SfxFight;
         PushCard(AppState, Card);
@@ -78,6 +80,7 @@ AnnounceRoomCleared(app_state *AppState, announcer *Announcer, u32 Room)
             snprintf(Text + Used, sizeof(Text) - Used, "   (%u:%02u)", Seconds / 60, Seconds % 60);
         }
         announce_card Card = MakeCard(AnnounceStyle_Title, AnnouncePriority_Title,
+                                      AnnounceIcon_Trophy,
                                       ANNOUNCE_COLOR_GOLD, Kicker,
                                       (char *)(Deeper ? "VICTORY" : "DUNGEON CONQUERED"), Text);
         Card.Seconds = 4.f;
@@ -90,6 +93,7 @@ AnnounceRoomCleared(app_state *AppState, announcer *Announcer, u32 Room)
     if (Announcer->FightBoss < MonsterKind_Count && Room == Announcer->FightingRoom)
     {
         announce_card Card = MakeCard(AnnounceStyle_Callout, AnnouncePriority_Big,
+                                      AnnounceIcon_Crown,
                                       ANNOUNCE_COLOR_GOLD,
                                       GetMonsterDef((monster_kind)Announcer->FightBoss)->Name,
                                       (char *)"BOSS DEFEATED", Text);
@@ -100,6 +104,7 @@ AnnounceRoomCleared(app_state *AppState, announcer *Announcer, u32 Room)
     else
     {
         announce_card Card = MakeCard(AnnounceStyle_Callout, AnnouncePriority_Event,
+                                      AnnounceIcon_Check,
                                       UI_COLOR_GOOD, 0, (char *)"ROOM CLEARED", Text);
         Card.Sound = AssetType_SfxCountdown;
         PushCard(AppState, Card);
@@ -137,6 +142,7 @@ WatchDungeon(app_state *AppState, announcer *Announcer, float DeltaTime)
     if (Run->Wipes > Announcer->Wipes)
     {
         announce_card Card = MakeCard(AnnounceStyle_Title, AnnouncePriority_Title,
+                                      AnnounceIcon_Grave,
                                       ANNOUNCE_COLOR_RED, (char *)"THE ROOM HOLDS",
                                       (char *)"PARTY WIPED",
                                       (char *)"Back at the gate. Regroup and pull again");
@@ -181,6 +187,7 @@ WatchDungeon(app_state *AppState, announcer *Announcer, float DeltaTime)
         snprintf(Detail, sizeof(Detail), "Under %.0f%% health. Everything into it",
                  100.f * ANNOUNCE_BOSS_LOW_SHARE);
         PushCard(AppState, MakeCard(AnnounceStyle_Callout, AnnouncePriority_Event,
+                                    AnnounceIcon_Target,
                                     ANNOUNCE_COLOR_RED,
                                     GetMonsterDef((monster_kind)Run->ShownBossKind)->Name,
                                     (char *)"FINISH IT!", Detail));

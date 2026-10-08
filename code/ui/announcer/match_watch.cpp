@@ -47,6 +47,7 @@ AnnounceMapStart(app_state *AppState)
     }
     // NOTE(zoubir): the lowest rank, so anything that happens cuts it short
     announce_card Card = MakeCard(AnnounceStyle_Title, AnnouncePriority_Intro,
+                                  (u32)(Map->Dungeon ? AnnounceIcon_Gate : AnnounceIcon_Swords),
                                   Map->Dungeon ? ANNOUNCE_COLOR_VIOLET : ANNOUNCE_COLOR_GOLD,
                                   Kicker, Map->Name, Detail);
     Card.Seconds = 3.f;
@@ -97,7 +98,7 @@ AnnounceFight(app_state *AppState, u32 Round, bool32 AfterTitle = false)
     char Wins[96];
     snprintf(Kicker, sizeof(Kicker), "ROUND %u", Round);
     RoundWinsLine(AppState, GetAnnouncer(AppState), Wins, sizeof(Wins));
-    announce_card Card = MakeCard(AnnounceStyle_Callout, AnnouncePriority_Big,
+    announce_card Card = MakeCard(AnnounceStyle_Callout, AnnouncePriority_Big, AnnounceIcon_Swords,
                                   ANNOUNCE_COLOR_RED, Kicker, (char *)"FIGHT!", Wins);
     Card.Seconds = Wins[0] ? 1.8f : 1.3f;
     Card.Sound = AssetType_SfxFight;
@@ -166,6 +167,7 @@ WatchRounds(app_state *AppState, announcer *Announcer)
             snprintf(Kicker, sizeof(Kicker), "ROUND %u IN", Announcer->Round + 1);
             snprintf(Number, sizeof(Number), "%d", Count);
             announce_card Card = MakeCard(AnnounceStyle_Callout, AnnouncePriority_Countdown,
+                                          AnnounceIcon_Hourglass,
                                           UI_COLOR_TEXT, Kicker, Number, 0);
             Card.Seconds = 0.95f;
             Card.Sound = AssetType_SfxCountdown;
@@ -202,6 +204,7 @@ WatchRounds(app_state *AppState, announcer *Announcer)
         char Detail[64];
         snprintf(Detail, sizeof(Detail), "%s  vs  %s", Names[0], Names[1]);
         PushCard(AppState, MakeCard(AnnounceStyle_Callout, AnnouncePriority_Big,
+                                    AnnounceIcon_Swords,
                                     ANNOUNCE_COLOR_RED, (char *)"LAST DUEL", (char *)"FINAL TWO",
                                     Detail));
     }

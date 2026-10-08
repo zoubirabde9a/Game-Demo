@@ -34,6 +34,7 @@ CountLocalKills(app_state *AppState, announcer *Announcer, u32 Count)
     if (Title && FinalBlowLeft(AppState) <= 0.f)
     {
         announce_card Card = MakeCard(AnnounceStyle_Callout, AnnouncePriority_Medal,
+                                      AnnounceIcon_Skull,
                                       ANNOUNCE_COLOR_GOLD, 0, Title, 0);
         Card.Seconds = 1.4f;
         Card.Sound = AssetType_SfxFight;
@@ -57,6 +58,7 @@ AnnounceSpree(app_state *AppState, u32 Killer, u32 Streak)
     {
         snprintf(Text, sizeof(Text), "%u kills without dying", Streak);
         PushCard(AppState, MakeCard(AnnounceStyle_Callout, AnnouncePriority_Event,
+                                    AnnounceIcon_Flame,
                                     ANNOUNCE_COLOR_GOLD, 0, Name, Text));
     }
     else
@@ -64,7 +66,7 @@ AnnounceSpree(app_state *AppState, u32 Killer, u32 Streak)
         char Who[24];
         GetPlayerName(AppState, Killer, Who, sizeof(Who));
         snprintf(Text, sizeof(Text), "%s: %s (%u)", Who, Name, Streak);
-        PushToast(AppState, ANNOUNCE_COLOR_RED, Text);
+        PushToast(AppState, AnnounceIcon_Flame, ANNOUNCE_COLOR_RED, Text);
     }
 }
 
@@ -94,7 +96,7 @@ WatchKills(app_state *AppState, announcer *Announcer)
                 if (Victim != Local)
                 {
                     snprintf(Text, sizeof(Text), "%s is down", VictimName);
-                    PushToast(AppState, UI_COLOR_HEALTH, Text);
+                    PushToast(AppState, AnnounceIcon_HeartBroken, UI_COLOR_HEALTH, Text);
                 }
                 continue;
             }
@@ -106,7 +108,7 @@ WatchKills(app_state *AppState, announcer *Announcer)
                     char KillerName[24];
                     GetPlayerName(AppState, Killer, KillerName, sizeof(KillerName));
                     snprintf(Text, sizeof(Text), "%s ended %s's streak", KillerName, VictimName);
-                    PushToast(AppState, ANNOUNCE_COLOR_GOLD, Text);
+                    PushToast(AppState, AnnounceIcon_Skull, ANNOUNCE_COLOR_GOLD, Text);
                 }
                 Announcer->Streak[Victim] = 0;
             }
@@ -125,6 +127,7 @@ WatchKills(app_state *AppState, announcer *Announcer)
                 if (FinalBlowLeft(AppState) <= 0.f)
                 {
                     PushCard(AppState, MakeCard(AnnounceStyle_Callout, AnnouncePriority_Event,
+                                                AnnounceIcon_Blood,
                                                 ANNOUNCE_COLOR_RED, 0, (char *)"FIRST BLOOD",
                                                 Text));
                 }
@@ -188,7 +191,7 @@ WatchLead(app_state *AppState, announcer *Announcer, bool32 Quiet)
     if (Best == Local)
     {
         snprintf(Text, sizeof(Text), "You took the lead with %u kills", BestKills);
-        PushToast(AppState, ANNOUNCE_COLOR_GOLD, Text);
+        PushToast(AppState, AnnounceIcon_Crown, ANNOUNCE_COLOR_GOLD, Text);
     }
     else
     {
@@ -196,6 +199,7 @@ WatchLead(app_state *AppState, announcer *Announcer, bool32 Quiet)
         GetPlayerName(AppState, Best, Name, sizeof(Name));
         snprintf(Text, sizeof(Text), Before == Local ? "%s took the lead from you (%u kills)" :
                  "%s took the lead (%u kills)", Name, BestKills);
-        PushToast(AppState, Before == Local ? ANNOUNCE_COLOR_RED : UI_COLOR_TEXT_MUTED, Text);
+        PushToast(AppState, AnnounceIcon_Crown,
+                  Before == Local ? ANNOUNCE_COLOR_RED : UI_COLOR_TEXT_MUTED, Text);
     }
 }

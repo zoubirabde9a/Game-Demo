@@ -49,6 +49,9 @@ struct announce_card
     // NOTE(zoubir): seconds spent waiting in the queue
     float Waited;
     u32 Color;
+    // NOTE(zoubir): announce_icon (icons/announce_icons.cpp), drawn above
+    // the title
+    u32 Icon;
     asset_type_id Sound;
     char Kicker[48];
     char Title[64];
@@ -59,6 +62,7 @@ struct announce_toast
 {
     float Age;
     u32 Color;
+    u32 Icon;
     char Text[96];
 };
 
@@ -68,6 +72,10 @@ struct announcer
     // the font file is missing (then the title font stands in)
     font *Display;
     bool32 DisplayTried;
+    // NOTE(zoubir): the icons' texture, painted on first use, 0 until then
+    u32 IconAtlas;
+    // NOTE(zoubir): GAME_ANNOUNCE=icons (forced.cpp)
+    bool32 ShowIconSheet;
     float Clock;
 
     bool32 Showing;
@@ -137,11 +145,13 @@ GetAnnouncer(app_state *AppState)
 
 // NOTE(zoubir): a card to fill in and push; Seconds by style
 inline announce_card
-MakeCard(u32 Style, u32 Priority, u32 Color, char *Kicker, char *Title, char *Detail)
+MakeCard(u32 Style, u32 Priority, u32 Icon, u32 Color, char *Kicker, char *Title,
+         char *Detail)
 {
     announce_card Card = {};
     Card.Style = Style;
     Card.Priority = Priority;
+    Card.Icon = Icon;
     Card.Seconds = Style == AnnounceStyle_Title ? 3.4f : 1.7f;
     Card.Color = Color;
     Card.Sound = AssetType_Count;
@@ -207,7 +217,7 @@ PushCardAfter(app_state *AppState, announce_card Card)
 }
 
 internal void
-PushToast(app_state *AppState, u32 Color, char *Text)
+PushToast(app_state *AppState, u32 Icon, u32 Color, char *Text)
 {
     announcer *Announcer = GetAnnouncer(AppState);
     u32 Keep = Minimum(Announcer->ToastCount, (u32)ANNOUNCE_TOAST_COUNT - 1);
@@ -218,6 +228,7 @@ PushToast(app_state *AppState, u32 Color, char *Text)
     announce_toast *Toast = &Announcer->Toasts[0];
     Toast->Age = 0.f;
     Toast->Color = Color;
+    Toast->Icon = Icon;
     snprintf(Toast->Text, sizeof(Toast->Text), "%s", Text);
     Announcer->ToastCount = Keep + 1;
 }
@@ -283,6 +294,7 @@ AdvanceCards(app_state *AppState, announcer *Announcer, float DeltaTime)
 #define ANNOUNCE_COLOR_BLUE UI_RGBA(120, 190, 255, 255)
 #define ANNOUNCE_COLOR_VIOLET UI_RGBA(200, 140, 255, 255)
 
+#include "icons/announce_icons.cpp"
 #include "banners.cpp"
 #include "people_watch.cpp"
 #include "kill_watch.cpp"
@@ -305,4 +317,8 @@ DrawAnnouncer(render_context *RenderContext, app_state *AppState,
         DrawAnnounceCard(RenderContext, AppState, Announcer, WindowWidth, WindowHeight);
     }
     DrawAnnounceToasts(RenderContext, AppState, Announcer, WindowWidth);
+    if (Announcer->ShowIconSheet)
+    {
+        DrawIconSheet(RenderContext, Announcer, WindowWidth, WindowHeight);
+    }
 }

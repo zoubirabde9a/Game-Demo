@@ -4,10 +4,11 @@
    a band across the middle, and lands its title there: a small spaced
    kicker above ("DUNGEON  -  LEVEL 1"), the title in the big display
    face, punched in from a little larger, a line of light that grows out
-   from under it, and the detail line below. A callout is the same title
-   without the bars and the band, higher on the screen and shorter.
-   Toasts are short lines under the kill feed with a coloured mark, newest
-   on top, fading out. */
+   from under it, and the detail line below. Above it all its icon
+   (icons/announce_icons.cpp) lands first with a ring of light. A callout
+   is the same without the bars and the band, higher on the screen and
+   shorter. Toasts are short lines under the kill feed starting with their
+   small icon on a glow of their colour, newest on top, fading out. */
 
 #define ANNOUNCE_DISPLAY_SIZE 60.f
 #define ANNOUNCE_BAR_SHARE 0.085f
@@ -16,6 +17,9 @@
 #define ANNOUNCE_PUNCH_SECONDS 0.22f
 #define ANNOUNCE_PUNCH_SCALE 0.35f
 #define ANNOUNCE_TOAST_SECONDS 6.f
+// NOTE(zoubir): the icon above a title card's title, and a callout's
+#define ANNOUNCE_CARD_ICON_SIZE 72.f
+#define ANNOUNCE_CALLOUT_ICON_SIZE 56.f
 #define ANNOUNCE_TOAST_FADE 0.8f
 
 internal font *
@@ -113,7 +117,9 @@ DrawAnnounceCard(render_context *RenderContext, app_state *AppState, announcer *
     font *Body = AppState->Fonts.Body;
     float KickerHeight = Card->Kicker[0] ? UILineHeight(Small) + UI_GAP_SMALL : 0.f;
     float DetailHeight = Card->Detail[0] ? UILineHeight(Body) + UI_GAP + 4.f : 0.f;
-    float Block = KickerHeight + UILineHeight(Display) + DetailHeight;
+    float IconSize = Title ? ANNOUNCE_CARD_ICON_SIZE : ANNOUNCE_CALLOUT_ICON_SIZE;
+    float IconHeight = Card->Icon ? IconSize + UI_GAP_SMALL : 0.f;
+    float Block = IconHeight + KickerHeight + UILineHeight(Display) + DetailHeight;
     float CenterX = 0.5f * Width;
 
     // NOTE(zoubir): a callout sits above the player; while the local
@@ -137,18 +143,36 @@ DrawAnnounceCard(render_context *RenderContext, app_state *AppState, announcer *
     // NOTE(zoubir): light behind the title in its colour
     float GlowWidth = Minimum(Width, GetTextWidth(Display, Card->Title) + 260.f);
     DrawShaderQuad(RenderContext, Shader_Glow, CenterX - 0.5f * GlowWidth,
-                   Top + KickerHeight - 50.f, GlowWidth, UILineHeight(Display) + 100.f,
+                   Top + IconHeight + KickerHeight - 50.f, GlowWidth,
+                   UILineHeight(Display) + 100.f,
                    WithAlpha(Card->Color, (Title ? 0.22f : 0.3f) * Alpha),
                    RenderBlend_Additive);
 
     float Y = Top;
+    float Punch = 1.f + ANNOUNCE_PUNCH_SCALE * (1.f - SmoothStep01(Age / ANNOUNCE_PUNCH_SECONDS));
+    if (Card->Icon)
+    {
+        // NOTE(zoubir): the icon lands first, a ring of its light
+        // breaking out from it as it does
+        v2 IconCenter = V2(CenterX, Y + 0.5f * IconSize);
+        float Ring = IconSize * (0.8f + 1.6f * SmoothStep01(Age / 0.5f));
+        float RingAlpha = Alpha * (1.f - SmoothStep01(Age / 0.5f));
+        DrawShaderQuad(RenderContext, Shader_Glow, IconCenter.X - IconSize, IconCenter.Y - IconSize,
+                       2.f * IconSize, 2.f * IconSize, WithAlpha(Card->Color, 0.35f * Alpha),
+                       RenderBlend_Additive);
+        DrawShaderQuad(RenderContext, Shader_Ring, IconCenter.X - 0.5f * Ring,
+                       IconCenter.Y - 0.5f * Ring, Ring, Ring,
+                       WithAlpha(Card->Color, 0.8f * RingAlpha), RenderBlend_Additive);
+        DrawAnnounceIcon(RenderContext, &Announcer->IconAtlas, Card->Icon, IconCenter,
+                         IconSize * Punch, Alpha);
+        Y += IconHeight;
+    }
     if (Card->Kicker[0])
     {
         SpacedText(RenderContext, Small, CenterX, Y, Card->Kicker,
                    WithAlpha(UIMixColor(Card->Color, UI_COLOR_TEXT, 0.35f), Alpha), 3.f);
         Y += KickerHeight;
     }
-    float Punch = 1.f + ANNOUNCE_PUNCH_SCALE * (1.f - SmoothStep01(Age / ANNOUNCE_PUNCH_SECONDS));
     // NOTE(zoubir): a white flash as it lands, settling into its colour
     u32 TitleColor = UIMixColor(UI_RGBA(255, 255, 255, 255), Card->Color,
                                 Clamp01(Age / 0.3f) * 0.85f);
@@ -202,13 +226,20 @@ DrawAnnounceToasts(render_context *RenderContext, app_state *AppState, announcer
         // NOTE(zoubir): slides in from the right as it appears
         float Slide = 24.f * (1.f - SmoothStep01(Toast->Age / 0.25f));
         float TextWidth = UITextWidth(Font, Toast->Text);
-        float PlateX = Right - TextWidth - 2.f * UI_GAP_SMALL - 6.f + Slide;
-        DrawRoundRect(RenderContext, PlateX, Y - 2.f, TextWidth + 2.f * UI_GAP_SMALL + 6.f,
-                      Line + 2.f, WithAlpha(UI_COLOR_PANEL, 0.85f * Alpha));
-        DrawFilledRectangle(RenderContext, PlateX + 3.f, Y + 2.f, 3.f, Line - 6.f,
-                            WithAlpha(Toast->Color, Alpha), 0.f);
+        float IconSize = Line + 4.f;
+        float PlateWidth = TextWidth + 2.f * UI_GAP_SMALL + IconSize + 4.f;
+        float PlateX = Right - PlateWidth + Slide;
+        DrawRoundRect(RenderContext, PlateX, Y - 3.f, PlateWidth, Line + 4.f,
+                      WithAlpha(UI_COLOR_PANEL, 0.85f * Alpha));
+        // NOTE(zoubir): the toast's colour as a soft light behind its icon
+        v2 IconCenter = V2(PlateX + 4.f + 0.5f * IconSize, Y - 1.f + 0.5f * Line);
+        DrawShaderQuad(RenderContext, Shader_Glow, IconCenter.X - IconSize, IconCenter.Y - IconSize,
+                       2.f * IconSize, 2.f * IconSize, WithAlpha(Toast->Color, 0.3f * Alpha),
+                       RenderBlend_Additive);
+        DrawAnnounceIcon(RenderContext, &Announcer->IconAtlas, Toast->Icon, IconCenter, IconSize,
+                         Alpha);
         UIText(RenderContext, Font, Right - UI_GAP_SMALL + Slide, Y, Toast->Text,
                WithAlpha(UI_COLOR_TEXT, Alpha), UIAlign_Right);
-        Y += Line + 4.f;
+        Y += Line + 7.f;
     }
 }
