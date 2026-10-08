@@ -4,8 +4,9 @@
    its first map, then a button per other map of the mode being played,
    which asks everyone to move there. While a vote is open: who asked for
    which map (and mode, when it changes), the answers so far and Yes / No
-   buttons. Over the game, while a
-   vote is open, a slim plate at the top says so and how to answer. Both
+   buttons. Over the game, while a vote is open, a plate at the top says
+   so, with its own Yes / No buttons (and keys 1 and 2), so nobody has to
+   open the menu to answer. Both
    list every player with their answer (DrawVoteAnswers), so everyone
    sees who has voted and who is still deciding.
    Clicks become requests (client/vote_requests.cpp). */
@@ -251,31 +252,83 @@ DoMapVoteSection(render_context *RenderContext, app_state *AppState, app_input *
     UIText(RenderContext, Small, Left, Top, Hint, UI_COLOR_TEXT_MUTED);
 }
 
-// NOTE(zoubir): over the game while a vote is open and the menu is not
+// NOTE(zoubir): over the game while a vote is open and the menu is not:
+// who wants which map, everyone's answers, the time left draining, and
+// Yes / No buttons to answer without opening the menu, or keys 1 and 2.
+// The local player's answer stays lit and can still be changed
 internal void
-DrawMapVotePlate(render_context *RenderContext, app_state *AppState, u32 WindowWidth)
+DoMapVotePlate(render_context *RenderContext, app_state *AppState, app_input *Input,
+               u32 WindowWidth)
 {
     if (!AppState->VoteOpen || AppState->OptionsOpen)
     {
         return;
     }
+    u8 Own = AppState->Votes[AppState->LocalPlayerIndex];
+    if (!ConnectScreenTakesInput(AppState))
+    {
+        if (Input->NumbersButtons[1].Pressed && Own != MapVote_Yes)
+        {
+            RequestVote(AppState, MapVote_Yes);
+        }
+        else if (Input->NumbersButtons[2].Pressed && Own != MapVote_No)
+        {
+            RequestVote(AppState, MapVote_No);
+        }
+    }
     font *Body = AppState->Fonts.Body;
+    font *Small = AppState->Fonts.Small;
     float Width = Minimum(MAP_VOTE_PLATE_WIDTH, (float)WindowWidth - 2.f * UI_GAP);
-    float Height = UILineHeight(Body) + UILineHeight(AppState->Fonts.Small) + 2.f * UI_GAP_SMALL;
+    float ButtonHeight = MAP_VOTE_BUTTON_HEIGHT - 6.f;
+    float Height = UILineHeight(Body) + UILineHeight(Small) + ButtonHeight +
+        3.f * UI_GAP_SMALL + UI_GAP + 4.f;
     float X = 0.5f * ((float)WindowWidth - Width);
     float Y = UI_GAP_LARGE;
     DrawUIPanel(RenderContext, X, Y, Width, Height, UI_COLOR_ACCENT);
     char Who[48];
     GetPlayerName(AppState, AppState->VoteBy, Who, sizeof(Who));
     char Text[128];
-    bool32 Answered = AppState->Votes[AppState->LocalPlayerIndex] != MapVote_None;
     char Map[64];
     VoteMapText(AppState, Map, sizeof(Map));
-    snprintf(Text, sizeof(Text), "%s wants %s  -  %s  (%.0f s)", Who, Map,
-             Answered ? "waiting for the others" : "Esc to vote",
-             Maximum(0.f, AppState->VoteSeconds));
-    UIText(RenderContext, Body, X + 0.5f * Width, Y + UI_GAP_SMALL, Text,
-           UI_COLOR_TEXT, UIAlign_Center);
-    DrawVoteAnswers(RenderContext, AppState, X + 0.5f * Width,
-                    Y + UI_GAP_SMALL + UILineHeight(Body));
+    snprintf(Text, sizeof(Text), "%s wants %s", Who, Map);
+    float Top = Y + UI_GAP_SMALL;
+    UIText(RenderContext, Body, X + 0.5f * Width, Top, Text, UI_COLOR_TEXT, UIAlign_Center);
+    Top += UILineHeight(Body);
+    DrawVoteAnswers(RenderContext, AppState, X + 0.5f * Width, Top);
+    Top += UILineHeight(Small) + UI_GAP_SMALL;
+
+    char *Labels[] = {"Yes  [1]", "No  [2]"};
+    u32 Answers[] = {MapVote_Yes, MapVote_No};
+    u32 Colors[] = {UI_COLOR_GOOD, UI_COLOR_HEALTH};
+    float Inner = Width - 2.f * UI_GAP;
+    float ButtonWidth = 0.5f * (Inner - UI_GAP);
+    for(u32 Index = 0; Index < 2; Index++)
+    {
+        float ButtonX = X + UI_GAP + Index * (ButtonWidth + UI_GAP);
+        bool32 Selected = Own == Answers[Index];
+        if (OptionsButton(RenderContext, Input, ButtonX, Top, ButtonWidth, ButtonHeight,
+                          Selected) && !Selected)
+        {
+            RequestVote(AppState, Answers[Index]);
+        }
+        UIText(RenderContext, Body, ButtonX + 0.5f * ButtonWidth,
+               Top + 0.5f * (ButtonHeight - UILineHeight(Body)), Labels[Index],
+               Selected ? Colors[Index] : UI_COLOR_TEXT, UIAlign_Center);
+    }
+    Top += ButtonHeight + UI_GAP_SMALL;
+
+    // NOTE(zoubir): the time left, draining, with the seconds at its end
+    snprintf(Text, sizeof(Text), "%.0f s", Maximum(0.f, AppState->VoteSeconds));
+    float SecondsWidth = UITextWidth(Small, Text) + UI_GAP_SMALL;
+    float BarWidth = Inner - SecondsWidth;
+    float BarY = Top + 0.5f * UILineHeight(Small) - 2.f;
+    float Share = Clamp01(AppState->VoteSeconds / MAP_VOTE_SECONDS);
+    DrawRoundRect(RenderContext, X + UI_GAP, BarY, BarWidth, 4.f, UI_COLOR_TRACK);
+    if (Share > 0.f)
+    {
+        DrawRoundRect(RenderContext, X + UI_GAP, BarY, Maximum(4.f, Share * BarWidth), 4.f,
+                      AppState->VoteSeconds < 8.f ? UI_COLOR_HEALTH : UI_COLOR_ACCENT);
+    }
+    UIText(RenderContext, Small, X + Width - UI_GAP, Top, Text, UI_COLOR_TEXT_MUTED,
+           UIAlign_Right);
 }

@@ -36,7 +36,7 @@ DrawFinalBlow(RenderContext, AppState, Window->Width, Window->Height); // over t
 OpenTalentsForRoundBreak(AppState); // the talent panel opens for the break between rounds, ui/round_break_view.cpp
 DrawTalentPanel(RenderContext, AppState, Input, Window->Width, Window->Height); // the talent tree (N), ui/talent_panel/
 DrawRoundBreak(RenderContext, AppState, Window->Width, Window->Height); // countdown to the next round, over the talent panel, ui/round_break_view.cpp
-DrawMapVotePlate(RenderContext, AppState, Window->Width); // a map vote is open: who wants which map, Esc to answer, ui/map_vote_view.cpp
+DoMapVotePlate(RenderContext, AppState, Input, Window->Width); // a map vote is open: who wants which map, Yes and No buttons (keys 1 and 2), ui/map_vote_view.cpp
 DoDungeonHud(RenderContext, AppState, Input, Window->Width, Window->Height); // a dungeon run's objective, boss bar and role picker, ui/dungeon/dungeon_hud.cpp
 DrawBossAlerts(RenderContext, AppState, Window->Width, Window->Height); // a banner when a boss enrages or its timer runs out, ui/dungeon/boss_alerts.cpp
 if (Input->TabButton.EndedDown) DrawScoreboard(RenderContext, AppState, Window->Width, Window->Height);
