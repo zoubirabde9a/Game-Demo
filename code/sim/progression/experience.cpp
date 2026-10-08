@@ -14,12 +14,14 @@
    minutes; kills get there far sooner. Every level after the first is a
    talent point (talents.cpp).
 
-   In a dungeon run a player can be at most DUNGEON_LEVELS_AHEAD levels
-   past the rooms the party has cleared, so waiting around in a cleared
-   room cannot farm levels. Experience past the cap stops one point short
-   of the next level, which comes the moment the next room is cleared.
-   At 90 s a room the trickle alone matches the cap through the Crypt and
-   into the Depths, so a party that keeps moving never feels it. */
+   In a dungeon run a player earns one level per room the party clears,
+   starting from level 1: the cap is DUNGEON_LEVELS_AHEAD plus the rooms
+   with monsters cleared, so waiting around cannot farm levels.
+   Experience past the cap stops one point short of the next level, which
+   comes the moment the next room is cleared. The cap sits below what
+   time alone would give at 90 s a room (level 7 leaving the Crypt where
+   the trickle reaches 9), so a dungeon party is a little lower than the
+   bosses were first tuned for. */
 
 #define XP_PLAYER_KILL 100
 #define XP_PER_LEVEL_GAP 15
@@ -32,8 +34,8 @@
 #define XP_FIRST_LEVEL 80
 #define XP_LEVEL_STEP 20
 // NOTE(zoubir): the most a dungeon player can be is this plus the rooms
-// cleared; the empty first room counts, so a run starts capped at 3
-#define DUNGEON_LEVELS_AHEAD 2
+// with monsters cleared: level 1 until the first fight is won
+#define DUNGEON_LEVELS_AHEAD 1
 
 // NOTE(zoubir): experience needed in all to be Level
 inline u32

@@ -121,7 +121,11 @@ UpdateFightEnd(app_state *AppState, world *World, dungeon_run *Run,
     {
         u32 Room = Run->FightingRoom;
         Run->RoomStates[Room] = RoomState_Cleared;
-        AppState->DungeonRoomsCleared++;
+        // NOTE(zoubir): an empty room (the gathering room) earns no level
+        if (Run->FoeCount)
+        {
+            AppState->DungeonRoomsCleared++;
+        }
         EndEncounter(AppState, Run, Run->RoomEntry[Room],
                      DUNGEON_CLEAR_RESPAWN_SECONDS);
     }
