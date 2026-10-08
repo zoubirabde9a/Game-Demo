@@ -50,10 +50,12 @@ SweepingScale(player_slot *Slot, u32 Count)
 }
 
 // NOTE(zoubir): Damage and Shove to every foe within Reach and HalfAngle
-// of Dir from the Berserker (HalfAngle Pi for all round); returns how many
+// of Dir from the Berserker (HalfAngle Pi for all round), the one most
+// squarely in front taking all of it and the rest Splash of it; returns
+// how many
 internal u32
 StrikeAround(app_state *AppState, player_slot *Slot, world_entity *Player, v2 Dir,
-             float Reach, float HalfAngle, float Damage, float Shove)
+             float Reach, float HalfAngle, float Damage, float Shove, float Splash = 1.f)
 {
     world *World = &AppState->World;
     u32 Room = RoomAtPosition(World, Player->Position.XY);
@@ -69,13 +71,49 @@ StrikeAround(app_state *AppState, player_slot *Slot, world_entity *Player, v2 Di
             Caught[Count++] = Monster;
         }
     }
-    hit Hit = {Damage * SweepingScale(Slot, Count), Shove, 0.f, 0.f, 0.f, SimBurst_Count};
+    u32 Main = 0;
+    float Best = -2.f;
     for(u32 Index = 0; Index < Count; Index++)
     {
+        v2 To = Caught[Index]->Position.XY - Player->Position.XY;
+        float Facing = DotProduct(NormalizeOr(To, Dir), Dir) - 0.002f * Length(To);
+        if (Facing > Best)
+        {
+            Best = Facing;
+            Main = Index;
+        }
+    }
+    float Full = Damage * SweepingScale(Slot, Count);
+    for(u32 Index = 0; Index < Count; Index++)
+    {
+        hit Hit = {Index == Main ? Full : Splash * Full, Shove, 0.f, 0.f, 0.f, SimBurst_Count};
         v2 Away = NormalizeOr(Caught[Index]->Position.XY - Player->Position.XY, Dir);
         ApplyHit(AppState, World, Caught[Index], &Hit, Away, Player, Player->PlayerIndex);
     }
     return Count;
+}
+
+// NOTE(zoubir): which way a swing goes: at the monster under the cursor
+// (player_input.Target) when it is within Reach of the Berserker, its
+// body counting, else along the aim
+internal v2
+SwingDirection(app_state *AppState, player_slot *Slot, world_entity *Player, float Reach)
+{
+    v2 Result = GetPlayerAim(Player);
+    world *World = &AppState->World;
+    u32 Index = Slot->Input.Target;
+    if (Index && Index - 1 < World->EntityCount)
+    {
+        world_entity *Unit = &World->Entities[Index - 1];
+        float Radius = Unit->Collision ? Unit->Collision->TotalVolume.HalfDims.X : 0.f;
+        v2 To = Unit->Position.XY - Player->Position.XY;
+        if (Unit->IsPresent && Unit->Type == EntityType_Monster && Unit->Hp > 0.f &&
+            LengthSq(To) > 1.f && Length(To) - Radius <= Reach)
+        {
+            Result = DirectionTo(To);
+        }
+    }
+    return Result;
 }
 
 // NOTE(zoubir): the right click: a swing through the arc in front, each one
@@ -83,9 +121,9 @@ StrikeAround(app_state *AppState, player_slot *Slot, world_entity *Player, v2 Di
 internal void
 Cleave(app_state *AppState, world *World, player_slot *Slot, world_entity *Player)
 {
-    v2 Dir = GetPlayerAim(Player);
     bool32 Sweeping = RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_SweepingStrikes) > 0;
     float Reach = CLEAVE_REACH * (Sweeping ? SWEEPING_REACH : 1.f);
+    v2 Dir = SwingDirection(AppState, Slot, Player, Reach);
     // NOTE(zoubir): a wider swing tells clients so in the burst's height,
     // which reaches them whole (they do not know the talents of others)
     v3 At = Player->Position;
@@ -96,7 +134,8 @@ Cleave(app_state *AppState, world *World, player_slot *Slot, world_entity *Playe
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, Burst),
               (u8)Player->PlayerIndex, At, ATan2(Dir.Y, Dir.X));
     EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);
-    StrikeAround(AppState, Slot, Player, Dir, Reach, CLEAVE_HALF_ANGLE, CLEAVE_DAMAGE, CLEAVE_SHOVE);
+    StrikeAround(AppState, Slot, Player, Dir, Reach, CLEAVE_HALF_ANGLE, CLEAVE_DAMAGE, CLEAVE_SHOVE,
+                 CLEAVE_SPLASH);
 }
 
 // NOTE(zoubir): one turn of the Whirlwind: everything round the Berserker

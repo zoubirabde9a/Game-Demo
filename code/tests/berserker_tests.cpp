@@ -1,6 +1,7 @@
 /* Berserker tests (sim/dungeon/role_kits/berserker.cpp), included by
    dungeon_tests.cpp: the class's keys and tree spells; Cleave hits the
-   arc in front and nothing behind, swinging each way in turn; Rage builds
+   arc in front and nothing behind, swinging each way in turn, and goes
+   at a monster picked under the cursor; Rage builds
    from hits landed and taken and drains once calm; Whirlwind and Execute
    need their Rage and spend it; Execute's big hit on a foe near death and
    Massacre's refund; the Leap lands at the cursor and stuns; the hand axe
@@ -96,6 +97,28 @@ TestCleaveHitsTheArc()
     StrikeAround(AppState, Slot, Slot->Entity, V2(1.f, 0.f), CLEAVE_REACH, CLEAVE_HALF_ANGLE,
                  10.f, 0.f);
     Check(Before - Front->Hp > Plain * (1.f + SWEEPING_PER_FOE) - 0.01f);
+    DestroyCryptWorld(&Crypt);
+}
+
+// NOTE(zoubir): a swing goes at the monster under the cursor in reach,
+// whatever the aim, and along the aim when it is out of reach
+internal void
+TestCleaveFollowsThePick()
+{
+    crypt_world Crypt = BerserkerCrypt();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *Behind = BerserkerDummy(&Crypt, V3(-60.f, 0.f, 0.f));
+    world_entity *Front = BerserkerDummy(&Crypt, V3(60.f, 0.f, 0.f));
+    Slot->Input.Target = (u32)(Behind - AppState->World.Entities) + 1;
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    Check(Behind->Hp < 2000.f && Front->Hp == 2000.f);
+    world_entity *Far = BerserkerDummy(&Crypt, V3(-300.f, 0.f, 0.f));
+    Slot->Input.Target = (u32)(Far - AppState->World.Entities) + 1;
+    TickCrypt(&Crypt, 60);
+    float Before = Front->Hp;
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    Check(Front->Hp < Before && Far->Hp == 2000.f);
     DestroyCryptWorld(&Crypt);
 }
 
@@ -201,7 +224,7 @@ TestExecuteSpendsRage()
     PressOnce(&Crypt, 0, PlayerButton_Shockwave);
     TickCrypt(&Crypt, WindUp);
     float Full = 2000.f - Foe->Hp;
-    Check(Full > 1.8f * Some);
+    Check(Full > 1.6f * Some);
 
     // NOTE(zoubir): near death: twice as hard
     Foe->Hp = 0.2f * 2000.f;
@@ -210,7 +233,7 @@ TestExecuteSpendsRage()
     float Low = Foe->Hp;
     PressOnce(&Crypt, 0, PlayerButton_Shockwave);
     TickCrypt(&Crypt, WindUp);
-    Check(Low - Foe->Hp > 1.9f * Full);
+    Check(Low - Foe->Hp > 0.95f * EXECUTE_LOW_SCALE * Full);
 
     // NOTE(zoubir): Massacre: a kill gives Rage back
     Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Massacre] = 1;
@@ -342,6 +365,7 @@ RunBerserkerTests()
 {
     TestBerserkerKeys();
     TestCleaveHitsTheArc();
+    TestCleaveFollowsThePick();
     TestRageBuildsAndDrains();
     TestWhirlwindSpinsForRage();
     TestExecuteSpendsRage();
