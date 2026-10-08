@@ -261,6 +261,93 @@ StormcallerSpellRadius(player_slot *Slot, u32 Key, float Base)
     return Result;
 }
 
+// NOTE(zoubir): developer builds: GAME_STORMCALLER gives the local
+// Stormcaller what a scripted screenshot (misc\screenshot.bat) needs to
+// show the class: "full" every talent, a number the Charge held there,
+// and after a colon the keys it casts by itself whenever they are ready
+// (A, R, V, W, X), from the seconds after an @ on, and a ! keeps its
+// health full ("full85@11!:XRW").
+// Lightning Dash is left out: it moves the player, which needs the arena
+// this tick has not got
+global_variable float StormcallerDeveloperClock;
+
+internal void
+ApplyDeveloperStormcaller(app_state *AppState, player_slot *Slot, float DeltaTime)
+{
+#if APP_DEV
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    char *Value = getenv("GAME_STORMCALLER");
+#pragma warning(pop)
+    world_entity *Player = Slot->Entity;
+    if (!Value || !Value[0] || !Player || Slot != &AppState->Players[AppState->LocalPlayerIndex] ||
+        Slot->Predicted || IsDeadPlayer(Player))
+    {
+        return;
+    }
+    if (Value[0] == 'f')
+    {
+        for(u32 Talent = 0; Talent < ROLE_TALENTS; Talent++)
+        {
+            Slot->Ranks[Talent_RoleFirst + Talent] = (u8)StormcallerTalentDefs[Talent].MaxLevel;
+        }
+    }
+    char *At = Value;
+    while(*At && *At != ':' && (*At < '0' || *At > '9'))
+    {
+        At++;
+    }
+    if (*At >= '0' && *At <= '9' && Player->CastSpell != PlayerSpell_StormcallerB)
+    {
+        Slot->Stormcaller.Charge = Minimum(STORM_CHARGE_MOST - 1.f, (float)atoi(At));
+        Slot->Stormcaller.IdleSeconds = 0.f;
+    }
+    // NOTE(zoubir): a ! keeps the Stormcaller standing while the shot waits
+    if (strchr(Value, '!'))
+    {
+        Player->Hp = Player->MaxHp;
+    }
+    StormcallerDeveloperClock += DeltaTime;
+    char *From = Value;
+    while(*From && *From != '@')
+    {
+        From++;
+    }
+    char *Keys = Value;
+    while(*Keys && *Keys != ':')
+    {
+        Keys++;
+    }
+    if (*From == '@' && StormcallerDeveloperClock < (float)atoi(From + 1))
+    {
+        Keys = From + 1 + strlen(From + 1);
+    }
+    // NOTE(zoubir): the spells go at the foe nearest it, the cursor's
+    // ground spell on that foe's spot, whatever the mouse is doing
+    world_entity *Near = NearestFoe(&AppState->World, Player->Position.XY, SPARK_RANGE,
+                                    StormcallerRoom(AppState, Player), 0, 0);
+    if (Near && *Keys)
+    {
+        v2 Way = Near->Position.XY - Player->Position.XY;
+        Player->Aim = NormalizeOr(Way, Player->Aim);
+        Player->AimReach = Minimum(1.f, Length(Way) / PLAYER_AIM_REACH);
+    }
+    char *Letters = "ARCVWX";
+    for(; *Keys && !IsPlayerCasting(Player); Keys++)
+    {
+        for(u32 Key = 0; Key < 6; Key++)
+        {
+            if ((*Keys | 32) == (Letters[Key] | 32) && Key != 2 && Slot->RoleCooldowns[Key] <= 0.f &&
+                RoleSpellLearned(Slot, Key) &&
+                CastStormcallerKey(AppState, &AppState->World, 0, Slot, Player, Key))
+            {
+                Slot->RoleCooldowns[Key] = RoleSpellCooldown(Slot, Key);
+            }
+        }
+    }
+#endif
+}
+
 // NOTE(zoubir): once a tick, from UpdateClassEffects: what the class's
 // spells left behind, for every player of the class
 internal void
@@ -269,8 +356,15 @@ UpdateStormcallerEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];
+        if (Slot->Active && Slot->Role == PlayerRole_Stormcaller && Slot->Predicted)
+        {
+            // NOTE(zoubir): a client predicting its own Stormcaller leaves
+            // all of it to the server, which sends the Charge and flags back
+            continue;
+        }
         if (Slot->Active && Slot->Role == PlayerRole_Stormcaller)
         {
+            ApplyDeveloperStormcaller(AppState, Slot, DeltaTime);
             UpdateStormcallerSlot(AppState, Run, Slot, DeltaTime);
         }
         else
