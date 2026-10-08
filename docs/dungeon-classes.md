@@ -1,6 +1,6 @@
 # Dungeon classes
 
-A player in a dungeon run picks a class. Each class plays one of four roles: tank, healer, ranged damage or melee damage. The class picker in the lobby room shows a column per role and a button per class under it, each in the class's colour. The tank, the healer and the Fire Mage (the class `docs/dungeon-plan.md` calls the striker) were the first three classes; the Ranger, the Berserker and the Shadowblade came after.
+A player in a dungeon run picks a class. Each class plays one of four roles: tank, healer, ranged damage or melee damage. The class picker in the lobby room shows a column per role and a button per class under it, each in the class's colour. The tank, the healer and the Fire Mage (the class `docs/dungeon-plan.md` calls the striker) were the first three classes; the Ranger, the Berserker and the Shadowblade came after, then the Frost Mage and the Druid.
 
 | Class | Role | Health | Taken | Dealt | Threat | Weapon and resource |
 |---|---|---|---|---|---|---|
@@ -10,6 +10,8 @@ A player in a dungeon run picks a class. Each class plays one of four roles: tan
 | Ranger | Ranged | 110 | 100% | 135% | 0.7x | Longbow; Focus (0 to 100) |
 | Berserker | Melee | 140 | 85% | 135% | 0.7x | Great axe; Rage (0 to 100) |
 | Shadowblade | Melee | 130 | 85% | 135% | 1x | Twin daggers; combo points (0 to 5) |
+| Frost Mage | Ranged | 110 | 100% | 135% | 0.9x | Ice; Icicles (0 to 5) |
+| Druid | Healer | 115 | 100% | 95% | 1x | Nature and moonlight; Bloom (0 to 5) |
 
 The rows are `RoleTable` in `code/sim/dungeon/roles.cpp`.
 
@@ -54,6 +56,37 @@ Numbers, talents and the spell table of each class are `code/sim/dungeon/role_ki
 
 Slots 7, 8, 10 and 11 are the stat talents every class has (`docs/dungeon-plan.md`, "Role talents").
 
+## Frost Mage
+
+A ranged caster built round freezing foes and then hitting them while they are frozen. Frostbolt grows Icicles; Glacial Spike spends them all. Shatter: every hit of the Frost Mage on a rooted or stunned foe deals 40% more, so Frost Nova or a five-Icicle Glacial Spike sets up the next hits. It owns X, so it has no fireball. Kit: `code/sim/dungeon/role_kits/frostmage.cpp` and its `frostmage/` folder.
+
+| Key | Spell |
+|---|---|
+| X | Frostbolt: a bolt at a foe for 20 that slows it 2 s and grows an Icicle; 1 s cooldown |
+| A | Blizzard: ice falls on a 95 circle at the cursor for 3 s, 5 every 0.5 s, slowing; 14 s |
+| R | Glacial Spike: a 1.25 s cast, then 30 + 12 an Icicle, spending them all; five Icicles also stun the foe 1.5 s; 7 s |
+| W | Frost Nova: roots every foe within 150 for 3 s and deals 6; 16 s |
+| C (tree) | Ice Barrier: a shield that takes the next 45 damage (70 at rank 2) for 10 s; 20 s |
+| V (tree) | Frozen Orb: rolls 360 along the aim over 3 s, 3 every 0.4 s to foes within 70, slowing, an Icicle on each pulse that hits; 18 s |
+
+Talents, by slot: 1 Frostbite (damage), 2 Ice Barrier (C), 3 Permafrost (chill 1.5 s longer), 4 Splitting Ice (Glacial Spike also strikes the nearest other foe for half), 5 Frozen Orb (V), 6 Fingers of Frost (every fourth Frostbolt shatters and grows two Icicles), 7 Ice Shards (damage), 8 Glacial Armor (armor), 9 Deep Freeze (Frost Nova 0.5 s longer a rank), 10 Cold Snap (cooldowns), 11 Winter's Grace (health), 12 Absolute Zero (a five-Icicle Glacial Spike freezes every foe within 120 of its target).
+
+## Druid
+
+Half healer, half caster, in the healer column. Its damage spells grow Bloom and its two heals spend all of it for more healing, so a Druid that keeps hitting heals bigger. It revives downed allies like the Mender (Miracle stays the Mender's). It owns X and the right click. Kit: `code/sim/dungeon/role_kits/druid.cpp` and its `druid/` folder.
+
+| Key | Spell |
+|---|---|
+| Right click | Wrath: a bolt at a foe for 10, grows a Bloom; 1.2 s |
+| X | Moonfire: 6 at once and 2.5 a second for 12 s on a foe; 6 s |
+| A | Rejuvenation: an ally heals 8 a second for 8 s, plus 6 at once for each Bloom spent; 4 s |
+| R | Starfire: a 1.5 s cast, then a star for 26 on a foe, grows two Bloom; 6 s |
+| W | Regrowth: an ally heals 30, plus 8 for each Bloom spent; 5 s |
+| C (tree) | Entangling Roots: roots every foe in an 80 circle at the cursor for 3 s (4.5 s at rank 2), 4 a second; 18 s |
+| V (tree) | Tranquility: a 3 s channel, walking slowly, that heals every ally within 260 for 6 each 0.5 s; 45 s |
+
+Talents, by slot: 1 Nature's Wrath (damage), 2 Entangling Roots (C), 3 Verdancy (Rejuvenation 30% more and 3 s longer), 4 Eclipse (Starfire 35% harder on a foe under your Moonfire), 5 Tranquility (V), 6 Symbiosis (Wrath and Starfire heal the most hurt ally for a quarter of what they deal), 7 Gift of the Wild (healing), 8 Barkskin (health), 9 Overgrowth (Regrowth 10% more a rank), 10 Swiftmend (cooldowns), 11 Starlit Fury (damage), 12 Wild Growth (Rejuvenation also lands on the two most hurt allies near its target).
+
 ## Online
 
 What every client sees of a class comes from three things the server sends: its bursts (eight per class, `SimBurst_<Class>First` on, in `code/sim/events.h`), the cast bars of its two wind-up spells (`PlayerSpell_<Class>A` and `B`), and two bytes per player, `ClassMeter` (Focus, Rage or combo points) and `ClassFlags` (eight bits the class defines, such as Berserk being up or a leap in flight). Looks, HUD bars and lasting effects are drawn from those, so they show the same online as offline. A burst's angle goes over the wire as one byte; anything else a burst must carry rides in its height (the Ranger's effects do this).
@@ -63,6 +96,8 @@ A Berserker's Leap is carried by the class: while its flag is up, the walk keys 
 ## Bots
 
 Server bots take a role by their slot: tank, healer, damage, damage, damage, healer, damage, tank. The first damage bot of a party, counting the slots in use, always plays the Fire Mage, so the balance probe's party of three stays the one its numbers were tuned against; later damage bots go round the other damage classes that have a kit (`code/server/bots/class_bots.cpp`). Each class has its own bot in `code/server/bots/<class>.cpp`.
+
+Healer bots work the same way: the first healer seat is always the Mender, later ones go round the other healer classes (the Druid). The Mender's footwork, backing off what comes close and walking to a downed ally, is shared by every healer bot (`code/server/bots/healer_footwork.cpp`).
 
 Every bot walks round lava and pits on the map's tiles and, between fights, to the next room (`bot_paths.cpp`, `hazard_steer.cpp`), and steps out of a slam, blink or mortar winding up and out of burning ground (`bot_dangers.cpp`). Melee bots also pick where they fight from those danger circles, and a ring slam (the Hollow King's Hollow Ring) is left inward, to its safe middle.
 
@@ -79,13 +114,19 @@ Measured with the balance probe (`code/tools/dungeon_balance.cpp`) on a party of
 | Fire Mage | 40 | 957 | 159 | before every bot dodged |
 | Ranger | 40 | 1081 | 188 | before every bot dodged; 0.185 wipes a cleared fight against 0.177; bosses 10 to 20% faster |
 
+The Frost Mage, 16 seeds against the Fire Mage: ordinary fights go faster and the Hollow King takes the same 55 s, but two later bosses are slower (57 s against 47 s, 44 s against 35 s) and the last boss wipes 0.6 a kill against 0.33.
+
+The Druid as the party's only healer, 8 seeds a level, against the Mender: the Throne of Dust wipes 0.62 a kill against 0.38, the Throne of Embers 0.25 against 0.12; deaths a kill about twice the Mender's. That is the half healer's price for its damage.
+
 ## Developer switches
 
 Developer builds, offline:
-- `GAME_ROLE` names a class (`ranger`, `berserker`, `shadowblade`, `fire mage`) or a role (`tank`, `healer`, `ranged`, `melee`, and `damage` for the Fire Mage); `GAME_ROOM=N` starts in room N. Both work in `misc\screenshot.bat` shots.
+- `GAME_ROLE` names a class (`ranger`, `berserker`, `shadowblade`, `fire mage`, `frost mage`, `druid`) or a role (`tank`, `healer`, `ranged`, `melee`, and `damage` for the Fire Mage); `GAME_ROOM=N` starts in room N. Both work in `misc\screenshot.bat` shots.
 - `GAME_BOT_DAMAGE` makes every damage bot one class, to measure one class against another with the probe.
 - `GAME_RANGER_TALENTS`, `GAME_RANGER_FOCUS` and `GAME_BERSERKER=full` give the local player talents and a full resource for screenshots.
+- `GAME_FROSTMAGE_ICICLES=5` keeps the local Frost Mage's Icicles full, for screenshots.
+- `GAME_BOT_HEALER` makes every healer bot one class (`druid`), as `GAME_BOT_DAMAGE` does for damage bots.
 
 ## Adding a class
 
-A class is one row in `player_role` and `RoleTable` (`roles.cpp`), one line in each list that names the classes (`class_states.h`, `class_kits.cpp`, `class_fx.cpp`, `class_hud.cpp`, `class_icons.cpp`, `class_bots.cpp`, the pointer tables in `role_abilities.cpp`, `role_talents.cpp`, `role_stats.cpp`, `role_icons.cpp` and `role_talent_icons.cpp`, its state in `dungeon_slot_fields.inc` and `dungeon_run`, and its test group in `tests/dungeon_tests.cpp`), a block of bursts in `events.h` with its rows in `client/fx_bursts.cpp`, two casts in `sim/player_casts.cpp` with their cases in `sim/player_update/casts.cpp`, and then its own files: `role_kits/<class>.h`, `<class>_defs.cpp`, `<class>.cpp`, `client/dungeon/classes/<class>.cpp` and `<class>_bursts.inc`, `ui/dungeon/classes/<class>_icons.cpp` and `<class>_hud.cpp`, `server/bots/<class>.cpp` and `tests/<class>_tests.cpp`. Until its first key has a spell, the picker and the bots leave it out, so a class can land in pieces. `player_role` takes three bits on the wire (the `Dungeon` and `DungeonMore` score bytes), and eight classes fill them: the Stormcaller (6) and the Duelist (7) are the last that fit, so a ninth class needs a wider field and a new protocol id. A role pick travels the other way in a byte of its own (`net_input.Role`, the class + 1), since eight classes and "none" do not fit three bits.
+A class is one row in `player_role` and `RoleTable` (`roles.cpp`), one line in each list that names the classes (`class_states.h`, `class_kits.cpp`, `class_fx.cpp`, `class_hud.cpp`, `class_icons.cpp`, `class_bots.cpp`, the pointer tables in `role_abilities.cpp`, `role_talents.cpp`, `role_stats.cpp`, `role_icons.cpp` and `role_talent_icons.cpp`, its state in `dungeon_slot_fields.inc` and `dungeon_run`, and its test group in `tests/dungeon_tests.cpp`), a block of bursts in `events.h` with its rows in `client/fx_bursts.cpp`, two casts in `sim/player_casts.cpp` with their cases in `sim/player_update/casts.cpp`, and then its own files: `role_kits/<class>.h`, `<class>_defs.cpp`, `<class>.cpp`, `client/dungeon/classes/<class>.cpp` and `<class>_bursts.inc`, `ui/dungeon/classes/<class>_icons.cpp` and `<class>_hud.cpp`, `server/bots/<class>.cpp` and `tests/<class>_tests.cpp`. Until its first key has a spell, the picker and the bots leave it out, so a class can land in pieces. `player_role` takes four bits on the wire (bits 0-1 of the `Dungeon` score byte, bits 5-6 of `DungeonMore`), so sixteen classes fit; the Frost Mage (8) and the Druid (9) needed the fourth (protocol GDMr). A role pick travels the other way in a byte of its own (`net_input.Role`, the class + 1), since eight classes and "none" do not fit three bits.
