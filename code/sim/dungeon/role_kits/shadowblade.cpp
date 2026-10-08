@@ -23,6 +23,11 @@
                   Eviscerate lands a shadow's echo too, and Shadowstep comes
                   back in DANCE_STEP_COOLDOWN.
 
+   Of the talents with code here, Knife Storm widens Fan of Knives and
+   makes it cut harder by rank, and Kidney Shot, the capstone, stuns the
+   foe a full five-point Eviscerate leaves alive (StatusEffect_Stunned,
+   which every client sees on the monster).
+
    C and X do nothing for it (RoleDropsFireball), so it has five damage
    keys, as the striker does.
    Points fade out of a fight (shadowblade/effects.cpp). The critical
@@ -266,13 +271,16 @@ FinishFanOfKnives(app_state *AppState, player_slot *Slot, world_entity *Player)
     // NOTE(zoubir): a critical strike lands on every knife of the fan
     bool32 Crit = Slot->Shadowblade.CritSeconds > 0.f;
     bool32 Envenom = RoleRank(Slot, PlayerRole_Shadowblade, ShadowbladeTalent_Envenom) > 0;
+    float Radius = RoleSpellRadius(Slot, 1);
+    float Damage = FAN_OF_KNIVES_DAMAGE * (1.f + KNIFE_STORM_DAMAGE_SHARE *
+        (float)RoleRank(Slot, PlayerRole_Shadowblade, ShadowbladeTalent_KnifeStorm));
     u32 Cut = 0;
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Foe = &World->Entities[EntityIndex];
         v2 Offset = Foe->Position.XY - Player->Position.XY;
         if (!IsShadowbladeFoe(World, Foe, Room) ||
-            Length(Offset) > FAN_OF_KNIVES_RADIUS + 0.5f * Foe->Dimensions.X)
+            Length(Offset) > Radius + 0.5f * Foe->Dimensions.X)
         {
             continue;
         }
@@ -280,7 +288,7 @@ FinishFanOfKnives(app_state *AppState, player_slot *Slot, world_entity *Player)
         {
             Slot->Shadowblade.CritSeconds = SHADOWBLADE_CRIT_SECONDS;
         }
-        ShadowbladeStrike(AppState, Slot, Player, Foe, FAN_OF_KNIVES_DAMAGE, FAN_OF_KNIVES_SHOVE,
+        ShadowbladeStrike(AppState, Slot, Player, Foe, Damage, FAN_OF_KNIVES_SHOVE,
                           LengthSq(Offset) > 1.f ? DirectionTo(Offset) : V2(1.f, 0.f));
         if (Envenom)
         {
@@ -345,6 +353,14 @@ FinishEviscerate(app_state *AppState, player_slot *Slot, world_entity *Player)
         AddComboPoints(Slot, RELENTLESS_POINTS);
         Slot->RoleCooldowns[0] = 0.f;
     }
+    // NOTE(zoubir): Kidney Shot: a foe that lives through a full
+    // five-point Eviscerate is stunned
+    if (!Killed && Points >= SHADOWBLADE_MOST_POINTS &&
+        RoleRank(Slot, PlayerRole_Shadowblade, ShadowbladeTalent_KidneyShot))
+    {
+        ApplyStatus(Foe, StatusEffect_Stunned, KIDNEY_SHOT_SECONDS);
+        Foe->ThrownBySlot = (u32)Player->PlayerIndex + 1;
+    }
 }
 
 // NOTE(zoubir): a wind-up of this class is over
@@ -393,7 +409,8 @@ ShadowbladeTakenScale(player_slot *Slot, world_entity *Player)
 }
 
 // NOTE(zoubir): Key's cooldown and a ground spell's radius after talents,
-// from the table's Base: Shadow Dance brings Shadowstep back at once
+// from the table's Base: Shadow Dance brings Shadowstep back at once, and
+// Knife Storm widens Fan of Knives
 internal float
 ShadowbladeSpellCooldown(player_slot *Slot, u32 Key, float Base)
 {
@@ -408,7 +425,13 @@ ShadowbladeSpellCooldown(player_slot *Slot, u32 Key, float Base)
 internal float
 ShadowbladeSpellRadius(player_slot *Slot, u32 Key, float Base)
 {
-    return Base;
+    float Result = Base;
+    if (Key == 1)
+    {
+        Result *= 1.f + KNIFE_STORM_RADIUS_SHARE *
+            (float)RoleRank(Slot, PlayerRole_Shadowblade, ShadowbladeTalent_KnifeStorm);
+    }
+    return Result;
 }
 
 #include "shadowblade/effects.cpp"

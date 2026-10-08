@@ -233,6 +233,37 @@ PaintRelentlessIcon(icon_canvas *Canvas)
     }
 }
 
+// NOTE(zoubir): a small "wider" badge in the bottom-right corner: two
+// rings
+internal void
+IconShadowbladeBadgeWider(icon_canvas *Canvas)
+{
+    IconCircle(Canvas, V2(0.8f, 0.8f), 0.16f, Solid(IconColor(16, 10, 20)));
+    IconCircle(Canvas, V2(0.8f, 0.8f), 0.13f, Solid(IconColor(255, 160, 80)));
+    IconArc(Canvas, V2(0.8f, 0.8f), 0.045f, 0.02f, Solid(IconColor(30, 16, 8)));
+    IconArc(Canvas, V2(0.8f, 0.8f), 0.09f, 0.02f, Solid(IconColor(30, 16, 8)));
+}
+
+// NOTE(zoubir): Knife Storm: Fan of Knives, wider
+internal void
+PaintKnifeStormIcon(icon_canvas *Canvas)
+{
+    PaintFanOfKnivesIcon(Canvas);
+    IconShadowbladeBadgeWider(Canvas);
+}
+
+// NOTE(zoubir): Kidney Shot: Eviscerate's cuts with all five gems lit,
+// and stars of a stunned foe circling over them
+internal void
+PaintKidneyShotIcon(icon_canvas *Canvas)
+{
+    PaintEviscerateIcon(Canvas);
+    IconArc(Canvas, V2(0.5f, 0.2f), 0.2f, 0.022f, Solid(IconColor(255, 220, 90, 200)), 3.3f, 6.1f);
+    IconSparkle(Canvas, V2(0.3f, 0.2f), 0.08f, Solid(IconColor(255, 230, 110)));
+    IconSparkle(Canvas, V2(0.52f, 0.06f), 0.07f, Solid(IconColor(255, 245, 180)));
+    IconSparkle(Canvas, V2(0.72f, 0.18f), 0.08f, Solid(IconColor(255, 230, 110)));
+}
+
 global_variable role_icon_painter *ShadowbladeIconPainters[ROLE_KEYS] =
 {
     PaintShadowstepIcon, PaintFanOfKnivesIcon, 0, PaintShadowDanceIcon,
@@ -242,6 +273,6 @@ global_variable talent_icon_painter *ShadowbladeTalentIconPainters[ROLE_TALENTS]
 {
     PaintLethalityIcon, PaintEnvenomIcon, PaintVenomIcon, PaintOpportunistIcon,
     PaintShadowDanceIcon, PaintRelentlessIcon,
-    PaintStatDamageIcon, PaintStatArmorIcon, 0, PaintStatHasteIcon,
-    PaintStatLifestealIcon, 0,
+    PaintStatDamageIcon, PaintStatArmorIcon, PaintKnifeStormIcon, PaintStatHasteIcon,
+    PaintStatLifestealIcon, PaintKidneyShotIcon,
 };

@@ -7,7 +7,8 @@
    Eviscerate spends the points for damage by the point, refuses to
    cast with none or with no foe in reach, and strikes the foe it was
    pressed on; Shadow Dance echoes strikes and hurries Shadowstep;
-   the talents; and points fading out of a fight. */
+   the talents, Knife Storm's wider, harder fan and Kidney Shot's stun
+   among them; and points fading out of a fight. */
 
 // NOTE(zoubir): a Shadowblade in slot 0 aiming along +X
 internal player_slot *
@@ -335,6 +336,65 @@ TestShadowbladeTalents()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Knife Storm at full rank: the fan reaches a foe past its
+// plain radius and cuts KNIFE_STORM_DAMAGE_SHARE harder a rank
+internal void
+TestKnifeStorm()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = ReadyShadowblade(&Crypt);
+    world_entity *Blade = Slot->Entity;
+    world_entity *Near = StrikerDummy(&Crypt, V3(-60.f, 0.f, 0.f));
+    world_entity *Edge = StrikerDummy(&Crypt, V3(170.f, 0.f, 0.f));
+    Edge->Position = Blade->Position;
+    Edge->Position.X += FAN_OF_KNIVES_RADIUS + 0.5f * Edge->Dimensions.X + 25.f;
+    Check(RoomAtPosition(&AppState->World, Edge->Position.XY) ==
+          RoomAtPosition(&AppState->World, Blade->Position.XY));
+    FinishShadowbladeCast(AppState, Slot, Blade, PlayerSpell_ShadowbladeA);
+    float Plain = 2000.f - Near->Hp;
+    Check(Plain > 0.f && Edge->Hp == 2000.f);
+    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_KnifeStorm] = 4;
+    float Wide = FAN_OF_KNIVES_RADIUS * (1.f + 4.f * KNIFE_STORM_RADIUS_SHARE);
+    Check(RoleSpellRadius(Slot, 1) > Wide - 0.01f && RoleSpellRadius(Slot, 1) < Wide + 0.01f);
+    float Before = Near->Hp;
+    FinishShadowbladeCast(AppState, Slot, Blade, PlayerSpell_ShadowbladeA);
+    float Storm = Before - Near->Hp;
+    float Scale = 1.f + 4.f * KNIFE_STORM_DAMAGE_SHARE;
+    Check(Storm > 0.99f * Scale * Plain && Storm < 1.01f * Scale * Plain);
+    Check(Edge->Hp < 2000.f);
+    DestroyCryptWorld(&Crypt);
+}
+
+// NOTE(zoubir): Kidney Shot: a five-point Eviscerate stuns the foe it
+// leaves alive; four points do not, nor five without the talent
+internal void
+TestKidneyShot()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    player_slot *Slot = ReadyShadowblade(&Crypt);
+    u32 WindUp = (u32)(60.f * PlayerSpells[PlayerSpell_ShadowbladeB].CastTime) + 2;
+    for(u32 Case = 0; Case < 3; Case++)
+    {
+        u32 Points = Case == 1 ? 4 : SHADOWBLADE_MOST_POINTS;
+        Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_KidneyShot] = Case == 0 ? 0 : 1;
+        world_entity *Foe = StrikerDummy(&Crypt, V3(50.f, 0.f, 0.f));
+        Slot->ClassMeter = (u8)Points;
+        Slot->RoleCooldowns[4] = 0.f;
+        PressAt(&Crypt, 0, PlayerButton_Shockwave, Foe);
+        TickHolding(&Crypt, Foe, WindUp);
+        Check(Foe->Hp < 2000.f && Slot->ClassMeter == 0);
+        bool32 Stunned = HasStatus(Foe, StatusEffect_Stunned);
+        Check(Case == 2 ? Stunned : !Stunned);
+        if (Case == 2)
+        {
+            Check(Foe->StatusTimers[StatusEffect_Stunned] > KIDNEY_SHOT_SECONDS - 0.1f);
+        }
+        KillEntity(Crypt.AppState, &Crypt.AppState->World, Foe, 0);
+    }
+    DestroyCryptWorld(&Crypt);
+}
+
 // NOTE(zoubir): out of a fight the points last a moment, then go one by
 // one, and the flag says so
 internal void
@@ -366,5 +426,7 @@ RunShadowbladeTests()
     TestEviscerate();
     TestShadowDance();
     TestShadowbladeTalents();
+    TestKnifeStorm();
+    TestKidneyShot();
     TestComboPointsFade();
 }

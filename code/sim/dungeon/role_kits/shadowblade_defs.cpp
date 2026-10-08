@@ -67,6 +67,13 @@
 // cosine between its facing and the way to the Shadowblade
 #define OPPORTUNIST_BEHIND -0.2f
 #define RELENTLESS_POINTS 3
+// NOTE(zoubir): Knife Storm, per rank: Fan of Knives reaches this share
+// farther and cuts this share harder
+#define KNIFE_STORM_RADIUS_SHARE 0.1f
+#define KNIFE_STORM_DAMAGE_SHARE 0.25f
+// NOTE(zoubir): Kidney Shot: an Eviscerate that spends all
+// SHADOWBLADE_MOST_POINTS stuns the foe it leaves alive this long
+#define KIDNEY_SHOT_SECONDS 2.5f
 
 // NOTE(zoubir): the class's bursts, as SimBurst_ShadowbladeFirst + n
 // (client/dungeon/classes/shadowblade.cpp draws them)
@@ -119,6 +126,12 @@ enum shadowblade_talent
     ShadowbladeTalent_Opportunist,
     ShadowbladeTalent_ShadowDance,
     ShadowbladeTalent_Relentless,
+    ShadowbladeTalent_Cutthroat,
+    ShadowbladeTalent_Evasion,
+    ShadowbladeTalent_KnifeStorm,
+    ShadowbladeTalent_QuickHands,
+    ShadowbladeTalent_Siphon,
+    ShadowbladeTalent_KidneyShot,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
@@ -142,14 +155,14 @@ global_variable talent_def ShadowbladeTalentDefs[ROLE_TALENTS] =
      TalentBranch_Role, 2, 1, 4, 0},
     {"Evasion", "You take less damage", "-4% damage taken",
      TalentBranch_Role, 3, 1, 4, 0},
-    // NOTE(zoubir): slot 8, a class spell made stronger, by rank: to be written
-    {"", "", "", TalentBranch_Role, 4, 0, 4, 0},
+    {"Knife Storm", "Fan of Knives reaches farther and cuts harder",
+     "+10% radius, +25% damage", TalentBranch_Role, 4, 0, 4, 0},
     {"Quick Hands", "Every spell comes back sooner", "-4% cooldowns",
      TalentBranch_Role, 4, 1, 4, 0},
     {"Siphon", "Your hits heal you", "2% of damage back as health",
      TalentBranch_Role, 5, 0, 4, 0},
-    // NOTE(zoubir): slot 11, the capstone: to be written
-    {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
+    {"Kidney Shot", "An Eviscerate with all 5 combo points stuns its foe for 2.5 s",
+     "a stunning finisher", TalentBranch_Role, 5, 1, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
