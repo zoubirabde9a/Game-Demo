@@ -1,8 +1,8 @@
 /* Ranger tests (sim/dungeon/role_kits/ranger.cpp), included by
    dungeon_tests.cpp: the class's keys; Quick Shot landing when its arrow
    arrives; Hunter's Mark raising the Ranger's damage and building Focus;
-   Piercing Shot going through a line and spending Focus, and Deadeye's
-   crit; Volley raining and slowing inside its circle only, wider with
+   Piercing Shot going through a line, less for each foe further down
+   it, and spending Focus, and Deadeye's crit; Volley raining and slowing inside its circle only, wider with
    Barrage; Disengage leaping back and its snare rooting (and biting at
    rank 2); Rapid Fire's stream of arrows; Lethal Mark jumping to the next
    foe; Focus draining between fights; and the burst angle's variant. */
@@ -180,7 +180,9 @@ TestPiercingShotThroughALine()
     float Expected = (PIERCE_DAMAGE + 50.f * PIERCE_PER_FOCUS) * GetRoleDef(PlayerRole_Ranger)->DamageDealt;
     float NearDealt = 2000.f - Near->Hp;
     Check(NearDealt > 0.99f * Expected && NearDealt < 1.01f * Expected);
-    Check(Far->Hp < 2000.f);
+    // NOTE(zoubir): the one further down the line takes PIERCE_FALLOFF of it
+    float FarDealt = 2000.f - Far->Hp;
+    Check(FarDealt > 0.99f * PIERCE_FALLOFF * NearDealt && FarDealt < 1.01f * PIERCE_FALLOFF * NearDealt);
     Check(Aside->Hp == 2000.f && Behind->Hp == 2000.f);
     Check(Slot->Ranger.Focus == 0.f);
 

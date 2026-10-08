@@ -132,14 +132,14 @@ CastRangerKey(app_state *AppState, world *World, memory_arena *Arena, player_slo
             StartPlayerCast(Player, PlayerSpell_RangerB, GetPlayerAim(Player));
             Slot->Ranger.RapidTimer = PlayerSpells[PlayerSpell_RangerB].CastTime /
                 (float)RAPID_FIRE_ARROWS;
-            world_entity *Foe = Slot->Predicted ? 0 : AttackTarget(AppState, Slot, Player, RAPID_FIRE_RANGE);
+            world_entity *Foe = Slot->Predicted ? 0 : RangerTarget(AppState, Slot, Player, RAPID_FIRE_RANGE);
             Slot->Ranger.RapidSlot = Foe ? (u32)(Foe - World->Entities) : 0;
             Slot->Ranger.RapidSerial = Foe ? Foe->MonsterSerial : 0;
         } break;
 
         case 4:
         {
-            world_entity *Foe = AttackTarget(AppState, Slot, Player, MARK_RANGE);
+            world_entity *Foe = RangerTarget(AppState, Slot, Player, MARK_RANGE);
             if (!Foe)
             {
                 return false;
@@ -153,7 +153,7 @@ CastRangerKey(app_state *AppState, world *World, memory_arena *Arena, player_slo
 
         case 5:
         {
-            world_entity *Foe = AttackTarget(AppState, Slot, Player, QUICK_SHOT_RANGE);
+            world_entity *Foe = RangerTarget(AppState, Slot, Player, QUICK_SHOT_RANGE);
             ShootRangerArrow(AppState, Player, Foe, RangerShot_Quick, QUICK_SHOT_DAMAGE,
                              RangerArrow_Quick);
             EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
@@ -177,7 +177,7 @@ RapidFireFoe(app_state *AppState, player_slot *Slot, world_entity *Player)
     if (!Result || Result->Hp <= 0.f ||
         Length(Result->Position.XY - Player->Position.XY) > RAPID_FIRE_RANGE)
     {
-        Result = AttackTarget(AppState, Slot, Player, RAPID_FIRE_RANGE);
+        Result = RangerTarget(AppState, Slot, Player, RAPID_FIRE_RANGE);
         Slot->Ranger.RapidSlot = Result ? (u32)(Result - AppState->World.Entities) : 0;
         Slot->Ranger.RapidSerial = Result ? Result->MonsterSerial : 0;
     }
@@ -204,9 +204,12 @@ LoosePiercingShot(app_state *AppState, player_slot *Slot, world_entity *Player)
         RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Deadeye) > 0;
     float Damage = (PIERCE_DAMAGE + PIERCE_PER_FOCUS * Focus) * (Crit ? DEADEYE_SCALE : 1.f);
     Slot->Ranger.Focus = 0.f;
-    u32 Room = RoomAtPosition(World, Player->Position.XY);
+    u32 Room = RangerShotRoom(AppState, Player);
     v2 From = Player->Position.XY;
-    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    world_entity *Struck[RANGER_MAX_ARROWS];
+    float Alongs[RANGER_MAX_ARROWS];
+    u32 Count = 0;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount && Count < RANGER_MAX_ARROWS; EntityIndex++)
     {
         world_entity *Monster = &World->Entities[EntityIndex];
         if (!Monster->IsPresent || Monster->Type != EntityType_Monster || Monster->Hp <= 0.f ||
@@ -219,9 +222,23 @@ LoosePiercingShot(app_state *AppState, player_slot *Slot, world_entity *Player)
         float Across = Absolute(DotProduct(Offset, V2(-Dir.Y, Dir.X)));
         if (Along > 0.f && Along < PIERCE_RANGE && Across < PIERCE_WIDTH + 0.5f * Monster->Dimensions.X)
         {
-            LooseRangerArrow(AppState, Player->PlayerIndex, Monster, RangerShot_Pierce, Damage,
-                             Along / PIERCE_SPEED, Dir);
+            Struck[Count] = Monster;
+            Alongs[Count] = Along;
+            Count++;
         }
+    }
+    // NOTE(zoubir): each foe after the first takes PIERCE_FALLOFF of what
+    // the one before it took, so the shot is a boss's first and a line's
+    // second
+    for(u32 Index = 0; Index < Count; Index++)
+    {
+        float Share = 1.f;
+        for(u32 Other = 0; Other < Count; Other++)
+        {
+            Share *= Alongs[Other] < Alongs[Index] ? PIERCE_FALLOFF : 1.f;
+        }
+        LooseRangerArrow(AppState, Player->PlayerIndex, Struck[Index], RangerShot_Pierce, Share * Damage,
+                         Alongs[Index] / PIERCE_SPEED, Dir);
     }
     // NOTE(zoubir): the power rides along: Focus in tenths, 11 for a crit
     u32 Power = Crit ? 11 : (u32)(Focus / 10.f + 0.5f);

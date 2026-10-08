@@ -22,10 +22,10 @@
 
 // NOTE(zoubir): Quick Shot (X): an arrow at the foe aimed at, the filler
 #define QUICK_SHOT_RANGE 560.f
-#define QUICK_SHOT_DAMAGE 9.f
+#define QUICK_SHOT_DAMAGE 11.f
 #define QUICK_SHOT_SHOVE 50.f
-#define QUICK_SHOT_COOLDOWN 1.2f
-#define QUICK_SHOT_FOCUS 14.f
+#define QUICK_SHOT_COOLDOWN 1.f
+#define QUICK_SHOT_FOCUS 16.f
 
 // NOTE(zoubir): Volley (A): VOLLEY_DRAW after the press the arrows come
 // down on the circle at the cursor for VOLLEY_SECONDS, every monster
@@ -34,7 +34,7 @@
 #define VOLLEY_DRAW 0.45f
 #define VOLLEY_SECONDS 2.f
 #define VOLLEY_TICK 0.4f
-#define VOLLEY_TICK_DAMAGE 4.5f
+#define VOLLEY_TICK_DAMAGE 3.f
 #define VOLLEY_SLOW_SECONDS 0.8f
 #define VOLLEY_FOCUS 3.f
 #define VOLLEY_COOLDOWN 12.f
@@ -47,16 +47,19 @@
 #define PIERCE_WIDTH 26.f
 #define PIERCE_SPEED 1900.f
 #define PIERCE_DAMAGE 28.f
-#define PIERCE_PER_FOCUS 0.36f
+#define PIERCE_PER_FOCUS 0.45f
 #define PIERCE_SHOVE 140.f
 #define PIERCE_COOLDOWN 8.f
+// NOTE(zoubir): each foe further down the line takes this share of what
+// the one before took
+#define PIERCE_FALLOFF 0.75f
 
 // NOTE(zoubir): Hunter's Mark (W): an arrow that marks the foe aimed at
 // for MARK_SECONDS; the Ranger deals MARK_SHARE more to it
 #define MARK_RANGE 600.f
 #define MARK_DAMAGE 8.f
 #define MARK_SECONDS 15.f
-#define MARK_SHARE 0.15f
+#define MARK_SHARE 0.25f
 #define MARK_COOLDOWN 6.f
 
 // NOTE(zoubir): Disengage (C, from the tree): a leap back from the aim,
@@ -74,9 +77,9 @@
 // over its cast at the foe aimed at
 #define RAPID_FIRE_RANGE 600.f
 #define RAPID_FIRE_ARROWS 10
-#define RAPID_FIRE_DAMAGE 6.f
+#define RAPID_FIRE_DAMAGE 7.f
 #define RAPID_FIRE_FOCUS 6.f
-#define RAPID_FIRE_COOLDOWN 22.f
+#define RAPID_FIRE_COOLDOWN 16.f
 
 enum ranger_talent
 {
@@ -135,7 +138,7 @@ global_variable role_spell RangerSpells[ROLE_KEYS] =
     {"Rapid Fire", RAPID_FIRE_COOLDOWN, "Rapid Fire: 2 s of arrows at a foe, walking slowly",
      RoleAim_None, RAPID_FIRE_RANGE, RangerTalent_RapidFire + 1},
     {"Hunter's Mark", MARK_COOLDOWN,
-     "Hunter's Mark: mark a foe; you deal 15% more to it and hits on it build Focus",
+     "Hunter's Mark: mark a foe; you deal 25% more to it and hits on it build Focus",
      RoleAim_None, MARK_RANGE, 0},
     {"Quick Shot", QUICK_SHOT_COOLDOWN, "Quick Shot: a fast arrow at a foe; on your mark it builds Focus",
      RoleAim_None, QUICK_SHOT_RANGE, 0},

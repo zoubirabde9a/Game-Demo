@@ -4,6 +4,48 @@
    arrow the clients fly strikes. Hits on the foe under the Ranger's own
    mark build Focus, by how much the shot says (RangerShotFocus). */
 
+// NOTE(zoubir): the room a Ranger's shots reach: its own, or, standing
+// in a doorway or a corridor (room 0), the room being fought, so a
+// Ranger at a gate shoots into the fight but never wakes a room behind
+// one
+inline u32
+RangerShotRoom(app_state *AppState, world_entity *Player)
+{
+    world *World = &AppState->World;
+    u32 Result = RoomAtPosition(World, Player->Position.XY);
+    if (Result == 0 && AppState->Dungeon && AppState->Dungeon->FightingRoom)
+    {
+        Result = AppState->Dungeon->FightingRoom;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): the foe a shot of the Ranger's goes at, within Range: as
+// AttackTarget (role_kits/foe_pick.cpp) picks it, in RangerShotRoom
+internal world_entity *
+RangerTarget(app_state *AppState, player_slot *Slot, world_entity *Player, float Range)
+{
+    world *World = &AppState->World;
+    u32 Room = RangerShotRoom(AppState, Player);
+    u32 Index = Slot->Input.Target;
+    if (Index && Index - 1 < World->EntityCount)
+    {
+        world_entity *Unit = &World->Entities[Index - 1];
+        if (Unit->IsPresent && Unit->Type == EntityType_Monster && Unit->Hp > 0.f &&
+            RoomAtPosition(World, Unit->Position.XY) == Room &&
+            Length(Unit->Position.XY - Player->Position.XY) <= Range)
+        {
+            return Unit;
+        }
+    }
+    world_entity *Result = NearestFoe(World, AimPoint(Player), ATTACK_PICK_RADIUS, Room, 0, 0);
+    if (!Result || Length(Result->Position.XY - Player->Position.XY) > Range)
+    {
+        Result = NearestFoe(World, Player->Position.XY, Range, Room, 0, 0);
+    }
+    return Result;
+}
+
 // NOTE(zoubir): whether Monster is the foe under Slot's Hunter's Mark
 inline bool32
 IsRangerMarked(app_state *AppState, player_slot *Slot, world_entity *Monster)
@@ -209,7 +251,7 @@ UpdateRangerMark(app_state *AppState, player_slot *Slot, float DeltaTime)
     {
         v2 Where = Was->Position.XY;
         world_entity *Next = NearestFoe(World, Where, LETHAL_MARK_JUMP,
-                                        RoomAtPosition(World, Slot->Entity->Position.XY), 0, 0);
+                                        RangerShotRoom(AppState, Slot->Entity), 0, 0);
         if (Next)
         {
             MarkRangerFoe(AppState, Slot, Next, Where);

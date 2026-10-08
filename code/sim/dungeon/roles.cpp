@@ -95,7 +95,7 @@ global_variable role_def RoleTable[PlayerRole_Count] =
     {"Mender",       100.f, 1.0f,  0.5f,  1.f, "Healer",
      "Mending Bolt heals, Ward shields and adds 12% damage; Holy Fire smites",
      RoleKind_Healer, {120, 220, 140}},
-    {"Ranger",       110.f, 1.0f,  1.35f, 1.f, "Ranged",
+    {"Ranger",       110.f, 1.0f,  1.35f, 0.7f, "Ranged",
      "A bow: arrows, a rain of arrows, a shot that pierces a line",
      RoleKind_Ranged, {90, 210, 170}},
     {"Berserker",    140.f, 0.85f, 1.35f, 0.7f, "Melee",

@@ -8,8 +8,8 @@
 // hover, name over the cast bar}. Piercing Shot draws the bow for a
 // second; Rapid Fire is a channel, its arrows loosed all through the
 // cast (UpdateRangerEffects), so the walk slows more
-#define RANGER_CAST_A {1.f, 0.6f, false, "Piercing Shot"}
-#define RANGER_CAST_B {2.f, 0.45f, false, "Rapid Fire"}
+#define RANGER_CAST_A {1.f, 0.7f, false, "Piercing Shot"}
+#define RANGER_CAST_B {2.f, 0.6f, false, "Rapid Fire"}
 
 // NOTE(zoubir): player_slot.ClassFlags bits, which every client gets
 // (ui/dungeon/classes/ranger_hud.cpp, client/dungeon/classes/ranger.cpp)
@@ -38,6 +38,9 @@ struct ranger_slot
     // NOTE(zoubir): which ranger_shot a hit about to land is, for
     // OnRangerHit (RangerShot_None for anything else)
     u32 Hitting;
+    // NOTE(zoubir): a bot's (server/bots/ranger.cpp): how long it has
+    // waited for its tank to pull
+    float BotWaited;
     // NOTE(zoubir): drawn only (ui/dungeon/classes/ranger_hud.cpp): the
     // Focus bar's eased fill, the clock it was last drawn at, and when it
     // last came full, on the client; the simulation never reads them
