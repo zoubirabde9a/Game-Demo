@@ -25,8 +25,8 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Def->AggroRange = 700.f;
     Def->StopRange = 50.f;
     Def->AttackRange = 64.f;
-    Def->AttackDamage = 15.f;
-    Def->AttackInterval = 1.f;
+    Def->AttackDamage = 17.f;
+    Def->AttackInterval = 0.85f;
     Def->SpawnWeight = 0;
     Def->MaxAlive = 1;
     Def->FrameSize = 64;
@@ -41,7 +41,7 @@ DefineMonster_CinderWyrm(monster_def *Def)
     monster_ability *Rain = AddMonsterAbility(Def, MonsterAbility_Mortar,
                                               "Molten Rain");
     Rain->MaxRange = 520.f;
-    Rain->Cooldown = 6.f;
+    Rain->Cooldown = 5.f;
     Rain->Windup = 1.1f;
     Rain->Active = 0.3f;
     Rain->Recover = 0.5f;
@@ -59,11 +59,11 @@ DefineMonster_CinderWyrm(monster_def *Def)
     monster_ability *Lash = AddMonsterAbility(Def, MonsterAbility_Slam,
                                               "Tail Lash");
     Lash->MaxRange = 90.f;
-    Lash->Cooldown = 4.5f;
+    Lash->Cooldown = 3.8f;
     Lash->Windup = 0.9f;
     Lash->Active = 0.3f;
     Lash->Recover = 0.5f;
-    Lash->Damage = 18.f;
+    Lash->Damage = 22.f;
     Lash->Radius = 105.f;
     Lash->Knockback = 750.f;
 
@@ -71,11 +71,11 @@ DefineMonster_CinderWyrm(monster_def *Def)
                                               "Magma Dive");
     Dive->MinRange = 110.f;
     Dive->MaxRange = 560.f;
-    Dive->Cooldown = 7.f;
+    Dive->Cooldown = 5.5f;
     Dive->Windup = 0.7f;
     Dive->Active = 2.f;
     Dive->Recover = 0.9f;
-    Dive->Damage = 22.f;
+    Dive->Damage = 26.f;
     Dive->Radius = 72.f;
     Dive->Knockback = 600.f;
     Dive->Status = StatusEffect_Burning;
@@ -85,11 +85,11 @@ DefineMonster_CinderWyrm(monster_def *Def)
                                               "Magma Spit");
     Spit->MinRange = 90.f;
     Spit->MaxRange = 440.f;
-    Spit->Cooldown = 3.5f;
+    Spit->Cooldown = 2.8f;
     Spit->Windup = 0.7f;
     Spit->Active = 1.4f;
     Spit->Recover = 0.4f;
-    Spit->Damage = 8.f;
+    Spit->Damage = 10.f;
     Spit->Radius = 18.f;
     Spit->Speed = 290.f;
     Spit->Knockback = 120.f;

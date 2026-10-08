@@ -65,6 +65,8 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 
 Only the melee slams (Anvil Drop, Hellfire Cleave) leave burning ground. The first draft also left fire under every ranged rain, and three bots died in 6 to 15 s at every boss: the back line stood in it. Without it, over three seeds with the experience of a full crypt, the bots clear Kragg after one or two wipes in 50 to 70 s, Sskarra after one or two in 40 to 60 s, and Vol'karr after several, in 105 to 115 s. That is about what the same bots need for the Hollow King.
 
+Kragg and Sskarra were then sped up so the depths play faster than the crypt: Kragg swings every 0.9 s and turns Anvil Drop and Hammer Hurl round in 4 s and Bellows Rush in 5.5 s; Sskarra bites every 0.85 s, spits every 2.8 s, dives every 5.5 s and lashes every 3.8 s, and hits about a fifth harder. Over five seeds Kragg wipes the bots on two (up to four wipes), Sskarra on one, where before both fell on the first try every time.
+
 `tools/dungeon_balance.cpp` follows the bots from the crypt into the depths in one long run (`dungeon_balance 90 3 2 4`). `PROBE_MAP=depths dungeon_balance 45 3 2 3` starts three bots in the depths with the experience of a full crypt behind them. Tune boss health in the monster files before the clocks, as the crypt does.
 
 ## Online

@@ -27,7 +27,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     Def->StopRange = 52.f;
     Def->AttackRange = 66.f;
     Def->AttackDamage = 16.f;
-    Def->AttackInterval = 1.1f;
+    Def->AttackInterval = 0.9f;
     Def->SpawnWeight = 0;
     Def->MaxAlive = 1;
     Def->FrameSize = 64;
@@ -41,7 +41,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     monster_ability *Stoke = AddMonsterAbility(Def, MonsterAbility_Summon,
                                                "Stoke the Forge");
     Stoke->MaxRange = 520.f;
-    Stoke->Cooldown = 11.f;
+    Stoke->Cooldown = 9.f;
     Stoke->Windup = 1.f;
     Stoke->Active = 0.3f;
     Stoke->Recover = 0.5f;
@@ -55,8 +55,8 @@ DefineMonster_Forgemaster(monster_def *Def)
     monster_ability *Anvil = AddMonsterAbility(Def, MonsterAbility_Slam,
                                                "Anvil Drop");
     Anvil->MaxRange = 95.f;
-    Anvil->Cooldown = 5.f;
-    Anvil->Windup = 1.1f;
+    Anvil->Cooldown = 4.f;
+    Anvil->Windup = 0.95f;
     Anvil->Active = 0.3f;
     Anvil->Recover = 0.6f;
     Anvil->Damage = 22.f;
@@ -75,7 +75,7 @@ DefineMonster_Forgemaster(monster_def *Def)
                                               "Hammer Hurl");
     Hurl->MinRange = 120.f;
     Hurl->MaxRange = 480.f;
-    Hurl->Cooldown = 5.f;
+    Hurl->Cooldown = 4.f;
     Hurl->Windup = 1.f;
     Hurl->Active = 0.3f;
     Hurl->Recover = 0.5f;
@@ -91,8 +91,8 @@ DefineMonster_Forgemaster(monster_def *Def)
                                               "Bellows Rush");
     Rush->MinRange = 160.f;
     Rush->MaxRange = 500.f;
-    Rush->Cooldown = 7.f;
-    Rush->Windup = 0.9f;
+    Rush->Cooldown = 5.5f;
+    Rush->Windup = 0.75f;
     Rush->Active = 0.7f;
     Rush->Recover = 0.7f;
     Rush->Damage = 18.f;
