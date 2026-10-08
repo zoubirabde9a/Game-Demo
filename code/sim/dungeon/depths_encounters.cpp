@@ -22,15 +22,18 @@ global_variable encounter_row DepthsEncounters[] =
     // 3, Anvil Hall: the first boss, Forgemaster Kragg
     {3, 0, MonsterKind_Forgemaster, 1, Encounter_Boss},
     // 4, Glasswing Hollow: things that get behind you. Shades blink to the
-    // back line, bats dive, toads shell and an imp throws fire from range
-    {4, 0, MonsterKind_Shade, 2, 0},
+    // back line, a lurker tunnels under the tank, a ravager charges past
+    // it, bats dive, toads shell and an imp throws fire from range
+    {4, 0, MonsterKind_Shade, 1, Encounter_Elite},
+    {4, 0, MonsterKind_Lurker, 1, 0},
     {4, 0, MonsterKind_Bat, 3, 0},
     {4, 1, MonsterKind_Toad, 2, 0},
     {4, 1, MonsterKind_Spider, 1, Encounter_Elite},
     {4, 1, MonsterKind_Imp, 1, 0},
     {4, 2, MonsterKind_Shade, 1, Encounter_Elite},
-    {4, 2, MonsterKind_Slime, 1, 0},
-    {4, 2, MonsterKind_Bat, 2, 0},
+    {4, 2, MonsterKind_Ravager, 1, 0},
+    {4, 2, MonsterKind_Bat, 3, 0},
+    {4, 2, MonsterKind_Toad, 1, 0},
     // 5, Wyrm's Gullet: the second boss, Sskarra the Cinder Wyrm
     {5, 0, MonsterKind_CinderWyrm, 1, Encounter_Boss},
     // 6, Ashfall Bridge: the hardest room of the dungeon, three packs on a
