@@ -45,7 +45,8 @@ OpenConnectScreen(connect_screen *Screen, online_session *Online,
 }
 
 // NOTE(zoubir): made on first use; opens at once when there is no server
-// to join (never in the browser, which cannot)
+// to join (never in the browser, which cannot, nor for a developer
+// screenshot, misc/screenshot.bat, which wants the game)
 internal connect_screen *
 GetConnectScreen(app_state *AppState)
 {
@@ -55,7 +56,15 @@ GetConnectScreen(app_state *AppState)
             AllocateStruct(&AppState->MemoryArena, connect_screen);
         *Screen = {};
 #if !COMPILER_EMSCRIPTEN
-        if (AppState->Online && !AppState->Online->Enabled)
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4996) // getenv: read once, never kept
+#endif
+        bool32 Screenshot = getenv("GAME_SCREENSHOT") != 0;
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+        if (AppState->Online && !AppState->Online->Enabled && !Screenshot)
         {
             OpenConnectScreen(Screen, AppState->Online, AppState->UIContext);
         }
