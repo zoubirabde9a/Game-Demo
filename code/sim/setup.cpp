@@ -109,6 +109,10 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
     // (NextRunMap, sim/dungeon/levels.cpp), any other map plays again
     u32 MapId = StartOver ? AppState->NextMap : NextRunMap(World->MapId);
     AppState->NextMapVoted = false;
+    if (StartOver)
+    {
+        AppState->DungeonRoomsCleared = 0;
+    }
     RebuildWorldForMap(AppState, Arena, MapId);
     FillMonsterPopulation(AppState, World, Arena, AppState->Monsters);
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)

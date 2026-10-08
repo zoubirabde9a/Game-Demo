@@ -527,6 +527,7 @@ TestNoFriendlyFireInADungeon()
 #include "fight_end_tests.cpp"
 #include "depths_tests.cpp"
 #include "meter_tests.cpp"
+#include "level_cap_tests.cpp"
 
 internal void
 RunDungeonTests()
@@ -541,6 +542,7 @@ RunDungeonTests()
     RunFightEndTests();
     RunDepthsTests();
     RunMeterTests();
+    RunLevelCapTests();
     TestNoFriendlyFireInADungeon();
     TestBlinksStopAtClosedGates();
     TestClearedCryptStartsANewRun();

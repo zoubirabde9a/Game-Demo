@@ -12,7 +12,14 @@
    costs 20 more than the last; level 20, the most, takes 4940. At two a
    second, time alone reaches level 2 in 40 s and level 10 in about 20
    minutes; kills get there far sooner. Every level after the first is a
-   talent point (talents.cpp). */
+   talent point (talents.cpp).
+
+   In a dungeon run a player can be at most DUNGEON_LEVELS_AHEAD levels
+   past the rooms the party has cleared, so waiting around in a cleared
+   room cannot farm levels. Experience past the cap stops one point short
+   of the next level, which comes the moment the next room is cleared.
+   At 90 s a room the trickle alone matches the cap through the Crypt and
+   into the Depths, so a party that keeps moving never feels it. */
 
 #define XP_PLAYER_KILL 100
 #define XP_PER_LEVEL_GAP 15
@@ -24,6 +31,9 @@
 // NOTE(zoubir): the first level's cost and how much more each costs
 #define XP_FIRST_LEVEL 80
 #define XP_LEVEL_STEP 20
+// NOTE(zoubir): the most a dungeon player can be is this plus the rooms
+// cleared; the empty first room counts, so a run starts capped at 3
+#define DUNGEON_LEVELS_AHEAD 2
 
 // NOTE(zoubir): experience needed in all to be Level
 inline u32
@@ -62,6 +72,20 @@ LevelProgress(u32 Xp)
     return Result;
 }
 
+// NOTE(zoubir): the highest level a player can reach now:
+// PLAYER_MAX_LEVEL, or in a dungeon run DUNGEON_LEVELS_AHEAD past the
+// rooms cleared
+inline u32
+LevelCap(app_state *AppState)
+{
+    u32 Result = PLAYER_MAX_LEVEL;
+    if (AppState->Dungeon)
+    {
+        Result = Minimum(Result, DUNGEON_LEVELS_AHEAD + AppState->DungeonRoomsCleared);
+    }
+    return Result;
+}
+
 inline u32
 PlayerKillXp(u32 KillerLevel, u32 VictimLevel)
 {
@@ -76,9 +100,13 @@ PlayerKillXp(u32 KillerLevel, u32 VictimLevel)
 internal void
 AwardXp(app_state *AppState, player_slot *Slot, u32 Amount)
 {
-    u32 Cap = XpToReach(PLAYER_MAX_LEVEL);
-    Slot->Xp = Minimum(Cap, Slot->Xp + Amount);
-    u32 Level = LevelForXp(Slot->Xp);
+    // NOTE(zoubir): under a dungeon's cap, one point short of the level
+    // past it; never taken back below what the player has
+    u32 Level = LevelCap(AppState);
+    u32 Cap = Level < PLAYER_MAX_LEVEL ? XpToReach(Level + 1) - 1 :
+        XpToReach(PLAYER_MAX_LEVEL);
+    Slot->Xp = Maximum(Slot->Xp, Minimum(Cap, Slot->Xp + Amount));
+    Level = LevelForXp(Slot->Xp);
     if (Level > Slot->Level)
     {
         Slot->Level = Level;

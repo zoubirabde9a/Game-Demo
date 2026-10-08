@@ -215,7 +215,11 @@ internal void
 StartDungeonRun(app_state *AppState, memory_arena *Arena)
 {
     AppState->Dungeon = 0;
-    if (GetMapDef((map_id)AppState->World.MapId)->Dungeon)
+    if (!GetMapDef((map_id)AppState->World.MapId)->Dungeon)
+    {
+        AppState->DungeonRoomsCleared = 0;
+    }
+    else
     {
         AppState->Dungeon = AllocateStruct(Arena, dungeon_run);
         ZeroSize(AppState->Dungeon, sizeof(dungeon_run));

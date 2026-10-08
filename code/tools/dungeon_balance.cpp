@@ -128,6 +128,10 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
             {
                 Run->RoomStates[Before] = RoomState_Cleared;
             }
+            // NOTE(zoubir): the rooms skipped count as cleared, or the
+            // level cap (LevelCap, experience.cpp) would hold the bots back
+            Game.AppState->DungeonRoomsCleared =
+                Maximum(Game.AppState->DungeonRoomsCleared, RoomsBefore + FirstRoom - 1);
             for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
             {
                 player_slot *Player = &Game.AppState->Players[Slot];
