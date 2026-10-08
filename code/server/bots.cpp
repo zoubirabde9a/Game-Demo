@@ -130,25 +130,7 @@ BotHurtAlly(app_state *AppState, world_entity *Self, float Range, float Below)
 }
 
 #include "bots/class_bots.cpp"
-
-// NOTE(zoubir): the damage class a bot in slot PlayerIndex plays: the
-// damage slots go round the damage classes that have a kit, so a full
-// party shows each of them
-internal u32
-BotDamageClass(u32 PlayerIndex)
-{
-    u32 Classes[PlayerRole_Count];
-    u32 Count = 0;
-    for (u32 Role = 0; Role < PlayerRole_Count; ++Role)
-    {
-        if (IsDamageRole(Role) && RoleHasKit(Role))
-        {
-            Classes[Count++] = Role;
-        }
-    }
-    u32 Result = Count ? Classes[(PlayerIndex / 2) % Count] : PlayerRole_Damage;
-    return Result;
-}
+#include "bots/hazard_steer.cpp"
 
 // NOTE(zoubir): in a dungeon run, the role keys a bot presses this tick
 // (sim/dungeon/role_abilities.cpp); *Held may lose its movement for a
@@ -388,6 +370,10 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
             Held |= NetButton_GravityWell;
         }
     }
+    else if (Self && BotWalkToNextRoom(AppState, Self, &Direction))
+    {
+        Held |= NetButtonsToward(Direction);
+    }
     else
     {
         if (Bot->WanderLeft <= 0.f)
@@ -478,6 +464,10 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         Held |= BotRoleButtons(Bot, AppState, Self, Target, Distance, Direction, &Held, &Pick);
     }
 
+    if (Self && !IsDeadPlayer(Self))
+    {
+        Held = SteerAroundHazards(AppState, Self, Held, Target);
+    }
     // A press needs the button up the tick before; drop repeats.
     Held &= ~(Bot->Held & (NetButton_Sword | NetButton_Fireball | NetButton_Dash |
                            NetButton_RewindSelf | NetButton_RewindBubble |

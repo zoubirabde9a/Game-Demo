@@ -18,3 +18,22 @@ BotClassButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_e
     }
     return 0;
 }
+
+// NOTE(zoubir): the damage class a bot in slot PlayerIndex plays: the
+// damage slots go round the damage classes that have a kit, so a full
+// party shows each of them
+internal u32
+BotDamageClass(u32 PlayerIndex)
+{
+    u32 Classes[PlayerRole_Count];
+    u32 Count = 0;
+    for (u32 Role = 0; Role < PlayerRole_Count; ++Role)
+    {
+        if (IsDamageRole(Role) && RoleHasKit(Role))
+        {
+            Classes[Count++] = Role;
+        }
+    }
+    u32 Result = Count ? Classes[(PlayerIndex / 2) % Count] : PlayerRole_Damage;
+    return Result;
+}
