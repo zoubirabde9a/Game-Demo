@@ -414,14 +414,10 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     if (Slot && IsDungeon(AppState) && !AppState->Dungeon->FightingRoom &&
         !(Bot->Held >> NET_ROLE_SHIFT))
     {
-        u32 Wanted[] = {PlayerRole_Tank, PlayerRole_Healer, PlayerRole_Damage, PlayerRole_Damage,
-                        PlayerRole_Damage, PlayerRole_Healer, PlayerRole_Damage, PlayerRole_Tank};
-        u32 Role = Wanted[Self->PlayerIndex % ArrayCount(Wanted)];
-        // NOTE(zoubir): the damage slots go round the damage classes that
-        // have a kit (BotDamageClass)
+        u32 Role = BotWantedRole[Self->PlayerIndex % MAX_PLAYERS];
         if (Role == PlayerRole_Damage)
         {
-            Role = BotDamageClass(Self->PlayerIndex);
+            Role = BotDamageClass(AppState, Self->PlayerIndex);
         }
         if (Slot->Role != Role)
         {

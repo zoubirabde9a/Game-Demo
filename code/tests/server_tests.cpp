@@ -574,6 +574,7 @@ TestStatsCountTrafficAndTicks()
 #include "round_map_tests.cpp"
 #include "cast_online_tests.cpp"
 #include "dungeon_online_tests.cpp"
+#include "bot_class_tests.cpp"
 #include "rewind_tests.cpp"
 #include "replay_tests.cpp"
 #include "motion_tests.cpp"
@@ -596,6 +597,7 @@ main()
     TestRoundMovesToNextMap();
     TestStandardCastOnline();
     RunDungeonOnlineTests();
+    RunBotClassTests();
     RunServerGameTests();
     RunRewindTests();
     RunReplayTests();

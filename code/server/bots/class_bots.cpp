@@ -21,19 +21,25 @@ BotClassButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_e
     return 0;
 }
 
-// NOTE(zoubir): which damage seat of the party a slot is (server/bots.cpp,
-// Wanted: slots 2, 3, 4 and 6 play damage), so the first damage bot of a
-// party is always the same class however many classes have landed
-global_variable u32 BotDamageSeat[MAX_PLAYERS] = {0, 0, 0, 1, 2, 0, 3, 0};
+// NOTE(zoubir): the role a bot asks for by its slot (server/bots.cpp):
+// a tank, a healer and damage first, then more damage, a second healer
+// at six and a second tank at eight
+global_variable u32 BotWantedRole[MAX_PLAYERS] =
+{
+    PlayerRole_Tank, PlayerRole_Healer, PlayerRole_Damage, PlayerRole_Damage,
+    PlayerRole_Damage, PlayerRole_Healer, PlayerRole_Damage, PlayerRole_Tank,
+};
 
-// NOTE(zoubir): the damage class a bot in slot PlayerIndex plays. The
-// first damage seat is always the Fire Mage, so the balance probe's party
+// NOTE(zoubir): the damage class a bot in slot PlayerIndex plays. Its
+// seat is how many damage players sit in the slots before it, counting
+// only slots in use, as bots join in any slots (the balance probe's three
+// sit in slots 5 to 7). The first damage seat is always the Fire Mage, so the balance probe's party
 // of three (tools/dungeon_balance.cpp) stays the one its numbers were
 // tuned against; the seats after it go round the other damage classes
 // that have a kit. Developer builds: GAME_BOT_DAMAGE names a class
 // ("ranger") that every damage bot plays, to measure one class
 internal u32
-BotDamageClass(u32 PlayerIndex)
+BotDamageClass(app_state *AppState, u32 PlayerIndex)
 {
 #if APP_DEV
 #if defined(_MSC_VER)
@@ -58,7 +64,12 @@ BotDamageClass(u32 PlayerIndex)
         }
     }
 #endif
-    u32 Seat = BotDamageSeat[PlayerIndex % MAX_PLAYERS];
+    u32 Seat = 0;
+    for (u32 Before = 0; Before < PlayerIndex && Before < MAX_PLAYERS; ++Before)
+    {
+        Seat += (AppState->Players[Before].Active &&
+                 BotWantedRole[Before] == PlayerRole_Damage) ? 1 : 0;
+    }
     if (Seat == 0)
     {
         return PlayerRole_Damage;
