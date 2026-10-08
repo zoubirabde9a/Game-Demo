@@ -32,7 +32,8 @@ enum announce_style
 // NOTE(zoubir): a higher one cuts a lower one short; equal ones queue
 enum announce_priority
 {
-    AnnouncePriority_Medal = 1,
+    AnnouncePriority_Intro = 1,
+    AnnouncePriority_Medal,
     AnnouncePriority_Event,
     AnnouncePriority_Big,
     AnnouncePriority_Title,
@@ -99,6 +100,8 @@ struct announcer
     float LastRoundBreak;
     i32 LastCountdown;
     u32 RoundPlayers;
+    u32 RoundWins[MAX_PLAYERS];
+    bool32 FinalBlowSeen;
     bool32 FinalTwoShown;
     u32 FeedSeen;
     bool32 FirstBloodDone;
@@ -167,6 +170,33 @@ PushCard(app_state *AppState, announce_card Card)
 {
     announcer *Announcer = GetAnnouncer(AppState);
     if (!Announcer->Showing || Card.Priority > Announcer->Now.Priority)
+    {
+        // NOTE(zoubir): a card cut short before anyone could read it
+        // comes back after (the map's intro is only a greeting)
+        announce_card *Cut = &Announcer->Now;
+        if (Announcer->Showing && Cut->Priority != AnnouncePriority_Intro &&
+            Cut->Age < 0.5f * Cut->Seconds && Announcer->QueueCount < ANNOUNCE_QUEUE_SIZE)
+        {
+            Cut->Age = 0.f;
+            Cut->Waited = 0.f;
+            Cut->Sound = AssetType_Count;
+            Announcer->Queue[Announcer->QueueCount++] = *Cut;
+        }
+        StartCard(AppState, Announcer, &Card);
+    }
+    else if (Announcer->QueueCount < ANNOUNCE_QUEUE_SIZE)
+    {
+        Announcer->Queue[Announcer->QueueCount++] = Card;
+    }
+}
+
+// NOTE(zoubir): waits for the card showing to end whatever the ranks:
+// the next beat of the same moment ("Round 1" after the map's title)
+internal void
+PushCardAfter(app_state *AppState, announce_card Card)
+{
+    announcer *Announcer = GetAnnouncer(AppState);
+    if (!Announcer->Showing)
     {
         StartCard(AppState, Announcer, &Card);
     }

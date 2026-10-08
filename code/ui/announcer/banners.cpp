@@ -63,7 +63,7 @@ AnnounceText(render_context *RenderContext, font *Font, float CenterX, float Top
                Scale, Scale, NoClip, 0.f);
 }
 
-// NOTE(zoubir): "D U N G E O N": letters spread apart, centred
+// NOTE(zoubir): "D U N G E O N": letters spread apart, in capitals, centred
 internal void
 SpacedText(render_context *RenderContext, font *Font, float CenterX, float TopY,
            char *Text, u32 Color, float Spacing)
@@ -72,15 +72,22 @@ SpacedText(render_context *RenderContext, font *Font, float CenterX, float TopY,
     {
         return;
     }
-    u32 Length = (u32)strlen(Text);
-    float Width = GetTextWidth(Font, Text) + Spacing * (float)(Length - 1);
+    char Upper[64];
+    u32 Length = 0;
+    for(; Text[Length] && Length + 1 < sizeof(Upper); Length++)
+    {
+        char Letter = Text[Length];
+        Upper[Length] = (Letter >= 'a' && Letter <= 'z') ? (char)(Letter - 'a' + 'A') : Letter;
+    }
+    Upper[Length] = 0;
+    float Width = GetTextWidth(Font, Upper) + Spacing * (float)(Length - 1);
     float X = CenterX - 0.5f * Width;
     char One[2] = {0, 0};
     for(u32 Index = 0; Index < Length; Index++)
     {
-        One[0] = Text[Index];
+        One[0] = Upper[Index];
         UIText(RenderContext, Font, X, TopY, One, Color);
-        X += GetCharacterWidth(Font, Text[Index]) + Spacing;
+        X += GetCharacterWidth(Font, One[0]) + Spacing;
     }
 }
 

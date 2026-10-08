@@ -5,7 +5,9 @@
      player is in, and again on every new map, a title card names the
      mode, the map and the goal. Duel rounds then call "Round 1, Fight!".
    - Rounds (sim/round_break.cpp): the last three seconds of a break count
-     down, and the next round opens with "Round N, Fight!". When a round
+     down, and the next round opens with "Round N, Fight!" and the round
+     wins so far, counted here from who stands as each final blow plays
+     (a player joining mid-map starts counting then). When a round
      that started with three or more players is down to two, "Final two".
    - Kills (kill_watch.cpp) and people coming and going (people_watch.cpp)
      are watched from here too.
@@ -43,23 +45,70 @@ AnnounceMapStart(app_state *AppState)
         snprintf(Kicker, sizeof(Kicker), "DUEL  -  FREE FOR ALL");
         snprintf(Detail, sizeof(Detail), "Fight players and monsters. You come back after each death");
     }
-    announce_card Card = MakeCard(AnnounceStyle_Title, AnnouncePriority_Title,
+    // NOTE(zoubir): the lowest rank, so anything that happens cuts it short
+    announce_card Card = MakeCard(AnnounceStyle_Title, AnnouncePriority_Intro,
                                   Map->Dungeon ? ANNOUNCE_COLOR_VIOLET : ANNOUNCE_COLOR_GOLD,
                                   Kicker, Map->Name, Detail);
+    Card.Seconds = 3.f;
     Card.Sound = AssetType_SfxAnnounce;
     PushCard(AppState, Card);
 }
 
+// NOTE(zoubir): the round wins so far, most first, up to three players:
+// "You 2  -  Gary 1  -  Mira 0"; empty before anyone has won one
 internal void
-AnnounceFight(app_state *AppState, u32 Round)
+RoundWinsLine(app_state *AppState, announcer *Announcer, char *Out, u32 Size)
+{
+    Out[0] = 0;
+    u32 Order[MAX_PLAYERS];
+    u32 Count = 0;
+    bool32 AnyWins = false;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        if (!AppState->Players[SlotIndex].Active)
+        {
+            continue;
+        }
+        AnyWins |= Announcer->RoundWins[SlotIndex] > 0;
+        u32 Insert = Count++;
+        while (Insert > 0 &&
+               Announcer->RoundWins[SlotIndex] > Announcer->RoundWins[Order[Insert - 1]])
+        {
+            Order[Insert] = Order[Insert - 1];
+            Insert--;
+        }
+        Order[Insert] = SlotIndex;
+    }
+    u32 Used = 0;
+    for(u32 Index = 0; AnyWins && Index < Count && Index < 3 && Used < Size; Index++)
+    {
+        char Name[24];
+        GetPlayerName(AppState, Order[Index], Name, sizeof(Name));
+        Used += (u32)snprintf(Out + Used, Size - Used, "%s%s %u", Index ? "  -  " : "",
+                              Order[Index] == AppState->LocalPlayerIndex ? "You" : Name,
+                              Announcer->RoundWins[Order[Index]]);
+    }
+}
+
+internal void
+AnnounceFight(app_state *AppState, u32 Round, bool32 AfterTitle = false)
 {
     char Kicker[32];
+    char Wins[96];
     snprintf(Kicker, sizeof(Kicker), "ROUND %u", Round);
+    RoundWinsLine(AppState, GetAnnouncer(AppState), Wins, sizeof(Wins));
     announce_card Card = MakeCard(AnnounceStyle_Callout, AnnouncePriority_Big,
-                                  ANNOUNCE_COLOR_RED, Kicker, (char *)"FIGHT!", 0);
-    Card.Seconds = 1.3f;
+                                  ANNOUNCE_COLOR_RED, Kicker, (char *)"FIGHT!", Wins);
+    Card.Seconds = Wins[0] ? 1.8f : 1.3f;
     Card.Sound = AssetType_SfxFight;
-    PushCard(AppState, Card);
+    if (AfterTitle)
+    {
+        PushCardAfter(AppState, Card);
+    }
+    else
+    {
+        PushCard(AppState, Card);
+    }
 }
 
 // NOTE(zoubir): a new map or connection: everything seen so far is old
@@ -76,6 +125,7 @@ StartAnnouncerSession(app_state *AppState, announcer *Announcer)
     Announcer->FirstBloodDone = false;
     Announcer->MultiKills = 0;
     Announcer->Leader = MAX_PLAYERS;
+    ZeroArray(Announcer->RoundWins, MAX_PLAYERS, u32);
     ZeroArray(Announcer->Streak, MAX_PLAYERS, u32);
     Announcer->FeedSeen = AppState->KillFeed ? AppState->KillFeed->Total : 0;
     Announcer->MonsterKillsSeen = AppState->Players[AppState->LocalPlayerIndex].MonsterKills;
@@ -94,7 +144,19 @@ WatchRounds(app_state *AppState, announcer *Announcer)
         return;
     }
     float Break = AppState->RoundBreak;
-    if (Break > 0.f && FinalBlowLeft(AppState) <= 0.f)
+    // NOTE(zoubir): the one left standing as the final blow plays won
+    // the round (ui/final_blow_view.cpp)
+    bool32 FinalBlow = FinalBlowLeft(AppState) > 0.f;
+    if (FinalBlow && !Announcer->FinalBlowSeen)
+    {
+        u32 Winner = FinalBlowWinner(AppState);
+        if (Winner < MAX_PLAYERS)
+        {
+            Announcer->RoundWins[Winner]++;
+        }
+    }
+    Announcer->FinalBlowSeen = FinalBlow;
+    if (Break > 0.f && !FinalBlow)
     {
         i32 Count = (i32)ceilf(RoundBreakLeft(AppState));
         if (Count >= 1 && Count <= ANNOUNCE_COUNTDOWN_FROM && Count != Announcer->LastCountdown)
@@ -174,7 +236,7 @@ WatchMatch(app_state *AppState, announcer *Announcer, float DeltaTime)
             if (IsRoundMap(AppState) && AppState->RoundBreak <= 0.f &&
                 Announcer->RoundPlayers > 1)
             {
-                AnnounceFight(AppState, Announcer->Round);
+                AnnounceFight(AppState, Announcer->Round, true);
             }
 #if defined(_MSC_VER)
 #pragma warning(push)

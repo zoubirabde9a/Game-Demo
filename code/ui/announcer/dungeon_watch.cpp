@@ -112,8 +112,10 @@ StartDungeonWatch(announcer *Announcer, dungeon_run *Run)
 {
     Announcer->Run = Run;
     memcpy(Announcer->RoomStates, Run->RoomStates, sizeof(Announcer->RoomStates));
-    Announcer->FightingRoom = Run->FightingRoom;
-    Announcer->Fighting = Run->FightingRoom != 0;
+    // NOTE(zoubir): a fight already on (a pull right as the map loads, or
+    // joining mid-fight) still gets its card
+    Announcer->FightingRoom = 0;
+    Announcer->Fighting = false;
     Announcer->FightDue = 0.f;
     Announcer->FightBoss = MonsterKind_Count;
     Announcer->Wipes = Run->Wipes;
@@ -131,7 +133,6 @@ WatchDungeon(app_state *AppState, announcer *Announcer, float DeltaTime)
     if (Announcer->Run != Run)
     {
         StartDungeonWatch(Announcer, Run);
-        return;
     }
     if (Run->Wipes > Announcer->Wipes)
     {
