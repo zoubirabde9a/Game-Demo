@@ -13,6 +13,7 @@ A player in a dungeon run picks a class. Each class plays one of four roles: tan
 | Frost Mage | Ranged | 110 | 100% | 135% | 0.7x | Ice; Icicles (0 to 5) |
 | Druid | Healer | 115 | 100% | 95% | 0.7x | Nature and moonlight; Bloom (0 to 5) |
 | Stormcaller | Ranged | 105 | 100% | 135% | 0.85x | Lightning; Charge (0 to 100), which overloads at the top |
+| Duelist | Melee | 125 | 85% | 135% | 1x | Rapier; Tempo (0 to 5), a buff kept, never spent |
 
 The rows are `RoleTable` in `code/sim/dungeon/roles.cpp`.
 
@@ -20,40 +21,40 @@ The tank and the healer also have a weak right-click attack, Shield Bash and Smi
 
 ## Keys
 
-A class casts on seven keys: A, R, C, V, W, X (the fireball's key) and the right click (the sword's). A class that owns X or the right click replaces the game's fireball or sword there; one that does not keeps the fireball and has no sword, except the Berserker and the Shadowblade, for whom X does nothing (`RoleDropsFireball`). C and V come from the class's talent tree, A, R and W from the start. The ability bar and the controls panel (hold H) show each key's spell from the class's table.
+A class casts on seven keys: A, R, C, V, W, X (the fireball's key) and the right click (the sword's). A class that owns X or the right click replaces the game's fireball or sword there; one that does not keeps the fireball and has no sword, except the Berserker, the Shadowblade and the Duelist, for whom the fireball is gone (`RoleDropsFireball`); the Shadowblade casts Deadly Throw on X instead, and for the other two X does nothing. C and V come from the class's talent tree, A, R and W from the start. The ability bar and the controls panel (hold H) show each key's spell from the class's table.
 
 A class key pressed up to 0.25 s before its cooldown ends still casts, and the time it was early is added to the next cooldown, so it never casts more often (`ROLE_EARLY_PRESS_SECONDS`, `role_abilities.cpp`). The game's sword and fireball keep a press for the same 0.25 s. Before this, a press on cooldown was dropped, and a player clicking the Shadowblade's half-second Twin Strike lost most of their clicks. Bots only press ready keys, so it changes nothing for them except the tank bot's right click: over 16 seeds fight times stayed the same and deaths fell by about a sixth.
 
-Every damage class has five damage keys with its whole tree, as many as the Fire Mage (fireball, Meteor, Giant Fireball, Detonate, Combustion). The Ranger leaves W empty; the Berserker and the Shadowblade leave X and C empty, and their second talent is a passive instead of a C spell.
+Every damage class has five damage keys with its whole tree, as many as the Fire Mage (fireball, Meteor, Giant Fireball, Detonate, Combustion). The Ranger leaves W empty; the Berserker leaves X and C empty, the Shadowblade C, the Duelist X and C, and their second talent is a passive instead of a C spell.
 
-| Key | Ranger | Berserker | Shadowblade |
-|---|---|---|---|
-| Right click | (none) | Cleave: a wide swing through everything in front, alternating sides; builds Rage | Twin Strike: two quick cuts that poison for 6 s; builds a combo point |
-| X | Quick Shot: an arrow at a foe every second; it puts Hunter's Mark on the foe for 15 s, which takes more from you, and hits on the marked foe build Focus | (none) | (none) |
-| A | Volley: arrows rain on a circle for 2 s and slow | Leap: a high jump to the cursor that slams, stuns and shoves on landing | Shadowstep: appear behind a foe; the next strike in 4 s does double |
-| R | Piercing Shot: a 1 s draw, then an arrow through every foe in a line; spends Focus | Whirlwind: 30 Rage, a 1.5 s spin that hits everything round five times | Fan of Knives: a ring of knives, a combo point per foe hit |
-| W | (none) | Execute: needs 20 Rage, one chop that spends it all; far harder under 25% health | Eviscerate: the finisher. Locks the foe in front when pressed (no foe in reach, no cast), winds up 0.4 s with the daggers raised, then strikes for 8 + 10 a combo point spent; 6 s cooldown |
-| C (tree) | Disengage: leap back and leave a snare that roots the first foe on it | (none) | (none) |
-| V (tree) | Rapid Fire: a 2 s stream of arrows at a foe | Berserk: 8 s of more damage, less taken, Rage holds, and the body grows | Shadow Dance: 6 s of a shadow clone striking beside you |
+| Key | Ranger | Berserker | Shadowblade | Duelist |
+|---|---|---|---|---|
+| Right click | (none) | Cleave: a wide swing through everything in front, alternating sides; builds Rage | Twin Strike: two quick cuts that poison for 6 s; builds a combo point | Thrust: a quick stab at the first foe in a narrow line in front (reach 100), one foe only; 0.5 s |
+| X | Quick Shot: an arrow at a foe every second; it puts Hunter's Mark on the foe for 15 s, which takes more from you, and hits on the marked foe build Focus | (none) | Deadly Throw: a poisoned dagger at a foe up to 380 away, spending every combo point for 5 + 7 a point; poisons and slows 0.6 s a point; 8 s cooldown | (none) |
+| A | Volley: arrows rain on a circle for 2 s and slow | Leap: a high jump to the cursor that slams, stuns and shoves on landing | Shadowstep: appear behind a foe; the next strike in 4 s does double | Lunge: dash to just in front of a foe up to 300 away and strike it; 8 s |
+| R | Piercing Shot: a 1 s draw, then an arrow through every foe in a line; spends Focus | Whirlwind: 30 Rage, a 1.5 s spin that hits everything round five times | Fan of Knives: a ring of knives, a combo point per foe hit | Riposte: 0.75 s on guard; the first blow in it is parried and the attacker countered (22, stunned 1 s, +2 Tempo), Riposte back in 2 s; a guard that parries nothing keeps the whole 9 s |
+| W | (none) | Execute: needs 20 Rage, one chop that spends it all; far harder under 25% health | Eviscerate: the finisher. Locks the foe in front when pressed (no foe in reach, no cast), winds up 0.4 s with the daggers raised, then strikes for 8 + 10 a combo point spent; 6 s cooldown | Heartseeker: locks the foe in front when pressed, a 0.35 s wind-up, then 24 + 12 a Tempo stack (Tempo is not spent), half again on a foe under 30%; 6 s |
+| C (tree) | Disengage: leap back and leave a snare that roots the first foe on it | (none) | (none) | (none) |
+| V (tree) | Rapid Fire: a 2 s stream of arrows at a foe | Berserk: 8 s of more damage, less taken, Rage holds, and the body grows | Shadow Dance: 6 s of a shadow clone striking beside you | Perfect Form: 8 s where Tempo cannot drop, every key builds it (repeats too) and Thrust strikes twice; 50 s |
 
 Numbers, talents and the spell table of each class are `code/sim/dungeon/role_kits/<class>_defs.cpp`; what the spells do is `<class>.cpp` (and a folder of the same name when it grew past one file).
 
 ## Talents
 
-| Slot | Ranger | Berserker | Shadowblade |
-|---|---|---|---|
-| 1 (2 ranks) | Marksman: more damage | Brutality: more damage | Lethality: more damage |
-| 2 (2 ranks) | Disengage (C) | Bloodthirst: Execute heals for 30% of what it deals, 45% at rank 2 | Envenom: Fan of Knives poisons too; all poison 20% harder a rank |
-| 3 | Barrage: Volley wider and longer | Unbridled Wrath: more Rage per hit | Venom: stronger, longer poison |
-| 4 | Deadeye: Piercing Shot on full Focus always crits | Sweeping Strikes: Cleave and Whirlwind hit harder per foe | Opportunist: more damage from behind |
-| 5 | Rapid Fire (V) | Berserk (V) | Shadow Dance (V) |
-| 6 | Lethal Mark: the mark bites deeper and jumps on a kill | Massacre: Execute from 35% health, a kill refunds Rage | Relentless: a killing Eviscerate refunds points and Shadowstep |
-| 7 (4 ranks) | Keen Eye (damage) | Thick Hide (health) | Cutthroat (damage) |
-| 8 (4 ranks) | Survivalist (health) | Bloodlust (life steal) | Evasion (armor) |
-| 9 (4 ranks) | Pinning Volley: Volley's slow lasts 0.5 s longer a rank | Bladestorm: Whirlwind +15% a rank | Knife Storm: Fan of Knives +10% radius, +25% damage a rank |
-| 10 (4 ranks) | Steady Hands (cooldowns) | Brute Force (damage) | Quick Hands (cooldowns) |
-| 11 (4 ranks) | Fleet Hunter (run speed) | Unyielding (armor) | Siphon (life steal) |
-| 12 | Hunter's Net: Disengage's snare roots every foe within 120 when it springs | Shattering Leap: foes Leap lands on take 25% more from everyone for 6 s | Kidney Shot: a 5-point Eviscerate stuns its foe for 2.5 s |
+| Slot | Ranger | Berserker | Shadowblade | Duelist |
+|---|---|---|---|---|
+| 1 (2 ranks) | Marksman: more damage | Brutality: more damage | Lethality: more damage | Finesse: more damage |
+| 2 (2 ranks) | Disengage (C) | Bloodthirst: Execute heals for 30% of what it deals, 45% at rank 2 | Envenom: Fan of Knives poisons too; all poison 20% harder a rank | Footwork: Lunge 2 s sooner a rank, and a burst of speed after it |
+| 3 | Barrage: Volley wider and longer | Unbridled Wrath: more Rage per hit | Venom: stronger, longer poison | Precision: Heartseeker's bonus from 45% health |
+| 4 | Deadeye: Piercing Shot on full Focus always crits | Sweeping Strikes: Cleave and Whirlwind hit harder per foe | Opportunist: more damage from behind | Bait: a 1.2 s guard, and a counter heals 10% of your health |
+| 5 | Rapid Fire (V) | Berserk (V) | Shadow Dance (V) | Perfect Form (V) |
+| 6 | Lethal Mark: the mark bites deeper and jumps on a kill | Massacre: Execute from 35% health, a kill refunds Rage | Relentless: a killing Eviscerate refunds points and Shadowstep | Crescendo: at 5 Tempo Heartseeker also cuts every foe in front for half and readies Lunge |
+| 7 (4 ranks) | Keen Eye (damage) | Thick Hide (health) | Cutthroat (damage) | Keen Edge (damage) |
+| 8 (4 ranks) | Survivalist (health) | Bloodlust (life steal) | Evasion (armor) | Parade (armor) |
+| 9 (4 ranks) | Pinning Volley: Volley's slow lasts 0.5 s longer a rank | Bladestorm: Whirlwind +15% a rank | Knife Storm: Fan of Knives +10% radius, +25% damage a rank | Flurry: Thrust +12% a rank |
+| 10 (4 ranks) | Steady Hands (cooldowns) | Brute Force (damage) | Quick Hands (cooldowns) | Quick Wrist (cooldowns) |
+| 11 (4 ranks) | Fleet Hunter (run speed) | Unyielding (armor) | Siphon (life steal) | Stamina (health) |
+| 12 | Hunter's Net: Disengage's snare roots every foe within 120 when it springs | Shattering Leap: foes Leap lands on take 25% more from everyone for 6 s | Kidney Shot: a 5-point Eviscerate stuns its foe for 2.5 s | Masterstroke: at 5 Tempo Heartseeker strikes again for 60%; a Heartseeker kill readies it |
 
 Slots 7, 8, 10 and 11 are the stat talents every class has (`docs/dungeon-plan.md`, "Role talents").
 
@@ -115,6 +116,25 @@ Looks and online: everything is drawn from the bursts (`SimBurst_StormcallerFirs
 
 The bot rides the Charge: Spark as filler, kept on the boss through its adds; Static Field on a pack of three or under the boss; Chain Lightning when two more foes stand near its target; Thunderclap from 75 (at once from 88, on cooldown from 55 on a boss), unless it took Live Wire and three foes stand inside the nova, when it lets the Charge overload; Lightning Dash out of a telegraph when the dash lands clear; Eye of the Storm in a boss fight.
 
+## Duelist
+
+A melee fencer with a rapier: the class for one big foe, the strongest on a boss and the weakest on packs. Its resource, Tempo (the class meter, 0 to 5), is a buff it keeps, never spends: each stack is 16% more damage, and Heartseeker hits harder by it. A spell gains a stack when it lands (Thrust, Lunge, Heartseeker) or goes off (Riposte's guard, Perfect Form) on a key other than the last one used, so Thrust after Thrust gains nothing and Thrust, Lunge, Thrust, Heartseeker builds every time. A parry gains two. A blow the guard did not stop takes two stacks, and out of a fight Tempo lasts 5 s after the last hit dealt, then goes one a second. The skill is weaving the keys, stepping out of telegraphs and parrying what cannot be stepped out of. X and C do nothing for it. Keys and talents are in the tables above; kit: `code/sim/dungeon/role_kits/duelist.cpp` and its `duelist/` folder.
+
+How Riposte knows a blow landed: every monster blow, shot and area hit on a player goes through `ApplyHit` (`sim/hit.cpp`), which asks `DuelistParriesHit` before it deals damage, shoves or stuns. On guard the first blow is parried and cancelled whole, damage, shove and stun; later blows in the same guard are cancelled without a second counter; off guard the blow lands and takes Tempo. Only the server runs `ApplyHit` on a player (a predicting client runs no monsters), and the hook refuses a predicting slot as well, so a parry counts once per real hit. `ClassTakenScale` is not used for the parry: it is also called for damage that is not a blow (a burn or poison ticking, a boss clock's pulse) and cannot cancel a shove; in the guard it returns 0 for those, so the guard still takes nothing.
+
+Where the spec did not fit the engine as written:
+- Riposte's guard is a timer of the slot's, shown by a class flag, not a cast (`PlayerSpell_DuelistA` is unused): a cast could not be cut short by the parry, and Bait lengthens the guard.
+- Only blows parry or cost Tempo. A burn, poison or a boss clock's pulse neither parries nor takes Tempo; standing in fire costs health, not Tempo.
+- The counter is struck on the tick after the parry, not inside the hit that set it off, and it goes to the attacker when it is within 160, else the nearest foe.
+- In a fight Tempo holds however long since the last hit; only out of a fight does it fade.
+- Footwork's 30% faster for 2 s is the game's Haste status (half again as fast) for 1.2 s, about the same ground, so a predicting client runs as fast as the server.
+- Masterstroke's refund works on any Heartseeker kill with the talent; the second strike needs full Tempo. Crescendo's sweep deals half of Heartseeker's base and Tempo damage to every other foe in front.
+- The first numbers left it well behind the other melee classes in the probe, so Tempo carries more (16% a stack, from 6%), Heartseeker is 24 + 12 a stack every 6 s (from 14 + 5 every 7 s), Thrust 5.5 (from 3.5) and Lunge 10 (from 12).
+
+Looks and online: everything is drawn from the eight bursts (`SimBurst_DuelistFirst` on), Heartseeker's cast and the class meter and flags (`DUELIST_FLAG_*`: on guard, parried, full Tempo, Perfect Form, fading), so it shows the same online. The rapier is held out point forward with the off hand raised behind; a Thrust is a thin white line, a Lunge a rose streak, Heartseeker draws the point back with rose light gathering, then pierces the foe with a line and a heart; the guard is the blade across behind a shimmering arc, gold once it has parried, and a parry is a gold clang. Tempo lights the blade, small diamonds over the head show it to the party, and two of them crack and fall when a hit takes them. Perfect Form leaves rose afterimages. The HUD is five thin diamonds over the ability bar that fill, and crack and fall when two are lost, with rings for the guard and Perfect Form.
+
+The bot fights at the side of the tank's monster, never a boss its pylons ward, and weaves its keys; it raises Riposte against a slam, blink or mortar winding up over it whose edge it cannot reach before the blow, against a frost wave about to reach it, and when a monster beside it is about to bite; hurt in a crowd, it falls back behind the tank.
+
 ## Online
 
 What every client sees of a class comes from three things the server sends: its bursts (eight per class, `SimBurst_<Class>First` on, in `code/sim/events.h`), the cast bars of its two wind-up spells (`PlayerSpell_<Class>A` and `B`), and two bytes per player, `ClassMeter` (Focus, Rage or combo points) and `ClassFlags` (eight bits the class defines, such as Berserk being up or a leap in flight). Looks, HUD bars and lasting effects are drawn from those, so they show the same online as offline. A burst's angle goes over the wire as one byte; anything else a burst must carry rides in its height (the Ranger's effects do this).
@@ -142,12 +162,15 @@ Measured with the balance probe (`code/tools/dungeon_balance.cpp`) on a party of
 | Fire Mage | 40 | 957 | 159 | before every bot dodged |
 | Ranger | 40 | 1081 | 188 | before every bot dodged; 0.185 wipes a cleared fight against 0.177; bosses 10 to 20% faster |
 | Stormcaller | 48 | 552 | 94 | against the Fire Mage and the Ranger on the same 48 seeds; see below |
+| Duelist | 48 | 568 | 122 | about 60 damage a second on bosses against the Shadowblade's 54, and 41 on packs against its 45; see below |
 
 The Frost Mage, 16 seeds a level from each level's start, at 0.7x threat with Frostbolt 24 and Blizzard 4: between the Fire Mage and the Ranger. The Bone Halls take 12.1 s (Fire Mage 17.2, Ranger 13.8), Sskarra 39 s (33 and 46), Vol'karr 47 s (47.5). At 0.9x threat its bot drew bosses and stood idle until the tank took them back, which made the Throne of Embers wipe 0.6 a kill.
 
 The Druid as the party's only healer, 16 seeds a level from each level's start, against the Mender: the Throne of Embers wipes 0.19 a kill against 0.07 and Sskarra falls faster (32 s against 33), but the Throne of Dust wipes 0.56 against 0.25. The Druid bot casts the instant Wrath while it waits for Regrowth, which banks Bloom for that heal.
 
 The Stormcaller, 48 seeds crypt into depths, against the Fire Mage and the Ranger on the same seeds. Its packs go fastest of the three (Bone Halls 10.1 s against 16.6 and 13.7, Webbed Galleries 11.5 against 17.7 and 15.6) and its bosses slowest but near the Ranger: the Throne of Dust 66 s (Fire Mage 52, Ranger 73), the Wyrm's Gullet 52 s (35, 48), the Throne of Embers 74 s (46, 58). The twelve fights add up to 436 s against the Ranger's 437 and the Fire Mage's 391; the last boss wipes 0.62 a kill against 0.64 and 0.28. The first numbers (Spark 9, Chain Lightning 15, Thunderclap 10 + 0.32 a point) took 89 s and 91 s on the two thrones, so the single-target hits went up.
+
+The Duelist, 48 seeds crypt into depths (`PROBE_LEVELS=2`), against the Shadowblade and the Berserker on 32. Damage a second of the damage bot, from the room meter: bosses 59.5 (Shadowblade 53.6, Berserker 31.8), packs 41.4 (45.0 and 42.1). Wipes per cleared fight 0.21 (0.25 and 0.19). The Throne of Dust takes 49 s (54 and 73), the Throne of Embers 47 s (56 and 82), the Bone Halls 13.6 s (12.0 and 12.4). It wipes most in the Slag Pits, a big pack where 125 health in the melee goes fast; its bot falls back behind the tank when hurt in a crowd, which took those wipes from about 1.8 to 1.1 a kill. With the first numbers it was the slowest of the three everywhere (the Throne of Dust 91 s).
 
 ## Developer switches
 
@@ -156,6 +179,7 @@ Developer builds, offline:
 - `GAME_BOT_DAMAGE` makes every damage bot one class, to measure one class against another with the probe.
 - `GAME_RANGER_TALENTS`, `GAME_RANGER_FOCUS` and `GAME_BERSERKER=full` give the local player talents and a full resource for screenshots.
 - `GAME_FROSTMAGE_ICICLES=5` keeps the local Frost Mage's Icicles full, and `GAME_FROSTMAGE_TALENTS` and `GAME_DRUID_TALENTS` ("221111", ranks slot by slot) give the local player talents, for screenshots of the tree spells.
+- `GAME_ROLE=duelist` plays the Duelist; `GAME_DUELIST=full` gives the local one every talent and full Tempo, kept full, `full guard` keeps it on guard and `full form` keeps Perfect Form up, for screenshots.
 - `GAME_BOT_HEALER` makes every healer bot one class (`druid`), as `GAME_BOT_DAMAGE` does for damage bots.
 - `GAME_ROLE=stormcaller` plays the Stormcaller; `GAME_STORMCALLER` gives the local one what a screenshot needs: `full` every talent, a number the Charge held there, after an `@` the second the auto-casting starts, `!` health kept full, and after a colon the keys it casts by itself at the nearest foe whenever they are ready (`full85@11!:XRAW`; Lightning Dash is left out).
 
