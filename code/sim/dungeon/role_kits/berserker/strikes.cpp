@@ -84,13 +84,17 @@ internal void
 Cleave(app_state *AppState, world *World, player_slot *Slot, world_entity *Player)
 {
     v2 Dir = GetPlayerAim(Player);
-    float Reach = CLEAVE_REACH *
-        (RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_SweepingStrikes) ? SWEEPING_REACH : 1.f);
+    bool32 Sweeping = RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_SweepingStrikes) > 0;
+    float Reach = CLEAVE_REACH * (Sweeping ? SWEEPING_REACH : 1.f);
+    // NOTE(zoubir): a wider swing tells clients so in the burst's height,
+    // which reaches them whole (they do not know the talents of others)
+    v3 At = Player->Position;
+    At.Z += Sweeping ? BERSERKER_WIDE_CLEAVE : 0.f;
     berserker_burst Burst = Slot->Berserker.CleaveBack ? BerserkerBurst_CleaveBack :
         BerserkerBurst_Cleave;
     Slot->Berserker.CleaveBack = !Slot->Berserker.CleaveBack;
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, Burst),
-              (u8)Player->PlayerIndex, Player->Position, ATan2(Dir.Y, Dir.X));
+              (u8)Player->PlayerIndex, At, ATan2(Dir.Y, Dir.X));
     EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);
     StrikeAround(AppState, Slot, Player, Dir, Reach, CLEAVE_HALF_ANGLE, CLEAVE_DAMAGE, CLEAVE_SHOVE);
 }

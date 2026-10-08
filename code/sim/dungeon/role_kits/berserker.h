@@ -22,7 +22,8 @@
 
 // NOTE(zoubir): the class's bursts, SimBurst_BerserkerFirst + these:
 // - Cleave, CleaveBack: the axe's swing round Position (the feet), across
-//   Angle, one way round or the other;
+//   Angle, one way round or the other; BERSERKER_WIDE_CLEAVE higher when
+//   Sweeping Strikes widens it;
 // - AxeThrow: a hand axe from the Berserker to Position (the foe's chest)
 //   and back, AXE_THROW_SPEED each way;
 // - Bloodthirst: a strike on the foe at Position from along Angle, and
@@ -31,6 +32,8 @@
 // - Slam: the Leap landing at Position;
 // - Execute: the chop landing at Position, along Angle;
 // - Berserk: the war cry at Position as Berserk goes up
+#define BERSERKER_WIDE_CLEAVE 1000.f
+
 enum berserker_burst
 {
     BerserkerBurst_Cleave,

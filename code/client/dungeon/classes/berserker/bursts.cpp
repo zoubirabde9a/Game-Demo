@@ -57,18 +57,18 @@ DrawCleaveBurst(render_context *RenderContext, app_state *AppState, role_burst *
                 float T, v3 CameraOffset)
 {
     world_entity *Caster = Burst->Slot < MAX_PLAYERS ? AppState->Players[Burst->Slot].Entity : 0;
+    bool32 Wide = Burst->Position.Z >= 0.5f * BERSERKER_WIDE_CLEAVE;
     v3 Feet = Caster ? Caster->Position : Burst->Position;
+    if (!Caster && Wide)
+    {
+        Feet.Z -= BERSERKER_WIDE_CLEAVE;
+    }
     v2 Centre = BurstToScreen(Feet, CameraOffset) - V2(0.f, BERSERKER_SWING_CHEST);
     float Side = Index == BerserkerBurst_Cleave ? 1.f : -1.f;
     float Lead = Clamp01(CleaveAlong(T));
     float Tail = Minimum(Lead, Square(Clamp01((T - 0.16f) / 0.6f)));
     float Fade = 1.f - Square(Clamp01((T - 0.42f) / 0.58f));
-    float Reach = CLEAVE_REACH;
-    if (Burst->Slot < MAX_PLAYERS &&
-        RoleRank(&AppState->Players[Burst->Slot], PlayerRole_Berserker, BerserkerTalent_SweepingStrikes))
-    {
-        Reach *= SWEEPING_REACH;
-    }
+    float Reach = CLEAVE_REACH * (Wide ? SWEEPING_REACH : 1.f);
     DrawAxeCrescent(RenderContext, Centre, Burst->Angle, Side, CLEAVE_HALF_ANGLE, 0.8f * Reach,
                     0.3f * Reach, Maximum(0.f, Tail - 0.1f), Maximum(0.f, Lead - 0.14f), 0.4f * Fade);
     DrawAxeCrescent(RenderContext, Centre, Burst->Angle, Side, CLEAVE_HALF_ANGLE, Reach, 0.5f * Reach,
