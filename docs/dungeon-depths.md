@@ -11,7 +11,7 @@ Players can also vote for the Ember Depths from the Esc menu while in the dungeo
 | Level | Map | Monster health | Monster damage | Monster pace | Packs | Next |
 |---|---|---|---|---|---|---|
 | 1 | Sunken Crypt | 1 | 1 | 1 | 1 | Ember Depths |
-| 2 | Ember Depths | 1.35 | 1.2 | 1.12 | 1.3 | Sunken Crypt |
+| 2 | Ember Depths | 1.35 | 1.2 | 1.12 | 1.45 | Sunken Crypt |
 
 The health scale applies to every monster an encounter spawns and to the adds bosses call (`boss_scripts.cpp`). The damage scale applies to every monster hit on a player, the tank included, and does not grow heals the way party size does. Packs is one more scale on the health and the hits of the monsters in a room without a boss: the bosses are tuned one by one, the packs only by the level. The pace is set on every monster an encounter or a boss event spawns (`PaceScale`): it moves that much faster, and its bite and its abilities come round that much sooner. A party reaching the depths has the levels and talents of a whole crypt behind it; the numbers are set so the depths are a step up for that party, not a wall.
 
@@ -109,6 +109,8 @@ Sskarra's young now come three at a time and Kragg's guards three times (at 80%,
 Vol'karr was the longest fight in the game (72 s on average, alone over sixteen seeds). He has 1850 health instead of 2150, and now dies in 45 to 84 s, 65 on average, at 1.7 deaths per kill. Bigger imp waves on top made him no shorter, as the party spent the saved time on the imps.
 
 With the bots dodging and the tank taking Searing Brand, Kragg cost a party meeting him for the first time 0.06 deaths per kill, half of what the crypt's first boss costs at that point (0.12, both alone over sixteen seeds). He now has 950 health, stokes imps every 7 s, lobs four ingots, and his embers stay 6 s, so there is more to dodge at once and less floor to dodge onto: 0.12 deaths per kill, level with Gravecaller Ossian, in fights of about 40 s.
+
+The pack scale went from 1.3 to 1.45, as the bridge still trailed the crypt's Ashen Causeway. Over sixteen seeds the bridge now costs 1.76 deaths and 0.39 wipes per kill against the Causeway's 1.58 and 0.28, the Slag Pits 0.98 deaths and Glasswing Hollow 0.38, where the crypt's other pack rooms cost none. Every depths room is now at least as hard as its place in the crypt.
 
 ## Online
 
