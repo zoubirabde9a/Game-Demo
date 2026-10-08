@@ -14,6 +14,10 @@
      "Dodged" where it landed, so neither side thinks the hit was lost.
      These come as bursts (fx_bursts.cpp calls AddBurstWord), which the
      server already forwards.
+   - A player's spell wind-up (sim/player_casts.cpp) cut off by a stun
+     or a fall: "Interrupted", so the caster knows the spell is lost and
+     why. Cutting your own cast with a dash or blink says nothing. Read
+     from CastSpell and CastLeft, which snapshots carry.
    - A monster that starts coming for the local player: a big "!" over
      it, the moment the player steps inside its AggroRange while the
      nearest living player to it (UpdateMonster, sim/update.cpp). Worked
@@ -37,6 +41,10 @@
 #define REACTION_WORD_NO_ENTITY 0xFFFFFFFF
 #define REACTION_ALERT_SLACK 60.f
 #define REACTION_ALERT_COLOR UI_RGBA(255, 120, 60, 255)
+#define REACTION_INTERRUPT_COLOR UI_RGBA(255, 110, 120, 255)
+// NOTE(zoubir): a cast this close to done when it ended finished; it
+// was not cut off (a snapshot can miss its last moment)
+#define REACTION_INTERRUPT_MIN_LEFT 0.05f
 
 struct reaction_word
 {
@@ -67,6 +75,10 @@ struct reaction_words
     // NOTE(zoubir): per monster slot, whether it is coming for the local
     // player
     u8 Alerted[REACTION_WORD_TRACKED];
+    // NOTE(zoubir): per player slot, the spell it was casting last frame
+    // and the seconds that cast had left
+    u8 Casting[REACTION_WORD_TRACKED];
+    float CastLeft[REACTION_WORD_TRACKED];
 };
 
 internal reaction_words *
@@ -203,6 +215,8 @@ UpdateReactionWords(app_state *AppState, float DeltaTime)
             Fx->SeenID[Index] = Entity->ID + 1;
             Fx->Running[Index] = Running;
             Fx->Alerted[Index] = (u8)Alerted;
+            Fx->Casting[Index] = (u8)Entity->CastSpell;
+            Fx->CastLeft[Index] = Entity->CastLeft;
             continue;
         }
         if (Alerted && !Fx->Alerted[Index])
@@ -218,6 +232,14 @@ UpdateReactionWords(app_state *AppState, float DeltaTime)
         u16 Started = Running & ~Fx->Running[Index];
         Fx->Running[Index] = Running;
         u8 Stack = 0;
+        if (Entity->Type == EntityType_Player && Fx->Casting[Index] && !Entity->CastSpell &&
+            Fx->CastLeft[Index] > REACTION_INTERRUPT_MIN_LEFT && IsDisabled(Entity))
+        {
+            AddReactionWord(Fx, "Interrupted", REACTION_INTERRUPT_COLOR, Entity->Position,
+                            Entity->ID, Index, Stack++);
+        }
+        Fx->Casting[Index] = (u8)Entity->CastSpell;
+        Fx->CastLeft[Index] = Entity->CastLeft;
         for(u32 Effect = 1; Started && Effect < StatusEffect_Count; Effect++)
         {
             if (Started & (1 << Effect))
