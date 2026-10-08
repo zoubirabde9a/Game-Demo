@@ -32,6 +32,14 @@ enum player_spell
     // (sim/dungeon/role_kits/striker.cpp)
     PlayerSpell_Meteor,
     PlayerSpell_GiantFireball,
+    // NOTE(zoubir): the later dungeon classes' two casts each
+    // (sim/dungeon/role_kits/<class>.h)
+    PlayerSpell_RangerA,
+    PlayerSpell_RangerB,
+    PlayerSpell_BerserkerA,
+    PlayerSpell_BerserkerB,
+    PlayerSpell_ShadowbladeA,
+    PlayerSpell_ShadowbladeB,
     // NOTE(zoubir): the rewinds stay last, in rewind_kind order
     // (time_rewind/rewind_abilities.cpp RewindSpell)
     PlayerSpell_RewindSelf,
@@ -77,13 +85,19 @@ global_variable player_spell_cast PlayerSpells[PlayerSpell_Count] =
     // the long casts slow the striker more than the quick ones
     {1.f, 0.7f, false, "Meteor"},
     {1.5f, 0.7f, false, "Giant Fireball"},
+    RANGER_CAST_A,
+    RANGER_CAST_B,
+    BERSERKER_CAST_A,
+    BERSERKER_CAST_B,
+    SHADOWBLADE_CAST_A,
+    SHADOWBLADE_CAST_B,
     // NOTE(zoubir): the time rewinds (time_rewind/rewind_abilities.cpp):
     // the hold and the playback follow the cast
     {0.5f, 0.7f, false, "Rewind"},
     {0.5f, 0.7f, false, "Rewind bubble"},
     {0.5f, 0.7f, false, "Rewind world"},
 };
-static_assert(PlayerSpell_Count <= 16, "Spell is 4 bits on the wire");
+static_assert(PlayerSpell_Count <= 256, "Spell is a byte on the wire (net_player_cast)");
 
 inline bool32
 IsPlayerCasting(world_entity *Player)

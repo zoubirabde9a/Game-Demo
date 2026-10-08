@@ -44,9 +44,26 @@ OnlineRoleBits(app_state *AppState, float DeltaTime)
     return Result;
 }
 
-// NOTE(zoubir): developer builds, offline: GAME_ROLE=tank, healer or
-// damage starts a dungeon run in that role, so a scripted screenshot
-// (misc\screenshot.bat) can show a role's look and spells
+// NOTE(zoubir): whether A and B are the same words, case aside
+internal bool32
+SameWordsAnyCase(char *A, char *B)
+{
+    for(; *A && *B; A++, B++)
+    {
+        if ((*A | 32) != (*B | 32))
+        {
+            return false;
+        }
+    }
+    bool32 Result = *A == 0 && *B == 0;
+    return Result;
+}
+
+// NOTE(zoubir): developer builds, offline: GAME_ROLE names a class
+// ("ranger", "berserker", "fire mage") or a role ("tank", "healer",
+// "ranged", "melee", and "damage" for the fire mage), and starts a dungeon
+// run as that class (a role's first one), so a scripted screenshot
+// (misc\screenshot.bat) can show a class's look and spells
 internal void
 ApplyDeveloperRole(app_state *AppState)
 {
@@ -60,14 +77,28 @@ ApplyDeveloperRole(app_state *AppState)
         return;
     }
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
-    for(u32 Role = 0; Role < PlayerRole_Count; Role++)
+    u32 Picked = PlayerRole_Count;
+    for(u32 Role = 0; Role < PlayerRole_Count && Picked == PlayerRole_Count; Role++)
     {
-        role_def *Def = GetRoleDef(Role);
-        if (strcmp(Value, Def->Title) == 0 || strcmp(Value, Def->Name) == 0 ||
-            (Value[0] | 32) == (Def->Title[0] | 32))
+        if (SameWordsAnyCase(Value, GetRoleDef(Role)->Name))
         {
-            SetPlayerRole(AppState, Slot, Role);
+            Picked = Role;
         }
+    }
+    for(u32 Role = 0; Role < PlayerRole_Count && Picked == PlayerRole_Count; Role++)
+    {
+        if (SameWordsAnyCase(Value, GetRoleDef(Role)->Title))
+        {
+            Picked = Role;
+        }
+    }
+    if (Picked == PlayerRole_Count && SameWordsAnyCase(Value, "damage"))
+    {
+        Picked = PlayerRole_Damage;
+    }
+    if (Picked < PlayerRole_Count)
+    {
+        SetPlayerRole(AppState, Slot, Picked);
     }
 #endif
 }

@@ -125,14 +125,26 @@ internal void PaintOverloadIcon(icon_canvas *C) { PaintRoleDetonateIcon(C); Icon
 internal void PaintShatterArmorIcon(icon_canvas *C) { PaintRoleShieldSlamIcon(C); IconBadgeMore(C); }
 internal void PaintWildfireIcon(icon_canvas *C) { PaintRoleInfernoIcon(C); IconBadgeMore(C); }
 
-// NOTE(zoubir): by player_role (Damage, Tank, Healer), then slot, as
-// RoleTalentDefs lists them; a slot that unlocks a spell shows the spell
-global_variable talent_icon_painter *RoleTalentIconPainters[PlayerRole_Count][ROLE_TALENTS] =
+// NOTE(zoubir): by player_role, then slot, as RoleTalentDefs lists them;
+// a slot that unlocks a spell shows the spell. The later classes' rows
+// are their ui/dungeon/classes/<class>_icons.cpp
+global_variable talent_icon_painter *StrikerTalentIconPainters[ROLE_TALENTS] =
 {
-    {PaintPyromancerIcon, PaintRoleDetonateIcon, PaintWildfireIcon, PaintExecutionerIcon,
-     PaintRoleCombustionIcon, PaintOverloadIcon},
-    {PaintIronSkinIcon, PaintRoleInterceptIcon, PaintProvokeIcon, PaintBastionIcon,
-     PaintRoleLastStandIcon, PaintShatterArmorIcon},
-    {PaintSwiftMendingIcon, PaintRoleSanctuaryIcon, PaintDeepWardIcon, PaintRenewalIcon,
-     PaintRoleRadianceIcon, PaintMiracleIcon},
+    PaintPyromancerIcon, PaintRoleDetonateIcon, PaintWildfireIcon, PaintExecutionerIcon,
+    PaintRoleCombustionIcon, PaintOverloadIcon,
+};
+global_variable talent_icon_painter *TankTalentIconPainters[ROLE_TALENTS] =
+{
+    PaintIronSkinIcon, PaintRoleInterceptIcon, PaintProvokeIcon, PaintBastionIcon,
+    PaintRoleLastStandIcon, PaintShatterArmorIcon,
+};
+global_variable talent_icon_painter *HealerTalentIconPainters[ROLE_TALENTS] =
+{
+    PaintSwiftMendingIcon, PaintRoleSanctuaryIcon, PaintDeepWardIcon, PaintRenewalIcon,
+    PaintRoleRadianceIcon, PaintMiracleIcon,
+};
+global_variable talent_icon_painter **RoleTalentIconPainters[PlayerRole_Count] =
+{
+    StrikerTalentIconPainters, TankTalentIconPainters, HealerTalentIconPainters,
+    RangerTalentIconPainters, BerserkerTalentIconPainters, ShadowbladeTalentIconPainters,
 };

@@ -5,6 +5,10 @@
    does nothing in a run (RunAllowedButtons).
    A, R and W are the class's main spells; C and V come from its tree
    (role_talents.cpp), and until a point unlocks one its key does nothing.
+   A class may also own X (the fireball's key) and the right click (the
+   sword's): the melee classes swing their own weapon there. The classes
+   after the first three are role_kits/<class>.cpp, through
+   role_kits/class_kits.cpp, each in its own files.
 
    Tank (Bulwark, role_kits/tank.cpp)
      A  Taunt: every monster near the tank attacks it, and Shield Wall
@@ -55,15 +59,6 @@
    their health a second, so a party walks into the next room whole
    whether or not it has a healer. */
 
-// NOTE(zoubir): what a role key does with the cursor, for the client's
-// aim (client/cast_targeting.cpp): nothing, an ally, or a ground circle
-enum role_aim
-{
-    RoleAim_None,
-    RoleAim_Ally,
-    RoleAim_Ground,
-};
-
 // NOTE(zoubir): the keys a role casts on, and the slot each one's
 // cooldown has in player_slot.RoleCooldowns
 global_variable u32 RoleKeys[ROLE_KEYS] =
@@ -73,34 +68,17 @@ global_variable u32 RoleKeys[ROLE_KEYS] =
     PlayerButton_Slam,
     PlayerButton_Kunai,
     PlayerButton_Shockwave,
+    PlayerButton_Cast,
+    PlayerButton_Attack,
 };
 
 // NOTE(zoubir): the game's abilities every class keeps in a run
 #define DUNGEON_SHARED_BUTTONS (PlayerButton_Jump | PlayerButton_Cast | \
                                 PlayerButton_Shield | PlayerButton_Blink)
 
-// NOTE(zoubir): each role's spell on each key (RoleKeys order), as the
-// ability bar names it, and its cooldown before talents; a 0 name leaves
-// the game's ability on the key
-struct role_spell
+global_variable role_spell StrikerSpells[ROLE_KEYS] =
 {
-    char *Name;
-    float Cooldown;
-    // NOTE(zoubir): one line for the controls panel (ui/controls_panel.cpp)
-    char *Help;
-    role_aim Aim;
-    // NOTE(zoubir): a ground spell's radius before talents, and how far
-    // out an ally spell reaches
-    float Reach;
-    // NOTE(zoubir): the slot of the class's tree that unlocks it
-    // (role_talents.cpp) + 1, 0 for a main spell the class has from the
-    // start
-    u32 Unlock;
-};
-
-global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
-{
-    {{"Meteor", INFERNO_COOLDOWN, "Meteor: 1 s cast, a meteor at the cursor that marks and burns",
+    {"Meteor", INFERNO_COOLDOWN, "Meteor: 1 s cast, a meteor at the cursor that marks and burns",
       RoleAim_Ground, INFERNO_RADIUS, 0},
      {"Giant Fireball", GIANT_FIREBALL_COOLDOWN,
       "Giant Fireball: 1.5 s cast, a slow fireball that blows up a pack",
@@ -110,8 +88,11 @@ global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
       RoleAim_None, DETONATE_RANGE, StrikerTalent_Detonate + 1},
      {"Combustion", COMBUSTION_COOLDOWN, "Combustion: 6 s of 40% more damage",
       RoleAim_None, 0.f, StrikerTalent_Combustion + 1},
-     {}},
-    {{"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you; Shield Wall 2 s",
+     {}};
+
+global_variable role_spell TankSpells[ROLE_KEYS] =
+{
+    {"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you; Shield Wall 2 s",
       RoleAim_None, 0.f, 0},
      {"Shield Slam", SHIELD_SLAM_COOLDOWN,
       "Shield Slam: stun and sunder what is near (+15% damage taken), heal per foe, shield allies",
@@ -122,8 +103,11 @@ global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
       RoleAim_None, 0.f, TankTalent_LastStand + 1},
      {"Shield Throw", SHIELD_THROW_COOLDOWN,
       "Shield Throw: hit a foe and bounce to two more, sundering each",
-      RoleAim_None, SHIELD_THROW_RANGE, 0}},
-    {{"Mending Bolt", MENDING_BOLT_COOLDOWN, "Mending Bolt: heal an ally", RoleAim_Ally,
+      RoleAim_None, SHIELD_THROW_RANGE, 0}};
+
+global_variable role_spell HealerSpells[ROLE_KEYS] =
+{
+    {"Mending Bolt", MENDING_BOLT_COOLDOWN, "Mending Bolt: heal an ally", RoleAim_Ally,
       MENDING_BOLT_RANGE, 0},
      {"Ward", WARD_COOLDOWN, "Ward: shield an ally (+12% damage while it holds), half on allies near",
       RoleAim_Ally, MENDING_BOLT_RANGE, 0},
@@ -133,8 +117,30 @@ global_variable role_spell RoleSpells[PlayerRole_Count][ROLE_KEYS] =
       RoleAim_None, 0.f, HealerTalent_Radiance + 1},
      {"Holy Fire", HOLY_FIRE_COOLDOWN,
       "Holy Fire: strike a foe with light; the most hurt ally heals for it",
-      RoleAim_None, HOLY_FIRE_RANGE, 0}},
+      RoleAim_None, HOLY_FIRE_RANGE, 0}};
+
+// NOTE(zoubir): by player_role; the later classes' rows are their
+// role_kits/<class>_defs.cpp
+global_variable role_spell *RoleSpells[PlayerRole_Count] =
+{
+    StrikerSpells, TankSpells, HealerSpells, RangerSpells, BerserkerSpells, ShadowbladeSpells,
 };
+
+// NOTE(zoubir): whether a class has a kit yet, a spell on its first
+// key: the role picker and the bots leave out one that has not
+inline bool32
+RoleHasKit(u32 Role)
+{
+    bool32 Result = Role < PlayerRole_Count && RoleSpells[Role][0].Name != 0;
+    return Result;
+}
+
+// NOTE(zoubir): the later classes' hooks (role_kits/class_kits.cpp)
+internal bool32 ClassKeyWindsUp(player_slot *Slot, u32 Key);
+internal float ClassSpellCooldown(player_slot *Slot, u32 Key, float Base);
+internal float ClassSpellRadius(player_slot *Slot, u32 Key, float Base);
+internal void FinishClassCast(app_state *AppState, player_slot *Slot, world_entity *Player,
+                              player_spell Spell);
 
 // NOTE(zoubir): Key's cooldown for Slot's role after its talents
 internal float
@@ -146,6 +152,7 @@ RoleSpellCooldown(player_slot *Slot, u32 Key)
     {
         Result -= PROVOKE_COOLDOWN * (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_Provoke);
     }
+    Result = ClassSpellCooldown(Slot, Key, Result);
     return Result;
 }
 
@@ -159,6 +166,7 @@ RoleSpellRadius(player_slot *Slot, u32 Key)
     {
         Result *= HALLOWED_RADIUS;
     }
+    Result = ClassSpellRadius(Slot, Key, Result);
     return Result;
 }
 
@@ -221,11 +229,11 @@ RoleOwnsKey(app_state *AppState, player_slot *Slot, u32 Key)
 
 // NOTE(zoubir): whether Slot's spell on Key only starts a wind-up
 // (sim/player_casts.cpp) when pressed: the striker's Meteor and Giant
-// Fireball
+// Fireball, and what the later classes say
 inline bool32
 RoleKeyWindsUp(player_slot *Slot, u32 Key)
 {
-    bool32 Result = Slot->Role == PlayerRole_Damage && Key <= 1;
+    bool32 Result = (Slot->Role == PlayerRole_Damage && Key <= 1) || ClassKeyWindsUp(Slot, Key);
     return Result;
 }
 
@@ -307,6 +315,7 @@ ChestOf(world_entity *Unit)
 #include "role_kits/tank.cpp"
 #include "role_kits/healer.cpp"
 #include "role_kits/striker.cpp"
+#include "role_kits/class_kits.cpp"
 
 // NOTE(zoubir): from DungeonScaleDamage: Attacker's hit on a monster dealt
 // Damage; a fireball means something to each class
@@ -314,6 +323,7 @@ internal void
 OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
           world_entity *Source, float Damage)
 {
+    OnClassHit(AppState, Attacker, Target, Source, Damage);
     if (!Source || Source->Type != EntityType_FireBall)
     {
         return;
@@ -369,6 +379,7 @@ UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
             case PlayerRole_Tank: Cast = CastTankKey(AppState, World, Arena, Slot, Player, Key); break;
             case PlayerRole_Healer: Cast = CastHealerKey(AppState, Slot, Player, Key); break;
             case PlayerRole_Damage: Cast = CastStrikerKey(AppState, Slot, Player, Key); break;
+            default: Cast = CastClassKey(AppState, World, Arena, Slot, Player, Key); break;
         }
         if (Cast)
         {
@@ -430,6 +441,7 @@ UpdateRoleEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
     UpdateRenewals(AppState, DeltaTime);
     UpdateInfernos(AppState, Run, DeltaTime);
     UpdateGiantFireballs(AppState, Run, DeltaTime);
+    UpdateClassEffects(AppState, Run, DeltaTime);
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];

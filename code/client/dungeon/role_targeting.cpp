@@ -79,13 +79,13 @@ PartyFramesHaveMouse(app_state *AppState, app_input *Input)
 }
 
 // NOTE(zoubir): each role's spell colour on the ground, 0x00BBGGRR, by
-// player_role: fire for the damage role, steel blue for the tank, a pale
-// gold-green for the healer
+// player_role: fire for the fire mage, steel blue for the tank, a pale
+// gold-green for the healer, the class colour for the later classes
 internal u32
 RoleSpellRGB(u32 Role)
 {
-    u32 Colors[PlayerRole_Count] = {0x002878FF, 0x00F0A060, 0x0080F0C0};
-    u32 Result = Colors[Role < PlayerRole_Count ? Role : 0];
+    u32 Colors[3] = {0x002878FF, 0x00F0A060, 0x0080F0C0};
+    u32 Result = Role < 3 ? Colors[Role] : RoleRGB(Role);
     return Result;
 }
 

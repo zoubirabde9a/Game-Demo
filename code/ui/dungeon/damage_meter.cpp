@@ -133,7 +133,7 @@ DrawDamageMeter(render_context *RenderContext, app_state *AppState,
         player_slot *Slot = &AppState->Players[SlotIndex];
         u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
         float Emblem = Line - 2.f;
-        DrawRoleEmblem(RenderContext, Role, Left, Top + 1.f, Emblem, DungeonRoleColors[Role], 1.f);
+        DrawRoleEmblem(RenderContext, Role, Left, Top + 1.f, Emblem, RoleUIColor(Role), 1.f);
         GetPlayerName(AppState, SlotIndex, Text, sizeof(Text));
         u32 NameColor = SlotIndex == AppState->LocalPlayerIndex ? UI_COLOR_ACCENT : UI_COLOR_TEXT;
         UIText(RenderContext, Small, Left + Emblem + 4.f, Top, Text, NameColor);

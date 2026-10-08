@@ -99,11 +99,10 @@ enum striker_talent
 #define EXECUTIONER_SHARE 0.35f
 #define OVERLOAD_SECONDS 3.f
 
-// NOTE(zoubir): by player_role (Damage, Tank, Healer), then slot; the
-// branch, tier, column and ranks match the slot's row in TalentDefs
-global_variable talent_def RoleTalentDefs[PlayerRole_Count][ROLE_TALENTS] =
+// NOTE(zoubir): each class's branch by slot; the branch, tier, column
+// and ranks match the slot's row in TalentDefs
+global_variable talent_def StrikerTalentDefs[ROLE_TALENTS] =
 {
-    {
         {"Pyromancer", "All your damage is higher", "+6% damage",
          TalentBranch_Role, 0, 0, 2, 0},
         {"Detonate", "C: blow up the Searing marks on a foe; in fire, every marked foe there",
@@ -116,8 +115,10 @@ global_variable talent_def RoleTalentDefs[PlayerRole_Count][ROLE_TALENTS] =
          TalentBranch_Role, 2, 0, 1, 0},
         {"Overload", "Detonating a full mark gives back 3 s of Detonate",
          "-3 s Detonate on a full mark", TalentBranch_Role, 3, 0, 1, 0},
-    },
-    {
+};
+
+global_variable talent_def TankTalentDefs[ROLE_TALENTS] =
+{
         {"Iron Skin", "You take less damage", "-6% damage taken",
          TalentBranch_Role, 0, 0, 2, 0},
         {"Intercept", "C: leap to an ally and pull their foes onto you",
@@ -130,8 +131,10 @@ global_variable talent_def RoleTalentDefs[PlayerRole_Count][ROLE_TALENTS] =
          "a new spell", TalentBranch_Role, 2, 0, 1, 0},
         {"Shatter Armor", "Sunder bites deeper and lasts longer", "Sunder +10%, +2 s",
          TalentBranch_Role, 3, 0, 1, 0},
-    },
-    {
+};
+
+global_variable talent_def HealerTalentDefs[ROLE_TALENTS] =
+{
         {"Swift Mending", "Mending Bolt heals more", "+15% Mending Bolt healing",
          TalentBranch_Role, 0, 0, 2, 0},
         {"Sanctuary", "C: a circle at the cursor that heals allies inside",
@@ -144,8 +147,23 @@ global_variable talent_def RoleTalentDefs[PlayerRole_Count][ROLE_TALENTS] =
          TalentBranch_Role, 2, 0, 1, 0},
         {"Miracle", "Revive the fallen in 1.5 s, at 70% health", "faster, stronger revives",
          TalentBranch_Role, 3, 0, 1, 0},
-    },
 };
+
+// NOTE(zoubir): the later classes' numbers, talents and spells
+#include "role_kits/ranger_defs.cpp"
+#include "role_kits/berserker_defs.cpp"
+#include "role_kits/shadowblade_defs.cpp"
+
+// NOTE(zoubir): by player_role, then slot
+global_variable talent_def *RoleTalentDefs[PlayerRole_Count] =
+{
+    StrikerTalentDefs, TankTalentDefs, HealerTalentDefs,
+    RangerTalentDefs, BerserkerTalentDefs, ShadowbladeTalentDefs,
+};
+
+// NOTE(zoubir): the later classes' talents in play (role_kits/class_kits.cpp)
+internal float ClassDealtScale(player_slot *Slot, world_entity *Target);
+internal float ClassTakenScale(player_slot *Slot, world_entity *Player);
 
 // NOTE(zoubir): Slot's rank in slot Index of Role's branch; 0 when Slot
 // plays another role
@@ -177,6 +195,7 @@ internal float
 RoleTalentTakenScale(player_slot *Slot, world_entity *Player)
 {
     float Result = 1.f - IRON_SKIN_SHARE * (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_IronSkin);
+    Result *= ClassTakenScale(Slot, Player);
     return Result;
 }
 
@@ -192,5 +211,6 @@ RoleTalentDealtScale(player_slot *Slot, world_entity *Target)
     {
         Result *= 1.f + EXECUTIONER_SHARE;
     }
+    Result *= ClassDealtScale(Slot, Target);
     return Result;
 }

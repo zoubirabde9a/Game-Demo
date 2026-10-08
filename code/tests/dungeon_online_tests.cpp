@@ -136,15 +136,16 @@ TestDungeonBotsTakeRoles()
         GameTick(&Game, Dt);
     }
     u32 Seen = 0;
+    u32 Damage = 0;
     for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
     {
         if (AppState->Players[Slot].Active)
         {
             Seen |= 1u << AppState->Players[Slot].Role;
+            Damage += IsDamageRole(AppState->Players[Slot].Role) ? 1 : 0;
         }
     }
-    Check(Seen == ((1u << PlayerRole_Tank) | (1u << PlayerRole_Healer) |
-                   (1u << PlayerRole_Damage)));
+    Check((Seen & (1u << PlayerRole_Tank)) && (Seen & (1u << PlayerRole_Healer)) && Damage > 0);
     GameShutdown(&Game);
 }
 

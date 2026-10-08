@@ -180,7 +180,7 @@ FullSnapshot()
     P.Snapshot.Rewinds[0].Y = -77.25f;
     P.Snapshot.Rewinds[0].Radius = 160.f;
     P.Snapshot.Rewinds[0].Frozen[0] = 0x81;
-    P.Snapshot.Rewinds[0].Frozen[5] = 0x04; // entity 42, the last of 43
+    P.Snapshot.Rewinds[0].Frozen[5] = 0x02; // entity 41, the last of 42
     // Every player winding up a spell, pointing at the last (farthest)
     // entities so a trimmed snapshot has to drop them.
     P.Snapshot.CastCount = NET_MAX_SNAPSHOT_CASTS;
@@ -389,7 +389,7 @@ TestFullSnapshotFits()
     Check(Rewind->Slot == 6 && Rewind->Kind == 1 && Rewind->Phase == 2);
     Check(Rewind->PhaseLeft > 0.355f && Rewind->PhaseLeft < 0.365f);
     Check(Rewind->X == 512.5f && Rewind->Y == -77.25f && Rewind->Radius == 160.f);
-    Check(Rewind->Frozen[0] == 0x81 && Rewind->Frozen[5] == 0x04);
+    Check(Rewind->Frozen[0] == 0x81 && Rewind->Frozen[5] == 0x02);
     Check(Out.Snapshot.CastCount == NET_MAX_SNAPSHOT_CASTS);
     net_player_cast *LastCast = &Out.Snapshot.Casts[NET_MAX_SNAPSHOT_CASTS - 1];
     Check(LastCast->EntityIndex == NET_MAX_SNAPSHOT_ENTITIES - NET_MAX_SNAPSHOT_CASTS);
@@ -1044,8 +1044,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d6du
-#define NET_GOLDEN_LAYOUT 0x1dc589e5u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d6eu
+#define NET_GOLDEN_LAYOUT 0x0fdab5beu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

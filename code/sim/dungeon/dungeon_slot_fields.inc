@@ -6,7 +6,7 @@
     // seconds left of the tank's Shield Wall, and the damage a healer's
     // Ward still absorbs and absorbed when cast, for the ring that empties
     // (sim/dungeon/role_abilities.cpp)
-#define ROLE_KEYS 5
+#define ROLE_KEYS 7
     float RoleCooldowns[ROLE_KEYS];
     float ShieldWallSeconds;
     float WardAbsorb;
@@ -40,3 +40,14 @@
     float MeterDamage;
     float MeterHealing;
     float MeterTaken;
+    // NOTE(zoubir): a class's own resource (a Berserker's rage, a
+    // Shadowblade's combo points) and eight flags it means what it likes
+    // by; both go to every client (server/sim_game/dungeon.cpp), so the
+    // HUD and the looks read them the same online
+    u8 ClassMeter;
+    u8 ClassFlags;
+    // NOTE(zoubir): what each later class keeps per player
+    // (sim/dungeon/role_kits/<class>.h)
+    ranger_slot Ranger;
+    berserker_slot Berserker;
+    shadowblade_slot Shadowblade;

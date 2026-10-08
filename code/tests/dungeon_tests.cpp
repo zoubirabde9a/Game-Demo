@@ -521,6 +521,9 @@ TestNoFriendlyFireInADungeon()
 #include "boss_clock_tests.cpp"
 #include "striker_tests.cpp"
 #include "class_kit_tests.cpp"
+#include "ranger_tests.cpp"
+#include "berserker_tests.cpp"
+#include "shadowblade_tests.cpp"
 #include "fight_end_tests.cpp"
 #include "depths_tests.cpp"
 #include "meter_tests.cpp"
@@ -532,6 +535,9 @@ RunDungeonTests()
     RunBossClockTests();
     RunStrikerTests();
     RunClassKitTests();
+    RunRangerTests();
+    RunBerserkerTests();
+    RunShadowbladeTests();
     RunFightEndTests();
     RunDepthsTests();
     RunMeterTests();

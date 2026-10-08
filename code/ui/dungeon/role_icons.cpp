@@ -301,19 +301,43 @@ PaintRoleHolyFireIcon(icon_canvas *Canvas)
     IconSparkle(Canvas, V2(0.74f, 0.26f), 0.07f, Solid(IconColor(255, 255, 255)));
 }
 
-// NOTE(zoubir): the painters in RoleSpells' order: the damage role's A, R,
-// C, V, W, then the tank's, then the healer's (player_role order); 0 for a
-// key the role has no spell on
-#define ROLE_ICON_COUNT (PlayerRole_Count * ROLE_KEYS)
 typedef void role_icon_painter(icon_canvas *Canvas);
-global_variable role_icon_painter *RoleIconPainters[ROLE_ICON_COUNT] =
+typedef void talent_icon_painter(icon_canvas *Canvas);
+
+#include "classes/class_icons.cpp"
+
+// NOTE(zoubir): the painters in RoleSpells' order (RoleKeys order: A, R,
+// C, V, W, X, right click), by player_role; 0 for a key the class has no
+// spell on
+global_variable role_icon_painter *StrikerIconPainters[ROLE_KEYS] =
 {
-    PaintRoleInfernoIcon, PaintRoleGiantFireballIcon, PaintRoleDetonateIcon, PaintRoleCombustionIcon, 0,
+    PaintRoleInfernoIcon, PaintRoleGiantFireballIcon, PaintRoleDetonateIcon, PaintRoleCombustionIcon,
+};
+global_variable role_icon_painter *TankIconPainters[ROLE_KEYS] =
+{
     PaintRoleTauntIcon, PaintRoleShieldSlamIcon, PaintRoleInterceptIcon, PaintRoleLastStandIcon,
     PaintRoleShieldThrowIcon,
+};
+global_variable role_icon_painter *HealerIconPainters[ROLE_KEYS] =
+{
     PaintRoleMendingBoltIcon, PaintRoleWardIcon, PaintRoleSanctuaryIcon, PaintRoleRadianceIcon,
     PaintRoleHolyFireIcon,
 };
+global_variable role_icon_painter **RoleIconPainters[PlayerRole_Count] =
+{
+    StrikerIconPainters, TankIconPainters, HealerIconPainters,
+    RangerIconPainters, BerserkerIconPainters, ShadowbladeIconPainters,
+};
+#define ROLE_ICON_COUNT (PlayerRole_Count * ROLE_KEYS)
+
+// NOTE(zoubir): the painter of atlas cell Cell of the role icons
+inline role_icon_painter *
+RoleIconPainterAt(u32 Cell)
+{
+    role_icon_painter *Result = Cell < ROLE_ICON_COUNT ?
+        RoleIconPainters[Cell / ROLE_KEYS][Cell % ROLE_KEYS] : 0;
+    return Result;
+}
 
 // NOTE(zoubir): the icon for Role's Key, as an index into RoleIconPainters,
 // or ROLE_ICON_COUNT for none

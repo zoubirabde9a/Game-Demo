@@ -233,7 +233,12 @@ BuildTalentIconAtlas(open_gl *OpenGL, memory_arena *Scratch)
         else
         {
             u32 Role = (Cell - Talent_RoleFirst) / ROLE_TALENTS;
-            RoleTalentIconPainters[Role][(Cell - Talent_RoleFirst) % ROLE_TALENTS](&Canvas);
+            talent_icon_painter *Paint =
+                RoleTalentIconPainters[Role][(Cell - Talent_RoleFirst) % ROLE_TALENTS];
+            if (Paint)
+            {
+                Paint(&Canvas);
+            }
         }
         u32 Column = Cell % TALENT_ATLAS_COLUMNS;
         u32 Row = Cell / TALENT_ATLAS_COLUMNS;

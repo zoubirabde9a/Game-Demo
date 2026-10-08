@@ -367,6 +367,8 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
         Score->Ward = (Player->Ranks[Talent_Ward] && Player->WardReady) ? 1 : 0;
         Score->Dungeon = PackDungeonScore(Game->AppState, Player);
         Score->DungeonMore = PackDungeonScoreMore(Game->AppState, Player);
+        Score->ClassMeter = Player->ClassMeter;
+        Score->ClassFlags = Player->ClassFlags;
     }
 
     SimGameWriteRewinds(Game, First != 0, Center, Out);

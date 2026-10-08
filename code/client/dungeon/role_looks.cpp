@@ -10,7 +10,9 @@
    - Striker (damage): flames licking up from both hands, embers rising
      off the shoulders; the sprite is tinted warm.
 
-   Allies also stand on a ring in their role's colour instead of the red
+   The later classes' looks are their own files (classes/<class>.cpp).
+
+   Allies also stand on a ring in their class's colour instead of the red
    marker the duel gives other players (RoleMarkerColor, draw_entities.cpp).
    All of it is drawn from the slot's role and the body's position, which
    snapshots carry, so it shows the same online. */
@@ -47,6 +49,16 @@ RoleBodyTint(app_state *AppState, world_entity *Entity)
         case PlayerRole_Tank:   { Result = 0xFFFFF0E4; } break;
         case PlayerRole_Healer: { Result = 0xFFE8FFFF; } break;
         case PlayerRole_Damage: { Result = 0xFFE4ECFF; } break;
+        case PlayerRole_Count: break;
+        // NOTE(zoubir): the later classes: a light tint toward the class colour
+        default:
+        {
+            u32 RGB = RoleRGB(EntityRole(AppState, Entity));
+            u32 R = 255 - (255 - (RGB & 0xFF)) / 8;
+            u32 G = 255 - (255 - ((RGB >> 8) & 0xFF)) / 8;
+            u32 B = 255 - (255 - ((RGB >> 16) & 0xFF)) / 8;
+            Result = 0xFF000000 | R | (G << 8) | (B << 16);
+        } break;
     }
     return Result;
 }
@@ -57,11 +69,11 @@ internal u32
 RoleMarkerColor(app_state *AppState, world_entity *Entity, u32 Duel)
 {
     u32 Result = Duel;
-    switch(EntityRole(AppState, Entity))
+    u32 Role = EntityRole(AppState, Entity);
+    if (Role < PlayerRole_Count)
     {
-        case PlayerRole_Tank:   { Result = UI_RGBA(96, 160, 245, 220); } break;
-        case PlayerRole_Healer: { Result = UI_RGBA(120, 220, 140, 220); } break;
-        case PlayerRole_Damage: { Result = UI_RGBA(240, 140, 70, 220); } break;
+        u8 *C = GetRoleDef(Role)->Color;
+        Result = UI_RGBA(C[0], C[1], C[2], 220);
     }
     return Result;
 }
@@ -208,6 +220,9 @@ DrawStrikerLook(render_context *RenderContext, world_entity *Player, float Clock
     }
 }
 
+internal void DrawClassLook(render_context *RenderContext, app_state *AppState, player_slot *Slot,
+                           world_entity *Player, float Clock, v3 CameraOffset);
+
 // NOTE(zoubir): every living party member's role look, over the world
 internal void
 DrawRoleLooks(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
@@ -226,6 +241,7 @@ DrawRoleLooks(render_context *RenderContext, app_state *AppState, v3 CameraOffse
             case PlayerRole_Tank:   { DrawTankLook(RenderContext, Player, Clock, CameraOffset); } break;
             case PlayerRole_Healer: { DrawHealerLook(RenderContext, Player, Clock, CameraOffset); } break;
             case PlayerRole_Damage: { DrawStrikerLook(RenderContext, Player, Clock, CameraOffset); } break;
+            default: { DrawClassLook(RenderContext, AppState, Slot, Player, Clock, CameraOffset); } break;
         }
     }
 }

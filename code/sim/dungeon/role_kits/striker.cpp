@@ -274,6 +274,10 @@ FinishRoleCast(app_state *AppState, world_entity *Player, player_spell Spell)
     {
         LaunchGiantFireball(AppState, Player, Slot->RoleCastPoint, Player->CastingDirection);
     }
+    else
+    {
+        FinishClassCast(AppState, Slot, Player, Spell);
+    }
 }
 
 // NOTE(zoubir): Damage to every living monster within Radius of Centre,

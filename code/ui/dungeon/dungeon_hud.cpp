@@ -15,10 +15,12 @@
      ally a tank's or healer's spells go to.
    - The damage meter, bottom right (damage_meter.cpp): each player's
      damage, healing and damage taken in the last room fought.
-   - The role picker, in the Antechamber between fights: three buttons,
-     the picked one outlined, and what its keys do. Offline the pick
-     takes at once; online it goes to the server as a request
-     (client/dungeon/role_requests.cpp) and shows once a snapshot says so.
+   - The class picker, in the Antechamber between fights: a column per
+     role (tank, healer, ranged, melee) with a button per class under
+     it, the picked one outlined in its colour, and a line on how it
+     plays. Offline the pick takes at once; online it goes to the server
+     as a request (client/dungeon/role_requests.cpp) and shows once a
+     snapshot says so. A class with no kit yet is left out.
 
    The fight is read from dungeon_run's Shown fields, which the run sets
    offline and the snapshot sets online. */
@@ -26,14 +28,15 @@
 #define DUNGEON_HUD_TOP 44.f
 #define DUNGEON_BOSS_BAR_WIDTH 420.f
 #define DUNGEON_BOSS_BAR_HEIGHT 10.f
-#define DUNGEON_ROLE_BUTTON_WIDTH 120.f
-#define DUNGEON_ROLE_BUTTON_HEIGHT 34.f
+#define DUNGEON_ROLE_BUTTON_WIDTH 132.f
+#define DUNGEON_ROLE_BUTTON_HEIGHT 32.f
 #define DUNGEON_BOSS_COLOR UI_RGBA(176, 52, 60, 255)
 #define DUNGEON_ALARM_COLOR UI_RGBA(255, 120, 80, 255)
 #define DUNGEON_ADD_ALARM_SECONDS 10
 
 #include "party_frames.cpp"
 #include "damage_meter.cpp"
+#include "classes/class_hud.cpp"
 
 // NOTE(zoubir): one centred line at Y; returns the line's height
 internal float
@@ -183,7 +186,30 @@ DrawDungeonBossBar(render_context *RenderContext, app_state *AppState,
     return Result;
 }
 
-// NOTE(zoubir): three role buttons and the picked role's keys
+// NOTE(zoubir): one class's button at X, Y; true when clicked
+internal bool32
+DoClassButton(render_context *RenderContext, app_state *AppState, app_input *Input,
+              u32 Role, bool32 Picked, float X, float Y)
+{
+    font *Body = AppState->Fonts.Body;
+    bool32 Result = OptionsButton(RenderContext, Input, X, Y, DUNGEON_ROLE_BUTTON_WIDTH,
+                                  DUNGEON_ROLE_BUTTON_HEIGHT, Picked);
+    u32 Color = RoleUIColor(Role);
+    if (Picked)
+    {
+        DrawRoundOutline(RenderContext, X, Y, DUNGEON_ROLE_BUTTON_WIDTH, DUNGEON_ROLE_BUTTON_HEIGHT,
+                         Color);
+    }
+    float Emblem = DUNGEON_ROLE_BUTTON_HEIGHT - 10.f;
+    DrawRoleEmblem(RenderContext, Role, X + 5.f, Y + 5.f, Emblem, Color, Picked ? 1.f : 0.75f);
+    UIText(RenderContext, Body, X + Emblem + 12.f,
+           Y + 0.5f * (DUNGEON_ROLE_BUTTON_HEIGHT - UILineHeight(Body)), GetRoleDef(Role)->Name,
+           Picked ? Color : UI_COLOR_TEXT);
+    return Result;
+}
+
+// NOTE(zoubir): a column of class buttons under each role, and the
+// picked class's line
 internal void
 DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
                     app_input *Input, float CenterX, float Y)
@@ -198,46 +224,69 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
     }
     font *Body = AppState->Fonts.Body;
     font *Small = AppState->Fonts.Small;
-    // NOTE(zoubir): left to right as players think of them
-    u32 Order[PlayerRole_Count] = {PlayerRole_Tank, PlayerRole_Healer, PlayerRole_Damage};
-    float Width = PlayerRole_Count * DUNGEON_ROLE_BUTTON_WIDTH +
-        (PlayerRole_Count - 1) * UI_GAP_SMALL;
-    float PlateWidth = Maximum(Width, UITextWidth(Small, GetRoleDef(Slot->Role)->Keys)) +
-        2.f * UI_GAP;
-    float PlateHeight = UILineHeight(Body) + DUNGEON_ROLE_BUTTON_HEIGHT +
-        2.f * UILineHeight(Small) + 2.f * UI_GAP + 2.f * UI_GAP_SMALL;
+    // NOTE(zoubir): a role with no class to pick yet gets no column
+    u32 Rows = 1;
+    u32 Columns = 0;
+    u32 InKind[RoleKind_Count] = {};
+    for(u32 Kind = 0; Kind < RoleKind_Count; Kind++)
+    {
+        for(u32 Role = 0; Role < PlayerRole_Count; Role++)
+        {
+            InKind[Kind] += (RoleHasKit(Role) && RoleKindOf(Role) == Kind) ? 1 : 0;
+        }
+        Rows = Maximum(Rows, InKind[Kind]);
+        Columns += InKind[Kind] ? 1 : 0;
+    }
+    role_def *Def = GetRoleDef(Slot->Role);
+    char Line[160];
+    snprintf(Line, sizeof(Line), "%s, %s: %s", Def->Name, Def->Title, Def->Keys);
+    float Width = Columns * DUNGEON_ROLE_BUTTON_WIDTH + (Columns - 1) * UI_GAP;
+    float PlateWidth = Maximum(Width, UITextWidth(Small, Line)) + 2.f * UI_GAP;
+    float ColumnsHeight = UILineHeight(Small) + UI_GAP_SMALL +
+        Rows * DUNGEON_ROLE_BUTTON_HEIGHT + (Rows - 1) * UI_GAP_SMALL;
+    float PlateHeight = UILineHeight(Body) + ColumnsHeight + 2.f * UILineHeight(Small) +
+        2.f * UI_GAP + 2.f * UI_GAP_SMALL;
     DrawUIPanel(RenderContext, CenterX - 0.5f * PlateWidth, Y, PlateWidth, PlateHeight);
     float LineY = Y + UI_GAP;
-    LineY += DungeonHudLine(RenderContext, Body, CenterX, LineY, "Pick your role",
+    LineY += DungeonHudLine(RenderContext, Body, CenterX, LineY, "Pick your class",
                             UI_COLOR_TEXT) + UI_GAP_SMALL;
     float X = CenterX - 0.5f * Width;
-    for(u32 Index = 0; Index < PlayerRole_Count; Index++)
+    for(u32 Kind = 0; Kind < RoleKind_Count; Kind++)
     {
-        u32 Role = Order[Index];
-        bool32 Picked = Slot->Role == Role;
-        if (OptionsButton(RenderContext, Input, X, LineY, DUNGEON_ROLE_BUTTON_WIDTH,
-                          DUNGEON_ROLE_BUTTON_HEIGHT, Picked))
+        if (!InKind[Kind])
         {
-            if (IsOnline(AppState->Online))
-            {
-                RequestDungeonRole(AppState, Role);
-            }
-            else
-            {
-                SetPlayerRole(AppState, Slot, Role);
-            }
+            continue;
         }
-        UIText(RenderContext, Body, X + 0.5f * DUNGEON_ROLE_BUTTON_WIDTH,
-               LineY + 0.5f * (DUNGEON_ROLE_BUTTON_HEIGHT - UILineHeight(Body)),
-               GetRoleDef(Role)->Title, Picked ? UI_COLOR_ACCENT : UI_COLOR_TEXT,
-               UIAlign_Center);
-        X += DUNGEON_ROLE_BUTTON_WIDTH + UI_GAP_SMALL;
+        bool32 Mine = RoleKindOf(Slot->Role) == Kind;
+        UIText(RenderContext, Small, X + 0.5f * DUNGEON_ROLE_BUTTON_WIDTH, LineY, RoleKindNames[Kind],
+               Mine ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED, UIAlign_Center);
+        float ButtonY = LineY + UILineHeight(Small) + UI_GAP_SMALL;
+        for(u32 Role = 0; Role < PlayerRole_Count; Role++)
+        {
+            if (!RoleHasKit(Role) || RoleKindOf(Role) != Kind)
+            {
+                continue;
+            }
+            if (DoClassButton(RenderContext, AppState, Input, Role, Slot->Role == Role, X, ButtonY) &&
+                Slot->Role != Role)
+            {
+                if (IsOnline(AppState->Online))
+                {
+                    RequestDungeonRole(AppState, Role);
+                }
+                else
+                {
+                    SetPlayerRole(AppState, Slot, Role);
+                }
+            }
+            ButtonY += DUNGEON_ROLE_BUTTON_HEIGHT + UI_GAP_SMALL;
+        }
+        X += DUNGEON_ROLE_BUTTON_WIDTH + UI_GAP;
     }
-    LineY += DUNGEON_ROLE_BUTTON_HEIGHT + UI_GAP_SMALL;
-    LineY += DungeonHudLine(RenderContext, Small, CenterX, LineY, GetRoleDef(Slot->Role)->Keys,
-                            UI_COLOR_TEXT_MUTED);
+    LineY += ColumnsHeight + UI_GAP_SMALL;
+    LineY += DungeonHudLine(RenderContext, Small, CenterX, LineY, Line, UI_COLOR_TEXT_MUTED);
     DungeonHudLine(RenderContext, Small, CenterX, LineY,
-                   "Each role has its own talents: press N", UI_COLOR_TEXT_MUTED);
+                   "Each class has its own talents: press N", UI_COLOR_TEXT_MUTED);
 }
 
 // NOTE(zoubir): from the screen pass, every frame
@@ -256,4 +305,5 @@ DoDungeonHud(render_context *RenderContext, app_state *AppState, app_input *Inpu
     DoDungeonRolePicker(RenderContext, AppState, Input, CenterX, Y);
     DrawDungeonParty(RenderContext, AppState, Input, WindowHeight);
     DrawDamageMeter(RenderContext, AppState, WindowWidth, WindowHeight);
+    DrawClassHud(RenderContext, AppState, WindowWidth, WindowHeight);
 }

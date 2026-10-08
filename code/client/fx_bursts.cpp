@@ -130,6 +130,9 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Role, GIANT_FIREBALL_RANGE / GIANT_FIREBALL_SPEED, 22.f, 0x002080FF, false, 0.f,
      BurstPose_Release},                                                           // GiantFireball
     {BurstShape_Role, 0.8f, 110.f, 0x002080FF, false, 0.6f, BurstPose_None},     // GiantFireballBlast
+#include "dungeon/classes/ranger_bursts.inc"
+#include "dungeon/classes/berserker_bursts.inc"
+#include "dungeon/classes/shadowblade_bursts.inc"
 };
 static_assert(ArrayCount(BurstLooks) == SimBurst_Count, "one look per burst");
 

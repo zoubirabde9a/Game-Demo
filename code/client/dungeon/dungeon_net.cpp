@@ -20,7 +20,7 @@ ApplyDungeonScore(app_state *AppState, player_slot *Slot, u8 Packed, u8 More)
     {
         return;
     }
-    u32 Role = Packed & 3;
+    u32 Role = (Packed & 3) | ((More >> 3) & 4);
     if (Role < PlayerRole_Count)
     {
         Slot->Role = (u8)Role;

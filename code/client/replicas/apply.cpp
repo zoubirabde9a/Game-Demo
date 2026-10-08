@@ -108,6 +108,8 @@ ApplySnapshotScores(app_state *AppState, net_snapshot *Snapshot)
             Slot->Level = Score->Level;
             Slot->WardReady = Score->Ward;
             ApplyDungeonScore(AppState, Slot, Score->Dungeon, Score->DungeonMore);
+            Slot->ClassMeter = Score->ClassMeter;
+            Slot->ClassFlags = Score->ClassFlags;
         }
     }
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)

@@ -23,6 +23,9 @@ enum sim_event_type
     SimEvent_Burst,
 };
 
+// NOTE(zoubir): how many bursts each later dungeon class has to itself
+#define CLASS_BURSTS 8
+
 // NOTE(zoubir): every burst the simulation can ask for; how each looks is
 // client/fx_bursts.cpp. Fits a byte on the wire.
 enum sim_burst
@@ -74,8 +77,23 @@ enum sim_burst
     SimBurst_InfernoBlast, // the meteor landing at Position
     SimBurst_GiantFireball, // a Giant Fireball leaving Position along Angle
     SimBurst_GiantFireballBlast, // the Giant Fireball of Slot bursting at Position
-    SimBurst_Count
+    // NOTE(zoubir): the later classes' bursts, CLASS_BURSTS each: what
+    // each is, the class's kit says (sim/dungeon/role_kits/<class>.cpp,
+    // as SimBurst_<Class>First + n), and how it looks, its client file
+    // (client/dungeon/classes/<class>.cpp)
+    SimBurst_RangerFirst,
+    SimBurst_BerserkerFirst = SimBurst_RangerFirst + CLASS_BURSTS,
+    SimBurst_ShadowbladeFirst = SimBurst_BerserkerFirst + CLASS_BURSTS,
+    SimBurst_Count = SimBurst_ShadowbladeFirst + CLASS_BURSTS
 };
+
+// NOTE(zoubir): burst Index of a class's range
+inline sim_burst
+ClassBurst(sim_burst First, u32 Index)
+{
+    sim_burst Result = (sim_burst)(First + Index);
+    return Result;
+}
 
 struct sim_event
 {

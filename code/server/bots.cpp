@@ -129,6 +129,27 @@ BotHurtAlly(app_state *AppState, world_entity *Self, float Range, float Below)
     return Result;
 }
 
+#include "bots/class_bots.cpp"
+
+// NOTE(zoubir): the damage class a bot in slot PlayerIndex plays: the
+// damage slots go round the damage classes that have a kit, so a full
+// party shows each of them
+internal u32
+BotDamageClass(u32 PlayerIndex)
+{
+    u32 Classes[PlayerRole_Count];
+    u32 Count = 0;
+    for (u32 Role = 0; Role < PlayerRole_Count; ++Role)
+    {
+        if (IsDamageRole(Role) && RoleHasKit(Role))
+        {
+            Classes[Count++] = Role;
+        }
+    }
+    u32 Result = Count ? Classes[(PlayerIndex / 2) % Count] : PlayerRole_Damage;
+    return Result;
+}
+
 // NOTE(zoubir): in a dungeon run, the role keys a bot presses this tick
 // (sim/dungeon/role_abilities.cpp); *Held may lose its movement for a
 // healer keeping its distance, and *Pick becomes the ally a spell goes to
@@ -178,6 +199,10 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
                 break;
             }
         }
+    }
+    else if (Slot->Role > PlayerRole_Healer)
+    {
+        Result = BotClassButtons(Bot, AppState, Self, Target, Distance, Direction, Held, Pick);
     }
     else if (Slot->Role == PlayerRole_Healer)
     {
@@ -236,7 +261,7 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
         {
             world_entity *Ally = LivingPlayerInSlot(AppState, SlotIndex);
             player_slot *AllySlot = &AppState->Players[SlotIndex];
-            if (Ally && AllySlot->Role == PlayerRole_Damage && AllySlot->WardAbsorb <= 0.f &&
+            if (Ally && IsDamageRole(AllySlot->Role) && AllySlot->WardAbsorb <= 0.f &&
                 AppState->Dungeon->FightingRoom &&
                 Length(Ally->Position.XY - Self->Position.XY) < MENDING_BOLT_RANGE &&
                 BotRandom(Bot) % 10 == 0)
@@ -406,6 +431,12 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         u32 Wanted[] = {PlayerRole_Tank, PlayerRole_Healer, PlayerRole_Damage, PlayerRole_Damage,
                         PlayerRole_Damage, PlayerRole_Healer, PlayerRole_Damage, PlayerRole_Tank};
         u32 Role = Wanted[Self->PlayerIndex % ArrayCount(Wanted)];
+        // NOTE(zoubir): the damage slots go round the damage classes that
+        // have a kit (BotDamageClass)
+        if (Role == PlayerRole_Damage)
+        {
+            Role = BotDamageClass(Self->PlayerIndex);
+        }
         if (Slot->Role != Role)
         {
             Held |= (Role + 1) << NET_ROLE_SHIFT;
@@ -425,7 +456,7 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         // monster whose shell takes hits from the front (sim/monster_
         // abilities/armor.cpp), from behind it, as the tank holds it
         player_slot *Mine = &AppState->Players[Self->PlayerIndex];
-        if (Mine->Role == PlayerRole_Damage && Target && Target->Type == EntityType_Monster)
+        if (RoleKindOf(Mine->Role) == RoleKind_Ranged && Target && Target->Type == EntityType_Monster)
         {
             v2 Away = (Distance > 0.001f) ? -1.f * Direction : V2(1.f, 0.f);
             v2 Side = Away;

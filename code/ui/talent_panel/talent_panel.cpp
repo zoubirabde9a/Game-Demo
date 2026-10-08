@@ -50,13 +50,15 @@ global_variable u32 TalentBranchAccents[TALENT_GAME_BRANCHES] =
     UI_RGBA(176, 136, 255, 255),
 };
 
-// NOTE(zoubir): the role branch's colour, by player_role
-global_variable u32 RoleBranchAccents[PlayerRole_Count] =
+// NOTE(zoubir): the role branch's colour, the class's (roles.cpp) a
+// little brighter
+inline u32
+RoleBranchAccent(u32 Role)
 {
-    UI_RGBA(255, 150, 70, 255),
-    UI_RGBA(110, 170, 255, 255),
-    UI_RGBA(130, 230, 150, 255),
-};
+    u8 *C = GetRoleDef(Role)->Color;
+    u32 Result = UI_RGBA(Minimum(255, C[0] + 15), Minimum(255, C[1] + 15), Minimum(255, C[2] + 15), 255);
+    return Result;
+}
 
 // NOTE(zoubir): the columns the panel shows, from FirstShownBranch: the
 // game's three outside a dungeon run, the class's own tree alone in one
@@ -88,7 +90,7 @@ inline u32
 TalentBranchAccent(player_slot *Slot, u32 Branch)
 {
     u32 Result = Branch < TALENT_GAME_BRANCHES ? TalentBranchAccents[Branch] :
-        RoleBranchAccents[Slot->Role < PlayerRole_Count ? Slot->Role : 0];
+        RoleBranchAccent(Slot->Role);
     return Result;
 }
 

@@ -28,13 +28,17 @@
 #define PARTY_BAR_HEIGHT 12.f
 #define PARTY_EMBLEM 26.f
 
-// NOTE(zoubir): each role's colour on the frames, by player_role
-global_variable u32 DungeonRoleColors[PlayerRole_Count] =
+// NOTE(zoubir): each class's colour on the frames (roles.cpp)
+inline u32
+RoleUIColor(u32 Role)
 {
-    UI_RGBA(240, 120, 60, 255),
-    UI_RGBA(96, 160, 245, 255),
-    UI_RGBA(120, 220, 140, 255),
-};
+    u8 *C = GetRoleDef(Role)->Color;
+    u32 Result = UI_RGBA(C[0], C[1], C[2], 255);
+    return Result;
+}
+
+internal void DrawClassEmblem(render_context *RenderContext, u32 Role, v2 C, float S, u32 Fill,
+                              u32 Light);
 
 // NOTE(zoubir): health's colour at Share of the most
 internal u32
@@ -84,6 +88,10 @@ DrawRoleEmblem(render_context *RenderContext, u32 Role, float X, float Y, float 
         DrawPartyQuad(RenderContext, C + V2(-0.4f * W, -0.7f * S), C + V2(0.4f * W, -0.7f * S),
                       C + V2(0.4f * W, 0.7f * S), C + V2(-0.4f * W, 0.7f * S), Light);
     }
+    else if (Role != PlayerRole_Damage)
+    {
+        DrawClassEmblem(RenderContext, Role, C, S, Fill, Light);
+    }
     else
     {
         // NOTE(zoubir): a flame: a round base under a point, twice over
@@ -106,7 +114,7 @@ DrawPartyFrame(render_context *RenderContext, app_state *AppState, app_input *In
     font *Small = AppState->Fonts.Small;
     float Clock = GetFxClock(AppState);
     u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
-    u32 RoleColor = DungeonRoleColors[Role];
+    u32 RoleColor = RoleUIColor(Role);
     bool32 Down = IsDeadPlayer(Player);
     bool32 Hot = PartyFrameUnderMouse(AppState, Input) == SlotIndex + 1;
     bool32 Focused = Pick->Focus == SlotIndex + 1;

@@ -76,7 +76,7 @@ BuildAbilityIconAtlas(open_gl *OpenGL, memory_arena *Scratch)
     for(u32 Index = 0; Index < ABILITY_ATLAS_CELLS; Index++)
     {
         ability_icon_painter *Paint = Index < ABILITY_SLOT_DEF_COUNT ?
-            AbilitySlotDefs[Index].Paint : RoleIconPainters[Index - ABILITY_SLOT_DEF_COUNT];
+            AbilitySlotDefs[Index].Paint : RoleIconPainterAt(Index - ABILITY_SLOT_DEF_COUNT);
         if (!Paint)
         {
             continue;

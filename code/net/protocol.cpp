@@ -248,6 +248,8 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 Score->Ward = LevelAndWard >> 7;
                 NetU8(S, &Score->Dungeon);
                 NetU8(S, &Score->DungeonMore);
+                NetU8(S, &Score->ClassMeter);
+                NetU8(S, &Score->ClassFlags);
                 if (Score->Slot >= NET_MAX_SNAPSHOT_SCORES) return false;
             }
             NetU8(S, &P->Snapshot.NameSlot);

@@ -19,7 +19,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d6du // "GDMm", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d6eu // "GDMn", change it whenever the layout changes
 // (GDMm: a dungeon run sends one player's meter a snapshot)
 // (GDMl: an open map vote sends every player's answer)
 // (GDMk: two dungeon casts came in before the rewinds, so cast ids moved,
@@ -33,7 +33,7 @@
 // client sends one per tick, whatever its frame rate, and the server
 // applies one per tick.
 #define NET_TICK_RATE 60
-#define NET_MAX_SNAPSHOT_ENTITIES 43 // moving things only; walls and trees are never sent (43 leaves room for the map vote and a dungeon run with its sanctuaries and infernos)
+#define NET_MAX_SNAPSHOT_ENTITIES 42 // moving things only; walls and trees are never sent (42 leaves room for the map vote, a dungeon run with its sanctuaries and infernos, and each player's class bytes)
 #define NET_MAX_SNAPSHOT_ABILITIES 8 // monsters winding up or striking at once
 #define NET_MAX_ABILITY_POINTS 4    // matches MAX_ABILITY_POINTS in entity.h
 #define NET_MAX_SNAPSHOT_SCORES 8   // one per player slot (MAX_PLAYERS)
@@ -115,7 +115,7 @@ enum net_button
 // Bits NET_ROLE_SHIFT and up are a dungeon role request (sim/dungeon/
 // roles.cpp): the player_role picked + 1, held and let go the same way.
 #define NET_ROLE_SHIFT 29
-#define NET_ROLE_MASK 0x3u
+#define NET_ROLE_MASK 0x7u
 #define NET_NO_BOSS 0xFFu
 #define NET_BOSS_ENRAGED 0xFFu
 #define NET_MAX_SANCTUARIES 4
@@ -269,14 +269,14 @@ struct net_score
     u16 MonsterKills;
     u8 Level;         // sim/progression/experience.cpp
     u8 Ward;          // 1 bit: the Ward talent's charge is up
-    // In a dungeon run (sim/dungeon/), 0 elsewhere: the player_role in
-    // bits 0-1, Shield Wall up in bit 2, a healer's ward in bit 3, and a
-    // downed player's revive progress in bits 4-7 (0..15 of the way).
+    // In a dungeon run (sim/dungeon/), 0 elsewhere: player_role in bits
+    // 0-1, Shield Wall bit 2, a ward bit 3, revive progress bits 4-7.
     u8 Dungeon;
-    // More of the same: a tank's rally on them in bit 0, a healer's
-    // Renewal in bit 1, and how many monsters are after them (0..7) in
-    // bits 2-4 (sim/dungeon/role_abilities.cpp).
+    // A rally bit 0, Renewal bit 1, monsters after them (0..7) bits 2-4,
+    // player_role's third bit in bit 5 (sim/dungeon/role_abilities.cpp).
     u8 DungeonMore;
+    u8 ClassMeter; // player_slot's (sim/dungeon/dungeon_slot_fields.inc)
+    u8 ClassFlags;
 };
 
 struct net_kill

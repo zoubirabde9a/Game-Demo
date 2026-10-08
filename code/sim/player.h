@@ -25,6 +25,8 @@
 // instant, so its reach is not part of the pace
 #define PLAYER_AIM_REACH 320.f
 
+#include "dungeon/class_states.h"
+
 // NOTE(zoubir): buttons pressed this tick (edge, not held). Same order as
 // the network's action buttons (NetButton_Jump onward, net/protocol.h),
 // so one shift turns either into the other (PlayerButtonsFromNet)

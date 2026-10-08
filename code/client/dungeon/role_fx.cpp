@@ -23,6 +23,9 @@
    - Last Stand plays Shield Slam's flare; Radiance, Sanctuary's pillar
      at the healer and a Mending Bolt's crosses on every ally it heals.
 
+   The later classes' bursts and lasting effects are their own files
+   (classes/<class>.cpp, through classes/class_fx.cpp).
+
    Lasting things are drawn from the run instead, the same offline and
    online: a Meteor falling onto its marked circle, then the ground
    burning; the striker's Searing and the tank's Sunder on the monsters
@@ -140,10 +143,16 @@ DrawLightCross(render_context *RenderContext, v2 P, float Size, u32 Color)
                  0.35f * Size, Color, Color);
 }
 
+#include "classes/class_fx.cpp"
+
 internal void
 DrawRoleBurst(render_context *RenderContext, app_state *AppState, role_burst *Burst,
               float T, v3 CameraOffset)
 {
+    if (DrawClassBurst(RenderContext, AppState, Burst, T, CameraOffset))
+    {
+        return;
+    }
     float EaseOut = 1.f - (1.f - T) * (1.f - T);
     float Fade = 1.f - T * T;
     v2 Centre = BurstToScreen(Burst->Position, CameraOffset);
@@ -423,6 +432,7 @@ internal void
 DrawRoleFx(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
 {
     DrawInfernos(RenderContext, AppState, CameraOffset);
+    DrawClassFx(RenderContext, AppState, CameraOffset);
     DrawFoeMarks(RenderContext, AppState, CameraOffset);
     DrawAllyTargetMark(RenderContext, AppState, CameraOffset);
     DrawRoleLooks(RenderContext, AppState, CameraOffset);
