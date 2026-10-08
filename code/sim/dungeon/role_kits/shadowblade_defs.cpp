@@ -6,17 +6,17 @@
 // NOTE(zoubir): Twin Strike (right click): two cuts at what is in front,
 // the second CUT_GAP after the first, each this hard; a foe within reach
 // (plus half its width) and inside the arc's half-angle is cut
-#define TWIN_STRIKE_DAMAGE 5.f
+#define TWIN_STRIKE_DAMAGE 2.2f
 #define TWIN_STRIKE_REACH 70.f
 #define TWIN_STRIKE_HALF_ARC 1.f
 #define TWIN_STRIKE_CUT_GAP 0.1f
 #define TWIN_STRIKE_SHOVE 30.f
-#define TWIN_STRIKE_COOLDOWN 0.42f
+#define TWIN_STRIKE_COOLDOWN 0.5f
 // NOTE(zoubir): Poisoned Shiv (X): a dagger thrown at a foe, then poison
 // for SHIV_POISON_SECONDS, ticking every SHIV_POISON_TICK
 #define SHIV_RANGE 430.f
-#define SHIV_DAMAGE 9.f
-#define SHIV_POISON_PER_SECOND 4.f
+#define SHIV_DAMAGE 6.f
+#define SHIV_POISON_PER_SECOND 3.f
 #define SHIV_POISON_SECONDS 6.f
 #define SHIV_POISON_TICK 0.5f
 #define SHIV_COOLDOWN 5.f
@@ -31,14 +31,14 @@
 // NOTE(zoubir): Fan of Knives (R): every foe this close is cut, one combo
 // point each
 #define FAN_OF_KNIVES_RADIUS 125.f
-#define FAN_OF_KNIVES_DAMAGE 12.f
+#define FAN_OF_KNIVES_DAMAGE 6.f
 #define FAN_OF_KNIVES_SHOVE 90.f
 #define FAN_OF_KNIVES_COOLDOWN 7.f
 // NOTE(zoubir): Eviscerate (W): the finisher on the foe in front, its
 // damage a base and so much a combo point it spends
 #define EVISCERATE_REACH 90.f
 #define EVISCERATE_DAMAGE 4.f
-#define EVISCERATE_PER_POINT 10.f
+#define EVISCERATE_PER_POINT 4.f
 #define EVISCERATE_SHOVE 140.f
 #define EVISCERATE_COOLDOWN 0.8f
 // NOTE(zoubir): Smoke Bomb (C, from the tree): a cloud at the feet;
