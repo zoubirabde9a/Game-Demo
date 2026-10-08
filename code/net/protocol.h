@@ -20,7 +20,8 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d71u // "GDMq", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d72u // "GDMr", change it whenever the layout changes
+// (GDMr: player_role's fourth bit in net_score.DungeonMore bit 6, for the ninth and tenth classes)
 // (GDMq: the dungeon role request is a byte of its own, net_input.Role, as eight classes
 // and "none" do not fit the three spare bits of the held buttons)
 // (GDMo: 30 talent ranks, the class talents in 3 bits, for the deeper class trees)
@@ -281,7 +282,8 @@ struct net_score
     // 0-1, Shield Wall bit 2, a ward bit 3, revive progress bits 4-7.
     u8 Dungeon;
     // A rally bit 0, Renewal bit 1, monsters after them (0..7) bits 2-4,
-    // player_role's third bit in bit 5 (sim/dungeon/role_abilities.cpp).
+    // player_role's third bit in bit 5, its fourth in bit 6
+    // (sim/dungeon/role_abilities.cpp).
     u8 DungeonMore;
     u8 ClassMeter; // player_slot's (sim/dungeon/dungeon_slot_fields.inc)
     u8 ClassFlags;
