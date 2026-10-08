@@ -37,7 +37,7 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 |---|---|---|
 | Forgemaster Kragg | 800 | 1:50 |
 | Sskarra the Cinder Wyrm | 1350 | 1:20 |
-| Vol'karr the Ember Tyrant | 2150 | 1:55 |
+| Vol'karr the Ember Tyrant | 1850 | 1:55 |
 
 **Forgemaster Kragg**, a squat giant of riveted iron over a molten core, a forge hammer as long as he is tall.
 - Anvil Drop: a wide slam (115 across, 23 damage) that burns and leaves embers on the floor.
@@ -103,6 +103,8 @@ With sixteen seeds the gap was the packs: the bridge cost the bots 0.2 deaths pe
 A boss's timed adds (Anvil Guards, Dune Lurkers, Cinder Imps, the Magma Champion, and the crypt's own) now fall apart when the boss dies (`CrumbleBossAdds`, `boss_clock.cpp`). Before, an add the party had not chased kept the room from clearing, and much of what looked like a long Kragg fight was the bots hunting a guard after he fell: his kills took 44 to 288 s, and now take 20 to 52. Every boss fight got shorter with it (over sixteen seeds: the Brood Queen 23 s, the Hollow King 60 s, Vol'karr 74 s). Kragg also has 800 health and hits harder (bite 18, Anvil Drop 23, Bellows Rush 22); he is still the gentlest depths boss in a full run (0.07 deaths per kill, the Hollow King 0.45).
 
 Sskarra's young now come three at a time and Kragg's guards three times (at 80%, 55% and 30%, merging after 16 s). Over sixteen seeds Sskarra went from 0.20 to 0.84 deaths per kill, above the Hollow King's 0.43; Kragg stayed near none in a full run, where most of his kills come from a party on its second or third lap, far above the level it first meets him at (alone, at that level, 0.38).
+
+Vol'karr was the longest fight in the game (72 s on average, alone over sixteen seeds). He has 1850 health instead of 2150, and now dies in 45 to 84 s, 65 on average, at 1.7 deaths per kill. Bigger imp waves on top made him no shorter, as the party spent the saved time on the imps.
 
 ## Online
 

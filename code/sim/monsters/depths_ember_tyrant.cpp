@@ -21,7 +21,7 @@ internal void
 DefineMonster_EmberTyrant(monster_def *Def)
 {
     Def->Name = "Vol'karr the Ember Tyrant";
-    Def->MaxHp = 2150.f;
+    Def->MaxHp = 1850.f;
     Def->Acceleration = 28000.f;
     Def->AggroRange = 720.f;
     Def->StopRange = 52.f;
