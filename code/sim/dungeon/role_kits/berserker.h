@@ -68,9 +68,17 @@ struct berserker_slot
     u32 WhirlHits;
     // NOTE(zoubir): client only (client/dungeon/classes/berserker.cpp):
     // the burst clock of the newest burst of this player already started
-    // (a body swing, cracks), and the flags seen last frame
+    // (a body swing, cracks)
     float FxSeen;
-    u32 FlagsSeen;
+    // NOTE(zoubir): client only, the Rage bar (ui/dungeon/classes/
+    // berserker_hud.cpp): the fill shown, where a gain's flash starts and
+    // its seconds left, the refusal's shake (1 down to 0), and the clock
+    // it last drew at
+    float ShownRage;
+    float GainFrom;
+    float GainSeconds;
+    float Refused;
+    float HudClock;
 };
 
 // NOTE(zoubir): a hand axe in flight to a foe: it lands after Delay

@@ -182,6 +182,29 @@ BerserkerSpellRadius(player_slot *Slot, u32 Key, float Base)
     return Base;
 }
 
+// NOTE(zoubir): developer builds, offline: GAME_BERSERKER=full gives a
+// Berserker every talent and a full bar of Rage, kept full, so a scripted
+// screenshot (misc\screenshot.bat) can show every spell and the looks Rage
+// lights up
+internal void
+ApplyDeveloperBerserker(player_slot *Slot)
+{
+#if APP_DEV
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    char *Value = getenv("GAME_BERSERKER");
+#pragma warning(pop)
+    if (Value && Value[0] == 'f')
+    {
+        for(u32 Talent = 0; Talent < ROLE_TALENTS; Talent++)
+        {
+            Slot->Ranks[Talent_RoleFirst + Talent] = (u8)BerserkerTalentDefs[Talent].MaxLevel;
+        }
+        Slot->ClassMeter = BERSERKER_RAGE_MAX;
+    }
+#endif
+}
+
 // NOTE(zoubir): once a tick, from UpdateRoleEffects: Rage, Berserk, the
 // axes in flight, the Whirlwind's spin and the Leaps, for every
 // Berserker
@@ -200,6 +223,7 @@ UpdateBerserkerEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
             continue;
         }
         world_entity *Player = Slot->Entity;
+        ApplyDeveloperBerserker(Slot);
         UpdateRage(Slot, Player, DeltaTime);
         if (Player->CastSpell == PlayerSpell_BerserkerA)
         {
