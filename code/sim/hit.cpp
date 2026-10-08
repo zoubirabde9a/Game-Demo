@@ -124,12 +124,20 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
         return false;
     }
     bool32 Dodges = Hit->Unavoidable ? Target->SpawnShield > 0.f : IsDodging(Target);
+    v3 Chest = Target->Position;
+    Chest.Z += 16.f;
     if (Hit->Burst != SimBurst_Count && !Dodges)
     {
-        v3 Chest = Target->Position;
-        Chest.Z += 16.f;
         EmitBurst(&AppState->Events, Hit->Burst, (u8)BySlot, Chest,
                   ATan2(Away.Y, Away.X));
+    }
+    // NOTE(zoubir): a hit that does nothing still shows, so neither side
+    // thinks it was lost
+    if (Dodges && Target->Type == EntityType_Player)
+    {
+        EmitBurst(&AppState->Events,
+                  Target->SpawnShield > 0.f ? SimBurst_Blocked : SimBurst_Dodged,
+                  (u8)BySlot, Chest, ATan2(Away.Y, Away.X));
     }
 
     monster_affix_def *Affix = GetAffix(Source ? Source->EliteAffix : 0);

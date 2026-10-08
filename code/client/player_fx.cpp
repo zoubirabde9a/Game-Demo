@@ -19,8 +19,9 @@
      up (player_fx/shield_bubble.cpp);
    - status motes: embers, bubbles, drops and sparkles round units with a
      status effect running (player_fx/status_fx.cpp);
-   - status words: an effect's name over a unit as it starts
-     ("Stunned", "Rooted") (player_fx/status_words.cpp);
+   - reaction words: a status effect's name over a unit as it starts
+     ("Stunned", "Rooted"), and "Blocked" or "Dodged" where a hit did
+     nothing (player_fx/reaction_words.cpp);
    - cast glow: light gathering in the hand of every player winding up a
      spell, and its flash when the spell goes off (player_fx/cast_glow.cpp,
      cast_fx.cpp);
@@ -39,14 +40,13 @@
 #include "player_fx/kunai_fx.cpp"
 #include "player_fx/shield_bubble.cpp"
 #include "player_fx/status_fx.cpp"
-#include "player_fx/status_words.cpp"
+#include "player_fx/reaction_words.cpp"
 #include "player_fx/cast_glow.cpp"
 
 struct player_fx
 {
     dash_streaks Dashes;
     hit_numbers Hits;
-    status_words Words;
     fireball_trails Embers;
     kunai_trails Kunai;
     float ShieldGrow[MAX_PLAYERS];
@@ -68,7 +68,7 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     UpdateCastFx(AppState, DeltaTime);
     UpdateDashStreaks(&Fx->Dashes, AppState, DeltaTime);
     UpdateHitNumbers(&Fx->Hits, AppState, DeltaTime);
-    UpdateStatusWords(&Fx->Words, AppState, DeltaTime);
+    UpdateReactionWords(AppState, DeltaTime);
     UpdateFireBallTrails(&Fx->Embers, AppState, DeltaTime);
     UpdateKunaiTrails(&Fx->Kunai, AppState, DeltaTime);
 
@@ -82,7 +82,7 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     DrawAimMarker(RenderContext, AppState, CameraOffset);
     DrawHitNumbers(RenderContext, AppState, &Fx->Hits, CameraOffset);
     DrawHitCombo(RenderContext, AppState, &Fx->Hits, CameraOffset);
-    DrawStatusWords(RenderContext, AppState, &Fx->Words, CameraOffset);
+    DrawReactionWords(RenderContext, AppState, CameraOffset);
     DrawCastGlows(RenderContext, AppState, CameraOffset);
     DrawPlayerCastBars(RenderContext, AppState, CameraOffset);
     DrawFxBursts(RenderContext, AppState, CameraOffset, DeltaTime);

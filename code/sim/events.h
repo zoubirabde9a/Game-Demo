@@ -82,6 +82,10 @@ enum sim_burst
     SimBurst_MonsterBite,  // a monster's plain bite or blow
     SimBurst_MonsterHit,   // a monster ability or shot landing
     SimBurst_Smite,        // a blow nobody can dodge (MonsterAbility_Smite)
+    // NOTE(zoubir): a hit that did nothing to the player at Position;
+    // clients also write the word over them (client/player_fx/reaction_words.cpp)
+    SimBurst_Blocked,      // turned away by a shield (Shield, a fresh spawn)
+    SimBurst_Dodged,       // slipped mid-dash or blink
     // NOTE(zoubir): the later classes' bursts, CLASS_BURSTS each: what
     // each is, the class's kit says (sim/dungeon/role_kits/<class>.cpp,
     // as SimBurst_<Class>First + n), and how it looks, its client file

@@ -575,6 +575,37 @@ TestDashDodgesHits()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a hit that does nothing still says so: mid-dash it is
+// Dodged, under a shield Blocked (client/player_fx/reaction_words.cpp
+// writes the word); a hit that lands is neither
+internal void
+TestHarmlessHitsSayWhy()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    AppState->PlayerCollision = Test.UnitVolume;
+    world_entity *Player = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                           0, {300, 300, 0});
+    Player->SpawnShield = 0.f;
+    hit Hit = {10.f, 0.f, 0.f, 0.f, 0.f, SimBurst_Count, StatusEffect_None, 0.f};
+    AppState->Events.Count = 0;
+    ApplyHit(AppState, Test.World, Player, &Hit, V2(1.f, 0.f), 0, SIM_NOBODY);
+    Check(CountBursts(AppState, SimBurst_Blocked) == 0);
+    Check(CountBursts(AppState, SimBurst_Dodged) == 0);
+
+    Player->SpawnShield = 1.f;
+    AppState->Events.Count = 0;
+    ApplyHit(AppState, Test.World, Player, &Hit, V2(1.f, 0.f), 0, SIM_NOBODY);
+    Check(CountBursts(AppState, SimBurst_Blocked) == 1);
+
+    Player->SpawnShield = 0.f;
+    Player->DashFlash = 0.1f;
+    AppState->Events.Count = 0;
+    ApplyHit(AppState, Test.World, Player, &Hit, V2(1.f, 0.f), 0, SIM_NOBODY);
+    Check(CountBursts(AppState, SimBurst_Dodged) == 1);
+    DestroyTestWorld(&Test);
+}
+
 // NOTE(zoubir): standing in a hazard gives its status; jumping over it
 // does not
 internal void
@@ -1960,6 +1991,7 @@ RunPlayerAbilityTests()
     TestSwordHitsItsSliceAtAnyAngle();
     printf("TestDashDodgesHits\n");
     TestDashDodgesHits();
+    TestHarmlessHitsSayWhy();
     printf("TestJumpClearsGroundHazards\n");
     TestJumpClearsGroundHazards();
     printf("TestSwingsInTheAirArePaced\n");

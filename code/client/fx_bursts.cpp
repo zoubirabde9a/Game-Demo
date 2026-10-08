@@ -137,6 +137,10 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Slash, 0.22f, 18.f, 0x005050FF, false, 0.12f, BurstPose_None},    // MonsterBite, red
     {BurstShape_Spark, 0.25f, 22.f, 0x0040A0FF, false, 0.2f, BurstPose_None},     // MonsterHit, orange
     {BurstShape_Column, 0.6f, 34.f, 0x002848FF, false, 0.55f, BurstPose_None},    // Smite, crimson
+    // NOTE(zoubir): a hit that did nothing: a pale clang off a shield, a
+    // puff of air where a dash slipped it
+    {BurstShape_Spark, 0.25f, 24.f, 0x00FFD896, false, 0.f, BurstPose_None},      // Blocked, pale blue
+    {BurstShape_Puff, 0.3f, 18.f, 0x00F0F0F0, false, 0.f, BurstPose_None},        // Dodged, white
 #include "dungeon/classes/ranger_bursts.inc"
 #include "dungeon/classes/berserker_bursts.inc"
 #include "dungeon/classes/shadowblade_bursts.inc"
@@ -249,6 +253,8 @@ GetFxClock(app_state *AppState)
 // NOTE(zoubir): in client/dungeon/role_fx.cpp, included later
 internal void AddRoleBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,
                            float Angle);
+// NOTE(zoubir): in client/player_fx/reaction_words.cpp, included later
+internal void AddBurstWord(app_state *AppState, sim_burst Kind, v3 Position);
 
 // NOTE(zoubir): a full pool skips a footstep's dust, or else drops the
 // oldest burst
@@ -301,6 +307,10 @@ AddBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,
     {
         AddRoleBurst(AppState, Kind, Slot, Position, Angle);
         return;
+    }
+    if (Kind == SimBurst_Blocked || Kind == SimBurst_Dodged)
+    {
+        AddBurstWord(AppState, Kind, Position);
     }
     player_combo *Combo = FindComboByBurst(Kind);
     if (Combo && Slot < MAX_PLAYERS)
