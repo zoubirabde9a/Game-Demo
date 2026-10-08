@@ -241,6 +241,37 @@ DrawPartyFrame(render_context *RenderContext, app_state *AppState, app_input *In
     }
 }
 
+// NOTE(zoubir): how many frames there are, and how tall each one is
+internal u32
+CountPartyFrames(app_state *AppState, u32 WindowHeight, float *Height)
+{
+    u32 Count = 0;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        Count += (Slot->Active && Slot->Entity) ? 1 : 0;
+    }
+    float Room = 0.6f * (float)WindowHeight;
+    *Height = ((float)Count * (PARTY_FRAME_HEIGHT + PARTY_FRAME_GAP) > Room) ?
+        PARTY_FRAME_COMPACT : PARTY_FRAME_HEIGHT;
+    return Count;
+}
+
+// NOTE(zoubir): the top of the highest frame in window pixels, or
+// WindowHeight when no frames show; the chat (chat_view.cpp) sits above it
+internal float
+PartyFramesTop(app_state *AppState, u32 WindowHeight)
+{
+    float Height = PARTY_FRAME_HEIGHT;
+    u32 Count = IsDungeon(AppState) ? CountPartyFrames(AppState, WindowHeight, &Height) : 0;
+    float Result = (float)WindowHeight;
+    if (Count > 0)
+    {
+        Result -= PARTY_FRAME_BOTTOM + (float)Count * Height + (float)(Count - 1) * PARTY_FRAME_GAP;
+    }
+    return Result;
+}
+
 // NOTE(zoubir): every party member, the local player at the bottom and
 // the others stacked above in slot order
 internal void
@@ -248,16 +279,12 @@ DrawDungeonParty(render_context *RenderContext, app_state *AppState, app_input *
                  u32 WindowHeight)
 {
     party_pick *Pick = GetPartyPick(AppState);
-    u32 Count = 0;
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         Pick->FrameWidth[SlotIndex] = 0.f;
-        player_slot *Slot = &AppState->Players[SlotIndex];
-        Count += (Slot->Active && Slot->Entity) ? 1 : 0;
     }
-    float Room = 0.6f * (float)WindowHeight;
-    float Height = ((float)Count * (PARTY_FRAME_HEIGHT + PARTY_FRAME_GAP) > Room) ?
-        PARTY_FRAME_COMPACT : PARTY_FRAME_HEIGHT;
+    float Height = PARTY_FRAME_HEIGHT;
+    CountPartyFrames(AppState, WindowHeight, &Height);
     float X = PARTY_FRAME_MARGIN;
     float Y = (float)WindowHeight - PARTY_FRAME_BOTTOM - Height;
     for(u32 Pass = 0; Pass < 2; Pass++)

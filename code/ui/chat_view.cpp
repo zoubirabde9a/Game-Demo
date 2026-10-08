@@ -2,7 +2,8 @@
    bottom, as "Name: text" with the name in a colour (gold for your own),
    wrapped to the room left of the ability bar. A line shows for
    CHAT_SHOW_SECONDS and fades over the last second; while the line to
-   type in is open, every kept line shows on a glass panel above it. */
+   type in is open, every kept line shows on a glass panel above it. In a
+   dungeon the whole chat sits above the party frames. */
 
 #define CHAT_SHOW_SECONDS 12.f
 #define CHAT_FADE_SECONDS 1.f
@@ -56,8 +57,10 @@ DrawChat(render_context *RenderContext, app_state *AppState, u32 WindowWidth, u3
     float Width = Minimum(Maximum(Room, CHAT_MIN_WIDTH), CHAT_MAX_WIDTH);
     float Left = UI_GAP_LARGE;
     float LineHeight = UILineHeight(Font);
-    // NOTE(zoubir): above the controls hint in the corner (controls_panel.cpp)
+    // NOTE(zoubir): above the controls hint in the corner (controls_panel.cpp),
+    // and above the party frames in a dungeon, which would cover it
     float Bottom = (float)WindowHeight - UI_GAP_LARGE - UILineHeight(Small) - UI_GAP_SMALL;
+    Bottom = Minimum(Bottom, PartyFramesTop(AppState, WindowHeight) - UI_GAP_LARGE);
 
     char Draft[NET_CHAT_SIZE + 8];
     float BoxHeight = LineHeight + 2.f * UI_GAP_SMALL;
