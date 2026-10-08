@@ -93,30 +93,52 @@ ShadowbladeStrike(app_state *AppState, player_slot *Slot, world_entity *Player, 
     return Result;
 }
 
-// NOTE(zoubir): one of Twin Strike's cuts along Direction; returns how
-// many foes it cut
+// NOTE(zoubir): whether Foe is in reach of a Twin Strike cut along
+// Direction, and how far it is
+inline bool32
+InTwinStrikeArc(world *World, world_entity *Player, world_entity *Foe, u32 Room, v2 Direction,
+                float *Distance)
+{
+    v2 Offset = Foe->Position.XY - Player->Position.XY;
+    *Distance = Length(Offset);
+    float Reach = TWIN_STRIKE_REACH + 0.5f * Foe->Dimensions.X;
+    bool32 Result = IsShadowbladeFoe(World, Foe, Room) && *Distance <= Reach &&
+        (*Distance <= 8.f || DotProduct(Offset, Direction) >= Cos(TWIN_STRIKE_HALF_ARC) * *Distance);
+    return Result;
+}
+
+// NOTE(zoubir): one of Twin Strike's cuts along Direction: the nearest
+// foe in the arc takes it whole, the others TWIN_STRIKE_SPLASH of it, so
+// the daggers duel rather than sweep; returns how many foes it cut
 internal u32
 TwinStrikeCut(app_state *AppState, player_slot *Slot, world_entity *Player, v2 Direction)
 {
     world *World = &AppState->World;
     u32 Room = RoomAtPosition(World, Player->Position.XY);
-    float Cosine = Cos(TWIN_STRIKE_HALF_ARC);
-    u32 Result = 0;
+    world_entity *Nearest = 0;
+    float Best = 0.f;
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Foe = &World->Entities[EntityIndex];
-        if (!IsShadowbladeFoe(World, Foe, Room))
+        float Distance;
+        if (InTwinStrikeArc(World, Player, Foe, Room, Direction, &Distance) && (!Nearest || Distance < Best))
+        {
+            Nearest = Foe;
+            Best = Distance;
+        }
+    }
+    u32 Result = 0;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount && Nearest; EntityIndex++)
+    {
+        world_entity *Foe = &World->Entities[EntityIndex];
+        float Distance;
+        if (!InTwinStrikeArc(World, Player, Foe, Room, Direction, &Distance))
         {
             continue;
         }
         v2 Offset = Foe->Position.XY - Player->Position.XY;
-        float Distance = Length(Offset);
-        float Reach = TWIN_STRIKE_REACH + 0.5f * Foe->Dimensions.X;
-        if (Distance > Reach || (Distance > 8.f && DotProduct(Offset, Direction) < Cosine * Distance))
-        {
-            continue;
-        }
-        ShadowbladeStrike(AppState, Slot, Player, Foe, TWIN_STRIKE_DAMAGE, TWIN_STRIKE_SHOVE,
+        float Damage = TWIN_STRIKE_DAMAGE * (Foe == Nearest ? 1.f : TWIN_STRIKE_SPLASH);
+        ShadowbladeStrike(AppState, Slot, Player, Foe, Damage, TWIN_STRIKE_SHOVE,
                           Distance > 0.f ? (1.f / Distance) * Offset : Direction);
         Result++;
     }
