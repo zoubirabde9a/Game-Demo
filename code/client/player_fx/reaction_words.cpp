@@ -11,8 +11,16 @@
    - A hit that did nothing because the player was shielded or mid-dash
      (sim/hit.cpp emits SimBurst_Blocked or SimBurst_Dodged), or that a
      monster's shell mostly turned away (sim/entity.cpp): "Blocked" or
-     "Dodged" where it landed, so neither side thinks the hit was lost. These come as bursts (fx_bursts.cpp calls AddBurstWord), which
-     the server already forwards.
+     "Dodged" where it landed, so neither side thinks the hit was lost.
+     These come as bursts (fx_bursts.cpp calls AddBurstWord), which the
+     server already forwards.
+   - A monster that starts coming for the local player: a big "!" over
+     it, the moment the player steps inside its AggroRange while the
+     nearest living player to it (UpdateMonster, sim/update.cpp). Worked
+     out here from positions, so nothing extra is sent; it clears once
+     the player is REACTION_ALERT_SLACK past the range again, so walking
+     along the edge does not flicker. Not in dungeons, where the server's
+     threat table picks the target (sim/dungeon/threat.cpp).
 
    Words starting together over one unit stack upward. Entry points:
    UpdateReactionWords and DrawReactionWords from player_fx.cpp. */
@@ -27,6 +35,8 @@
 #define REACTION_WORD_REPEAT_PIXELS 40.f
 #define REACTION_WORD_TRACKED ArrayCount(((world *)0)->Entities)
 #define REACTION_WORD_NO_ENTITY 0xFFFFFFFF
+#define REACTION_ALERT_SLACK 60.f
+#define REACTION_ALERT_COLOR UI_RGBA(255, 120, 60, 255)
 
 struct reaction_word
 {
@@ -38,6 +48,9 @@ struct reaction_word
     u32 EntityIndex;
     v3 Position;
     u8 Stack;
+    // NOTE(zoubir): the "!" of a monster coming for the player: a bigger
+    // font and a bounce
+    bool32 Alert;
     float Age;
 };
 
@@ -51,6 +64,9 @@ struct reaction_words
     // by another entity restarts
     u32 SeenID[REACTION_WORD_TRACKED];
     u16 Running[REACTION_WORD_TRACKED];
+    // NOTE(zoubir): per monster slot, whether it is coming for the local
+    // player
+    u8 Alerted[REACTION_WORD_TRACKED];
 };
 
 internal reaction_words *
@@ -94,6 +110,7 @@ AddReactionWord(reaction_words *Fx, char *Text, u32 Color, v3 Position,
         Word->EntityID = EntityID;
         Word->EntityIndex = EntityIndex;
         Word->Stack = Stack;
+        Word->Alert = false;
         Word->Age = 0.f;
     }
     return Word;
@@ -123,11 +140,37 @@ AddBurstWord(app_state *AppState, sim_burst Kind, v3 Position)
     AddReactionWord(Fx, Text, Color, Position, 0, REACTION_WORD_NO_ENTITY, 0);
 }
 
+// NOTE(zoubir): whether Monster is after Local, as UpdateMonster picks
+// outside dungeons: the nearest living player, within AggroRange (plus
+// Slack, to keep an alert going)
+internal bool32
+IsMonsterAfter(world *World, world_entity *Monster, world_entity *Local, float Slack)
+{
+    monster_stats *Stats = GetMonsterStats(Monster->MonsterKind);
+    float Mine = LengthSq(Local->Position.XY - Monster->Position.XY);
+    if (Stats->AggroRange <= 0.f || Mine > Square(Stats->AggroRange + Slack))
+    {
+        return false;
+    }
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        world_entity *Other = &World->Entities[Index];
+        if (Other != Local && Other->IsPresent && Other->Type == EntityType_Player &&
+            Other->Hp > 0.f &&
+            LengthSq(Other->Position.XY - Monster->Position.XY) < Mine)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 internal void
 UpdateReactionWords(app_state *AppState, float DeltaTime)
 {
     reaction_words *Fx = GetReactionWords(AppState);
     world *World = &AppState->World;
+    world_entity *Local = GetLocalPlayer(AppState);
     u32 Count = Minimum(World->EntityCount, (u32)REACTION_WORD_TRACKED);
     for(u32 Index = 0; Index < Count; Index++)
     {
@@ -146,14 +189,32 @@ UpdateReactionWords(app_state *AppState, float DeltaTime)
                 Running |= (u16)(1 << Effect);
             }
         }
+        bool32 Alerted = false;
+        if (Entity->Type == EntityType_Monster && Local && Local->IsPresent &&
+            Local->Hp > 0.f && !IsDungeon(AppState))
+        {
+            Alerted = IsMonsterAfter(World, Entity, Local,
+                                     Fx->Alerted[Index] ? REACTION_ALERT_SLACK : 0.f);
+        }
         // NOTE(zoubir): an entity seen for the first time (a join, a
         // spawn, the first snapshot) does not announce what it came with
         if (Fx->SeenID[Index] != Entity->ID + 1)
         {
             Fx->SeenID[Index] = Entity->ID + 1;
             Fx->Running[Index] = Running;
+            Fx->Alerted[Index] = (u8)Alerted;
             continue;
         }
+        if (Alerted && !Fx->Alerted[Index])
+        {
+            reaction_word *Word = AddReactionWord(Fx, "!", REACTION_ALERT_COLOR,
+                                                  Entity->Position, Entity->ID, Index, 0);
+            if (Word)
+            {
+                Word->Alert = true;
+            }
+        }
+        Fx->Alerted[Index] = (u8)Alerted;
         u16 Started = Running & ~Fx->Running[Index];
         Fx->Running[Index] = Running;
         u8 Stack = 0;
@@ -224,7 +285,16 @@ DrawReactionWords(render_context *RenderContext, app_state *AppState, v3 CameraO
         }
         u32 Color = (Word->Color & 0x00FFFFFF) | (Alpha << 24);
         u32 Shadow = UI_RGBA(10, 8, 14, (u32)(0.8f * (float)Alpha));
-        UIText(RenderContext, Font, Head.X + 1.f, Y + 1.f, Word->Text, Shadow, UIAlign_Center);
-        UIText(RenderContext, Font, Head.X, Y, Word->Text, Color, UIAlign_Center);
+        font *WordFont = Font;
+        if (Word->Alert)
+        {
+            // NOTE(zoubir): the "!" stays put and hops twice instead of
+            // rising: it marks the monster, it is not a hit
+            WordFont = AppState->Fonts.Title;
+            float Hop = Absolute(Sin(2.f * Pi32 * Minimum(Progress, 0.5f) * 2.f));
+            Y = Head.Y - 10.f * Hop - UILineHeight(WordFont);
+        }
+        UIText(RenderContext, WordFont, Head.X + 2.f, Y + 2.f, Word->Text, Shadow, UIAlign_Center);
+        UIText(RenderContext, WordFont, Head.X, Y, Word->Text, Color, UIAlign_Center);
     }
 }
