@@ -4,6 +4,7 @@
    exit code 0 means every check passed. */
 
 #include "../app.cpp"
+#include "test_parts.h"
 
 // Sets an environment variable for the online-session tests. "" counts as
 // unset to the game, so Windows deleting it and POSIX keeping it empty agree.
@@ -790,11 +791,10 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "kunai_tests.cpp"
 #include "dungeon_tests.cpp"
 
-#define RUN(Test) printf("%s\n", #Test); Test()
-
 int
-main()
+main(int ArgCount, char **Args)
 {
+    ReadTestPart(ArgCount, Args);
     // NOTE(zoubir): a failed Assert crashes, so print as we go to show
     // which test it was
     setvbuf(stdout, 0, _IONBF, 0);
@@ -802,50 +802,50 @@ main()
     // health; duel_tests.cpp checks the duel rules the game plays
     GameRules = ClassicRules;
 
-    RUN(TestFireBallKillsMonsterOnce);
-    RUN(TestFireBallShovesMonster);
-    RUN(TestMonsterDyingMidMoveLeavesNoGhost);
-    RUN(TestRemovedSlotIsReused);
-    RUN(TestRemovingEntityPastMapEdgeFreesItOnce);
-    RUN(TestHazardAimedOffMapLandsOnIt);
-    RUN(TestShockwaveHitsOnlyNearbyMonsters);
-    RUN(TestMonsterPopulationRefillsAwayFromPlayers);
-    RUN(TestIdleMonsterWanders);
-    RUN(TestEachSlotFollowsItsOwnInput);
-    RUN(TestMonsterChasesNearestPlayer);
-    RUN(TestSwordHitsOtherPlayerNotOwner);
-    RUN(TestSwordHitsMonster);
-    RUN(TestFireBallHitsOtherPlayerNotOwner);
-    RUN(TestShockwaveHitsOtherPlayersNotSource);
-    RUN(TestMonsterBiteCreditsNobody);
-    RUN(TestDeadPlayerIsInertUntilRespawn);
-    RUN(TestScoreboardRanksByKillsThenDeaths);
-    RUN(TestCrowdedChunkRemovalKeepsEveryone);
-    RUN(TestCopyString);
-    RUN(TestEmptyAnimationSlotDoesNotCrash);
-    RUN(TestAnimationAdvancesWithoutTexture);
-    RUN(TestSimulateTickQueuesSoundsInsteadOfPlaying);
-    RUN(TestSwitchingMapsReusesWorldMemory);
+    GROUP(RUN(TestFireBallKillsMonsterOnce));
+    GROUP(RUN(TestFireBallShovesMonster));
+    GROUP(RUN(TestMonsterDyingMidMoveLeavesNoGhost));
+    GROUP(RUN(TestRemovedSlotIsReused));
+    GROUP(RUN(TestRemovingEntityPastMapEdgeFreesItOnce));
+    GROUP(RUN(TestHazardAimedOffMapLandsOnIt));
+    GROUP(RUN(TestShockwaveHitsOnlyNearbyMonsters));
+    GROUP(RUN(TestMonsterPopulationRefillsAwayFromPlayers));
+    GROUP(RUN(TestIdleMonsterWanders));
+    GROUP(RUN(TestEachSlotFollowsItsOwnInput));
+    GROUP(RUN(TestMonsterChasesNearestPlayer));
+    GROUP(RUN(TestSwordHitsOtherPlayerNotOwner));
+    GROUP(RUN(TestSwordHitsMonster));
+    GROUP(RUN(TestFireBallHitsOtherPlayerNotOwner));
+    GROUP(RUN(TestShockwaveHitsOtherPlayersNotSource));
+    GROUP(RUN(TestMonsterBiteCreditsNobody));
+    GROUP(RUN(TestDeadPlayerIsInertUntilRespawn));
+    GROUP(RUN(TestScoreboardRanksByKillsThenDeaths));
+    GROUP(RUN(TestCrowdedChunkRemovalKeepsEveryone));
+    GROUP(RUN(TestCopyString));
+    GROUP(RUN(TestEmptyAnimationSlotDoesNotCrash));
+    GROUP(RUN(TestAnimationAdvancesWithoutTexture));
+    GROUP(RUN(TestSimulateTickQueuesSoundsInsteadOfPlaying));
+    GROUP(RUN(TestSwitchingMapsReusesWorldMemory));
 
-    RunMonsterTests();
-    RunSmiteTests();
-    RunSpriteSheetTests();
+    GROUP(RunMonsterTests());
+    GROUP(RunSmiteTests());
+    GROUP(RunSpriteSheetTests());
     RunTerrainTests();
-    RunHazardTests();
+    GROUP(RunHazardTests());
     RunCollisionTests();
-    RunOnlineTests();
-    RunPlayerNameTests();
-    RunTextFieldTests();
-    RunPlayerAbilityTests();
-    RunCursorTests();
-    RunControlSchemeTests();
-    RunSoundTests();
-    RunCameraTests();
-    RunPlayerFeelTests();
-    RunDuelTests();
-    RunRoundRulesTests();
-    RunProgressionTests();
-    RunKunaiTests();
+    GROUP(RunOnlineTests());
+    GROUP(RunPlayerNameTests());
+    GROUP(RunTextFieldTests());
+    GROUP(RunPlayerAbilityTests());
+    GROUP(RunCursorTests());
+    GROUP(RunControlSchemeTests());
+    GROUP(RunSoundTests());
+    GROUP(RunCameraTests());
+    GROUP(RunPlayerFeelTests());
+    GROUP(RunDuelTests());
+    GROUP(RunRoundRulesTests());
+    GROUP(RunProgressionTests());
+    GROUP(RunKunaiTests());
     RunDungeonTests();
 
     printf("%d of %d checks passed\n", TestChecks - TestFailures, TestChecks);

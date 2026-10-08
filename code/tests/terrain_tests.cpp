@@ -537,9 +537,14 @@ PlayInfiniteMapFarAway(map_id MapId)
 }
 
 internal void
-TestInfiniteMapsPlayFarFromOrigin()
+TestWildsPlaysFarFromOrigin()
 {
     PlayInfiniteMapFarAway(MapId_Wilds);
+}
+
+internal void
+TestWastesPlaysFarFromOrigin()
+{
     PlayInfiniteMapFarAway(MapId_Wastes);
 }
 
@@ -1049,51 +1054,29 @@ TestSpawnsStandOnHighGround()
 internal void
 RunTerrainTests()
 {
-    printf("TestClimbStepsMatchJumpHeights\n");
-    TestClimbStepsMatchJumpHeights();
-    printf("TestElevationChangesTerrainHash\n");
-    TestElevationChangesTerrainHash();
-    printf("TestTerrainIsFeltOnHighGround\n");
-    TestTerrainIsFeltOnHighGround();
-    printf("TestSpawnsStandOnHighGround\n");
-    TestSpawnsStandOnHighGround();
-    printf("TestFindMapByName\n");
-    TestFindMapByName();
-    printf("TestBuildKeepWorld\n");
-    TestBuildKeepWorld();
-    printf("TestGroundRulesApplyToWhoStandsOnIt\n");
-    TestGroundRulesApplyToWhoStandsOnIt();
-    printf("TestLavaBurnsWhoStandsInIt\n");
-    TestLavaBurnsWhoStandsInIt();
-    printf("TestSnowSlowsMonsters\n");
-    TestSnowSlowsMonsters();
-    printf("TestUnboundedWorldTracksNegativePositions\n");
-    TestUnboundedWorldTracksNegativePositions();
-    printf("TestInfiniteMapsPlayFarFromOrigin\n");
-    TestInfiniteMapsPlayFarFromOrigin();
-    printf("TestLandmarkLayoutsAreValid\n");
-    TestLandmarkLayoutsAreValid();
-    printf("TestLandmarksStayAwayFromSpawnAndExist\n");
-    TestLandmarksStayAwayFromSpawnAndExist();
-    printf("TestLandmarkGuardsWakeOnce\n");
-    TestLandmarkGuardsWakeOnce();
-    TestLandmarkPointerTargetsNearestUnreached();
-    printf("TestFloorDivRoundsDown\n");
-    TestFloorDivRoundsDown();
-    printf("TestNoiseStaysInRangeAndIsSmooth\n");
-    TestNoiseStaysInRangeAndIsSmooth();
-    printf("TestBoundedLayoutsAreClosedAndValid\n");
-    TestBoundedLayoutsAreClosedAndValid();
-    printf("TestInfiniteMapsKeepSpawnOpenEverywhere\n");
-    TestInfiniteMapsKeepSpawnOpenEverywhere();
-    printf("TestEveryTerrainKindIsUsed\n");
-    TestEveryTerrainKindIsUsed();
-    printf("TestProceduralTerrainMatchesGoldenHashes\n");
-    TestProceduralTerrainMatchesGoldenHashes();
-    printf("TestElevationLayoutsAreValidAndSpawnsConnect\n");
-    TestElevationLayoutsAreValidAndSpawnsConnect();
-    printf("TestInfiniteMapsElevation\n");
-    TestInfiniteMapsElevation();
-    printf("TestProceduralElevationMatchesGoldenHashes\n");
-    TestProceduralElevationMatchesGoldenHashes();
+    GROUP(RUN(TestClimbStepsMatchJumpHeights));
+    GROUP(RUN(TestElevationChangesTerrainHash));
+    GROUP(RUN(TestTerrainIsFeltOnHighGround));
+    GROUP(RUN(TestSpawnsStandOnHighGround));
+    GROUP(RUN(TestFindMapByName));
+    GROUP(RUN(TestBuildKeepWorld));
+    GROUP(RUN(TestGroundRulesApplyToWhoStandsOnIt));
+    GROUP(RUN(TestLavaBurnsWhoStandsInIt));
+    GROUP(RUN(TestSnowSlowsMonsters));
+    GROUP(RUN(TestUnboundedWorldTracksNegativePositions));
+    GROUP(RUN(TestWildsPlaysFarFromOrigin));
+    GROUP(RUN(TestWastesPlaysFarFromOrigin));
+    GROUP(RUN(TestLandmarkLayoutsAreValid));
+    GROUP(RUN(TestLandmarksStayAwayFromSpawnAndExist));
+    GROUP(RUN(TestLandmarkGuardsWakeOnce));
+    GROUP(RUN(TestLandmarkPointerTargetsNearestUnreached));
+    GROUP(RUN(TestFloorDivRoundsDown));
+    GROUP(RUN(TestNoiseStaysInRangeAndIsSmooth));
+    GROUP(RUN(TestBoundedLayoutsAreClosedAndValid));
+    GROUP(RUN(TestInfiniteMapsKeepSpawnOpenEverywhere));
+    GROUP(RUN(TestEveryTerrainKindIsUsed));
+    GROUP(RUN(TestProceduralTerrainMatchesGoldenHashes));
+    GROUP(RUN(TestElevationLayoutsAreValidAndSpawnsConnect));
+    GROUP(RUN(TestInfiniteMapsElevation));
+    GROUP(RUN(TestProceduralElevationMatchesGoldenHashes));
 }

@@ -15,6 +15,7 @@
 #include "../ui/ui_ids.h"
 #include "../client/client_module.cpp"
 #include "lossy_link.h"
+#include "test_parts.h"
 
 global_variable int TestFailures;
 global_variable int TestChecks;
@@ -581,8 +582,9 @@ TestStatsCountTrafficAndTicks()
 #include "chat_online_tests.cpp"
 
 int
-main()
+main(int ArgCount, char **Args)
 {
+    ReadTestPart(ArgCount, Args);
     // NOTE(zoubir): written for every ability and 100 health
     // (sim/player_stats.cpp GameRules)
     GameRules = ClassicRules;
@@ -591,26 +593,26 @@ main()
         printf("server tests: could not start networking\n");
         return 1;
     }
-    TestJoinMoveAndLeave();
-    TestServerSendsItsMap();
-    TestQuietClientTimesOut();
-    RunServerClientTests();
-    TestRoundMovesToNextMap();
-    TestStandardCastOnline();
-    RunDungeonOnlineTests();
-    RunBotClassTests();
-    RunServerGameTests();
-    RunRewindTests();
+    GROUP(TestJoinMoveAndLeave());
+    GROUP(TestServerSendsItsMap());
+    GROUP(TestQuietClientTimesOut());
+    GROUP(RunServerClientTests());
+    GROUP(TestRoundMovesToNextMap());
+    GROUP(TestStandardCastOnline());
+    GROUP(RunDungeonOnlineTests());
+    GROUP(RunBotClassTests());
+    GROUP(RunServerGameTests());
+    GROUP(RunRewindTests());
     RunReplayTests();
     RunMotionTests();
-    TestSnapshotsAcknowledgeInputs();
-    TestPlayerNamesReachEveryone();
-    RunChatOnlineTests();
-    TestNinthClientIsTurnedAway();
-    TestFloodDoesNotStallTheServer();
-    TestInfoQueryListsPlayers();
-    TestStatsCountTrafficAndTicks();
-    TestDifferentBuildIsRefused();
+    GROUP(TestSnapshotsAcknowledgeInputs());
+    GROUP(TestPlayerNamesReachEveryone());
+    GROUP(RunChatOnlineTests());
+    GROUP(TestNinthClientIsTurnedAway());
+    GROUP(TestFloodDoesNotStallTheServer());
+    GROUP(TestInfoQueryListsPlayers());
+    GROUP(TestStatsCountTrafficAndTicks());
+    GROUP(TestDifferentBuildIsRefused());
     printf("  content id %08x\n", SimContentId());
     NetSocketsShutdown();
 

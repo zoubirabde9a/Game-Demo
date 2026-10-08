@@ -26,6 +26,9 @@ build/*_tests*.code
 build/gcc_*.log
 build/gcc_*.code
 build/gcc_works.*
+build/layout.log
+build/layout.code
+build/*.tmp
 # webuild.bat copies these from build/shaders/fx
 web/shaders/fx/
 build/client_src/

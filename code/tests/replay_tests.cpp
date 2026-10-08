@@ -320,8 +320,8 @@ TestReplayStopsAtItsCap()
 internal void
 RunReplayTests()
 {
-    TestSameInputsGiveTheSameWorld();
-    TestReplayPlaysBackTheSameMatch();
-    TestReplayFileRoundTrip();
-    TestReplayStopsAtItsCap();
+    GROUP(TestSameInputsGiveTheSameWorld());
+    GROUP(TestReplayPlaysBackTheSameMatch());
+    GROUP(TestReplayFileRoundTrip());
+    GROUP(TestReplayStopsAtItsCap());
 }

@@ -308,7 +308,7 @@ TestOnlineGroundPredictsExactly()
 internal void
 RunMotionTests()
 {
-    TestOnlineMotionIsSmooth();
-    TestOnlineEdgesAreSmooth();
-    TestOnlineGroundPredictsExactly();
+    GROUP(TestOnlineMotionIsSmooth());
+    GROUP(TestOnlineEdgesAreSmooth());
+    GROUP(TestOnlineGroundPredictsExactly());
 }

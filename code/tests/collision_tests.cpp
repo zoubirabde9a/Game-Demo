@@ -748,53 +748,30 @@ TestPropsAreJumpable()
 internal void
 RunCollisionTests()
 {
-    printf("TestOneStepStairsAreWalkedUp\n");
-    TestOneStepStairsAreWalkedUp();
-    printf("TestThreeStepLedgeBlocksWalking\n");
-    TestThreeStepLedgeBlocksWalking();
-    printf("TestWalkingAcrossAndOffPlateau\n");
-    TestWalkingAcrossAndOffPlateau();
-    printf("TestMonsterCannotWalkUpCliff\n");
-    TestMonsterCannotWalkUpCliff();
-    printf("TestPlayerJumpsOntoLedges\n");
-    TestPlayerJumpsOntoLedges();
-    printf("TestPropsAreJumpable\n");
-    TestPropsAreJumpable();
-    printf("TestWallStopsUnit\n");
-    TestWallStopsUnit();
-    printf("TestUnitSlidesAlongWall\n");
-    TestUnitSlidesAlongWall();
-    printf("TestUnitsDoNotPassThroughEachOther\n");
-    TestUnitsDoNotPassThroughEachOther();
-    printf("TestUnitSlidesPastTileSeams\n");
-    TestUnitSlidesPastTileSeams();
-    printf("TestPlayerGlidesAlongWall\n");
-    TestPlayerGlidesAlongWall();
-    printf("TestUnitStopsInCorner\n");
-    TestUnitStopsInCorner();
-    printf("TestLongPushStaysOutsideWall\n");
-    TestLongPushStaysOutsideWall();
-    printf("TestOverlappingUnitsCanSeparate\n");
-    TestOverlappingUnitsCanSeparate();
-    printf("TestFastUnitDoesNotTunnel\n");
-    TestFastUnitDoesNotTunnel();
-    printf("TestUnitSlipsPastWallCorner\n");
-    TestUnitSlipsPastWallCorner();
-    printf("TestUnitDoesNotSlipFromMiddleOfWall\n");
-    TestUnitDoesNotSlipFromMiddleOfWall();
-    printf("TestGroundUnderJumpingUnit\n");
-    TestGroundUnderJumpingUnit();
-    printf("TestUnitInsideWallEdgeWalksOut\n");
-    TestUnitInsideWallEdgeWalksOut();
-    printf("TestThrownUnitKnocksIntoAnother\n");
-    TestThrownUnitKnocksIntoAnother();
-    printf("TestKnockedUnitBumps\n");
-    TestKnockedUnitBumps();
-    printf("TestThrownUnitSlamsIntoWall\n");
-    TestThrownUnitSlamsIntoWall();
-    printf("TestPlayerNeverStuck\n");
+    GROUP(RUN(TestOneStepStairsAreWalkedUp));
+    GROUP(RUN(TestThreeStepLedgeBlocksWalking));
+    GROUP(RUN(TestWalkingAcrossAndOffPlateau));
+    GROUP(RUN(TestMonsterCannotWalkUpCliff));
+    GROUP(RUN(TestPlayerJumpsOntoLedges));
+    GROUP(RUN(TestPropsAreJumpable));
+    GROUP(RUN(TestWallStopsUnit));
+    GROUP(RUN(TestUnitSlidesAlongWall));
+    GROUP(RUN(TestUnitsDoNotPassThroughEachOther));
+    GROUP(RUN(TestUnitSlidesPastTileSeams));
+    GROUP(RUN(TestPlayerGlidesAlongWall));
+    GROUP(RUN(TestUnitStopsInCorner));
+    GROUP(RUN(TestLongPushStaysOutsideWall));
+    GROUP(RUN(TestOverlappingUnitsCanSeparate));
+    GROUP(RUN(TestFastUnitDoesNotTunnel));
+    GROUP(RUN(TestUnitSlipsPastWallCorner));
+    GROUP(RUN(TestUnitDoesNotSlipFromMiddleOfWall));
+    GROUP(RUN(TestGroundUnderJumpingUnit));
+    GROUP(RUN(TestUnitInsideWallEdgeWalksOut));
+    GROUP(RUN(TestThrownUnitKnocksIntoAnother));
+    GROUP(RUN(TestKnockedUnitBumps));
+    GROUP(RUN(TestThrownUnitSlamsIntoWall));
     for(u32 SeedValue = 1; SeedValue <= 6; SeedValue++)
     {
-        TestPlayerNeverStuck(SeedValue * 977);
+        GROUP(printf("TestPlayerNeverStuck %u\n", SeedValue * 977); TestPlayerNeverStuck(SeedValue * 977));
     }
 }

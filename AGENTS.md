@@ -75,6 +75,8 @@ By hand: run `test.bat` and `build.bat` in your worktree. Do not merge red. If `
 
 `test.bat` runs every program in `code/tests/`: the simulation, network, server and a one-minute soak with 8 random players. If you changed game rules (anything that moves, spawns or removes entities), also run a long soak by hand: `build\soak_tests.exe 5 6`. It checks the world's bookkeeping after every tick and names the tick where it broke.
 
+`test.bat` takes about 12 seconds: it compiles the test programs at once, optimized (`-O2 -Ob1`, asserts still on), then runs everything at once, `sim_tests` and `server_tests` split into parts. A part runs every Nth `GROUP` line of its program (`code/tests/test_parts.h`); to rerun one, `build\sim_tests.exe part 2/6`. A new test goes in its suite's list inside `GROUP(RUN(TestName));`. A suite whose list holds `GROUP` lines is called bare, never inside a `GROUP`. Keep any one group under about 3 seconds: a slow group sets the length of every run.
+
 Before the tests, `test.bat` runs `misc\layout_check.ps1`, which keeps the code readable from the top down (`docs/architecture-plan.md`). It fails, naming the file, when a source file passes 500 lines, when code the server compiles includes `client/`, `ui/`, `art/` or `platform/`, when a file has no comment at its top saying what it is for, when nothing includes a file, or when a `*_module.cpp` lacks its summary. Split a long file by concern into a folder next to it, included where the code was; do not raise the limit.
 
 To find where a change belongs, run `powershell -File misc\code_map.ps1` (or `... code_map.ps1 client` for one folder): every source file with its length and the first sentence of its top comment, on one page.
