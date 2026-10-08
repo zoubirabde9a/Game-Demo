@@ -118,6 +118,8 @@ EmitJumpedClear(app_state *AppState, world_entity *Target, u32 BySlot)
 
 // NOTE(zoubir): player_stats.cpp, included after this
 internal void StaggerPlayer(world_entity *Player);
+// NOTE(zoubir): role_kits/duelist/riposte.cpp, included after this: a Duelist's guard parries the hit
+internal bool32 DuelistParriesHit(app_state *AppState, world_entity *Target, world_entity *Source, float Damage);
 
 // NOTE(zoubir): Hit on Target, thrown along Away (a unit vector), by
 // Source (the attacker, or its sword or shot), on behalf of the player in
@@ -153,8 +155,9 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
     monster_affix_def *Affix = GetAffix(Source ? Source->EliteAffix : 0);
     float Damage = Hit->Damage * Affix->DamageScale;
     // NOTE(zoubir): a ward (sim/progression/talents.cpp) takes the whole
-    // hit, the shove and the stun with it
-    if (!Dodges && WardTakesHit(AppState, Target, Damage))
+    // hit, the shove and the stun with it, as a Duelist's parry does
+    if (!Dodges && (DuelistParriesHit(AppState, Target, Source, Damage) ||
+                   WardTakesHit(AppState, Target, Damage)))
     {
         return false;
     }
