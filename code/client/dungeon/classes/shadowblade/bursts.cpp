@@ -9,9 +9,12 @@
      back along the way it came.
    - Shadow Dance: a column of shadow rising round the player.
    - Fan of Knives: a ring of knives thrown out round the player.
-   - Eviscerate: a flurry of cuts over the foe, one a point spent, and a
-     last cross, bigger the more points; when the foe got away, two
-     faint cuts in the air.
+   - Eviscerate: its wind-up (from the look, not a burst): violet light
+     gathering between the raised daggers and a mark on the ground where
+     they will land, sharpening as the cast fills. Then two shadow blades
+     falling onto the foe, a flash and a ring of shadow, a flurry of
+     cuts, one a point spent, and a last cross, bigger the more points;
+     when the foe got away, two faint cuts in the air.
    - Empty: five empty sockets over the head, shaking, for a finisher
      pressed with no combo points. */
 
@@ -192,13 +195,96 @@ DrawEviscerateWhiff(render_context *RenderContext, v2 Centre, float Angle, float
     DrawShadowbladePuff(RenderContext, Centre + (12.f * Puff) * Aim, 10.f + 10.f * Puff, 0.5f * (1.f - Puff));
 }
 
+// NOTE(zoubir): Eviscerate winding up, Done of the way: light gathering
+// between the daggers over the head, and the mark on the ground in front
+// where the blow will land, as Execute shows its own
+internal void
+DrawEviscerateWindUp(render_context *RenderContext, world_entity *Player, v2 Body, v2 Feet, v2 Aim,
+                     float Done, float Clock)
+{
+    v2 Dir = LengthSq(Player->CastingDirection) > 0.0001f ?
+        ShadowbladeNormal(Player->CastingDirection) : Aim;
+    v2 Over = Body - V2(0.f, 0.62f * Player->Dimensions.Y);
+    float Beat = 0.7f + 0.3f * Sin(28.f * Clock);
+    float Size = 10.f + 16.f * Done;
+    DrawShaderQuad(RenderContext, Shader_Glow, Over.X - Size, Over.Y - Size, 2.f * Size, 2.f * Size,
+                   FxColor(0.8f * Done * Beat, SHADOWBLADE_RGB), RenderBlend_Additive);
+    DrawShaderQuad(RenderContext, Shader_Glow, Over.X - 0.4f * Size, Over.Y - 0.4f * Size, 0.8f * Size,
+                   0.8f * Size, FxColor(Done, SHADOWBLADE_PALE_RGB), RenderBlend_Additive);
+    // NOTE(zoubir): wisps drawn in to the light
+    for(u32 Wisp = 0; Wisp < 6; Wisp++)
+    {
+        float In = DungeonFxFraction(2.2f * Clock + 0.167f * (float)Wisp);
+        float A = 2.f * Pi32 * BurstJitter(Wisp, 371);
+        v2 P = Over + ((1.f - In) * 34.f) * V2(Cos(A), Sin(A));
+        DrawFxDot(RenderContext, P, 2.5f,
+                  FxColor(Done * In, Wisp % 2 ? SHADOWBLADE_ACID_RGB : SHADOWBLADE_RGB));
+    }
+    // NOTE(zoubir): the mark: a cross on the ground, a ring closing on it
+    v2 Spot = Feet + 0.6f * EVISCERATE_REACH * Dir;
+    v2 Across = V2(-Dir.Y, Dir.X);
+    DrawShaderQuad(RenderContext, Shader_Glow, Spot.X - 30.f, Spot.Y - 20.f, 60.f, 40.f,
+                   FxColor(0.45f * Done * Beat, SHADOWBLADE_RGB), RenderBlend_Additive);
+    for(u32 Arm = 0; Arm < 2; Arm++)
+    {
+        v2 U = ShadowbladeNormal(Arm ? Dir + Across : Dir - Across);
+        U.Y *= 0.6f;
+        DrawFxStroke(RenderContext, Spot - 16.f * U, Spot + 16.f * U, 1.f + 3.f * Done, 1.f + 3.f * Done,
+                     FxColor(Done, SHADOWBLADE_RGB), FxColor(Done, SHADOWBLADE_PALE_RGB));
+    }
+    float Close = 34.f - 18.f * Done;
+    DrawArcBand(RenderContext, Spot, 0.f, 2.f * Pi32, Close - 3.f, Close,
+                FxColor(0.f, SHADOWBLADE_DEEP_RGB), FxColor(0.7f * Done, SHADOWBLADE_RGB));
+}
+
+// NOTE(zoubir): the blow landing: two shadow blades falling from above
+// onto Centre, then a flash and a ring of shadow
+internal void
+DrawEviscerateDrop(render_context *RenderContext, v2 Centre, float Angle, float Age, float Big)
+{
+    float Fall = Clamp01(Age / 0.1f);
+    float Fade = 1.f - Square(Clamp01((Age - 0.1f) / 0.5f));
+    for(u32 Blade = 0; Blade < 2; Blade++)
+    {
+        float Side = Blade ? 1.f : -1.f;
+        v2 Sky = Centre + V2(Side * 46.f, -120.f);
+        v2 Head = Sky + (1.f - Square(1.f - Fall)) * (Centre - Sky);
+        DrawFxStroke(RenderContext, Sky, Head, 2.f, 16.f * Fade, FxColor(0.f, SHADOWBLADE_DEEP_RGB),
+                     FxColor(0.85f * Fade, SHADOWBLADE_RGB));
+        DrawFxStroke(RenderContext, Sky, Head, 0.f, 5.f * Fade, FxColor(0.f, 0x00FFFFFF),
+                     FxColor(Fade, SHADOWBLADE_PALE_RGB));
+        if (Fall < 1.f)
+        {
+            v2 Down = ShadowbladeNormal(Centre - Sky);
+            DrawShadowbladeDagger(RenderContext, Head - 18.f * Down, Down, 22.f, 1.f, 1.f);
+        }
+    }
+    if (Fall < 1.f)
+    {
+        return;
+    }
+    float Land = Clamp01((Age - 0.1f) / 0.6f);
+    float EaseOut = 1.f - Square(1.f - Land);
+    float Flash = Clamp01(1.f - 4.f * Land);
+    DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 75.f * Big, Centre.Y - 65.f * Big, 150.f * Big,
+                   130.f * Big, FxColor(Flash, SHADOWBLADE_PALE_RGB), RenderBlend_Additive);
+    DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 60.f, Centre.Y - 50.f, 120.f, 100.f,
+                   FxColor(0.8f * (1.f - Land), SHADOWBLADE_RGB), RenderBlend_Additive);
+    float Front = 80.f * Big * EaseOut;
+    float Thick = 14.f * (1.f - Land) + 2.f;
+    DrawArcBand(RenderContext, Centre + V2(0.f, 14.f), 0.f, 2.f * Pi32, Maximum(0.f, Front - Thick), Front,
+                FxColor(0.f, SHADOWBLADE_DEEP_RGB), FxColor(0.75f * (1.f - Land), SHADOWBLADE_RGB));
+}
+
 internal void
 DrawEviscerateBurst(render_context *RenderContext, v2 Centre, float Angle, float Age, u32 Points)
 {
-    // NOTE(zoubir): a quick cut a point spent, at odd angles, one after
-    // another
     u32 Cuts = Maximum(2u, Minimum(Points, (u32)SHADOWBLADE_MOST_POINTS));
     float Big = 0.6f + 0.1f * (float)Cuts;
+    DrawEviscerateDrop(RenderContext, Centre, Angle, Age, Big);
+    // NOTE(zoubir): once the blades land, a quick cut a point spent, at
+    // odd angles, one after another
+    Age -= 0.1f;
     for(u32 Cut = 0; Cut < Cuts; Cut++)
     {
         float T = Age - 0.045f * (float)Cut;

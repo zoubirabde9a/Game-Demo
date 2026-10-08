@@ -8,7 +8,9 @@
    follow the class's bursts: Twin Strike swings one hand then the other
    across the cut, Fan of Knives
    crouches with the daggers crossed then flings both arms out, and
-   Eviscerate draws both back then stabs in turn. A critical strike
+   Eviscerate raises both overhead, glowing brighter through the wind-up
+   over a mark on the ground where it will land, then drives them down
+   and stabs in turn. A critical strike
    waiting lights the blades acid green; Shadow Dance puts a shadow beside
    the player that strikes a moment after it. Everything is read from the
    slot's ClassMeter and ClassFlags, its cast and its bursts, all of which
@@ -101,24 +103,37 @@ ShadowbladeHandsAt(app_state *AppState, player_slot *Slot, world_entity *Player,
         }
     }
 
-    // NOTE(zoubir): Eviscerate: both drawn back and up while it winds up,
-    // then quick stabs in turn along the burst's angle
+    // NOTE(zoubir): Eviscerate: both raised high overhead, points up and
+    // shaking harder as the wind-up fills; then driven down onto the foe
+    // in a blink, and quick stabs in turn along the burst's angle
     float Evis = ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Eviscerate) - Lag;
-    float Stab = ShadowbladeHold(Evis, 0.4f);
+    float Stab = ShadowbladeHold(Evis, 0.5f);
+    float H = Player->Dimensions.Y;
     for(u32 Hand = 0; Hand < 2; Hand++)
     {
         float Side = Hand == 0 ? Facing : -Facing;
         if (Draw)
         {
-            float In = ShadowbladeEase(PlayerCastProgress(Player) * 2.f);
-            v2 Grip = Body - 0.3f * W * Aim + V2(Side * 0.3f * W, -10.f);
-            v2 Dir = ShadowbladeNormal(Aim + V2(0.f, -0.6f));
+            float Done = PlayerCastProgress(Player);
+            float In = ShadowbladeEase(Done * 2.5f);
+            float Shake = 1.5f * Done * Sin(40.f * Clock + 2.f * (float)Hand);
+            v2 Grip = Body - 0.15f * W * Aim + V2(Side * 0.16f * W + Shake, -0.55f * H - 4.f * Done);
+            v2 Dir = ShadowbladeNormal(V2(-Side * 0.45f + 0.2f * Aim.X, -1.f));
             Result.Grip[Hand] = ShadowbladeLerp(Result.Grip[Hand], Grip, In);
             Result.Dir[Hand] = ShadowbladeNormal(ShadowbladeLerp(Result.Dir[Hand], Dir, In));
         }
+        else if (Stab > 0.f && Evis < 0.1f)
+        {
+            float Down = ShadowbladeEase(Evis / 0.08f);
+            v2 Grip = Body + (0.2f + 0.45f * Down) * W * Aim +
+                V2(Side * 0.14f * W, -0.55f * H * (1.f - Down));
+            v2 Dir = ShadowbladeNormal(ShadowbladeLerp(V2(0.f, -1.f), Aim + V2(0.f, 0.5f), Down));
+            Result.Grip[Hand] = ShadowbladeLerp(Result.Grip[Hand], Grip, Stab);
+            Result.Dir[Hand] = ShadowbladeNormal(ShadowbladeLerp(Result.Dir[Hand], Dir, Stab));
+        }
         else if (Stab > 0.f)
         {
-            float Beat = Sin(Pi32 * Clamp01(Evis / 0.3f) * 5.f + Pi32 * (float)Hand);
+            float Beat = Sin(Pi32 * Clamp01((Evis - 0.1f) / 0.3f) * 5.f + Pi32 * (float)Hand);
             v2 Grip = Body + (0.3f + 0.35f * Maximum(0.f, Beat)) * W * Aim + V2(Side * 0.18f * W, -2.f);
             Result.Grip[Hand] = ShadowbladeLerp(Result.Grip[Hand], Grip, Stab);
             Result.Dir[Hand] = ShadowbladeNormal(ShadowbladeLerp(Result.Dir[Hand], Aim, Stab));
@@ -212,8 +227,14 @@ DrawShadowbladeLook(render_context *RenderContext, app_state *AppState, player_s
     }
 
     // NOTE(zoubir): the daggers, lit acid green while a critical strike
-    // waits, a glint running up the edge
+    // waits or as Eviscerate winds up, a glint running up the edge
     float Glow = Crit ? 0.65f + 0.35f * Sin(9.f * Clock) : 0.f;
+    if (Player->CastSpell == PlayerSpell_ShadowbladeB)
+    {
+        float Done = PlayerCastProgress(Player);
+        Glow = Maximum(Glow, Done);
+        DrawEviscerateWindUp(RenderContext, Player, Body, Feet, Aim, Done, Clock);
+    }
     shadowblade_hands Hands = ShadowbladeHandsAt(AppState, Slot, Player, Clock, Body, 0.f);
     DrawShadowbladeHands(RenderContext, &Hands, SHADOWBLADE_DAGGER * H, Glow, Alpha);
     if (Crit)

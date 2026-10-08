@@ -34,12 +34,15 @@
 #define FAN_OF_KNIVES_SHOVE 90.f
 #define FAN_OF_KNIVES_COOLDOWN 7.f
 // NOTE(zoubir): Eviscerate (W): the finisher on the foe in front, its
-// damage a base and so much a combo point it spends
+// damage a base and so much a combo point it spends. The foe is picked
+// when the key goes down and held through the wind-up: it still lands
+// on it within EVISCERATE_HOLD_REACH, however it moved
 #define EVISCERATE_REACH 90.f
-#define EVISCERATE_DAMAGE 4.f
-#define EVISCERATE_PER_POINT 5.f
+#define EVISCERATE_HOLD_REACH 150.f
+#define EVISCERATE_DAMAGE 8.f
+#define EVISCERATE_PER_POINT 10.f
 #define EVISCERATE_SHOVE 140.f
-#define EVISCERATE_COOLDOWN 0.8f
+#define EVISCERATE_COOLDOWN 6.f
 // NOTE(zoubir): Shadow Dance (V, from the tree): for DANCE_SECONDS a
 // shadow strikes again beside every Twin Strike and Eviscerate
 // for DANCE_ECHO of it, and Shadowstep comes back in DANCE_STEP_COOLDOWN
@@ -152,7 +155,7 @@ global_variable role_spell ShadowbladeSpells[ROLE_KEYS] =
      "Shadow Dance: 6 s of shadow strikes beside yours, Shadowstep back in 1 s",
      RoleAim_None, 0.f, ShadowbladeTalent_ShadowDance + 1},
     {"Eviscerate", EVISCERATE_COOLDOWN,
-     "Eviscerate: spend every combo point on a flurry at the foe in front",
+     "Eviscerate: spend every combo point on one big strike at the foe in front",
      RoleAim_None, EVISCERATE_REACH, 0},
     {},
     {"Twin Strike", TWIN_STRIKE_COOLDOWN,

@@ -13,11 +13,12 @@
                   is critical. A point.
      R            Fan of Knives: a short crouch (PlayerSpell_ShadowbladeA),
                   then knives cut every foe round it, a point each.
-     W            Eviscerate: with points, a short draw-back
-                  (PlayerSpell_ShadowbladeB), then a flurry on the foe in
-                  front for EVISCERATE_PER_POINT a point, spending them all.
-                  With none it does not cast, and the player is shown so
-                  (ShadowbladeBurst_Empty).
+     W            Eviscerate: with points and a foe in reach, the
+                  daggers go up overhead (PlayerSpell_ShadowbladeB), then
+                  drop on that foe for EVISCERATE_PER_POINT a point,
+                  spending them all. With no points it does not cast, and
+                  the player is shown so (ShadowbladeBurst_Empty); with no
+                  foe in reach it does not cast either.
      V (tree)     Shadow Dance: for DANCE_SECONDS every Twin Strike and
                   Eviscerate lands a shadow's echo too, and Shadowstep comes
                   back in DANCE_STEP_COOLDOWN.
@@ -230,7 +231,19 @@ CastShadowbladeKey(app_state *AppState, world *World, memory_arena *Arena, playe
                 }
                 return false;
             }
-            StartPlayerCast(Player, PlayerSpell_ShadowbladeB, Player->Aim);
+            // NOTE(zoubir): the foe is picked now, as Execute's is, so
+            // a press with nobody in reach costs nothing, and the strike
+            // finds it after the wind-up even if it moved
+            world_entity *Foe = AttackTarget(AppState, Slot, Player, EVISCERATE_REACH);
+            if (!Foe)
+            {
+                return false;
+            }
+            Slot->Shadowblade.EviscerateSlot = (u32)(Foe - World->Entities);
+            Slot->Shadowblade.EviscerateSerial = Foe->MonsterSerial;
+            v2 ToFoe = Foe->Position.XY - Player->Position.XY;
+            StartPlayerCast(Player, PlayerSpell_ShadowbladeB,
+                            LengthSq(ToFoe) > 1.f ? DirectionTo(ToFoe) : Player->Aim);
         } break;
 
         case 6:
@@ -289,11 +302,24 @@ FinishFanOfKnives(app_state *AppState, player_slot *Slot, world_entity *Player)
 internal void
 FinishEviscerate(app_state *AppState, player_slot *Slot, world_entity *Player)
 {
+    world *World = &AppState->World;
     u32 Points = Slot->ClassMeter;
-    world_entity *Foe = Points ? AttackTarget(AppState, Slot, Player, EVISCERATE_REACH + 30.f) : 0;
+    shadowblade_slot *Blade = &Slot->Shadowblade;
+    world_entity *Foe = Points ? FindMonsterBySerial(World, Blade->EviscerateSlot,
+                                                     Blade->EviscerateSerial) : 0;
+    if (Foe && (Foe->Hp <= 0.f ||
+                Length(Foe->Position.XY - Player->Position.XY) >
+                EVISCERATE_HOLD_REACH + 0.5f * Foe->Dimensions.X))
+    {
+        Foe = 0;
+    }
+    if (!Foe && Points)
+    {
+        Foe = AttackTarget(AppState, Slot, Player, EVISCERATE_REACH + 30.f);
+    }
     if (!Foe)
     {
-        // NOTE(zoubir): the foe walked off during the draw: the daggers
+        // NOTE(zoubir): the foe got away or died in the wind-up: the daggers
         // cut the air (a burst with no points), the points stay and the
         // key is ready again
         v2 Aim = LengthSq(Player->Aim) > 0.0001f ? DirectionTo(Player->Aim) : V2(1.f, 0.f);

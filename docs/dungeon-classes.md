@@ -29,7 +29,7 @@ Every damage class has five damage keys with its whole tree, as many as the Fire
 | X | Quick Shot: an arrow at a foe every second; it puts Hunter's Mark on the foe for 15 s, which takes more from you, and hits on the marked foe build Focus | (none) | (none) |
 | A | Volley: arrows rain on a circle for 2 s and slow | Leap: a high jump to the cursor that slams, stuns and shoves on landing | Shadowstep: appear behind a foe; the next strike in 4 s does double |
 | R | Piercing Shot: a 1 s draw, then an arrow through every foe in a line; spends Focus | Whirlwind: 30 Rage, a 1.5 s spin that hits everything round five times | Fan of Knives: a ring of knives, a combo point per foe hit |
-| W | (none) | Execute: needs 20 Rage, one chop that spends it all; far harder under 25% health | Eviscerate: the finisher, damage per combo point spent |
+| W | (none) | Execute: needs 20 Rage, one chop that spends it all; far harder under 25% health | Eviscerate: the finisher. Locks the foe in front when pressed (no foe in reach, no cast), winds up 0.4 s with the daggers raised, then strikes for 8 + 10 a combo point spent; 6 s cooldown |
 | C (tree) | Disengage: leap back and leave a snare that roots the first foe on it | (none) | (none) |
 | V (tree) | Rapid Fire: a 2 s stream of arrows at a foe | Berserk: 8 s of more damage, less taken, Rage holds, and the body grows | Shadow Dance: 6 s of a shadow clone striking beside you |
 

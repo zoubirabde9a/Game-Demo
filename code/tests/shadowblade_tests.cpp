@@ -4,8 +4,9 @@
    takes a press a moment early and poisons for the Shadowblade;
    Shadowstep lands behind the foe and makes the next strike critical;
    Fan of Knives winds up, cuts every foe near and builds a point each;
-   Eviscerate spends the points for damage by the point and refuses to
-   cast with none; Shadow Dance echoes strikes and hurries Shadowstep;
+   Eviscerate spends the points for damage by the point, refuses to
+   cast with none or with no foe in reach, and strikes the foe it was
+   pressed on; Shadow Dance echoes strikes and hurries Shadowstep;
    the talents; and points fading out of a fight. */
 
 // NOTE(zoubir): a Shadowblade in slot 0 aiming along +X
@@ -226,13 +227,32 @@ TestEviscerate()
     float Expected = (EVISCERATE_DAMAGE + 5.f * EVISCERATE_PER_POINT) /
         (EVISCERATE_DAMAGE + EVISCERATE_PER_POINT);
     Check(One > 0.f && Five > 0.99f * Expected * One && Five < 1.01f * Expected * One);
-    // NOTE(zoubir): no foe in reach when the draw ends: the points stay,
-    // the key is ready again, and the burst says nothing was spent
+    Check(Slot->RoleCooldowns[4] > EVISCERATE_COOLDOWN - 1.f);
+    u32 WindUp = (u32)(60.f * PlayerSpells[PlayerSpell_ShadowbladeB].CastTime) + 2;
+    // NOTE(zoubir): points but nobody in reach: no wind-up, no cooldown,
+    // the points kept
     Slot->ClassMeter = 3;
     Slot->RoleCooldowns[4] = 0.f;
     PressOnce(&Crypt, 0, PlayerButton_Shockwave);
+    Check(Slot->Entity->CastSpell == 0 && Slot->RoleCooldowns[4] == 0.f && Slot->ClassMeter == 3);
+    // NOTE(zoubir): the foe pressed on is held: it backs off past the
+    // reach during the wind-up and is still struck
+    world_entity *Foe = StrikerDummy(&Crypt, V3(50.f, 0.f, 0.f));
+    PressOnce(&Crypt, 0, PlayerButton_Shockwave);
     Check(Slot->Entity->CastSpell == PlayerSpell_ShadowbladeB);
-    TickCrypt(&Crypt, (u32)(60.f * PlayerSpells[PlayerSpell_ShadowbladeB].CastTime) + 2);
+    Foe->Position.X = Slot->Entity->Position.X + EVISCERATE_REACH + 40.f;
+    TickHolding(&Crypt, Foe, WindUp);
+    Check(Foe->Hp < 2000.f && Slot->ClassMeter == 0);
+    // NOTE(zoubir): it gets clean away during the wind-up: the points
+    // stay, the key is ready again, and the burst says nothing was spent
+    Slot->ClassMeter = 3;
+    Slot->RoleCooldowns[4] = 0.f;
+    Foe->Position.X = Slot->Entity->Position.X + 50.f;
+    TickHolding(&Crypt, Foe, 1);
+    PressOnce(&Crypt, 0, PlayerButton_Shockwave);
+    Check(Slot->Entity->CastSpell == PlayerSpell_ShadowbladeB);
+    Foe->Position.X = Slot->Entity->Position.X + 600.f;
+    TickHolding(&Crypt, Foe, WindUp);
     Check(Slot->ClassMeter == 3 && Slot->RoleCooldowns[4] == 0.f);
     Check(ShadowbladeBurstVariant(ShadowbladeBurstSpot(V3(1.f, 2.f, 16.f), 4)) == 4);
     Check(ShadowbladeBurstPlace(ShadowbladeBurstSpot(V3(1.f, 2.f, 16.f), 4)).Z == 16.f);

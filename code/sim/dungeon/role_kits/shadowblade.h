@@ -6,9 +6,10 @@
 
 // NOTE(zoubir): {cast seconds, share of the walk left while it casts,
 // hover, name over the cast bar}: Fan of Knives crouches a moment before
-// the knives fly, Eviscerate draws both daggers back before the flurry
+// the knives fly, Eviscerate raises both daggers overhead and nearly
+// stands still before it drops on the foe, as Execute does
 #define SHADOWBLADE_CAST_A {0.22f, 0.8f, false, "Fan of Knives"}
-#define SHADOWBLADE_CAST_B {0.18f, 0.85f, false, "Eviscerate"}
+#define SHADOWBLADE_CAST_B {0.4f, 0.3f, false, "Eviscerate"}
 
 // NOTE(zoubir): player_slot.ClassFlags bits of a Shadowblade, which every
 // client gets (the looks and the HUD read them)
@@ -34,6 +35,10 @@ struct shadowblade_slot
     // point; combo points fade once it is long, and the fade's own clock
     float IdleSeconds;
     float FadeTimer;
+    // NOTE(zoubir): the foe Eviscerate was pressed on (its entity slot
+    // and serial), struck when the wind-up ends
+    u32 EviscerateSlot;
+    u32 EviscerateSerial;
 };
 
 // NOTE(zoubir): Twin Strike's poison on a monster: whose, how long it
