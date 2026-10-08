@@ -1,6 +1,8 @@
 /* Class bots (server/bots.cpp): the keys a bot of each class after the
-   first three presses, one file each. */
+   first three presses, one file each, and what they share (bot_dangers.cpp:
+   the telegraphs a melee bot keeps out of). */
 
+#include "bot_dangers.cpp"
 #include "ranger.cpp"
 #include "berserker.cpp"
 #include "shadowblade.cpp"
