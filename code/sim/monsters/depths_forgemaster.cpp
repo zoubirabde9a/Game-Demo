@@ -8,9 +8,9 @@
             struck burning and leaves embers on the floor; Hammer Hurl
             lobs three white-hot ingots at the party's back line, setting
             the struck burning; Bellows Rush charges along a locked
-            line at a player far from him.
-   Enraged (below half health): faster, glowing red, and Stoke the
-            Forge: two Cinder Imps climb out of the coals, three at most.
+            line at a player far from him. Stoke the Forge: two Cinder
+            Imps climb out of the coals, four at most.
+   Enraged (below half health): faster and glowing red.
    The dungeon adds an armoured Anvil Guard at 70% and 35% that walks
    back into him if it lives too long (sim/dungeon/boss_scripts.cpp). */
 #if defined(MONSTER_NAME_PASS)
@@ -47,16 +47,15 @@ DefineMonster_Forgemaster(monster_def *Def)
     Stoke->Recover = 0.5f;
     Stoke->SummonKind = MonsterKind_Imp;
     Stoke->Count = 2;
-    Stoke->MaxActive = 3;
+    Stoke->MaxActive = 4;
     Stoke->Spread = 60.f;
     Stoke->Radius = 14.f;
-    Stoke->PhaseMask = PHASE_ENRAGED;
 
     monster_ability *Anvil = AddMonsterAbility(Def, MonsterAbility_Slam,
                                                "Anvil Drop");
     Anvil->MaxRange = 95.f;
     Anvil->Cooldown = 4.f;
-    Anvil->Windup = 0.95f;
+    Anvil->Windup = 0.75f;
     Anvil->Active = 0.3f;
     Anvil->Recover = 0.6f;
     Anvil->Damage = 19.f;
@@ -76,7 +75,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     Hurl->MinRange = 120.f;
     Hurl->MaxRange = 480.f;
     Hurl->Cooldown = 5.f;
-    Hurl->Windup = 1.f;
+    Hurl->Windup = 0.8f;
     Hurl->Active = 0.3f;
     Hurl->Recover = 0.5f;
     Hurl->Damage = 13.f;
@@ -92,7 +91,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     Rush->MinRange = 160.f;
     Rush->MaxRange = 500.f;
     Rush->Cooldown = 5.5f;
-    Rush->Windup = 0.75f;
+    Rush->Windup = 0.6f;
     Rush->Active = 0.7f;
     Rush->Recover = 0.7f;
     Rush->Damage = 18.f;

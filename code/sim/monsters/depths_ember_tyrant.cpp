@@ -41,7 +41,7 @@ DefineMonster_EmberTyrant(monster_def *Def)
                                                "Crown of Fire");
     Crown->MaxRange = 520.f;
     Crown->Cooldown = 5.f;
-    Crown->Windup = 0.9f;
+    Crown->Windup = 0.7f;
     Crown->Active = 1.6f;
     Crown->Recover = 0.5f;
     Crown->Damage = 11.f;
@@ -59,7 +59,7 @@ DefineMonster_EmberTyrant(monster_def *Def)
                                                 "Hellfire Cleave");
     Cleave->MaxRange = 95.f;
     Cleave->Cooldown = 4.f;
-    Cleave->Windup = 1.1f;
+    Cleave->Windup = 0.9f;
     Cleave->Active = 0.3f;
     Cleave->Recover = 0.6f;
     Cleave->Damage = 22.f;
@@ -77,7 +77,7 @@ DefineMonster_EmberTyrant(monster_def *Def)
     Step->MinRange = 160.f;
     Step->MaxRange = 540.f;
     Step->Cooldown = 8.f;
-    Step->Windup = 1.f;
+    Step->Windup = 0.8f;
     Step->Active = 0.3f;
     Step->Recover = 0.6f;
     Step->Damage = 11.f;
@@ -92,7 +92,7 @@ DefineMonster_EmberTyrant(monster_def *Def)
     Fall->MinRange = 100.f;
     Fall->MaxRange = 560.f;
     Fall->Cooldown = 7.f;
-    Fall->Windup = 1.2f;
+    Fall->Windup = 0.95f;
     Fall->Active = 0.3f;
     Fall->Recover = 0.5f;
     Fall->Damage = 9.f;

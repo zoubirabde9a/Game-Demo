@@ -44,7 +44,7 @@ DefineMonster_CinderWyrm(monster_def *Def)
                                               "Molten Rain");
     Rain->MaxRange = 520.f;
     Rain->Cooldown = 6.f;
-    Rain->Windup = 1.1f;
+    Rain->Windup = 0.85f;
     Rain->Active = 0.3f;
     Rain->Recover = 0.5f;
     Rain->Damage = 13.f;
@@ -61,7 +61,7 @@ DefineMonster_CinderWyrm(monster_def *Def)
                                               "Tail Lash");
     Lash->MaxRange = 90.f;
     Lash->Cooldown = 3.8f;
-    Lash->Windup = 0.9f;
+    Lash->Windup = 0.7f;
     Lash->Active = 0.3f;
     Lash->Recover = 0.5f;
     Lash->Damage = 28.f;
@@ -91,7 +91,7 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Spit->MinRange = 90.f;
     Spit->MaxRange = 440.f;
     Spit->Cooldown = 2.4f;
-    Spit->Windup = 0.7f;
+    Spit->Windup = 0.55f;
     Spit->Active = 1.4f;
     Spit->Recover = 0.4f;
     Spit->Damage = 12.f;

@@ -43,7 +43,7 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 - Anvil Drop: a wide slam (115 across, 19 damage) that burns and leaves embers on the floor.
 - Hammer Hurl: three white-hot ingots (13 each, every 5 s) lobbed at players 120 to 480 away; the struck burn. The back line has to keep moving.
 - Bellows Rush: a charge along a locked line at someone far off.
-- Stoke the Forge (below 50%): two Cinder Imps, three at most.
+- Stoke the Forge: two Cinder Imps every 9 s from the start of the fight, four at most.
 - At 70% and 35% an Anvil Guard steps off the wall: an armoured elite Warden. Its shell blocks hits from the front, so the party has to flank it. Alive after 20 s it walks back into Kragg and heals him 8%.
 
 **Sskarra the Cinder Wyrm**, a worm as thick as a cart, plated in cooled rock that cracks orange where it bends.
@@ -84,6 +84,8 @@ Magma Dive then got its pool of magma (a burrow can now leave a hazard where it 
 The bots then learned to path round lava (`server/bots/bot_paths.cpp`) and to wait in the room they fight next, and most of the depths' wipes went with it: over six seeds of a full run they wiped once on Kragg and never on Sskarra or the bridge, against eight times at the crypt's Ashen Causeway. The depths' clocks were tightened to the new fights (Kragg 1:50, Sskarra 1:20, Vol'karr 1:55, against clears of 37 to 105 s, 29 to 62 s and 66 to 98 s), Hammer Hurl went back to every 4 s for 13, Sskarra spits every 2.4 s for 12 and lashes for 28, and the bridge's last pack is two elites again. Over six seeds: Kragg wipes the bots twice, Sskarra once, the bridge never, Vol'karr eight to nineteen times (the same numbers swing that much between runs); the crypt's Causeway five to eight times and the Hollow King five or six.
 
 With the bots' damage seat back on the Fire Mage (`server/bots/class_bots.cpp`), the depths' trash and the bridge never wiped the bots and Kragg and Sskarra wiped less than the Hollow King. The depths now hit 1.2 times as hard as the crypt (was 1.1), with Vol'karr's own blows trimmed about 8% to hold him where he was; the bridge fights two big packs instead of three small ones; Kragg's Anvil Drop hits for 19 and Hammer Hurl comes every 5 s. Over eight seeds of a full run, wipes per kill: crypt Ashen Causeway 0.16, Hollow King 0.65; depths Kragg 1.05, Sskarra 0.2, the bridge 0 to 0.15, Vol'karr 1.3 to 2.2. The bots learning to dodge telegraphs (`server/bots/bot_dangers.cpp`) will move these again.
+
+With the bots stepping out of telegraphs and burning ground, the depths' first bosses stopped killing them (wipes per kill: Kragg 0.09, Sskarra 0.05, Vol'karr 0.40, the crypt's Hollow King 0.17). Every depths boss now winds up about a fifth faster (0.55 to 0.95 s instead of 0.7 to 1.2 s), and Kragg stokes imps from the start of the fight, four at most. Over eight seeds: Vol'karr 0.5 wipes and 2 deaths per kill, Kragg 0.14 and 0.33, Sskarra and the bridge no wipes, the Hollow King 0.09 and 0.3. At these rates eight seeds cannot tell a small change from noise (the untouched Hollow King moved from 0.54 to 0.30 deaths per kill between runs); measure with sixteen.
 
 ## Online
 
