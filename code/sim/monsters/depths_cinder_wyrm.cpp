@@ -5,7 +5,8 @@
    (SpawnWeight 0).
 
    Calm:    Magma Dive sinks into the floor and tunnels after a player;
-            the ring locks a moment before she bursts out under it.
+            the ring locks a moment before she bursts out under it,
+            leaving a pool of burning magma.
             Magma Spit throws a fan of four burning globs. Tail Lash
             sweeps everything near her toward the lava round the rim.
             Molten Rain drops three spots of falling magma that set the
@@ -80,6 +81,10 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Dive->Knockback = 600.f;
     Dive->Status = StatusEffect_Burning;
     Dive->StatusSeconds = 2.f;
+    // NOTE(zoubir): she leaves a pool of magma where she surfaces, so the
+    // party gives ground every time she comes up
+    Dive->HazardSeconds = 4.f;
+    Dive->HazardStyle = HazardStyle_Embers;
 
     monster_ability *Spit = AddMonsterAbility(Def, MonsterAbility_Volley,
                                               "Magma Spit");

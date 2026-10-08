@@ -47,7 +47,7 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 - At 70% and 35% an Anvil Guard steps off the wall: an armoured elite Warden. Its shell blocks hits from the front, so the party has to flank it. Alive after 20 s it walks back into Kragg and heals him 8%.
 
 **Sskarra the Cinder Wyrm**, a worm as thick as a cart, plated in cooled rock that cracks orange where it bends.
-- Magma Dive: burrows and tunnels after a player 110 to 560 away; the ring locks before she bursts out (72 across, burning).
+- Magma Dive: burrows and tunnels after a player 110 to 560 away; the ring locks before she bursts out (72 across, burning) and leaves a pool of burning magma for 4 s, so the party has to give ground each time she surfaces.
 - Magma Spit: a fan of four burning globs.
 - Tail Lash: a sweep round her (105) with a hard shove toward the lava at the rim.
 - Molten Rain: three spots of falling magma that set the struck burning, from the start of the fight.
@@ -78,6 +78,8 @@ A full run over four seeds (`dungeon_balance 90 3 2 4`, the bots levelling throu
 Part of Vol'karr's spread was the probe. Bots that wiped in his hall waited by the Ashfall Bridge, walked into its lava, and were put back in his hall at a tenth to two thirds of their health and burning, so the next try ended within ten seconds at 96% of his health. The probe now rests them to full and puts the fire out before walking them back in. With that, over eight seeds started in his hall, he wipes the bots on five, at most four times, and dies in 72 to 108 s.
 
 Measured one boss at a time with rested retries (`PROBE_MAP=depths dungeon_balance 8 3 <room> 8`), Kragg was the hardest boss of the three (wipes on seven seeds of eight) and Sskarra never wiped the bots. Hammer Hurl now comes every 5 s for 11; Sskarra has 1350 health, Molten Rain from the start, and her bite, Tail Lash and Magma Dive hit for 19, 26 and 30. Over eight seeds Kragg now wipes the bots on three (at most twice), Sskarra on one (twice) with one to three deaths on most others, and Vol'karr on five (at most four times).
+
+Magma Dive then got its pool of magma (a burrow can now leave a hazard where it surfaces, as a slam or a mortar can). Over eight seeds Sskarra wipes the bots on two and costs one to five deaths on the rest, close to Kragg.
 
 ## Online
 

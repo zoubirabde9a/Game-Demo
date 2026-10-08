@@ -148,10 +148,12 @@ TestMonsterDefsAreValid()
                 Check(Ability->Status < StatusEffect_Count);
                 Check(Ability->StatusSeconds > 0.f);
             }
-            // NOTE(zoubir): only slams and mortar spots leave hazards
+            // NOTE(zoubir): only slams, mortar spots and a burrow's
+            // eruption leave hazards
             Check(Ability->HazardSeconds == 0.f ||
                   ((Ability->Kind == MonsterAbility_Mortar ||
-                    Ability->Kind == MonsterAbility_Slam) &&
+                    Ability->Kind == MonsterAbility_Slam ||
+                    Ability->Kind == MonsterAbility_Burrow) &&
                    Ability->HazardStyle < HazardStyle_Count &&
                    Ability->Status != StatusEffect_None));
             if (Ability->Kind == MonsterAbility_Volley)

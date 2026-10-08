@@ -49,6 +49,10 @@ EruptFromBurrow(app_state *AppState, world *World, memory_arena *Arena,
     Entity->Burrowed = false;
     Entity->Velocity = {};
     HurtPlayersInRadius(AppState, World, Entity, Entity->Position.XY, Ability);
+    if (Ability->HazardSeconds > 0.f)
+    {
+        AddMonsterHazard(AppState, World, Arena, Entity, Ability, Entity->Position.XY);
+    }
 }
 
 // NOTE(zoubir): charges move the monster and hit whoever they reach
