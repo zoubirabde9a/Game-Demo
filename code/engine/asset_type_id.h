@@ -56,6 +56,11 @@ enum asset_type_id
     AssetType_SfxExplosion,
     AssetType_SfxGiantFireball,
     AssetType_SfxCombustion,
+    // NOTE(zoubir): the announcer's stings (ui/announcer/), played by the
+    // client alone
+    AssetType_SfxAnnounce,
+    AssetType_SfxFight,
+    AssetType_SfxCountdown,
     AssetType_Count
 };
 

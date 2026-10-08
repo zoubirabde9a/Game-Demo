@@ -19,6 +19,7 @@ struct kill_feed
 {
     kill_feed_entry Entries[KILL_FEED_SIZE]; // newest first
     u32 Count;
+    u32 Total; // every kill ever added, so a reader can tell which are new
 };
 
 internal void
@@ -35,6 +36,7 @@ AddToKillFeed(kill_feed *Feed, sim_event *Kill)
     Entry->KillerMonster = Kill->KillerMonster;
     Entry->Age = 0.f;
     Feed->Count = Keep + 1;
+    Feed->Total++;
 }
 
 internal void

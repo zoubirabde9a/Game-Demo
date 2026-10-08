@@ -3,7 +3,8 @@
    health and cooldowns at the bottom (icons in ability_icons/), the quick
    cast checkbox at the top (cast_mode_toggle.cpp), and the
    scoreboard shown while Tab is held, the minimap, the connect screen
-   (F4) and the tile editor (F3). The
+   (F4), the tile editor (F3) and the announcer's cards about the match
+   (announcer/). The
    immediate-mode widget library they draw with is engine/ui.cpp.
 
    Depends on sim and client (included before this).
@@ -32,4 +33,5 @@
 #include "map_vote_view.cpp"
 #include "dungeon/dungeon_hud.cpp"
 #include "dungeon/boss_alerts.cpp"
+#include "announcer/announcer.cpp"
 #include "shader_errors.cpp"

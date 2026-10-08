@@ -14,6 +14,7 @@
 
 #include "synth.cpp"
 #include "recipes.cpp"
+#include "announcer_recipes.cpp"
 #include "sound_files.cpp"
 
 typedef void sfx_recipe(float *Samples, u32 Count, sfx_random *Random, sfx_reverb *Reverb);
@@ -53,6 +54,9 @@ global_variable sound_effect SoundEffects[] =
     {AssetType_SfxExplosion,     SfxExplosion,     1.2f,  0.65f, 0.05f, "explosion"},
     {AssetType_SfxGiantFireball, SfxGiantFireball, 0.6f,  0.52f, 0.04f, "giant_fireball"},
     {AssetType_SfxCombustion,    SfxCombustion,    0.6f,  0.48f, 0.03f, "combustion"},
+    {AssetType_SfxAnnounce,      SfxAnnounce,      1.9f,  0.6f,  0.f,   "announce"},
+    {AssetType_SfxFight,         SfxFight,         0.6f,  0.55f, 0.f,   "fight"},
+    {AssetType_SfxCountdown,     SfxCountdown,     0.35f, 0.4f,  0.f,   "countdown"},
 };
 
 // NOTE(zoubir): the row for Type, 0 for a sound read from the pack

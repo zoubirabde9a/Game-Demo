@@ -59,4 +59,5 @@
     struct danger_zones *DangerZones; // monster attack areas on the ground and their impacts, client/danger_zones.cpp
     v2 FreeCamera; // where a dead player's loose camera centres in a dungeon, client/free_camera.cpp
     bool32 FreeCameraOn; // the camera is loose from the dead local player, client/free_camera.cpp
+    struct announcer *Announcer; // title cards, callouts and toasts about the match, ui/announcer/announcer.cpp
     struct boss_alerts *BossAlerts; // the banner when a boss fight turns, ui/dungeon/boss_alerts.cpp
