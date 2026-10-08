@@ -242,8 +242,8 @@ CastShadowstep(app_state *AppState, world *World, memory_arena *Arena, player_sl
     v3 Landing = Foe->Position;
     Landing.XY += (SHADOWSTEP_GAP + 0.5f * Foe->Dimensions.X) * Back;
     Landing.Z = Player->Position.Z;
-    // NOTE(zoubir): a puff of shadow where it left
-    EmitBurst(&AppState->Events, SimBurst_Ambush, (u8)Player->PlayerIndex, ChestOf(Player));
+    // NOTE(zoubir): shadow drawn in where it left
+    EmitBurst(&AppState->Events, SimBurst_CastGather, (u8)Player->PlayerIndex, ChestOf(Player));
     MovePlayerTo(AppState, World, Arena, Player, Landing);
     v2 Moved = Player->Position.XY - From;
     float Angle = LengthSq(Moved) > 1.f ? ATan2(Moved.Y, Moved.X) : 0.f;
