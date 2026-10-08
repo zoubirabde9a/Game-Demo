@@ -3,8 +3,11 @@
    melee and so stand where bosses slam. A monster winding up a Slam hurts
    round itself, a Blink where it lands (AbilityPoints[0]), a Mortar at
    every point it marked; a monster hazard (burning ground, magma) hurts
-   where it lies. BotSafeSpot pushes a spot out of all of them, so a bot
-   walks to the edge of a telegraph instead of standing in it.
+   where it lies. A slam with an inner radius (the Hollow King's Hollow
+   Ring) hurts only the band between its radii: the ground inside is safe,
+   and the way out of the band is in. BotSafeSpot moves a spot out of all
+   of them, so a bot walks to the edge of a telegraph, or into a ring's
+   middle, instead of standing where it lands.
 
    Found by the Shadowblade's bot (server/bots/shadowblade.cpp), which
    melee bots share through here. The Fire Mage's, tank's and healer's
@@ -21,6 +24,8 @@ struct bot_danger_circle
 {
     v2 Centre;
     float Radius;
+    // NOTE(zoubir): a ring's safe middle, 0 for a full circle
+    float Inner;
 };
 
 // NOTE(zoubir): the danger circles near Self, into Out (BOT_MAX_DANGERS
@@ -40,7 +45,7 @@ BotDangers(app_state *AppState, world_entity *Self, bot_danger_circle *Out)
         }
         if (Other->Type == EntityType_MonsterHazard)
         {
-            Out[Count++] = {Other->Position.XY, 0.5f * Other->Dimensions.X};
+            Out[Count++] = {Other->Position.XY, 0.5f * Other->Dimensions.X, 0.f};
             continue;
         }
         if (Other->Type != EntityType_Monster || Other->Hp <= 0.f ||
@@ -56,17 +61,17 @@ BotDangers(app_state *AppState, world_entity *Self, bot_danger_circle *Out)
         monster_ability *Ability = &Def->Abilities[Other->AbilityIndex];
         if (Ability->Kind == MonsterAbility_Slam)
         {
-            Out[Count++] = {Other->Position.XY, Ability->Radius};
+            Out[Count++] = {Other->Position.XY, Ability->Radius, Ability->InnerRadius};
         }
         else if (Ability->Kind == MonsterAbility_Blink && Other->AbilityPointCount)
         {
-            Out[Count++] = {Other->AbilityPoints[0], Ability->Radius};
+            Out[Count++] = {Other->AbilityPoints[0], Ability->Radius, 0.f};
         }
         else if (Ability->Kind == MonsterAbility_Mortar)
         {
             for (u32 Point = 0; Point < Other->AbilityPointCount && Count < BOT_MAX_DANGERS; ++Point)
             {
-                Out[Count++] = {Other->AbilityPoints[Point], Ability->Radius};
+                Out[Count++] = {Other->AbilityPoints[Point], Ability->Radius, 0.f};
             }
         }
     }
@@ -79,9 +84,13 @@ BotDangerAt(bot_danger_circle *Dangers, u32 Count, v2 P)
 {
     for (u32 Index = 0; Index < Count; ++Index)
     {
-        if (LengthSq(P - Dangers[Index].Centre) < Square(Dangers[Index].Radius + BOT_DANGER_MARGIN))
+        bot_danger_circle *Danger = &Dangers[Index];
+        float DistanceSq = LengthSq(P - Danger->Centre);
+        bool32 InSafeMiddle = Danger->Inner > BOT_DANGER_MARGIN &&
+            DistanceSq < Square(Danger->Inner - BOT_DANGER_MARGIN);
+        if (DistanceSq < Square(Danger->Radius + BOT_DANGER_MARGIN) && !InSafeMiddle)
         {
-            return &Dangers[Index];
+            return Danger;
         }
     }
     return 0;
@@ -101,7 +110,10 @@ BotSafeSpot(bot_danger_circle *Dangers, u32 Count, v2 P, v2 Fallback)
             break;
         }
         v2 Out = LengthSq(P - Danger->Centre) > 1.f ? DirectionTo(P - Danger->Centre) : Fallback;
-        P = Danger->Centre + (Danger->Radius + BOT_DANGER_MARGIN + 6.f) * Out;
+        // NOTE(zoubir): a ring is left inward, to halfway into its middle
+        float Reach = Danger->Inner > BOT_DANGER_MARGIN ? 0.5f * Danger->Inner :
+            Danger->Radius + BOT_DANGER_MARGIN + 6.f;
+        P = Danger->Centre + Reach * Out;
     }
     return P;
 }
