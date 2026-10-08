@@ -218,12 +218,13 @@ ReplicaServerTarget(replica_table *Table, u32 Local)
 internal void
 UpdateOnlineSession(online_session *Online, app_input *Input,
                     bool32 KeysToUi = false, v2 Aim = {}, u32 LearnBits = 0,
-                    u32 Target = 0)
+                    u32 Target = 0, u32 RoleRequest = 0)
 {
     if (Online && Online->Enabled)
     {
         // NOTE(zoubir): LearnBits is the talent field
-        // (client/talent_requests.cpp), sent even while a screen has the keys
+        // (client/talent_requests.cpp) and RoleRequest the role byte
+        // (client/dungeon/role_requests.cpp), sent even while a screen has the keys
         u32 Held = KeysToUi ? 0 : NetButtonsFromKeyboard(Input);
         NetClientPoll(&Online->Client, Input->DeltaTime);
         Online->NewTicks = 0;
@@ -237,7 +238,8 @@ UpdateOnlineSession(online_session *Online, app_input *Input,
             {
                 u32 Buttons = (Index == 0 ? Online->HeldSinceTick : Held) | LearnBits;
                 u32 Tick = NetClientQueueInput(&Online->Client, Buttons, Aim.X, Aim.Y,
-                                               ReplicaServerTarget(&Online->Replicas, Target));
+                                               ReplicaServerTarget(&Online->Replicas, Target),
+                                               (u8)RoleRequest);
                 NoteOnlineFrame(&Online->Quality, ONLINE_TICK_SECONDS);
                 RecordPredictedInput(&Online->Prediction, Tick, Buttons,
                                      ONLINE_TICK_SECONDS, Aim);
@@ -409,7 +411,7 @@ StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0,
 internal void
 UpdateOnlineSession(online_session *Online, app_input *Input,
                     bool32 KeysToUi = false, v2 Aim = {}, u32 LearnBits = 0,
-                    u32 Target = 0) {}
+                    u32 Target = 0, u32 RoleRequest = 0) {}
 internal void OnlineDisconnect(online_session *Online) {}
 internal bool32
 OnlineConnect(online_session *Online, char *Address, char *Name)

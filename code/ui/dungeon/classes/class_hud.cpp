@@ -5,6 +5,8 @@
 #include "ranger_hud.cpp"
 #include "berserker_hud.cpp"
 #include "shadowblade_hud.cpp"
+#include "stormcaller_hud.cpp"
+#include "duelist_hud.cpp"
 
 internal void
 DrawClassEmblem(render_context *RenderContext, u32 Role, v2 C, float S, u32 Fill, u32 Light)
@@ -14,6 +16,8 @@ DrawClassEmblem(render_context *RenderContext, u32 Role, v2 C, float S, u32 Fill
         case PlayerRole_Ranger: DrawRangerEmblem(RenderContext, C, S, Fill, Light); break;
         case PlayerRole_Berserker: DrawBerserkerEmblem(RenderContext, C, S, Fill, Light); break;
         case PlayerRole_Shadowblade: DrawShadowbladeEmblem(RenderContext, C, S, Fill, Light); break;
+        case PlayerRole_Stormcaller: DrawStormcallerEmblem(RenderContext, C, S, Fill, Light); break;
+        case PlayerRole_Duelist: DrawDuelistEmblem(RenderContext, C, S, Fill, Light); break;
     }
 }
 
@@ -31,5 +35,7 @@ DrawClassHud(render_context *RenderContext, app_state *AppState, u32 WindowWidth
         case PlayerRole_Ranger: DrawRangerHud(RenderContext, AppState, Slot, WindowWidth, WindowHeight); break;
         case PlayerRole_Berserker: DrawBerserkerHud(RenderContext, AppState, Slot, WindowWidth, WindowHeight); break;
         case PlayerRole_Shadowblade: DrawShadowbladeHud(RenderContext, AppState, Slot, WindowWidth, WindowHeight); break;
+        case PlayerRole_Stormcaller: DrawStormcallerHud(RenderContext, AppState, Slot, WindowWidth, WindowHeight); break;
+        case PlayerRole_Duelist: DrawDuelistHud(RenderContext, AppState, Slot, WindowWidth, WindowHeight); break;
     }
 }

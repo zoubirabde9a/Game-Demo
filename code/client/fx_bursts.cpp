@@ -144,6 +144,8 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
 #include "dungeon/classes/ranger_bursts.inc"
 #include "dungeon/classes/berserker_bursts.inc"
 #include "dungeon/classes/shadowblade_bursts.inc"
+#include "dungeon/classes/stormcaller_bursts.inc"
+#include "dungeon/classes/duelist_bursts.inc"
 };
 static_assert(ArrayCount(BurstLooks) == SimBurst_Count, "one look per burst");
 

@@ -20,7 +20,9 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d70u // "GDMo", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d71u // "GDMq", change it whenever the layout changes
+// (GDMq: the dungeon role request is a byte of its own, net_input.Role, as eight classes
+// and "none" do not fit the three spare bits of the held buttons)
 // (GDMo: 30 talent ranks, the class talents in 3 bits, for the deeper class trees)
 // (GDMm: a dungeon run sends one player's meter a snapshot)
 // (GDMl: an open map vote sends every player's answer)
@@ -120,10 +122,6 @@ enum net_button
 // held and let go like the talent field.
 #define NET_VOTE_SHIFT 20
 #define NET_VOTE_MASK 0xfu
-// Bits NET_ROLE_SHIFT and up are a dungeon role request (sim/dungeon/
-// roles.cpp): the player_role picked + 1, held and let go the same way.
-#define NET_ROLE_SHIFT 29
-#define NET_ROLE_MASK 0x7u
 #define NET_NO_BOSS 0xFFu
 #define NET_BOSS_ENRAGED 0xFFu
 #define NET_MAX_SANCTUARIES 4
@@ -159,6 +157,8 @@ struct net_input
     float AimX;    // aim direction in -1..1, sent at 1/32767 precision
     float AimY;
     u16 Target;    // the unit the cursor is on: its entity Id + 1, 0 for none
+    u8 Role;       // a dungeon role request (sim/dungeon/roles.cpp): the player_role
+                   // picked + 1, or 0; held and let go like the talent field
 };
 
 struct net_entity_state

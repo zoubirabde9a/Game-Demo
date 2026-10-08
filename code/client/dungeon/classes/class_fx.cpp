@@ -8,6 +8,8 @@
 #include "ranger.cpp"
 #include "berserker.cpp"
 #include "shadowblade.cpp"
+#include "stormcaller.cpp"
+#include "duelist.cpp"
 
 internal void
 DrawClassLook(render_context *RenderContext, app_state *AppState, player_slot *Slot,
@@ -18,6 +20,8 @@ DrawClassLook(render_context *RenderContext, app_state *AppState, player_slot *S
         case PlayerRole_Ranger: DrawRangerLook(RenderContext, AppState, Slot, Player, Clock, CameraOffset); break;
         case PlayerRole_Berserker: DrawBerserkerLook(RenderContext, AppState, Slot, Player, Clock, CameraOffset); break;
         case PlayerRole_Shadowblade: DrawShadowbladeLook(RenderContext, AppState, Slot, Player, Clock, CameraOffset); break;
+        case PlayerRole_Stormcaller: DrawStormcallerLook(RenderContext, AppState, Slot, Player, Clock, CameraOffset); break;
+        case PlayerRole_Duelist: DrawDuelistLook(RenderContext, AppState, Slot, Player, Clock, CameraOffset); break;
     }
 }
 
@@ -28,7 +32,16 @@ DrawClassBurst(render_context *RenderContext, app_state *AppState, role_burst *B
                float T, v3 CameraOffset)
 {
     u32 Kind = Burst->Kind;
-    if (Kind >= SimBurst_ShadowbladeFirst && Kind < SimBurst_ShadowbladeFirst + CLASS_BURSTS)
+    if (Kind >= SimBurst_DuelistFirst && Kind < SimBurst_DuelistFirst + CLASS_BURSTS)
+    {
+        DrawDuelistBurst(RenderContext, AppState, Burst, Kind - SimBurst_DuelistFirst, T, CameraOffset);
+    }
+    else if (Kind >= SimBurst_StormcallerFirst && Kind < SimBurst_StormcallerFirst + CLASS_BURSTS)
+    {
+        DrawStormcallerBurst(RenderContext, AppState, Burst, Kind - SimBurst_StormcallerFirst, T,
+                             CameraOffset);
+    }
+    else if (Kind >= SimBurst_ShadowbladeFirst && Kind < SimBurst_ShadowbladeFirst + CLASS_BURSTS)
     {
         DrawShadowbladeBurst(RenderContext, AppState, Burst, Kind - SimBurst_ShadowbladeFirst, T,
                              CameraOffset);
@@ -55,6 +68,8 @@ DrawClassFx(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
     DrawRangerFx(RenderContext, AppState, CameraOffset);
     DrawBerserkerFx(RenderContext, AppState, CameraOffset);
     DrawShadowbladeFx(RenderContext, AppState, CameraOffset);
+    DrawStormcallerFx(RenderContext, AppState, CameraOffset);
+    DrawDuelistFx(RenderContext, AppState, CameraOffset);
 }
 
 // NOTE(zoubir): how much bigger a Berserker in Berserk is drawn, and how

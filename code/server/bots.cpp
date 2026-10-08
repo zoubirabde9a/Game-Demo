@@ -45,6 +45,7 @@ struct bot_brain
     bool32 Active;
     u32 Random;
     u32 Held;          // buttons held this tick
+    u8 HeldRole;       // and the role byte (net_input.Role)
     float AttackWait;  // seconds until the next attack
     float WanderLeft;  // seconds until a new wander direction
     v2 Wander;
@@ -405,7 +406,7 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     player_slot *Slot = Self ? &AppState->Players[Self->PlayerIndex] : 0;
     Bot->LearnWait -= Dt;
     if (Slot && TalentPointsLeft(Slot) > 0 && Bot->LearnWait <= 0.f &&
-        !(Bot->Held >> NET_LEARN_SHIFT))
+        !(Bot->Held >> NET_LEARN_SHIFT) && !Bot->HeldRole)
     {
         Held |= BotPickTalent(Bot, AppState, Slot);
         Bot->LearnWait = BOT_LEARN_SECONDS;
@@ -424,8 +425,8 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     // first, then more damage, as a party past three needs it to keep up
     // with the boss's clock, a second healer at six and a second tank at
     // eight.
-    if (Slot && IsDungeon(AppState) && !AppState->Dungeon->FightingRoom &&
-        !(Bot->Held >> NET_ROLE_SHIFT))
+    u8 RoleAsked = 0;
+    if (Slot && IsDungeon(AppState) && !AppState->Dungeon->FightingRoom && !Bot->HeldRole)
     {
         u32 Role = BotWantedRole[Self->PlayerIndex % MAX_PLAYERS];
         if (Role == PlayerRole_Damage)
@@ -434,7 +435,7 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         }
         if (Slot->Role != Role)
         {
-            Held |= (Role + 1) << NET_ROLE_SHIFT;
+            RoleAsked = (u8)(Role + 1);
         }
     }
 
@@ -486,7 +487,9 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
                            NetButton_Launch | NetButton_Shield |
                            NetButton_Push | NetButton_Slam));
     Bot->Held = Held;
+    Bot->HeldRole = RoleAsked;
     Input.Buttons = Held;
+    Input.Role = RoleAsked;
     Input.AimX = AimReach * Direction.X;
     Input.AimY = AimReach * Direction.Y;
     Input.Target = Pick;

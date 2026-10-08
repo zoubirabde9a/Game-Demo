@@ -49,7 +49,7 @@
 #include "../third_party/lzma/lzma.cpp"
 
 #define REPLAY_MAGIC 0x50524447u // "GDRP"
-#define REPLAY_VERSION 5u
+#define REPLAY_VERSION 6u
 #define REPLAY_NAME_SIZE 16
 #define REPLAY_BLOCK_SIZE (64 * 1024)
 #define REPLAY_PACKED_SIZE (REPLAY_BLOCK_SIZE + REPLAY_BLOCK_SIZE / 8 + 1024)

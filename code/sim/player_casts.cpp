@@ -40,6 +40,10 @@ enum player_spell
     PlayerSpell_BerserkerB,
     PlayerSpell_ShadowbladeA,
     PlayerSpell_ShadowbladeB,
+    PlayerSpell_StormcallerA,
+    PlayerSpell_StormcallerB,
+    PlayerSpell_DuelistA,
+    PlayerSpell_DuelistB,
     // NOTE(zoubir): the rewinds stay last, in rewind_kind order
     // (time_rewind/rewind_abilities.cpp RewindSpell)
     PlayerSpell_RewindSelf,
@@ -91,6 +95,10 @@ global_variable player_spell_cast PlayerSpells[PlayerSpell_Count] =
     BERSERKER_CAST_B,
     SHADOWBLADE_CAST_A,
     SHADOWBLADE_CAST_B,
+    STORMCALLER_CAST_A,
+    STORMCALLER_CAST_B,
+    DUELIST_CAST_A,
+    DUELIST_CAST_B,
     // NOTE(zoubir): the time rewinds (time_rewind/rewind_abilities.cpp):
     // the hold and the playback follow the cast
     {0.5f, 0.7f, false, "Rewind"},

@@ -5,4 +5,6 @@
 #include "ranger_icons.cpp"
 #include "berserker_icons.cpp"
 #include "shadowblade_icons.cpp"
+#include "stormcaller_icons.cpp"
+#include "duelist_icons.cpp"
 #include "healer_icons.cpp"

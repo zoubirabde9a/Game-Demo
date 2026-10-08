@@ -21,6 +21,8 @@ enum player_role
     PlayerRole_Ranger,
     PlayerRole_Berserker,
     PlayerRole_Shadowblade,
+    PlayerRole_Stormcaller,
+    PlayerRole_Duelist,
     PlayerRole_Count
 };
 
@@ -108,6 +110,12 @@ global_variable role_def RoleTable[PlayerRole_Count] =
     {"Shadowblade",  130.f, 0.85f, 1.35f, 1.f, "Melee",
      "Twin daggers: quick cuts build combo points, finishers spend them",
      RoleKind_Melee, {170, 110, 255}},
+    {"Stormcaller",  105.f, 1.0f,  1.35f, 0.85f, "Ranged",
+     "Lightning that leaps foe to foe; Charge makes it stronger until it overloads",
+     RoleKind_Ranged, {250, 220, 80}},
+    {"Duelist",      125.f, 0.85f, 1.35f, 1.f, "Melee",
+     "A rapier: weave your strikes to build Tempo, parry to keep it",
+     RoleKind_Melee, {240, 110, 170}},
 };
 
 inline role_def *

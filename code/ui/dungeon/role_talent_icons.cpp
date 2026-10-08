@@ -179,4 +179,6 @@ global_variable talent_icon_painter **RoleTalentIconPainters[PlayerRole_Count] =
 {
     StrikerTalentIconPainters, TankTalentIconPainters, HealerTalentIconPainters,
     RangerTalentIconPainters, BerserkerTalentIconPainters, ShadowbladeTalentIconPainters,
+    StormcallerTalentIconPainters,
+    DuelistTalentIconPainters,
 };

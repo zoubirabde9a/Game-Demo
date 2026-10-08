@@ -53,6 +53,10 @@ FinishPlayerCast(app_state *AppState, world *World, memory_arena *Arena,
         case PlayerSpell_BerserkerB:
         case PlayerSpell_ShadowbladeA:
         case PlayerSpell_ShadowbladeB:
+        case PlayerSpell_StormcallerA:
+        case PlayerSpell_StormcallerB:
+        case PlayerSpell_DuelistA:
+        case PlayerSpell_DuelistB:
         {
             if (Authoritative)
             {

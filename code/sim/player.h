@@ -84,7 +84,7 @@ struct player_input
     // it from spare bits of the held buttons (NET_VOTE_SHIFT)
     u32 Vote;
     // NOTE(zoubir): a dungeon role asked for this tick, its player_role + 1,
-    // 0 for none (sim/dungeon/roles.cpp, NET_ROLE_SHIFT)
+    // 0 for none (sim/dungeon/roles.cpp, net_input.Role)
     u32 Role;
 };
 

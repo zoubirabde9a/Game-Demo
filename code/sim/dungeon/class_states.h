@@ -6,3 +6,5 @@
 #include "role_kits/ranger.h"
 #include "role_kits/berserker.h"
 #include "role_kits/shadowblade.h"
+#include "role_kits/stormcaller.h"
+#include "role_kits/duelist.h"

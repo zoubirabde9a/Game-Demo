@@ -1,6 +1,6 @@
 /* Role requests: a dungeon role picked in the role picker
    (ui/dungeon/dungeon_hud.cpp) on its way to the server. It rides in the
-   role field of the held buttons (NET_ROLE_SHIFT, net/protocol.h), held
+   role byte of the input (net_input.Role, net/protocol.h), held
    for a few inputs and let go like a map vote (vote_requests.cpp), so a
    lost packet loses nothing; the server takes it between fights
    (TakeRoleRequests, sim/dungeon/encounters.cpp). Offline the picker
@@ -16,10 +16,9 @@ RequestDungeonRole(app_state *AppState, u32 Role)
     AppState->RoleRequest = Role + 1;
 }
 
-// NOTE(zoubir): online, the role field to OR into this frame's held
-// buttons
+// NOTE(zoubir): online, the role byte of this frame's input
 internal u32
-OnlineRoleBits(app_state *AppState, float DeltaTime)
+OnlineRoleRequest(app_state *AppState, float DeltaTime)
 {
     if (AppState->RoleHolding)
     {
@@ -40,7 +39,7 @@ OnlineRoleBits(app_state *AppState, float DeltaTime)
         AppState->RoleRequest = 0;
         AppState->RoleHoldLeft = TALENT_HOLD_SECONDS;
     }
-    u32 Result = (AppState->RoleHolding & NET_ROLE_MASK) << NET_ROLE_SHIFT;
+    u32 Result = AppState->RoleHolding;
     return Result;
 }
 

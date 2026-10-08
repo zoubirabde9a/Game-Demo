@@ -32,8 +32,8 @@ StartDungeonOnlineTest(round_map_test *Test, char *Name)
     Check(OnlineConnect(Test->Online, Address, Name));
 }
 
-// NOTE(zoubir): like RunRoundMapTest, with the role field in the held
-// buttons as app.cpp sends it
+// NOTE(zoubir): like RunRoundMapTest, with the role byte in the input as
+// app.cpp sends it
 internal void
 RunDungeonOnlineTest(round_map_test *Test, int Frames)
 {
@@ -42,7 +42,7 @@ RunDungeonOnlineTest(round_map_test *Test, int Frames)
     for (int Frame = 0; Frame < Frames; ++Frame)
     {
         UpdateOnlineSession(Test->Online, &Input, false, {},
-                            OnlineRoleBits(Test->Client, Input.DeltaTime));
+                            0, 0, OnlineRoleRequest(Test->Client, Input.DeltaTime));
         RunWorldTick(Test->Client, &Test->Arena, Input.DeltaTime);
         ServerTick(&Test->Server);
     }
@@ -86,6 +86,13 @@ TestDungeonRolesAndRoomsOnline()
     Check(CountGateWalls(Client->Dungeon) > 0);
 
     u32 SlotIndex = Test.Online->Client.PlayerIndex;
+    // NOTE(zoubir): the last class + 1 needs a fourth bit, which the role
+    // byte has
+    u32 Last = PlayerRole_Count - 1;
+    RequestDungeonRole(Client, Last);
+    RunDungeonOnlineTest(&Test, SERVER_TICK_RATE);
+    Check(Game->Players[SlotIndex].Role == Last);
+    Check(Client->Players[Client->LocalPlayerIndex].Role == Last);
     RequestDungeonRole(Client, PlayerRole_Healer);
     RunDungeonOnlineTest(&Test, SERVER_TICK_RATE);
     Check(Game->Players[SlotIndex].Role == PlayerRole_Healer);

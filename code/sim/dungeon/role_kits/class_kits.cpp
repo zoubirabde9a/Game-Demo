@@ -5,6 +5,8 @@
 #include "ranger.cpp"
 #include "berserker.cpp"
 #include "shadowblade.cpp"
+#include "stormcaller.cpp"
+#include "duelist.cpp"
 
 internal bool32
 ClassKeyWindsUp(player_slot *Slot, u32 Key)
@@ -14,6 +16,8 @@ ClassKeyWindsUp(player_slot *Slot, u32 Key)
         case PlayerRole_Ranger: return RangerKeyWindsUp(Key);
         case PlayerRole_Berserker: return BerserkerKeyWindsUp(Key);
         case PlayerRole_Shadowblade: return ShadowbladeKeyWindsUp(Key);
+        case PlayerRole_Stormcaller: return StormcallerKeyWindsUp(Key);
+        case PlayerRole_Duelist: return DuelistKeyWindsUp(Key);
     }
     return false;
 }
@@ -27,6 +31,8 @@ CastClassKey(app_state *AppState, world *World, memory_arena *Arena, player_slot
         case PlayerRole_Ranger: return CastRangerKey(AppState, World, Arena, Slot, Player, Key);
         case PlayerRole_Berserker: return CastBerserkerKey(AppState, World, Arena, Slot, Player, Key);
         case PlayerRole_Shadowblade: return CastShadowbladeKey(AppState, World, Arena, Slot, Player, Key);
+        case PlayerRole_Stormcaller: return CastStormcallerKey(AppState, World, Arena, Slot, Player, Key);
+        case PlayerRole_Duelist: return CastDuelistKey(AppState, World, Arena, Slot, Player, Key);
     }
     return false;
 }
@@ -39,6 +45,8 @@ FinishClassCast(app_state *AppState, player_slot *Slot, world_entity *Player, pl
         case PlayerRole_Ranger: FinishRangerCast(AppState, Slot, Player, Spell); break;
         case PlayerRole_Berserker: FinishBerserkerCast(AppState, Slot, Player, Spell); break;
         case PlayerRole_Shadowblade: FinishShadowbladeCast(AppState, Slot, Player, Spell); break;
+        case PlayerRole_Stormcaller: FinishStormcallerCast(AppState, Slot, Player, Spell); break;
+        case PlayerRole_Duelist: FinishDuelistCast(AppState, Slot, Player, Spell); break;
     }
 }
 
@@ -51,6 +59,8 @@ OnClassHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
         case PlayerRole_Ranger: OnRangerHit(AppState, Attacker, Target, Source, Damage); break;
         case PlayerRole_Berserker: OnBerserkerHit(AppState, Attacker, Target, Source, Damage); break;
         case PlayerRole_Shadowblade: OnShadowbladeHit(AppState, Attacker, Target, Source, Damage); break;
+        case PlayerRole_Stormcaller: OnStormcallerHit(AppState, Attacker, Target, Source, Damage); break;
+        case PlayerRole_Duelist: OnDuelistHit(AppState, Attacker, Target, Source, Damage); break;
     }
 }
 
@@ -62,6 +72,8 @@ ClassDealtScale(player_slot *Slot, world_entity *Target)
         case PlayerRole_Ranger: return RangerDealtScale(Slot, Target);
         case PlayerRole_Berserker: return BerserkerDealtScale(Slot, Target);
         case PlayerRole_Shadowblade: return ShadowbladeDealtScale(Slot, Target);
+        case PlayerRole_Stormcaller: return StormcallerDealtScale(Slot, Target);
+        case PlayerRole_Duelist: return DuelistDealtScale(Slot, Target);
     }
     return 1.f;
 }
@@ -74,6 +86,8 @@ ClassTakenScale(player_slot *Slot, world_entity *Player)
         case PlayerRole_Ranger: return RangerTakenScale(Slot, Player);
         case PlayerRole_Berserker: return BerserkerTakenScale(Slot, Player);
         case PlayerRole_Shadowblade: return ShadowbladeTakenScale(Slot, Player);
+        case PlayerRole_Stormcaller: return StormcallerTakenScale(Slot, Player);
+        case PlayerRole_Duelist: return DuelistTakenScale(Slot, Player);
     }
     return 1.f;
 }
@@ -87,6 +101,8 @@ ClassSpellCooldown(player_slot *Slot, u32 Key, float Base)
         case PlayerRole_Ranger: return RangerSpellCooldown(Slot, Key, Base);
         case PlayerRole_Berserker: return BerserkerSpellCooldown(Slot, Key, Base);
         case PlayerRole_Shadowblade: return ShadowbladeSpellCooldown(Slot, Key, Base);
+        case PlayerRole_Stormcaller: return StormcallerSpellCooldown(Slot, Key, Base);
+        case PlayerRole_Duelist: return DuelistSpellCooldown(Slot, Key, Base);
     }
     return Base;
 }
@@ -99,6 +115,8 @@ ClassSpellRadius(player_slot *Slot, u32 Key, float Base)
         case PlayerRole_Ranger: return RangerSpellRadius(Slot, Key, Base);
         case PlayerRole_Berserker: return BerserkerSpellRadius(Slot, Key, Base);
         case PlayerRole_Shadowblade: return ShadowbladeSpellRadius(Slot, Key, Base);
+        case PlayerRole_Stormcaller: return StormcallerSpellRadius(Slot, Key, Base);
+        case PlayerRole_Duelist: return DuelistSpellRadius(Slot, Key, Base);
     }
     return Base;
 }
@@ -110,6 +128,8 @@ UpdateClassEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
     UpdateRangerEffects(AppState, Run, DeltaTime);
     UpdateBerserkerEffects(AppState, Run, DeltaTime);
     UpdateShadowbladeEffects(AppState, Run, DeltaTime);
+    UpdateStormcallerEffects(AppState, Run, DeltaTime);
+    UpdateDuelistEffects(AppState, Run, DeltaTime);
 }
 
 // NOTE(zoubir): whether a class flies Player through the air on its own

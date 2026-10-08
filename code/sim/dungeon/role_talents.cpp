@@ -56,12 +56,16 @@ enum role_stat
 #include "role_kits/ranger_defs.cpp"
 #include "role_kits/berserker_defs.cpp"
 #include "role_kits/shadowblade_defs.cpp"
+#include "role_kits/stormcaller_defs.cpp"
+#include "role_kits/duelist_defs.cpp"
 
 // NOTE(zoubir): by player_role, then slot
 global_variable talent_def *RoleTalentDefs[PlayerRole_Count] =
 {
     StrikerTalentDefs, TankTalentDefs, HealerTalentDefs,
     RangerTalentDefs, BerserkerTalentDefs, ShadowbladeTalentDefs,
+    StormcallerTalentDefs,
+    DuelistTalentDefs,
 };
 
 #include "role_stats.cpp"

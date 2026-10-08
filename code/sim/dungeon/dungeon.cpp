@@ -156,6 +156,8 @@ struct dungeon_run
     // (role_kits/<class>.h)
     ranger_run Ranger;
     shadowblade_run Shadowblade;
+    stormcaller_run Stormcaller;
+    duelist_run Duelist;
 };
 
 #include "gate_crossing.cpp"

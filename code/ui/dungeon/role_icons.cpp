@@ -430,6 +430,8 @@ global_variable role_icon_painter **RoleIconPainters[PlayerRole_Count] =
 {
     StrikerIconPainters, TankIconPainters, HealerIconPainters,
     RangerIconPainters, BerserkerIconPainters, ShadowbladeIconPainters,
+    StormcallerIconPainters,
+    DuelistIconPainters,
 };
 #define ROLE_ICON_COUNT (PlayerRole_Count * ROLE_KEYS)
 

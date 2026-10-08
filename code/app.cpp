@@ -85,9 +85,8 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     UpdateOnlineSession(AppState->Online, &ServerInput, KeysToUi, LocalInput->Aim,
                         OnlineTalentBits(AppState, Input->DeltaTime) |
                         OnlineVoteBits(AppState, Input->DeltaTime) |
-                        OnlineRoleBits(AppState, Input->DeltaTime) |
                         MoveNetButtons(LocalInput->Move),
-                        LocalInput->Target);
+                        LocalInput->Target, OnlineRoleRequest(AppState, Input->DeltaTime));
     RunWorldTick(AppState, &AppState->WorldArena, Input->DeltaTime);
     // NOTE(zoubir): the duel's final blow slows the rest of the frame's
     // effects with the world (client/final_blow.cpp)

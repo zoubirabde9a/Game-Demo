@@ -127,6 +127,7 @@ NetSerializeInput(net_stream *S, net_input *Input)
     NetUnitFloat(S, &Input->AimX);
     NetUnitFloat(S, &Input->AimY);
     NetU16(S, &Input->Target);
+    NetU8(S, &Input->Role);
 }
 
 // One function both writes and reads, so the two directions cannot drift apart.

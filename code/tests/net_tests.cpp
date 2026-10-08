@@ -360,14 +360,17 @@ TestInputRoundTrip()
     In.Input.Count = 2;
     In.Input.Inputs[0] = {50, NetButton_Left | NetButton_Shockwave, 0.5f, -1.0f};
     In.Input.Inputs[1] = {49, NetButton_Jump, 3.0f, -7.0f}; // aim out of range
+    In.Input.Inputs[1].Role = 8; // the eighth class + 1, past three bits
     net_packet Out = RoundTrip(&In, 0);
     Check(Out.Input.Count == 2);
     Check(Out.Input.Inputs[0].Tick == 50);
     Check(Out.Input.Inputs[0].Buttons == (NetButton_Left | NetButton_Shockwave));
     Check(Out.Input.Inputs[0].AimX > 0.4999f && Out.Input.Inputs[0].AimX < 0.5001f);
     Check(Out.Input.Inputs[0].AimY == -1.0f);
+    Check(Out.Input.Inputs[0].Role == 0);
     Check(Out.Input.Inputs[1].AimX == 1.0f);
     Check(Out.Input.Inputs[1].AimY == -1.0f);
+    Check(Out.Input.Inputs[1].Role == 8);
 }
 
 // Every list full at once is more than one datagram: writing it plainly
@@ -1095,8 +1098,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d70u
-#define NET_GOLDEN_LAYOUT 0x83c3e3a5u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d71u
+#define NET_GOLDEN_LAYOUT 0xd29d2f4au
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -1219,6 +1222,7 @@ TestWireLayoutIsPinned()
         Packets[4].Input.Inputs[Index].Buttons = 0x10101 * Index;
         Packets[4].Input.Inputs[Index].AimX = 0.25f;
         Packets[4].Input.Inputs[Index].AimY = -0.5f;
+        Packets[4].Input.Inputs[Index].Role = (u8)Index;
     }
     Packets[5] = FullSnapshot();
     Packets[6].Header = {NetPacket_ConnectChallenge, 11, 12};

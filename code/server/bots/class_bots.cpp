@@ -6,6 +6,8 @@
 #include "ranger.cpp"
 #include "berserker.cpp"
 #include "shadowblade.cpp"
+#include "stormcaller.cpp"
+#include "duelist.cpp"
 
 // NOTE(zoubir): 0 for a class with no file here
 internal u32
@@ -17,6 +19,8 @@ BotClassButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_e
         case PlayerRole_Ranger: return BotRangerButtons(Bot, AppState, Self, Target, Distance, Direction, Held, Pick);
         case PlayerRole_Berserker: return BotBerserkerButtons(Bot, AppState, Self, Target, Distance, Direction, Held, Pick);
         case PlayerRole_Shadowblade: return BotShadowbladeButtons(Bot, AppState, Self, Target, Distance, Direction, Held, Pick);
+        case PlayerRole_Stormcaller: return BotStormcallerButtons(Bot, AppState, Self, Target, Distance, Direction, Held, Pick);
+        case PlayerRole_Duelist: return BotDuelistButtons(Bot, AppState, Self, Target, Distance, Direction, Held, Pick);
     }
     return 0;
 }

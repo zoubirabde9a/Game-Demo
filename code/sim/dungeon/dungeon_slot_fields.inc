@@ -58,3 +58,5 @@
     ranger_slot Ranger;
     berserker_slot Berserker;
     shadowblade_slot Shadowblade;
+    stormcaller_slot Stormcaller;
+    duelist_slot Duelist;

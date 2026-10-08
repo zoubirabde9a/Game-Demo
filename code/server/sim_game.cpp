@@ -17,6 +17,7 @@ struct server_game
     app_state *AppState;
     memory_arena *Arena;
     u32 HeldButtons[NET_MAX_CLIENTS];
+    u8 HeldRoles[NET_MAX_CLIENTS]; // the role byte of the last input (net_input.Role)
     u32 NameTurn; // which slot's name the next snapshots carry
     u32 LastInputTick[NET_MAX_CLIENTS]; // newest input applied per slot
     // Sounds and deaths on their way to the clients (event_relay.cpp).
@@ -88,6 +89,7 @@ GamePlayerJoined(server_game *Game, u32 Slot)
     AddPlayerToSlot(AppState, &AppState->World, Game->Arena, Slot,
                     PlayerSpawnPosition(&AppState->World, Slot));
     Game->HeldButtons[Slot] = 0;
+    Game->HeldRoles[Slot] = 0;
     Game->LastInputTick[Slot] = 0;
 }
 
@@ -97,6 +99,7 @@ GamePlayerLeft(server_game *Game, u32 Slot)
     ReplayWriteSlotEvent(Game->Replay, ReplayEvent_Left, Slot);
     RemovePlayerFromSlot(Game->AppState, &Game->AppState->World, Slot);
     Game->HeldButtons[Slot] = 0;
+    Game->HeldRoles[Slot] = 0;
     Game->LastInputTick[Slot] = 0;
 }
 
@@ -109,8 +112,7 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     u32 Held = Input->Buttons;
     u32 LearnBits = NET_LEARN_MASK << NET_LEARN_SHIFT;
     u32 VoteBits = NET_VOTE_MASK << NET_VOTE_SHIFT;
-    u32 RoleBits = NET_ROLE_MASK << NET_ROLE_SHIFT;
-    u32 Pressed = Held & ~Game->HeldButtons[Slot] & ~LearnBits & ~VoteBits & ~RoleBits;
+    u32 Pressed = Held & ~Game->HeldButtons[Slot] & ~LearnBits & ~VoteBits;
     // NOTE(zoubir): the talent field (net/protocol.h) spends a point each
     // time it changes to a talent
     u32 Learn = (Held >> NET_LEARN_SHIFT) & NET_LEARN_MASK;
@@ -118,9 +120,9 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     // NOTE(zoubir): and the vote field (sim/map_vote.cpp) the same way
     u32 Vote = (Held >> NET_VOTE_SHIFT) & NET_VOTE_MASK;
     u32 VoteBefore = (Game->HeldButtons[Slot] >> NET_VOTE_SHIFT) & NET_VOTE_MASK;
-    // NOTE(zoubir): and the dungeon role field (sim/dungeon/roles.cpp)
-    u32 Role = (Held >> NET_ROLE_SHIFT) & NET_ROLE_MASK;
-    u32 RoleBefore = (Game->HeldButtons[Slot] >> NET_ROLE_SHIFT) & NET_ROLE_MASK;
+    // NOTE(zoubir): and the dungeon role byte (sim/dungeon/roles.cpp)
+    u32 Role = Input->Role;
+    u32 RoleBefore = Game->HeldRoles[Slot];
     v2 Move = {};
     if (Held & NetButton_Left) Move.X -= 1.f;
     if (Held & NetButton_Right) Move.X += 1.f;
@@ -136,7 +138,7 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     // repeat the last) is left out of a replay. Asked of the game, not of
     // the last input: a stun zeroes the move, and the next same input then
     // does change it
-    bool32 ChangesGame = Held != Game->HeldButtons[Slot] ||
+    bool32 ChangesGame = Held != Game->HeldButtons[Slot] || Role != RoleBefore ||
         Move.X != Out->Move.X || Move.Y != Out->Move.Y ||
         Aim.X != Out->Aim.X || Aim.Y != Out->Aim.Y ||
         Input->Target != Out->Target;
@@ -146,6 +148,7 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     }
 
     Game->HeldButtons[Slot] = Held;
+    Game->HeldRoles[Slot] = (u8)Role;
     Game->LastInputTick[Slot] = Input->Tick;
     Out->Move = Move;
     Out->Aim = Aim;

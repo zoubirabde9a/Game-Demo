@@ -139,6 +139,8 @@ global_variable role_spell HealerSpells[ROLE_KEYS] =
 global_variable role_spell *RoleSpells[PlayerRole_Count] =
 {
     StrikerSpells, TankSpells, HealerSpells, RangerSpells, BerserkerSpells, ShadowbladeSpells,
+    StormcallerSpells,
+    DuelistSpells,
 };
 
 // NOTE(zoubir): whether a class has a kit yet, a spell on its first
@@ -209,7 +211,8 @@ RoleSpellLearned(player_slot *Slot, u32 Key)
 inline bool32
 RoleDropsFireball(u32 Role)
 {
-    bool32 Result = Role == PlayerRole_Berserker || Role == PlayerRole_Shadowblade;
+    bool32 Result = Role == PlayerRole_Berserker || Role == PlayerRole_Shadowblade ||
+        Role == PlayerRole_Duelist;
     return Result;
 }
 
