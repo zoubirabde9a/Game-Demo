@@ -605,6 +605,19 @@ TestHarmlessHitsSayWhy()
     ApplyHit(AppState, Test.World, Player, &Hit, V2(1.f, 0.f), 0, SIM_NOBODY);
     Check(CountBursts(AppState, SimBurst_Dodged) == 1);
 
+    // NOTE(zoubir): a fireball passing under a jump; any entity stands in
+    // for the fireball, FireBallHit reads only its owner and flight
+    Player->DashFlash = 0.f;
+    Player->Position.Z = Player->GroundZ + 40.f;
+    world_entity *Shot = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
+                                         1, {200, 300, 0});
+    float Hp = Player->Hp;
+    AppState->Events.Count = 0;
+    FireBallHit(AppState, Test.World, Shot, Player);
+    Check(CountBursts(AppState, SimBurst_Dodged) == 1);
+    Check(Player->Hp == Hp);
+    Player->Position.Z = Player->GroundZ;
+
     // NOTE(zoubir): a monster's shell turning a hit from the front
     world_entity *Warden = AddMonster(AppState, Test.World, &Test.Arena,
                                       {500, 300, 0}, MonsterKind_Warden);

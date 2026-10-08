@@ -136,7 +136,7 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Target = &World->Entities[EntityIndex];
-        if (!IsHitTarget(Target, Player) || IsJumpingClear(Target))
+        if (!IsHitTarget(Target, Player))
         {
             continue;
         }
@@ -145,6 +145,11 @@ FireAreaAbility(app_state *AppState, world *World, world_entity *Player,
         if (FromCentre > Ability->Radius ||
             DotProduct(Away, Aim) < Ability->ConeCos)
         {
+            continue;
+        }
+        if (IsJumpingClear(Target))
+        {
+            EmitJumpedClear(AppState, Target, SIM_NOBODY);
             continue;
         }
         if (Ability->Pull)

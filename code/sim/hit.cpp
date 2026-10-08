@@ -106,6 +106,16 @@ TickHitStop(world_entity *Entity, float DeltaTime)
     return Frozen;
 }
 
+// NOTE(zoubir): something that strikes the ground passed under Target's
+// jump (IsJumpingClear); clients write Dodged over it
+internal void
+EmitJumpedClear(app_state *AppState, world_entity *Target, u32 BySlot)
+{
+    v3 Chest = Target->Position;
+    Chest.Z += 16.f;
+    EmitBurst(&AppState->Events, SimBurst_Dodged, (u8)BySlot, Chest);
+}
+
 // NOTE(zoubir): player_stats.cpp, included after this
 internal void StaggerPlayer(world_entity *Player);
 
