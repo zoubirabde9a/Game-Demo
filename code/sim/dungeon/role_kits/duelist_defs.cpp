@@ -4,7 +4,7 @@
 // NOTE(zoubir): Thrust (right click): a quick stab at the nearest foe
 // within reach (plus half its width) and inside the half-angle in front;
 // one foe only
-#define THRUST_DAMAGE 3.5f
+#define THRUST_DAMAGE 5.5f
 #define THRUST_REACH 100.f
 #define THRUST_HALF_ARC 0.45f
 #define THRUST_SHOVE 25.f
@@ -13,7 +13,7 @@
 // most, LUNGE_GAP past its half width, and a strike
 #define LUNGE_RANGE 300.f
 #define LUNGE_GAP 30.f
-#define LUNGE_DAMAGE 12.f
+#define LUNGE_DAMAGE 10.f
 #define LUNGE_SHOVE 40.f
 #define LUNGE_COOLDOWN 8.f
 // NOTE(zoubir): Riposte (R): RIPOSTE_GUARD_SECONDS on guard. The first
@@ -35,12 +35,12 @@
 // foe under HEARTSEEKER_LOW_HEALTH of its health
 #define HEARTSEEKER_REACH 95.f
 #define HEARTSEEKER_HOLD_REACH 150.f
-#define HEARTSEEKER_DAMAGE 14.f
-#define HEARTSEEKER_PER_TEMPO 5.f
+#define HEARTSEEKER_DAMAGE 24.f
+#define HEARTSEEKER_PER_TEMPO 12.f
 #define HEARTSEEKER_LOW_HEALTH 0.3f
 #define HEARTSEEKER_LOW_SCALE 1.5f
 #define HEARTSEEKER_SHOVE 60.f
-#define HEARTSEEKER_COOLDOWN 7.f
+#define HEARTSEEKER_COOLDOWN 6.f
 // NOTE(zoubir): Perfect Form (V, from the tree): for FORM_SECONDS Tempo
 // cannot drop, every key gains it (repeats too), and a second Thrust
 // follows each one FORM_ECHO_DELAY later
@@ -51,7 +51,7 @@
 // did not stop takes TEMPO_HIT_LOSS. Out of a fight it lasts
 // DUELIST_IDLE_SECONDS after the last hit dealt, then goes one stack every
 // DUELIST_FADE_SECONDS
-#define TEMPO_SHARE 0.06f
+#define TEMPO_SHARE 0.16f
 #define TEMPO_HIT_LOSS 2
 #define DUELIST_IDLE_SECONDS 5.f
 #define DUELIST_FADE_SECONDS 1.f
