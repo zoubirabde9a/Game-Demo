@@ -64,11 +64,14 @@ struct duelist_slot
     float IdleSeconds;
     float FadeTimer;
     // NOTE(zoubir): client only (ui/dungeon/classes/duelist_hud.cpp): the
-    // Tempo the HUD last drew, and when it last saw it drop
+    // Tempo and flags the HUD last drew, and when it last saw Tempo rise,
+    // the guard go up and Perfect Form start (their bursts are gone well
+    // before either ends)
     u32 ShownTempo;
-    float DropClock;
-    u32 DropFrom;
-    u32 DropTo;
+    float GainClock;
+    u32 ShownFlags;
+    float GuardClock;
+    float FormClock;
 };
 
 struct duelist_run

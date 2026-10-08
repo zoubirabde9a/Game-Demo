@@ -161,7 +161,7 @@ DrawDuelistDiamond(render_context *RenderContext, v2 P, float Size, float Fill, 
                    float Alpha)
 {
     float H = 0.5f * Size;
-    float W = 0.32f * Size;
+    float W = 0.27f * Size;
     v2 Top = P + V2(0.f, -H);
     v2 Right = P + V2(W, 0.f);
     v2 Bottom = P + V2(0.f, H);
@@ -214,7 +214,7 @@ DrawDuelistShard(render_context *RenderContext, v2 P, float Size, bool32 Right, 
 {
     float Way = Right ? 1.f : -1.f;
     float H = 0.5f * Size;
-    float W = 0.32f * Size;
+    float W = 0.27f * Size;
     v2 Drift = V2(Way * 40.f * Age, -30.f * Age + 260.f * Age * Age);
     float Turn = Way * 3.f * Age;
     v2 C = P + Drift + V2(Way * 0.12f * Size, 0.f);
