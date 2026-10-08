@@ -83,6 +83,7 @@ ClassSpellCooldown(player_slot *Slot, u32 Key, float Base)
 {
     switch(Slot->Role)
     {
+        case PlayerRole_Tank: return TankSpellCooldown(Slot, Key, Base);
         case PlayerRole_Ranger: return RangerSpellCooldown(Slot, Key, Base);
         case PlayerRole_Berserker: return BerserkerSpellCooldown(Slot, Key, Base);
         case PlayerRole_Shadowblade: return ShadowbladeSpellCooldown(Slot, Key, Base);
@@ -105,6 +106,7 @@ ClassSpellRadius(player_slot *Slot, u32 Key, float Base)
 internal void
 UpdateClassEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
 {
+    UpdateTankEffects(AppState, Run);
     UpdateRangerEffects(AppState, Run, DeltaTime);
     UpdateBerserkerEffects(AppState, Run, DeltaTime);
     UpdateShadowbladeEffects(AppState, Run, DeltaTime);

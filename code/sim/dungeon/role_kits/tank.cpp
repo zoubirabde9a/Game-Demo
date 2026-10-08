@@ -36,7 +36,12 @@
    square root of the party's extra damage (PartySustainScale,
    party_scaling.cpp), the slam's heal grows with it like a healer's, and
    Last Stand heals LAST_STAND_HEAL_SHARE of its health behind
-   LAST_STAND_SECONDS of Shield Wall for the hit it cannot take. */
+   LAST_STAND_SECONDS of Shield Wall for the hit it cannot take.
+
+   Two talents deep in its tree: Juggernaut takes JUGGERNAUT_COOLDOWN off
+   Shield Charge's cooldown (TankSpellCooldown) and adds JUGGERNAUT_STUN
+   to its stun per rank, and the capstone Unbroken catches, once a fight,
+   the blow that would down the tank (TankRefusesToFall). */
 
 // NOTE(zoubir): from OnRoleHit: the tank's fireball landed
 internal void
@@ -210,8 +215,9 @@ CastShieldCharge(app_state *AppState, world *World, memory_arena *Arena,
         MovePlayerTo(AppState, World, Arena, Player, Landing);
     }
     BreakWindup(Foe);
-    hit Hit = {SHIELD_CHARGE_DAMAGE, SHIELD_CHARGE_SHOVE, 0.f, 0.f, SHIELD_CHARGE_STUN,
-               SimBurst_Impact};
+    float Stun = SHIELD_CHARGE_STUN + JUGGERNAUT_STUN *
+        (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_Juggernaut);
+    hit Hit = {SHIELD_CHARGE_DAMAGE, SHIELD_CHARGE_SHOVE, 0.f, 0.f, Stun, SimBurst_Impact};
     AddThreat(&AppState->Dungeon->Threat, World, Foe, SlotIndex, SHIELD_CHARGE_THREAT);
     ApplyHit(AppState, World, Foe, &Hit, Toward, Player, SlotIndex);
     EmitBurst(&AppState->Events, SimBurst_InterceptLand, SlotIndex, Player->Position, Angle);
@@ -253,6 +259,57 @@ CastShieldBash(app_state *AppState, world *World, player_slot *Slot, world_entit
     EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Player->Position);
     u32 Count = (Slot->ClassFlags + 1) & TANK_FLAG_BASH_COUNT;
     Slot->ClassFlags = (u8)((Slot->ClassFlags & ~TANK_FLAG_BASH_COUNT) | Count);
+}
+
+// NOTE(zoubir): from DungeonScaleDamage, the last word on Damage to a
+// player: with Unbroken, the first blow of a fight that would down the
+// tank leaves it at UNBROKEN_HEALTH_SHARE behind Shield Wall instead.
+// Shield Wall and the slam's burst both reach every client already
+internal float
+TankRefusesToFall(app_state *AppState, player_slot *Slot, world_entity *Player, float Damage)
+{
+    dungeon_run *Run = AppState->Dungeon;
+    if (!Run || !Run->FightingRoom || Player->Hp <= 0.f || Damage < Player->Hp ||
+        !RoleRank(Slot, PlayerRole_Tank, TankTalent_Unbroken) ||
+        (Slot->ClassFlags & TANK_FLAG_UNBROKEN_SPENT))
+    {
+        return Damage;
+    }
+    Slot->ClassFlags |= TANK_FLAG_UNBROKEN_SPENT;
+    Slot->ShieldWallSeconds = Maximum(Slot->ShieldWallSeconds, UNBROKEN_WALL_SECONDS);
+    EmitBurst(&AppState->Events, SimBurst_ShieldSlam, (u8)Player->PlayerIndex, Player->Position,
+              ATan2(Player->Aim.Y, Player->Aim.X));
+    EmitSound(&AppState->Events, AssetType_SfxShield, Player->Position);
+    float Result = Maximum(0.f, Player->Hp - UNBROKEN_HEALTH_SHARE * Player->MaxHp);
+    return Result;
+}
+
+// NOTE(zoubir): from ClassSpellCooldown (class_kits.cpp): Juggernaut
+// shortens Shield Charge (key 5)
+internal float
+TankSpellCooldown(player_slot *Slot, u32 Key, float Base)
+{
+    float Result = Base;
+    if (Key == 5)
+    {
+        Result -= JUGGERNAUT_COOLDOWN * (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_Juggernaut);
+    }
+    return Result;
+}
+
+// NOTE(zoubir): from UpdateClassEffects once a tick: between fights
+// every tank's Unbroken is ready again
+internal void
+UpdateTankEffects(app_state *AppState, dungeon_run *Run)
+{
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS && !Run->FightingRoom; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        if (Slot->Role == PlayerRole_Tank)
+        {
+            Slot->ClassFlags &= (u8)~TANK_FLAG_UNBROKEN_SPENT;
+        }
+    }
 }
 
 // NOTE(zoubir): returns whether the key cast (an intercept with nobody

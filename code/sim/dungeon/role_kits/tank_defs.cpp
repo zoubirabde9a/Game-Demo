@@ -9,6 +9,12 @@ enum tank_talent
     TankTalent_Bastion,
     TankTalent_LastStand,
     TankTalent_ShatterArmor,
+    TankTalent_Fortitude,
+    TankTalent_PlateMastery,
+    TankTalent_Juggernaut,
+    TankTalent_Vengeance,
+    TankTalent_BattleRhythm,
+    TankTalent_Unbroken,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -21,6 +27,18 @@ enum tank_talent
 #define GUARDIAN_WARD 30.f
 #define SHATTER_SHARE 0.1f
 #define SHATTER_SECONDS 2.f
+// NOTE(zoubir): Juggernaut, per rank: Shield Charge comes back this much
+// sooner and stuns this much longer, so four ranks take it from 12 s and
+// 2 s to 8 s and 3 s
+#define JUGGERNAUT_COOLDOWN 1.f
+#define JUGGERNAUT_STUN 0.25f
+// NOTE(zoubir): Unbroken, once per fight: a blow that would down the tank
+// leaves it at UNBROKEN_HEALTH_SHARE of its health behind Shield Wall for
+// UNBROKEN_WALL_SECONDS. TANK_FLAG_UNBROKEN_SPENT in ClassFlags says it
+// went off this fight; it clears once no fight is on
+#define UNBROKEN_HEALTH_SHARE 0.1f
+#define UNBROKEN_WALL_SECONDS 5.f
+#define TANK_FLAG_UNBROKEN_SPENT 0x4
 
 global_variable talent_def TankTalentDefs[ROLE_TALENTS] =
 {
@@ -40,14 +58,14 @@ global_variable talent_def TankTalentDefs[ROLE_TALENTS] =
          TalentBranch_Role, 2, 1, 4, 0},
         {"Plate Mastery", "You take less damage", "-4% damage taken",
          TalentBranch_Role, 3, 1, 4, 0},
-        // NOTE(zoubir): slot 8, a class spell made stronger, by rank: to be written
-        {"", "", "", TalentBranch_Role, 4, 0, 4, 0},
+        {"Juggernaut", "Shield Charge comes back sooner and stuns longer",
+         "-1 s Shield Charge cooldown, +0.25 s stun", TalentBranch_Role, 4, 0, 4, 0},
         {"Vengeance", "Your blows land harder", "+4% damage",
          TalentBranch_Role, 4, 1, 4, 0},
         {"Battle Rhythm", "Every spell comes back sooner", "-4% cooldowns",
          TalentBranch_Role, 5, 0, 4, 0},
-        // NOTE(zoubir): slot 11, the capstone: to be written
-        {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
+        {"Unbroken", "Once a fight, a blow that would down you leaves you standing",
+         "at 10% health, behind Shield Wall for 5 s", TalentBranch_Role, 5, 1, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None

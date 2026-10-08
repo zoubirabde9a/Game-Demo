@@ -208,6 +208,8 @@ internal void OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity
                         world_entity *Source, float Damage);
 internal float GuardianAngelSave(app_state *AppState, world_entity *Ally, player_slot *AllySlot,
                                  float Damage);
+internal float TankRefusesToFall(app_state *AppState, player_slot *Slot, world_entity *Player,
+                               float Damage);
 
 // NOTE(zoubir): the world was just built for its map in Arena
 // (InitSimulation, RebuildWorldForMap): a dungeon map starts a fresh run
@@ -330,6 +332,9 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         Result -= Absorbed;
         // NOTE(zoubir): a healer's Guardian Angel catches a falling ally
         Result = GuardianAngelSave(AppState, Target, Slot, Result);
+        // NOTE(zoubir): and a tank's Unbroken the blow that still downs it
+        // (role_kits/tank.cpp)
+        Result = TankRefusesToFall(AppState, Slot, Target, Result);
     }
     player_slot *Attacker = DungeonAttackerSlot(AppState, Source);
     if (Attacker && Target->Type == EntityType_Monster)

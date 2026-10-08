@@ -160,12 +160,13 @@ global_variable talent_icon_painter *StrikerTalentIconPainters[ROLE_TALENTS] =
     PaintStatDamageIcon, PaintStatVitalityIcon, PaintMoltenGroundIcon, PaintStatHasteIcon,
     PaintStatArmorIcon, PaintCataclysmIcon,
 };
+#include "tank_talent_icons.cpp"
 global_variable talent_icon_painter *TankTalentIconPainters[ROLE_TALENTS] =
 {
     PaintIronSkinIcon, PaintRoleInterceptIcon, PaintProvokeIcon, PaintBastionIcon,
     PaintRoleLastStandIcon, PaintShatterArmorIcon,
-    PaintStatVitalityIcon, PaintStatArmorIcon, 0, PaintStatDamageIcon,
-    PaintStatHasteIcon, 0,
+    PaintStatVitalityIcon, PaintStatArmorIcon, PaintJuggernautIcon, PaintStatDamageIcon,
+    PaintStatHasteIcon, PaintUnbrokenIcon,
 };
 global_variable talent_icon_painter *HealerTalentIconPainters[ROLE_TALENTS] =
 {
