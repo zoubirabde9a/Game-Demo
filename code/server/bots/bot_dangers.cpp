@@ -9,10 +9,11 @@
    of them, so a bot walks to the edge of a telegraph, or into a ring's
    middle, instead of standing where it lands.
 
-   Found by the Shadowblade's bot (server/bots/shadowblade.cpp), which
-   melee bots share through here. The Fire Mage's, tank's and healer's
-   bots do not use it yet: the balance probe's numbers are tuned against
-   them as they play now. */
+   Found by the Shadowblade's bot (server/bots/shadowblade.cpp). Melee
+   bots use BotSafeSpot to pick where they fight; every bot also runs
+   DodgeDangers (server/bots.cpp) last, which walks it out of a danger it
+   stands in: the tank out of the burning ground a slam leaves, the
+   healer out of the mortars aimed at the one player standing back. */
 
 // NOTE(zoubir): how far past a danger's edge a bot stands, how far off it
 // looks, and how many dangers it keeps track of
@@ -116,4 +117,27 @@ BotSafeSpot(bot_danger_circle *Dangers, u32 Count, v2 P, v2 Fallback)
         P = Danger->Centre + Reach * Out;
     }
     return P;
+}
+
+// NOTE(zoubir): the movement keys of Held changed to walk Self out of a
+// danger it stands in, toward the nearest safe spot; the other keys stay
+internal u32
+DodgeDangers(app_state *AppState, world_entity *Self, u32 Held)
+{
+    bot_danger_circle Dangers[BOT_MAX_DANGERS];
+    u32 Count = BotDangers(AppState, Self, Dangers);
+    v2 From = Self->Position.XY;
+    if (!Count || !BotDangerAt(Dangers, Count, From))
+    {
+        return Held;
+    }
+    v2 Fallback = LengthSq(Self->Velocity.XY) > 1.f ? DirectionTo(Self->Velocity.XY) : V2(1.f, 0.f);
+    v2 Safe = BotSafeSpot(Dangers, Count, From, Fallback);
+    u32 Result = Held;
+    if (LengthSq(Safe - From) > 1.f)
+    {
+        Result = (Held & ~(u32)(NetButton_Left | NetButton_Right | NetButton_Up | NetButton_Down)) |
+            NetButtonsToward(DirectionTo(Safe - From));
+    }
+    return Result;
 }
