@@ -229,6 +229,59 @@ PaintRangerLethalMarkIcon(icon_canvas *Canvas)
     PaintRangerReticle(Canvas, V2(0.78f, 0.78f), 0.075f, 0.022f, IconColor(40, 10, 8));
 }
 
+// NOTE(zoubir): Pinning Volley: Volley, and an ice-blue badge with a pin
+// driven into the ground, for the slow that holds on
+internal void
+PaintRangerPinningVolleyIcon(icon_canvas *Canvas)
+{
+    PaintRangerVolleyIcon(Canvas);
+    PaintRangerBadge(Canvas, IconColor(150, 220, 255));
+    v4 Dark = IconColor(10, 24, 40);
+    IconCapsule(Canvas, V2(0.78f, 0.69f), V2(0.78f, 0.84f), 0.018f, Solid(Dark));
+    IconTriangle(Canvas, V2(0.78f, 0.89f), V2(0.74f, 0.82f), V2(0.82f, 0.82f), Solid(Dark));
+    IconCapsule(Canvas, V2(0.72f, 0.89f), V2(0.84f, 0.89f), 0.014f, Solid(Dark));
+}
+
+// NOTE(zoubir): Hunter's Net, the capstone: the snare at the middle of a
+// net of light, three foes caught at its edge
+internal void
+PaintRangerHuntersNetIcon(icon_canvas *Canvas)
+{
+    v2 C = V2(0.5f, 0.54f);
+    IconGlow(Canvas, C, 0.5f, IconColor(80, 220, 180, 140));
+    v4 Strand = IconColor(150, 250, 215, 210);
+    for(u32 Ring = 1; Ring <= 2; Ring++)
+    {
+        IconArc(Canvas, C, 0.2f * (float)Ring, 0.018f, Solid(Strand));
+    }
+    for(u32 Ray = 0; Ray < 8; Ray++)
+    {
+        float A = 2.f * Pi32 * (float)Ray / 8.f;
+        v2 Dir = V2(Cos(A), Sin(A));
+        IconCapsule(Canvas, C + 0.08f * Dir, C + 0.42f * Dir, 0.014f, Solid(Strand));
+    }
+    for(u32 Foe = 0; Foe < 3; Foe++)
+    {
+        float A = 2.f * Pi32 * (float)Foe / 3.f - 0.5f * Pi32;
+        v2 P = C + 0.4f * V2(Cos(A), Sin(A));
+        IconCircle(Canvas, P, 0.085f, Gradient(IconColor(175, 160, 175), IconColor(70, 60, 78),
+                                               P - V2(0.05f, 0.06f), P + V2(0.05f, 0.06f)));
+        IconArc(Canvas, P, 0.11f, 0.022f, Solid(IconColor(110, 240, 200)));
+    }
+    // NOTE(zoubir): the snare's steel jaws at the middle
+    IconArc(Canvas, C, 0.11f, 0.035f, Gradient(IconColor(235, 240, 245), IconColor(110, 120, 130),
+                                               C - V2(0.f, 0.1f), C + V2(0.f, 0.1f)));
+    for(u32 Tooth = 0; Tooth < 6; Tooth++)
+    {
+        float A = 2.f * Pi32 * (float)Tooth / 6.f;
+        v2 Dir = V2(Cos(A), Sin(A));
+        v2 Side = V2(-Dir.Y, Dir.X);
+        IconTriangle(Canvas, C + 0.1f * Dir + 0.03f * Side, C + 0.1f * Dir - 0.03f * Side, C + 0.03f * Dir,
+                     Solid(IconColor(225, 230, 235)));
+    }
+    IconSparkle(Canvas, C, 0.06f, Solid(IconColor(230, 255, 245)));
+}
+
 global_variable role_icon_painter *RangerIconPainters[ROLE_KEYS] =
 {
     PaintRangerVolleyIcon, PaintRangerPiercingShotIcon, PaintRangerDisengageIcon, PaintRangerRapidFireIcon,
@@ -238,6 +291,6 @@ global_variable talent_icon_painter *RangerTalentIconPainters[ROLE_TALENTS] =
 {
     PaintRangerMarksmanIcon, PaintRangerDisengageIcon, PaintRangerBarrageIcon, PaintRangerDeadeyeIcon,
     PaintRangerRapidFireIcon, PaintRangerLethalMarkIcon,
-    PaintStatDamageIcon, PaintStatVitalityIcon, 0, PaintStatHasteIcon,
-    PaintStatSwiftnessIcon, 0,
+    PaintStatDamageIcon, PaintStatVitalityIcon, PaintRangerPinningVolleyIcon, PaintStatHasteIcon,
+    PaintStatSwiftnessIcon, PaintRangerHuntersNetIcon,
 };

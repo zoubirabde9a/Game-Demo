@@ -5,8 +5,9 @@
    Piercing Shot going through a line, less for each foe further down
    it, and spending Focus, and Deadeye's crit; Volley raining and slowing inside its circle only, wider with
    Barrage; Disengage leaping back and its snare rooting (and biting at
-   rank 2); Rapid Fire's stream of arrows; Lethal Mark jumping to the next
-   foe; Focus draining between fights; and the burst angle's variant. */
+   rank 2); Pinning Volley holding the slow on longer; Hunter's Net
+   rooting every foe near the snare; Rapid Fire's stream of arrows;
+   Lethal Mark jumping to the next foe; Focus draining between fights; and the burst angle's variant. */
 
 struct ranger_dummies
 {
@@ -286,6 +287,72 @@ TestDisengageLeavesASnare()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Pinning Volley: a foe Volley struck stays slowed
+// PINNING_VOLLEY_SECONDS longer per rank, so a second after the rain stops
+// it is still slowed at rank 4 and free at rank 0
+internal void
+TestPinningVolleyHoldsTheSlow()
+{
+    for(u32 Rank = 0; Rank <= 4; Rank += 4)
+    {
+        crypt_world Crypt = CreateRangerWorld();
+        app_state *AppState = Crypt.AppState;
+        player_slot *Slot = &AppState->Players[0];
+        Slot->Ranks[Talent_RoleFirst + RangerTalent_PinningVolley] = (u8)Rank;
+        ranger_dummies Dummies = {};
+        v2 Point = AimPoint(Slot->Entity);
+        v3 Centre = V3(Point.X, Point.Y, 0.f) - Slot->Entity->Position;
+        Centre.Z = 0.f;
+        world_entity *Inside = RangerDummy(&Crypt, &Dummies, Centre);
+        PressOnce(&Crypt, 0, PlayerButton_Launch);
+        RangerTick(&Crypt, &Dummies, (u32)(60.f * (VOLLEY_DRAW + VOLLEY_SECONDS)) + 2);
+        Check(Inside->Hp < 2000.f);
+        float Left = Inside->StatusTimers[StatusEffect_Slowed];
+        float Expected = VOLLEY_SLOW_SECONDS + PINNING_VOLLEY_SECONDS * (float)Rank - 0.5f * VOLLEY_TICK;
+        Check(Left > Expected - 0.1f && Left < Expected + 0.1f);
+        RangerTick(&Crypt, &Dummies, 60);
+        Check(HasStatus(Inside, StatusEffect_Slowed) == (Rank == 4));
+        DestroyCryptWorld(&Crypt);
+    }
+}
+
+// NOTE(zoubir): Hunter's Net: the snare springs on the foe that steps on
+// it, and with the capstone roots every foe within HUNTERS_NET_RADIUS of
+// it too, but none further; without it, only the first
+internal void
+TestHuntersNetRootsThePack()
+{
+    for(u32 Net = 0; Net < 2; Net++)
+    {
+        crypt_world Crypt = CreateRangerWorld();
+        app_state *AppState = Crypt.AppState;
+        player_slot *Slot = &AppState->Players[0];
+        world_entity *Ranger = Slot->Entity;
+        Slot->Ranks[Talent_RoleFirst + RangerTalent_Disengage] = 1;
+        Slot->Ranks[Talent_RoleFirst + RangerTalent_HuntersNet] = (u8)Net;
+        Ranger->Aim = V2(-1.f, 0.f);
+        v3 Start = Ranger->Position;
+        PressOnce(&Crypt, 0, PlayerButton_Slam);
+        TickCrypt(&Crypt, 40);
+        Check(RangerTrapDown(&AppState->Dungeon->Ranger, 0));
+
+        ranger_dummies Dummies = {};
+        v3 Trap = Start - Ranger->Position;
+        world_entity *First = RangerDummy(&Crypt, &Dummies, Trap);
+        world_entity *Near = RangerDummy(&Crypt, &Dummies, Trap + V3(70.f, 80.f, 0.f));
+        world_entity *Far = RangerDummy(&Crypt, &Dummies, Trap + V3(320.f, 0.f, 0.f));
+        Check(Length(Near->Position.XY - Start.XY) < HUNTERS_NET_RADIUS);
+        Check(Length(Near->Position.XY - Start.XY) > TRAP_RADIUS + 0.4f * Near->Dimensions.X);
+        RangerTick(&Crypt, &Dummies, 2);
+        Check(!RangerTrapDown(&AppState->Dungeon->Ranger, 0));
+        Check(HasStatus(First, StatusEffect_Rooted));
+        Check(HasStatus(Near, StatusEffect_Rooted) == (Net != 0));
+        Check((Near->Hp < 2000.f) == (Net != 0));
+        Check(!HasStatus(Far, StatusEffect_Rooted));
+        DestroyCryptWorld(&Crypt);
+    }
+}
+
 // NOTE(zoubir): V channels, arrows at the foe through the cast
 internal void
 TestRapidFireStreams()
@@ -366,6 +433,8 @@ RunRangerTests()
     TestPiercingShotThroughALine();
     TestVolleyRainsOnTheCircle();
     TestDisengageLeavesASnare();
+    TestPinningVolleyHoldsTheSlow();
+    TestHuntersNetRootsThePack();
     TestRapidFireStreams();
     TestLethalMarkJumps();
     TestFocusDrains();

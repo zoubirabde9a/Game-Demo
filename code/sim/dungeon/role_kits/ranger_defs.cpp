@@ -87,6 +87,12 @@ enum ranger_talent
     RangerTalent_Deadeye,
     RangerTalent_RapidFire,
     RangerTalent_LethalMark,
+    RangerTalent_KeenEye,
+    RangerTalent_Survivalist,
+    RangerTalent_PinningVolley,
+    RangerTalent_SteadyHands,
+    RangerTalent_FleetHunter,
+    RangerTalent_HuntersNet,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -103,6 +109,13 @@ enum ranger_talent
 // it jumps to the nearest foe within this
 #define LETHAL_MARK_SHARE 0.1f
 #define LETHAL_MARK_JUMP 320.f
+// NOTE(zoubir): Pinning Volley, per rank: a foe Volley strikes stays
+// slowed this much longer, so it is still slowed after it walks out of the
+// circle or the rain stops (0.8 s at rank 0, 2.8 s at rank 4)
+#define PINNING_VOLLEY_SECONDS 0.5f
+// NOTE(zoubir): Hunter's Net, the capstone: when a snare springs it also
+// roots every other foe within this of it, as it roots the first
+#define HUNTERS_NET_RADIUS 120.f
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 1 unlocks the C spell, slot 4 the V spell
@@ -124,14 +137,14 @@ global_variable talent_def RangerTalentDefs[ROLE_TALENTS] =
      TalentBranch_Role, 2, 1, 4, 0},
     {"Survivalist", "More health", "+6% health",
      TalentBranch_Role, 3, 1, 4, 0},
-    // NOTE(zoubir): slot 8, a class spell made stronger, by rank: to be written
-    {"", "", "", TalentBranch_Role, 4, 0, 4, 0},
+    {"Pinning Volley", "Foes Volley strikes stay slowed longer after they leave it",
+     "+0.5 s slow", TalentBranch_Role, 4, 0, 4, 0},
     {"Steady Hands", "Every spell comes back sooner", "-4% cooldowns",
      TalentBranch_Role, 4, 1, 4, 0},
     {"Fleet Hunter", "You run faster", "+3% run speed",
      TalentBranch_Role, 5, 0, 4, 0},
-    // NOTE(zoubir): slot 11, the capstone: to be written
-    {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
+    {"Hunter's Net", "Disengage's snare roots every foe near it when it springs, not just the first",
+     "roots all within 120", TalentBranch_Role, 5, 1, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None

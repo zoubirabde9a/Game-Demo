@@ -1,8 +1,9 @@
 /* Ranger ground (role_kits/ranger.cpp): what the Ranger leaves on the
    ground. A Volley's circle, where arrows rain VOLLEY_DRAW after the
-   press and strike everything inside each VOLLEY_TICK, slowing it; and
-   Disengage's leap back, which leaves a snare trap where the Ranger
-   stood that roots the first foe to step on it. A Ranger has one trap
+   press and strike everything inside each VOLLEY_TICK, slowing it (for
+   longer with Pinning Volley); and Disengage's leap back, which leaves a
+   snare trap where the Ranger stood that roots the first foe to step on
+   it (with Hunter's Net, every foe near it too). A Ranger has one trap
    down at a time: a new one takes the old one's place. Clients draw a
    circle from one burst as long as it lasts, and a trap from a burst sent
    again every RANGER_KEEP_SECONDS (as Hunter's Mark is, ranger/shots.cpp). */
@@ -41,6 +42,10 @@ internal void
 StrikeVolley(app_state *AppState, ranger_volley *Volley)
 {
     world *World = &AppState->World;
+    // NOTE(zoubir): Pinning Volley holds the slow on after the strike
+    float Pin = (float)RoleRank(&AppState->Players[Volley->By], PlayerRole_Ranger,
+                                RangerTalent_PinningVolley);
+    float Slow = VOLLEY_SLOW_SECONDS + PINNING_VOLLEY_SECONDS * Pin;
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Monster = &World->Entities[EntityIndex];
@@ -51,7 +56,7 @@ StrikeVolley(app_state *AppState, ranger_volley *Volley)
             continue;
         }
         RangerHit(AppState, Volley->By, Monster, RangerShot_Volley, VOLLEY_TICK_DAMAGE, 0.f,
-                  NormalizeOr(Offset, V2(1.f, 0.f)), StatusEffect_Slowed, VOLLEY_SLOW_SECONDS);
+                  NormalizeOr(Offset, V2(1.f, 0.f)), StatusEffect_Slowed, Slow);
     }
 }
 
@@ -130,6 +135,54 @@ CastDisengage(app_state *AppState, player_slot *Slot, world_entity *Player)
     EmitSound(&AppState->Events, AssetType_SfxDash, Player->Position);
 }
 
+// NOTE(zoubir): whether Monster is a live foe within Radius of Trap
+inline bool32
+RangerTrapReaches(ranger_trap *Trap, world_entity *Monster, float Radius)
+{
+    v2 Offset = Monster->Position.XY - Trap->Position.XY;
+    bool32 Result = Monster->IsPresent && Monster->Type == EntityType_Monster && Monster->Hp > 0.f &&
+        Length(Offset) <= Radius + 0.4f * Monster->Dimensions.X;
+    return Result;
+}
+
+// NOTE(zoubir): the snare grabs Monster: it stops, is rooted, and bitten
+internal void
+SnareRangerFoe(app_state *AppState, player_slot *Slot, ranger_trap *Trap, world_entity *Monster)
+{
+    bool32 Snare = RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Disengage) >= 2;
+    float Root = TRAP_ROOT_SECONDS + (Snare ? SNARE_ROOT_SECONDS : 0.f);
+    v2 Offset = Monster->Position.XY - Trap->Position.XY;
+    Monster->Velocity.XY = V2(0.f, 0.f);
+    RangerHit(AppState, Trap->By, Monster, RangerShot_Trap, TRAP_DAMAGE + (Snare ? SNARE_DAMAGE : 0.f), 0.f,
+              NormalizeOr(Offset, V2(1.f, 0.f)), StatusEffect_Rooted, Root);
+}
+
+// NOTE(zoubir): the snare springs on First and is gone; with Hunter's Net
+// it grabs every other foe within HUNTERS_NET_RADIUS too, and its burst
+// says so (variant 1), so clients draw the net that wide
+internal void
+SpringRangerTrap(app_state *AppState, player_slot *Slot, ranger_trap *Trap, world_entity *First)
+{
+    SnareRangerFoe(AppState, Slot, Trap, First);
+    bool32 Net = RoleRank(Slot, PlayerRole_Ranger, RangerTalent_HuntersNet) > 0;
+    if (Net)
+    {
+        world *World = &AppState->World;
+        for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+        {
+            world_entity *Monster = &World->Entities[EntityIndex];
+            if (Monster != First && RangerTrapReaches(Trap, Monster, HUNTERS_NET_RADIUS))
+            {
+                SnareRangerFoe(AppState, Slot, Trap, Monster);
+            }
+        }
+    }
+    EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_TrapSnap),
+              Trap->By, RangerBurstSpot(Trap->Position, Net ? 1 : 0));
+    EmitSound(&AppState->Events, AssetType_SfxSword, Trap->Position);
+    Trap->Seconds = 0.f;
+}
+
 // NOTE(zoubir): once a tick: a snare springs on the first foe within
 // reach of it, rooting it (and with Disengage's second rank, biting)
 internal void
@@ -160,23 +213,11 @@ UpdateRangerTraps(app_state *AppState, ranger_run *Run, float DeltaTime)
         for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
         {
             world_entity *Monster = &World->Entities[EntityIndex];
-            v2 Offset = Monster->Position.XY - Trap->Position.XY;
-            if (!Monster->IsPresent || Monster->Type != EntityType_Monster || Monster->Hp <= 0.f ||
-                Length(Offset) > TRAP_RADIUS + 0.4f * Monster->Dimensions.X)
+            if (RangerTrapReaches(Trap, Monster, TRAP_RADIUS))
             {
-                continue;
+                SpringRangerTrap(AppState, Slot, Trap, Monster);
+                break;
             }
-            bool32 Snare = RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Disengage) >= 2;
-            float Root = TRAP_ROOT_SECONDS + (Snare ? SNARE_ROOT_SECONDS : 0.f);
-            Monster->Velocity.XY = V2(0.f, 0.f);
-            RangerHit(AppState, Trap->By, Monster, RangerShot_Trap,
-                      TRAP_DAMAGE + (Snare ? SNARE_DAMAGE : 0.f), 0.f,
-                      NormalizeOr(Offset, V2(1.f, 0.f)), StatusEffect_Rooted, Root);
-            EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_TrapSnap),
-                      Trap->By, Trap->Position);
-            EmitSound(&AppState->Events, AssetType_SfxSword, Trap->Position);
-            Trap->Seconds = 0.f;
-            break;
         }
     }
 }

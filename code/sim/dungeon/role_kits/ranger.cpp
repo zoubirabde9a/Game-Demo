@@ -6,11 +6,13 @@
       Hunter's Mark on that foe: the foe takes MARK_SHARE more from the
       Ranger for MARK_SECONDS, and hits on it build Focus
       (ranger/shots.cpp).
-   A  Volley: arrows rain on the circle at the cursor (ranger/ground.cpp).
+   A  Volley: arrows rain on the circle at the cursor (ranger/ground.cpp);
+      Pinning Volley keeps what it struck slowed longer.
    R  Piercing Shot: a one-second draw (PlayerSpell_RangerA), then a heavy
       arrow through every foe in a long line; it spends all the Focus
       for more damage, and with Deadeye a full Focus crits.
-   C  Disengage (tree): a leap back that leaves a snare trap.
+   C  Disengage (tree): a leap back that leaves a snare trap; with the
+      capstone, Hunter's Net, the snare roots every foe near it.
    V  Rapid Fire (tree): a two-second channel (PlayerSpell_RangerB) that
       looses RAPID_FIRE_ARROWS arrows at a foe while the Ranger walks
       slowly.

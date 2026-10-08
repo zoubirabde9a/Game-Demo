@@ -6,7 +6,8 @@
    reticle over the foe and a ring under it, following the foe; it
    closes in with a flash where the marking arrow lands. A snare trap:
    steel jaws round a teal rune, and when it springs the jaws bite shut
-   and roots of light wrap the foe. A mark and a trap come in again as
+   and roots of light wrap the foe (with Hunter's Net, a net of light
+   flies out over every foe it grabbed). A mark and a trap come in again as
    new bursts while they last; the newest one draws, and the Ranger's
    ClassFlags end them as soon as the server does. */
 
@@ -287,11 +288,25 @@ DrawRangerTrap(render_context *RenderContext, app_state *AppState, role_burst *B
 }
 
 // NOTE(zoubir): the snare springing: jaws biting shut, a flash, and
-// roots of light climbing round whatever stood on it
+// roots of light climbing round whatever stood on it. With Hunter's Net
+// (variant 1) a net of light flies out to HUNTERS_NET_RADIUS as well,
+// over every foe it grabbed
 internal void
 DrawRangerTrapSnap(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
 {
-    v2 Centre = BurstToScreen(Burst->Position, CameraOffset);
+    v2 Centre = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
+    if (RangerBurstVariant(Burst->Position) == 1)
+    {
+        float Out = HUNTERS_NET_RADIUS * Clamp01(T / 0.25f);
+        float NetFade = 1.f - T;
+        RangerRing(RenderContext, Centre, Out, 4.f * NetFade, 0.8f * NetFade, RANGER_FX_TEAL_RGB);
+        for(u32 Strand = 0; Strand < 8; Strand++)
+        {
+            float A = 2.f * Pi32 * (float)Strand / 8.f;
+            DrawFxStroke(RenderContext, Centre + GroundCircle(A, 14.f), Centre + GroundCircle(A, Out), 2.f, 1.f,
+                         FxColor(0.7f * NetFade, RANGER_FX_PALE_RGB), FxColor(0.5f * NetFade, RANGER_FX_TEAL_RGB));
+        }
+    }
     float Shut = Clamp01(T / 0.15f);
     float Fade = 1.f - T;
     DrawRangerJaws(RenderContext, Centre, 1.f - Shut, Fade);
