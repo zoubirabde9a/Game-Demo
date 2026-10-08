@@ -40,6 +40,17 @@ DrawRangerLook(render_context *RenderContext, app_state *AppState, player_slot *
             Slot->Ranks[Talent_RoleFirst + Talent] = (u8)(Ranks[Talent] - '0');
         }
     }
+    // NOTE(zoubir): and GAME_RANGER_FOCUS=100 holds its Focus there until
+    // a Piercing Shot is drawn, to show the bar and the draw full
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    char *HeldFocus = getenv("GAME_RANGER_FOCUS");
+#pragma warning(pop)
+    if (HeldFocus && HeldFocus[0] && SlotIndex == AppState->LocalPlayerIndex && !IsOnline(AppState->Online) &&
+        Player->CastSpell != PlayerSpell_RangerA && RangerBurstAge(AppState, SlotIndex, RangerBurst_Pierce) > 1.f)
+    {
+        Slot->Ranger.Focus = Minimum(RANGER_FOCUS_MOST, (float)atoi(HeldFocus));
+    }
 #endif
     v2 Aim = RangerScreenAim(Player);
     float Facing = Aim.X < -0.1f ? -1.f : 1.f;

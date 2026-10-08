@@ -109,6 +109,10 @@ DrawRangerHud(render_context *RenderContext, app_state *AppState, player_slot *S
         Ranger->HudFocus = Focus;
     }
     Ranger->HudFocus += (Focus - Ranger->HudFocus) * Minimum(1.f, 10.f * DeltaTime);
+    if (Absolute(Focus - Ranger->HudFocus) < 0.5f)
+    {
+        Ranger->HudFocus = Focus;
+    }
     bool32 Full = Focus >= RANGER_FOCUS_MOST;
     if (Full && !WasFull)
     {
