@@ -37,7 +37,7 @@
 // second for REJUVENATION_SECONDS, and at once REJUVENATION_PER_BLOOM for
 // each Bloom spent (all of it)
 #define REJUVENATION_RANGE 500.f
-#define REJUVENATION_PER_SECOND 6.f
+#define REJUVENATION_PER_SECOND 8.f
 #define REJUVENATION_SECONDS 8.f
 #define REJUVENATION_PER_BLOOM 6.f
 #define REJUVENATION_COOLDOWN 4.f
@@ -54,9 +54,9 @@
 // NOTE(zoubir): Regrowth (W): an ally heals REGROWTH_HEAL at once and
 // REGROWTH_PER_BLOOM more for each Bloom spent (all of it)
 #define REGROWTH_RANGE 500.f
-#define REGROWTH_HEAL 22.f
-#define REGROWTH_PER_BLOOM 7.f
-#define REGROWTH_COOLDOWN 6.f
+#define REGROWTH_HEAL 30.f
+#define REGROWTH_PER_BLOOM 8.f
+#define REGROWTH_COOLDOWN 5.f
 
 // NOTE(zoubir): Entangling Roots (C, from the tree): roots every foe in
 // the circle at the cursor for ROOTS_SECONDS and hurts them each second;
