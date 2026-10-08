@@ -60,13 +60,15 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 - Flame Step: vanishes and comes down behind his target, 160 to 540 away, every 8 s. He leaves the tank for the back line; the tank has to taunt him back.
 - Cinderfall: three burning stones over the hall where the party is heading, every 7 s.
 - Crown of Fire (below 40%): four fireballs out in a cross round his target.
-- Tyrant's Judgement: steps beside whoever holds him and cleaves them, every 12 s (30). It cannot be dodged.
+- Tyrant's Judgement: steps beside whoever holds him and cleaves them, every 14 s (26). It cannot be dodged.
 - At 75%, 50% and 25% Cinder Imps pour from the braziers: two, three, then four. Alive after 14 s each returns to him and heals him 5%.
 - At 60% and 30% he binds a Magma Champion, an armoured elite Ravager. The party has 25 s to kill it, or it erupts for half of everyone's health and heals him 10%.
 
 ### Blows nobody can dodge
 
 Each depths boss has one Smite (`MonsterAbility_Smite`, `sim/monster_abilities/trigger.cpp`): a blow on the player it is after when the windup ends, by threat, wherever they stand. Dashes and blinks do not save them and there is no ring on the floor to leave; a ward still takes it. During the 1 s windup the boss shows the name in crimson, a chain of dots runs from it to the victim and four corners close in on them, so everyone sees who is about to take it. A tank who taunts during the windup takes it off a friend.
+
+Measured with the bots (a tank, a healer and the Fire Mage, `PROBE_MAP=depths dungeon_balance 8 3 <room> 8`), Kragg and Sskarra barely moved, since the bot tank takes the blow. Vol'karr went from 0.42 to 0.70 wipes per kill with Judgement at 30 every 12 s; at 26 every 14 s he is back where he was (0.25 wipes and 1.0 to 1.1 deaths per kill over 16 seeds, before and after).
 
 The point is that the depths want a tank. With three players the blow costs a tank about a fifth of its health and a Fire Mage or a Mender more than half, so a party without one has its threat holder at half health every 10 s on top of everything else. The crypt has none of these.
 

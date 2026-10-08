@@ -110,14 +110,14 @@ DefineMonster_EmberTyrant(monster_def *Def)
     monster_ability *Judgement = AddMonsterAbility(Def, MonsterAbility_Smite,
                                                    "Tyrant's Judgement");
     Judgement->MaxRange = 560.f;
-    Judgement->Cooldown = 12.f;
+    Judgement->Cooldown = 14.f;
     Judgement->Windup = 1.1f;
     Judgement->Active = 0.3f;
     Judgement->Recover = 0.6f;
-    Judgement->Damage = 30.f;
+    Judgement->Damage = 26.f;
     Judgement->Radius = 24.f;
     Judgement->Spread = 60.f;
-    Judgement->Knockback = 450.f;
+    Judgement->Knockback = 300.f;
     Judgement->Status = StatusEffect_Burning;
     Judgement->StatusSeconds = 1.5f;
 }
