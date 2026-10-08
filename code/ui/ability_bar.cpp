@@ -5,6 +5,7 @@
    one the talent tree unlocks (sim/progression/talents.cpp) appears with
    a flash. A slot that comes ready flashes a ring of light; pressing a
    key squeezes its slot, and pressing one still recharging shakes it red.
+   A cooldown cut short (a kill's refund) pulls a ring in and flashes.
    Hovering a slot names the ability, its level and its cooldown.
 
    Health is a bar over the slots (ability_health.cpp). Experience runs
@@ -32,6 +33,11 @@
 #define ABILITY_PULSE_SECONDS 0.45f
 #define ABILITY_PRESS_SECONDS 0.16f
 #define ABILITY_DENIED_SECONDS 0.3f
+#define ABILITY_REFUND_SECONDS 0.5f
+// NOTE(zoubir): a cooldown share dropping this much in one frame was cut
+// short, not run down; a frame at 10 fps runs a 1 s cooldown down 0.1.
+// One cut all the way to ready gets the ready ring instead
+#define ABILITY_REFUND_DROP 0.12f
 
 struct ability_bar
 {
@@ -40,6 +46,8 @@ struct ability_bar
     float Pulse[ABILITY_SLOT_DEF_COUNT];  // 1 when it came ready, fading to 0
     float Press[ABILITY_SLOT_DEF_COUNT];  // 1 when pressed, fading to 0
     float Denied[ABILITY_SLOT_DEF_COUNT]; // 1 when pressed while recharging
+    float Refund[ABILITY_SLOT_DEF_COUNT]; // 1 when its cooldown was cut short
+    float LastShare[ABILITY_SLOT_DEF_COUNT]; // cooldown share last frame
     health_bar Health;                    // the bar's trail and glide, ability_health.cpp
     bool32 WasShown[ABILITY_SLOT_DEF_COUNT]; // the player had it last frame
     bool32 ShownSeen; // WasShown holds a real frame, so a new slot is an unlock
@@ -233,6 +241,11 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
             Bar->Pulse[Index] = 1.f;
         }
         Bar->WasReady[Index] = Ready;
+        if (!Ready && Bar->LastShare[Index] - Share >= ABILITY_REFUND_DROP)
+        {
+            Bar->Refund[Index] = 1.f;
+        }
+        Bar->LastShare[Index] = Share;
         if (Pressed & Def->Button)
         {
             if (Ready)
@@ -250,6 +263,8 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         Bar->Pulse[Index] = Maximum(0.f, Pulse - DeltaTime / ABILITY_PULSE_SECONDS);
         Bar->Press[Index] = Maximum(0.f, Press - DeltaTime / ABILITY_PRESS_SECONDS);
         Bar->Denied[Index] = Maximum(0.f, Denied - DeltaTime / ABILITY_DENIED_SECONDS);
+        float Refund = Bar->Refund[Index];
+        Bar->Refund[Index] = Maximum(0.f, Refund - DeltaTime / ABILITY_REFUND_SECONDS);
 
         // NOTE(zoubir): squeeze on a press, shake when refused
         float Scale = 1.f - 0.1f * Press;
@@ -310,6 +325,19 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
             UIText(RenderContext, Strong, CentreX,
                    CentreY - 0.5f * UILineHeight(Strong), Text, UI_COLOR_TEXT,
                    UIAlign_Center);
+        }
+        if (Refund > 0.f)
+        {
+            // NOTE(zoubir): cut short: a pale ring closes in on the slot,
+            // the way the ready ring flies out
+            float Ring = ABILITY_SLOT_SIZE * (1.f + 0.9f * Refund);
+            u32 Pale = UI_RGBA(210, 255, 220, 255);
+            DrawShaderQuad(RenderContext, Shader_Ring, CentreX - 0.5f * Ring,
+                           CentreY - 0.5f * Ring, Ring, Ring,
+                           WithAlpha(Pale, Refund), RenderBlend_Additive);
+            DrawShaderQuad(RenderContext, Shader_Glow, CentreX - 0.5f * Quad,
+                           CentreY - 0.5f * Quad, Quad, Quad,
+                           WithAlpha(Pale, 0.5f * Refund), RenderBlend_Additive);
         }
         if (Pulse > 0.f)
         {
