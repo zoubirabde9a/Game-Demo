@@ -576,8 +576,9 @@ TestDashDodgesHits()
 }
 
 // NOTE(zoubir): a hit that does nothing still says so: mid-dash it is
-// Dodged, under a shield Blocked (client/player_fx/reaction_words.cpp
-// writes the word); a hit that lands is neither
+// Dodged, under a shield or into a monster's shell Blocked
+// (client/player_fx/reaction_words.cpp writes the word); a hit that
+// lands is neither
 internal void
 TestHarmlessHitsSayWhy()
 {
@@ -603,6 +604,15 @@ TestHarmlessHitsSayWhy()
     AppState->Events.Count = 0;
     ApplyHit(AppState, Test.World, Player, &Hit, V2(1.f, 0.f), 0, SIM_NOBODY);
     Check(CountBursts(AppState, SimBurst_Dodged) == 1);
+
+    // NOTE(zoubir): a monster's shell turning a hit from the front
+    world_entity *Warden = AddMonster(AppState, Test.World, &Test.Arena,
+                                      {500, 300, 0}, MonsterKind_Warden);
+    Warden->Direction = V2(-1.f, 0.f);
+    Player->Position = {460, 300, 0};
+    AppState->Events.Count = 0;
+    DamageEntity(AppState, Test.World, Warden, 10.f, Player);
+    Check(CountBursts(AppState, SimBurst_Blocked) == 1);
     DestroyTestWorld(&Test);
 }
 

@@ -9,9 +9,9 @@
      the same online with nothing extra sent. An effect refreshed while
      it runs shows nothing.
    - A hit that did nothing because the player was shielded or mid-dash
-     (sim/hit.cpp emits SimBurst_Blocked or SimBurst_Dodged): "Blocked"
-     or "Dodged" where it landed, so neither side thinks the hit was
-     lost. These come as bursts (fx_bursts.cpp calls AddBurstWord), which
+     (sim/hit.cpp emits SimBurst_Blocked or SimBurst_Dodged), or that a
+     monster's shell mostly turned away (sim/entity.cpp): "Blocked" or
+     "Dodged" where it landed, so neither side thinks the hit was lost. These come as bursts (fx_bursts.cpp calls AddBurstWord), which
      the server already forwards.
 
    Words starting together over one unit stack upward. Entry points:
@@ -100,7 +100,7 @@ AddReactionWord(reaction_words *Fx, char *Text, u32 Color, v3 Position,
 }
 
 // NOTE(zoubir): from AddBurst (fx_bursts.cpp) for the bursts that are a
-// word; Position is the struck player's chest
+// word; Position is the struck unit's chest
 internal void
 AddBurstWord(app_state *AppState, sim_burst Kind, v3 Position)
 {

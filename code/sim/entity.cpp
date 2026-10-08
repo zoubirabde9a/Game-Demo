@@ -352,7 +352,17 @@ DealDamage(app_state *AppState, world *World, world_entity *Target,
         return false;
     }
 
+    float BlockBefore = Target->BlockFlash;
     Damage = ModifyIncomingDamage(Target, Source, Damage);
+    // NOTE(zoubir): a shell took most of the hit; clients write Blocked
+    // over it (client/player_fx/reaction_words.cpp), online included,
+    // where the shell's own glint does not travel
+    if (Target->BlockFlash > BlockBefore)
+    {
+        v3 Chest = Target->Position;
+        Chest.Z += 16.f;
+        EmitBurst(&AppState->Events, SimBurst_Blocked, SIM_NOBODY, Chest);
+    }
     Damage = DungeonScaleDamage(AppState, Target, Source, Damage);
     if (WardTakesHit(AppState, Target, Damage))
     {
