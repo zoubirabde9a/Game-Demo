@@ -392,6 +392,65 @@ TestTankSustain()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): standard cast aims a class spell that goes at a foe (the
+// tank's Shield Throw on W) and casts it on the click, as it does the
+// kunai; quick cast throws it on the key; a spell round the caster
+// (Taunt on A) casts on the key in both (client/cast_targeting.cpp)
+internal void
+TestStandardCastAimsFoeSpells()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    TickCrypt(&Crypt, 1);
+    SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Tank);
+    TestCastTargeting = {};
+    TestCastTargeting.Mode = CastMode_Standard;
+    AppState->CastTargeting = &TestCastTargeting;
+    TestCursorTargeting = {};
+    AppState->CursorTargeting = &TestCursorTargeting;
+    // NOTE(zoubir): no MemoryArena here either, so the party frames' pick
+    // lives on the stack
+    party_pick Pick = {};
+    AppState->PartyPick = &Pick;
+    app_input Input = {};
+    app_button_state *W = LayoutKey(&Input, 'W');
+    app_button_state *A = LayoutKey(&Input, 'A');
+
+    PressKey(W);
+    player_input Local = ReadKeyboardPlayerInput(&Input, AppState);
+    Check(!(Local.Pressed & PlayerButton_Shockwave));
+    Check(TestCastTargeting.Aiming == PlayerButton_Shockwave);
+    NextInputFrame(&Input);
+    ReleaseKey(W);
+    PressKey(&Input.LeftButton);
+    Local = ReadKeyboardPlayerInput(&Input, AppState);
+    Check(Local.Pressed & PlayerButton_Shockwave);
+    Check(TestCastTargeting.Aiming == 0);
+    NextInputFrame(&Input);
+    ReleaseKey(&Input.LeftButton);
+    ReadKeyboardPlayerInput(&Input, AppState);
+
+    NextInputFrame(&Input);
+    PressKey(A);
+    Local = ReadKeyboardPlayerInput(&Input, AppState);
+    Check(Local.Pressed & PlayerButton_Launch);
+    Check(TestCastTargeting.Aiming == 0);
+    NextInputFrame(&Input);
+    ReleaseKey(A);
+    ReadKeyboardPlayerInput(&Input, AppState);
+
+    TestCastTargeting.Mode = CastMode_Quick;
+    NextInputFrame(&Input);
+    PressKey(W);
+    Local = ReadKeyboardPlayerInput(&Input, AppState);
+    Check(Local.Pressed & PlayerButton_Shockwave);
+    Check(TestCastTargeting.Aiming == 0);
+    AppState->CastTargeting = 0;
+    AppState->CursorTargeting = 0;
+    AppState->PartyPick = 0;
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDungeonRoleTests()
 {
@@ -403,4 +462,5 @@ RunDungeonRoleTests()
     TestPartyScalesExponentially();
     TestHealerFavoursAllies();
     TestTankSustain();
+    TestStandardCastAimsFoeSpells();
 }

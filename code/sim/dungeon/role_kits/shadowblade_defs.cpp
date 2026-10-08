@@ -152,7 +152,7 @@ global_variable role_spell ShadowbladeSpells[ROLE_KEYS] =
 {
     {"Shadowstep", SHADOWSTEP_COOLDOWN,
      "Shadowstep: appear behind the foe under the cursor; your next strike is critical",
-     RoleAim_None, SHADOWSTEP_RANGE, 0},
+     RoleAim_Foe, SHADOWSTEP_RANGE, 0},
     {"Fan of Knives", FAN_OF_KNIVES_COOLDOWN,
      "Fan of Knives: knives burst round you, a combo point for each foe cut",
      RoleAim_None, FAN_OF_KNIVES_RADIUS, 0},
@@ -167,7 +167,7 @@ global_variable role_spell ShadowbladeSpells[ROLE_KEYS] =
      RoleAim_None, EVISCERATE_REACH, 0},
     {"Poisoned Shiv", SHIV_COOLDOWN,
      "Poisoned Shiv: throw a poisoned dagger at a foe, a combo point",
-     RoleAim_None, SHIV_RANGE, 0},
+     RoleAim_Foe, SHIV_RANGE, 0},
     {"Twin Strike", TWIN_STRIKE_COOLDOWN,
      "Twin Strike: two quick cuts in front, a combo point",
      RoleAim_None, TWIN_STRIKE_REACH, 0},

@@ -136,7 +136,7 @@ global_variable role_spell BerserkerSpells[ROLE_KEYS] =
      "Execute: spend all Rage on one chop, twice as hard under 25% health",
      RoleAim_None, EXECUTE_REACH, 0},
     {"Axe Throw", AXE_THROW_COOLDOWN, "Axe Throw: a hand axe that hurts and slows a foe, then comes back",
-     RoleAim_None, AXE_THROW_RANGE, 0},
+     RoleAim_Foe, AXE_THROW_RANGE, 0},
     {"Cleave", CLEAVE_COOLDOWN, "Cleave: a wide swing of the axe through everything in front",
      RoleAim_None, CLEAVE_REACH, 0},
 };

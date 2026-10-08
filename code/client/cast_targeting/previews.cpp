@@ -16,8 +16,11 @@
    area's rim where it will land, filling from the middle as the wind-up
    runs, so a quick cast shows its reach too.
 
-   In a dungeon run, a role's ground spell (Sanctuary, Inferno) shows its
-   circle at the cursor in its role's colour.
+   In a dungeon run, a role's spells show in its role's colour: a ground
+   spell (Sanctuary, Inferno) its circle at the cursor, a foe spell
+   (Shield Throw, Holy Fire) its reach and the foes in it as the kunai
+   does, a line spell (Giant Fireball, Piercing Shot) its line as the
+   fireball does.
 
    The numbers come from the abilities' own tables (PlayerAreaAbilities,
    PlayerMovements, RewindAbilities), so a retuned radius shows as it is. */
@@ -167,16 +170,17 @@ DrawCastCrosshair(render_context *RenderContext, v2 P, u32 Color)
     }
 }
 
-// NOTE(zoubir): the kunai being aimed: its reach, the foes it could hit,
-// and the cursor as a crosshair until it is on one (the brackets then)
+// NOTE(zoubir): the kunai or a role's foe spell being aimed: its reach
+// (Range), the foes it could hit, and the cursor as a crosshair until it
+// is on one (the brackets then)
 internal void
-DrawKunaiAimPreview(render_context *RenderContext, app_state *AppState,
-                    world_entity *Player, v3 CameraOffset, float Seconds,
-                    float Alpha, u32 RGB)
+DrawFoeAimPreview(render_context *RenderContext, app_state *AppState,
+                  world_entity *Player, v3 CameraOffset, float Range, float Seconds,
+                  float Alpha, u32 RGB)
 {
     v2 Feet = BurstToScreen(V3(Player->Position.X, Player->Position.Y,
                                Player->GroundZ), CameraOffset);
-    DrawCastPreviewArea(RenderContext, Feet, PlayerStats.KunaiRange, 0.f, Pi32,
+    DrawCastPreviewArea(RenderContext, Feet, Range, 0.f, Pi32,
                         0.f, Alpha, RGB);
     float Beat = 0.5f + 0.5f * Sin(6.f * Seconds);
     world *World = &AppState->World;
@@ -187,8 +191,7 @@ DrawKunaiAimPreview(render_context *RenderContext, app_state *AppState,
         {
             continue;
         }
-        bool32 InReach = Length(Unit->Position.XY - Player->Position.XY) <=
-            PlayerStats.KunaiRange;
+        bool32 InReach = Length(Unit->Position.XY - Player->Position.XY) <= Range;
         v2 UnitFeet = BurstToScreen(V3(Unit->Position.X, Unit->Position.Y,
                                        Unit->GroundZ), CameraOffset);
         float Radius = Maximum(12.f, 0.45f * Unit->Dimensions.X);
@@ -209,6 +212,19 @@ DrawKunaiAimPreview(render_context *RenderContext, app_state *AppState,
         DrawCastCrosshair(RenderContext, Cursor->CursorAt - CameraOffset.XY,
                           FxColor(0.9f * Alpha, RGB));
     }
+}
+
+// NOTE(zoubir): the fireball or a role's line spell being aimed: dots
+// along the aim out to Range and a ring where it runs out
+internal void
+DrawLineAimPreview(render_context *RenderContext, world_entity *Player, v2 Aim,
+                   v3 CameraOffset, float Range, float Alpha, u32 RGB)
+{
+    v2 Feet = BurstToScreen(V3(Player->Position.X, Player->Position.Y,
+                               Player->GroundZ), CameraOffset);
+    v2 End = Feet + Range * Aim;
+    DrawCastPreviewLine(RenderContext, Feet, End, FxColor(0.8f * Alpha, RGB));
+    DrawCastPreviewArea(RenderContext, End, 10.f, 0.f, Pi32, 0.5f, Alpha, RGB);
 }
 
 // NOTE(zoubir): once a frame, in the world pass's projection
@@ -256,14 +272,27 @@ DrawCastPreview(render_context *RenderContext, app_state *AppState,
     {
         player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
         float Radius = RoleSpellRadius(Slot, RoleKeyForButton(Button));
-        v2 Feet = BurstToScreen(V3(Player->Position.X, Player->Position.Y,
-                                   Player->GroundZ), CameraOffset);
-        v2 Point = AimPoint(Player);
-        v2 Centre = BurstToScreen(V3(Point.X, Point.Y, Player->GroundZ), CameraOffset);
         u32 RoleRGB = IsCastReady(AppState, Player, Button) ?
             RoleSpellRGB(Slot->Role) : CAST_PREVIEW_WAIT_RGB;
-        DrawCastPreviewLine(RenderContext, Feet, Centre, FxColor(0.7f * Alpha, RoleRGB));
-        DrawCastPreviewArea(RenderContext, Centre, Radius, 0.f, Pi32, 1.f, Alpha, RoleRGB);
+        if (RoleSpell->Aim == RoleAim_Foe)
+        {
+            DrawFoeAimPreview(RenderContext, AppState, Player, CameraOffset, Radius,
+                              Targeting->AimSeconds, Alpha, RoleRGB);
+        }
+        else if (RoleSpell->Aim == RoleAim_Line)
+        {
+            DrawLineAimPreview(RenderContext, Player, Aim, CameraOffset, Radius, Alpha,
+                               RoleRGB);
+        }
+        else
+        {
+            v2 Feet = BurstToScreen(V3(Player->Position.X, Player->Position.Y,
+                                       Player->GroundZ), CameraOffset);
+            v2 Point = AimPoint(Player);
+            v2 Centre = BurstToScreen(V3(Point.X, Point.Y, Player->GroundZ), CameraOffset);
+            DrawCastPreviewLine(RenderContext, Feet, Centre, FxColor(0.7f * Alpha, RoleRGB));
+            DrawCastPreviewArea(RenderContext, Centre, Radius, 0.f, Pi32, 1.f, Alpha, RoleRGB);
+        }
     }
     else if (Area)
     {
@@ -284,15 +313,12 @@ DrawCastPreview(render_context *RenderContext, app_state *AppState,
     }
     else if (Button == PlayerButton_Cast)
     {
-        v2 Feet = BurstToScreen(V3(Player->Position.X, Player->Position.Y,
-                                   Player->GroundZ), CameraOffset);
-        v2 End = Feet + PlayerStats.FireballRange * Aim;
-        DrawCastPreviewLine(RenderContext, Feet, End, FxColor(0.8f * Alpha, RGB));
-        DrawCastPreviewArea(RenderContext, End, 10.f, 0.f, Pi32, 0.5f, Alpha, RGB);
+        DrawLineAimPreview(RenderContext, Player, Aim, CameraOffset,
+                           PlayerStats.FireballRange, Alpha, RGB);
     }
     else if (Button == PlayerButton_Kunai)
     {
-        DrawKunaiAimPreview(RenderContext, AppState, Player, CameraOffset,
-                            Targeting->AimSeconds, Alpha, RGB);
+        DrawFoeAimPreview(RenderContext, AppState, Player, CameraOffset,
+                          PlayerStats.KunaiRange, Targeting->AimSeconds, Alpha, RGB);
     }
 }

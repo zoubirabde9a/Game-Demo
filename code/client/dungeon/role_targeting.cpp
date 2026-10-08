@@ -17,8 +17,12 @@
 
    Standard cast: an ally spell casts at once (the pick is the aim); a
    ground spell (Sanctuary, Inferno) aims first like Launch did, its
-   circle drawn at the cursor (previews.cpp); a spell that needs neither
-   (Taunt) casts at once. Clicks on the party frames never fire. */
+   circle drawn at the cursor (previews.cpp); a foe spell (Shield Throw,
+   Holy Fire, Axe Throw) aims first like the kunai, its reach and the
+   foes in it drawn; a line spell (Giant Fireball, Piercing Shot) aims
+   first like the fireball; a spell that needs none of these (Taunt, a
+   swing in front, the right click) casts at once. Clicks on the party
+   frames never fire. */
 
 struct party_pick
 {
@@ -130,8 +134,27 @@ IsCursorPickable(app_state *AppState, world_entity *Unit, world_entity *Local)
     return Result;
 }
 
+// NOTE(zoubir): whether a role spell aims first in standard cast
+inline bool32
+IsAimedRoleSpell(role_spell *Spell)
+{
+    bool32 Result = Spell && (Spell->Aim == RoleAim_Ground || Spell->Aim == RoleAim_Foe ||
+                              Spell->Aim == RoleAim_Line);
+    return Result;
+}
+
+// NOTE(zoubir): the local role's foe spell being aimed, 0 for none
+inline role_spell *
+AimedFoeSpell(app_state *AppState, u32 Aiming)
+{
+    role_spell *Spell = Aiming ? LocalRoleSpell(AppState, Aiming) : 0;
+    role_spell *Result = (Spell && Spell->Aim == RoleAim_Foe) ? Spell : 0;
+    return Result;
+}
+
 // NOTE(zoubir): Targeted (the buttons standard cast aims) as the local
-// role changes them: a role spell aims only when it lands on the ground
+// role changes them: a role spell aims when it lands on the ground, on a
+// foe or along a line
 internal u32
 RoleTargetedButtons(app_state *AppState, u32 Targeted)
 {
@@ -142,7 +165,7 @@ RoleTargetedButtons(app_state *AppState, u32 Targeted)
         if (Spell)
         {
             Result &= ~RoleKeys[Key];
-            if (Spell->Aim == RoleAim_Ground)
+            if (IsAimedRoleSpell(Spell))
             {
                 Result |= RoleKeys[Key];
             }

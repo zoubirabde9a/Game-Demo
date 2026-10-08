@@ -56,12 +56,16 @@ struct role_def
 };
 
 // NOTE(zoubir): what a role key does with the cursor, for the client's
-// aim (client/cast_targeting.cpp): nothing, an ally, or a ground circle
+// aim (client/cast_targeting.cpp): nothing, an ally, a ground circle, a
+// foe picked under the cursor, or a line along the aim. Standard cast
+// aims the last three first
 enum role_aim
 {
     RoleAim_None,
     RoleAim_Ally,
     RoleAim_Ground,
+    RoleAim_Foe,
+    RoleAim_Line,
 };
 
 // NOTE(zoubir): each role's spell on each key (RoleKeys order), as the
@@ -75,7 +79,7 @@ struct role_spell
     char *Help;
     role_aim Aim;
     // NOTE(zoubir): a ground spell's radius before talents, and how far
-    // out an ally spell reaches
+    // out an ally, foe or line spell reaches
     float Reach;
     // NOTE(zoubir): the slot of the class's tree that unlocks it
     // (role_talents.cpp) + 1, 0 for a main spell the class has from the

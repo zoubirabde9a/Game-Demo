@@ -29,7 +29,8 @@
    Drawn: corner brackets on the picked unit that close in when it is
    picked, pale when the kunai is ready and in range, dim while it cools
    down, red when the unit is out of range. In standard cast only while
-   the kunai is being aimed (V pressed, cast_targeting.cpp), so hovering a
+   the kunai, or a dungeon class's foe spell, is being aimed (V pressed,
+   cast_targeting.cpp; the spell's own reach and cooldown then), so hovering a
    unit never looks like a throw is set up; in quick cast always, as V
    throws at once at the unit marked; and a short note by the
    cursor ("No target", "Out of range") when the kunai key is pressed and
@@ -277,7 +278,8 @@ DrawCursorTarget(render_context *RenderContext, app_state *AppState, v3 CameraOf
 {
     cursor_targeting *Targeting = GetCursorTargeting(AppState);
     cast_targeting *Cast = GetCastTargeting(AppState);
-    if ((Cast->Mode == CastMode_Standard && Cast->Aiming != PlayerButton_Kunai) ||
+    role_spell *FoeSpell = AimedFoeSpell(AppState, Cast->Aiming);
+    if ((Cast->Mode == CastMode_Standard && Cast->Aiming != PlayerButton_Kunai && !FoeSpell) ||
         LocalPicksAllies(AppState))
     {
         return;
@@ -288,13 +290,21 @@ DrawCursorTarget(render_context *RenderContext, app_state *AppState, v3 CameraOf
     {
         return;
     }
+    float Range = PlayerStats.KunaiRange;
+    bool32 Cooling = Local->ActionCooldowns[PlayerAction_Kunai] > 0.f;
+    if (FoeSpell)
+    {
+        player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
+        Range = RoleSpellRadius(Slot, RoleKeyForButton(Cast->Aiming));
+        Cooling = !IsCastReady(AppState, Local, Cast->Aiming);
+    }
     // NOTE(zoubir): 0xAABBGGRR
     u32 Color = 0xF0FFF0D8;
-    if (Length(Target->Position.XY - Local->Position.XY) > PlayerStats.KunaiRange)
+    if (Length(Target->Position.XY - Local->Position.XY) > Range)
     {
         Color = 0xF04040F0;
     }
-    else if (Local->ActionCooldowns[PlayerAction_Kunai] > 0.f)
+    else if (Cooling)
     {
         Color = 0x90B0A8A0;
     }

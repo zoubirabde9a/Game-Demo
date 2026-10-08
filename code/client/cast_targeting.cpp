@@ -12,8 +12,8 @@
    quick cast being on when it was off. Keys that only move or guard the
    player (jump, dash, shield, slam) and the sword cast at once in both
    modes.
-   In a dungeon run a role's spells aim only when they land on the
-   ground (dungeon/role_targeting.cpp).
+   In a dungeon run a role's spells aim when they land on the ground,
+   on a foe or along a line (dungeon/role_targeting.cpp).
 
    A targeted key pressed while its ability recharges aims nothing: it
    is swallowed and the cursor says "Not ready" (targeting.cpp), so no
