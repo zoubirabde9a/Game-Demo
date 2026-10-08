@@ -7,7 +7,7 @@
    GAME_SCREENSHOT_KEYS scripts the keys, so a shot can show an action:
    space-separated From[-To]:Key, holding Key from frame From to To (just
    From when there is no To). Key is a letter, _ for Space, < and > for
-   the left and right mouse buttons, Alt, or F1 to F9 (F4 closes the Play
+   the left and right mouse buttons, a digit, Alt, Esc, or F1 to F9 (F4 closes the Play
    screen offline shots open on; F6 gives a level in developer builds).
    M:X,Y puts the mouse at X,Y in the window; From:@X,Y moves it there
    from frame From on, so one shot can click several places.
@@ -145,6 +145,8 @@ Win32ScriptedButton(app_input *Input, char *Name)
     char Key = Name[0];
     if (Key == 'F' && Name[1] >= '1' && Name[1] <= '9') return &Input->FButtons[Name[1] - '1'];
     if (Key == 'A' && Name[1] == 'l') return &Input->AltButton;
+    if (Key == 'E' && Name[1] == 's') return &Input->EscapeButton;
+    if (Key >= '0' && Key <= '9') return &Input->NumbersButtons[Key - '0'];
     if (Key >= 'a' && Key <= 'z') Key = (char)(Key - 'a' + 'A');
     if (Key >= 'A' && Key <= 'Z') return &Input->AlphaButtons[Key - 'A'];
     if (Key == '_') return &Input->SpaceButton;
