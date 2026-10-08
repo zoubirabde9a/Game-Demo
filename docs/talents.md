@@ -10,7 +10,9 @@ Players earn experience during a match, level up, and spend one point per level 
 | Killing a monster | 5 |
 | Being in the match | 2 a second, alive or dead |
 
-Level 2 takes 80, and each level after costs 20 more than the one before. Level 20 is the top, at 4940 in total. Time alone reaches level 2 in 40 seconds and level 10 in about 20 minutes. One early kill is a whole level.
+Level 2 takes 80, and each level after costs 20 more than the one before. Level 20 is the top in a duel, at 4940 in total; in a dungeon run it is level 30, at 10440. Time alone reaches level 2 in 40 seconds and level 10 in about 20 minutes. One early kill is a whole level.
+
+In a dungeon run the level climbs one per room with monsters cleared, on top of the level the player started the run at, so waiting cannot farm it. A new run keeps the level and the class's talents: voting from one dungeon map to another starts the run with the party as it is. Voting into a duel starts everyone at level 1 there, and the dungeon character waits for the next dungeon vote. Leaving the server still resets everything.
 
 ## The tree
 
@@ -52,7 +54,7 @@ Three branches of four tiers. A tier opens once you have spent 2 points per tier
 - Ward: a charge that takes one hit whole, shove and stun included. It comes back after 18 s, or 11 s at rank 2. Everyone sees a gold hexagon round a player whose ward is up.
 - Second Wind: back from death in 1.5 s instead of 3, with a 3 s shield instead of 1.5 s.
 
-In a dungeon run the panel shows only the class's own tree instead (docs/dungeon-plan.md, "Role talents"): six talents, two of which unlock the class's C and V spells. They take points only in a run and give them back when the class changes, and the three branches above take no point there.
+In a dungeon run the panel shows only the class's own tree instead (docs/dungeon-plan.md, "Role talents"): twelve talents over six tiers, 29 points in all so the tree fills at level 30. Two of them unlock the class's C and V spells. They take points only in a run and give them back when the class changes, and the three branches above take no point there.
 
 Experience and talents live on the player slot, not the entity, so a time rewind never takes them back. Leaving the server resets them.
 

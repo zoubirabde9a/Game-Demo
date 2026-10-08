@@ -58,6 +58,7 @@ NetSequenceNewer(u16 A, u16 B)
 
 #include "protocol/entities.cpp"
 #include "protocol/chat.cpp"
+#include "protocol/talent_ranks.cpp"
 
 // Slot, kind and phase share a byte. Frozen bits past the snapshot's
 // entities (left out to make it fit) read as clear.
@@ -279,36 +280,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU8(S, &P->Snapshot.Cooldowns[Index]);
             }
             NetU16(S, &P->Snapshot.Xp);
-            // NOTE(zoubir): the ranks as one run of bits, 2 a duel talent
-            // and 3 a class talent (NET_TALENT_WIDE_FIRST)
-            {
-                u8 Packed[NET_TALENT_BYTES] = {};
-                u32 Bit = 0;
-                for (u32 Index = 0; Index < NET_TALENT_COUNT; ++Index)
-                {
-                    u32 Width = Index < NET_TALENT_WIDE_FIRST ? 2 : 3;
-                    u32 Rank = P->Snapshot.TalentRanks[Index] & ((1u << Width) - 1);
-                    for (u32 Part = 0; Part < Width; ++Part, ++Bit)
-                    {
-                        Packed[Bit / 8] |= (u8)(((Rank >> Part) & 1) << (Bit % 8));
-                    }
-                }
-                for (u32 Byte = 0; Byte < NET_TALENT_BYTES; ++Byte)
-                {
-                    NetU8(S, &Packed[Byte]);
-                }
-                Bit = 0;
-                for (u32 Index = 0; Index < NET_TALENT_COUNT; ++Index)
-                {
-                    u32 Width = Index < NET_TALENT_WIDE_FIRST ? 2 : 3;
-                    u32 Rank = 0;
-                    for (u32 Part = 0; Part < Width; ++Part, ++Bit)
-                    {
-                        Rank |= (u32)((Packed[Bit / 8] >> (Bit % 8)) & 1) << Part;
-                    }
-                    P->Snapshot.TalentRanks[Index] = (u8)Rank;
-                }
-            }
+            NetSerializeTalentRanks(S, P->Snapshot.TalentRanks);
             NetU8(S, &P->Snapshot.Stagger);
             NetU8(S, &P->Snapshot.RoundBreak);
             NetU8(S, &P->Snapshot.MapId);
