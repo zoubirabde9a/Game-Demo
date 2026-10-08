@@ -163,7 +163,7 @@ PaintPoisonedShivIcon(icon_canvas *Canvas)
     IconGlow(Canvas, V2(0.6f, 0.6f), 0.46f, IconColor(140, 255, 80, 130));
     IconCapsule(Canvas, V2(0.08f, 0.14f), V2(0.32f, 0.34f), 0.03f,
                 Gradient(ShadowbladeIconViolet(0), ShadowbladeIconViolet(200), V2(0.08f, 0.14f), V2(0.32f, 0.34f)));
-    IconShadowbladeDagger(Canvas, V2(0.26f, 0.26f), V2(0.7071f, 0.7071f), 0.56f);
+    IconShadowbladeDagger(Canvas, V2(0.17f, 0.17f), V2(0.7071f, 0.7071f), 0.7f);
     IconCircle(Canvas, V2(0.72f, 0.8f), 0.055f, Solid(ShadowbladeIconAcid()));
     IconTriangle(Canvas, V2(0.67f, 0.79f), V2(0.77f, 0.79f), V2(0.72f, 0.68f), Solid(ShadowbladeIconAcid()));
     IconCircle(Canvas, V2(0.6f, 0.9f), 0.035f, Solid(ShadowbladeIconAcid(220)));

@@ -107,8 +107,9 @@ DrawShivBurst(render_context *RenderContext, v2 From, v2 To, float Age)
                               0.f, 1.f - Hit / 0.25f);
     }
     DrawShadowbladeSpray(RenderContext, To, Hit, 0.45f, 12, 150.f, 331, ATan2(-Way.Y, -Way.X) - 0.6f, 2.6f);
-    DrawWaveFront(RenderContext, To + V2(0.f, 14.f), 0.f, 2.f * Pi32, 10.f + 40.f * ShadowbladeEase(Hit / 0.3f),
-                  6.f * Fade, 0.6f * Fade, SHADOWBLADE_ACID_RGB);
+    float Ring = 10.f + 40.f * ShadowbladeEase(Hit / 0.3f);
+    DrawArcBand(RenderContext, To + V2(0.f, 14.f), 0.f, 2.f * Pi32, Ring - 6.f, Ring,
+                FxColor(0.f, SHADOWBLADE_ACID_RGB), FxColor(0.7f * Fade, SHADOWBLADE_ACID_RGB));
 }
 
 internal void
@@ -164,8 +165,8 @@ DrawDanceBurst(render_context *RenderContext, v2 Feet, float Age, float Height)
                    FxColor(0.55f * Fade, SHADOWBLADE_DEEP_RGB), RenderBlend_Alpha);
     DrawShaderQuad(RenderContext, Shader_Glow, Feet.X - 36.f, Feet.Y - Tall, 72.f, Tall + 14.f,
                    FxColor(0.6f * Fade, SHADOWBLADE_RGB), RenderBlend_Additive);
-    DrawWaveFront(RenderContext, Feet, 0.f, 2.f * Pi32, 20.f + 60.f * Rise, 10.f * Fade, Fade,
-                  SHADOWBLADE_RGB);
+    DrawArcBand(RenderContext, Feet, 0.f, 2.f * Pi32, 10.f + 50.f * Rise, 20.f + 60.f * Rise,
+                FxColor(0.f, SHADOWBLADE_RGB), FxColor(0.8f * Fade, SHADOWBLADE_RGB));
     // NOTE(zoubir): dark flames spiralling up round the body
     for(u32 Flame = 0; Flame < 14; Flame++)
     {
@@ -261,14 +262,18 @@ DrawSmokeBurst(render_context *RenderContext, v2 Centre, float Age, float Life)
         DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 70.f, Centre.Y - 70.f, 140.f, 100.f,
                        FxColor(0.6f * Burst, SHADOWBLADE_PALE_RGB), RenderBlend_Additive);
     }
-    for(u32 Puff = 0; Puff < 24; Puff++)
+    // NOTE(zoubir): a haze over the whole cloud, under the puffs
+    DrawArcBand(RenderContext, Centre, 0.f, 2.f * Pi32, 0.f, Radius,
+                FxColor(0.42f * Thin, SHADOWBLADE_SMOKE_RGB), FxColor(0.12f * Thin, SHADOWBLADE_SMOKE_RGB),
+                RenderBlend_Alpha);
+    for(u32 Puff = 0; Puff < 40; Puff++)
     {
         float A = 2.f * Pi32 * BurstJitter(Puff, 371) + 0.25f * Age * (Puff % 2 ? 1.f : -1.f);
         float Out = Radius * (0.15f + 0.85f * SquareRoot(BurstJitter(Puff, 372)));
         float Bob = 6.f * Sin(1.3f * Age + 6.f * BurstJitter(Puff, 373));
         v2 P = Centre + GroundCircle(A, Out) - V2(0.f, 18.f + 26.f * BurstJitter(Puff, 374) + Bob);
-        float Size = (20.f + 16.f * BurstJitter(Puff, 375)) * (0.6f + 0.4f * Swell);
-        DrawShadowbladePuff(RenderContext, P, Size, 0.9f * Thin);
+        float Size = (28.f + 22.f * BurstJitter(Puff, 375)) * (0.6f + 0.4f * Swell);
+        DrawShadowbladePuff(RenderContext, P, Size, 0.6f * Thin);
     }
     for(u32 Mote = 0; Mote < 10; Mote++)
     {
