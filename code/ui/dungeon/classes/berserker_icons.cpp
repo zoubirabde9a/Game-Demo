@@ -69,22 +69,6 @@ PaintBerserkerCleaveIcon(icon_canvas *Canvas)
     BerserkerIconAxe(Canvas, V2(0.2f, 0.9f), V2(0.66f, 0.3f), 1.f, 0.4f);
 }
 
-// NOTE(zoubir): Axe Throw: a hand axe spinning through the air, arcs of
-// its turns behind it
-internal void
-PaintBerserkerAxeThrowIcon(icon_canvas *Canvas)
-{
-    IconGlow(Canvas, V2(0.6f, 0.42f), 0.44f, IconColor(230, 50, 40, 130));
-    for(u32 Turn = 0; Turn < 3; Turn++)
-    {
-        float Radius = 0.12f + 0.07f * (float)Turn;
-        IconArc(Canvas, V2(0.32f + 0.08f * (float)Turn, 0.66f - 0.06f * (float)Turn), Radius, 0.025f,
-                Solid(IconColor(255, 90, 70, 200 - 60 * Turn)), 3.4f, 5.2f);
-    }
-    BerserkerIconAxe(Canvas, V2(0.42f, 0.66f), V2(0.66f, 0.3f), 1.f, 0.28f);
-    IconSparkle(Canvas, V2(0.84f, 0.2f), 0.06f, Solid(IconColor(255, 230, 200)));
-}
-
 // NOTE(zoubir): Leap: an arc over to a red ring cracking the ground, the
 // axe coming down at its end
 internal void
@@ -238,8 +222,8 @@ internal void PaintBloodthirstTalentIcon(icon_canvas *C) { PaintBerserkerBloodth
 
 global_variable role_icon_painter *BerserkerIconPainters[ROLE_KEYS] =
 {
-    PaintBerserkerLeapIcon, PaintBerserkerWhirlwindIcon, PaintBerserkerBloodthirstIcon,
-    PaintBerserkerBerserkIcon, PaintBerserkerExecuteIcon, PaintBerserkerAxeThrowIcon,
+    PaintBerserkerLeapIcon, PaintBerserkerWhirlwindIcon, 0,
+    PaintBerserkerBerserkIcon, PaintBerserkerExecuteIcon, 0,
     PaintBerserkerCleaveIcon,
 };
 global_variable talent_icon_painter *BerserkerTalentIconPainters[ROLE_TALENTS] =

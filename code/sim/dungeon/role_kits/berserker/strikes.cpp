@@ -1,7 +1,7 @@
 /* Berserker strikes (role_kits/berserker.cpp): the axe's blows. Cleave and
    Whirlwind hit every foe they catch, harder for each other one with
-   Sweeping Strikes; Axe Throw lands after the hand axe's flight; Execute
-   spends the Rage; Bloodthirst heals. Each reaches only foes in the
+   Sweeping Strikes; Execute spends the Rage, and heals with Bloodthirst.
+   Each reaches only foes in the
    Berserker's room, so no blow wakes the room behind a gate. */
 
 // NOTE(zoubir): a living monster in Room
@@ -148,63 +148,6 @@ WhirlHit(app_state *AppState, player_slot *Slot, world_entity *Player)
                  WHIRLWIND_DAMAGE, 40.f);
 }
 
-// NOTE(zoubir): a hand axe at the foe aimed at; false with none in reach
-// or every axe in flight
-internal bool32
-ThrowAxe(app_state *AppState, player_slot *Slot, world_entity *Player)
-{
-    world_entity *Foe = AttackTarget(AppState, Slot, Player, AXE_THROW_RANGE);
-    berserker_run *Run = &AppState->Dungeon->Berserker;
-    berserker_axe *Axe = 0;
-    for(u32 Index = 0; Index < MAX_BERSERKER_AXES && !Axe; Index++)
-    {
-        Axe = Run->Axes[Index].Delay <= 0.f ? &Run->Axes[Index] : 0;
-    }
-    if (!Foe || !Axe)
-    {
-        return false;
-    }
-    v2 Toward = Foe->Position.XY - Player->Position.XY;
-    Axe->Delay = Maximum(1.f / 60.f, Length(Toward) / AXE_THROW_SPEED);
-    Axe->By = Player->PlayerIndex;
-    Axe->Slot = (u32)(Foe - AppState->World.Entities);
-    Axe->Serial = Foe->MonsterSerial;
-    EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, BerserkerBurst_AxeThrow),
-              (u8)Player->PlayerIndex, ChestOf(Foe), ATan2(Toward.Y, Toward.X));
-    EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
-    return true;
-}
-
-// NOTE(zoubir): once a tick: the axes in flight land on their foes
-internal void
-UpdateBerserkerAxes(app_state *AppState, dungeon_run *Run, float DeltaTime)
-{
-    world *World = &AppState->World;
-    for(u32 Index = 0; Index < MAX_BERSERKER_AXES; Index++)
-    {
-        berserker_axe *Axe = &Run->Berserker.Axes[Index];
-        if (Axe->Delay <= 0.f)
-        {
-            continue;
-        }
-        Axe->Delay -= DeltaTime;
-        if (Axe->Delay > 0.f)
-        {
-            continue;
-        }
-        Axe->Delay = 0.f;
-        world_entity *Player = AppState->Players[Axe->By].Entity;
-        world_entity *Foe = FindMonsterBySerial(World, Axe->Slot, Axe->Serial);
-        if (Player && !IsDeadPlayer(Player) && Foe && Foe->Hp > 0.f)
-        {
-            hit Hit = {AXE_THROW_DAMAGE, 90.f, 0.f, 0.f, 0.f, SimBurst_Count,
-                       StatusEffect_Slowed, AXE_THROW_SLOW_SECONDS};
-            v2 Away = NormalizeOr(Foe->Position.XY - Player->Position.XY, V2(1.f, 0.f));
-            ApplyHit(AppState, World, Foe, &Hit, Away, Player, Axe->By);
-        }
-    }
-}
-
 // NOTE(zoubir): the end of Execute's wind-up: the chop lands on the foe it
 // was aimed at, or the one nearest in reach, spending all the Rage; with
 // nobody there it hits the ground and the Rage stays
@@ -238,7 +181,15 @@ Execute(app_state *AppState, player_slot *Slot, world_entity *Player)
             EmitSound(&AppState->Events, AssetType_SfxExplosion, Foe->Position);
         }
         hit Hit = {Damage, EXECUTE_SHOVE, 120.f, 160.f, 0.f, SimBurst_Count};
+        float Before = Foe->Hp;
         ApplyHit(AppState, World, Foe, &Hit, Dir, Player, Player->PlayerIndex);
+        u32 Thirst = RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_Bloodthirst);
+        if (Thirst)
+        {
+            float Share = Thirst >= 2 ? BLOODTHIRST_RANK2_HEAL : BLOODTHIRST_HEAL_SHARE;
+            HealPlayer(AppState, Player->PlayerIndex, Player, Share * (Before - Maximum(0.f, Foe->Hp)));
+            EmitSound(&AppState->Events, AssetType_SfxHeal, Player->Position);
+        }
         Slot->ClassMeter = 0;
         Slot->Berserker.RageCarry = 0.f;
         if (Massacre && Foe->Hp <= 0.f)
@@ -250,30 +201,4 @@ Execute(app_state *AppState, player_slot *Slot, world_entity *Player)
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, BerserkerBurst_Execute),
               (u8)Player->PlayerIndex, Spot, ATan2(Dir.Y, Dir.X));
     EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Spot);
-}
-
-// NOTE(zoubir): C: a strike on the foe in front that heals for part of
-// it; false with no foe in reach
-internal bool32
-CastBloodthirst(app_state *AppState, player_slot *Slot, world_entity *Player)
-{
-    world_entity *Foe = AttackTarget(AppState, Slot, Player, BLOODTHIRST_REACH);
-    if (!Foe)
-    {
-        return false;
-    }
-    bool32 Rank2 = RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_Bloodthirst) >= 2;
-    v2 Dir = NormalizeOr(Foe->Position.XY - Player->Position.XY, GetPlayerAim(Player));
-    hit Hit = {BLOODTHIRST_DAMAGE * (Rank2 ? BLOODTHIRST_RANK2_DAMAGE : 1.f), 90.f, 0.f, 0.f, 0.f,
-               SimBurst_Count};
-    float Before = Foe->Hp;
-    EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, BerserkerBurst_Bloodthirst),
-              (u8)Player->PlayerIndex, ChestOf(Foe), ATan2(Dir.Y, Dir.X));
-    ApplyHit(AppState, &AppState->World, Foe, &Hit, Dir, Player, Player->PlayerIndex);
-    float Dealt = Before - Maximum(0.f, Foe->Hp);
-    float Share = Rank2 ? BLOODTHIRST_RANK2_HEAL : BLOODTHIRST_HEAL_SHARE;
-    HealPlayer(AppState, Player->PlayerIndex, Player, Share * Dealt);
-    EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);
-    EmitSound(&AppState->Events, AssetType_SfxHeal, Player->Position);
-    return true;
 }

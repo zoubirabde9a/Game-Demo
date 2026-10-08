@@ -1,8 +1,8 @@
 /* Berserker axe art (client/dungeon/classes/berserker.cpp): the great axe
-   and the hand axe drawn in screen space from a grip point and a
-   direction, and the crescent a swing of the great axe leaves. Every
-   look and burst of the class draws its axe through these, so the axe in
-   the hands, in a swing and in a throw is the same one.
+   drawn in screen space from a grip point and a direction, and the
+   crescent a swing of it leaves. Every look and burst of the class
+   draws its axe through these, so the axe in the hands and in a swing
+   is the same one.
 
    Colours are 0x00BBGGRR, as the effects take them (FxColor). */
 
@@ -153,34 +153,6 @@ DrawGreatAxe(render_context *RenderContext, v2 Grip, v2 Dir, float Length, float
         DrawFxStroke(RenderContext, Rune + 2.f * F.Along - 2.f * F.Across, Rune - 2.f * F.Along + 2.f * F.Across,
                      1.2f, 1.2f, Burn, Burn, RenderBlend_Alpha);
     }
-}
-
-// NOTE(zoubir): the hand axe it throws: a short haft and one small blade,
-// turned by Spin (radians) round its middle at Centre
-internal void
-DrawHandAxe(render_context *RenderContext, v2 Centre, float Spin, float Size, float Alpha)
-{
-    v2 Dir = V2(Cos(Spin), Sin(Spin));
-    axe_frame F = MakeAxeFrame(Centre - 0.45f * Size * Dir, Dir, 1.f);
-    float L = Size;
-    v2 Butt = AxePoint(&F, 0.f, 0.f);
-    v2 Head = AxePoint(&F, 1.f * L, 0.f);
-    u32 Ink = AxeInk(Alpha, BERSERKER_INK_RGB);
-    DrawFxStroke(RenderContext, Butt, Head, 4.f, 4.f, Ink, Ink, RenderBlend_Alpha);
-    DrawFxStroke(RenderContext, Butt, Head, 2.f, 2.f, AxeInk(Alpha, 0x00203858),
-                 AxeInk(Alpha, BERSERKER_WOOD_RGB), RenderBlend_Alpha);
-    v2 A = AxePoint(&F, 0.7f * L, 0.f);
-    v2 B = AxePoint(&F, 1.02f * L, 0.f);
-    v2 C = AxePoint(&F, 1.1f * L, 0.5f * L);
-    v2 D = AxePoint(&F, 0.62f * L, 0.46f * L);
-    v2 Out = 1.4f * F.Across;
-    DrawFilledQuad(RenderContext, A - Out, B - Out, C + Out, D + Out, Ink, Ink, Ink, Ink,
-                   RenderBlend_Alpha);
-    DrawFilledQuad(RenderContext, A, B, C, D, AxeInk(Alpha, BERSERKER_IRON_RGB),
-                   AxeInk(Alpha, 0x00988C84), AxeInk(Alpha, BERSERKER_STEEL_RGB),
-                   AxeInk(Alpha, BERSERKER_STEEL_RGB), RenderBlend_Alpha);
-    DrawFxStroke(RenderContext, C, D, 1.6f, 1.6f, AxeInk(Alpha, 0x00FFFFFF), AxeInk(Alpha, 0x00FFFFFF),
-                 RenderBlend_Alpha);
 }
 
 // NOTE(zoubir): the crescent of a great axe's swing round Centre, its

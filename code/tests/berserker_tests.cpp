@@ -1,11 +1,12 @@
 /* Berserker tests (sim/dungeon/role_kits/berserker.cpp), included by
-   dungeon_tests.cpp: the class's keys and tree spells; Cleave hits the
+   dungeon_tests.cpp: the class's five keys, Berserk once learned, and X
+   and C doing nothing; Cleave hits the
    arc in front and nothing behind, swinging each way in turn, and goes
    at a monster picked under the cursor; Rage builds
    from hits landed and taken and drains once calm; Whirlwind and Execute
    need their Rage and spend it; Execute's big hit on a foe near death and
-   Massacre's refund; the Leap lands at the cursor and stuns; the hand axe
-   lands after its flight and slows; Bloodthirst heals, more at rank 2;
+   Massacre's refund; the Leap lands at the cursor and stuns; Bloodthirst
+   makes Execute heal, more at rank 2;
    Berserk; and a client predicting its own Berserker winds up but leaves
    the blows and the Rage to the server. */
 
@@ -44,18 +45,18 @@ TestBerserkerKeys()
     player_slot *Slot = &AppState->Players[0];
     Check(RoleHasKit(PlayerRole_Berserker));
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    u32 Main = PlayerButton_Launch | PlayerButton_Push | PlayerButton_Shockwave |
-        PlayerButton_Cast | PlayerButton_Attack;
+    u32 Main = PlayerButton_Launch | PlayerButton_Push | PlayerButton_Shockwave | PlayerButton_Attack;
     Check((Allowed & Main) == Main);
-    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Kunai)));
-    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Bloodthirst] = 1;
+    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Kunai | PlayerButton_Cast)));
+    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Bloodthirst] = 2;
     Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Berserk] = 1;
     Allowed = RunAllowedButtons(AppState, Slot, 0);
-    Check((Allowed & (PlayerButton_Slam | PlayerButton_Kunai)) == (PlayerButton_Slam | PlayerButton_Kunai));
+    Check(Allowed & PlayerButton_Kunai);
+    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Cast)));
     Check(BerserkerKeyWindsUp(1) && BerserkerKeyWindsUp(4) && !BerserkerKeyWindsUp(6));
     // NOTE(zoubir): the right click is Cleave, not the sword
     Check(RoleSpellOnButton(AppState, Slot->Entity, PlayerButton_Attack) == &BerserkerSpells[6]);
-    Check(RoleSpellOnButton(AppState, Slot->Entity, PlayerButton_Cast) == &BerserkerSpells[5]);
+    Check(RoleSpellOnButton(AppState, Slot->Entity, PlayerButton_Cast) == 0);
     DestroyCryptWorld(&Crypt);
 }
 
@@ -317,48 +318,41 @@ TestLeapFlightIgnoresTheKeys()
     DestroyCryptWorld(&Crypt);
 }
 
-// NOTE(zoubir): the hand axe lands after its flight, hurts and slows; with
-// no foe in reach it is not thrown
-internal void
-TestAxeThrowSlows()
+// NOTE(zoubir): what an Execute on full Rage healed the Berserker from 50
+// health, and what it dealt
+internal float
+ExecuteHealed(crypt_world *Crypt, world_entity *Foe, float *Dealt)
 {
-    crypt_world Crypt = BerserkerCrypt();
-    app_state *AppState = Crypt.AppState;
-    player_slot *Slot = &AppState->Players[0];
-    PressOnce(&Crypt, 0, PlayerButton_Cast);
-    Check(Slot->RoleCooldowns[5] == 0.f);
-    world_entity *Foe = BerserkerDummy(&Crypt, V3(330.f, 0.f, 0.f));
-    PressOnce(&Crypt, 0, PlayerButton_Cast);
-    Check(Slot->RoleCooldowns[5] > 0.f);
-    Check(Foe->Hp == 2000.f);
-    TickCrypt(&Crypt, 30);
-    Check(Foe->Hp < 2000.f && HasStatus(Foe, StatusEffect_Slowed));
-    DestroyCryptWorld(&Crypt);
+    player_slot *Slot = &Crypt->AppState->Players[0];
+    world_entity *Player = Slot->Entity;
+    Player->Hp = 50.f;
+    Foe->Hp = 2000.f;
+    Slot->RoleCooldowns[4] = 0.f;
+    AddRage(Slot, 100.f);
+    PressOnce(Crypt, 0, PlayerButton_Shockwave);
+    TickCrypt(Crypt, (u32)(60.f * PlayerSpells[PlayerSpell_BerserkerB].CastTime) + 2);
+    *Dealt = 2000.f - Foe->Hp;
+    return Player->Hp - 50.f;
 }
 
-// NOTE(zoubir): Bloodthirst heals for half of what it deals, more at rank
-// 2; with nobody in reach it does not cast
+// NOTE(zoubir): Bloodthirst makes Execute heal for a share of what it
+// deals, more at rank 2; without it Execute heals nothing (past the rest
+// between fights, the same every time)
 internal void
 TestBloodthirstHeals()
 {
     crypt_world Crypt = BerserkerCrypt();
-    app_state *AppState = Crypt.AppState;
-    player_slot *Slot = &AppState->Players[0];
-    world_entity *Player = Slot->Entity;
-    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Bloodthirst] = 1;
-    Check(!CastBerserkerKey(AppState, &AppState->World, &Crypt.Arena, Slot, Player, 2));
+    player_slot *Slot = &Crypt.AppState->Players[0];
     world_entity *Foe = BerserkerDummy(&Crypt, V3(60.f, 0.f, 0.f));
-    Player->Hp = 50.f;
-    Check(CastBerserkerKey(AppState, &AppState->World, &Crypt.Arena, Slot, Player, 2));
-    float Dealt = 2000.f - Foe->Hp;
-    float Healed = Player->Hp - 50.f;
-    Check(Dealt > 0.f && Healed > 0.4f * Dealt);
+    float Dealt = 0.f;
+    float Rest = ExecuteHealed(&Crypt, Foe, &Dealt);
+    Check(Dealt > 0.f && Rest < 0.1f * Dealt);
+    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Bloodthirst] = 1;
+    float Healed = ExecuteHealed(&Crypt, Foe, &Dealt) - Rest;
+    Check(Healed > 0.99f * BLOODTHIRST_HEAL_SHARE * Dealt && Healed < 1.01f * BLOODTHIRST_HEAL_SHARE * Dealt);
     Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Bloodthirst] = 2;
-    Player->Hp = 50.f;
-    Foe->Hp = 2000.f;
-    Check(CastBerserkerKey(AppState, &AppState->World, &Crypt.Arena, Slot, Player, 2));
-    Check(2000.f - Foe->Hp > Dealt * 1.2f);
-    Check(Player->Hp - 50.f > Healed * 1.4f);
+    float More = ExecuteHealed(&Crypt, Foe, &Dealt) - Rest;
+    Check(More > 0.99f * BLOODTHIRST_RANK2_HEAL * Dealt && More < 1.01f * BLOODTHIRST_RANK2_HEAL * Dealt);
     DestroyCryptWorld(&Crypt);
 }
 
@@ -402,7 +396,6 @@ RunBerserkerTests()
     TestExecuteSpendsRage();
     TestLeapLandsAndStuns();
     TestLeapFlightIgnoresTheKeys();
-    TestAxeThrowSlows();
     TestBloodthirstHeals();
     TestPredictedBerserkerWindsUp();
 }

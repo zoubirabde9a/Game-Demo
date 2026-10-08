@@ -192,6 +192,16 @@ RoleSpellLearned(player_slot *Slot, u32 Key)
     return Result;
 }
 
+// NOTE(zoubir): the classes the shared fireball is no part of: their own
+// spells fill five damage keys without it, as the striker's four and the
+// fireball do, so X does nothing for them
+inline bool32
+RoleDropsFireball(u32 Role)
+{
+    bool32 Result = Role == PlayerRole_Berserker || Role == PlayerRole_Shadowblade;
+    return Result;
+}
+
 // NOTE(zoubir): the buttons that do anything for Slot: in a dungeon run
 // the shared ones and the class spells it has, else Allowed, the game's
 // (UpdatePlayer, the ability bar, the client's aim)
@@ -202,6 +212,10 @@ RunAllowedButtons(app_state *AppState, player_slot *Slot, u32 Allowed)
     if (IsDungeon(AppState))
     {
         Result = DUNGEON_SHARED_BUTTONS;
+        if (RoleDropsFireball(Slot->Role))
+        {
+            Result &= ~(u32)PlayerButton_Cast;
+        }
         for(u32 Key = 0; Key < ROLE_KEYS; Key++)
         {
             if (RoleSpellLearned(Slot, Key))

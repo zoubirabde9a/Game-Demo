@@ -18,7 +18,7 @@
    Standard cast: an ally spell casts at once (the pick is the aim); a
    ground spell (Sanctuary, Inferno) aims first like Launch did, its
    circle drawn at the cursor (previews.cpp); a foe spell (Shield Throw,
-   Holy Fire, Axe Throw) aims first like the kunai, its reach and the
+   Holy Fire, Quick Shot) aims first like the kunai, its reach and the
    foes in it drawn; a line spell (Giant Fireball, Piercing Shot) aims
    first like the fireball; a spell that needs none of these (Taunt, a
    swing in front, the right click) casts at once. Clicks on the party

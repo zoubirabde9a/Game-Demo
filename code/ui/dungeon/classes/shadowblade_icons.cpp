@@ -86,31 +86,6 @@ PaintFanOfKnivesIcon(icon_canvas *Canvas)
     }
 }
 
-// NOTE(zoubir): Smoke Bomb: a round black bomb, its fuse sparking, smoke
-// rolling out round it
-internal void
-PaintSmokeBombIcon(icon_canvas *Canvas)
-{
-    IconGlow(Canvas, V2(0.5f, 0.6f), 0.48f, IconColor(140, 90, 200, 120));
-    v4 Smoke = IconColor(110, 95, 130, 230);
-    v4 SmokeDark = IconColor(60, 50, 75, 230);
-    v2 Puffs[6] = {V2(0.2f, 0.74f), V2(0.36f, 0.82f), V2(0.56f, 0.84f), V2(0.76f, 0.76f),
-                   V2(0.84f, 0.58f), V2(0.16f, 0.56f)};
-    for(u32 Puff = 0; Puff < 6; Puff++)
-    {
-        IconCircle(Canvas, Puffs[Puff], 0.13f, Gradient(Smoke, SmokeDark, Puffs[Puff] - V2(0.f, 0.1f),
-                                                         Puffs[Puff] + V2(0.f, 0.1f)));
-    }
-    IconCircle(Canvas, V2(0.5f, 0.56f), 0.22f, Solid(IconColor(16, 10, 20)));
-    IconCircle(Canvas, V2(0.5f, 0.56f), 0.2f, Gradient(IconColor(90, 70, 120), IconColor(20, 14, 30),
-                                                     V2(0.42f, 0.44f), V2(0.6f, 0.72f)));
-    IconCircle(Canvas, V2(0.43f, 0.48f), 0.05f, Solid(IconColor(220, 200, 255, 160)));
-    IconCapsule(Canvas, V2(0.6f, 0.38f), V2(0.66f, 0.3f), 0.04f, Solid(IconColor(60, 50, 70)));
-    IconArc(Canvas, V2(0.76f, 0.3f), 0.1f, 0.02f, Solid(IconColor(200, 170, 120)), 3.2f, 4.6f);
-    IconGlow(Canvas, V2(0.78f, 0.2f), 0.12f, IconColor(255, 220, 120, 220));
-    IconSparkle(Canvas, V2(0.78f, 0.2f), 0.08f, Solid(IconColor(255, 245, 210)));
-}
-
 // NOTE(zoubir): Shadow Dance: the Shadowblade and its shadow double, both
 // blades raised, under a violet moon
 internal void
@@ -155,10 +130,9 @@ PaintEviscerateIcon(icon_canvas *Canvas)
     }
 }
 
-// NOTE(zoubir): Poisoned Shiv: a thrown dagger, green venom dripping off
-// its point
+// NOTE(zoubir): Envenom: a dagger, green venom dripping off its point
 internal void
-PaintPoisonedShivIcon(icon_canvas *Canvas)
+PaintEnvenomIcon(icon_canvas *Canvas)
 {
     IconGlow(Canvas, V2(0.6f, 0.6f), 0.46f, IconColor(140, 255, 80, 130));
     IconCapsule(Canvas, V2(0.08f, 0.14f), V2(0.32f, 0.34f), 0.03f,
@@ -261,11 +235,11 @@ PaintRelentlessIcon(icon_canvas *Canvas)
 
 global_variable role_icon_painter *ShadowbladeIconPainters[ROLE_KEYS] =
 {
-    PaintShadowstepIcon, PaintFanOfKnivesIcon, PaintSmokeBombIcon, PaintShadowDanceIcon,
-    PaintEviscerateIcon, PaintPoisonedShivIcon, PaintTwinStrikeIcon,
+    PaintShadowstepIcon, PaintFanOfKnivesIcon, 0, PaintShadowDanceIcon,
+    PaintEviscerateIcon, 0, PaintTwinStrikeIcon,
 };
 global_variable talent_icon_painter *ShadowbladeTalentIconPainters[ROLE_TALENTS] =
 {
-    PaintLethalityIcon, PaintSmokeBombIcon, PaintVenomIcon, PaintOpportunistIcon,
+    PaintLethalityIcon, PaintEnvenomIcon, PaintVenomIcon, PaintOpportunistIcon,
     PaintShadowDanceIcon, PaintRelentlessIcon,
 };

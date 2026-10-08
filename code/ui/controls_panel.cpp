@@ -99,15 +99,20 @@ ShownControlsRows(app_state *AppState, controls_row **Rows)
 {
     controls_where Hidden = IsDungeon(AppState) ? Controls_Duel : Controls_Run;
     controls_scheme OtherScheme = MouseMoves() ? Controls_KeysMove : Controls_MouseMoves;
+    player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     u32 Result = 0;
     for(u32 Row = 0; Row < ArrayCount(ControlsRows); Row++)
     {
-        // NOTE(zoubir): a run's row with no text of its own (the right
-        // click) shows only for a class with a spell there
+        // NOTE(zoubir): a run's row shows only for a class with a spell on
+        // its key, and the fireball's only for a class that keeps it
         controls_row *Each = &ControlsRows[Row];
-        bool32 Empty = Each->Where == Controls_Run && !Each->Action[0] &&
-            !RoleSpellOnButton(AppState, AppState->Players[AppState->LocalPlayerIndex].Entity,
-                               Each->Buttons);
+        bool32 Empty = Each->Where == Controls_Run &&
+            !RoleSpellOnButton(AppState, Slot->Entity, Each->Buttons);
+        if (Each->Action == ControlsFireballLine && IsDungeon(AppState) &&
+            !(RunAllowedButtons(AppState, Slot, 0) & PlayerButton_Cast))
+        {
+            Empty = true;
+        }
         if (Each->Where != Hidden && Each->Scheme != OtherScheme && !Empty)
         {
             Rows[Result++] = &ControlsRows[Row];

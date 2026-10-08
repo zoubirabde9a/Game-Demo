@@ -155,7 +155,6 @@ struct dungeon_run
     // NOTE(zoubir): what each later class keeps per run
     // (role_kits/<class>.h)
     ranger_run Ranger;
-    berserker_run Berserker;
     shadowblade_run Shadowblade;
 };
 

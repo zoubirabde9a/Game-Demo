@@ -8,17 +8,16 @@
    stands at its back: a monster faces what it attacks, so behind it is
    away from the tank and out of its swings, and from behind a shelled
    monster's armour does not turn the cuts (sim/monster_abilities/
-   armor.cpp). It Shadowsteps in when the fight is a way off, poisons
-   what is not poisoned yet, Twin Strikes in reach, throws Fan of Knives
-   into a pack, Eviscerates at four or five points, dances in a fight and
-   drops a smoke bomb when hurt with monsters after it.
+   armor.cpp). It Shadowsteps in when the fight is a way off, Twin
+   Strikes in reach (which poisons), throws Fan of Knives into a pack,
+   Eviscerates at four or five points and dances in a fight.
 
    It keeps out of what a monster telegraphs and of burning ground,
    through the melee bots' shared bots/bot_dangers.cpp: its spot behind
    the monster moves to the edge of any such circle (or into a ring's
    spared middle), it walks round a circle on its way rather than
    through it, never Shadowsteps into one, and standing in one walks out
-   throwing only its Shiv. It waits for the windup to end and the ground
+   pressing nothing. It waits for the windup to end and the ground
    to cool, then steps back in. */
 
 // NOTE(zoubir): how far behind its monster the bot stands, past the
@@ -106,9 +105,9 @@ BotShadowbladeButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, w
               float Distance, v2 Direction, u32 *Held, u16 *Pick)
 {
     player_slot *Slot = &AppState->Players[Self->PlayerIndex];
-    // NOTE(zoubir): X and the right click are the daggers' here: the
-    // game's fireball and sword presses would throw and cut at the wrong
-    // moments
+    // NOTE(zoubir): the right click is the daggers' here and X does
+    // nothing: the game's fireball and sword presses would cut at the
+    // wrong moments
     *Held &= ~(u32)(NetButton_Fireball | NetButton_Sword);
     if (!Target || Target->Type != EntityType_Monster)
     {
@@ -174,23 +173,15 @@ BotShadowbladeButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, w
         return 0;
     }
     u32 Result = 0;
-    // NOTE(zoubir): in harm's way: out first, the Shiv on the way
+    // NOTE(zoubir): in harm's way: out first
     if (BotDangerAt(Dangers, DangerCount, Self->Position.XY))
     {
-        if (Slot->RoleCooldowns[5] <= 0.f && Distance < 0.95f * SHIV_RANGE)
-        {
-            Result |= NetButton_Fireball;
-        }
         return Result;
     }
     bool32 Fighting = AppState->Dungeon->FightingRoom != 0;
     float Reach = TWIN_STRIKE_REACH + 0.5f * Foe->Dimensions.X;
     u32 Near = BotShadowbladeFoesNear(AppState, Self, FAN_OF_KNIVES_RADIUS);
-    if (Ready[2] && Slot->Aggro > 0 && Self->Hp < 0.55f * Self->MaxHp)
-    {
-        Result |= NetButton_Slam;
-    }
-    else if (Ready[3] && Fighting && Distance < 2.f * Reach && Points >= 2)
+    if (Ready[3] && Fighting && Distance < 2.f * Reach && Points >= 2)
     {
         Result |= NetButton_Kunai;
     }
@@ -207,10 +198,6 @@ BotShadowbladeButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, w
     else if (Ready[1] && (Near >= 2 || (Near >= 1 && Points <= 2 && BotRandom(Bot) % 4 == 0)))
     {
         Result |= NetButton_Push;
-    }
-    else if (Ready[5] && Distance < 0.95f * SHIV_RANGE && !HasStatus(Foe, StatusEffect_Poisoned))
-    {
-        Result |= NetButton_Fireball;
     }
     else if (Ready[6] && Distance < Reach + 6.f)
     {

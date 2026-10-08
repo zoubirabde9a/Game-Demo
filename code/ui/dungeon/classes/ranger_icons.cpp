@@ -232,7 +232,7 @@ PaintRangerLethalMarkIcon(icon_canvas *Canvas)
 global_variable role_icon_painter *RangerIconPainters[ROLE_KEYS] =
 {
     PaintRangerVolleyIcon, PaintRangerPiercingShotIcon, PaintRangerDisengageIcon, PaintRangerRapidFireIcon,
-    PaintRangerHuntersMarkIcon, PaintRangerQuickShotIcon, 0,
+    0, PaintRangerQuickShotIcon, 0,
 };
 global_variable talent_icon_painter *RangerTalentIconPainters[ROLE_TALENTS] =
 {

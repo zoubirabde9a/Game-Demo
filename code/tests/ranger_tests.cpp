@@ -1,6 +1,7 @@
 /* Ranger tests (sim/dungeon/role_kits/ranger.cpp), included by
-   dungeon_tests.cpp: the class's keys; Quick Shot landing when its arrow
-   arrives; Hunter's Mark raising the Ranger's damage and building Focus;
+   dungeon_tests.cpp: the class's keys, W doing nothing; Quick Shot
+   landing when its arrow arrives; Quick Shot's Hunter's Mark raising the
+   Ranger's damage and building Focus, and moving to the next foe shot;
    Piercing Shot going through a line, less for each foe further down
    it, and spending Focus, and Deadeye's crit; Volley raining and slowing inside its circle only, wider with
    Barrage; Disengage leaping back and its snare rooting (and biting at
@@ -73,7 +74,7 @@ TestRangerKeys()
     Check(RoleHasKit(PlayerRole_Ranger));
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
     Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Launch | PlayerButton_Push |
-                      PlayerButton_Shockwave | PlayerButton_Cast));
+                      PlayerButton_Cast));
     Slot->Ranks[Talent_RoleFirst + RangerTalent_Disengage] = 1;
     Slot->Ranks[Talent_RoleFirst + RangerTalent_RapidFire] = 1;
     Allowed = RunAllowedButtons(AppState, Slot, 0);
@@ -93,7 +94,8 @@ TestRangerKeys()
     DestroyCryptWorld(&Crypt);
 }
 
-// NOTE(zoubir): X looses an arrow; the hit lands when it gets there
+// NOTE(zoubir): X looses an arrow; the hit lands when it gets there, on
+// the foe its mark is already on
 internal void
 TestQuickShotLandsOnArrival()
 {
@@ -107,17 +109,17 @@ TestQuickShotLandsOnArrival()
     Check(Foe->Hp == 2000.f);
     RangerTick(&Crypt, &Dummies, (u32)(60.f * 300.f / RANGER_ARROW_SPEED) + 2);
     float Dealt = 2000.f - Foe->Hp;
-    Check(Dealt > 0.99f * QUICK_SHOT_DAMAGE * GetRoleDef(PlayerRole_Ranger)->DamageDealt &&
-          Dealt < 1.01f * QUICK_SHOT_DAMAGE * GetRoleDef(PlayerRole_Ranger)->DamageDealt);
-    // NOTE(zoubir): no mark, no Focus
-    Check(Slot->Ranger.Focus == 0.f);
+    float Expected = QUICK_SHOT_DAMAGE * GetRoleDef(PlayerRole_Ranger)->DamageDealt * (1.f + MARK_SHARE);
+    Check(Dealt > 0.99f * Expected && Dealt < 1.01f * Expected);
+    Check(Slot->Ranger.Focus == QUICK_SHOT_FOCUS);
     DestroyCryptWorld(&Crypt);
 }
 
-// NOTE(zoubir): W marks the foe: it takes more from the Ranger, and Quick
-// Shots on it build Focus, which clients see
+// NOTE(zoubir): Quick Shot marks its foe: it takes more from the Ranger,
+// shots on it build Focus, which clients see, and the mark moves to the
+// next foe shot
 internal void
-TestHuntersMarkBuildsFocus()
+TestQuickShotMarks()
 {
     crypt_world Crypt = CreateRangerWorld();
     app_state *AppState = Crypt.AppState;
@@ -126,31 +128,26 @@ TestHuntersMarkBuildsFocus()
     world_entity *Foe = RangerDummy(&Crypt, &Dummies, V3(200.f, 0.f, 0.f));
     world_entity *Other = RangerDummy(&Crypt, &Dummies, V3(150.f, 110.f, 0.f));
     Slot->Input.Target = (u32)(Foe - AppState->World.Entities) + 1;
-    PressOnce(&Crypt, 0, PlayerButton_Shockwave);
+    PressOnce(&Crypt, 0, PlayerButton_Cast);
     Check(IsRangerMarked(AppState, Slot, Foe) && !IsRangerMarked(AppState, Slot, Other));
     Check(RangerDealtScale(Slot, Foe) > 1.f + MARK_SHARE - 0.001f);
     Check(RangerDealtScale(Slot, Other) == 1.f);
     RangerTick(&Crypt, &Dummies, 30);
     Check(Slot->ClassFlags & RANGER_FLAG_MARK);
-    float Before = Foe->Hp;
-    PressOnce(&Crypt, 0, PlayerButton_Cast);
-    RangerTick(&Crypt, &Dummies, 20);
-    float Dealt = Before - Foe->Hp;
-    float Expected = QUICK_SHOT_DAMAGE * GetRoleDef(PlayerRole_Ranger)->DamageDealt * (1.f + MARK_SHARE);
-    Check(Dealt > 0.99f * Expected && Dealt < 1.01f * Expected);
-    Check(Slot->Ranger.Focus == QUICK_SHOT_FOCUS);
     Check(Slot->ClassMeter == (u8)QUICK_SHOT_FOCUS);
-    // NOTE(zoubir): a shot on another foe builds none
+    // NOTE(zoubir): shooting it again keeps the mark there, fresh
+    Slot->Ranger.MarkSeconds = 1.f;
+    Slot->RoleCooldowns[5] = 0.f;
+    PressOnce(&Crypt, 0, PlayerButton_Cast);
+    Check(IsRangerMarked(AppState, Slot, Foe) && Slot->Ranger.MarkSeconds > MARK_SECONDS - 0.1f);
+    RangerTick(&Crypt, &Dummies, 20);
+    Check(Slot->Ranger.Focus == 2.f * QUICK_SHOT_FOCUS);
+    // NOTE(zoubir): a shot on another foe takes the mark there
     Slot->Input.Target = (u32)(Other - AppState->World.Entities) + 1;
     Slot->RoleCooldowns[5] = 0.f;
     PressOnce(&Crypt, 0, PlayerButton_Cast);
-    RangerTick(&Crypt, &Dummies, 20);
-    Check(Other->Hp < 2000.f);
-    Check(Slot->Ranger.Focus == QUICK_SHOT_FOCUS);
-    // NOTE(zoubir): nothing in reach, no mark and no cooldown spent
-    Foe->Hp = 0.f;
-    Other->Hp = 0.f;
-    Slot->RoleCooldowns[4] = 0.f;
+    Check(IsRangerMarked(AppState, Slot, Other) && !IsRangerMarked(AppState, Slot, Foe));
+    // NOTE(zoubir): W casts nothing
     PressOnce(&Crypt, 0, PlayerButton_Shockwave);
     Check(Slot->RoleCooldowns[4] == 0.f);
     DestroyCryptWorld(&Crypt);
@@ -327,7 +324,7 @@ TestLethalMarkJumps()
         world_entity *First = RangerDummy(&Crypt, &Dummies, V3(200.f, 0.f, 0.f));
         world_entity *Next = RangerDummy(&Crypt, &Dummies, V3(260.f, 80.f, 0.f));
         Slot->Input.Target = (u32)(First - AppState->World.Entities) + 1;
-        PressOnce(&Crypt, 0, PlayerButton_Shockwave);
+        PressOnce(&Crypt, 0, PlayerButton_Cast);
         Check(IsRangerMarked(AppState, Slot, First));
         if (Lethal)
         {
@@ -365,7 +362,7 @@ RunRangerTests()
 {
     TestRangerKeys();
     TestQuickShotLandsOnArrival();
-    TestHuntersMarkBuildsFocus();
+    TestQuickShotMarks();
     TestPiercingShotThroughALine();
     TestVolleyRainsOnTheCircle();
     TestDisengageLeavesASnare();

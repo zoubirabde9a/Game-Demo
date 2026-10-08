@@ -1,8 +1,8 @@
 /* Twin Strike (role_kits/shadowblade.cpp, the right click): two cuts at what
    is in front, the second TWIN_STRIKE_CUT_GAP after the first (from
    UpdateShadowbladeEffects), the nearest foe in the arc taking each cut
-   whole and the others TWIN_STRIKE_SPLASH of it; a combo point when
-   either cut lands. */
+   whole and the others TWIN_STRIKE_SPLASH of it; each foe cut is poisoned
+   (PoisonFoe), and a combo point when either cut lands. */
 
 // NOTE(zoubir): whether Foe is in reach of a Twin Strike cut along
 // Direction, and how far it is
@@ -51,6 +51,7 @@ TwinStrikeCut(app_state *AppState, player_slot *Slot, world_entity *Player, v2 D
         float Damage = TWIN_STRIKE_DAMAGE * (Foe == Nearest ? 1.f : TWIN_STRIKE_SPLASH);
         ShadowbladeStrike(AppState, Slot, Player, Foe, Damage, TWIN_STRIKE_SHOVE,
                           Distance > 0.f ? (1.f / Distance) * Offset : Direction);
+        PoisonFoe(AppState, Slot, Foe);
         Result++;
     }
     return Result;

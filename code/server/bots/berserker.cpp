@@ -11,11 +11,11 @@
 
    It keeps out of what monsters telegraph and of burning ground
    (bot_dangers.cpp): its spot is pushed out of every danger circle, and
-   while it stands in one it walks straight out and only throws its axe.
+   while it stands in one it walks straight out pressing nothing.
    It leaps in when its fight is a way off and the landing is clear,
-   Cleaves on cooldown, throws the axe at what it cannot reach yet, spins
-   a Whirlwind into a pack, Executes a foe near death or with a full bar,
-   drinks with Bloodthirst when hurt and goes Berserk in a fight. */
+   Cleaves on cooldown, spins a Whirlwind into a pack, Executes a foe
+   near death or with a full bar, or sooner when hurt and Bloodthirst
+   heals it, and goes Berserk in a fight. */
 
 // NOTE(zoubir): how far behind its monster the bot stands, past the
 // monster's half width; how close to the tank a monster is the tank's
@@ -90,8 +90,8 @@ BotBerserkerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, wor
               float Distance, v2 Direction, u32 *Held, u16 *Pick)
 {
     player_slot *Slot = &AppState->Players[Self->PlayerIndex];
-    // NOTE(zoubir): X and the right click are the axe's here: the game's
-    // fireball and sword presses the bot made would throw and swing it
+    // NOTE(zoubir): the right click is the axe's here and X does nothing:
+    // the game's fireball and sword presses the bot made would swing it
     // at the wrong moments
     *Held &= ~(u32)(NetButton_Fireball | NetButton_Sword);
     if (!Target || Target->Type != EntityType_Monster)
@@ -99,7 +99,7 @@ BotBerserkerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, wor
         return 0;
     }
     world_entity *Foe = BotBerserkerTankFoe(AppState, Self);
-    if (!Foe || Length(Foe->Position.XY - Self->Position.XY) > AXE_THROW_RANGE)
+    if (!Foe || Length(Foe->Position.XY - Self->Position.XY) > PLAYER_AIM_REACH)
     {
         Foe = Target;
     }
@@ -134,28 +134,22 @@ BotBerserkerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, wor
     }
     u32 Result = 0;
     float Reach = CLEAVE_REACH + HalfWidth;
-    // NOTE(zoubir): in harm's way: out first, the axe thrown on the way
+    // NOTE(zoubir): in harm's way: out first
     if (BotDangerAt(Dangers, DangerCount, Self->Position.XY))
     {
-        if (Ready[5] && Distance < AXE_THROW_RANGE && Distance > Reach)
-        {
-            Result |= NetButton_Fireball;
-        }
         return Result;
     }
     bool32 Fighting = AppState->Dungeon->FightingRoom != 0;
     bool32 Low = Foe->MaxHp > 0.f && Foe->Hp < EXECUTE_LOW_SHARE * Foe->MaxHp;
     u32 Near = BotFoesAround(AppState, Self, WHIRLWIND_RADIUS);
+    bool32 Thirsty = RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_Bloodthirst) > 0;
     if (Ready[3] && Fighting && Distance < 2.f * Reach && Rage >= 30)
     {
         Result |= NetButton_Kunai;
     }
-    else if (Ready[2] && Distance < BLOODTHIRST_REACH + HalfWidth && Self->Hp < 0.7f * Self->MaxHp)
-    {
-        Result |= NetButton_Slam;
-    }
     else if (Ready[4] && Distance < EXECUTE_REACH + HalfWidth &&
-             ((Low && Rage >= EXECUTE_MIN_RAGE) || Rage >= 70))
+             ((Low && Rage >= EXECUTE_MIN_RAGE) || Rage >= 70 ||
+              (Thirsty && Self->Hp < 0.7f * Self->MaxHp && Rage >= 40)))
     {
         Result |= NetButton_Shockwave;
     }
@@ -167,19 +161,11 @@ BotBerserkerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, wor
     {
         Result |= NetButton_Sword;
     }
-    else if (Ready[2] && Distance < BLOODTHIRST_REACH + HalfWidth)
-    {
-        Result |= NetButton_Slam;
-    }
     else if (Ready[0] && Foe == Target && Distance > 150.f && Distance < 0.95f * PLAYER_AIM_REACH &&
              !BotDangerAt(Dangers, DangerCount, Foe->Position.XY) && BotRandom(Bot) % 8 == 0)
     {
         // NOTE(zoubir): the aim is on Target (BotThink), so the leap lands there
         Result |= NetButton_Launch;
-    }
-    else if (Ready[5] && Distance > Reach && Distance < AXE_THROW_RANGE)
-    {
-        Result |= NetButton_Fireball;
     }
     return Result;
 }

@@ -6,10 +6,8 @@
    SHADOWBLADE_MOST_POINTS), the finisher spends them:
 
      right click  Twin Strike: two cuts at what is in front, the second a
-                  moment after the first; a point when either lands.
-     X            Poisoned Shiv: a dagger thrown at the foe under the
-                  cursor (or nearest it), then poison over a few seconds;
-                  a point.
+                  moment after the first, poisoning what they cut; a point
+                  when either lands.
      A            Shadowstep: the Shadowblade vanishes and stands behind
                   that foe; its next strike within SHADOWBLADE_CRIT_SECONDS
                   is critical. A point.
@@ -20,11 +18,12 @@
                   front for EVISCERATE_PER_POINT a point, spending them all.
                   With none it does not cast, and the player is shown so
                   (ShadowbladeBurst_Empty).
-     C (tree)     Smoke Bomb: a cloud at its feet (shadowblade/effects.cpp).
-     V (tree)     Shadow Dance: for DANCE_SECONDS every Twin Strike, Shiv and
+     V (tree)     Shadow Dance: for DANCE_SECONDS every Twin Strike and
                   Eviscerate lands a shadow's echo too, and Shadowstep comes
                   back in DANCE_STEP_COOLDOWN.
 
+   C and X do nothing for it (RoleDropsFireball), so it has five damage
+   keys, as the striker does.
    Points fade out of a fight (shadowblade/effects.cpp). The critical
    strike and Shadow Dance are ClassFlags bits, so every client draws
    them (client/dungeon/classes/shadowblade.cpp). */
@@ -93,11 +92,14 @@ ShadowbladeStrike(app_state *AppState, player_slot *Slot, world_entity *Player, 
     return Result;
 }
 
-#include "shadowblade/twin_strike.cpp"
-
+// NOTE(zoubir): Foe poisoned by Slot's Shadowblade, or its poison renewed
 internal void
 PoisonFoe(app_state *AppState, player_slot *Slot, world_entity *Foe)
 {
+    if (!Foe->IsPresent || Foe->Hp <= 0.f)
+    {
+        return;
+    }
     shadowblade_run *Run = &AppState->Dungeon->Shadowblade;
     world *World = &AppState->World;
     bool32 Venom = RoleRank(Slot, PlayerRole_Shadowblade, ShadowbladeTalent_Venom) > 0;
@@ -136,33 +138,16 @@ PoisonFoe(app_state *AppState, player_slot *Slot, world_entity *Foe)
     Row->Slot = FoeSlot;
     Row->Serial = Foe->MonsterSerial;
     Row->By = By;
-    Row->Seconds = SHIV_POISON_SECONDS + (Venom ? VENOM_SECONDS : 0.f);
-    Row->PerSecond = SHIV_POISON_PER_SECOND * (Venom ? 1.f + VENOM_SHARE : 1.f);
+    float Envenom = (float)RoleRank(Slot, PlayerRole_Shadowblade, ShadowbladeTalent_Envenom);
+    Row->Seconds = BLADE_POISON_SECONDS + (Venom ? VENOM_SECONDS : 0.f);
+    Row->PerSecond = BLADE_POISON_PER_SECOND * (Venom ? 1.f + VENOM_SHARE : 1.f) *
+        (1.f + ENVENOM_SHARE * Envenom);
     // NOTE(zoubir): the status only for its look: clients see a monster's
     // statuses, and draw the drips from it
     ApplyStatus(Foe, StatusEffect_Poisoned, Row->Seconds);
 }
 
-internal bool32
-CastPoisonedShiv(app_state *AppState, player_slot *Slot, world_entity *Player)
-{
-    world_entity *Foe = AttackTarget(AppState, Slot, Player, SHIV_RANGE);
-    if (!Foe)
-    {
-        return false;
-    }
-    v2 Away = DirectionTo(Foe->Position.XY - Player->Position.XY);
-    EmitBurst(&AppState->Events, ClassBurst(SimBurst_ShadowbladeFirst, ShadowbladeBurst_Shiv),
-              (u8)Player->PlayerIndex, ChestOf(Foe), ATan2(Away.Y, Away.X));
-    EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
-    ShadowbladeStrike(AppState, Slot, Player, Foe, SHIV_DAMAGE, 40.f, Away);
-    if (Foe->IsPresent && Foe->Hp > 0.f)
-    {
-        PoisonFoe(AppState, Slot, Foe);
-    }
-    AddComboPoints(Slot, 1);
-    return true;
-}
+#include "shadowblade/twin_strike.cpp"
 
 internal bool32
 CastShadowstep(app_state *AppState, world *World, memory_arena *Arena, player_slot *Slot,
@@ -190,30 +175,6 @@ CastShadowstep(app_state *AppState, world *World, memory_arena *Arena, player_sl
     Slot->Shadowblade.CritSeconds = SHADOWBLADE_CRIT_SECONDS;
     AddComboPoints(Slot, 1);
     return true;
-}
-
-internal void
-CastSmokeBomb(app_state *AppState, player_slot *Slot, world_entity *Player)
-{
-    shadowblade_run *Run = &AppState->Dungeon->Shadowblade;
-    shadowblade_smoke *Smoke = &Run->Smokes[0];
-    for(u32 Index = 0; Index < SHADOWBLADE_SMOKES; Index++)
-    {
-        if (Run->Smokes[Index].Seconds < Smoke->Seconds)
-        {
-            Smoke = &Run->Smokes[Index];
-        }
-    }
-    bool32 Thick = RoleRank(Slot, PlayerRole_Shadowblade, ShadowbladeTalent_SmokeBomb) >= 2;
-    Smoke->Position = V3(Player->Position.X, Player->Position.Y, Player->GroundZ);
-    Smoke->Seconds = SMOKE_SECONDS;
-    Smoke->Radius = SMOKE_RADIUS;
-    Smoke->Share = Thick ? SMOKE_THICK_SHARE : SMOKE_SHARE;
-    Smoke->Slows = Thick;
-    Smoke->By = Player->PlayerIndex;
-    EmitBurst(&AppState->Events, ClassBurst(SimBurst_ShadowbladeFirst, ShadowbladeBurst_Smoke),
-              (u8)Player->PlayerIndex, Smoke->Position);
-    EmitSound(&AppState->Events, AssetType_SfxAreaCast, Player->Position);
 }
 
 // NOTE(zoubir): whether Key only starts a wind-up when pressed (the cast
@@ -245,11 +206,6 @@ CastShadowbladeKey(app_state *AppState, world *World, memory_arena *Arena, playe
             StartPlayerCast(Player, PlayerSpell_ShadowbladeA, Player->Aim);
         } break;
 
-        case 2:
-        {
-            CastSmokeBomb(AppState, Slot, Player);
-        } break;
-
         case 3:
         {
             Slot->Shadowblade.DanceSeconds = DANCE_SECONDS;
@@ -277,11 +233,6 @@ CastShadowbladeKey(app_state *AppState, world *World, memory_arena *Arena, playe
             StartPlayerCast(Player, PlayerSpell_ShadowbladeB, Player->Aim);
         } break;
 
-        case 5:
-        {
-            Result = CastPoisonedShiv(AppState, Slot, Player);
-        } break;
-
         case 6:
         {
             CastTwinStrike(AppState, Slot, Player);
@@ -301,6 +252,7 @@ FinishFanOfKnives(app_state *AppState, player_slot *Slot, world_entity *Player)
     u32 Room = RoomAtPosition(World, Player->Position.XY);
     // NOTE(zoubir): a critical strike lands on every knife of the fan
     bool32 Crit = Slot->Shadowblade.CritSeconds > 0.f;
+    bool32 Envenom = RoleRank(Slot, PlayerRole_Shadowblade, ShadowbladeTalent_Envenom) > 0;
     u32 Cut = 0;
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
@@ -317,6 +269,10 @@ FinishFanOfKnives(app_state *AppState, player_slot *Slot, world_entity *Player)
         }
         ShadowbladeStrike(AppState, Slot, Player, Foe, FAN_OF_KNIVES_DAMAGE, FAN_OF_KNIVES_SHOVE,
                           LengthSq(Offset) > 1.f ? DirectionTo(Offset) : V2(1.f, 0.f));
+        if (Envenom)
+        {
+            PoisonFoe(AppState, Slot, Foe);
+        }
         Cut++;
     }
     Slot->Shadowblade.CritSeconds = Crit && !Cut ? Slot->Shadowblade.CritSeconds : 0.f;

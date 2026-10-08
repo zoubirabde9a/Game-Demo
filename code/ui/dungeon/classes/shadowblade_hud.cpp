@@ -80,8 +80,7 @@ DrawShadowbladeHud(render_context *RenderContext, app_state *AppState, player_sl
     // NOTE(zoubir): the newest point coming in, the points spent, and a
     // finisher pressed with none
     float Gained = 100.f;
-    u32 Builders[4] = {ShadowbladeBurst_TwinStrike, ShadowbladeBurst_Shiv, ShadowbladeBurst_Step,
-                       ShadowbladeBurst_Fan};
+    u32 Builders[3] = {ShadowbladeBurst_TwinStrike, ShadowbladeBurst_Step, ShadowbladeBurst_Fan};
     for(u32 Index = 0; Index < ArrayCount(Builders); Index++)
     {
         Gained = Minimum(Gained, ShadowbladeBurstAge(AppState, SlotIndex, Builders[Index]));

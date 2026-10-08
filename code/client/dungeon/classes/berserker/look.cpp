@@ -8,7 +8,6 @@
    - Cleave: pulled back past the start of the slice, whipped across it
      (fast out of the start, slowing into the end, where the crescent's
      lead is), held a moment in the follow-through, then eased back;
-   - Bloodthirst: a short chop from above toward the foe;
    - Execute: raised overhead through the wind-up, leaning back further
      and shaking as it fills, then brought down in front, left there a
      moment;
@@ -65,8 +64,7 @@ NewestBerserkerAttack(app_state *AppState, u32 Slot, float *T)
         role_burst *Burst = &Fx->Bursts[Index];
         u32 Kind = (u32)Burst->Kind - SimBurst_BerserkerFirst;
         bool32 Attack = Kind == BerserkerBurst_Cleave || Kind == BerserkerBurst_CleaveBack ||
-            Kind == BerserkerBurst_Bloodthirst || Kind == BerserkerBurst_Execute ||
-            Kind == BerserkerBurst_Slam;
+            Kind == BerserkerBurst_Execute || Kind == BerserkerBurst_Slam;
         float Age = (Clock - Burst->Start) / RoleBurstLife(Burst->Kind);
         if (Burst->Slot == Slot && Attack && Age >= 0.f && Age < 1.f &&
             (!Result || Burst->Start >= Result->Start))
@@ -209,15 +207,6 @@ BerserkerAxePose(app_state *AppState, player_slot *Slot, world_entity *Player, f
         v2 Centre = Feet - V2(0.f, BERSERKER_SWING_CHEST);
         Pose = SwingAxePose(Centre, Burst->Angle, Side, CLEAVE_HALF_ANGLE, CleaveAlong(T), BERSERKER_SWING_LENGTH * H);
         Back = SmoothStep01((T - 0.68f) / 0.32f);
-        Turn = -Side;
-    }
-    else if (Kind == BerserkerBurst_Bloodthirst)
-    {
-        float Side = Cos(Burst->Angle) >= 0.f ? 1.f : -1.f;
-        v2 Centre = Feet - V2(0.f, BERSERKER_SWING_CHEST);
-        float Along = -0.2f + 1.2f * (1.f - Square(1.f - Clamp01(T / 0.3f)));
-        Pose = SwingAxePose(Centre, Burst->Angle, Side, 0.8f, Along, BERSERKER_SWING_LENGTH * H);
-        Back = SmoothStep01((T - 0.6f) / 0.4f);
         Turn = -Side;
     }
     else

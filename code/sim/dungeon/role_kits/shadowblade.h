@@ -36,7 +36,7 @@ struct shadowblade_slot
     float FadeTimer;
 };
 
-// NOTE(zoubir): a Poisoned Shiv's poison on a monster: whose, how long it
+// NOTE(zoubir): Twin Strike's poison on a monster: whose, how long it
 // has left and how hard it bites; a free row has Seconds 0
 #define SHADOWBLADE_POISONS 24
 struct shadowblade_poison
@@ -49,20 +49,7 @@ struct shadowblade_poison
     float TickTimer;
 };
 
-// NOTE(zoubir): a Smoke Bomb's cloud on the ground; Seconds 0 is a free one
-#define SHADOWBLADE_SMOKES 8
-struct shadowblade_smoke
-{
-    v3 Position;
-    float Seconds;
-    float Radius;
-    float Share;
-    u32 By;
-    bool32 Slows;
-};
-
 struct shadowblade_run
 {
     shadowblade_poison Poisons[SHADOWBLADE_POISONS];
-    shadowblade_smoke Smokes[SHADOWBLADE_SMOKES];
 };

@@ -17,16 +17,18 @@ The tank and the healer also have a weak right-click attack, Shield Bash and Smi
 
 ## Keys
 
-A class casts on seven keys: A, R, C, V, W, X (the fireball's key) and the right click (the sword's). A class that owns X or the right click replaces the game's fireball or sword there; one that does not keeps the fireball and has no sword. C and V come from the class's talent tree, A, R and W from the start. The ability bar and the controls panel (hold H) show each key's spell from the class's table.
+A class casts on seven keys: A, R, C, V, W, X (the fireball's key) and the right click (the sword's). A class that owns X or the right click replaces the game's fireball or sword there; one that does not keeps the fireball and has no sword, except the Berserker and the Shadowblade, for whom X does nothing (`RoleDropsFireball`). C and V come from the class's talent tree, A, R and W from the start. The ability bar and the controls panel (hold H) show each key's spell from the class's table.
+
+Every damage class has five damage keys with its whole tree, as many as the Fire Mage (fireball, Meteor, Giant Fireball, Detonate, Combustion). The Ranger leaves W empty; the Berserker and the Shadowblade leave X and C empty, and their second talent is a passive instead of a C spell.
 
 | Key | Ranger | Berserker | Shadowblade |
 |---|---|---|---|
-| Right click | (none) | Cleave: a wide swing through everything in front, alternating sides; builds Rage | Twin Strike: two quick cuts; builds a combo point |
-| X | Quick Shot: an arrow at a foe every second; on the marked foe it builds Focus | Axe Throw: a hand axe that hurts and slows, then flies back | Poisoned Shiv: a thrown dagger that poisons for 6 s |
+| Right click | (none) | Cleave: a wide swing through everything in front, alternating sides; builds Rage | Twin Strike: two quick cuts that poison for 6 s; builds a combo point |
+| X | Quick Shot: an arrow at a foe every second; it puts Hunter's Mark on the foe for 15 s, which takes more from you, and hits on the marked foe build Focus | (none) | (none) |
 | A | Volley: arrows rain on a circle for 2 s and slow | Leap: a high jump to the cursor that slams, stuns and shoves on landing | Shadowstep: appear behind a foe; the next strike in 4 s does double |
 | R | Piercing Shot: a 1 s draw, then an arrow through every foe in a line; spends Focus | Whirlwind: 30 Rage, a 1.5 s spin that hits everything round five times | Fan of Knives: a ring of knives, a combo point per foe hit |
-| W | Hunter's Mark: 15 s on a foe, which takes more from you; hits on it build Focus | Execute: needs 20 Rage, one chop that spends it all; far harder under 25% health | Eviscerate: the finisher, damage per combo point spent |
-| C (tree) | Disengage: leap back and leave a snare that roots the first foe on it | Bloodthirst: a strike that heals for half of what it deals | Smoke Bomb: a cloud where foes forget the party inside, who take less |
+| W | (none) | Execute: needs 20 Rage, one chop that spends it all; far harder under 25% health | Eviscerate: the finisher, damage per combo point spent |
+| C (tree) | Disengage: leap back and leave a snare that roots the first foe on it | (none) | (none) |
 | V (tree) | Rapid Fire: a 2 s stream of arrows at a foe | Berserk: 8 s of more damage, less taken, Rage holds, and the body grows | Shadow Dance: 6 s of a shadow clone striking beside you |
 
 Numbers, talents and the spell table of each class are `code/sim/dungeon/role_kits/<class>_defs.cpp`; what the spells do is `<class>.cpp` (and a folder of the same name when it grew past one file).
@@ -36,7 +38,7 @@ Numbers, talents and the spell table of each class are `code/sim/dungeon/role_ki
 | Slot | Ranger | Berserker | Shadowblade |
 |---|---|---|---|
 | 1 (2 ranks) | Marksman: more damage | Brutality: more damage | Lethality: more damage |
-| 2 (2 ranks) | Disengage (C) | Bloodthirst (C) | Smoke Bomb (C) |
+| 2 (2 ranks) | Disengage (C) | Bloodthirst: Execute heals for 30% of what it deals, 45% at rank 2 | Envenom: Fan of Knives poisons too; all poison 20% harder a rank |
 | 3 | Barrage: Volley wider and longer | Unbridled Wrath: more Rage per hit | Venom: stronger, longer poison |
 | 4 | Deadeye: Piercing Shot on full Focus always crits | Sweeping Strikes: Cleave and Whirlwind hit harder per foe | Opportunist: more damage from behind |
 | 5 | Rapid Fire (V) | Berserk (V) | Shadow Dance (V) |

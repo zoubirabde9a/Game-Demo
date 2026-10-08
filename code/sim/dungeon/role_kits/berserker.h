@@ -1,8 +1,8 @@
 /* Berserker (role_kits/berserker.cpp), the part sim/player.h needs before the
    rest (through sim/dungeon/class_states.h): its two spells with a cast,
    rows PlayerSpell_BerserkerA and PlayerSpell_BerserkerB of PlayerSpells
-   (sim/player_casts.cpp); what it keeps per player (player_slot.Berserker);
-   and what it keeps per run (dungeon_run.Berserker).
+   (sim/player_casts.cpp); and what it keeps per player
+   (player_slot.Berserker). It keeps nothing per run.
 
    Rage lives in player_slot.ClassMeter (0..100), and what the looks need
    in ClassFlags (BERSERKER_FLAG_*), so both reach every client. */
@@ -24,10 +24,7 @@
 // - Cleave, CleaveBack: the axe's swing round Position (the feet), across
 //   Angle, one way round or the other; BERSERKER_WIDE_CLEAVE higher when
 //   Sweeping Strikes widens it;
-// - AxeThrow: a hand axe from the Berserker to Position (the foe's chest)
-//   and back, AXE_THROW_SPEED each way;
-// - Bloodthirst: a strike on the foe at Position from along Angle, and
-//   its blood drawn back into the Berserker;
+// - Spare1, Spare2: unused, so the class keeps its CLASS_BURSTS rows;
 // - Leap: the jump starting, Position where it lands;
 // - Slam: the Leap landing at Position;
 // - Execute: the chop landing at Position, along Angle;
@@ -38,16 +35,13 @@ enum berserker_burst
 {
     BerserkerBurst_Cleave,
     BerserkerBurst_CleaveBack,
-    BerserkerBurst_AxeThrow,
-    BerserkerBurst_Bloodthirst,
+    BerserkerBurst_Spare1,
+    BerserkerBurst_Spare2,
     BerserkerBurst_Leap,
     BerserkerBurst_Slam,
     BerserkerBurst_Execute,
     BerserkerBurst_Berserk,
 };
-
-// NOTE(zoubir): axes thrown at once across the party
-#define MAX_BERSERKER_AXES 8
 
 struct berserker_slot
 {
@@ -82,18 +76,4 @@ struct berserker_slot
     float GainSeconds;
     float Refused;
     float HudClock;
-};
-
-// NOTE(zoubir): a hand axe in flight to a foe: it lands after Delay
-struct berserker_axe
-{
-    float Delay;
-    u32 By;
-    u32 Slot;
-    u32 Serial;
-};
-
-struct berserker_run
-{
-    berserker_axe Axes[MAX_BERSERKER_AXES];
 };

@@ -4,9 +4,8 @@
 // there (SetBodySwing), so its rows have no pose.
     {BurstShape_Role, 0.42f, CLEAVE_REACH, 0x003232E1, false, 0.12f, BurstPose_None},    // Cleave
     {BurstShape_Role, 0.42f, CLEAVE_REACH, 0x003232E1, false, 0.12f, BurstPose_None},    // CleaveBack
-    {BurstShape_Role, 2.f * AXE_THROW_RANGE / AXE_THROW_SPEED + 0.15f, 20.f, 0x003232E1, false, 0.05f,
-     BurstPose_Release},                                                                  // AxeThrow
-    {BurstShape_Role, 0.6f, 40.f, 0x003232E1, false, 0.2f, BurstPose_Release},           // Bloodthirst
+    {BurstShape_Role, 0.1f, 1.f, 0, false, 0.f, BurstPose_None},                         // Spare1
+    {BurstShape_Role, 0.1f, 1.f, 0, false, 0.f, BurstPose_None},                         // Spare2
     {BurstShape_Role, LEAP_SECONDS + 0.05f, LEAP_RADIUS, 0x003232E1, false, 0.1f, BurstPose_Release}, // Leap
     {BurstShape_Role, 0.75f, LEAP_RADIUS, 0x003232E1, false, 0.75f, BurstPose_None},      // Slam
     {BurstShape_Role, 0.7f, 60.f, 0x003232E1, false, 0.8f, BurstPose_None},               // Execute

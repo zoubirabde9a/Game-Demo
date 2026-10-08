@@ -1,13 +1,12 @@
 /* Shadowblade tests (sim/dungeon/role_kits/shadowblade.cpp), included by
-   dungeon_tests.cpp: the class owns its seven keys, C and V once learned;
-   Twin Strike cuts twice in front and builds a point; Poisoned Shiv hits
-   and poisons for the thrower; Shadowstep lands behind the foe and makes
+   dungeon_tests.cpp: the class owns its five keys, V once learned, and X
+   and C do nothing; Twin Strike cuts twice in front, builds a point and
+   poisons for the Shadowblade; Shadowstep lands behind the foe and makes
    the next strike critical; Fan of Knives winds up, cuts every foe near
    and builds a point each; Eviscerate spends the points for damage by
-   the point and refuses to cast with none; Smoke Bomb wipes the party's
-   threat in it (not the tank's) and cuts what they take; Shadow Dance
-   echoes strikes and hurries Shadowstep; the talents; and points fading
-   out of a fight. */
+   the point and refuses to cast with none; Shadow Dance echoes strikes
+   and hurries Shadowstep; the talents; and points fading out of a
+   fight. */
 
 // NOTE(zoubir): a Shadowblade in slot 0 aiming along +X
 internal player_slot *
@@ -43,14 +42,14 @@ TestShadowbladeOwnsItsKeys()
     player_slot *Slot = ReadyShadowblade(&Crypt);
     Check(RoleHasKit(PlayerRole_Shadowblade));
     u32 Allowed = RunAllowedButtons(AppState, Slot, 0);
-    u32 Main = PlayerButton_Launch | PlayerButton_Push | PlayerButton_Shockwave |
-        PlayerButton_Cast | PlayerButton_Attack;
+    u32 Main = PlayerButton_Launch | PlayerButton_Push | PlayerButton_Shockwave | PlayerButton_Attack;
     Check((Allowed & Main) == Main);
-    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Kunai)));
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_SmokeBomb] = 1;
+    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Kunai | PlayerButton_Cast)));
+    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_Envenom] = 2;
     Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_ShadowDance] = 1;
     Allowed = RunAllowedButtons(AppState, Slot, 0);
-    Check((Allowed & (PlayerButton_Slam | PlayerButton_Kunai)) == (PlayerButton_Slam | PlayerButton_Kunai));
+    Check(Allowed & PlayerButton_Kunai);
+    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Cast)));
     DestroyCryptWorld(&Crypt);
 }
 
@@ -83,29 +82,24 @@ TestTwinStrike()
     DestroyCryptWorld(&Crypt);
 }
 
-// NOTE(zoubir): the shiv hits a foe across the room and poisons it; the
-// poison counts as the Shadowblade's; with no foe in reach, nothing
+// NOTE(zoubir): Twin Strike poisons what it cuts, as the Shadowblade's
+// poison, which bites on after the cuts and runs out
 internal void
-TestPoisonedShiv()
+TestTwinStrikePoisons()
 {
     crypt_world Crypt = CreateCryptWorld(1);
     app_state *AppState = Crypt.AppState;
-    player_slot *Slot = ReadyShadowblade(&Crypt);
-    Slot->Entity->Aim = V2(0.f, 1.f);
-    Slot->Entity->AimReach = 0.9f;
-    PressOnce(&Crypt, 0, PlayerButton_Cast);
-    Check(Slot->RoleCooldowns[5] == 0.f && Slot->ClassMeter == 0);
-    world_entity *Foe = StrikerDummy(&Crypt, V3(300.f, 0.f, 0.f));
-    PressAt(&Crypt, 0, PlayerButton_Cast, Foe);
-    float Hit = 2000.f - Foe->Hp;
-    Check(Hit > 0.f);
+    ReadyShadowblade(&Crypt);
+    world_entity *Foe = StrikerDummy(&Crypt, V3(45.f, 0.f, 0.f));
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
     Check(HasStatus(Foe, StatusEffect_Poisoned));
-    Check(Slot->ClassMeter == 1 && Slot->RoleCooldowns[5] > 0.f);
+    TickHolding(&Crypt, Foe, 10);
+    float Cuts = 2000.f - Foe->Hp;
     TickHolding(&Crypt, Foe, 120);
-    Check(2000.f - Foe->Hp > Hit + 4.f);
+    Check(2000.f - Foe->Hp > Cuts + 4.f);
     shadowblade_poison *Poison = &AppState->Dungeon->Shadowblade.Poisons[0];
-    Check(Poison->Seconds > 0.f && Poison->PerSecond == SHIV_POISON_PER_SECOND);
-    TickHolding(&Crypt, Foe, (u32)(60.f * SHIV_POISON_SECONDS));
+    Check(Poison->Seconds > 0.f && Poison->PerSecond == BLADE_POISON_PER_SECOND && Poison->By == 0);
+    TickHolding(&Crypt, Foe, (u32)(60.f * BLADE_POISON_SECONDS));
     Check(Poison->Seconds == 0.f);
     DestroyCryptWorld(&Crypt);
 }
@@ -219,49 +213,6 @@ TestEviscerate()
     DestroyCryptWorld(&Crypt);
 }
 
-// NOTE(zoubir): the cloud takes the threat off the Shadowblade, not the
-// tank, and the party in it takes less
-internal void
-TestSmokeBomb()
-{
-    crypt_world Crypt = CreateCryptWorld(2);
-    app_state *AppState = Crypt.AppState;
-    world *World = &AppState->World;
-    dungeon_run *Run = AppState->Dungeon;
-    player_slot *Slot = ReadyShadowblade(&Crypt);
-    player_slot *Tank = &AppState->Players[1];
-    SetPlayerRole(AppState, Tank, PlayerRole_Tank);
-    MovePlayerTo(AppState, World, &Crypt.Arena, Tank->Entity, Slot->Entity->Position + V3(0.f, 50.f, 0.f));
-    world_entity *Foe = StrikerDummy(&Crypt, V3(60.f, 0.f, 0.f));
-    AddThreat(&Run->Threat, World, Foe, 0, 500.f);
-    AddThreat(&Run->Threat, World, Foe, 1, 100.f);
-    float Plain = DungeonScaleDamage(AppState, Slot->Entity, Foe, 10.f);
-    PressOnce(&Crypt, 0, PlayerButton_Slam);
-    Check(Slot->RoleCooldowns[2] == 0.f);
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_SmokeBomb] = 1;
-    PressOnce(&Crypt, 0, PlayerButton_Slam);
-    Check(Slot->RoleCooldowns[2] > 0.f);
-    TickCrypt(&Crypt, 1);
-    threat_row *Row = FindThreatRow(&Run->Threat, World, Foe, false);
-    Check(Row && Row->Threat[0] == 0.f && Row->Threat[1] >= 100.f);
-    Check(PickThreatTarget(AppState, &Run->Threat, Foe) == Tank->Entity);
-    float Smoked = DungeonScaleDamage(AppState, Slot->Entity, Foe, 10.f);
-    Check(Smoked > 0.99f * (1.f - SMOKE_SHARE) * Plain && Smoked < 1.01f * (1.f - SMOKE_SHARE) * Plain);
-    // NOTE(zoubir): the second rank thickens it and slows foes in it
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_SmokeBomb] = 2;
-    Slot->RoleCooldowns[2] = 0.f;
-    PressOnce(&Crypt, 0, PlayerButton_Slam);
-    TickCrypt(&Crypt, 1);
-    Check(HasStatus(Foe, StatusEffect_Slowed));
-    float Thick = DungeonScaleDamage(AppState, Slot->Entity, Foe, 10.f);
-    Check(Thick < 0.99f * Smoked);
-    // NOTE(zoubir): it clears
-    TickCrypt(&Crypt, (u32)(60.f * (SMOKE_SECONDS + 0.5f)));
-    float After = DungeonScaleDamage(AppState, Slot->Entity, Foe, 10.f);
-    Check(After > 0.99f * Plain);
-    DestroyCryptWorld(&Crypt);
-}
-
 // NOTE(zoubir): Shadow Dance: half again on every strike, Shadowstep
 // back at once, and the flag clients read
 internal void
@@ -311,12 +262,19 @@ TestShadowbladeTalents()
     float Behind = ShadowbladeDealtScale(Slot, Foe);
     Check(Behind > Lethal * (1.f + OPPORTUNIST_SHARE) - 0.001f &&
           Behind < Lethal * (1.f + OPPORTUNIST_SHARE) + 0.001f);
-    // NOTE(zoubir): Venom: a stronger, longer poison
+    // NOTE(zoubir): Venom: a stronger, longer poison; Envenom stronger
+    // again by rank
     Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_Venom] = 1;
-    Check(CastShadowbladeKey(AppState, &AppState->World, &Crypt.Arena, Slot, Blade, 5));
+    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_Envenom] = 2;
+    Check(CastShadowbladeKey(AppState, &AppState->World, &Crypt.Arena, Slot, Blade, 6));
     shadowblade_poison *Poison = &AppState->Dungeon->Shadowblade.Poisons[0];
-    Check(Poison->Seconds == SHIV_POISON_SECONDS + VENOM_SECONDS);
-    Check(Poison->PerSecond == SHIV_POISON_PER_SECOND * (1.f + VENOM_SHARE));
+    Check(Poison->Seconds == BLADE_POISON_SECONDS + VENOM_SECONDS);
+    float Bite = BLADE_POISON_PER_SECOND * (1.f + VENOM_SHARE) * (1.f + 2.f * ENVENOM_SHARE);
+    Check(Poison->PerSecond > Bite - 0.001f && Poison->PerSecond < Bite + 0.001f);
+    // NOTE(zoubir): Envenom: Fan of Knives poisons too
+    world_entity *Side = StrikerDummy(&Crypt, V3(-60.f, 0.f, 0.f));
+    FinishShadowbladeCast(AppState, Slot, Blade, PlayerSpell_ShadowbladeA);
+    Check(HasStatus(Side, StatusEffect_Poisoned));
     // NOTE(zoubir): Relentless: a killing Eviscerate gives points back and
     // Shadowstep with them
     Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_Relentless] = 1;
@@ -355,11 +313,10 @@ RunShadowbladeTests()
 {
     TestShadowbladeOwnsItsKeys();
     TestTwinStrike();
-    TestPoisonedShiv();
+    TestTwinStrikePoisons();
     TestShadowstep();
     TestFanOfKnives();
     TestEviscerate();
-    TestSmokeBomb();
     TestShadowDance();
     TestShadowbladeTalents();
     TestComboPointsFade();

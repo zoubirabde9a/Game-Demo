@@ -98,14 +98,6 @@ DrawBerserkerBurst(render_context *RenderContext, app_state *AppState, role_burs
         {
             DrawCleaveBurst(RenderContext, AppState, Burst, Index, T, CameraOffset);
         } break;
-        case BerserkerBurst_AxeThrow:
-        {
-            DrawAxeThrowBurst(RenderContext, AppState, Burst, T, CameraOffset);
-        } break;
-        case BerserkerBurst_Bloodthirst:
-        {
-            DrawBloodthirstBurst(RenderContext, AppState, Burst, T, CameraOffset);
-        } break;
         case BerserkerBurst_Leap:
         {
             DrawLeapMark(RenderContext, Burst, T, GetFxClock(AppState), CameraOffset);

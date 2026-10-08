@@ -9,18 +9,19 @@
 
      right click  Cleave: a wide swing through every foe in front, each
                   swing the other way round from the one before.
-     X            Axe Throw: a hand axe at the foe aimed at; it lands after
-                  its flight, hurts and slows, and flies back.
      A            Leap: a high jump to the cursor; landing strikes and
                   stuns everything round the spot (berserker/leap.cpp).
      R            Whirlwind: costs Rage, then spins for its cast, hitting
                   everything round the Berserker WHIRLWIND_HITS times.
      W            Execute: needs Rage; the axe goes up for its wind-up,
                   then one chop spends all the Rage, the more the harder,
-                  twice as hard on a foe near death.
-     C            Bloodthirst (tree): a strike that heals for part of it.
+                  twice as hard on a foe near death; with Bloodthirst
+                  (tree) it heals for part of it.
      V            Berserk (tree): seconds of more damage, less taken, and
                   Rage that holds.
+
+   C and X do nothing for it (RoleDropsFireball), so it has five damage
+   keys, as the striker does.
 
    Online the clients see Rage and the flags (ClassFlags), the casts and
    the bursts, SimBurst_BerserkerFirst + berserker_burst; how they look is
@@ -72,11 +73,6 @@ CastBerserkerKey(app_state *AppState, world *World, memory_arena *Arena, player_
             }
         } break;
 
-        case 2:
-        {
-            return CastBloodthirst(AppState, Slot, Player);
-        } break;
-
         case 3:
         {
             Slot->Berserker.BerserkSeconds = BERSERK_SECONDS;
@@ -105,11 +101,6 @@ CastBerserkerKey(app_state *AppState, world *World, memory_arena *Arena, player_
             {
                 EmitSound(&AppState->Events, AssetType_SfxMeteorCast, Player->Position);
             }
-        } break;
-
-        case 5:
-        {
-            return ThrowAxe(AppState, Slot, Player);
         } break;
 
         case 6:
@@ -206,12 +197,10 @@ ApplyDeveloperBerserker(player_slot *Slot)
 }
 
 // NOTE(zoubir): once a tick, from UpdateRoleEffects: Rage, Berserk, the
-// axes in flight, the Whirlwind's spin and the Leaps, for every
-// Berserker
+// Whirlwind's spin and the Leaps, for every Berserker
 internal void
 UpdateBerserkerEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
 {
-    UpdateBerserkerAxes(AppState, Run, DeltaTime);
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];

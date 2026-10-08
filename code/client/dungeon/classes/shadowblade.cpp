@@ -6,7 +6,7 @@
    The look: a dagger in each hand held point down, a shadow smoking off
    the shoulders, and the combo points as gems over the head. The daggers
    follow the class's bursts: Twin Strike swings one hand then the other
-   across the cut, a Shiv throws from the front hand, Fan of Knives
+   across the cut, Fan of Knives
    crouches with the daggers crossed then flings both arms out, and
    Eviscerate draws both back then stabs in turn. A critical strike
    waiting lights the blades acid green; Shadow Dance puts a shadow beside
@@ -123,16 +123,6 @@ ShadowbladeHandsAt(app_state *AppState, player_slot *Slot, world_entity *Player,
             Result.Grip[Hand] = ShadowbladeLerp(Result.Grip[Hand], Grip, Stab);
             Result.Dir[Hand] = ShadowbladeNormal(ShadowbladeLerp(Result.Dir[Hand], Aim, Stab));
         }
-    }
-
-    // NOTE(zoubir): a Shiv leaves the front hand thrown out, its dagger
-    // gone until another fades in
-    float Shiv = ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Shiv) - Lag;
-    if (Shiv < 0.6f && Shiv >= 0.f)
-    {
-        float Throw = ShadowbladeHold(Shiv, 0.3f);
-        Result.Grip[0] = ShadowbladeLerp(Result.Grip[0], Body + (0.55f * W) * Aim + V2(0.f, -4.f), Throw);
-        Result.Shown[0] = Clamp01((Shiv - 0.3f) / 0.3f);
     }
     return Result;
 }
@@ -259,7 +249,7 @@ DrawShadowbladeLook(render_context *RenderContext, app_state *AppState, player_s
 }
 
 // NOTE(zoubir): every frame in a run, over the world: poison dripping off
-// the monsters a Shiv struck. Poisoned shows in every client's copy of
+// the monsters its daggers cut. Poisoned shows in every client's copy of
 // the monster, so the drips do too
 internal void
 DrawShadowbladeFx(render_context *RenderContext, app_state *AppState, v3 CameraOffset)

@@ -1,12 +1,10 @@
 /* Shadowblade bursts (classes/shadowblade.cpp): how each of the class's
    bursts plays out (ShadowbladeBurst_* in role_kits/shadowblade_defs.cpp,
    their seconds, shake and pose in shadowblade_bursts.inc), and the poison
-   dripping off a monster a Shiv struck.
+   dripping off a monster its daggers cut.
 
    - Twin Strike: two cuts drawn across each other in front, a moment
      apart, sparks where they cross.
-   - Shiv: a dagger spinning from the hand to the foe, then a splash of
-     green and violet poison.
    - Shadowstep: shadows pulled into the spot it lands on, afterimages
      back along the way it came.
    - Shadow Dance: a column of shadow rising round the player.
@@ -14,7 +12,6 @@
    - Eviscerate: a flurry of cuts over the foe, one a point spent, and a
      last cross, bigger the more points; when the foe got away, two
      faint cuts in the air.
-   - Smoke Bomb: a cloud that swells, churns for its life and thins out.
    - Empty: five empty sockets over the head, shaking, for a finisher
      pressed with no combo points. */
 
@@ -79,39 +76,6 @@ DrawTwinStrikeBurst(render_context *RenderContext, v2 Centre, float Angle, float
                          FxColor(Flash, SHADOWBLADE_PALE_RGB));
         }
     }
-}
-
-internal void
-DrawShivBurst(render_context *RenderContext, v2 From, v2 To, float Age)
-{
-    float Flight = 0.12f;
-    if (Age < Flight)
-    {
-        float T = Age / Flight;
-        v2 P = From + T * (To - From);
-        v2 Tail = From + Maximum(0.f, T - 0.5f) * (To - From);
-        DrawFxStroke(RenderContext, Tail, P, 0.f, 5.f, FxColor(0.f, SHADOWBLADE_ACID_RGB),
-                     FxColor(0.8f, SHADOWBLADE_ACID_RGB));
-        float Spin = 40.f * Age;
-        DrawShadowbladeDagger(RenderContext, P, V2(Cos(Spin), Sin(Spin)), 14.f, 0.6f, 1.f);
-        return;
-    }
-    float Hit = Age - Flight;
-    float Fade = 1.f - Clamp01(Hit / 0.45f);
-    v2 Way = ShadowbladeNormal(To - From);
-    DrawShaderQuad(RenderContext, Shader_Glow, To.X - 30.f, To.Y - 30.f, 60.f, 60.f,
-                   FxColor(0.8f * Fade * Fade, SHADOWBLADE_ACID_RGB), RenderBlend_Additive);
-    // NOTE(zoubir): the dagger stuck in, shuddering, then gone
-    if (Hit < 0.25f)
-    {
-        float Shudder = 0.15f * Sin(70.f * Hit) * (1.f - Hit / 0.25f);
-        DrawShadowbladeDagger(RenderContext, To - 12.f * Way, ShadowbladeRotate(Way, Shudder), 14.f,
-                              0.f, 1.f - Hit / 0.25f);
-    }
-    DrawShadowbladeSpray(RenderContext, To, Hit, 0.45f, 12, 150.f, 331, ATan2(-Way.Y, -Way.X) - 0.6f, 2.6f);
-    float Ring = 10.f + 40.f * ShadowbladeEase(Hit / 0.3f);
-    DrawArcBand(RenderContext, To + V2(0.f, 14.f), 0.f, 2.f * Pi32, Ring - 6.f, Ring,
-                FxColor(0.f, SHADOWBLADE_ACID_RGB), FxColor(0.7f * Fade, SHADOWBLADE_ACID_RGB));
 }
 
 internal void
@@ -276,43 +240,6 @@ DrawEviscerateBurst(render_context *RenderContext, v2 Centre, float Angle, float
 }
 
 internal void
-DrawSmokeBurst(render_context *RenderContext, v2 Centre, float Age, float Life)
-{
-    float Swell = ShadowbladeEase(Age / 0.45f);
-    float Thin = 1.f - ShadowbladeEase((Age - (Life - 0.9f)) / 0.9f);
-    float Radius = SMOKE_RADIUS * (0.3f + 0.7f * Swell);
-    // NOTE(zoubir): the ground it covers, so the party knows where to stand
-    DrawCastPreviewArea(RenderContext, Centre, SMOKE_RADIUS * Swell, 0.f, Pi32, 0.6f, 0.55f * Thin,
-                        SHADOWBLADE_RGB);
-    float Burst = 1.f - Clamp01(Age / 0.3f);
-    if (Burst > 0.f)
-    {
-        DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 70.f, Centre.Y - 70.f, 140.f, 100.f,
-                       FxColor(0.6f * Burst, SHADOWBLADE_PALE_RGB), RenderBlend_Additive);
-    }
-    // NOTE(zoubir): a haze over the whole cloud, under the puffs
-    DrawArcBand(RenderContext, Centre, 0.f, 2.f * Pi32, 0.f, Radius,
-                FxColor(0.42f * Thin, SHADOWBLADE_SMOKE_RGB), FxColor(0.12f * Thin, SHADOWBLADE_SMOKE_RGB),
-                RenderBlend_Alpha);
-    for(u32 Puff = 0; Puff < 40; Puff++)
-    {
-        float A = 2.f * Pi32 * BurstJitter(Puff, 371) + 0.25f * Age * (Puff % 2 ? 1.f : -1.f);
-        float Out = Radius * (0.15f + 0.85f * SquareRoot(BurstJitter(Puff, 372)));
-        float Bob = 6.f * Sin(1.3f * Age + 6.f * BurstJitter(Puff, 373));
-        v2 P = Centre + GroundCircle(A, Out) - V2(0.f, 18.f + 26.f * BurstJitter(Puff, 374) + Bob);
-        float Size = (28.f + 22.f * BurstJitter(Puff, 375)) * (0.6f + 0.4f * Swell);
-        DrawShadowbladePuff(RenderContext, P, Size, 0.6f * Thin);
-    }
-    for(u32 Mote = 0; Mote < 10; Mote++)
-    {
-        float Rise = DungeonFxFraction(0.4f * Age + BurstJitter(Mote, 376));
-        float A = 2.f * Pi32 * BurstJitter(Mote, 377);
-        v2 P = Centre + GroundCircle(A, Radius * 0.8f * BurstJitter(Mote, 378)) - V2(0.f, 70.f * Rise);
-        DrawFxDot(RenderContext, P, 2.5f, FxColor(0.8f * Thin * (1.f - Rise), SHADOWBLADE_RGB));
-    }
-}
-
-internal void
 DrawEmptyBurst(render_context *RenderContext, v2 Head, float Age)
 {
     float Fade = 1.f - ShadowbladeEase((Age - 0.35f) / 0.25f);
@@ -346,13 +273,6 @@ DrawShadowbladeBurst(render_context *RenderContext, app_state *AppState, role_bu
             DrawTwinStrikeBurst(RenderContext, Body, Burst->Angle, Age);
         } break;
 
-        case ShadowbladeBurst_Shiv:
-        {
-            v2 From = Caster ? RoleLookPoint(Caster, 0.45f, CameraOffset) :
-                Centre - 200.f * V2(Cos(Burst->Angle), Sin(Burst->Angle));
-            DrawShivBurst(RenderContext, From, Centre, Age);
-        } break;
-
         case ShadowbladeBurst_Step:
         {
             DrawStepBurst(RenderContext, Centre, Burst->Angle, Age, 0.9f * Width, Height);
@@ -379,11 +299,6 @@ DrawShadowbladeBurst(render_context *RenderContext, app_state *AppState, role_bu
             {
                 DrawEviscerateWhiff(RenderContext, Centre, Burst->Angle, Age);
             }
-        } break;
-
-        case ShadowbladeBurst_Smoke:
-        {
-            DrawSmokeBurst(RenderContext, Centre, Age, RoleBurstLife(Burst->Kind));
         } break;
 
         case ShadowbladeBurst_Empty:

@@ -114,6 +114,22 @@ MarkRangerFoe(app_state *AppState, player_slot *Slot, world_entity *Foe, v2 From
               ATan2(Foe->Position.Y - From.Y, Foe->Position.X - From.X));
 }
 
+// NOTE(zoubir): Quick Shot's mark: on Foe, fresh, when it is not there
+// yet; renewed without telling clients again when it is (the mark is
+// sent again every RANGER_KEEP_SECONDS anyway)
+internal void
+KeepRangerMarkOn(app_state *AppState, player_slot *Slot, world_entity *Foe, v2 From)
+{
+    if (RangerMarkedFoe(AppState, Slot) == Foe)
+    {
+        Slot->Ranger.MarkSeconds = MARK_SECONDS;
+    }
+    else
+    {
+        MarkRangerFoe(AppState, Slot, Foe, From);
+    }
+}
+
 // NOTE(zoubir): an arrow of Shot from player By at Foe, landing Delay
 // from now; dropped when every arrow is in flight
 internal void

@@ -2,19 +2,23 @@
    Numbers, talents and the spell table are role_kits/ranger_defs.cpp; its
    state is role_kits/ranger.h.
 
-   X  Quick Shot: an arrow at the foe aimed at, the filler.
+   X  Quick Shot: an arrow at the foe aimed at, the filler; it puts
+      Hunter's Mark on that foe: the foe takes MARK_SHARE more from the
+      Ranger for MARK_SECONDS, and hits on it build Focus
+      (ranger/shots.cpp).
    A  Volley: arrows rain on the circle at the cursor (ranger/ground.cpp).
    R  Piercing Shot: a one-second draw (PlayerSpell_RangerA), then a heavy
       arrow through every foe in a long line; it spends all the Focus
       for more damage, and with Deadeye a full Focus crits.
-   W  Hunter's Mark: the foe aimed at takes MARK_SHARE more from the
-      Ranger for MARK_SECONDS; hits on it build Focus (ranger/shots.cpp).
    C  Disengage (tree): a leap back that leaves a snare trap.
    V  Rapid Fire (tree): a two-second channel (PlayerSpell_RangerB) that
       looses RAPID_FIRE_ARROWS arrows at a foe while the Ranger walks
       slowly.
 
-   The rotation: keep the mark on the boss, Quick Shot it to fill Focus,
+   W does nothing for it, so with the tree it has five damage keys, as
+   the striker does.
+
+   The rotation: Quick Shot the boss to mark it and fill Focus,
    spend Focus on a Piercing Shot lined up through the pack, Volley the
    pack. Every hit lands when its arrow arrives, and clients fly the
    arrows from the bursts (client/dungeon/classes/ranger.cpp). Focus goes
@@ -41,7 +45,6 @@ enum ranger_shot
     RangerShot_None,
     RangerShot_Quick,
     RangerShot_Rapid,
-    RangerShot_Mark,
     RangerShot_Volley,
     RangerShot_Pierce,
     RangerShot_Trap,
@@ -137,23 +140,13 @@ CastRangerKey(app_state *AppState, world *World, memory_arena *Arena, player_slo
             Slot->Ranger.RapidSerial = Foe ? Foe->MonsterSerial : 0;
         } break;
 
-        case 4:
-        {
-            world_entity *Foe = RangerTarget(AppState, Slot, Player, MARK_RANGE);
-            if (!Foe)
-            {
-                return false;
-            }
-            MarkRangerFoe(AppState, Slot, Foe, Player->Position.XY);
-            v2 Offset = Foe->Position.XY - Player->Position.XY;
-            LooseRangerArrow(AppState, Player->PlayerIndex, Foe, RangerShot_Mark, MARK_DAMAGE,
-                             Length(Offset) / RANGER_ARROW_SPEED, NormalizeOr(Offset, V2(1.f, 0.f)));
-            EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
-        } break;
-
         case 5:
         {
             world_entity *Foe = RangerTarget(AppState, Slot, Player, QUICK_SHOT_RANGE);
+            if (Foe)
+            {
+                KeepRangerMarkOn(AppState, Slot, Foe, Player->Position.XY);
+            }
             ShootRangerArrow(AppState, Player, Foe, RangerShot_Quick, QUICK_SHOT_DAMAGE,
                              RangerArrow_Quick);
             EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);

@@ -3,9 +3,9 @@
    movement and *Pick becomes the unit a spell goes at.
 
    A Ranger bot keeps its distance like every ranged bot (BotThink holds
-   it BOT_STRIKER_RANGE off its target). It keeps Hunter's Mark on the
-   boss when there is one in the fight, else on what it fights; fires
-   Quick Shot on cooldown; rains Volley on a pack or on the boss; looses
+   it BOT_STRIKER_RANGE off its target). It fires Quick Shot on cooldown
+   at the boss when there is one in the fight, else at what it fights,
+   which keeps Hunter's Mark there; rains Volley on a pack or on the boss; looses
    Piercing Shot when two foes stand in its line or its Focus is near full; channels Rapid
    Fire on a big foe; and leaps away with Disengage when a foe gets close.
    It lets the tank start every fight, leaves a boss to the tank for the
@@ -172,14 +172,8 @@ BotRangerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_
     {
         return NetButton_Slam;
     }
-    world_entity *MarkOn = (Boss && Length(Boss->Position.XY - Self->Position.XY) < 0.9f * MARK_RANGE) ?
+    world_entity *MarkOn = (Boss && Length(Boss->Position.XY - Self->Position.XY) < QUICK_SHOT_RANGE) ?
         Boss : Target;
-    if (Ready[4] && !(Hold && MarkOn == Boss) && !IsRangerMarked(AppState, Slot, MarkOn) &&
-        Length(MarkOn->Position.XY - Self->Position.XY) < 0.9f * MARK_RANGE)
-    {
-        *Pick = (u16)(MarkOn->ID + 1);
-        return NetButton_Shockwave;
-    }
     // NOTE(zoubir): close in: leap away, leaving the snare in its path
     if (CanLeap && Distance < 90.f && BotRandom(Bot) % 6 == 0)
     {
@@ -210,9 +204,9 @@ BotRangerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_
     }
     else if (Ready[5] && Distance < QUICK_SHOT_RANGE)
     {
-        // NOTE(zoubir): Quick Shot at the marked foe when it is in reach,
-        // to build Focus
-        if (!Hold && IsRangerMarked(AppState, Slot, MarkOn) &&
+        // NOTE(zoubir): Quick Shot at the foe to keep marked when it is
+        // in reach, to build Focus on it
+        if (!(Hold && MarkOn == Boss) &&
             Length(MarkOn->Position.XY - Self->Position.XY) < QUICK_SHOT_RANGE)
         {
             *Pick = (u16)(MarkOn->ID + 1);
