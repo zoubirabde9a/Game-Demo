@@ -181,4 +181,6 @@ global_variable talent_icon_painter **RoleTalentIconPainters[PlayerRole_Count] =
     RangerTalentIconPainters, BerserkerTalentIconPainters, ShadowbladeTalentIconPainters,
     StormcallerTalentIconPainters,
     DuelistTalentIconPainters,
+    FrostMageTalentIconPainters,
+    DruidTalentIconPainters,
 };

@@ -8,3 +8,5 @@
 #include "role_kits/shadowblade.h"
 #include "role_kits/stormcaller.h"
 #include "role_kits/duelist.h"
+#include "role_kits/frostmage.h"
+#include "role_kits/druid.h"

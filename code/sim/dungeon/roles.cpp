@@ -23,6 +23,8 @@ enum player_role
     PlayerRole_Shadowblade,
     PlayerRole_Stormcaller,
     PlayerRole_Duelist,
+    PlayerRole_FrostMage,
+    PlayerRole_Druid,
     PlayerRole_Count
 };
 
@@ -116,6 +118,12 @@ global_variable role_def RoleTable[PlayerRole_Count] =
     {"Duelist",      125.f, 0.85f, 1.35f, 1.f, "Melee",
      "A rapier: weave your strikes to build Tempo, parry to keep it",
      RoleKind_Melee, {240, 110, 170}},
+    {"Frost Mage",   110.f, 1.0f,  1.35f, 0.9f, "Ranged",
+     "Ice that slows and freezes; frozen foes shatter under your spells",
+     RoleKind_Ranged, {150, 215, 255}},
+    {"Druid",        115.f, 1.0f,  0.95f, 1.f, "Healer",
+     "Half healer, half caster: Wrath and Starfire grow Bloom, Bloom makes heals bigger",
+     RoleKind_Healer, {165, 200, 60}},
 };
 
 inline role_def *

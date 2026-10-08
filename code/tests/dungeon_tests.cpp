@@ -527,6 +527,8 @@ TestNoFriendlyFireInADungeon()
 #include "shadowblade_tests.cpp"
 #include "stormcaller_tests.cpp"
 #include "duelist_tests.cpp"
+#include "frostmage_tests.cpp"
+#include "druid_tests.cpp"
 #include "fight_end_tests.cpp"
 #include "depths_tests.cpp"
 #include "vault_tests.cpp"
@@ -548,6 +550,8 @@ RunDungeonTests()
     GROUP(RunShadowbladeTests());
     GROUP(RunStormcallerTests());
     GROUP(RunDuelistTests());
+    GROUP(RunFrostMageTests());
+    GROUP(RunDruidTests());
     GROUP(RunFightEndTests());
     GROUP(RunDepthsTests());
     GROUP(RunVaultTests());

@@ -7,6 +7,8 @@
 #include "shadowblade_hud.cpp"
 #include "stormcaller_hud.cpp"
 #include "duelist_hud.cpp"
+#include "frostmage_hud.cpp"
+#include "druid_hud.cpp"
 
 internal void
 DrawClassEmblem(render_context *RenderContext, u32 Role, v2 C, float S, u32 Fill, u32 Light)
@@ -18,6 +20,8 @@ DrawClassEmblem(render_context *RenderContext, u32 Role, v2 C, float S, u32 Fill
         case PlayerRole_Shadowblade: DrawShadowbladeEmblem(RenderContext, C, S, Fill, Light); break;
         case PlayerRole_Stormcaller: DrawStormcallerEmblem(RenderContext, C, S, Fill, Light); break;
         case PlayerRole_Duelist: DrawDuelistEmblem(RenderContext, C, S, Fill, Light); break;
+        case PlayerRole_FrostMage: DrawFrostMageEmblem(RenderContext, C, S, Fill, Light); break;
+        case PlayerRole_Druid: DrawDruidEmblem(RenderContext, C, S, Fill, Light); break;
     }
 }
 
@@ -37,5 +41,7 @@ DrawClassHud(render_context *RenderContext, app_state *AppState, u32 WindowWidth
         case PlayerRole_Shadowblade: DrawShadowbladeHud(RenderContext, AppState, Slot, WindowWidth, WindowHeight); break;
         case PlayerRole_Stormcaller: DrawStormcallerHud(RenderContext, AppState, Slot, WindowWidth, WindowHeight); break;
         case PlayerRole_Duelist: DrawDuelistHud(RenderContext, AppState, Slot, WindowWidth, WindowHeight); break;
+        case PlayerRole_FrostMage: DrawFrostMageHud(RenderContext, AppState, Slot, WindowWidth, WindowHeight); break;
+        case PlayerRole_Druid: DrawDruidHud(RenderContext, AppState, Slot, WindowWidth, WindowHeight); break;
     }
 }

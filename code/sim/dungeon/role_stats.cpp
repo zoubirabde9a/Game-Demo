@@ -29,6 +29,8 @@ global_variable u8 *RoleTalentStats[PlayerRole_Count] =
     RangerTalentStats, BerserkerTalentStats, ShadowbladeTalentStats,
     StormcallerTalentStats,
     DuelistTalentStats,
+    FrostMageTalentStats,
+    DruidTalentStats,
 };
 
 // NOTE(zoubir): the share of Stat that Slot's ranks add, 0 for none

@@ -7,4 +7,6 @@
 #include "shadowblade_icons.cpp"
 #include "stormcaller_icons.cpp"
 #include "duelist_icons.cpp"
+#include "frostmage_icons.cpp"
+#include "druid_icons.cpp"
 #include "healer_icons.cpp"

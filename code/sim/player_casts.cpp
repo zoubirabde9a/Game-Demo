@@ -44,6 +44,10 @@ enum player_spell
     PlayerSpell_StormcallerB,
     PlayerSpell_DuelistA,
     PlayerSpell_DuelistB,
+    PlayerSpell_FrostMageA,
+    PlayerSpell_FrostMageB,
+    PlayerSpell_DruidA,
+    PlayerSpell_DruidB,
     // NOTE(zoubir): the rewinds stay last, in rewind_kind order
     // (time_rewind/rewind_abilities.cpp RewindSpell)
     PlayerSpell_RewindSelf,
@@ -99,6 +103,10 @@ global_variable player_spell_cast PlayerSpells[PlayerSpell_Count] =
     STORMCALLER_CAST_B,
     DUELIST_CAST_A,
     DUELIST_CAST_B,
+    FROSTMAGE_CAST_A,
+    FROSTMAGE_CAST_B,
+    DRUID_CAST_A,
+    DRUID_CAST_B,
     // NOTE(zoubir): the time rewinds (time_rewind/rewind_abilities.cpp):
     // the hold and the playback follow the cast
     {0.5f, 0.7f, false, "Rewind"},

@@ -158,6 +158,8 @@ struct dungeon_run
     shadowblade_run Shadowblade;
     stormcaller_run Stormcaller;
     duelist_run Duelist;
+    frostmage_run FrostMage;
+    druid_run Druid;
 };
 
 #include "gate_crossing.cpp"

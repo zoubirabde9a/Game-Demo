@@ -60,3 +60,5 @@
     shadowblade_slot Shadowblade;
     stormcaller_slot Stormcaller;
     duelist_slot Duelist;
+    frostmage_slot FrostMage;
+    druid_slot Druid;

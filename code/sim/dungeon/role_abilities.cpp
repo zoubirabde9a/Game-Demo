@@ -141,6 +141,8 @@ global_variable role_spell *RoleSpells[PlayerRole_Count] =
     StrikerSpells, TankSpells, HealerSpells, RangerSpells, BerserkerSpells, ShadowbladeSpells,
     StormcallerSpells,
     DuelistSpells,
+    FrostMageSpells,
+    DruidSpells,
 };
 
 // NOTE(zoubir): whether a class has a kit yet, a spell on its first

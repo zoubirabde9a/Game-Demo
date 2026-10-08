@@ -95,7 +95,9 @@ enum sim_burst
     SimBurst_ShadowbladeFirst = SimBurst_BerserkerFirst + CLASS_BURSTS,
     SimBurst_StormcallerFirst = SimBurst_ShadowbladeFirst + CLASS_BURSTS,
     SimBurst_DuelistFirst = SimBurst_StormcallerFirst + CLASS_BURSTS,
-    SimBurst_Count = SimBurst_DuelistFirst + CLASS_BURSTS
+    SimBurst_FrostMageFirst = SimBurst_DuelistFirst + CLASS_BURSTS,
+    SimBurst_DruidFirst = SimBurst_FrostMageFirst + CLASS_BURSTS,
+    SimBurst_Count = SimBurst_DruidFirst + CLASS_BURSTS
 };
 
 // NOTE(zoubir): burst Index of a class's range
