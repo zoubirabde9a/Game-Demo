@@ -402,7 +402,7 @@ DrawAllyTargetMark(render_context *RenderContext, app_state *AppState, v3 Camera
     party_pick *Pick = GetPartyPick(AppState);
     world_entity *Ally = PartyMember(AppState, Pick->Target);
     bool32 Chosen = Ally != 0;
-    if (!Ally && AppState->Players[AppState->LocalPlayerIndex].Role == PlayerRole_Healer)
+    if (!Ally && RoleKindOf(AppState->Players[AppState->LocalPlayerIndex].Role) == RoleKind_Healer)
     {
         Ally = MostHurtAlly(AppState, Local->Position.XY, MENDING_BOLT_RANGE);
     }
