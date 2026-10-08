@@ -21,12 +21,12 @@ internal void
 DefineMonster_Forgemaster(monster_def *Def)
 {
     Def->Name = "Forgemaster Kragg";
-    Def->MaxHp = 900.f;
+    Def->MaxHp = 800.f;
     Def->Acceleration = 25000.f;
     Def->AggroRange = 640.f;
     Def->StopRange = 52.f;
     Def->AttackRange = 66.f;
-    Def->AttackDamage = 16.f;
+    Def->AttackDamage = 18.f;
     Def->AttackInterval = 0.9f;
     Def->SpawnWeight = 0;
     Def->MaxAlive = 1;
@@ -58,7 +58,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     Anvil->Windup = 0.75f;
     Anvil->Active = 0.3f;
     Anvil->Recover = 0.6f;
-    Anvil->Damage = 19.f;
+    Anvil->Damage = 23.f;
     Anvil->Radius = 115.f;
     Anvil->Knockback = 650.f;
     Anvil->Status = StatusEffect_Burning;
@@ -94,7 +94,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     Rush->Windup = 0.6f;
     Rush->Active = 0.7f;
     Rush->Recover = 0.7f;
-    Rush->Damage = 18.f;
+    Rush->Damage = 22.f;
     Rush->Radius = 46.f;
     Rush->Speed = 640.f;
     Rush->Knockback = 700.f;
