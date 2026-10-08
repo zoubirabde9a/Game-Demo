@@ -75,11 +75,11 @@ DefineMonster_Forgemaster(monster_def *Def)
                                               "Hammer Hurl");
     Hurl->MinRange = 120.f;
     Hurl->MaxRange = 480.f;
-    Hurl->Cooldown = 4.f;
+    Hurl->Cooldown = 5.f;
     Hurl->Windup = 1.f;
     Hurl->Active = 0.3f;
     Hurl->Recover = 0.5f;
-    Hurl->Damage = 14.f;
+    Hurl->Damage = 11.f;
     Hurl->Radius = 55.f;
     Hurl->Knockback = 250.f;
     Hurl->Count = 3;

@@ -8,8 +8,9 @@
             the ring locks a moment before she bursts out under it.
             Magma Spit throws a fan of four burning globs. Tail Lash
             sweeps everything near her toward the lava round the rim.
-   Enraged (below 45% health): faster, white-hot, and Molten Rain: three
-            spots of falling magma that set the struck burning.
+            Molten Rain drops three spots of falling magma that set the
+            struck burning.
+   Enraged (below 45% health): faster and white-hot.
    The dungeon adds two Dune Lurkers at 66% and 33% that crawl back into
    her and heal her if they live too long (sim/dungeon/boss_scripts.cpp). */
 #if defined(MONSTER_NAME_PASS)
@@ -20,12 +21,12 @@ internal void
 DefineMonster_CinderWyrm(monster_def *Def)
 {
     Def->Name = "Sskarra the Cinder Wyrm";
-    Def->MaxHp = 1150.f;
+    Def->MaxHp = 1350.f;
     Def->Acceleration = 26000.f;
     Def->AggroRange = 700.f;
     Def->StopRange = 50.f;
     Def->AttackRange = 64.f;
-    Def->AttackDamage = 17.f;
+    Def->AttackDamage = 19.f;
     Def->AttackInterval = 0.85f;
     Def->SpawnWeight = 0;
     Def->MaxAlive = 1;
@@ -41,7 +42,7 @@ DefineMonster_CinderWyrm(monster_def *Def)
     monster_ability *Rain = AddMonsterAbility(Def, MonsterAbility_Mortar,
                                               "Molten Rain");
     Rain->MaxRange = 520.f;
-    Rain->Cooldown = 5.f;
+    Rain->Cooldown = 6.f;
     Rain->Windup = 1.1f;
     Rain->Active = 0.3f;
     Rain->Recover = 0.5f;
@@ -52,7 +53,6 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Rain->Spread = 160.f;
     Rain->Status = StatusEffect_Burning;
     Rain->StatusSeconds = 2.f;
-    Rain->PhaseMask = PHASE_ENRAGED;
 
     // NOTE(zoubir): her answer to a party that stands round her: a
     // sweep that throws them toward the lava at the rim
@@ -63,7 +63,7 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Lash->Windup = 0.9f;
     Lash->Active = 0.3f;
     Lash->Recover = 0.5f;
-    Lash->Damage = 22.f;
+    Lash->Damage = 26.f;
     Lash->Radius = 105.f;
     Lash->Knockback = 750.f;
 
@@ -75,7 +75,7 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Dive->Windup = 0.7f;
     Dive->Active = 2.f;
     Dive->Recover = 0.9f;
-    Dive->Damage = 26.f;
+    Dive->Damage = 30.f;
     Dive->Radius = 72.f;
     Dive->Knockback = 600.f;
     Dive->Status = StatusEffect_Burning;

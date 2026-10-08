@@ -36,12 +36,12 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 | Boss | Health | Clock for three players |
 |---|---|---|
 | Forgemaster Kragg | 900 | 2:10 |
-| Sskarra the Cinder Wyrm | 1150 | 1:50 |
+| Sskarra the Cinder Wyrm | 1350 | 1:50 |
 | Vol'karr the Ember Tyrant | 2150 | 2:50 |
 
 **Forgemaster Kragg**, a squat giant of riveted iron over a molten core, a forge hammer as long as he is tall.
 - Anvil Drop: a wide slam (115) that burns and leaves embers on the floor.
-- Hammer Hurl: three white-hot ingots lobbed at players 120 to 480 away; the struck burn. The back line has to keep moving.
+- Hammer Hurl: three white-hot ingots (11 each, every 5 s) lobbed at players 120 to 480 away; the struck burn. The back line has to keep moving.
 - Bellows Rush: a charge along a locked line at someone far off.
 - Stoke the Forge (below 50%): two Cinder Imps, three at most.
 - At 70% and 35% an Anvil Guard steps off the wall: an armoured elite Warden. Its shell blocks hits from the front, so the party has to flank it. Alive after 20 s it walks back into Kragg and heals him 8%.
@@ -50,7 +50,7 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 - Magma Dive: burrows and tunnels after a player 110 to 560 away; the ring locks before she bursts out (72 across, burning).
 - Magma Spit: a fan of four burning globs.
 - Tail Lash: a sweep round her (105) with a hard shove toward the lava at the rim.
-- Molten Rain (below 45%): three spots of falling magma that set the struck burning.
+- Molten Rain: three spots of falling magma that set the struck burning, from the start of the fight.
 - At 66% two Dune Lurkers burst out of the floor, at 33% two frenzied ones. Alive after 16 s each crawls back into her and heals her 6%.
 
 **Vol'karr the Ember Tyrant**, a horned demon in charred plate, black wings, a mane of flame and a red-hot cleaver.
@@ -76,6 +76,8 @@ Vol'karr was then made quicker and lighter: 2150 health instead of 2500, Cleave 
 A full run over four seeds (`dungeon_balance 90 3 2 4`, the bots levelling through the crypt into the depths) shows how far apart the two levels now are. In the crypt the bots beat all three bosses on the first try every time, without a death, and wiped only at the Ashen Causeway (three times over four seeds). In the depths they wiped on Kragg on two seeds (up to three times), on Sskarra on three (up to twice), on the bridge on one (five times) and on Vol'karr on three (up to ten times on one seed). Vol'karr and the bridge each still have a seed where the bots are stuck for a long time; that spread is what to tune next, not the average.
 
 Part of Vol'karr's spread was the probe. Bots that wiped in his hall waited by the Ashfall Bridge, walked into its lava, and were put back in his hall at a tenth to two thirds of their health and burning, so the next try ended within ten seconds at 96% of his health. The probe now rests them to full and puts the fire out before walking them back in. With that, over eight seeds started in his hall, he wipes the bots on five, at most four times, and dies in 72 to 108 s.
+
+Measured one boss at a time with rested retries (`PROBE_MAP=depths dungeon_balance 8 3 <room> 8`), Kragg was the hardest boss of the three (wipes on seven seeds of eight) and Sskarra never wiped the bots. Hammer Hurl now comes every 5 s for 11; Sskarra has 1350 health, Molten Rain from the start, and her bite, Tail Lash and Magma Dive hit for 19, 26 and 30. Over eight seeds Kragg now wipes the bots on three (at most twice), Sskarra on one (twice) with one to three deaths on most others, and Vol'karr on five (at most four times).
 
 ## Online
 
