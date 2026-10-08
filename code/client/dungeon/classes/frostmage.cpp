@@ -93,6 +93,20 @@ DrawFrostMageLook(render_context *RenderContext, app_state *AppState, player_slo
 {
     u32 SlotIndex = Player->PlayerIndex;
 #if APP_DEV
+    // NOTE(zoubir): developer builds, offline: GAME_FROSTMAGE_TALENTS=
+    // "221111" gives the local mage those ranks, slot by slot, so a
+    // scripted screenshot can show the tree's spells
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    char *Ranks = getenv("GAME_FROSTMAGE_TALENTS");
+#pragma warning(pop)
+    if (Ranks && SlotIndex == AppState->LocalPlayerIndex && !IsOnline(AppState->Online))
+    {
+        for(u32 Talent = 0; Talent < ROLE_TALENTS && Ranks[Talent] >= '0' && Ranks[Talent] <= '9'; Talent++)
+        {
+            Slot->Ranks[Talent_RoleFirst + Talent] = (u8)(Ranks[Talent] - '0');
+        }
+    }
     // NOTE(zoubir): developer builds, offline: GAME_FROSTMAGE_ICICLES=5
     // holds the local mage's Icicles there until a Glacial Spike casts, to
     // show the look and the bar full in a scripted screenshot

@@ -124,7 +124,7 @@ Developer builds, offline:
 - `GAME_ROLE` names a class (`ranger`, `berserker`, `shadowblade`, `fire mage`, `frost mage`, `druid`) or a role (`tank`, `healer`, `ranged`, `melee`, and `damage` for the Fire Mage); `GAME_ROOM=N` starts in room N. Both work in `misc\screenshot.bat` shots.
 - `GAME_BOT_DAMAGE` makes every damage bot one class, to measure one class against another with the probe.
 - `GAME_RANGER_TALENTS`, `GAME_RANGER_FOCUS` and `GAME_BERSERKER=full` give the local player talents and a full resource for screenshots.
-- `GAME_FROSTMAGE_ICICLES=5` keeps the local Frost Mage's Icicles full, for screenshots.
+- `GAME_FROSTMAGE_ICICLES=5` keeps the local Frost Mage's Icicles full, and `GAME_FROSTMAGE_TALENTS` and `GAME_DRUID_TALENTS` ("221111", ranks slot by slot) give the local player talents, for screenshots of the tree spells.
 - `GAME_BOT_HEALER` makes every healer bot one class (`druid`), as `GAME_BOT_DAMAGE` does for damage bots.
 
 ## Adding a class
