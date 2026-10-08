@@ -4,7 +4,8 @@
    their talent; the Giant Fireball winds up, flies and blows up a pack,
    toward the spot it was cast at; a client predicting its own striker
    shows the Meteor and Giant Fireball wind-ups but fires neither; the tree's V spells (Combustion, Last Stand, Radiance) do what
-   they say; and the tank's and healer's W attacks land. */
+   they say; the tank's and healer's W attacks land; and their right-click
+   basic attacks, Shield Bash and Smite Bolt, hit a little. */
 
 // NOTE(zoubir): the run lets through the shared keys and the class's
 // learned spells, nothing else
@@ -264,6 +265,52 @@ TestAttackSpells()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the right click: Shield Bash strikes what is in front
+// of the tank, not behind, makes threat and ticks the bash count the
+// shield's punch is drawn from; Smite Bolt hurts a foe and heals the
+// most hurt ally
+internal void
+TestBasicAttacks()
+{
+    crypt_world Crypt = CreateCryptWorld(2);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    TickCrypt(&Crypt, 1);
+    player_slot *Tank = &AppState->Players[0];
+    player_slot *Healer = &AppState->Players[1];
+    SetPlayerRole(AppState, Tank, PlayerRole_Tank);
+    SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+    Check(RunAllowedButtons(AppState, Tank, 0) & PlayerButton_Attack);
+    Check(RunAllowedButtons(AppState, Healer, 0) & PlayerButton_Attack);
+    world_entity *Body = Tank->Entity;
+    world_entity *Mender = Healer->Entity;
+    MovePlayerTo(AppState, World, &Crypt.Arena, Mender, Body->Position + V3(0.f, 200.f, 0.f));
+    world_entity *Front = SpawnMonster(AppState, World, &Crypt.Arena,
+                                       Body->Position + V3(50.f, 0.f, 0.f), MonsterKind_Brute);
+    world_entity *Back = SpawnMonster(AppState, World, &Crypt.Arena,
+                                      Body->Position + V3(-50.f, 0.f, 0.f), MonsterKind_Brute);
+    Front->MaxHp = Front->Hp = 2000.f;
+    Back->MaxHp = Back->Hp = 2000.f;
+    Body->Aim = V2(1.f, 0.f);
+    u8 CountBefore = (u8)(Tank->ClassFlags & TANK_FLAG_BASH_COUNT);
+    CastTankKey(AppState, World, &Crypt.Arena, Tank, Body, 6);
+    Check(Front->Hp < 2000.f);
+    Check(Back->Hp == 2000.f);
+    threat_row *Row = FindThreatRow(&AppState->Dungeon->Threat, World, Front, false);
+    Check(Row && Row->Threat[0] > 0.f);
+    Check((u8)(Tank->ClassFlags & TANK_FLAG_BASH_COUNT) != CountBefore);
+    // NOTE(zoubir): a little damage, well under a damage class's
+    Check(2000.f - Front->Hp < 10.f);
+
+    float FrontBefore = Front->Hp;
+    Body->Hp = Body->MaxHp - 50.f;
+    Healer->Input.Target = (u32)(Front - World->Entities) + 1;
+    Check(CastHealerKey(AppState, Healer, Mender, 6));
+    Check(Front->Hp < FrontBefore);
+    Check(Body->Hp > Body->MaxHp - 50.f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunClassKitTests()
 {
@@ -273,4 +320,5 @@ RunClassKitTests()
     TestPredictedStrikerWindsUp();
     TestTreeFinishers();
     TestAttackSpells();
+    TestBasicAttacks();
 }

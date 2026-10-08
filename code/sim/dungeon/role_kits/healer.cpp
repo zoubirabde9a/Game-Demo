@@ -113,18 +113,21 @@ CastRadiance(app_state *AppState, world_entity *Player)
     EmitSound(&AppState->Events, AssetType_SfxHeal, Player->Position);
 }
 
-// NOTE(zoubir): returns whether the light found a foe to strike
+// NOTE(zoubir): a bolt of light at a foe in Range: Damage, and the most
+// hurt ally heals for what it dealt (Smite); Holy Fire and Smite Bolt.
+// Returns whether it found a foe to strike
 internal bool32
-CastHolyFire(app_state *AppState, player_slot *Slot, world_entity *Player)
+CastLightAtFoe(app_state *AppState, player_slot *Slot, world_entity *Player, float Range,
+               float Damage, float Shove)
 {
-    world_entity *Foe = AttackTarget(AppState, Slot, Player, HOLY_FIRE_RANGE);
+    world_entity *Foe = AttackTarget(AppState, Slot, Player, Range);
     if (!Foe)
     {
         return false;
     }
     u8 SlotIndex = (u8)Player->PlayerIndex;
     float Before = Foe->Hp;
-    hit Hit = {HOLY_FIRE_DAMAGE, HOLY_FIRE_SHOVE, 0.f, 0.f, 0.f, SimBurst_Impact};
+    hit Hit = {Damage, Shove, 0.f, 0.f, 0.f, SimBurst_Impact};
     EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Foe));
     ApplyHit(AppState, &AppState->World, Foe, &Hit,
              DirectionTo(Foe->Position.XY - Player->Position.XY), Player, SlotIndex);
@@ -186,7 +189,14 @@ CastHealerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 
 
         case 4:
         {
-            return CastHolyFire(AppState, Slot, Player);
+            return CastLightAtFoe(AppState, Slot, Player, HOLY_FIRE_RANGE, HOLY_FIRE_DAMAGE,
+                                  HOLY_FIRE_SHOVE);
+        } break;
+
+        case 6:
+        {
+            return CastLightAtFoe(AppState, Slot, Player, SMITE_BOLT_RANGE, SMITE_BOLT_DAMAGE,
+                                  SMITE_BOLT_SHOVE);
         } break;
     }
     return true;

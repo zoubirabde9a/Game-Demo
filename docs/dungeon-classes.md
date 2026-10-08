@@ -11,7 +11,9 @@ A player in a dungeon run picks a class. Each class plays one of four roles: tan
 | Berserker | Melee | 140 | 85% | 135% | 0.7x | Great axe; Rage (0 to 100) |
 | Shadowblade | Melee | 130 | 85% | 135% | 1x | Twin daggers; combo points (0 to 5) |
 
-The rows are `RoleTable` in `code/sim/dungeon/roles.cpp`. The melee classes have more health and take less because they stand where bosses hit; the Ranger and the Berserker make less threat so the boss stays on the tank.
+The rows are `RoleTable` in `code/sim/dungeon/roles.cpp`.
+
+The tank and the healer also have a weak right-click attack, Shield Bash and Smite Bolt, so neither stands idle between its spells. With them, in the balance probe's party of a tank, a healer and a Fire Mage, the tank deals about a fifth of the party's damage and the healer about a sixth (21% and 17%, from 18% and 13% before), about a third and a quarter of the Fire Mage's. The melee classes have more health and take less because they stand where bosses hit; the Ranger and the Berserker make less threat so the boss stays on the tank.
 
 ## Keys
 

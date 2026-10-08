@@ -146,7 +146,9 @@ CastShieldThrow(app_state *AppState, world *World, player_slot *Slot, world_enti
     u32 StruckCount = 0;
     v2 From = Player->Position.XY;
     float Damage = SHIELD_THROW_DAMAGE;
-    EmitBurst(&AppState->Events, SimBurst_Lunge, SlotIndex, ChestOf(Player),
+    // NOTE(zoubir): the Lunge's thrust with no player behind it, so it does
+    // not write the Lunge combo's name over the tank (Intercept does the same)
+    EmitBurst(&AppState->Events, SimBurst_Lunge, SIM_NOBODY, ChestOf(Player),
               ATan2(Foe->Position.Y - From.Y, Foe->Position.X - From.X));
     while(Foe && StruckCount < ArrayCount(Struck))
     {
@@ -162,6 +164,42 @@ CastShieldThrow(app_state *AppState, world *World, player_slot *Slot, world_enti
     }
     EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Player->Position);
     return true;
+}
+
+// NOTE(zoubir): Shield Bash (right click): every foe in front within the
+// shield's reach is struck and shoved, and makes threat; it swings even
+// at nothing, as a sword does
+internal void
+CastShieldBash(app_state *AppState, world *World, player_slot *Slot, world_entity *Player)
+{
+    u8 SlotIndex = (u8)Player->PlayerIndex;
+    v2 Aim = NormalizeOr(GetPlayerAim(Player), V2(1.f, 0.f));
+    u32 Room = RoomAtPosition(World, Player->Position.XY);
+    float Edge = Cos(SHIELD_BASH_HALF_ANGLE);
+    hit Hit = {SHIELD_BASH_DAMAGE, SHIELD_BASH_SHOVE, 0.f, 0.f, 0.f, SimBurst_Impact};
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Monster = &World->Entities[EntityIndex];
+        if (!Monster->IsPresent || Monster->Type != EntityType_Monster || Monster->Hp <= 0.f ||
+            RoomAtPosition(World, Monster->Position.XY) != Room)
+        {
+            continue;
+        }
+        v2 Offset = Monster->Position.XY - Player->Position.XY;
+        float Distance = Length(Offset);
+        float Reach = SHIELD_BASH_REACH + 0.5f * Monster->Dimensions.X;
+        if (Distance > Reach || (Distance > 1.f && DotProduct(Offset, Aim) < Edge * Distance))
+        {
+            continue;
+        }
+        AddThreat(&AppState->Dungeon->Threat, World, Monster, SlotIndex, SHIELD_BASH_THREAT);
+        ApplyHit(AppState, World, Monster, &Hit, NormalizeOr(Offset, Aim), Player, SlotIndex);
+    }
+    // NOTE(zoubir): the shield's punch is drawn from the bash count below
+    // (client/dungeon/role_looks.cpp), and each foe struck sparks
+    EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Player->Position);
+    u32 Count = (Slot->ClassFlags + 1) & TANK_FLAG_BASH_COUNT;
+    Slot->ClassFlags = (u8)((Slot->ClassFlags & ~TANK_FLAG_BASH_COUNT) | Count);
 }
 
 // NOTE(zoubir): returns whether the key cast (an intercept with nobody
@@ -202,7 +240,7 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
             }
             float Angle = ATan2(Ally->Position.Y - Player->Position.Y,
                                 Ally->Position.X - Player->Position.X);
-            EmitBurst(&AppState->Events, SimBurst_Lunge, SlotIndex, ChestOf(Player), Angle);
+            EmitBurst(&AppState->Events, SimBurst_Lunge, SIM_NOBODY, ChestOf(Player), Angle);
             v2 Toward = DirectionTo(Ally->Position.XY - Player->Position.XY);
             v3 Landing = Ally->Position;
             Landing.XY -= INTERCEPT_LANDING_GAP * Toward;
@@ -232,6 +270,11 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
         case 4:
         {
             return CastShieldThrow(AppState, World, Slot, Player);
+        } break;
+
+        case 6:
+        {
+            CastShieldBash(AppState, World, Slot, Player);
         } break;
     }
     return true;

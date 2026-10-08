@@ -252,11 +252,17 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
                 *Pick = (u16)(Ally->ID + 1);
             }
         }
-        // NOTE(zoubir): nobody low: Holy Fire on what it is fighting
+        // NOTE(zoubir): nobody low: Holy Fire on what it is fighting, and
+        // Smite Bolts in between
         if (Target && !Low && Distance < 0.9f * HOLY_FIRE_RANGE && Ready[4] &&
             !(Result & (NetButton_Launch | NetButton_Push)) && BotRandom(Bot) % 8 == 0)
         {
             Result |= NetButton_Shockwave;
+        }
+        else if (Target && !Low && Distance < 0.9f * SMITE_BOLT_RANGE && Ready[6] &&
+                 !(Result & (NetButton_Launch | NetButton_Push)) && BotRandom(Bot) % 4 == 0)
+        {
+            Result |= NetButton_Sword;
         }
         // NOTE(zoubir): the party hurt round it: Radiance, or a sanctuary
         // at its own feet

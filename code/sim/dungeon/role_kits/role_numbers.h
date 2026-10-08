@@ -63,6 +63,22 @@
 #define SHIELD_THROW_BOUNCE_SHARE 0.75f
 #define SHIELD_THROW_COOLDOWN 6.f
 
+// NOTE(zoubir): Shield Bash (right click): the shield driven into what
+// is in front, every SHIELD_BASH_COOLDOWN: SHIELD_BASH_DAMAGE before the
+// tank's 70% to each foe within SHIELD_BASH_REACH and SHIELD_BASH_HALF_ANGLE
+// of the aim, with threat on top. A little damage, so a tank is never
+// idle, never a damage role
+#define SHIELD_BASH_REACH 72.f
+#define SHIELD_BASH_HALF_ANGLE 0.9f
+#define SHIELD_BASH_DAMAGE 5.f
+#define SHIELD_BASH_SHOVE 70.f
+#define SHIELD_BASH_THREAT 12.f
+#define SHIELD_BASH_COOLDOWN 0.9f
+// NOTE(zoubir): the low two bits of a tank's ClassFlags count its bashes,
+// so every client sees one land and punches the shield forward
+// (client/dungeon/role_looks.cpp)
+#define TANK_FLAG_BASH_COUNT 0x3
+
 // NOTE(zoubir): Healer (role_kits/healer.cpp)
 #define SANCTUARY_RADIUS 110.f
 #define SANCTUARY_SECONDS 5.f
@@ -94,6 +110,14 @@
 #define HOLY_FIRE_DAMAGE 48.f
 #define HOLY_FIRE_SHOVE 60.f
 #define HOLY_FIRE_COOLDOWN 4.f
+
+// NOTE(zoubir): Smite Bolt (right click): a quick bolt of light at a foe,
+// SMITE_BOLT_DAMAGE before the healer's 50%, healing the most hurt ally
+// for it like Holy Fire (Smite); the healer's filler between heals
+#define SMITE_BOLT_RANGE 460.f
+#define SMITE_BOLT_DAMAGE 7.f
+#define SMITE_BOLT_SHOVE 20.f
+#define SMITE_BOLT_COOLDOWN 1.f
 
 // NOTE(zoubir): an attack spell (Shield Throw, Holy Fire) aimed at no
 // foe goes for the one nearest the cursor within this of it

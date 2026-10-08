@@ -35,6 +35,8 @@
         on the first monster it reaches.
      C  Detonate: blows up the Searing marks fireballs and meteors leave.
      V  Combustion: a few seconds of far more damage.
+   The tank and the healer also have a weak basic attack on the right
+   click, so neither is ever idle in a fight: Shield Bash and Smite Bolt.
    Every class's fireball (X) means something to it (OnRoleHit): the
    striker's leave Searing stacks, the tank's keep a Sunder going, the
    healer's heal the most hurt ally.
@@ -103,7 +105,10 @@ global_variable role_spell TankSpells[ROLE_KEYS] =
       RoleAim_None, 0.f, TankTalent_LastStand + 1},
      {"Shield Throw", SHIELD_THROW_COOLDOWN,
       "Shield Throw: hit a foe and bounce to two more, sundering each",
-      RoleAim_None, SHIELD_THROW_RANGE, 0}};
+      RoleAim_None, SHIELD_THROW_RANGE, 0},
+     {},
+     {"Shield Bash", SHIELD_BASH_COOLDOWN, "Shield Bash: strike what is in front with your shield",
+      RoleAim_None, 0.f, 0}};
 
 global_variable role_spell HealerSpells[ROLE_KEYS] =
 {
@@ -117,7 +122,11 @@ global_variable role_spell HealerSpells[ROLE_KEYS] =
       RoleAim_None, 0.f, HealerTalent_Radiance + 1},
      {"Holy Fire", HOLY_FIRE_COOLDOWN,
       "Holy Fire: strike a foe with light; the most hurt ally heals for it",
-      RoleAim_None, HOLY_FIRE_RANGE, 0}};
+      RoleAim_None, HOLY_FIRE_RANGE, 0},
+     {},
+     {"Smite Bolt", SMITE_BOLT_COOLDOWN,
+      "Smite Bolt: a quick bolt of light at a foe; the most hurt ally heals a little",
+      RoleAim_None, SMITE_BOLT_RANGE, 0}};
 
 // NOTE(zoubir): by player_role; the later classes' rows are their
 // role_kits/<class>_defs.cpp

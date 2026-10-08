@@ -301,6 +301,55 @@ PaintRoleHolyFireIcon(icon_canvas *Canvas)
     IconSparkle(Canvas, V2(0.74f, 0.26f), 0.07f, Solid(IconColor(255, 255, 255)));
 }
 
+// NOTE(zoubir): Shield Bash: the kite shield driven forward, its rim
+// leading, with a burst of force off its face
+internal void
+PaintRoleShieldBashIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.62f, 0.46f), 0.42f, IconColor(140, 180, 255, 110));
+    // NOTE(zoubir): the push behind it, three streaks
+    for(u32 Streak = 0; Streak < 3; Streak++)
+    {
+        float Y = 0.32f + 0.14f * (float)Streak;
+        IconCapsule(Canvas, V2(0.08f, Y + 0.04f), V2(0.34f, Y), 0.022f,
+                    Gradient(IconColor(170, 200, 255, 0), IconColor(200, 220, 255, 200),
+                             V2(0.08f, Y), V2(0.34f, Y)));
+    }
+    v2 Rim[5] = {V2(0.32f, 0.16f), V2(0.66f, 0.16f), V2(0.66f, 0.52f), V2(0.49f, 0.86f),
+                 V2(0.32f, 0.52f)};
+    IconPolygon(Canvas, Rim, 5, Gradient(IconColor(235, 238, 245), IconColor(110, 120, 140),
+                                         V2(0.36f, 0.18f), V2(0.6f, 0.8f)));
+    v2 Field[5] = {V2(0.37f, 0.22f), V2(0.61f, 0.22f), V2(0.61f, 0.5f), V2(0.49f, 0.76f),
+                   V2(0.37f, 0.5f)};
+    IconPolygon(Canvas, Field, 5, Gradient(IconColor(80, 120, 210), IconColor(30, 50, 110),
+                                           V2(0.42f, 0.24f), V2(0.56f, 0.7f)));
+    IconCircle(Canvas, V2(0.49f, 0.42f), 0.06f, Solid(IconColor(240, 205, 90)));
+    // NOTE(zoubir): the blow landing off its face
+    IconArc(Canvas, V2(0.66f, 0.44f), 0.16f, 0.024f, Solid(IconColor(255, 245, 220, 230)), -1.1f, 1.1f);
+    IconArc(Canvas, V2(0.66f, 0.44f), 0.24f, 0.016f, Solid(IconColor(220, 230, 255, 140)), -0.9f, 0.9f);
+    IconSparkle(Canvas, V2(0.86f, 0.3f), 0.06f, Solid(IconColor(255, 255, 255)));
+}
+
+// NOTE(zoubir): Smite Bolt: a small bolt of gold light flying, a pale
+// trail behind it
+internal void
+PaintRoleSmiteBoltIcon(icon_canvas *Canvas)
+{
+    v4 Gold = IconColor(255, 215, 110);
+    IconGlow(Canvas, V2(0.64f, 0.38f), 0.36f, IconColor(255, 200, 90, 130));
+    IconCapsule(Canvas, V2(0.14f, 0.84f), V2(0.6f, 0.42f), 0.05f,
+                Gradient(IconColor(255, 250, 225, 0), IconColor(255, 245, 210, 210),
+                         V2(0.14f, 0.84f), V2(0.6f, 0.42f)));
+    IconCapsule(Canvas, V2(0.26f, 0.8f), V2(0.6f, 0.46f), 0.02f,
+                Gradient(IconColor(255, 255, 255, 0), IconColor(255, 255, 255, 240),
+                         V2(0.26f, 0.8f), V2(0.6f, 0.46f)));
+    IconCircle(Canvas, V2(0.66f, 0.36f), 0.13f,
+               Gradient(IconColor(255, 255, 240), Gold, V2(0.62f, 0.3f), V2(0.72f, 0.44f)));
+    IconCircle(Canvas, V2(0.64f, 0.34f), 0.05f, Solid(IconColor(255, 255, 255)));
+    IconSparkle(Canvas, V2(0.84f, 0.18f), 0.07f, Solid(IconColor(255, 255, 255)));
+    IconSparkle(Canvas, V2(0.4f, 0.7f), 0.04f, Solid(IconColor(255, 240, 200)));
+}
+
 typedef void role_icon_painter(icon_canvas *Canvas);
 typedef void talent_icon_painter(icon_canvas *Canvas);
 
@@ -316,12 +365,12 @@ global_variable role_icon_painter *StrikerIconPainters[ROLE_KEYS] =
 global_variable role_icon_painter *TankIconPainters[ROLE_KEYS] =
 {
     PaintRoleTauntIcon, PaintRoleShieldSlamIcon, PaintRoleInterceptIcon, PaintRoleLastStandIcon,
-    PaintRoleShieldThrowIcon,
+    PaintRoleShieldThrowIcon, 0, PaintRoleShieldBashIcon,
 };
 global_variable role_icon_painter *HealerIconPainters[ROLE_KEYS] =
 {
     PaintRoleMendingBoltIcon, PaintRoleWardIcon, PaintRoleSanctuaryIcon, PaintRoleRadianceIcon,
-    PaintRoleHolyFireIcon,
+    PaintRoleHolyFireIcon, 0, PaintRoleSmiteBoltIcon,
 };
 global_variable role_icon_painter **RoleIconPainters[PlayerRole_Count] =
 {

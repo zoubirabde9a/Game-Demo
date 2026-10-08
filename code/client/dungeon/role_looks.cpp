@@ -2,8 +2,9 @@
    like their role, so a glance tells the tank from the healer:
 
    - Bulwark (tank): a steel kite shield with a blue field carried on the
-     side the player aims at, swaying with the walk, and a cold rim of
-     light round the body; the sprite is tinted toward steel.
+     side the player aims at, swaying with the walk, punching forward
+     with a flare on each Shield Bash, and a cold rim of light round the
+     body; the sprite is tinted toward steel.
    - Mender (healer): a gold halo bobbing over the head, two motes of
      light circling the body, and a soft green glow at the feet; the
      sprite is tinted toward pale gold.
@@ -126,10 +127,49 @@ DrawKiteShield(render_context *RenderContext, v2 Centre, float Size, float Lean,
               0.07f * Size, FxColor(Alpha, 0x00C0F0FF));
 }
 
-internal void
-DrawTankLook(render_context *RenderContext, world_entity *Player, float Clock,
-             v3 CameraOffset)
+// NOTE(zoubir): how long a Shield Bash's punch lasts on screen, and how
+// far forward the shield goes, a share of the body's width
+#define TANK_BASH_SECONDS 0.24f
+#define TANK_BASH_REACH 0.45f
+
+// NOTE(zoubir): per player slot, the bash count last seen in its
+// ClassFlags (TANK_FLAG_BASH_COUNT) and when it changed
+struct tank_bash_seen
 {
+    u8 Count;
+    float At;
+};
+
+global_variable tank_bash_seen TankBashSeen[MAX_PLAYERS];
+
+// NOTE(zoubir): 1 as a bash lands, easing back to 0, from the count the
+// slot's ClassFlags carries, so it plays the same online
+internal float
+TankBashPunch(player_slot *Slot, u32 SlotIndex, float Clock)
+{
+    tank_bash_seen *Seen = &TankBashSeen[SlotIndex];
+    u8 Count = (u8)(Slot->ClassFlags & TANK_FLAG_BASH_COUNT);
+    if (Count != Seen->Count)
+    {
+        Seen->Count = Count;
+        Seen->At = Clock;
+    }
+    float T = (Clock - Seen->At) / TANK_BASH_SECONDS;
+    float Result = 0.f;
+    if (T >= 0.f && T < 1.f)
+    {
+        // NOTE(zoubir): out fast, back slow
+        Result = T < 0.25f ? T / 0.25f : 1.f - Square((T - 0.25f) / 0.75f);
+        Result = Maximum(0.f, Result);
+    }
+    return Result;
+}
+
+internal void
+DrawTankLook(render_context *RenderContext, player_slot *Slot, world_entity *Player,
+             float Clock, v3 CameraOffset)
+{
+    float Punch = TankBashPunch(Slot, Player->PlayerIndex, Clock);
     v2 Aim = GetPlayerAim(Player);
     float Facing = Aim.X < -0.1f ? -1.f : 1.f;
     float Speed = Length(Player->Velocity.XY);
@@ -138,9 +178,17 @@ DrawTankLook(render_context *RenderContext, world_entity *Player, float Clock,
     // so it is drawn smaller and fainter
     float Behind = Aim.Y < -0.4f ? 0.55f : 1.f;
     v2 Body = RoleLookPoint(Player, 0.4f, CameraOffset);
-    v2 Centre = Body + V2(Facing * 0.34f * Player->Dimensions.X, 2.f);
-    DrawKiteShield(RenderContext, Centre, 0.48f * Player->Dimensions.Y * (0.8f + 0.2f * Behind),
-                   Facing * 0.18f + Sway, Behind);
+    v2 Centre = Body + V2(Facing * (0.34f + TANK_BASH_REACH * Punch) * Player->Dimensions.X, 2.f);
+    float Size = 0.48f * Player->Dimensions.Y * (0.8f + 0.2f * Behind) * (1.f + 0.12f * Punch);
+    // NOTE(zoubir): the shield squares up to the blow, flat to its target
+    DrawKiteShield(RenderContext, Centre, Size, (Facing * 0.18f + Sway) * (1.f - Punch), Behind);
+    if (Punch > 0.f)
+    {
+        float Flare = Size * (0.9f + 0.5f * Punch);
+        DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 0.5f * Flare, Centre.Y - 0.5f * Flare,
+                       Flare, Flare, FxColor(0.55f * Punch, ROLE_LOOK_SHIELD_RGB),
+                       RenderBlend_Additive);
+    }
 }
 
 internal void
@@ -238,7 +286,7 @@ DrawRoleLooks(render_context *RenderContext, app_state *AppState, v3 CameraOffse
         }
         switch(Slot->Role)
         {
-            case PlayerRole_Tank:   { DrawTankLook(RenderContext, Player, Clock, CameraOffset); } break;
+            case PlayerRole_Tank:   { DrawTankLook(RenderContext, Slot, Player, Clock, CameraOffset); } break;
             case PlayerRole_Healer: { DrawHealerLook(RenderContext, Player, Clock, CameraOffset); } break;
             case PlayerRole_Damage: { DrawStrikerLook(RenderContext, Player, Clock, CameraOffset); } break;
             default: { DrawClassLook(RenderContext, AppState, Slot, Player, Clock, CameraOffset); } break;
