@@ -13,7 +13,8 @@
             nobody can dodge.
    Enraged (below 40% health): faster, white with frost.
    The dungeon adds Rimebound Brutes at 75%, 50% and 25% that walk back
-   into him if they live too long (sim/dungeon/boss_scripts.cpp). */
+   into him if they live too long, and toads at 90% and 50% that shell
+   the party while it stacks on him (sim/dungeon/boss_scripts.cpp). */
 #if defined(MONSTER_NAME_PASS)
 MONSTER(FrostColossus)
 #elif !defined(MONSTER_ART_PASS)
@@ -22,7 +23,7 @@ internal void
 DefineMonster_FrostColossus(monster_def *Def)
 {
     Def->Name = "Hrimgar the Frost Colossus";
-    Def->MaxHp = 1800.f;
+    Def->MaxHp = 1900.f;
     Def->Acceleration = 22000.f;
     Def->AggroRange = 640.f;
     Def->StopRange = 54.f;
@@ -46,10 +47,10 @@ DefineMonster_FrostColossus(monster_def *Def)
                                               "Shatter Ring");
     Ring->MaxRange = 95.f;
     Ring->Cooldown = 10.f;
-    Ring->Windup = 1.3f;
+    Ring->Windup = 1.1f;
     Ring->Active = 0.3f;
     Ring->Recover = 0.7f;
-    Ring->Damage = 20.f;
+    Ring->Damage = 32.f;
     Ring->Radius = 260.f;
     Ring->InnerRadius = 80.f;
     Ring->Knockback = 400.f;
@@ -59,11 +60,11 @@ DefineMonster_FrostColossus(monster_def *Def)
     monster_ability *Stomp = AddMonsterAbility(Def, MonsterAbility_Slam,
                                                "Glacial Stomp");
     Stomp->MaxRange = 95.f;
-    Stomp->Cooldown = 4.5f;
-    Stomp->Windup = 0.8f;
+    Stomp->Cooldown = 4.f;
+    Stomp->Windup = 0.65f;
     Stomp->Active = 0.3f;
     Stomp->Recover = 0.6f;
-    Stomp->Damage = 21.f;
+    Stomp->Damage = 27.f;
     Stomp->Radius = 110.f;
     Stomp->Knockback = 650.f;
     Stomp->Status = StatusEffect_Slowed;
@@ -73,11 +74,11 @@ DefineMonster_FrostColossus(monster_def *Def)
                                                    "Avalanche");
     Avalanche->MinRange = 120.f;
     Avalanche->MaxRange = 500.f;
-    Avalanche->Cooldown = 5.5f;
+    Avalanche->Cooldown = 4.5f;
     Avalanche->Windup = 0.9f;
     Avalanche->Active = 0.3f;
     Avalanche->Recover = 0.5f;
-    Avalanche->Damage = 13.f;
+    Avalanche->Damage = 20.f;
     Avalanche->Radius = 55.f;
     Avalanche->Knockback = 250.f;
     Avalanche->Count = MAX_ABILITY_POINTS;
@@ -90,7 +91,7 @@ DefineMonster_FrostColossus(monster_def *Def)
     Rush->MinRange = 160.f;
     Rush->MaxRange = 500.f;
     Rush->Cooldown = 6.f;
-    Rush->Windup = 0.7f;
+    Rush->Windup = 0.6f;
     Rush->Active = 0.7f;
     Rush->Recover = 0.8f;
     Rush->Damage = 22.f;
@@ -103,11 +104,11 @@ DefineMonster_FrostColossus(monster_def *Def)
     monster_ability *Grip = AddMonsterAbility(Def, MonsterAbility_Smite,
                                               "Frostbite Grip");
     Grip->MaxRange = 480.f;
-    Grip->Cooldown = 11.f;
+    Grip->Cooldown = 10.f;
     Grip->Windup = 1.f;
     Grip->Active = 0.3f;
     Grip->Recover = 0.5f;
-    Grip->Damage = 28.f;
+    Grip->Damage = 36.f;
     Grip->Radius = 24.f;
     Grip->Knockback = 200.f;
     Grip->Status = StatusEffect_Slowed;

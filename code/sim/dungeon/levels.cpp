@@ -64,7 +64,7 @@ global_variable dungeon_level DungeonLevels[] =
     {MapId_Depths, 2, DepthsRooms, DepthsEncounters, ArrayCount(DepthsEncounters),
      DepthsRoomNames, ArrayCount(DepthsRoomNames), 1.35f, 1.2f, 1.12f, 1.45f, MapId_Vault},
     {MapId_Vault, 3, VaultRooms, VaultEncounters, ArrayCount(VaultEncounters),
-     VaultRoomNames, ArrayCount(VaultRoomNames), 1.7f, 1.55f, 1.2f, 1.45f, MapId_Crypt},
+     VaultRoomNames, ArrayCount(VaultRoomNames), 1.7f, 1.9f, 1.2f, 2.4f, MapId_Crypt},
 };
 
 // NOTE(zoubir): the level played on MapId, 0 for a map that is not one

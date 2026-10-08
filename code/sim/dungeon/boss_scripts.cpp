@@ -66,14 +66,19 @@ global_variable boss_event BossEvents[] =
     {MonsterKind_EmberTyrant, 0.25f, MonsterKind_Imp, 4, 14.f, 0.05f, 0.f, 0},
     {MonsterKind_EmberTyrant, 0.6f, MonsterKind_Ravager, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
     {MonsterKind_EmberTyrant, 0.3f, MonsterKind_Ravager, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
-    // NOTE(zoubir): Hrimgar: a Rimebound Brute, a chilling one, breaks
-    // off the walls three times, two the last time, and walks back into
-    // him if left alone
+    // NOTE(zoubir): Hrimgar: Rimebound Brutes, chilling ones, break off
+    // the walls three times, one then two then two, and walk back into
+    // him if left alone. Toads climb out of the ice at 90% and 50% and
+    // shell the party while it stacks on the tank for Shatter Ring
+    {MonsterKind_FrostColossus, 0.9f, MonsterKind_Toad, 3, 0.f, 0.f, 0.f, 0},
     {MonsterKind_FrostColossus, 0.75f, MonsterKind_Brute, 1, 16.f, 0.08f, 0.f, MonsterAffix_Chilling},
-    {MonsterKind_FrostColossus, 0.5f, MonsterKind_Brute, 1, 16.f, 0.08f, 0.f, MonsterAffix_Chilling},
+    {MonsterKind_FrostColossus, 0.5f, MonsterKind_Toad, 2, 0.f, 0.f, 0.f, 0},
+    {MonsterKind_FrostColossus, 0.5f, MonsterKind_Brute, 2, 16.f, 0.08f, 0.f, MonsterAffix_Chilling},
     {MonsterKind_FrostColossus, 0.25f, MonsterKind_Brute, 2, 16.f, 0.08f, 0.f, MonsterAffix_Chilling},
-    // NOTE(zoubir): Ysolde: chilling bats out of the mere twice, which fly
-    // back into her if left alone
+    // NOTE(zoubir): Ysolde: two shades step out of the mere at 85% and
+    // go for the back line; chilling bats burst out twice, which fly back
+    // into her if left alone
+    {MonsterKind_PaleWitch, 0.85f, MonsterKind_Shade, 2, 0.f, 0.f, 0.f, 0},
     {MonsterKind_PaleWitch, 0.66f, MonsterKind_Bat, 3, 14.f, 0.05f, 0.f, MonsterAffix_Chilling},
     {MonsterKind_PaleWitch, 0.33f, MonsterKind_Bat, 4, 14.f, 0.05f, 0.f, MonsterAffix_Chilling},
     // NOTE(zoubir): Ithrel: a Bone Shaman rises twice and mends him, so it

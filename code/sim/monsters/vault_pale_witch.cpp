@@ -40,11 +40,11 @@ DefineMonster_PaleWitch(monster_def *Def)
     monster_ability *Volley = AddMonsterAbility(Def, MonsterAbility_Volley,
                                                 "Shard Volley");
     Volley->MaxRange = 520.f;
-    Volley->Cooldown = 3.5f;
-    Volley->Windup = 0.7f;
+    Volley->Cooldown = 2.8f;
+    Volley->Windup = 0.6f;
     Volley->Active = 1.4f;
     Volley->Recover = 0.4f;
-    Volley->Damage = 10.f;
+    Volley->Damage = 12.f;
     Volley->Radius = 18.f;
     Volley->Speed = 330.f;
     Volley->Knockback = 120.f;
@@ -58,11 +58,11 @@ DefineMonster_PaleWitch(monster_def *Def)
                                               "Hailstorm");
     Hail->MinRange = 100.f;
     Hail->MaxRange = 560.f;
-    Hail->Cooldown = 6.f;
+    Hail->Cooldown = 5.f;
     Hail->Windup = 0.9f;
     Hail->Active = 0.3f;
     Hail->Recover = 0.5f;
-    Hail->Damage = 10.f;
+    Hail->Damage = 12.f;
     Hail->Radius = 55.f;
     Hail->Knockback = 200.f;
     Hail->Count = MAX_ABILITY_POINTS;
@@ -76,11 +76,11 @@ DefineMonster_PaleWitch(monster_def *Def)
                                               "Mirror Step");
     Step->MinRange = 160.f;
     Step->MaxRange = 540.f;
-    Step->Cooldown = 7.f;
+    Step->Cooldown = 6.f;
     Step->Windup = 0.7f;
     Step->Active = 0.3f;
     Step->Recover = 0.6f;
-    Step->Damage = 12.f;
+    Step->Damage = 15.f;
     Step->Radius = 80.f;
     Step->Spread = 60.f;
     Step->Knockback = 450.f;
@@ -103,11 +103,11 @@ DefineMonster_PaleWitch(monster_def *Def)
     monster_ability *Freeze = AddMonsterAbility(Def, MonsterAbility_Smite,
                                                 "Heart Freeze");
     Freeze->MaxRange = 560.f;
-    Freeze->Cooldown = 12.f;
+    Freeze->Cooldown = 11.f;
     Freeze->Windup = 1.f;
     Freeze->Active = 0.3f;
     Freeze->Recover = 0.5f;
-    Freeze->Damage = 26.f;
+    Freeze->Damage = 30.f;
     Freeze->Radius = 22.f;
     Freeze->Knockback = 150.f;
     Freeze->Status = StatusEffect_Slowed;
