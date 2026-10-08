@@ -35,15 +35,15 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 
 | Boss | Health | Clock for three players |
 |---|---|---|
-| Forgemaster Kragg | 800 | 1:50 |
+| Forgemaster Kragg | 950 | 1:50 |
 | Sskarra the Cinder Wyrm | 1350 | 1:20 |
 | Vol'karr the Ember Tyrant | 1850 | 1:55 |
 
 **Forgemaster Kragg**, a squat giant of riveted iron over a molten core, a forge hammer as long as he is tall.
-- Anvil Drop: a wide slam (115 across, 23 damage) that burns and leaves embers on the floor.
-- Hammer Hurl: three white-hot ingots (13 each, every 5 s) lobbed at players 120 to 480 away; the struck burn. The back line has to keep moving.
+- Anvil Drop: a wide slam (115 across, 23 damage) that burns and leaves embers on the floor for 6 s.
+- Hammer Hurl: four white-hot ingots (13 each, every 5 s) lobbed at players 120 to 480 away; the struck burn. The back line has to keep moving.
 - Bellows Rush: a charge along a locked line at someone far off (22 damage).
-- Stoke the Forge: two Cinder Imps every 9 s from the start of the fight, four at most.
+- Stoke the Forge: two Cinder Imps every 7 s from the start of the fight, four at most.
 - Searing Brand: a white-hot brand on whoever holds him, every 10 s (26). It cannot be dodged.
 - At 80%, 55% and 30% an Anvil Guard steps off the wall: an armoured elite Warden. Its shell blocks hits from the front, so the party has to flank it. Alive after 16 s it walks back into Kragg and heals him 8%.
 
@@ -107,6 +107,8 @@ A boss's timed adds (Anvil Guards, Dune Lurkers, Cinder Imps, the Magma Champion
 Sskarra's young now come three at a time and Kragg's guards three times (at 80%, 55% and 30%, merging after 16 s). Over sixteen seeds Sskarra went from 0.20 to 0.84 deaths per kill, above the Hollow King's 0.43; Kragg stayed near none in a full run, where most of his kills come from a party on its second or third lap, far above the level it first meets him at (alone, at that level, 0.38).
 
 Vol'karr was the longest fight in the game (72 s on average, alone over sixteen seeds). He has 1850 health instead of 2150, and now dies in 45 to 84 s, 65 on average, at 1.7 deaths per kill. Bigger imp waves on top made him no shorter, as the party spent the saved time on the imps.
+
+With the bots dodging and the tank taking Searing Brand, Kragg cost a party meeting him for the first time 0.06 deaths per kill, half of what the crypt's first boss costs at that point (0.12, both alone over sixteen seeds). He now has 950 health, stokes imps every 7 s, lobs four ingots, and his embers stay 6 s, so there is more to dodge at once and less floor to dodge onto: 0.12 deaths per kill, level with Gravecaller Ossian, in fights of about 40 s.
 
 ## Online
 

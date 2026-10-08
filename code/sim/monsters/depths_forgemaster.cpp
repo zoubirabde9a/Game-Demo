@@ -22,7 +22,7 @@ internal void
 DefineMonster_Forgemaster(monster_def *Def)
 {
     Def->Name = "Forgemaster Kragg";
-    Def->MaxHp = 800.f;
+    Def->MaxHp = 950.f;
     Def->Acceleration = 25000.f;
     Def->AggroRange = 640.f;
     Def->StopRange = 52.f;
@@ -42,7 +42,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     monster_ability *Stoke = AddMonsterAbility(Def, MonsterAbility_Summon,
                                                "Stoke the Forge");
     Stoke->MaxRange = 520.f;
-    Stoke->Cooldown = 9.f;
+    Stoke->Cooldown = 7.f;
     Stoke->Windup = 1.f;
     Stoke->Active = 0.3f;
     Stoke->Recover = 0.5f;
@@ -64,7 +64,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     Anvil->Knockback = 650.f;
     Anvil->Status = StatusEffect_Burning;
     Anvil->StatusSeconds = 2.f;
-    Anvil->HazardSeconds = 4.f;
+    Anvil->HazardSeconds = 6.f;
     Anvil->HazardStyle = HazardStyle_Embers;
 
     // NOTE(zoubir): the far players are never safe: the ingots land where
@@ -82,7 +82,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     Hurl->Damage = 13.f;
     Hurl->Radius = 55.f;
     Hurl->Knockback = 250.f;
-    Hurl->Count = 3;
+    Hurl->Count = MAX_ABILITY_POINTS;
     Hurl->Spread = 120.f;
     Hurl->Status = StatusEffect_Burning;
     Hurl->StatusSeconds = 1.5f;
