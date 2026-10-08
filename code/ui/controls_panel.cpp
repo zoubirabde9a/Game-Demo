@@ -8,7 +8,8 @@
    columns.
    A new key goes in ControlsRows. A row for a player action names its
    button, and the key shown is the one the action table gives it on the
-   player's layout and control scheme (client/action_keys.cpp); in other
+   player's layout and control scheme, after the player's own picks
+   (client/action_keys.cpp, client/key_bindings.cpp); in other
    rows capital letters in the key text are shown as the keys at those
    places on the layout (client/keyboard_layout.cpp), so name letter keys
    as on AZERTY. Rows for one control scheme only say which. */
@@ -63,13 +64,16 @@ struct controls_row
 // NOTE(zoubir): one string for both schemes' fireball rows, so a class
 // that owns X can put its own spell's line there (ControlsRowAction)
 global_variable char ControlsFireballLine[] = "Fireball at the cursor, every 6 s";
+// NOTE(zoubir): the movement row, whose keys are the player's
+// (MoveKeysText)
+global_variable char ControlsMoveLine[] = "Move";
 
 global_variable controls_row ControlsRows[] =
 {
-    {"ZQSD",        "Move", Controls_Always, 0, Controls_KeysMove},
+    {"",            ControlsMoveLine, Controls_Always, 0, Controls_KeysMove},
     {"Left click",  "Walk there; hold to keep walking", Controls_Always, 0, Controls_MouseMoves},
     {"Mouse",       "Aim; you face the cursor"},
-    {"Click, X",    ControlsFireballLine, Controls_Always, 0, Controls_KeysMove},
+    {"Click,",      ControlsFireballLine, Controls_Always, PlayerButton_Cast, Controls_KeysMove},
     {"",            ControlsFireballLine, Controls_Always, PlayerButton_Cast, Controls_MouseMoves},
     {"",            "", Controls_Run, PlayerButton_Attack},
     {"",            "Jump; fireballs and blasts pass under", Controls_Always, PlayerButton_Jump},
@@ -157,7 +161,8 @@ ControlsKeyText(char *Out, u32 OutSize, controls_row *Row)
         static app_input NoInput;
         action_key Keys[ACTION_KEY_COUNT];
         GetActionKeys(&NoInput, Keys);
-        Out[0] = 0;
+        // NOTE(zoubir): a row's own text goes before its keys ("Click, X")
+        snprintf(Out, OutSize, "%s", Row->Key);
         for(u32 Index = 0; Index < ACTION_KEY_COUNT; Index++)
         {
             if (Keys[Index].Button & Row->Buttons)
@@ -167,6 +172,11 @@ ControlsKeyText(char *Out, u32 OutSize, controls_row *Row)
                          Keys[Index].Label);
             }
         }
+        return;
+    }
+    if (Row->Action == ControlsMoveLine)
+    {
+        MoveKeysText(Out, OutSize);
         return;
     }
     char *Text = Row->Key;
@@ -214,7 +224,7 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
     {
         UIText(RenderContext, Small, UI_GAP_LARGE,
                (float)WindowHeight - UI_GAP_LARGE - UILineHeight(Small),
-               "Hold H for controls, Esc for options", UI_COLOR_TEXT_MUTED);
+               "Hold H for controls, Esc for options and keys", UI_COLOR_TEXT_MUTED);
         return;
     }
 
@@ -241,7 +251,7 @@ DrawControlsPanel(render_context *RenderContext, app_state *AppState,
     float Height = Pad + TitleHeight + RowsPerColumn * RowHeight + Pad;
     float KeyWidth = 0.f;
     float ActionWidth = 0.f;
-    char Keys[ArrayCount(ControlsRows)][16];
+    char Keys[ArrayCount(ControlsRows)][40];
     for(u32 Row = 0; Row < RowCount; Row++)
     {
         ControlsKeyText(Keys[Row], sizeof(Keys[Row]), Rows[Row]);

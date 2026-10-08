@@ -143,6 +143,9 @@ StartClient(app_state *AppState, transient_state *TransientState,
     GlobalKeyboardLayout = (keyboard_layout)AppState->KeyboardLayout;
     AppState->ControlScheme = ReadSavedControlScheme();
     GlobalControlScheme = (control_scheme)AppState->ControlScheme;
+    AppState->KeyBindings = AllocateStruct(MemoryArena, key_bindings);
+    LoadKeyBindings(AppState->KeyBindings);
+    SyncKeyBindings(AppState);
     EndTemporaryMemory(TempMem);
     AppState->IsInitialized = true;
 }

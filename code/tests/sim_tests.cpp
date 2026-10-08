@@ -782,6 +782,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "player_ability_tests.cpp"
 #include "cursor_tests.cpp"
 #include "control_scheme_tests.cpp"
+#include "key_binding_tests.cpp"
 #include "sound_tests.cpp"
 #include "camera_tests.cpp"
 #include "player_feel_tests.cpp"
@@ -839,6 +840,7 @@ main(int ArgCount, char **Args)
     GROUP(RunPlayerAbilityTests());
     GROUP(RunCursorTests());
     GROUP(RunControlSchemeTests());
+    GROUP(RunKeyBindingTests());
     GROUP(RunSoundTests());
     GROUP(RunCameraTests());
     GROUP(RunPlayerFeelTests());

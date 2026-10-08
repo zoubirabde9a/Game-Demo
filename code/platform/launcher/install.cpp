@@ -126,6 +126,10 @@ InstallVersion(launcher_paths *Paths, manifest *New, char *ManifestText,
         JoinPath(OldFolder, "server.txt", From);
         JoinPath(Partial, "server.txt", To);
         CopyFileW(From, To, FALSE);
+        // NOTE(zoubir): and the keys they picked (client/key_bindings_file.cpp)
+        JoinPath(OldFolder, "keys.txt", From);
+        JoinPath(Partial, "keys.txt", To);
+        CopyFileW(From, To, FALSE);
     }
 
     wchar_t ManifestPath[LAUNCHER_PATH_COUNT];

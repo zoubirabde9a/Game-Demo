@@ -3,7 +3,8 @@
    WASD on QWERTY (picked in the Esc menu, keyboard_layout.cpp),
    the mouse cursor aims, left click or X fireball, right click sword,
    Space jump, E shockwave, F blink, R push, A launch (the action keys
-   are one table, action_keys.cpp). In the mouse-moves scheme
+   are one table, action_keys.cpp, and the player can move any of them,
+   the movement keys too, key_bindings.cpp). In the mouse-moves scheme
    (control_scheme.cpp) a left click walks instead (click_move.cpp) and
    the spells sit on the keys movement leaves free. In standard cast mode an area
    ability's key, and the kunai's (V), aims it first and a left click
@@ -43,10 +44,10 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
     Result.Target = UpdateCursorTarget(Input, AppState);
     if (!MouseMoves())
     {
-        if (LayoutKey(Input, 'Z')->EndedDown) { Result.Move.Y = -1.f; }
-        if (Input->ButtonS.EndedDown) { Result.Move.Y = 1.f; }
-        if (Input->ButtonD.EndedDown) { Result.Move.X = 1.f; }
-        if (LayoutKey(Input, 'Q')->EndedDown) { Result.Move.X = -1.f; }
+        if (MoveKeyDown(Input, BINDING_MOVE_UP)) { Result.Move.Y = -1.f; }
+        if (MoveKeyDown(Input, BINDING_MOVE_DOWN)) { Result.Move.Y = 1.f; }
+        if (MoveKeyDown(Input, BINDING_MOVE_RIGHT)) { Result.Move.X = 1.f; }
+        if (MoveKeyDown(Input, BINDING_MOVE_LEFT)) { Result.Move.X = -1.f; }
     }
 
     // NOTE(zoubir): standard cast holds an aimed ability back until it is

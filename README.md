@@ -12,6 +12,7 @@ Controls:
 - Right click: sword
 - E: shockwave
 - Tab (hold): scoreboard
+- Esc, then Key bindings: put any action or movement key on another key, with separate keys for duels and dungeon runs (saved in keys.txt)
 - F3: tile editor
 - F2 (developer builds): start recording input, press again to loop the recording
 

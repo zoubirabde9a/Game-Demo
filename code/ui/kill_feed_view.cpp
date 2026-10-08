@@ -90,8 +90,9 @@ DrawDeathPlate(render_context *RenderContext, app_state *AppState,
     font *Body = AppState->Fonts.Body;
     bool32 FreeCamera = GetMapDef((map_id)AppState->World.MapId)->Dungeon;
     char Hint[96];
-    snprintf(Hint, sizeof(Hint), "%s%sSD or arrows look around, Space comes back",
-             LayoutKeyName('Z'), LayoutKeyName('Q'));
+    char MoveKeys[40];
+    MoveKeysText(MoveKeys, sizeof(MoveKeys));
+    snprintf(Hint, sizeof(Hint), "%s or arrows look around, Space comes back", MoveKeys);
     float Width = DEATH_PLATE_WIDTH;
     float Height = UILineHeight(Title) + UILineHeight(Body) + 4.f * UI_GAP;
     if (FreeCamera)

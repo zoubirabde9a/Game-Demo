@@ -81,10 +81,10 @@ NetButtonsFromKeyboard(app_input *Input)
     // comes in with the other bits (client/click_move.cpp, app.cpp)
     if (!MouseMoves())
     {
-        if (LayoutKey(Input, 'Q')->EndedDown) Result |= NetButton_Left;
-        if (Input->ButtonD.EndedDown) Result |= NetButton_Right;
-        if (LayoutKey(Input, 'Z')->EndedDown) Result |= NetButton_Up;
-        if (Input->ButtonS.EndedDown) Result |= NetButton_Down;
+        if (MoveKeyDown(Input, BINDING_MOVE_LEFT)) Result |= NetButton_Left;
+        if (MoveKeyDown(Input, BINDING_MOVE_RIGHT)) Result |= NetButton_Right;
+        if (MoveKeyDown(Input, BINDING_MOVE_UP)) Result |= NetButton_Up;
+        if (MoveKeyDown(Input, BINDING_MOVE_DOWN)) Result |= NetButton_Down;
     }
     Result |= ActionButtonsFromKeys(Input, false) << PLAYER_BUTTON_NET_SHIFT;
     return Result;

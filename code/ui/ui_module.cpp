@@ -30,6 +30,7 @@
 #include "status_strip.cpp"
 #include "cast_mode_toggle.cpp"
 #include "options_menu.cpp"
+#include "key_bindings_menu.cpp"
 #include "map_vote_view.cpp"
 #include "dungeon/dungeon_hud.cpp"
 #include "dungeon/boss_alerts.cpp"

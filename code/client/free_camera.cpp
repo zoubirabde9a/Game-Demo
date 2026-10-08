@@ -16,10 +16,13 @@ internal v2
 FreeCameraKeys(app_input *Input)
 {
     v2 Result = {};
-    if (LayoutKey(Input, 'Z')->EndedDown || Input->ArrowUp.EndedDown) { Result.Y -= 1.f; }
-    if (Input->ButtonS.EndedDown || Input->ArrowDown.EndedDown) { Result.Y += 1.f; }
-    if (Input->ButtonD.EndedDown || Input->ArrowRight.EndedDown) { Result.X += 1.f; }
-    if (LayoutKey(Input, 'Q')->EndedDown || Input->ArrowLeft.EndedDown) { Result.X -= 1.f; }
+    // NOTE(zoubir): the keys-move scheme's movement keys either way: the
+    // dead player casts nothing
+    u32 Keys = ControlScheme_Keys;
+    if (MoveKeyDown(Input, BINDING_MOVE_UP, Keys) || Input->ArrowUp.EndedDown) { Result.Y -= 1.f; }
+    if (MoveKeyDown(Input, BINDING_MOVE_DOWN, Keys) || Input->ArrowDown.EndedDown) { Result.Y += 1.f; }
+    if (MoveKeyDown(Input, BINDING_MOVE_RIGHT, Keys) || Input->ArrowRight.EndedDown) { Result.X += 1.f; }
+    if (MoveKeyDown(Input, BINDING_MOVE_LEFT, Keys) || Input->ArrowLeft.EndedDown) { Result.X -= 1.f; }
     float Size = Length(Result);
     if (Size > 0.f)
     {

@@ -272,11 +272,15 @@ DoMapVotePlate(render_context *RenderContext, app_state *AppState, app_input *In
     u8 Own = AppState->Votes[AppState->LocalPlayerIndex];
     if (!ConnectScreenTakesInput(AppState))
     {
-        if (Input->NumbersButtons[1].Pressed && Own != MapVote_Yes)
+        // NOTE(zoubir): a digit the player put a spell on casts it and
+        // does not vote (client/key_bindings.cpp); the buttons still do
+        bool32 Yes = Input->NumbersButtons[1].Pressed && !KeyCodeBoundNow(KeyCode_0 + 1);
+        bool32 No = Input->NumbersButtons[2].Pressed && !KeyCodeBoundNow(KeyCode_0 + 2);
+        if (Yes && Own != MapVote_Yes)
         {
             RequestVote(AppState, MapVote_Yes);
         }
-        else if (Input->NumbersButtons[2].Pressed && Own != MapVote_No)
+        else if (No && Own != MapVote_No)
         {
             RequestVote(AppState, MapVote_No);
         }

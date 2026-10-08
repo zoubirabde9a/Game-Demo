@@ -6,8 +6,10 @@
    It picks the keyboard layout, AZERTY (ZQSD moves) or QWERTY (WASD
    moves), and the control scheme, keys move or mouse moves
    (client/control_scheme.cpp), both saved for the next launch; switches
-   between full screen and a window (client/window_mode.cpp); and holds
-   the vote for another game mode or map (ui/map_vote_view.cpp).
+   between full screen and a window (client/window_mode.cpp); holds the
+   vote for another game mode or map (ui/map_vote_view.cpp); and opens the
+   key bindings screen (ui/key_bindings_menu.cpp), which takes the menu's
+   place until Esc or Back.
    While it is open the player holds no keys and clicks do not cast
    (app.cpp). The game does not pause: online, the world goes on. */
 
@@ -20,6 +22,14 @@
 internal float MapVoteSectionHeight(app_state *AppState);
 internal void DoMapVoteSection(render_context *RenderContext, app_state *AppState,
                                app_input *Input, float Left, float Top, float Width);
+// NOTE(zoubir): the key bindings screen (ui/key_bindings_menu.cpp,
+// included after this file)
+internal bool32 KeyBindingsMenuOpen(app_state *AppState);
+internal bool32 KeyBindingsMenuTakesEsc(app_state *AppState);
+internal void OpenKeyBindingsMenu(app_state *AppState);
+internal void CloseKeyBindingsMenu(app_state *AppState);
+internal void DoKeyBindingsMenu(render_context *RenderContext, app_state *AppState,
+                                app_input *Input, u32 WindowWidth, u32 WindowHeight);
 
 // NOTE(zoubir): a rounded button; true when clicked this frame. Under the
 // mouse it tells the controls the click is the screen's (MouseOnButton)
@@ -116,9 +126,13 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     // code being reloaded in development; the globals do not
     GlobalKeyboardLayout = (keyboard_layout)AppState->KeyboardLayout;
     GlobalControlScheme = (control_scheme)AppState->ControlScheme;
+    SyncKeyBindings(AppState);
     if (Input->EscapeButton.Pressed)
     {
-        if (AppState->OptionsOpen)
+        if (AppState->OptionsOpen && KeyBindingsMenuTakesEsc(AppState))
+        {
+        }
+        else if (AppState->OptionsOpen)
         {
             AppState->OptionsOpen = false;
         }
@@ -133,6 +147,12 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     }
     if (!AppState->OptionsOpen)
     {
+        CloseKeyBindingsMenu(AppState);
+        return;
+    }
+    if (KeyBindingsMenuOpen(AppState))
+    {
+        DoKeyBindingsMenu(RenderContext, AppState, Input, WindowWidth, WindowHeight);
         return;
     }
 
@@ -144,7 +164,7 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     float ChoiceRow = UILineHeight(Body) + UI_GAP_SMALL + OPTIONS_CHOICE_HEIGHT + UI_GAP_LARGE;
     float Height = Pad + UILineHeight(Title) + UI_GAP + 3.f * ChoiceRow +
         UILineHeight(Body) + UI_GAP_SMALL + MapVoteSectionHeight(AppState) + UI_GAP_LARGE +
-        OPTIONS_BUTTON_HEIGHT + Pad;
+        2.f * OPTIONS_BUTTON_HEIGHT + UI_GAP + Pad;
     float X = 0.5f * ((float)WindowWidth - Width);
     float Y = Maximum(UI_GAP, 0.5f * ((float)WindowHeight - Height));
 
@@ -172,9 +192,11 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     }
 
     // NOTE(zoubir): the hints name the keys on the layout in use
-    char KeysHint[32];
+    char KeysHint[48];
     char MouseHint[32];
-    LayoutKeyText(KeysHint, sizeof(KeysHint), (char *)"ZQSD, click fireball");
+    char MoveKeys[40];
+    MoveKeysText(MoveKeys, sizeof(MoveKeys));
+    snprintf(KeysHint, sizeof(KeysHint), "%s, click fireball", MoveKeys);
     LayoutKeyText(MouseHint, sizeof(MouseHint), (char *)"Click, spells AZER");
     char *SchemeNames[] = {"Keys move", "Mouse moves"};
     char *SchemeHints[] = {KeysHint, MouseHint};
@@ -204,6 +226,15 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     Top += UILineHeight(Body) + UI_GAP_SMALL;
     DoMapVoteSection(RenderContext, AppState, Input, Left, Top, Inner);
     Top += MapVoteSectionHeight(AppState) + UI_GAP_LARGE;
+
+    if (OptionsButton(RenderContext, Input, Left, Top, Inner, OPTIONS_BUTTON_HEIGHT, false))
+    {
+        OpenKeyBindingsMenu(AppState);
+    }
+    UIText(RenderContext, Body, Left + 0.5f * Inner,
+           Top + 0.5f * (OPTIONS_BUTTON_HEIGHT - UILineHeight(Body)), "Key bindings",
+           UI_COLOR_TEXT, UIAlign_Center);
+    Top += OPTIONS_BUTTON_HEIGHT + UI_GAP;
 
     if (OptionsButton(RenderContext, Input, Left, Top, Inner, OPTIONS_BUTTON_HEIGHT, false))
     {

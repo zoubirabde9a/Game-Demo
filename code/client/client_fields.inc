@@ -43,6 +43,8 @@
     struct click_move *ClickMove; // the walk to a clicked spot, client/click_move.cpp
     struct window_mode *WindowMode; // full screen or a window, saved for the next launch, client/window_mode.cpp
     bool32 OptionsOpen; // the Esc options menu is showing, ui/options_menu.cpp
+    struct key_bindings *KeyBindings; // the keys the player put actions on, for duels and dungeon runs, client/key_bindings.cpp
+    struct key_bindings_menu *KeyBindingsMenu; // the screen that changes them, from the options menu, ui/key_bindings_menu.cpp
     u32 VoteRequest; // a map vote request not yet sent (map_vote_request), client/vote_requests.cpp
     u32 VoteHolding; // the vote field held in the input now, 0 for none, client/vote_requests.cpp
     float VoteHoldLeft; // seconds the vote field stays held, client/vote_requests.cpp
