@@ -64,7 +64,7 @@ DefineMonster_CinderWyrm(monster_def *Def)
     Lash->Windup = 0.9f;
     Lash->Active = 0.3f;
     Lash->Recover = 0.5f;
-    Lash->Damage = 26.f;
+    Lash->Damage = 28.f;
     Lash->Radius = 105.f;
     Lash->Knockback = 750.f;
 
@@ -90,11 +90,11 @@ DefineMonster_CinderWyrm(monster_def *Def)
                                               "Magma Spit");
     Spit->MinRange = 90.f;
     Spit->MaxRange = 440.f;
-    Spit->Cooldown = 2.8f;
+    Spit->Cooldown = 2.4f;
     Spit->Windup = 0.7f;
     Spit->Active = 1.4f;
     Spit->Recover = 0.4f;
-    Spit->Damage = 10.f;
+    Spit->Damage = 12.f;
     Spit->Radius = 18.f;
     Spit->Speed = 290.f;
     Spit->Knockback = 120.f;

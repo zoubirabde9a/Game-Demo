@@ -26,7 +26,7 @@ A third level is one more map file in `sim/maps/`, one encounter table, and one 
 3. **Anvil Hall.** Boss 1, Forgemaster Kragg. A ring of pillars, lava channels down both side walls.
 4. **Glasswing Hollow.** Things that get behind the tank: an elite Hollow Shade, a Dune Lurker and three Duskwing bats; two Bilecaller Toads and a Cinder Imp with an elite Hexweaver Spider; an elite Shade with a Tuskback Ravager, three bats and a Toad. Ash, dead trees and a bog in the middle.
 5. **Wyrm's Gullet.** Boss 2, Sskarra the Cinder Wyrm. A round lair with a broken ring of lava at the rim, where Tail Lash throws people.
-6. **Ashfall Bridge.** The hardest room of the dungeon. A stone causeway six tiles wide over a lava lake, with side spurs. A Warden and two Imps; an elite Gravemaw Brute with a Bone Shaman raising Skeletal Thralls behind it; an elite Warden with a Ravager and an Imp. The causeway is too narrow to flank a shell, so the room has one plain Warden: with two and two elites the bots wiped up to seven times there. A shove off the causeway lands in lava.
+6. **Ashfall Bridge.** The hardest room of the dungeon. A stone causeway six tiles wide over a lava lake, with side spurs. A Warden and two Imps; an elite Gravemaw Brute with a Bone Shaman raising Skeletal Thralls behind it; an elite Warden and an elite Ravager at once, with an Imp. The causeway is too narrow to flank a shell, so the room has one plain Warden before them. A shove off the causeway lands in lava.
 7. **Throne of Embers.** Boss 3, Vol'karr the Ember Tyrant. A great hall with two rows of pillars and lava braziers in the corners.
 
 ## Bosses
@@ -35,13 +35,13 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 
 | Boss | Health | Clock for three players |
 |---|---|---|
-| Forgemaster Kragg | 900 | 2:10 |
-| Sskarra the Cinder Wyrm | 1350 | 1:50 |
-| Vol'karr the Ember Tyrant | 2150 | 2:50 |
+| Forgemaster Kragg | 900 | 1:50 |
+| Sskarra the Cinder Wyrm | 1350 | 1:20 |
+| Vol'karr the Ember Tyrant | 2150 | 1:55 |
 
 **Forgemaster Kragg**, a squat giant of riveted iron over a molten core, a forge hammer as long as he is tall.
 - Anvil Drop: a wide slam (115) that burns and leaves embers on the floor.
-- Hammer Hurl: three white-hot ingots (11 each, every 5 s) lobbed at players 120 to 480 away; the struck burn. The back line has to keep moving.
+- Hammer Hurl: three white-hot ingots (13 each, every 4 s) lobbed at players 120 to 480 away; the struck burn. The back line has to keep moving.
 - Bellows Rush: a charge along a locked line at someone far off.
 - Stoke the Forge (below 50%): two Cinder Imps, three at most.
 - At 70% and 35% an Anvil Guard steps off the wall: an armoured elite Warden. Its shell blocks hits from the front, so the party has to flank it. Alive after 20 s it walks back into Kragg and heals him 8%.
@@ -80,6 +80,8 @@ Part of Vol'karr's spread was the probe. Bots that wiped in his hall waited by t
 Measured one boss at a time with rested retries (`PROBE_MAP=depths dungeon_balance 8 3 <room> 8`), Kragg was the hardest boss of the three (wipes on seven seeds of eight) and Sskarra never wiped the bots. Hammer Hurl now comes every 5 s for 11; Sskarra has 1350 health, Molten Rain from the start, and her bite, Tail Lash and Magma Dive hit for 19, 26 and 30. Over eight seeds Kragg now wipes the bots on three (at most twice), Sskarra on one (twice) with one to three deaths on most others, and Vol'karr on five (at most four times).
 
 Magma Dive then got its pool of magma (a burrow can now leave a hazard where it surfaces, as a slam or a mortar can). Over eight seeds Sskarra wipes the bots on two and costs one to five deaths on the rest, close to Kragg.
+
+The bots then learned to path round lava (`server/bots/bot_paths.cpp`) and to wait in the room they fight next, and most of the depths' wipes went with it: over six seeds of a full run they wiped once on Kragg and never on Sskarra or the bridge, against eight times at the crypt's Ashen Causeway. The depths' clocks were tightened to the new fights (Kragg 1:50, Sskarra 1:20, Vol'karr 1:55, against clears of 37 to 105 s, 29 to 62 s and 66 to 98 s), Hammer Hurl went back to every 4 s for 13, Sskarra spits every 2.4 s for 12 and lashes for 28, and the bridge's last pack is two elites again. Over six seeds: Kragg wipes the bots twice, Sskarra once, the bridge never, Vol'karr eight to nineteen times (the same numbers swing that much between runs); the crypt's Causeway five to eight times and the Hollow King five or six.
 
 ## Online
 

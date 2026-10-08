@@ -38,8 +38,8 @@ global_variable encounter_row DepthsEncounters[] =
     {5, 0, MonsterKind_CinderWyrm, 1, Encounter_Boss},
     // 6, Ashfall Bridge: the hardest room of the dungeon, three packs on a
     // causeway over lava where a shove can throw you in. A shaman keeps
-    // raising the dead behind an elite brute, and the last pack is an
-    // elite warden with a ravager charging past it
+    // raising the dead behind an elite brute, and the last pack is two
+    // elites at once
     // NOTE(zoubir): one warden only: the causeway is too narrow to
     // flank a shell, and two with an elite behind them was a wall
     {6, 0, MonsterKind_Warden, 1, 0},
@@ -48,7 +48,7 @@ global_variable encounter_row DepthsEncounters[] =
     {6, 1, MonsterKind_Shaman, 1, 0},
     {6, 1, MonsterKind_Thrall, 2, 0},
     {6, 2, MonsterKind_Warden, 1, Encounter_Elite},
-    {6, 2, MonsterKind_Ravager, 1, 0},
+    {6, 2, MonsterKind_Ravager, 1, Encounter_Elite},
     {6, 2, MonsterKind_Imp, 1, 0},
     // 7, Throne of Embers: the last boss, Vol'karr the Ember Tyrant
     {7, 0, MonsterKind_EmberTyrant, 1, Encounter_Boss},
