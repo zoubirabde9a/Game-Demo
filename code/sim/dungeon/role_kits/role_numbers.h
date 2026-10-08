@@ -140,9 +140,9 @@
 // INFERNO_DELAY after it, then the ground burns
 #define INFERNO_RADIUS 90.f
 #define INFERNO_DELAY 0.4f
-#define INFERNO_DAMAGE 26.f
+#define INFERNO_DAMAGE 23.f
 #define INFERNO_BURN_SECONDS 3.f
-#define INFERNO_BURN_PER_SECOND 8.f
+#define INFERNO_BURN_PER_SECOND 7.f
 #define INFERNO_BURN_TICK 0.5f
 #define INFERNO_COOLDOWN 9.f
 // NOTE(zoubir): Searing marks: a striker's fireball adds one stack, a
@@ -159,10 +159,10 @@
 #define SEARING_TICK 1.f
 // NOTE(zoubir): the explosion when a mark runs out: DETONATE_DAMAGE plus
 // DETONATE_PER_STACK a stack on the marked monster, so a full mark blows
-// for 67 before the role's 35%, and DETONATE_SPLASH_SHARE of that on
+// for 62 before the role's 35%, and DETONATE_SPLASH_SHARE of that on
 // every other monster within DETONATE_SPLASH_RADIUS
 #define DETONATE_DAMAGE 12.f
-#define DETONATE_PER_STACK 11.f
+#define DETONATE_PER_STACK 10.f
 #define DETONATE_SPLASH_RADIUS 70.f
 #define DETONATE_SPLASH_SHARE 0.5f
 // NOTE(zoubir): Fireguard (C): a shield of fire on the striker that takes
@@ -178,7 +178,7 @@
 #define GIANT_FIREBALL_RANGE 700.f
 #define GIANT_FIREBALL_TOUCH 34.f
 #define GIANT_FIREBALL_RADIUS 110.f
-#define GIANT_FIREBALL_DAMAGE 45.f
+#define GIANT_FIREBALL_DAMAGE 40.f
 #define GIANT_FIREBALL_COOLDOWN 8.f
 // NOTE(zoubir): Combustion (V, from the tree): this much more damage for
 // this long
