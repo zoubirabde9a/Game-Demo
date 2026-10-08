@@ -48,14 +48,16 @@ global_variable boss_event BossEvents[] =
     {MonsterKind_HollowKing, 0.6f, MonsterKind_Brute, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
     {MonsterKind_HollowKing, 0.3f, MonsterKind_Brute, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
     // NOTE(zoubir): Forgemaster Kragg: an Anvil Guard, an armoured
-    // warden, steps off the wall twice; its shell takes hits from the
-    // front, so the party has to flank it before it walks back into him
-    {MonsterKind_Forgemaster, 0.7f, MonsterKind_Warden, 1, 20.f, 0.08f, 0.f, MonsterAffix_Armored},
-    {MonsterKind_Forgemaster, 0.35f, MonsterKind_Warden, 1, 20.f, 0.08f, 0.f, MonsterAffix_Armored},
-    // NOTE(zoubir): Sskarra: her young burst out of the floor twice and
-    // crawl back into her if left alone
-    {MonsterKind_CinderWyrm, 0.66f, MonsterKind_Lurker, 2, 16.f, 0.06f, 0.f, 0},
-    {MonsterKind_CinderWyrm, 0.33f, MonsterKind_Lurker, 2, 16.f, 0.06f, 0.f, MonsterAffix_Frenzied},
+    // warden, steps off the wall three times; its shell takes hits from
+    // the front, so the party has to flank it before it walks back into
+    // him. The fight is short, so the guards come close together
+    {MonsterKind_Forgemaster, 0.8f, MonsterKind_Warden, 1, 16.f, 0.08f, 0.f, MonsterAffix_Armored},
+    {MonsterKind_Forgemaster, 0.55f, MonsterKind_Warden, 1, 16.f, 0.08f, 0.f, MonsterAffix_Armored},
+    {MonsterKind_Forgemaster, 0.3f, MonsterKind_Warden, 1, 16.f, 0.08f, 0.f, MonsterAffix_Armored},
+    // NOTE(zoubir): Sskarra: her young burst out of the floor twice, three
+    // at a time, and crawl back into her if left alone
+    {MonsterKind_CinderWyrm, 0.66f, MonsterKind_Lurker, 3, 16.f, 0.06f, 0.f, 0},
+    {MonsterKind_CinderWyrm, 0.33f, MonsterKind_Lurker, 3, 16.f, 0.06f, 0.f, MonsterAffix_Frenzied},
     // NOTE(zoubir): Vol'karr: imps pour from the braziers three times,
     // more each time, and he binds a Magma Champion, an armoured ravager,
     // twice: kill it in 25 s or it erupts for half of everyone's health

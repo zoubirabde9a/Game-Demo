@@ -44,14 +44,14 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 - Hammer Hurl: three white-hot ingots (13 each, every 5 s) lobbed at players 120 to 480 away; the struck burn. The back line has to keep moving.
 - Bellows Rush: a charge along a locked line at someone far off (22 damage).
 - Stoke the Forge: two Cinder Imps every 9 s from the start of the fight, four at most.
-- At 70% and 35% an Anvil Guard steps off the wall: an armoured elite Warden. Its shell blocks hits from the front, so the party has to flank it. Alive after 20 s it walks back into Kragg and heals him 8%.
+- At 80%, 55% and 30% an Anvil Guard steps off the wall: an armoured elite Warden. Its shell blocks hits from the front, so the party has to flank it. Alive after 16 s it walks back into Kragg and heals him 8%.
 
 **Sskarra the Cinder Wyrm**, a worm as thick as a cart, plated in cooled rock that cracks orange where it bends.
 - Magma Dive: burrows and tunnels after a player 110 to 560 away; the ring locks before she bursts out (72 across, burning) and leaves a pool of burning magma for 4 s, so the party has to give ground each time she surfaces.
 - Magma Spit: a fan of four burning globs.
 - Tail Lash: a sweep round her (105) with a hard shove toward the lava at the rim.
 - Molten Rain: three spots of falling magma that set the struck burning, from the start of the fight.
-- At 66% two Dune Lurkers burst out of the floor, at 33% two frenzied ones. Alive after 16 s each crawls back into her and heals her 6%.
+- At 66% three Dune Lurkers burst out of the floor, at 33% three frenzied ones. Alive after 16 s each crawls back into her and heals her 6%.
 
 **Vol'karr the Ember Tyrant**, a horned demon in charred plate, black wings, a mane of flame and a red-hot cleaver.
 - Hellfire Cleave: a 125 slam that burns and leaves the floor burning, every 4 s.
@@ -90,6 +90,8 @@ With the bots stepping out of telegraphs and burning ground, the depths' first b
 With sixteen seeds the gap was the packs: the bridge cost the bots 0.2 deaths per kill against 1.5 at the crypt's Ashen Causeway, and more wardens or more elites on it did not move that. The depths' rooms without a boss now have their monsters 1.3 times as tough and as hard-hitting on top of the level. Over sixteen seeds, deaths per kill: Slag Pits 0.56, Glasswing Hollow 0.26 and the bridge 1.11 (0.29 wipes per kill, more than the Causeway's 0.16), against none in the crypt's other pack rooms; the bosses are where they were (Kragg 0.21, Sskarra 0.42, Vol'karr 1.73, the Hollow King 0.59). The bridge's second pack also has a plain Warden beside its two elites, and its first pack's two Wardens are elite.
 
 A boss's timed adds (Anvil Guards, Dune Lurkers, Cinder Imps, the Magma Champion, and the crypt's own) now fall apart when the boss dies (`CrumbleBossAdds`, `boss_clock.cpp`). Before, an add the party had not chased kept the room from clearing, and much of what looked like a long Kragg fight was the bots hunting a guard after he fell: his kills took 44 to 288 s, and now take 20 to 52. Every boss fight got shorter with it (over sixteen seeds: the Brood Queen 23 s, the Hollow King 60 s, Vol'karr 74 s). Kragg also has 800 health and hits harder (bite 18, Anvil Drop 23, Bellows Rush 22); he is still the gentlest depths boss in a full run (0.07 deaths per kill, the Hollow King 0.45).
+
+Sskarra's young now come three at a time and Kragg's guards three times (at 80%, 55% and 30%, merging after 16 s). Over sixteen seeds Sskarra went from 0.20 to 0.84 deaths per kill, above the Hollow King's 0.43; Kragg stayed near none in a full run, where most of his kills come from a party on its second or third lap, far above the level it first meets him at (alone, at that level, 0.38).
 
 ## Online
 
