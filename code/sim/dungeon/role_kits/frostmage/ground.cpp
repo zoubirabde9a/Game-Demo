@@ -106,6 +106,12 @@ CastFrostNova(app_state *AppState, player_slot *Slot, world_entity *Player)
         }
         FrostMageHit(AppState, By, Monster, FrostShot_Nova, FROST_NOVA_DAMAGE, 0.f,
                      NormalizeOr(Offset, V2(1.f, 0.f)), StatusEffect_Rooted, Hold);
+        // NOTE(zoubir): a foe that shrugs roots off (just freed from some)
+        // shows no ice
+        if (HasStatus(Monster, StatusEffect_Rooted))
+        {
+            ShowFrozenFoe(AppState, By, Monster, Monster->StatusTimers[StatusEffect_Rooted]);
+        }
     }
     // NOTE(zoubir): Deep Freeze's ranks ride along, so clients draw the
     // ice as long as it holds

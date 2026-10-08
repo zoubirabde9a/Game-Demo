@@ -30,14 +30,21 @@ IsFrozenFoe(world_entity *Monster)
     return Result;
 }
 
+// NOTE(zoubir): clients shown ice on Monster for Seconds, in halves
+inline void
+ShowFrozenFoe(app_state *AppState, u32 By, world_entity *Monster, float Seconds)
+{
+    EmitBurst(&AppState->Events, ClassBurst(SimBurst_FrostMageFirst, FrostBurst_Freeze), (u8)By,
+              RangerBurstSpot(Monster->Position, (u32)(2.f * Seconds + 0.5f)));
+}
+
 // NOTE(zoubir): Monster frozen for Seconds (stunned), and clients shown
 // the ice on it
 internal void
 FreezeFoe(app_state *AppState, u32 By, world_entity *Monster, float Seconds)
 {
     ApplyStatus(Monster, StatusEffect_Stunned, Seconds);
-    EmitBurst(&AppState->Events, ClassBurst(SimBurst_FrostMageFirst, FrostBurst_Freeze), (u8)By,
-              RangerBurstSpot(Monster->Position, (u32)(2.f * Seconds + 0.5f)));
+    ShowFrozenFoe(AppState, By, Monster, Seconds);
 }
 
 // NOTE(zoubir): a hit of Shot on Monster for the Frost Mage in slot By,
