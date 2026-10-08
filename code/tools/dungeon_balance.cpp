@@ -35,6 +35,9 @@
    PROBE_MAP=vault in the Rimeheart Vault, with the crypt's and the
    depths'; PROBE_MAP=rift in the Aurora Rift, with all three before it;
    PROBE_MAP=starless in the Starless Deep, with all four.
+   PROBE_TREE=class has the bots spend their points in the class tree
+   only, PROBE_TREE=run in the second tree first (sim/dungeon/run_tree/);
+   unset, they pick from both at random as a server's bots do.
    Build and run: misc\balance.bat [same arguments], which rebuilds the
    probe only when the code changed. */
 
@@ -98,9 +101,23 @@ SpendBotTalents(server_game *Game)
         {
             continue;
         }
+        // NOTE(zoubir): PROBE_TREE=class spends only in the class tree,
+        // =run in the second tree first; unset, the bot picks from both
+        // (sim/dungeon/run_tree/)
+#pragma warning(push)
+#pragma warning(disable: 4996)
+        char *Tree = getenv("PROBE_TREE");
+#pragma warning(pop)
+        u32 Wanted = (Tree && strcmp(Tree, "class") == 0) ? TalentBranch_Role :
+            (Tree && strcmp(Tree, "run") == 0) ? TalentBranch_Run : TalentBranch_Count;
         while (TalentPointsLeft(Player) > 0)
         {
             u32 Pick = BotPickTalent(&Game->Bots[Slot], Game->AppState, Player) >> NET_LEARN_SHIFT;
+            for (u32 Try = 0; Try < 64 && Pick && Wanted != TalentBranch_Count &&
+                 TalentDefs[Pick - 1].Branch != Wanted; ++Try)
+            {
+                Pick = BotPickTalent(&Game->Bots[Slot], Game->AppState, Player) >> NET_LEARN_SHIFT;
+            }
             if (!Pick || !LearnTalent(Game->AppState, Slot, Pick - 1))
             {
                 break;
@@ -187,6 +204,9 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
                 SeededBots |= 1u << Slot;
                 Game.Bots[Slot].Random ^= 2654435761u * SeedNumber;
                 Game.Bots[Slot].Random |= 1;
+                // NOTE(zoubir): and its second tree rolls apart per seed
+                Game.AppState->Players[Slot].TreeSeed =
+                    RunHash(SeedNumber * 40503u + Slot * 977u) & RUN_SEED_MASK;
             }
         }
         if (Placed && FirstRoom > 2 && !Run->FightingRoom &&

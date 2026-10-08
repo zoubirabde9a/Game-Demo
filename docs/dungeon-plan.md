@@ -74,6 +74,8 @@ The deeper tiers, for every class. Slots 6, 7, 9 and 10 are stat talents of four
 
 The Ranger, Berserker and Shadowblade trees are in `docs/dungeon-classes.md`.
 
+Beside this tree each class has a second one, partly random, that shares the same points: `docs/talents.md`, "The second tree in a run".
+
 The twelve slots are `Talent_RoleFirst` on in `sim/progression/talents.cpp`; their meaning is the player's class, so picking another class gives their points back, and they take no point outside a run.
 
 ### Looks
