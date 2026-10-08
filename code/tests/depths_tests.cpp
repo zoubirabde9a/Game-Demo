@@ -1,8 +1,8 @@
 /* Depths tests (dungeon_tests.cpp): the Ember Depths, the dungeon's
    second level. Its rooms match its map, clearing the crypt goes on to
-   it with everyone's progress, its monsters are tougher, its bosses
-   stand in their rooms on a clock, and clearing it starts over at the
-   crypt. */
+   it with everyone's progress, its monsters are tougher and faster,
+   its bosses stand in their rooms on a clock, Sskarra's dive leaves
+   magma, and clearing it starts over at the crypt. */
 
 // NOTE(zoubir): the depths' room map is the size of its layout, every
 // gate tile is open ground, seven rooms with a gate between each pair,
@@ -191,6 +191,92 @@ TestDepthsBossesStand()
     }
 }
 
+// NOTE(zoubir): every monster a depths encounter spawns plays at the
+// level's pace: it moves that much faster than the same monster at the
+// crypt's pace, and the crypt plays at its kinds' own speed
+internal void
+TestDepthsFoesPlayFaster()
+{
+    float Pace = LevelFoePace(MapId_Depths);
+    Check(Pace > 1.f && LevelFoePace(MapId_Crypt) == 1.f && LevelFoePace(MapId_Arena) == 1.f);
+    crypt_world Depths = CreateDungeonWorld(MapId_Depths, 1);
+    app_state *AppState = Depths.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Depths, 1);
+    MovePlayerTo(AppState, World, &Depths.Arena, AppState->Players[0].Entity,
+                 Run->RoomEntry[2]);
+    TickCrypt(&Depths, 1);
+    Check(Run->FightingRoom == 2 && Run->FoeCount > 0);
+    for(u32 Index = 0; Index < Run->FoeCount; Index++)
+    {
+        world_entity *Foe = &World->Entities[Run->FoeSlots[Index]];
+        Check(Foe->PaceScale == Pace);
+        float Fast = GetMoveSpeedScale(Foe);
+        Foe->PaceScale = 0.f;
+        float Plain = GetMoveSpeedScale(Foe);
+        Foe->PaceScale = Pace;
+        Check(Plain > 0.f && Fast > Plain * (Pace - 0.01f) && Fast < Plain * (Pace + 0.01f));
+    }
+    DestroyCryptWorld(&Depths);
+}
+
+// NOTE(zoubir): Sskarra's Magma Dive leaves a pool of burning magma
+// where she surfaces
+internal void
+TestMagmaDiveLeavesMagma()
+{
+    crypt_world Depths = CreateDungeonWorld(MapId_Depths, 1);
+    app_state *AppState = Depths.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    for(u32 Before = 1; Before < 5; Before++)
+    {
+        Run->RoomStates[Before] = RoomState_Cleared;
+    }
+    TickCrypt(&Depths, 1);
+    MovePlayerTo(AppState, World, &Depths.Arena, AppState->Players[0].Entity,
+                 Run->RoomEntry[5]);
+    TickCrypt(&Depths, 2);
+    world_entity *Boss = FightBoss(World, Run);
+    Check(Boss && Boss->MonsterKind == MonsterKind_CinderWyrm);
+    monster_def *Def = GetMonsterDef(MonsterKind_CinderWyrm);
+    monster_ability *Dive = 0;
+    for(u32 Index = 0; Index < Def->AbilityCount; Index++)
+    {
+        if (Def->Abilities[Index].Kind == MonsterAbility_Burrow)
+        {
+            Dive = &Def->Abilities[Index];
+            Boss->AbilityIndex = Index;
+        }
+    }
+    Check(Dive && Dive->HazardSeconds > 0.f);
+    u32 HazardsBefore = 0;
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        HazardsBefore += (World->Entities[Index].IsPresent &&
+                          World->Entities[Index].Type == EntityType_MonsterHazard) ? 1 : 0;
+    }
+    Boss->Burrowed = true;
+    Boss->AbilityPoints[0] = Boss->Position.XY;
+    EruptFromBurrow(AppState, World, &Depths.Arena, Boss, Dive);
+    u32 HazardsAfter = 0;
+    world_entity *Pool = 0;
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        world_entity *Entity = &World->Entities[Index];
+        if (Entity->IsPresent && Entity->Type == EntityType_MonsterHazard)
+        {
+            HazardsAfter++;
+            Pool = Entity;
+        }
+    }
+    Check(!Boss->Burrowed && HazardsAfter == HazardsBefore + 1);
+    Check(Pool && Pool->TimeLeft == Dive->HazardSeconds &&
+          Length(Pool->Position.XY - Boss->Position.XY) < 1.f);
+    DestroyCryptWorld(&Depths);
+}
+
 internal void
 RunDepthsTests()
 {
@@ -199,4 +285,6 @@ RunDepthsTests()
     TestClearedCryptGoesDown();
     TestDepthsFoesAreTougher();
     TestDepthsBossesStand();
+    TestDepthsFoesPlayFaster();
+    TestMagmaDiveLeavesMagma();
 }
