@@ -319,6 +319,10 @@ SetBodySwing(app_state *AppState, world_entity *Entity, float Angle,
 internal bool32 FinalBlowPose(app_state *AppState, world_entity *Entity,
                               body_pose_draw *Pose);
 
+// NOTE(zoubir): how much bigger a class draws its body now, 1 for no
+// change (client/dungeon/classes/class_fx.cpp: a Berserker in Berserk)
+internal float ClassBodyScale(app_state *AppState, world_entity *Entity);
+
 // NOTE(zoubir): width and height multipliers for the sprite (the area
 // stays about the same, so a squash reads as weight, not shrinking), its
 // turn in radians and its flash
@@ -389,6 +393,7 @@ GetBodyPose(app_state *AppState, world_entity *Entity)
         Angle += BODY_FALL_TURN * Pose->Fall;
         Result.White = 0.f;
     }
+    Result.Scale *= ClassBodyScale(AppState, Entity);
     // NOTE(zoubir): what is left of an eased tilt is no tilt
     Result.Angle = Absolute(Angle) < 0.002f ? 0.f : Angle;
     Result.AboutFeet = OnGround;
