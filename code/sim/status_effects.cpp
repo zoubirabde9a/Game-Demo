@@ -169,6 +169,10 @@ GetMoveSpeedScale(world_entity *Entity)
     {
         Result *= Entity->PhaseSpeedScale;
     }
+    if (Entity->Type == EntityType_Monster && Entity->PaceScale > 0.f)
+    {
+        Result *= Entity->PaceScale;
+    }
     if (Entity->GroundSpeedScale > 0.f)
     {
         Result *= Entity->GroundSpeedScale;

@@ -41,6 +41,11 @@
     // (0 means 1)
     u32 Phase;
     float PhaseSpeedScale;
+    // NOTE(zoubir): how much faster this monster plays than its kind, set
+    // by the dungeon level it spawned on (LevelFoePace, levels.cpp): it
+    // moves this much faster and bites and recharges this much sooner.
+    // 0 means 1
+    float PaceScale;
     // NOTE(zoubir): underground during a Burrow: hidden (special sheet row)
     // and immune to damage
     bool32 Burrowed;

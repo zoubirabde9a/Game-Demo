@@ -184,6 +184,10 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
                 Entity->AbilityCooldowns[Entity->AbilityIndex] =
                     Ability->Cooldown * GetAffix(Entity->EliteAffix)->CooldownScale *
                     GetPhaseCooldownScale(Entity, Def);
+                if (Entity->PaceScale > 0.f)
+                {
+                    Entity->AbilityCooldowns[Entity->AbilityIndex] /= Entity->PaceScale;
+                }
                 SetMonsterPhase(Entity, AbilityPhase_Ready, 0.f);
                 *AnimationType = AnimationType_Stand;
             }

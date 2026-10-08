@@ -143,6 +143,7 @@ SpawnFoe(app_state *AppState, world *World, memory_arena *Arena,
     }
     Monster->MaxHp *= HealthScale;
     Monster->Hp = Monster->MaxHp;
+    Monster->PaceScale = LevelFoePace(World->MapId);
     Run->FoeSlots[Run->FoeCount] = (u32)(Monster - World->Entities);
     Run->FoeSerials[Run->FoeCount] = Monster->MonsterSerial;
     Run->FoeCount++;

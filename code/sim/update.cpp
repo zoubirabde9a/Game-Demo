@@ -162,6 +162,10 @@ UpdateMonster(world_entity *Entity, world *World,
         {
             MonsterBite(AppState, World, Entity, Target);
             Entity->AttackCooldown = Stats->AttackInterval;
+            if (Entity->PaceScale > 0.f)
+            {
+                Entity->AttackCooldown /= Entity->PaceScale;
+            }
         }
 
         if (DistanceToTarget < Stats->AggroRange &&
