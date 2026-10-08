@@ -30,6 +30,9 @@
 
 #define TALENT_PANEL_MAX_WIDTH 1260.f
 #define TALENT_PANEL_MAX_HEIGHT 660.f
+// NOTE(zoubir): a class's tree has six tiers, not four: as tall again
+// where the window has room, so its medallions keep their size
+#define TALENT_PANEL_DEEP_MAX_HEIGHT 880.f
 #define TALENT_PANEL_HEADER 70.f
 #define TALENT_PANEL_FOOTER 40.f
 #define TALENT_SIDEBAR_WIDTH 250.f
@@ -176,7 +179,9 @@ LayTalentPanel(u32 WindowWidth, u32 WindowHeight, float Shown, u32 First, u32 Br
     // NOTE(zoubir): above the ability bar, which keeps showing cooldowns
     float Room = (float)WindowHeight - 150.f;
     L.Width = Minimum(TALENT_PANEL_MAX_WIDTH, (float)WindowWidth - 40.f);
-    L.Height = Minimum(TALENT_PANEL_MAX_HEIGHT, Room - 20.f);
+    float MaxHeight = TalentBranchTiers(First) > TALENT_TIERS ? TALENT_PANEL_DEEP_MAX_HEIGHT :
+        TALENT_PANEL_MAX_HEIGHT;
+    L.Height = Minimum(MaxHeight, Room - 20.f);
     L.X = 0.5f * ((float)WindowWidth - L.Width);
     L.Y = Maximum(10.f, 0.5f * (Room - L.Height)) - 24.f * (1.f - Shown);
     L.ColumnTop = L.Y + TALENT_PANEL_HEADER;
