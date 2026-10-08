@@ -206,6 +206,16 @@ TestEviscerate()
     float Expected = (EVISCERATE_DAMAGE + 5.f * EVISCERATE_PER_POINT) /
         (EVISCERATE_DAMAGE + EVISCERATE_PER_POINT);
     Check(One > 0.f && Five > 0.99f * Expected * One && Five < 1.01f * Expected * One);
+    // NOTE(zoubir): no foe in reach when the draw ends: the points stay,
+    // the key is ready again, and the burst says nothing was spent
+    Slot->ClassMeter = 3;
+    Slot->RoleCooldowns[4] = 0.f;
+    PressOnce(&Crypt, 0, PlayerButton_Shockwave);
+    Check(Slot->Entity->CastSpell == PlayerSpell_ShadowbladeB);
+    TickCrypt(&Crypt, (u32)(60.f * PlayerSpells[PlayerSpell_ShadowbladeB].CastTime) + 2);
+    Check(Slot->ClassMeter == 3 && Slot->RoleCooldowns[4] == 0.f);
+    Check(ShadowbladeBurstVariant(ShadowbladeBurstSpot(V3(1.f, 2.f, 16.f), 4)) == 4);
+    Check(ShadowbladeBurstPlace(ShadowbladeBurstSpot(V3(1.f, 2.f, 16.f), 4)).Z == 16.f);
     DestroyCryptWorld(&Crypt);
 }
 

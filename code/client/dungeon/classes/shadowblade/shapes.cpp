@@ -30,6 +30,25 @@ ShadowbladeBurstAge(app_state *AppState, u32 SlotIndex, u32 Index)
     return Result;
 }
 
+// NOTE(zoubir): the newest burst Index of the Shadowblade in slot
+// SlotIndex, 0 when none is playing
+internal role_burst *
+ShadowbladeNewestBurst(app_state *AppState, u32 SlotIndex, u32 Index)
+{
+    role_fx *Fx = GetRoleFx(AppState);
+    role_burst *Result = 0;
+    sim_burst Kind = ClassBurst(SimBurst_ShadowbladeFirst, Index);
+    for(u32 Burst = 0; Burst < Fx->Count; Burst++)
+    {
+        role_burst *Row = &Fx->Bursts[Burst];
+        if (Row->Kind == Kind && Row->Slot == SlotIndex && (!Result || Row->Start > Result->Start))
+        {
+            Result = Row;
+        }
+    }
+    return Result;
+}
+
 inline float
 ShadowbladeEase(float T)
 {

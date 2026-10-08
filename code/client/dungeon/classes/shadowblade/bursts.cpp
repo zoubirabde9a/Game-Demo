@@ -11,7 +11,9 @@
      back along the way it came.
    - Shadow Dance: a column of shadow rising round the player.
    - Fan of Knives: a ring of knives thrown out round the player.
-   - Eviscerate: a flurry of cuts over the foe and a last cross.
+   - Eviscerate: a flurry of cuts over the foe, one a point spent, and a
+     last cross, bigger the more points; when the foe got away, two
+     faint cuts in the air.
    - Smoke Bomb: a cloud that swells, churns for its life and thins out.
    - Empty: five empty sockets over the head, shaking, for a finisher
      pressed with no combo points. */
@@ -203,11 +205,37 @@ DrawFanBurst(render_context *RenderContext, v2 Centre, float Angle, float Age)
     }
 }
 
+// NOTE(zoubir): an Eviscerate whose foe got away: two faint cuts in the
+// air and a puff, nothing struck
 internal void
-DrawEviscerateBurst(render_context *RenderContext, v2 Centre, float Angle, float Age)
+DrawEviscerateWhiff(render_context *RenderContext, v2 Centre, float Angle, float Age)
 {
-    // NOTE(zoubir): five quick cuts at odd angles, one after another
-    for(u32 Cut = 0; Cut < 5; Cut++)
+    v2 Aim = V2(Cos(Angle), Sin(Angle));
+    v2 Perp = V2(-Aim.Y, Aim.X);
+    for(u32 Cut = 0; Cut < 2; Cut++)
+    {
+        float T = Age - 0.06f * (float)Cut;
+        float Fade = 0.5f * (1.f - ShadowbladeEase((T - 0.05f) / 0.2f));
+        if (T < 0.f || Fade <= 0.f)
+        {
+            continue;
+        }
+        v2 U = ShadowbladeNormal((Cut ? -1.f : 1.f) * Perp + 0.5f * Aim);
+        DrawShadowbladeCut(RenderContext, Centre - 22.f * U, Centre + 22.f * U, Cut ? -0.25f : 0.25f,
+                           3.f, ShadowbladeEase(T / 0.06f), Fade, SHADOWBLADE_RGB);
+    }
+    float Puff = Clamp01(Age / 0.4f);
+    DrawShadowbladePuff(RenderContext, Centre + (12.f * Puff) * Aim, 10.f + 10.f * Puff, 0.5f * (1.f - Puff));
+}
+
+internal void
+DrawEviscerateBurst(render_context *RenderContext, v2 Centre, float Angle, float Age, u32 Points)
+{
+    // NOTE(zoubir): a quick cut a point spent, at odd angles, one after
+    // another
+    u32 Cuts = Maximum(2u, Minimum(Points, (u32)SHADOWBLADE_MOST_POINTS));
+    float Big = 0.6f + 0.1f * (float)Cuts;
+    for(u32 Cut = 0; Cut < Cuts; Cut++)
     {
         float T = Age - 0.045f * (float)Cut;
         if (T < 0.f)
@@ -233,17 +261,17 @@ DrawEviscerateBurst(render_context *RenderContext, v2 Centre, float Angle, float
         float Fade = 1.f - ShadowbladeEase((Last - 0.08f) / 0.22f);
         v2 Aim = V2(Cos(Angle), Sin(Angle));
         v2 Perp = V2(-Aim.Y, Aim.X);
-        v2 Cuts[2] = {ShadowbladeNormal(Perp + 0.8f * Aim), ShadowbladeNormal(-1.f * Perp + 0.8f * Aim)};
+        v2 Cross[2] = {ShadowbladeNormal(Perp + 0.8f * Aim), ShadowbladeNormal(-1.f * Perp + 0.8f * Aim)};
         for(u32 Cut = 0; Cut < 2; Cut++)
         {
-            DrawShadowbladeCut(RenderContext, Centre - 40.f * Cuts[Cut], Centre + 40.f * Cuts[Cut],
-                               Cut ? -0.15f : 0.15f, 7.f * Fade + 1.f, ShadowbladeEase(Last / 0.05f), Fade,
+            DrawShadowbladeCut(RenderContext, Centre - 40.f * Big * Cross[Cut], Centre + 40.f * Big * Cross[Cut],
+                               Cut ? -0.15f : 0.15f, 7.f * Big * Fade + 1.f, ShadowbladeEase(Last / 0.05f), Fade,
                                SHADOWBLADE_PALE_RGB);
         }
         float Flash = 1.f - Clamp01(Last / 0.15f);
         DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 50.f, Centre.Y - 50.f, 100.f, 100.f,
                        FxColor(0.9f * Flash, SHADOWBLADE_RGB), RenderBlend_Additive);
-        DrawShadowbladeSpray(RenderContext, Centre, Last, 0.32f, 16, 190.f, 361, Angle, 2.2f);
+        DrawShadowbladeSpray(RenderContext, Centre, Last, 0.32f, 6 + 2 * Cuts, 190.f * Big, 361, Angle, 2.2f);
     }
 }
 
@@ -305,7 +333,8 @@ DrawShadowbladeBurst(render_context *RenderContext, app_state *AppState, role_bu
              u32 Index, float T, v3 CameraOffset)
 {
     float Age = T * RoleBurstLife(Burst->Kind);
-    v2 Centre = BurstToScreen(Burst->Position, CameraOffset);
+    u32 Variant = ShadowbladeBurstVariant(Burst->Position);
+    v2 Centre = BurstToScreen(ShadowbladeBurstPlace(Burst->Position), CameraOffset);
     world_entity *Caster = Burst->Slot < MAX_PLAYERS ? AppState->Players[Burst->Slot].Entity : 0;
     float Width = Caster ? Caster->Dimensions.X : 40.f;
     float Height = Caster ? Caster->Dimensions.Y : 60.f;
@@ -342,7 +371,14 @@ DrawShadowbladeBurst(render_context *RenderContext, app_state *AppState, role_bu
 
         case ShadowbladeBurst_Eviscerate:
         {
-            DrawEviscerateBurst(RenderContext, Centre, Burst->Angle, Age);
+            if (Variant)
+            {
+                DrawEviscerateBurst(RenderContext, Centre, Burst->Angle, Age, Variant);
+            }
+            else
+            {
+                DrawEviscerateWhiff(RenderContext, Centre, Burst->Angle, Age);
+            }
         } break;
 
         case ShadowbladeBurst_Smoke:

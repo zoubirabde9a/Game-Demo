@@ -6,7 +6,8 @@
    (player_slot.ClassMeter). A point coming in pops its gem with a flash;
    at five the plate glows and pulses and says the finisher is ready; an
    Eviscerate empties them in a flash; pressing it with none shakes the
-   plate red and says so. Beside the plate, a ring that runs down while a
+   plate red and says so; one whose foe got away in the wind-up keeps
+   its points, and the plate says that too. Beside the plate, a ring that runs down while a
    critical strike waits (acid green) and while Shadow Dance lasts
    (violet). It reads the slot's meter and flags and the class's bursts,
    which every client gets, so it is the same online. */
@@ -85,7 +86,13 @@ DrawShadowbladeHud(render_context *RenderContext, app_state *AppState, player_sl
     {
         Gained = Minimum(Gained, ShadowbladeBurstAge(AppState, SlotIndex, Builders[Index]));
     }
-    float Spent = ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Eviscerate);
+    // NOTE(zoubir): an Eviscerate whose foe got away carries no points
+    // (shadowblade_defs.cpp): nothing was spent, and the plate says why
+    role_burst *Evis = ShadowbladeNewestBurst(AppState, SlotIndex, ShadowbladeBurst_Eviscerate);
+    float EvisAge = Evis ? Clock - Evis->Start : 100.f;
+    bool32 Whiff = Evis && ShadowbladeBurstVariant(Evis->Position) == 0;
+    float Spent = Whiff ? 100.f : EvisAge;
+    float Missed = Whiff ? EvisAge : 100.f;
     float Empty = ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Empty);
     float Shake = Empty < 0.4f ? 6.f * Sin(70.f * Empty) * (1.f - Empty / 0.4f) : 0.f;
     Centre.X += Shake;
@@ -144,6 +151,12 @@ DrawShadowbladeHud(render_context *RenderContext, app_state *AppState, player_sl
         float Fade = 1.f - Clamp01((Empty - 0.6f) / 0.3f);
         UIText(RenderContext, Small, Centre.X, LineY, (char *)"No combo points",
                WithAlpha(UI_RGBA(255, 110, 110, 255), Fade), UIAlign_Center);
+    }
+    else if (Missed < 0.9f)
+    {
+        float Fade = 1.f - Clamp01((Missed - 0.6f) / 0.3f);
+        UIText(RenderContext, Small, Centre.X, LineY, (char *)"Out of reach: points kept",
+               WithAlpha(UI_RGBA(255, 200, 120, 255), Fade), UIAlign_Center);
     }
     else if (Full)
     {

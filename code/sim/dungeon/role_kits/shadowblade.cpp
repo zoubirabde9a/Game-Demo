@@ -400,15 +400,22 @@ FinishEviscerate(app_state *AppState, player_slot *Slot, world_entity *Player)
     world_entity *Foe = Points ? AttackTarget(AppState, Slot, Player, EVISCERATE_REACH + 30.f) : 0;
     if (!Foe)
     {
-        // NOTE(zoubir): the foe walked off during the draw: the points
-        // stay and the key is ready again
+        // NOTE(zoubir): the foe walked off during the draw: the daggers
+        // cut the air (a burst with no points), the points stay and the
+        // key is ready again
+        v2 Aim = LengthSq(Player->Aim) > 0.0001f ? DirectionTo(Player->Aim) : V2(1.f, 0.f);
+        v3 Air = ChestOf(Player);
+        Air.XY += (0.6f * EVISCERATE_REACH) * Aim;
+        EmitBurst(&AppState->Events, ClassBurst(SimBurst_ShadowbladeFirst, ShadowbladeBurst_Eviscerate),
+                  (u8)Player->PlayerIndex, ShadowbladeBurstSpot(Air, 0), ATan2(Aim.Y, Aim.X));
+        EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);
         Slot->RoleCooldowns[4] = 0.f;
         return;
     }
     v2 Away = LengthSq(Foe->Position.XY - Player->Position.XY) > 1.f ?
         DirectionTo(Foe->Position.XY - Player->Position.XY) : DirectionTo(Player->Aim);
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_ShadowbladeFirst, ShadowbladeBurst_Eviscerate),
-              (u8)Player->PlayerIndex, ChestOf(Foe), ATan2(Away.Y, Away.X));
+              (u8)Player->PlayerIndex, ShadowbladeBurstSpot(ChestOf(Foe), Points), ATan2(Away.Y, Away.X));
     EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);
     Slot->ClassMeter = 0;
     bool32 Killed = ShadowbladeStrike(AppState, Slot, Player, Foe,

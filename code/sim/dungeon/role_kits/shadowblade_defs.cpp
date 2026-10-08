@@ -85,6 +85,37 @@ enum shadowblade_burst
     ShadowbladeBurst_Empty,      // a finisher pressed with no combo points
 };
 
+// NOTE(zoubir): a burst carries a small number too (the points an
+// Eviscerate spent, 0 for one that found no foe), as whole steps of
+// SHADOWBLADE_BURST_STEP added to its height: online a burst's position
+// goes whole, no burst is drawn that high, and ShadowbladeBurstPlace
+// takes it off
+#define SHADOWBLADE_BURST_STEP 4096.f
+
+inline v3
+ShadowbladeBurstSpot(v3 Position, u32 Variant)
+{
+    v3 Result = Position;
+    Result.Z += SHADOWBLADE_BURST_STEP * (float)Variant;
+    return Result;
+}
+
+inline u32
+ShadowbladeBurstVariant(v3 Position)
+{
+    float Steps = floorf((Position.Z + 0.5f * SHADOWBLADE_BURST_STEP) / SHADOWBLADE_BURST_STEP);
+    u32 Result = Steps > 0.f ? (u32)Steps : 0;
+    return Result;
+}
+
+inline v3
+ShadowbladeBurstPlace(v3 Position)
+{
+    v3 Result = Position;
+    Result.Z -= SHADOWBLADE_BURST_STEP * (float)ShadowbladeBurstVariant(Position);
+    return Result;
+}
+
 enum shadowblade_talent
 {
     ShadowbladeTalent_Lethality,
