@@ -13,7 +13,7 @@ Its row in `DungeonLevels` (`sim/dungeon/levels.cpp`): monsters have 1.7 times t
 `sim/maps/vault.cpp`, drawn by a script. A vault of black ice under the forge, where the cold that put its fires out still sleeps. Stone floors, snow (slow), ice (slow to start on and slow to stop on, so a shove carries a long way), freezing water, bog, and runes in the boss rooms that lift the slows the bosses put on. A dark blue colour grade (`client/map_moods.cpp`) and frost glinting as it falls (`client/ambient_motes.cpp`).
 
 1. **Frostgate Landing.** Where the party arrives. No monsters; a spring.
-2. **Shiver Hall.** Snow and ice sheets round pillars. One big pack: an elite Carapace Warden behind two Hexweaver Spiders' webs with three Bilecaller Toads, an elite Gravemaw Brute with three Duskwing bats, a Bone Shaman raising three Skeletal Thralls beside an elite Gloomslime, and two Hollow Shades (one elite).
+2. **Shiver Hall.** Snow and ice sheets round pillars. One big pack: an elite Carapace Warden behind two Hexweaver Spiders' webs with three Bilecaller Toads, an elite Gravemaw Brute with three Duskwing bats, a Bone Shaman raising three Skeletal Thralls beside an elite Gloomslime, two elite Hollow Shades and two Dune Lurkers.
 3. **Calving Hall.** Boss 1, Hrimgar the Frost Colossus. Open floor, ice in the corners, four pillars.
 4. **Drowned Cloister.** Shallow water channels in a cross, two deep pools, bog. Three Bilecaller Toads and an elite Gloomslime; two Dune Lurkers and an elite Hollow Shade; an elite Hexweaver Spider with a Tuskback Ravager, three bats and a Hollow Shade.
 5. **Mirror Mere.** Boss 2, Ysolde the Pale Witch. A round lair: a ring of ice round a shallow pool, a rune on each side.
@@ -30,7 +30,7 @@ Each is a monster file in `sim/monsters/vault_*.cpp` with a code-drawn sprite, a
 |---|---|---|
 | Hrimgar the Frost Colossus | 1900 | 1:50 |
 | Ysolde the Pale Witch | 1450 | 1:30 |
-| Ithrel the Rimeheart | 1700 | 2:10 |
+| Ithrel the Rimeheart | 2000 | 2:10 |
 
 **Hrimgar the Frost Colossus**, a giant of glacier ice packed round black rock, a cold light in his chest.
 - Shatter Ring: a ring of ice out to 260 that spares only those within 80 of him (32, slows). A 1.1 s windup: the whole party has to stack on the tank.
@@ -56,7 +56,7 @@ Each is a monster file in `sim/monsters/vault_*.cpp` with a code-drawn sprite, a
 - Raise the Frozen Dead: two Skeletal Thralls, four at most.
 - Soul Rime: steps beside whoever holds him and freezes them, every 13 s (25). It cannot be dodged.
 - Shatterstorm (below 30%): shards out in every direction round his target.
-- At 80% and 45% a Bone Shaman rises and mends him: kill it first. At 60% and 30% he binds a Rime Champion, an armoured Brute: 25 s to kill it, or it erupts for half of everyone's health and heals him 10%.
+- At 80% and 45% a Bone Shaman rises and mends him: kill it first. At 60% and 30% he binds a Rime Champion, an armoured Brute: 20 s to kill it, or it erupts for half of everyone's health and heals him 10%.
 
 ## Tuning
 
@@ -68,3 +68,9 @@ Measured with the bots (a tank, a healer and the Fire Mage) given the experience
 - Ithrel: about 1.5 wipes per kill, kills in 55 to 85 s. The first draft wiped two to five times per kill: three thralls every 9 s (six at most) on top of the shamans' buried the bots, and a shelled Warden as the champion was never killed in time. Both were cut back.
 
 Bots play worse than people, so these are upper bounds, not targets. Vol'karr, the depths' last boss, is at about 0.25 wipes per kill: the vault's last boss is meant to be the hardest fight in the game.
+
+The twelve-talent class trees landed after this tuning, and with them a party reaching the vault at level 13 shrugged off everything but Ithrel: over sixteen full runs the Shiver Hall, Hrimgar and the Shattered Span killed nobody. The vault now hits 1.9 times as hard (was 1.55) with 2.4 on its packs (was 1.45), the Shiver Hall is one big pull, the Span's packs are mostly elites, Hrimgar has toads, Ysolde has shades and both act sooner.
+
+The Fire Mage rework then made the bots' damage seat much stronger (Ithrel went from 2.4 to 0.26 deaths per kill, below Vol'karr). Ithrel now has 2000 health and 20 s to kill his champion, and the Shiver Hall two elite shades and two lurkers. Over 64 full runs (`set PROBE_LEVELS=3& misc\balance.bat 200 3 2 64`), deaths per kill, vault against the depths room in the same place: Shiver Hall about 1.4 against the Slag Pits' 1.37, Hrimgar 0.49 against Kragg's 0.05, Drowned Cloister 1.34 against Glasswing Hollow's 0.43, Ysolde 0.31 against Sskarra's 0.21, the Span 1.10 against the bridge's 0.85, Ithrel 1.43 against Vol'karr's 0.90.
+
+`misc\balance.bat` builds and runs the probe with its seeds side by side, so a room over 64 seeds takes about two seconds and all three levels over 64 seeds about twenty. Two faults in the probe made a single room read harder than the full run: bots started a level short at the vault's last rooms, and fought with most of their talent points unspent, as a bot learns one every 1.5 s. Both are fixed; a room alone and the full run now agree within the noise.

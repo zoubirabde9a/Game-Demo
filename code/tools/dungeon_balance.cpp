@@ -8,32 +8,57 @@
    bound to tune timers against, not the target.
 
    Usage: dungeon_balance [minutes] [players] [room] [seeds]
-   (default 20, 3, 2, 1). With seeds N past 1 the whole probe runs N
-   times, each with the bots' choices and the run's own randomness (pack
-   spots, elite affixes) seeded differently, every line led by its seed:
-   one run is too noisy to tune by. PROBE_DEATHS=1 also prints, for each
-   player who falls, the monsters within 260 of them.
+   (default 20, 3, 2, 1). Minutes is only a ceiling: a probe stops as
+   soon as its work is done. With seeds N past 1 the probe runs N times,
+   each with the bots' choices and the run's own randomness (pack spots,
+   elite affixes) seeded differently, one process per seed, PROBE_JOBS
+   at once (default: every core), and prints one table: per room, kills,
+   wipes and deaths per kill, average and longest kill. One run is too
+   noisy to tune by. PROBE_VERBOSE=1 also prints every fight of every
+   seed. PROBE_DEATHS=1 also prints, for each player who falls, the
+   monsters within 260 of them (one seed, or with PROBE_VERBOSE).
    A room past 2 marks the rooms before it cleared, puts the bots inside
-   it once they have joined, and gives each the experience of
-   PROBE_SECONDS_PER_ROOM of play per room skipped, to time one fight
-   over and over at about the level a party reaches it. Bots that wiped
-   there are walked back in after PROBE_RETRY_SECONDS, as they only chase
-   what they see and would wait at the checkpoint for good.
+   it once they have joined, at the level a party reaches it with (one
+   per room with monsters cleared before it, as LevelCap allows), and
+   stops when that room is cleared. Bots that wiped there are walked
+   back in after PROBE_RETRY_SECONDS, as they only chase what they see
+   and would wait at the checkpoint for good. From room 2 a probe stops
+   after clearing PROBE_LEVELS levels (default 1); PROBE_LEVELS=3 from
+   the crypt plays the crypt, the depths and the vault in a row.
+   Bots that stand PROBE_STALL_SECONDS between fights (lost: they wander
+   before the Throne of Dust for minutes) are walked to the next room's
+   entrance and counted as a stall; PROBE_STALLS_PER_ROOM in a row at
+   one room, or a fight past PROBE_FIGHT_SECONDS (a foe nobody can
+   reach), ends the seed, reported as stuck.
    PROBE_MAP=depths starts in the Ember Depths instead, the bots given
    the experience of the whole crypt first (and of the rooms skipped);
    PROBE_MAP=vault in the Rimeheart Vault, with the crypt's and the
    depths'.
-   Build: cl -nologo -O2 -DAPP_DEV=1 -DAPP_SLOW=0 -DAPP_WIN32=1
-          ..\code\tools\dungeon_balance.cpp /link user32.lib Gdi32.lib Winmm.lib OpenGL32.lib */
+   Build and run: misc\balance.bat [same arguments], which rebuilds the
+   probe only when the code changed. */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "../server/server.cpp"
 
-// NOTE(zoubir): about how long a party takes over a room, walking and
-// resting included
-#define PROBE_SECONDS_PER_ROOM 90
 #define PROBE_RETRY_SECONDS 12.f
+#define PROBE_STALL_SECONDS 120.f
+#define PROBE_STALLS_PER_ROOM 3
+#define PROBE_FIGHT_SECONDS 300.f
+#define PROBE_MAX_JOBS 64
+#define PROBE_MAX_ROOMS 64
+
+#if defined(_WIN32)
+#define ProbeOpen _popen
+#define ProbeClose _pclose
+#else
+#define ProbeOpen popen
+#define ProbeClose pclose
+#endif
+
+// NOTE(zoubir): a seed run by main in its own process, which prints a
+// line per fight for the table besides the lines people read
+global_variable bool32 ProbeChild;
 
 // NOTE(zoubir): every bot with a body to Position, rested: full health
 // and no burning, as a party waits before pulling again. Waiting by the
@@ -57,11 +82,44 @@ PlaceBots(server_game *Game, v3 Position)
     }
 }
 
+// NOTE(zoubir): every bot's unspent talent points, spent now as the bot
+// would pick them. A bot spends one every BOT_LEARN_SECONDS, so bots
+// given a dozen levels and put straight into a boss room fought it with
+// most of their talents unlearned, where a party that walked there had
+// spent them long before: the probe ran far harder than the full run
+internal void
+SpendBotTalents(server_game *Game)
+{
+    for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
+    {
+        player_slot *Player = &Game->AppState->Players[Slot];
+        if (!Player->Active || !Game->Bots[Slot].Active)
+        {
+            continue;
+        }
+        while (TalentPointsLeft(Player) > 0)
+        {
+            u32 Pick = BotPickTalent(&Game->Bots[Slot], Game->AppState, Player) >> NET_LEARN_SHIFT;
+            if (!Pick || !LearnTalent(Game->AppState, Slot, Pick - 1))
+            {
+                break;
+            }
+        }
+    }
+}
+
 // NOTE(zoubir): one probe, its randomness seeded by SeedNumber (0 leaves
 // the game's own seeds)
 internal void
 ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
 {
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    char *LevelsText = getenv("PROBE_LEVELS");
+#pragma warning(pop)
+    u32 Levels = LevelsText ? (u32)atoi(LevelsText) : 1;
+    bool32 Done = false;
+    u32 Stalls = 0;
     bool32 Placed = false;
     static server_game Game;
     Game = {};
@@ -96,9 +154,13 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
     float BossShare = 0.f;
     float EnrageShare = 0.f;
     printf("dungeon balance: %u bots, %u simulated minutes\n", Players, Minutes);
-    for (u32 Tick = 0; Tick < Ticks; ++Tick)
+    for (u32 Tick = 0; Tick < Ticks && !Done; ++Tick)
     {
         GameKeepBots(&Game, 0, Dt);
+        if (Placed)
+        {
+            SpendBotTalents(&Game);
+        }
         GameTick(&Game, Dt);
         dungeon_run *Run = Game.AppState->Dungeon;
         if (!Run)
@@ -152,8 +214,14 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
                         MovePlayerTo(Game.AppState, &Game.AppState->World, Game.Arena,
                                      Player->Entity, Run->RoomEntry[FirstRoom]);
                     }
-                    AwardXp(Game.AppState, Player, (RoomsBefore + FirstRoom - 2) *
-                            PROBE_SECONDS_PER_ROOM * XP_PER_SECOND);
+                    // NOTE(zoubir): the level a party arrives with, the
+                    // cap: guessing it from time played left the bots a
+                    // level short at the vault's last rooms
+                    u32 Want = XpToReach(LevelCap(Game.AppState, Player));
+                    if (Want > Player->Xp)
+                    {
+                        AwardXp(Game.AppState, Player, Want - Player->Xp);
+                    }
                 }
             }
             continue;
@@ -214,9 +282,25 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
                     printf("  wiped with the boss at %.0f%%", 100.f * BossShare);
                 }
                 printf("\n");
+                // NOTE(zoubir): the same fight for the table (main)
+                if (ProbeChild)
+                {
+                    printf("fight\t%s\t%u\t%.1f\t%u\n",
+                           GetRoomName(Game.AppState->World.MapId, Room), Wiped ? 0 : 1,
+                           Seconds, Deaths - DeathsAtStart);
+                }
                 if (!Wiped && Room == Run->RoomCount)
                 {
                     Runs++;
+                }
+                if (!Wiped && FirstRoom > 2 && Room == FirstRoom &&
+                    Game.AppState->World.MapId == StartMap)
+                {
+                    Done = true;
+                }
+                if (FirstRoom <= 2 && Runs >= Levels)
+                {
+                    Done = true;
                 }
             }
             else if (Seconds > 60.f)
@@ -226,6 +310,10 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
                 printf("  run %u  %.1f s between fights before the %s\n", Runs + 1,
                        Seconds, GetRoomName(Game.AppState->World.MapId, Run->FightingRoom));
             }
+            if (Run->FightingRoom)
+            {
+                Stalls = 0;
+            }
             Room = Run->FightingRoom;
             WipesAtStart = Run->Wipes;
             DeathsAtStart = Deaths;
@@ -234,9 +322,38 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
             BossShare = 0.f;
         }
         Seconds += Dt;
+        // NOTE(zoubir): lost bots are walked on; a room that will not
+        // start, or a fight that will not end, ends the seed, as the rest
+        // of it would only wait
+        if (Placed && !Room && !Done && Seconds > PROBE_STALL_SECONDS)
+        {
+            u32 Next = NextRoomToClear(Run->RoomStates, Run->RoomCount);
+            char *Name = GetRoomName(Game.AppState->World.MapId, Next);
+            if (++Stalls >= PROBE_STALLS_PER_ROOM)
+            {
+                printf("%s%s\n", ProbeChild ? "stuck\t" : "  stuck before the ", Name);
+                Done = true;
+            }
+            else
+            {
+                printf("%s%s\n", ProbeChild ? "stall\t" : "  lost, walked to the ", Name);
+                PlaceBots(&Game, Run->RoomEntry[Next]);
+                Seconds = 0.f;
+            }
+        }
+        if (Room && !Done && Seconds > PROBE_FIGHT_SECONDS)
+        {
+            printf("%s%s\n", ProbeChild ? "stuck\t" : "  a fight that will not end in the ",
+                   GetRoomName(Game.AppState->World.MapId, Room));
+            Done = true;
+        }
     }
     dungeon_run *Run = Game.AppState->Dungeon;
-    if (Run && Room)
+    if (Done)
+    {
+        // NOTE(zoubir): finished, nothing left to show
+    }
+    else if (Run && Room)
     {
         printf("  still in the %s after %.1f s, %u foes left\n",
                GetRoomName(Game.AppState->World.MapId, Room), Seconds, Run->ShownFoesLeft);
@@ -288,6 +405,8 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
     GameShutdown(&Game);
 }
 
+#include "dungeon_balance/seeds.cpp"
+
 int
 main(int ArgCount, char **Args)
 {
@@ -295,10 +414,19 @@ main(int ArgCount, char **Args)
     u32 Players = ArgCount > 2 ? (u32)atoi(Args[2]) : 3;
     u32 FirstRoom = ArgCount > 3 ? (u32)atoi(Args[3]) : 2;
     u32 Seeds = ArgCount > 4 ? (u32)atoi(Args[4]) : 1;
-    for (u32 SeedNumber = (Seeds > 1 ? 1 : 0); SeedNumber <= (Seeds > 1 ? Seeds : 0); ++SeedNumber)
+    if (ArgCount > 5)
     {
-        printf("seed %u\n", SeedNumber);
-        ProbeOneSeed(Minutes, Players, FirstRoom, SeedNumber);
+        // NOTE(zoubir): one seed for ProbeSeeds
+        ProbeChild = true;
+        ProbeOneSeed(Minutes, Players, FirstRoom, (u32)atoi(Args[5]));
+    }
+    else if (Seeds > 1)
+    {
+        ProbeSeeds(Minutes, Players, FirstRoom, Seeds);
+    }
+    else
+    {
+        ProbeOneSeed(Minutes, Players, FirstRoom, 0);
     }
     return 0;
 }

@@ -14,17 +14,19 @@ global_variable encounter_row VaultEncounters[] =
     // 2, Shiver Hall: one big pack, as three small ones cost a party at
     // this level nothing. A shelled warden behind webs with toads shelling
     // over it, an elite brute with bats, a shaman raising the dead beside
-    // an elite slime, and shades at the back line
+    // an elite slime, two elite shades at the back line and lurkers
+    // tunnelling under the tank
     {2, 0, MonsterKind_Warden, 1, Encounter_Elite},
     {2, 0, MonsterKind_Spider, 2, 0},
     {2, 0, MonsterKind_Toad, 3, 0},
+    {2, 0, MonsterKind_Lurker, 1, 0},
     {2, 0, MonsterKind_Brute, 1, Encounter_Elite},
     {2, 0, MonsterKind_Bat, 3, 0},
     {2, 0, MonsterKind_Shaman, 1, 0},
     {2, 0, MonsterKind_Thrall, 3, 0},
     {2, 0, MonsterKind_Slime, 1, Encounter_Elite},
     {2, 0, MonsterKind_Shade, 1, Encounter_Elite},
-    {2, 0, MonsterKind_Shade, 1, 0},
+    {2, 0, MonsterKind_Shade, 1, Encounter_Elite},
     // 3, Calving Hall: the first boss, Hrimgar the Frost Colossus
     {3, 0, MonsterKind_FrostColossus, 1, Encounter_Boss},
     // 4, Drowned Cloister: toads shelling from the water, lurkers under

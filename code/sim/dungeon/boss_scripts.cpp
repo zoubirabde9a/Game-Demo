@@ -83,13 +83,13 @@ global_variable boss_event BossEvents[] =
     {MonsterKind_PaleWitch, 0.33f, MonsterKind_Bat, 4, 14.f, 0.05f, 0.f, MonsterAffix_Chilling},
     // NOTE(zoubir): Ithrel: a Bone Shaman rises twice and mends him, so it
     // dies first; and he binds a Rime Champion, an armoured brute, twice:
-    // kill it in 25 s or it erupts for half of everyone's health. A
+    // kill it in 20 s or it erupts for half of everyone's health. A
     // shelled warden here was too much beside the shamans: the bots
     // never got round it in time
     {MonsterKind_Rimeheart, 0.8f, MonsterKind_Shaman, 1, 0.f, 0.f, 0.f, 0},
     {MonsterKind_Rimeheart, 0.45f, MonsterKind_Shaman, 1, 0.f, 0.f, 0.f, 0},
-    {MonsterKind_Rimeheart, 0.6f, MonsterKind_Brute, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
-    {MonsterKind_Rimeheart, 0.3f, MonsterKind_Brute, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
+    {MonsterKind_Rimeheart, 0.6f, MonsterKind_Brute, 1, 20.f, 0.1f, 0.5f, MonsterAffix_Armored},
+    {MonsterKind_Rimeheart, 0.3f, MonsterKind_Brute, 1, 20.f, 0.1f, 0.5f, MonsterAffix_Armored},
 };
 
 // NOTE(zoubir): the fight's boss, as encounters.cpp spawned it, or 0 once

@@ -22,7 +22,7 @@ internal void
 DefineMonster_Rimeheart(monster_def *Def)
 {
     Def->Name = "Ithrel the Rimeheart";
-    Def->MaxHp = 1700.f;
+    Def->MaxHp = 2000.f;
     Def->Acceleration = 26000.f;
     Def->AggroRange = 720.f;
     Def->StopRange = 52.f;
