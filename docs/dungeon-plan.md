@@ -13,6 +13,8 @@ This file is the plan and the record. Tick a box when the step lands on `main`.
 
 ## Roles
 
+A player now picks a class, and each class plays one of four roles: tank, healer, ranged or melee damage. The tables below cover the first three classes (the damage one is the Fire Mage, called the striker here); `docs/dungeon-classes.md` covers the class system and the Ranger, Berserker and Shadowblade, which also cast on W, X and the right click.
+
 A player picks a role (a class) in the lobby room before the first gate, and can change it there between runs. Each class sets health, damage taken and dealt, and how much threat damage makes, and has four spells of its own: two main spells on A and R from the start, and two more on C and V that its talent tree unlocks. Every class also has the fireball (X), the shield (E), blink (F) and jump. Nothing else works in a run: the sword, dash, the kunai, launch, the rewinds and the shared tree's area spells do nothing there (`RunAllowedButtons`, `sim/dungeon/role_abilities.cpp`), and the ability bar shows only A, R, C, V, then X, E, F and jump.
 
 | | Tank (Bulwark) | Healer (Mender) | Damage (Striker) |
