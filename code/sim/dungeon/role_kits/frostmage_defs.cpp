@@ -43,6 +43,8 @@
 #define GLACIAL_SPIKE_PER_ICICLE 7.f
 #define GLACIAL_SPIKE_FREEZE 1.5f
 #define GLACIAL_SPIKE_COOLDOWN 7.f
+// NOTE(zoubir): the spike flies faster than a bolt
+#define GLACIAL_SPIKE_SPEED 1400.f
 
 // NOTE(zoubir): Frost Nova (W): every foe within FROST_NOVA_RADIUS of the
 // mage is frozen in place (rooted) for FROST_NOVA_ROOT and takes a little
@@ -141,6 +143,23 @@ global_variable u8 FrostMageTalentStats[ROLE_TALENTS] =
     RoleStat_Damage, RoleStat_Armor, RoleStat_None, RoleStat_Haste, RoleStat_Vitality, RoleStat_None,
 };
 
-// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click. Empty
-// until the kit lands (role_kits/frostmage.cpp)
-global_variable role_spell FrostMageSpells[ROLE_KEYS] = {};
+// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click
+global_variable role_spell FrostMageSpells[ROLE_KEYS] =
+{
+    {"Blizzard", BLIZZARD_COOLDOWN, "Blizzard: ice falls on the circle at the cursor for 3 s, chilling",
+     RoleAim_Ground, BLIZZARD_RADIUS, 0},
+    {"Glacial Spike", GLACIAL_SPIKE_COOLDOWN,
+     "Glacial Spike: 1.25 s cast, a spike at a foe that spends your Icicles; five freeze it",
+     RoleAim_Foe, GLACIAL_SPIKE_RANGE, 0},
+    {"Ice Barrier", ICE_BARRIER_COOLDOWN, "Ice Barrier: a shield of ice that takes the next 45 damage",
+     RoleAim_None, 0.f, FrostMageTalent_IceBarrier + 1},
+    {"Frozen Orb", FROZEN_ORB_COOLDOWN,
+     "Frozen Orb: an orb rolls along your aim, striking and chilling what is near it",
+     RoleAim_Line, FROZEN_ORB_SPEED * FROZEN_ORB_SECONDS, FrostMageTalent_FrozenOrb + 1},
+    {"Frost Nova", FROST_NOVA_COOLDOWN, "Frost Nova: freeze every foe near you in place for 3 s",
+     RoleAim_None, 0.f, 0},
+    {"Frostbolt", FROSTBOLT_COOLDOWN,
+     "Frostbolt: a bolt that chills a foe and grows an Icicle; frozen foes take 40% more",
+     RoleAim_Foe, FROSTBOLT_RANGE, 0},
+    {},
+};
