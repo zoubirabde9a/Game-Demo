@@ -45,7 +45,7 @@
 // NOTE(zoubir): world units shown from the top of the screen to the bottom
 // (the window used to show its own height, 680 at the default size); the
 // zoom never goes below 1 or above 3
-#define WORLD_VIEW_HEIGHT 520.f
+#define WORLD_VIEW_HEIGHT 612.f
 #define WORLD_ZOOM_MIN 1.f
 #define WORLD_ZOOM_MAX 3.f
 // NOTE(zoubir): the spring's smoothing time in seconds: it covers most of

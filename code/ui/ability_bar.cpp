@@ -19,17 +19,17 @@
    bar draws with (build/shaders/fx/slot_frame.frag, cooldown_sweep.frag,
    ring.frag, glow.frag, panel.frag) and the sizes below. */
 
-#define ABILITY_SLOT_SIZE 50.f
-#define ABILITY_SLOT_GAP 8.f
-#define ABILITY_GROUP_GAP 22.f
-#define ABILITY_BAR_BOTTOM 26.f
-#define ABILITY_PLATE_PAD 12.f
+#define ABILITY_SLOT_SIZE 40.f
+#define ABILITY_SLOT_GAP 5.f
+#define ABILITY_GROUP_GAP 14.f
+#define ABILITY_BAR_BOTTOM 12.f
+#define ABILITY_PLATE_PAD 7.f
 // NOTE(zoubir): slot_frame.frag fills this share of its quad with the slot
 // and leaves the rest for the glow
 #define ABILITY_SLOT_BOX 0.78f
 // NOTE(zoubir): from the health bar's foot to the slots' top, the XP
 // strip in the middle
-#define ABILITY_HEALTH_GAP 30.f
+#define ABILITY_HEALTH_GAP 17.f
 #define ABILITY_PULSE_SECONDS 0.45f
 #define ABILITY_PRESS_SECONDS 0.16f
 #define ABILITY_DENIED_SECONDS 0.3f
@@ -178,19 +178,19 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
     DrawUIPanel(RenderContext, Left - PlatePad, PlateTop, PlateWidth, PlateHeight);
     DrawHealthBar(RenderContext, AppState, &Bar->Health, Player, Left, HealthY, Width,
                   DeltaTime);
-    DrawXpStrip(RenderContext, AppState, Left,
-                HealthY + ABILITY_HEALTH_HEIGHT + 0.5f * (ABILITY_HEALTH_GAP - XP_STRIP_HEIGHT) - 2.f,
-                Width);
+    // NOTE(zoubir): the strip hugs the health bar's foot, the rest of the
+    // gap goes above the slots' key tabs
+    DrawXpStrip(RenderContext, AppState, Left, HealthY + ABILITY_HEALTH_HEIGHT + 3.f, Width);
     Xp->PlateX = Left - PlatePad;
     Xp->PlateY = PlateTop;
     Xp->PlateWidth = PlateWidth;
     Xp->PlateHeight = PlateHeight;
     float PlateMiddle = PlateTop + 0.5f * PlateHeight;
-    DrawLevelBadge(RenderContext, AppState, Left - PlatePad - 14.f - 0.5f * XP_BADGE_SIZE,
+    DrawLevelBadge(RenderContext, AppState, Left - PlatePad - 10.f - 0.5f * XP_BADGE_SIZE,
                    PlateMiddle);
     talent_panel *TalentPanel = GetTalentPanel(AppState);
     if (DrawTalentPointsButton(RenderContext, AppState, Input,
-                               Left + Width + PlatePad + 14.f, PlateMiddle,
+                               Left + Width + PlatePad + 10.f, PlateMiddle,
                                TalentPanel->Open))
     {
         ToggleTalentPanel(AppState);
@@ -372,8 +372,8 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         {
             u32 MaxLevel = TalentDefs[Talent].MaxLevel;
             u32 Level = TalentLevel(LocalSlot, Talent);
-            float Pip = 6.f;
-            float PipGap = 3.f;
+            float Pip = 5.f;
+            float PipGap = 2.f;
             float PipsWidth = (float)MaxLevel * Pip + (float)(MaxLevel - 1) * PipGap;
             float PipY = CentreY + 0.5f * Slot - 1.f;
             u32 Under = UI_RGBA(6, 7, 10, 230);
@@ -428,9 +428,9 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
     // NOTE(zoubir): clicks on the plate are the bar's, not a cast
     // (client/talent_requests.cpp)
     talent_requests *Requests = GetTalentRequests(AppState);
-    Requests->BarX = Left - PlatePad - 14.f - XP_BADGE_SIZE;
+    Requests->BarX = Left - PlatePad - 10.f - XP_BADGE_SIZE;
     Requests->BarY = PlateTop;
-    Requests->BarWidth = PlateWidth + 2.f * (14.f + XP_BADGE_SIZE);
+    Requests->BarWidth = PlateWidth + 2.f * (10.f + XP_BADGE_SIZE);
     Requests->BarHeight = PlateHeight;
 
     if (Hovered >= 0)

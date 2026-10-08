@@ -7,7 +7,7 @@
    quad, so it costs the UI pass a handful of batches. */
 
 #define MINIMAP_TILES 64
-#define MINIMAP_PIXELS 160.f
+#define MINIMAP_PIXELS 112.f
 
 // NOTE(zoubir): one colour per terrain kind, in terrain_kind order. A
 // kind added without a colour here shows as transparent
