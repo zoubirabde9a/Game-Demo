@@ -38,6 +38,8 @@ RoundTrip(net_packet *In, u32 *SizeOut)
     return Out;
 }
 
+#define FULL_SNAPSHOT_SOUNDS (NET_MAX_SNAPSHOT_SOUNDS - 3)
+
 internal net_packet
 FullSnapshot()
 {
@@ -109,8 +111,11 @@ FullSnapshot()
         P.Snapshot.Facings[Index].EntityIndex = Index;
         P.Snapshot.Facings[Index].Angle = (u8)(Index * 32 + 1);
     }
-    P.Snapshot.SoundCount = NET_MAX_SNAPSHOT_SOUNDS;
-    for (u8 Index = 0; Index < NET_MAX_SNAPSHOT_SOUNDS; ++Index)
+    // Three sounds short of the most: with every sound slot full as well
+    // it no longer fits, since the talent ranks grew three bytes for the
+    // deeper class trees (TestOverfullSnapshotIsTrimmed).
+    P.Snapshot.SoundCount = FULL_SNAPSHOT_SOUNDS;
+    for (u8 Index = 0; Index < FULL_SNAPSHOT_SOUNDS; ++Index)
     {
         P.Snapshot.Sounds[Index] = (u8)(200 + Index);
     }
@@ -469,7 +474,7 @@ TestFullSnapshotFits()
     }
     Check(Out.Snapshot.NameSlot == NET_MAX_SNAPSHOT_SCORES - 1);
     Check(Out.Snapshot.FacingCount == NET_MAX_SNAPSHOT_FACINGS);
-    Check(Out.Snapshot.SoundCount == NET_MAX_SNAPSHOT_SOUNDS);
+    Check(Out.Snapshot.SoundCount == FULL_SNAPSHOT_SOUNDS);
     Check(Out.Snapshot.KillCount == 1);
     Check(Out.Snapshot.Kills[0].Victim == 1);
     Check(Out.Snapshot.Kills[0].KillerMonster == 0xFF);
@@ -478,7 +483,7 @@ TestFullSnapshotFits()
     Check(Out.Snapshot.Bursts[0].Angle == 200);
     Check(Out.Snapshot.Bursts[0].X == -40.5f && Out.Snapshot.Bursts[0].Y == 812.25f);
     Check(Out.Snapshot.Bursts[0].Z == 33.f);
-    Check(Out.Snapshot.Sounds[NET_MAX_SNAPSHOT_SOUNDS - 1] == 200 + NET_MAX_SNAPSHOT_SOUNDS - 1);
+    Check(Out.Snapshot.Sounds[FULL_SNAPSHOT_SOUNDS - 1] == 200 + FULL_SNAPSHOT_SOUNDS - 1);
     Check(Out.Snapshot.Facings[NET_MAX_SNAPSHOT_FACINGS - 1].Angle ==
           (NET_MAX_SNAPSHOT_FACINGS - 1) * 32 + 1);
     Check(strcmp(Out.Snapshot.Name, "ABCDEFGHIJKLMNO") == 0);
@@ -1090,8 +1095,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d6eu
-#define NET_GOLDEN_LAYOUT 0x0fdab5beu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d6fu
+#define NET_GOLDEN_LAYOUT 0xfba26ff0u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

@@ -279,18 +279,34 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 NetU8(S, &P->Snapshot.Cooldowns[Index]);
             }
             NetU16(S, &P->Snapshot.Xp);
-            // NOTE(zoubir): two ranks a byte, 0..15 each
-            for (u32 Index = 0; Index < NET_TALENT_COUNT; Index += 2)
+            // NOTE(zoubir): the ranks as one run of bits, 2 a duel talent
+            // and 3 a class talent (NET_TALENT_WIDE_FIRST)
             {
-                u8 Packed = 0;
-                for (u32 Part = 0; Part < 2 && Index + Part < NET_TALENT_COUNT; ++Part)
+                u8 Packed[NET_TALENT_BYTES] = {};
+                u32 Bit = 0;
+                for (u32 Index = 0; Index < NET_TALENT_COUNT; ++Index)
                 {
-                    Packed |= (u8)((P->Snapshot.TalentRanks[Index + Part] & 15) << (4 * Part));
+                    u32 Width = Index < NET_TALENT_WIDE_FIRST ? 2 : 3;
+                    u32 Rank = P->Snapshot.TalentRanks[Index] & ((1u << Width) - 1);
+                    for (u32 Part = 0; Part < Width; ++Part, ++Bit)
+                    {
+                        Packed[Bit / 8] |= (u8)(((Rank >> Part) & 1) << (Bit % 8));
+                    }
                 }
-                NetU8(S, &Packed);
-                for (u32 Part = 0; Part < 2 && Index + Part < NET_TALENT_COUNT; ++Part)
+                for (u32 Byte = 0; Byte < NET_TALENT_BYTES; ++Byte)
                 {
-                    P->Snapshot.TalentRanks[Index + Part] = (Packed >> (4 * Part)) & 15;
+                    NetU8(S, &Packed[Byte]);
+                }
+                Bit = 0;
+                for (u32 Index = 0; Index < NET_TALENT_COUNT; ++Index)
+                {
+                    u32 Width = Index < NET_TALENT_WIDE_FIRST ? 2 : 3;
+                    u32 Rank = 0;
+                    for (u32 Part = 0; Part < Width; ++Part, ++Bit)
+                    {
+                        Rank |= (u32)((Packed[Bit / 8] >> (Bit % 8)) & 1) << Part;
+                    }
+                    P->Snapshot.TalentRanks[Index] = (u8)Rank;
                 }
             }
             NetU8(S, &P->Snapshot.Stagger);

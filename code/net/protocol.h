@@ -21,7 +21,7 @@
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
 #define NET_PROTOCOL_ID 0x47444d6fu // "GDMo", change it whenever the layout changes
-// (GDMn..GDMo: 30 talent ranks of 4 bits each, for the deeper class trees)
+// (GDMo: 30 talent ranks, the class talents in 3 bits, for the deeper class trees)
 // (GDMm: a dungeon run sends one player's meter a snapshot)
 // (GDMl: an open map vote sends every player's answer)
 // (GDMk: two dungeon casts came in before the rewinds, so cast ids moved,
@@ -46,6 +46,10 @@
 #define NET_MAX_SNAPSHOT_REWINDS 4  // time rewinds under way the viewer can see
 #define NET_MAX_SNAPSHOT_CASTS 8    // players winding up a spell (MAX_PLAYERS)
 #define NET_COOLDOWN_COUNT 16       // the viewer's own ability cooldowns
+// NOTE(zoubir): ranks before NET_TALENT_WIDE_FIRST travel in 2 bits (a
+// duel talent has at most 3), the class talents from it in 3 (at most 4)
+#define NET_TALENT_WIDE_FIRST 18
+#define NET_TALENT_BYTES 9
 #define NET_TALENT_COUNT 30         // the viewer's own talent ranks (sim/progression/talents.cpp)
 #define NET_STATUS_COUNT 10        // status effects (sim/status_effects.cpp)
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
