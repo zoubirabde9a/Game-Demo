@@ -10,8 +10,8 @@ A player in a dungeon run picks a class. Each class plays one of four roles: tan
 | Ranger | Ranged | 110 | 100% | 135% | 0.7x | Longbow; Focus (0 to 100) |
 | Berserker | Melee | 140 | 85% | 135% | 0.7x | Great axe; Rage (0 to 100) |
 | Shadowblade | Melee | 130 | 85% | 135% | 1x | Twin daggers; combo points (0 to 5) |
-| Frost Mage | Ranged | 110 | 100% | 135% | 0.9x | Ice; Icicles (0 to 5) |
-| Druid | Healer | 115 | 100% | 95% | 1x | Nature and moonlight; Bloom (0 to 5) |
+| Frost Mage | Ranged | 110 | 100% | 135% | 0.7x | Ice; Icicles (0 to 5) |
+| Druid | Healer | 115 | 100% | 95% | 0.7x | Nature and moonlight; Bloom (0 to 5) |
 
 The rows are `RoleTable` in `code/sim/dungeon/roles.cpp`.
 
@@ -62,8 +62,8 @@ A ranged caster built round freezing foes and then hitting them while they are f
 
 | Key | Spell |
 |---|---|
-| X | Frostbolt: a bolt at a foe for 20 that slows it 2 s and grows an Icicle; 1 s cooldown |
-| A | Blizzard: ice falls on a 95 circle at the cursor for 3 s, 5 every 0.5 s, slowing; 14 s |
+| X | Frostbolt: a bolt at a foe for 24 that slows it 2 s and grows an Icicle; 1 s cooldown |
+| A | Blizzard: ice falls on a 95 circle at the cursor for 3 s, 4 every 0.5 s, slowing; 14 s |
 | R | Glacial Spike: a 1.25 s cast, then 30 + 12 an Icicle, spending them all; five Icicles also stun the foe 1.5 s; 7 s |
 | W | Frost Nova: roots every foe within 150 for 3 s and deals 6; 16 s |
 | C (tree) | Ice Barrier: a shield that takes the next 45 damage (70 at rank 2) for 10 s; 20 s |
@@ -114,9 +114,9 @@ Measured with the balance probe (`code/tools/dungeon_balance.cpp`) on a party of
 | Fire Mage | 40 | 957 | 159 | before every bot dodged |
 | Ranger | 40 | 1081 | 188 | before every bot dodged; 0.185 wipes a cleared fight against 0.177; bosses 10 to 20% faster |
 
-The Frost Mage, 16 seeds against the Fire Mage: ordinary fights go faster and the Hollow King takes the same 55 s, but two later bosses are slower (57 s against 47 s, 44 s against 35 s) and the last boss wipes 0.6 a kill against 0.33.
+The Frost Mage, 16 seeds a level from each level's start, at 0.7x threat with Frostbolt 24 and Blizzard 4: between the Fire Mage and the Ranger. The Bone Halls take 12.1 s (Fire Mage 17.2, Ranger 13.8), Sskarra 39 s (33 and 46), Vol'karr 47 s (47.5). At 0.9x threat its bot drew bosses and stood idle until the tank took them back, which made the Throne of Embers wipe 0.6 a kill.
 
-The Druid as the party's only healer, 8 seeds a level, against the Mender: the Throne of Dust wipes 0.62 a kill against 0.38, the Throne of Embers 0.25 against 0.12; deaths a kill about twice the Mender's. That is the half healer's price for its damage.
+The Druid as the party's only healer, 16 seeds a level from each level's start, against the Mender: the Throne of Embers wipes 0.19 a kill against 0.07 and Sskarra falls faster (32 s against 33), but the Throne of Dust wipes 0.56 against 0.25. The Druid bot casts the instant Wrath while it waits for Regrowth, which banks Bloom for that heal.
 
 ## Developer switches
 

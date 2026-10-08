@@ -21,7 +21,7 @@
 // NOTE(zoubir): Frostbolt (X): a bolt at the foe aimed at, the filler; it
 // chills the foe (slowed) and grows an Icicle
 #define FROSTBOLT_RANGE 560.f
-#define FROSTBOLT_DAMAGE 20.f
+#define FROSTBOLT_DAMAGE 24.f
 #define FROSTBOLT_CHILL_SECONDS 2.f
 #define FROSTBOLT_COOLDOWN 1.f
 
@@ -30,7 +30,7 @@
 #define BLIZZARD_RADIUS 95.f
 #define BLIZZARD_SECONDS 3.f
 #define BLIZZARD_TICK 0.5f
-#define BLIZZARD_TICK_DAMAGE 5.f
+#define BLIZZARD_TICK_DAMAGE 4.f
 #define BLIZZARD_CHILL_SECONDS 1.f
 #define BLIZZARD_COOLDOWN 14.f
 

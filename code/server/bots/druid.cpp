@@ -4,8 +4,9 @@
 
    A Druid bot moves as the Mender's does (healer_footwork.cpp): it backs
    off what comes close and stands over a downed ally until it is up. It
-   heals first: Regrowth on an ally low on health (best with Bloom
-   banked), Rejuvenation on one a little hurt that has none of its own
+   heals first: Regrowth on an ally under three quarters of its health
+   (best with Bloom banked, so while it waits for Regrowth it casts the
+   instant Wrath), Rejuvenation on one a little hurt that has none of its own
    yet and on the tank all through a fight, Tranquility when several round it are hurt. With nobody to heal it
    fights: Moonfire on what it fights when that does not burn yet,
    Entangling Roots on a pack that comes at it, Starfire, and Wrath in
@@ -75,7 +76,7 @@ BotDruidButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_e
     dungeon_run *Run = AppState->Dungeon;
 
     // NOTE(zoubir): the heals
-    world_entity *Low = BotDruidHurt(AppState, Self, REGROWTH_RANGE, 0.65f);
+    world_entity *Low = BotDruidHurt(AppState, Self, REGROWTH_RANGE, 0.75f);
     if (Low && Ready[4] && BotRandom(Bot) % 3 == 0)
     {
         *Pick = (u16)(Low->ID + 1);
@@ -114,8 +115,14 @@ BotDruidButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_e
     }
     if (Low)
     {
-        // NOTE(zoubir): someone is low and Regrowth is not back: hold the
-        // damage spells for the heal
+        // NOTE(zoubir): someone is low and Regrowth is not back: no cast
+        // that holds the Druid still, but Wrath is instant and banks
+        // Bloom, so the next Regrowth heals more
+        if (Target && Target->Type == EntityType_Monster && Ready[6] && Distance < WRATH_RANGE)
+        {
+            *Pick = (u16)(Target->ID + 1);
+            return NetButton_Sword;
+        }
         return 0;
     }
 
