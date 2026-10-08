@@ -25,8 +25,8 @@
 // are client/dungeon/classes/ranger_bursts.inc
 enum ranger_burst
 {
-    RangerBurst_Arrow,     // an arrow arriving at Position along Angle (RangerBurstAngle)
-    RangerBurst_Volley,    // a Volley's circle at Position, its radius as Angle
+    RangerBurst_Arrow,     // an arrow arriving at Position along Angle (RangerArrow_*)
+    RangerBurst_Volley,    // a Volley's circle at Position, variant 1 with Barrage
     RangerBurst_Pierce,    // a Piercing Shot leaving Position along Angle
     RangerBurst_Mark,      // Hunter's Mark landing on the foe at Position
     RangerBurst_Leap,      // Disengage taking off at Position, along Angle
@@ -55,24 +55,35 @@ enum ranger_arrow_variant
     RangerArrow_Rapid,
 };
 
-// NOTE(zoubir): a burst's angle carries a small number too, as whole
-// turns added to it: Cos and Sin do not see them, RangerBurstVariant
-// reads them back. An arrow's variant, a Piercing Shot's power
-inline float
-RangerBurstAngle(float Angle, u32 Variant)
+// NOTE(zoubir): a burst carries a small number too (an arrow's variant,
+// a Piercing Shot's power, Barrage, a mark or a trap sent again), as
+// whole steps of RANGER_BURST_STEP added to its height. Online a burst's
+// angle shrinks to a byte (server/event_relay.cpp) but its position goes
+// whole; no burst is drawn that high, and RangerBurstPlace takes it off
+#define RANGER_BURST_STEP 4096.f
+
+inline v3
+RangerBurstSpot(v3 Position, u32 Variant)
 {
-    // NOTE(zoubir): ATan2 gives -Pi to Pi, and either end would read as a
-    // turn off; a thousandth of a radian in from them nobody sees
-    Angle = Maximum(-Pi32 + 0.001f, Minimum(Pi32 - 0.001f, Angle));
-    float Result = Angle + 2.f * Pi32 * (float)Variant;
+    v3 Result = Position;
+    Result.Z += RANGER_BURST_STEP * (float)Variant;
     return Result;
 }
 
 inline u32
-RangerBurstVariant(float Angle)
+RangerBurstVariant(v3 Position)
 {
-    float Turns = (Angle + Pi32) / (2.f * Pi32);
-    u32 Result = Turns > 0.f ? (u32)Turns : 0;
+    float Steps = floorf((Position.Z + 0.5f * RANGER_BURST_STEP) / RANGER_BURST_STEP);
+    u32 Result = Steps > 0.f ? (u32)Steps : 0;
+    return Result;
+}
+
+// NOTE(zoubir): where the burst really is
+inline v3
+RangerBurstPlace(v3 Position)
+{
+    v3 Result = Position;
+    Result.Z -= RANGER_BURST_STEP * (float)RangerBurstVariant(Position);
     return Result;
 }
 
@@ -212,13 +223,12 @@ LoosePiercingShot(app_state *AppState, player_slot *Slot, world_entity *Player)
                              Along / PIERCE_SPEED, Dir);
         }
     }
-    // NOTE(zoubir): the power rides in the angle: Focus in tenths, 11 for
-    // a crit
+    // NOTE(zoubir): the power rides along: Focus in tenths, 11 for a crit
     u32 Power = Crit ? 11 : (u32)(Focus / 10.f + 0.5f);
     v3 Start = ChestOf(Player);
     Start.XY += 20.f * Dir;
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Pierce),
-              (u8)Player->PlayerIndex, Start, RangerBurstAngle(ATan2(Dir.Y, Dir.X), Power));
+              (u8)Player->PlayerIndex, RangerBurstSpot(Start, Power), ATan2(Dir.Y, Dir.X));
     EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
     if (Crit || Focus >= 50.f)
     {

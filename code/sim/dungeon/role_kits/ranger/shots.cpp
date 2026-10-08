@@ -119,8 +119,8 @@ ShootRangerArrow(app_state *AppState, world_entity *Player, world_entity *Foe, u
         Spot.XY += 0.6f * QUICK_SHOT_RANGE * Dir;
         Variant = RangerArrow_Miss;
     }
-    EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Arrow), By, Spot,
-              RangerBurstAngle(ATan2(Dir.Y, Dir.X), Variant));
+    EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Arrow), By,
+              RangerBurstSpot(Spot, Variant), ATan2(Dir.Y, Dir.X));
 }
 
 // NOTE(zoubir): a hit of Shot on Monster for the Ranger in slot By, which
@@ -196,7 +196,7 @@ UpdateRangerMark(app_state *AppState, player_slot *Slot, float DeltaTime)
         {
             Ranger->MarkKeep += RANGER_KEEP_SECONDS;
             EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Mark),
-                      (u8)(Slot - AppState->Players), ChestOf(Foe), RangerBurstAngle(0.f, 1));
+                      (u8)(Slot - AppState->Players), RangerBurstSpot(ChestOf(Foe), 1));
         }
         return;
     }

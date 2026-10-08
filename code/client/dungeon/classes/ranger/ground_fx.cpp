@@ -16,8 +16,8 @@ internal void
 DrawRangerVolley(render_context *RenderContext, app_state *AppState, role_burst *Burst,
                  float T, v3 CameraOffset)
 {
-    float Radius = Burst->Angle > 1.f ? Burst->Angle : VOLLEY_RADIUS;
-    bool32 Barrage = Radius > VOLLEY_RADIUS + 1.f;
+    bool32 Barrage = RangerBurstVariant(Burst->Position) == 1;
+    float Radius = VOLLEY_RADIUS * (Barrage ? BARRAGE_RADIUS : 1.f);
     float Rain = VOLLEY_SECONDS + (Barrage ? BARRAGE_SECONDS : 0.f);
     float Elapsed = T * RoleBurstLife(Burst->Kind);
     float End = VOLLEY_DRAW + Rain;
@@ -25,7 +25,7 @@ DrawRangerVolley(render_context *RenderContext, app_state *AppState, role_burst 
     {
         return;
     }
-    v2 Centre = BurstToScreen(Burst->Position, CameraOffset);
+    v2 Centre = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
     float Clock = GetFxClock(AppState);
     float In = Clamp01(Elapsed / VOLLEY_DRAW);
     float Out = Clamp01((Elapsed - End) / 0.4f);
@@ -159,9 +159,27 @@ DrawRangerMark(render_context *RenderContext, app_state *AppState, role_burst *B
         return;
     }
     // NOTE(zoubir): follow the foe from frame to frame
-    Burst->Position = ChestOf(Foe);
-    bool32 Landing = RangerBurstVariant(Burst->Angle) == 0;
+    bool32 Landing = RangerBurstVariant(Burst->Position) == 0;
+    Burst->Position = RangerBurstSpot(ChestOf(Foe), Landing ? 0 : 1);
     float Elapsed = T * RoleBurstLife(Burst->Kind);
+    // NOTE(zoubir): the marking arrow flies from the bow first, a pale
+    // teal one, and the reticle closes as it strikes
+    world_entity *Caster = AppState->Players[Burst->Slot].Entity;
+    if (Landing && Caster)
+    {
+        float Flight = Length(Foe->Position.XY - Caster->Position.XY) / RANGER_ARROW_SPEED;
+        if (Elapsed < Flight)
+        {
+            v2 From = RangerBowGrip(Caster, CameraOffset);
+            v2 To = BurstToScreen(ChestOf(Foe), CameraOffset);
+            float Fly = Elapsed / Flight;
+            v2 Dir = NormalizeOr(To - From, V2(1.f, 0.f));
+            DrawRangerArrow(RenderContext, From + Fly * (To - From), Dir, 24.f, 1.f,
+                            Minimum(110.f, Fly * Length(To - From)), 1.f, 1.f, RANGER_FX_PALE_RGB);
+            return;
+        }
+        Elapsed -= Flight;
+    }
     float Close = Landing ? Clamp01(Elapsed / 0.3f) : 1.f;
     float Ease = 1.f - (1.f - Close) * (1.f - Close);
     float Clock = GetFxClock(AppState);
@@ -245,9 +263,9 @@ DrawRangerTrap(render_context *RenderContext, app_state *AppState, role_burst *B
     {
         return;
     }
-    v2 Centre = BurstToScreen(Burst->Position, CameraOffset);
+    v2 Centre = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
     float Clock = GetFxClock(AppState);
-    bool32 Set = RangerBurstVariant(Burst->Angle) == 0;
+    bool32 Set = RangerBurstVariant(Burst->Position) == 0;
     float Elapsed = T * RoleBurstLife(Burst->Kind);
     float In = Set ? Clamp01(Elapsed / 0.35f) : 1.f;
     float Beat = 0.5f + 0.5f * Sin(3.f * Clock);

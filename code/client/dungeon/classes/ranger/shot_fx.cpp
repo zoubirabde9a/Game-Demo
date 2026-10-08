@@ -43,11 +43,12 @@ internal void
 DrawRangerArrowBurst(render_context *RenderContext, app_state *AppState, role_burst *Burst,
                      float T, v3 CameraOffset)
 {
-    u32 Variant = RangerBurstVariant(Burst->Angle);
+    u32 Variant = RangerBurstVariant(Burst->Position);
+    v3 Spot = RangerBurstPlace(Burst->Position);
     v2 Dir = V2(Cos(Burst->Angle), Sin(Burst->Angle));
     world_entity *Caster = Burst->Slot < MAX_PLAYERS ? AppState->Players[Burst->Slot].Entity : 0;
-    v2 To = BurstToScreen(Burst->Position, CameraOffset);
-    float Distance = Caster ? Length(Burst->Position.XY - Caster->Position.XY) : 300.f;
+    v2 To = BurstToScreen(Spot, CameraOffset);
+    float Distance = Caster ? Length(Spot.XY - Caster->Position.XY) : 300.f;
     v2 From = Caster ? RangerBowGrip(Caster, CameraOffset) : To - Distance * Dir;
     float Flight = Maximum(0.05f, Distance / RANGER_ARROW_SPEED);
     float Elapsed = T * RoleBurstLife(Burst->Kind);
@@ -68,7 +69,7 @@ DrawRangerArrowBurst(render_context *RenderContext, app_state *AppState, role_bu
     if (Variant == RangerArrow_Miss)
     {
         // NOTE(zoubir): the arrow drops into the floor and shivers there
-        v2 Stuck = To + V2(0.f, Burst->Position.Z - 2.f);
+        v2 Stuck = To + V2(0.f, Spot.Z - 2.f);
         v2 Lean = NormalizeOr(ScreenDir + V2(0.f, 1.4f), V2(0.f, 1.f));
         float Shake = 0.12f * (1.f - After) * Sin(60.f * Elapsed);
         v2 Tilted = V2(Lean.X * Cos(Shake) - Lean.Y * Sin(Shake), Lean.X * Sin(Shake) + Lean.Y * Cos(Shake));
@@ -90,13 +91,13 @@ internal void
 DrawRangerPierce(render_context *RenderContext, app_state *AppState, role_burst *Burst,
                  float T, v3 CameraOffset)
 {
-    u32 Power = RangerBurstVariant(Burst->Angle);
+    u32 Power = RangerBurstVariant(Burst->Position);
     bool32 Crit = Power > 10;
     float Charge = Crit ? 1.2f : (float)Power / 10.f;
     u32 RGB = Crit ? RANGER_FX_GOLD_RGB : RANGER_FX_TEAL_RGB;
     v2 Dir = V2(Cos(Burst->Angle), Sin(Burst->Angle));
     v2 Side = V2(-Dir.Y, Dir.X);
-    v2 Start = BurstToScreen(Burst->Position, CameraOffset);
+    v2 Start = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
     float Elapsed = T * RoleBurstLife(Burst->Kind);
     float Flown = Minimum(PIERCE_RANGE, Elapsed * PIERCE_SPEED);
     float Flight = PIERCE_RANGE / PIERCE_SPEED;
@@ -124,9 +125,14 @@ DrawRangerPierce(render_context *RenderContext, app_state *AppState, role_burst 
     // NOTE(zoubir): the wake down the whole line, a white core in it,
     // wind lines peeling off either side
     v2 WakeFrom = Start + Maximum(0.f, Flown - 420.f) * Dir;
-    DrawFxStreak(RenderContext, WakeFrom, Head, 12.f * Big, FxColor(0.f, RGB),
+    // NOTE(zoubir): widest just behind the arrow, tapering to its point,
+    // so the wake has no square end
+    v2 Waist = Head - Minimum(Flown, 24.f * Big) * Dir;
+    DrawFxStroke(RenderContext, WakeFrom, Waist, 2.f, 12.f * Big, FxColor(0.f, RGB),
                  FxColor(0.55f * Fade, RGB));
-    DrawFxStreak(RenderContext, Start + Maximum(0.f, Flown - 200.f) * Dir, Head, 3.f * Big,
+    DrawFxStroke(RenderContext, Waist, Head, 12.f * Big, 0.f, FxColor(0.55f * Fade, RGB),
+                 FxColor(0.f, RGB));
+    DrawFxStroke(RenderContext, Start + Maximum(0.f, Flown - 200.f) * Dir, Waist, 0.5f, 3.f * Big,
                  FxColor(0.f, 0x00FFFFFF), FxColor(0.9f * Fade, 0x00FFFFFF));
     for(u32 Wisp = 0; Wisp < 6; Wisp++)
     {

@@ -79,13 +79,16 @@ TestRangerKeys()
     Allowed = RunAllowedButtons(AppState, Slot, 0);
     Check((Allowed & PlayerButton_Slam) && (Allowed & PlayerButton_Kunai));
     Check(RangerKeyWindsUp(1) && RangerKeyWindsUp(3) && !RangerKeyWindsUp(5));
-    // NOTE(zoubir): the variant rides in the angle without turning it
+    // NOTE(zoubir): the variant rides in the burst's height, and comes off
+    // it again, whatever the ground's height
     for(u32 Variant = 0; Variant < 12; Variant++)
     {
-        float Angle = RangerBurstAngle(Pi32, Variant);
-        Check(RangerBurstVariant(Angle) == Variant);
-        Check(Cos(Angle) < -0.99f);
-        Check(RangerBurstVariant(RangerBurstAngle(-Pi32, Variant)) == Variant);
+        for(float Z = -300.f; Z <= 1500.f; Z += 450.f)
+        {
+            v3 Spot = RangerBurstSpot(V3(10.f, 20.f, Z), Variant);
+            Check(RangerBurstVariant(Spot) == Variant);
+            Check(Absolute(RangerBurstPlace(Spot).Z - Z) < 0.01f);
+        }
     }
     DestroyCryptWorld(&Crypt);
 }

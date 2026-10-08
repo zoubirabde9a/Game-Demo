@@ -25,10 +25,10 @@ CastVolley(app_state *AppState, player_slot *Slot, world_entity *Player)
             Volley->Seconds = VOLLEY_SECONDS + (Barrage ? BARRAGE_SECONDS : 0.f);
             Volley->TickTimer = VOLLEY_TICK;
             Volley->By = (u8)Player->PlayerIndex;
-            // NOTE(zoubir): the radius rides in the angle, so clients draw
-            // the circle the size it is, and know Barrage by it
+            // NOTE(zoubir): Barrage rides along (RangerBurstSpot), so
+            // clients draw the circle the size it is, and as long
             EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Volley),
-                      Volley->By, Volley->Position, Volley->Radius);
+                      Volley->By, RangerBurstSpot(Volley->Position, Barrage ? 1 : 0));
             EmitSound(&AppState->Events, AssetType_SfxAreaCast, Player->Position);
             return true;
         }
@@ -155,7 +155,7 @@ UpdateRangerTraps(app_state *AppState, ranger_run *Run, float DeltaTime)
         {
             Trap->Keep += RANGER_KEEP_SECONDS;
             EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Trap), Trap->By,
-                      Trap->Position, RangerBurstAngle(0.f, 1));
+                      RangerBurstSpot(Trap->Position, 1));
         }
         for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
         {
