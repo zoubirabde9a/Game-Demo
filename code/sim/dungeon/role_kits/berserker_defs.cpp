@@ -22,6 +22,9 @@
 #define CLEAVE_DAMAGE 8.f
 #define CLEAVE_SHOVE 70.f
 #define CLEAVE_COOLDOWN 0.6f
+// NOTE(zoubir): the foe most squarely in front takes the whole Cleave,
+// every other one it catches this share
+#define CLEAVE_SPLASH 0.6f
 // NOTE(zoubir): Axe Throw (X): a hand axe at the foe aimed at; it lands
 // after its flight, hurts and slows, then flies back
 #define AXE_THROW_RANGE 440.f
@@ -53,10 +56,10 @@
 // EXECUTE_LOW_SCALE times that on a foe under EXECUTE_LOW_SHARE health
 #define EXECUTE_REACH 95.f
 #define EXECUTE_MIN_RAGE 20
-#define EXECUTE_DAMAGE 18.f
-#define EXECUTE_PER_RAGE 0.8f
+#define EXECUTE_DAMAGE 16.f
+#define EXECUTE_PER_RAGE 0.6f
 #define EXECUTE_LOW_SHARE 0.25f
-#define EXECUTE_LOW_SCALE 2.f
+#define EXECUTE_LOW_SCALE 1.75f
 #define EXECUTE_SHOVE 120.f
 #define EXECUTE_COOLDOWN 6.f
 // NOTE(zoubir): Bloodthirst (C, from the tree): a strike on the foe in
