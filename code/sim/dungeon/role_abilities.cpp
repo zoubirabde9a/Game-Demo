@@ -368,6 +368,13 @@ OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
     }
 }
 
+// NOTE(zoubir): a class key pressed with this much of its cooldown left
+// still casts, the rest added to the next cooldown, so the rate holds.
+// The same 0.25 s the game's sword and fireball keep a press for
+// (PLAYER_ACTION_LINGER): without it a click a moment early was lost, and
+// a Shadowblade's half-second Twin Strike dropped most of a player's clicks
+#define ROLE_EARLY_PRESS_SECONDS 0.25f
+
 // NOTE(zoubir): from UpdatePlayer, before the game's abilities
 internal void
 UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
@@ -393,12 +400,13 @@ UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
         // A client predicting its own player starts only the wind-ups
         // (the pose, the slowdown, the bar); the rest waits for the server
         if (!Pressed || (Slot->Predicted && !RoleKeyWindsUp(Slot, Key)) ||
-            Slot->RoleCooldowns[Key] > 0.f ||
+            Slot->RoleCooldowns[Key] > ROLE_EARLY_PRESS_SECONDS ||
             IsDeadPlayer(Player) || !RoleSpellLearned(Slot, Key) ||
             IsPlayerCasting(Player))
         {
             continue;
         }
+        float Early = Slot->RoleCooldowns[Key];
         bool32 Cast = false;
         switch(Slot->Role)
         {
@@ -411,7 +419,7 @@ UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
         {
             // NOTE(zoubir): a cast may give part of its cooldown back
             // (Overload, role_kits/striker.cpp)
-            Slot->RoleCooldowns[Key] = Maximum(0.f, RoleSpellCooldown(Slot, Key) - Slot->CastRefund);
+            Slot->RoleCooldowns[Key] = Maximum(0.f, Early + RoleSpellCooldown(Slot, Key) - Slot->CastRefund);
             Slot->CastRefund = 0.f;
         }
     }

@@ -1,12 +1,12 @@
 /* Shadowblade tests (sim/dungeon/role_kits/shadowblade.cpp), included by
    dungeon_tests.cpp: the class owns its five keys, V once learned, and X
-   and C do nothing; Twin Strike cuts twice in front, builds a point and
-   poisons for the Shadowblade; Shadowstep lands behind the foe and makes
-   the next strike critical; Fan of Knives winds up, cuts every foe near
-   and builds a point each; Eviscerate spends the points for damage by
-   the point and refuses to cast with none; Shadow Dance echoes strikes
-   and hurries Shadowstep; the talents; and points fading out of a
-   fight. */
+   and C do nothing; Twin Strike cuts twice in front, builds a point,
+   takes a press a moment early and poisons for the Shadowblade;
+   Shadowstep lands behind the foe and makes the next strike critical;
+   Fan of Knives winds up, cuts every foe near and builds a point each;
+   Eviscerate spends the points for damage by the point and refuses to
+   cast with none; Shadow Dance echoes strikes and hurries Shadowstep;
+   the talents; and points fading out of a fight. */
 
 // NOTE(zoubir): a Shadowblade in slot 0 aiming along +X
 internal player_slot *
@@ -79,6 +79,32 @@ TestTwinStrike()
         PressOnce(&Crypt, 0, PlayerButton_Attack);
     }
     Check(Slot->ClassMeter == SHADOWBLADE_MOST_POINTS);
+    DestroyCryptWorld(&Crypt);
+}
+
+// NOTE(zoubir): a Twin Strike clicked a moment before it is ready still
+// cuts, the moment it was early added to the next cooldown; one clicked
+// well before is dropped (ROLE_EARLY_PRESS_SECONDS, role_abilities.cpp)
+internal void
+TestTwinStrikeEarlyPress()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    player_slot *Slot = ReadyShadowblade(&Crypt);
+    world_entity *Front = StrikerDummy(&Crypt, V3(45.f, 0.f, 0.f));
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    Check(Slot->ClassMeter == 1);
+    // NOTE(zoubir): far too early: nothing
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    Check(Slot->ClassMeter == 1);
+    while(Slot->RoleCooldowns[6] > 0.6f * ROLE_EARLY_PRESS_SECONDS)
+    {
+        TickHolding(&Crypt, Front, 1);
+    }
+    float Left = Slot->RoleCooldowns[6];
+    Check(Left > 0.f);
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    Check(Slot->ClassMeter == 2);
+    Check(Slot->RoleCooldowns[6] > TWIN_STRIKE_COOLDOWN);
     DestroyCryptWorld(&Crypt);
 }
 
@@ -313,6 +339,7 @@ RunShadowbladeTests()
 {
     TestShadowbladeOwnsItsKeys();
     TestTwinStrike();
+    TestTwinStrikeEarlyPress();
     TestTwinStrikePoisons();
     TestShadowstep();
     TestFanOfKnives();

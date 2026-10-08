@@ -4,7 +4,7 @@ A player in a dungeon run picks a class. Each class plays one of four roles: tan
 
 | Class | Role | Health | Taken | Dealt | Threat | Weapon and resource |
 |---|---|---|---|---|---|---|
-| Bulwark | Tank | 180 | 70% | 70% | 4x | Kite shield |
+| Bulwark | Tank | 240 | 70% | 70% | 4x | Kite shield |
 | Mender | Healer | 100 | 100% | 50% | 1x | Light |
 | Fire Mage | Ranged | 110 | 100% | 135% | 1x | Fire; Searing marks on foes |
 | Ranger | Ranged | 110 | 100% | 135% | 0.7x | Longbow; Focus (0 to 100) |
@@ -13,11 +13,13 @@ A player in a dungeon run picks a class. Each class plays one of four roles: tan
 
 The rows are `RoleTable` in `code/sim/dungeon/roles.cpp`.
 
-The tank and the healer also have a weak right-click attack, Shield Bash and Smite Bolt, so neither stands idle between its spells. With them, in the balance probe's party of a tank, a healer and a Fire Mage, the tank deals about a fifth of the party's damage and the healer about a sixth (21% and 17%, from 18% and 13% before), about a third and a quarter of the Fire Mage's. The melee classes have more health and take less because they stand where bosses hit; the Ranger and the Berserker make less threat so the boss stays on the tank.
+The tank and the healer also have a weak right-click attack, Shield Bash and Smite Bolt, so neither stands idle between its spells. The tank also owns X: Shield Charge rushes a foe within 400, stuns it for 2 s and cancels an attack it is winding up. With them, in the balance probe's party of a tank, a healer and a Fire Mage, the tank deals about a fifth of the party's damage and the healer about a sixth (21% and 17%, from 18% and 13% before), about a third and a quarter of the Fire Mage's. The melee classes have more health and take less because they stand where bosses hit; the Ranger and the Berserker make less threat so the boss stays on the tank.
 
 ## Keys
 
 A class casts on seven keys: A, R, C, V, W, X (the fireball's key) and the right click (the sword's). A class that owns X or the right click replaces the game's fireball or sword there; one that does not keeps the fireball and has no sword, except the Berserker and the Shadowblade, for whom X does nothing (`RoleDropsFireball`). C and V come from the class's talent tree, A, R and W from the start. The ability bar and the controls panel (hold H) show each key's spell from the class's table.
+
+A class key pressed up to 0.25 s before its cooldown ends still casts, and the time it was early is added to the next cooldown, so it never casts more often (`ROLE_EARLY_PRESS_SECONDS`, `role_abilities.cpp`). The game's sword and fireball keep a press for the same 0.25 s. Before this, a press on cooldown was dropped, and a player clicking the Shadowblade's half-second Twin Strike lost most of their clicks. Bots only press ready keys, so it changes nothing for them except the tank bot's right click: over 16 seeds fight times stayed the same and deaths fell by about a sixth.
 
 Every damage class has five damage keys with its whole tree, as many as the Fire Mage (fireball, Meteor, Giant Fireball, Detonate, Combustion). The Ranger leaves W empty; the Berserker and the Shadowblade leave X and C empty, and their second talent is a passive instead of a C spell.
 
