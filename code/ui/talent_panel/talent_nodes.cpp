@@ -233,6 +233,25 @@ DrawTalentNode(render_context *RenderContext, app_state *AppState, app_input *In
         UIText(RenderContext, Small, KeyX + 4.f, KeyY, Key,
                Level ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED);
     }
+    // NOTE(zoubir): a wild slot of the second tree (sim/dungeon/run_tree/)
+    // wears a die on its top-right, gold for the keystone: it rolls again
+    // each run
+    if (IsRunTalent(Talent) && RunSlotWild[Talent - Talent_RunFirst])
+    {
+        bool32 Keystone = Talent - Talent_RunFirst == RUN_KEYSTONE_SLOT;
+        u32 DieColor = Keystone ? UI_RGBA(255, 205, 80, 255) : UI_RGBA(235, 238, 248, 255);
+        float Die = 15.f;
+        float DieX = Centre.X + 0.5f * Arc - Die + 2.f;
+        float DieY = Centre.Y - 0.5f * Arc - 2.f;
+        DrawRoundRect(RenderContext, DieX, DieY, Die, Die, UI_RGBA(12, 13, 20, 235));
+        DrawRoundOutline(RenderContext, DieX, DieY, Die, Die, WithAlpha(DieColor, 0.9f));
+        v2 Dots[3] = {V2(0.28f, 0.28f), V2(0.5f, 0.5f), V2(0.72f, 0.72f)};
+        for(u32 Dot = 0; Dot < 3; Dot++)
+        {
+            DrawFilledRectangle(RenderContext, DieX + Dots[Dot].X * Die - 1.5f,
+                                DieY + Dots[Dot].Y * Die - 1.5f, 3.f, 3.f, DieColor, 0.f);
+        }
+    }
     UIText(RenderContext, Small, Centre.X, PipY + Pip + 6.f, Def->Name,
            (Level && !Replaced) ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED, UIAlign_Center);
 

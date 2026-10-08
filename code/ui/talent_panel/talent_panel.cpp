@@ -63,9 +63,18 @@ RoleBranchAccent(u32 Role)
     return Result;
 }
 
+// NOTE(zoubir): the second tree's colour: the class's, half way to gold
+inline u32
+RunBranchAccent(u32 Role)
+{
+    u8 *C = GetRoleDef(Role)->Color;
+    u32 Result = UI_RGBA((C[0] + 255) / 2, (C[1] + 200) / 2, (C[2] + 80) / 2, 255);
+    return Result;
+}
+
 // NOTE(zoubir): the columns the panel shows, from FirstShownBranch: the
-// game's three outside a dungeon run, the class's own tree alone in one
-// (sim/dungeon/role_talents.cpp)
+// game's three outside a dungeon run, the class's two trees in one
+// (sim/dungeon/role_talents.cpp, sim/dungeon/run_tree/)
 inline u32
 FirstShownBranch(app_state *AppState)
 {
@@ -76,7 +85,7 @@ FirstShownBranch(app_state *AppState)
 inline u32
 ShownTalentBranches(app_state *AppState)
 {
-    u32 Result = IsDungeon(AppState) ? 1 : TALENT_GAME_BRANCHES;
+    u32 Result = IsDungeon(AppState) ? 2 : TALENT_GAME_BRANCHES;
     return Result;
 }
 
@@ -93,15 +102,16 @@ inline u32
 TalentBranchAccent(player_slot *Slot, u32 Branch)
 {
     u32 Result = Branch < TALENT_GAME_BRANCHES ? TalentBranchAccents[Branch] :
-        RoleBranchAccent(Slot->Role);
+        Branch == TalentBranch_Run ? RunBranchAccent(Slot->Role) : RoleBranchAccent(Slot->Role);
     return Result;
 }
 
 inline char *
 TalentBranchName(player_slot *Slot, u32 Branch)
 {
+    u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
     char *Result = Branch < TALENT_GAME_BRANCHES ? TalentBranchNames[Branch] :
-        GetRoleDef(Slot->Role)->Name;
+        Branch == TalentBranch_Run ? RunTrees[Role].Name : GetRoleDef(Role)->Name;
     return Result;
 }
 

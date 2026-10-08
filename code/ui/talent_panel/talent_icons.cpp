@@ -192,10 +192,14 @@ global_variable talent_icon_painter *TalentIconPainters[Talent_RoleFirst] =
 };
 
 #include "../dungeon/role_talent_icons.cpp"
+#include "../dungeon/run_tree_icons.cpp"
 
 #define TALENT_ICON_SIZE 96
 #define TALENT_ATLAS_COLUMNS 8
-#define TALENT_ICON_CELLS (Talent_RoleFirst + PlayerRole_Count * ROLE_TALENTS)
+// NOTE(zoubir): the game's talents, every class's role slots, then one
+// cell per run talent (ui/dungeon/run_tree_icons.cpp)
+#define TALENT_RUN_ICON_FIRST (Talent_RoleFirst + PlayerRole_Count * ROLE_TALENTS)
+#define TALENT_ICON_CELLS (TALENT_RUN_ICON_FIRST + RunMod_Count)
 #define TALENT_ATLAS_ROWS ((TALENT_ICON_CELLS + TALENT_ATLAS_COLUMNS - 1) / TALENT_ATLAS_COLUMNS)
 
 // NOTE(zoubir): the atlas cell of Talent as Slot sees it
@@ -207,6 +211,10 @@ TalentIconCell(player_slot *Slot, u32 Talent)
     {
         u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
         Result = Talent_RoleFirst + Role * ROLE_TALENTS + (Talent - Talent_RoleFirst);
+    }
+    if (IsRunTalent(Talent))
+    {
+        Result = TALENT_RUN_ICON_FIRST + RunModAtSlot(Slot, Talent - Talent_RunFirst);
     }
     return Result;
 }
@@ -229,6 +237,10 @@ BuildTalentIconAtlas(open_gl *OpenGL, memory_arena *Scratch)
         if (Cell < Talent_RoleFirst)
         {
             TalentIconPainters[Cell](&Canvas);
+        }
+        else if (Cell >= TALENT_RUN_ICON_FIRST)
+        {
+            PaintRunModIcon(&Canvas, Cell - TALENT_RUN_ICON_FIRST);
         }
         else
         {
