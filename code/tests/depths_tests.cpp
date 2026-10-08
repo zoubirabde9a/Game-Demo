@@ -2,8 +2,8 @@
    second level. Its rooms match its map, clearing the crypt goes on to
    it with everyone's progress, its monsters are tougher and faster,
    its bosses stand in their rooms on a clock and their adds fall with
-   them, Sskarra's dive leaves magma, and clearing it starts over at
-   the crypt. */
+   them, Sskarra's dive leaves magma, and clearing it goes down to the
+   Rimeheart Vault (vault_tests.cpp). */
 
 // NOTE(zoubir): the depths' room map is the size of its layout, every
 // gate tile is open ground, seven rooms with a gate between each pair,
@@ -55,7 +55,8 @@ internal void
 TestLevelsChain()
 {
     Check(NextRunMap(MapId_Crypt) == MapId_Depths);
-    Check(NextRunMap(MapId_Depths) == MapId_Crypt);
+    Check(NextRunMap(MapId_Depths) == MapId_Vault);
+    Check(NextRunMap(MapId_Vault) == MapId_Crypt);
     Check(NextRunMap(MapId_Arena) == MapId_Arena);
     for(u32 Index = 0; Index < ArrayCount(DungeonLevels); Index++)
     {
@@ -104,7 +105,17 @@ TestClearedCryptGoesDown()
     Check(AppState->Players[0].Role == PlayerRole_Healer);
     Check(AppState->Players[1].Level == 6);
 
-    // NOTE(zoubir): and a cleared depths goes back up to the crypt
+    // NOTE(zoubir): a cleared depths goes down to the vault, and a
+    // cleared vault back up to the crypt
+    for(u32 Room = 1; Room <= Run->RoomCount; Room++)
+    {
+        Run->RoomStates[Room] = RoomState_Cleared;
+    }
+    TickCrypt(&Crypt, (u32)(21.f * 60.f));
+    Check(AppState->World.MapId == MapId_Vault);
+    Run = AppState->Dungeon;
+    Check(Run && Run->RoomCount == 7 && Run->RoomStates[2] == RoomState_Waiting);
+    Check(AppState->Players[0].Role == PlayerRole_Healer);
     for(u32 Room = 1; Room <= Run->RoomCount; Room++)
     {
         Run->RoomStates[Room] = RoomState_Cleared;

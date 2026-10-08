@@ -527,6 +527,7 @@ TestNoFriendlyFireInADungeon()
 #include "shadowblade_tests.cpp"
 #include "fight_end_tests.cpp"
 #include "depths_tests.cpp"
+#include "vault_tests.cpp"
 #include "meter_tests.cpp"
 #include "level_cap_tests.cpp"
 
@@ -543,6 +544,7 @@ RunDungeonTests()
     RunShadowbladeTests();
     RunFightEndTests();
     RunDepthsTests();
+    RunVaultTests();
     RunMeterTests();
     RunLevelCapTests();
     TestNoFriendlyFireInADungeon();

@@ -2,7 +2,8 @@
    (build/shaders/fx/world_grade.frag), so the maps feel apart at a glance:
    the Ashen Wastes hot and smoky, Frostbite Keep cold, the Verdant Wilds
    lush and golden under drifting sun shafts, the crypt dark, lit by the
-   lanterns its players carry, the Ember Depths dark and red-hot.
+   lanterns its players carry, the Ember Depths dark and red-hot, the
+   Rimeheart Vault dark and bitter cold.
    One look per map, picked by name (MoodFor) since MapId follows the
    order of sim/maps/map_list.inc; a map without one gets DefaultMood. */
 
@@ -37,6 +38,10 @@ global_variable map_mood CryptMood = {{-0.010f, 0.f, 0.040f}, 0.85f, {0.020f, 0.
 // warm shadows, the magma glowing, smoke over the lava
 global_variable map_mood DepthsMood = {{0.020f, -0.005f, 0.f}, 0.95f, {0.050f, 0.012f, -0.020f}, 0.6f, 0.45f, 0.f, 0.8f, 0.f, 1.f, 0.5f};
 
+// NOTE(zoubir): the Rimeheart Vault is as dark as the crypt but cold:
+// blue shadows, pale highlights, colour drained, a little frost haze
+global_variable map_mood VaultMood = {{-0.015f, 0.005f, 0.060f}, 0.75f, {0.010f, 0.025f, 0.050f}, 0.62f, 0.45f, 0.f, 0.9f, 0.f, 0.8f, 0.2f};
+
 internal map_mood *
 MoodFor(u32 MapId)
 {
@@ -48,6 +53,7 @@ MoodFor(u32 MapId)
         case MapId_Wilds: Result = &WildsMood; break;
         case MapId_Crypt: Result = &CryptMood; break;
         case MapId_Depths: Result = &DepthsMood; break;
+        case MapId_Vault: Result = &VaultMood; break;
         default: break;
     }
     return Result;

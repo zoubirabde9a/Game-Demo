@@ -12,6 +12,9 @@ struct round_map_test
     server Server;
     app_state *Client;
     memory_arena Arena, Constants;
+    // NOTE(zoubir): the session lives apart from the world: a new map
+    // builds its world over Arena from the start (RebuildWorldForMap)
+    memory_arena Session;
     online_session *Online;
 };
 
@@ -28,7 +31,8 @@ StartRoundMapTest(round_map_test *Test, char *Name)
     AddPlayerToSlot(Client, &Client->World, &Test->Arena, 0, PlayerSpawnPosition(&Client->World, 0));
     Client->RewindFx = (rewind_fx *)calloc(1, sizeof(rewind_fx));
     SetEnvironment(ONLINE_ADDRESS_ENV, "");
-    Client->Online = StartOnlineSession(&Test->Arena);
+    InitializeArena(&Test->Session, (memory_index *)calloc(1, Megabytes(8)), Megabytes(8));
+    Client->Online = StartOnlineSession(&Test->Session);
     Test->Online = Client->Online;
     char Address[32];
     snprintf(Address, sizeof(Address), "127.0.0.1:%u", NetSocketPort(&Test->Server.Socket));
@@ -59,6 +63,7 @@ StopRoundMapTest(round_map_test *Test)
     free(Test->Client->RewindFx);
     free(Test->Arena.Base);
     free(Test->Constants.Base);
+    free(Test->Session.Base);
     free(Test->Client);
 }
 

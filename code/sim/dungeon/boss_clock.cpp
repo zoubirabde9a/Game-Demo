@@ -49,6 +49,10 @@ global_variable boss_clock_def BossClockDefs[] =
     {MonsterKind_Forgemaster, 110.f},
     {MonsterKind_CinderWyrm, 80.f},
     {MonsterKind_EmberTyrant, 115.f},
+    // NOTE(zoubir): the Rimeheart Vault (docs/dungeon-vault.md)
+    {MonsterKind_FrostColossus, 110.f},
+    {MonsterKind_PaleWitch, 90.f},
+    {MonsterKind_Rimeheart, 130.f},
 };
 
 // NOTE(zoubir): the party the limits are tuned for

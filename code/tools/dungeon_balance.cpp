@@ -20,7 +20,9 @@
    there are walked back in after PROBE_RETRY_SECONDS, as they only chase
    what they see and would wait at the checkpoint for good.
    PROBE_MAP=depths starts in the Ember Depths instead, the bots given
-   the experience of the whole crypt first (and of the rooms skipped).
+   the experience of the whole crypt first (and of the rooms skipped);
+   PROBE_MAP=vault in the Rimeheart Vault, with the crypt's and the
+   depths'.
    Build: cl -nologo -O2 -DAPP_DEV=1 -DAPP_SLOW=0 -DAPP_WIN32=1
           ..\code\tools\dungeon_balance.cpp /link user32.lib Gdi32.lib Winmm.lib OpenGL32.lib */
 
@@ -67,9 +69,13 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
 #pragma warning(disable: 4996)
     char *MapName = getenv("PROBE_MAP");
 #pragma warning(pop)
-    u32 StartMap = (MapName && strcmp(MapName, "depths") == 0) ? MapId_Depths : MapId_Crypt;
-    // NOTE(zoubir): a party reaching the depths has played the crypt
-    u32 RoomsBefore = StartMap == MapId_Depths ? CountRooms(MapId_Crypt) : 0;
+    u32 StartMap = (MapName && strcmp(MapName, "depths") == 0) ? MapId_Depths :
+        (MapName && strcmp(MapName, "vault") == 0) ? MapId_Vault : MapId_Crypt;
+    // NOTE(zoubir): a party reaching the depths has played the crypt, and
+    // one reaching the vault the depths as well
+    u32 RoomsBefore = StartMap == MapId_Depths ? CountRooms(MapId_Crypt) :
+        StartMap == MapId_Vault ? CountRooms(MapId_Crypt) + CountRooms(MapId_Depths) : 0;
+    u32 LevelsBefore = StartMap == MapId_Depths ? 1 : StartMap == MapId_Vault ? 2 : 0;
     GameInit(&Game, StartMap);
     dungeon_run *SeededRun = 0;
     u32 SeededBots = 0;
@@ -134,7 +140,7 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
             // has monsters
             Game.AppState->DungeonRoomsCleared =
                 Maximum(Game.AppState->DungeonRoomsCleared,
-                        (RoomsBefore ? RoomsBefore - 1 : 0) +
+                        (RoomsBefore - LevelsBefore) +
                         (FirstRoom > 2 ? FirstRoom - 2 : 0));
             for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
             {

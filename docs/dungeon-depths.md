@@ -1,6 +1,6 @@
 # The Ember Depths: dungeon level two
 
-The second level of the co-op dungeon (`docs/dungeon-plan.md` covers the mode, roles, threat and the first level). When a party clears the Sunken Crypt, the HUD counts down 20 s ("Sunken Crypt cleared in 6:12! Down to the Ember Depths in 15") and the world is rebuilt as the Ember Depths, everyone in its first room with their role, level, experience and talents. Clearing the depths goes back up to the crypt the same way, so a party keeps cycling and keeps levelling.
+The second level of the co-op dungeon (`docs/dungeon-plan.md` covers the mode, roles, threat and the first level). When a party clears the Sunken Crypt, the HUD counts down 20 s ("Sunken Crypt cleared in 6:12! Down to the Ember Depths in 15") and the world is rebuilt as the Ember Depths, everyone in its first room with their role, level, experience and talents. Clearing the depths goes down to the third level, the Rimeheart Vault (`docs/dungeon-vault.md`), the same way, and clearing the vault goes back up to the crypt, so a party keeps cycling and keeps levelling.
 
 Players can also vote for the Ember Depths from the Esc menu while in the dungeon mode. A vote starts everyone over at level 1, as every vote does, which makes the depths very hard.
 
@@ -11,7 +11,8 @@ Players can also vote for the Ember Depths from the Esc menu while in the dungeo
 | Level | Map | Monster health | Monster damage | Monster pace | Packs | Next |
 |---|---|---|---|---|---|---|
 | 1 | Sunken Crypt | 1 | 1 | 1 | 1 | Ember Depths |
-| 2 | Ember Depths | 1.35 | 1.2 | 1.12 | 1.45 | Sunken Crypt |
+| 2 | Ember Depths | 1.35 | 1.2 | 1.12 | 1.45 | Rimeheart Vault |
+| 3 | Rimeheart Vault | 1.7 | 1.55 | 1.2 | 1.45 | Sunken Crypt |
 
 The health scale applies to every monster an encounter spawns and to the adds bosses call (`boss_scripts.cpp`). The damage scale applies to every monster hit on a player, the tank included, and does not grow heals the way party size does. Packs is one more scale on the health and the hits of the monsters in a room without a boss: the bosses are tuned one by one, the packs only by the level. The pace is set on every monster an encounter or a boss event spawns (`PaceScale`): it moves that much faster, and its bite and its abilities come round that much sooner. A party reaching the depths has the levels and talents of a whole crypt behind it; the numbers are set so the depths are a step up for that party, not a wall.
 

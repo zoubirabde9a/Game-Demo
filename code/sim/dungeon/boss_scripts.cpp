@@ -66,6 +66,25 @@ global_variable boss_event BossEvents[] =
     {MonsterKind_EmberTyrant, 0.25f, MonsterKind_Imp, 4, 14.f, 0.05f, 0.f, 0},
     {MonsterKind_EmberTyrant, 0.6f, MonsterKind_Ravager, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
     {MonsterKind_EmberTyrant, 0.3f, MonsterKind_Ravager, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
+    // NOTE(zoubir): Hrimgar: a Rimebound Brute, a chilling one, breaks
+    // off the walls three times, two the last time, and walks back into
+    // him if left alone
+    {MonsterKind_FrostColossus, 0.75f, MonsterKind_Brute, 1, 16.f, 0.08f, 0.f, MonsterAffix_Chilling},
+    {MonsterKind_FrostColossus, 0.5f, MonsterKind_Brute, 1, 16.f, 0.08f, 0.f, MonsterAffix_Chilling},
+    {MonsterKind_FrostColossus, 0.25f, MonsterKind_Brute, 2, 16.f, 0.08f, 0.f, MonsterAffix_Chilling},
+    // NOTE(zoubir): Ysolde: chilling bats out of the mere twice, which fly
+    // back into her if left alone
+    {MonsterKind_PaleWitch, 0.66f, MonsterKind_Bat, 3, 14.f, 0.05f, 0.f, MonsterAffix_Chilling},
+    {MonsterKind_PaleWitch, 0.33f, MonsterKind_Bat, 4, 14.f, 0.05f, 0.f, MonsterAffix_Chilling},
+    // NOTE(zoubir): Ithrel: a Bone Shaman rises twice and mends him, so it
+    // dies first; and he binds a Rime Champion, an armoured brute, twice:
+    // kill it in 25 s or it erupts for half of everyone's health. A
+    // shelled warden here was too much beside the shamans: the bots
+    // never got round it in time
+    {MonsterKind_Rimeheart, 0.8f, MonsterKind_Shaman, 1, 0.f, 0.f, 0.f, 0},
+    {MonsterKind_Rimeheart, 0.45f, MonsterKind_Shaman, 1, 0.f, 0.f, 0.f, 0},
+    {MonsterKind_Rimeheart, 0.6f, MonsterKind_Brute, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
+    {MonsterKind_Rimeheart, 0.3f, MonsterKind_Brute, 1, 25.f, 0.1f, 0.5f, MonsterAffix_Armored},
 };
 
 // NOTE(zoubir): the fight's boss, as encounters.cpp spawned it, or 0 once

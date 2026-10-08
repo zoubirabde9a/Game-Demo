@@ -31,6 +31,7 @@ struct encounter_row
 
 #include "crypt_encounters.cpp"
 #include "depths_encounters.cpp"
+#include "vault_encounters.cpp"
 
 struct dungeon_level
 {
@@ -53,13 +54,17 @@ struct dungeon_level
 // NOTE(zoubir): the Depths' monsters have 35% more health, hit 20%
 // harder and play 12% faster than the Crypt's, and the packs between
 // the bosses are 45% tougher and harder-hitting on top; with the levels and talents a party gains in
-// the Crypt, that keeps the second level a step up rather than a wall
+// the Crypt, that keeps the second level a step up rather than a wall.
+// The Rimeheart Vault's are 70% tougher, hit 40% harder and play 20%
+// faster than the Crypt's, for a party that has levelled through both
 global_variable dungeon_level DungeonLevels[] =
 {
     {MapId_Crypt, 1, CryptRooms, CryptEncounters, ArrayCount(CryptEncounters),
      CryptRoomNames, ArrayCount(CryptRoomNames), 1.f, 1.f, 1.f, 1.f, MapId_Depths},
     {MapId_Depths, 2, DepthsRooms, DepthsEncounters, ArrayCount(DepthsEncounters),
-     DepthsRoomNames, ArrayCount(DepthsRoomNames), 1.35f, 1.2f, 1.12f, 1.45f, MapId_Crypt},
+     DepthsRoomNames, ArrayCount(DepthsRoomNames), 1.35f, 1.2f, 1.12f, 1.45f, MapId_Vault},
+    {MapId_Vault, 3, VaultRooms, VaultEncounters, ArrayCount(VaultEncounters),
+     VaultRoomNames, ArrayCount(VaultRoomNames), 1.7f, 1.55f, 1.2f, 1.45f, MapId_Crypt},
 };
 
 // NOTE(zoubir): the level played on MapId, 0 for a map that is not one

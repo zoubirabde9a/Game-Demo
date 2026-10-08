@@ -22,3 +22,6 @@
 #include "depths_forgemaster.cpp"
 #include "depths_cinder_wyrm.cpp"
 #include "depths_ember_tyrant.cpp"
+#include "vault_frost_colossus.cpp"
+#include "vault_pale_witch.cpp"
+#include "vault_rimeheart.cpp"
