@@ -4,9 +4,11 @@
 
    - A fight starts: a boss gets a title card with its name and its room;
      any other room a callout with its name and how many enemies wait.
+   - A boss under a fifth of its health: "Finish it!".
    - A room cleared: "Room cleared", or "<boss> defeated" for a boss room.
    - The last room cleared: a title card, "Level N cleared", and where the
-     party goes next (the next level, or back to the top, stronger).
+     party goes next (the next level, or back to the top, stronger), with
+     the run's time offline.
    - The party wiped (the run's Wipes went up): a red title card.
 
    The level's own title card comes from match_watch.cpp, as for any new
@@ -16,6 +18,8 @@
 // NOTE(zoubir): a fight's boss shows in the Shown fields a snapshot or
 // two after the fight starts; the card waits that long to know
 #define ANNOUNCE_FIGHT_DELAY 0.35f
+// NOTE(zoubir): the boss's share of health that calls "Finish it"
+#define ANNOUNCE_BOSS_LOW_SHARE 0.2f
 
 internal void
 AnnounceFightStart(app_state *AppState, announcer *Announcer)
@@ -63,9 +67,16 @@ AnnounceRoomCleared(app_state *AppState, announcer *Announcer, u32 Room)
         bool32 Deeper = NextLevel && Level && NextLevel->Number > Level->Number;
         char Kicker[48];
         snprintf(Kicker, sizeof(Kicker), "LEVEL %u CLEARED", Level ? Level->Number : 1);
-        snprintf(Text, sizeof(Text), Deeper ? "Down to the %s next" :
-                 "Every level beaten. Back up to the %s, stronger",
-                 GetMapDef((map_id)Next)->Name);
+        u32 Used = (u32)snprintf(Text, sizeof(Text), Deeper ? "Down to the %s next" :
+                                 "Every level beaten. Back up to the %s, stronger",
+                                 GetMapDef((map_id)Next)->Name);
+        // NOTE(zoubir): the run's clock runs where the run does, so only
+        // offline knows it
+        if (!IsOnline(AppState->Online) && Used < sizeof(Text))
+        {
+            u32 Seconds = (u32)Run->Seconds;
+            snprintf(Text + Used, sizeof(Text) - Used, "   (%u:%02u)", Seconds / 60, Seconds % 60);
+        }
         announce_card Card = MakeCard(AnnounceStyle_Title, AnnouncePriority_Title,
                                       ANNOUNCE_COLOR_GOLD, Kicker,
                                       (char *)(Deeper ? "VICTORY" : "DUNGEON CONQUERED"), Text);
@@ -141,6 +152,7 @@ WatchDungeon(app_state *AppState, announcer *Announcer, float DeltaTime)
     {
         Announcer->FightDue = ANNOUNCE_FIGHT_DELAY;
         Announcer->FightBoss = MonsterKind_Count;
+        Announcer->BossLowShown = false;
     }
     if (Run->FightingRoom)
     {
@@ -157,6 +169,20 @@ WatchDungeon(app_state *AppState, announcer *Announcer, float DeltaTime)
         {
             AnnounceFightStart(AppState, Announcer);
         }
+    }
+
+    // NOTE(zoubir): the boss is nearly down: everything into it now
+    if (Run->FightingRoom && Run->ShownBossKind < MonsterKind_Count && !Announcer->BossLowShown &&
+        Run->ShownBossShare > 0.f && Run->ShownBossShare <= ANNOUNCE_BOSS_LOW_SHARE)
+    {
+        Announcer->BossLowShown = true;
+        char Detail[64];
+        snprintf(Detail, sizeof(Detail), "Under %.0f%% health. Everything into it",
+                 100.f * ANNOUNCE_BOSS_LOW_SHARE);
+        PushCard(AppState, MakeCard(AnnounceStyle_Callout, AnnouncePriority_Event,
+                                    ANNOUNCE_COLOR_RED,
+                                    GetMonsterDef((monster_kind)Run->ShownBossKind)->Name,
+                                    (char *)"FINISH IT!", Detail));
     }
 
     for(u32 Room = 1; Room <= Run->RoomCount; Room++)

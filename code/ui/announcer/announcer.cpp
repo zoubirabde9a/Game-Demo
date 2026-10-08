@@ -82,9 +82,14 @@ struct announcer
     bool32 WasOnline;
     float TitleDue;
     float Warmup;
-    bool32 SlotActive[MAX_PLAYERS];
+    bool32 LostServer;
+    // NOTE(zoubir): people_watch.cpp: a human in each slot, its last
+    // name seen, the seconds left waiting for a new one's name, and who
+    // is down
+    bool32 SlotHuman[MAX_PLAYERS];
     char SlotName[MAX_PLAYERS][16];
     float JoinWait[MAX_PLAYERS];
+    bool32 SlotDown[MAX_PLAYERS];
     bool32 VoteWasOpen;
     u32 VoteMapSeen;
     u32 VoteYesSeen;
@@ -101,6 +106,8 @@ struct announcer
     u32 MultiKills;
     float LastKillAt;
     u32 MonsterKillsSeen;
+    // NOTE(zoubir): the slot leading on kills, MAX_PLAYERS for none yet
+    u32 Leader;
 
     // NOTE(zoubir): dungeon_watch.cpp
     struct dungeon_run *Run;
@@ -109,6 +116,7 @@ struct announcer
     bool32 Fighting;
     float FightDue;
     u32 FightBoss;
+    bool32 BossLowShown;
     u32 Wipes;
     bool32 LevelDone;
 };
@@ -233,7 +241,21 @@ AdvanceCards(app_state *AppState, announcer *Announcer, float DeltaTime)
     }
 }
 
+#define ANNOUNCE_WARMUP_SECONDS 2.f
+#define ANNOUNCE_TITLE_DELAY 0.4f
+#define ANNOUNCE_JOIN_NAME_WAIT 1.5f
+#define ANNOUNCE_MULTI_KILL_SECONDS 4.f
+#define ANNOUNCE_COUNTDOWN_FROM 3
+#define ANNOUNCE_LEAD_MIN_KILLS 2
+
+#define ANNOUNCE_COLOR_GOLD UI_RGBA(255, 214, 96, 255)
+#define ANNOUNCE_COLOR_RED UI_RGBA(255, 96, 72, 255)
+#define ANNOUNCE_COLOR_BLUE UI_RGBA(120, 190, 255, 255)
+#define ANNOUNCE_COLOR_VIOLET UI_RGBA(200, 140, 255, 255)
+
 #include "banners.cpp"
+#include "people_watch.cpp"
+#include "kill_watch.cpp"
 #include "match_watch.cpp"
 #include "dungeon_watch.cpp"
 #include "forced.cpp"
