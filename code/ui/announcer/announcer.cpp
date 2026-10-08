@@ -116,7 +116,6 @@ struct announcer
     u32 Streak[MAX_PLAYERS];
     u32 MultiKills;
     float LastKillAt;
-    u32 MonsterKillsSeen;
     // NOTE(zoubir): the slot leading on kills, MAX_PLAYERS for none yet
     u32 Leader;
 

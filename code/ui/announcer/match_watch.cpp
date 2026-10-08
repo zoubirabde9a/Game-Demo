@@ -129,7 +129,6 @@ StartAnnouncerSession(app_state *AppState, announcer *Announcer)
     ZeroArray(Announcer->RoundWins, MAX_PLAYERS, u32);
     ZeroArray(Announcer->Streak, MAX_PLAYERS, u32);
     Announcer->FeedSeen = AppState->KillFeed ? AppState->KillFeed->Total : 0;
-    Announcer->MonsterKillsSeen = AppState->Players[AppState->LocalPlayerIndex].MonsterKills;
     Announcer->LastRoundBreak = AppState->RoundBreak;
     Announcer->Run = 0;
     // NOTE(zoubir): the old map's cards mean nothing on the new one

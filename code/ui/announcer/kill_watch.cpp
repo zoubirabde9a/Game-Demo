@@ -2,8 +2,8 @@
 
    - First blood, once per map.
    - The local player's double, triple and quad kills and rampages within
-     ANNOUNCE_MULTI_KILL_SECONDS of each other; monsters count, from the
-     score, so a dungeon pull counts too.
+     ANNOUNCE_MULTI_KILL_SECONDS of each other; only players count, so
+     clearing a monster pack is not a multi-kill.
    - Killing sprees for anyone (the local player's as a callout, the
      others' as a toast) and the kill that ends one.
    - In a dungeon, allies going down.
@@ -136,12 +136,6 @@ WatchKills(app_state *AppState, announcer *Announcer)
             LocalKills += Killer == Local ? 1 : 0;
         }
     }
-    u32 MonsterKills = AppState->Players[Local].MonsterKills;
-    if (MonsterKills > Announcer->MonsterKillsSeen)
-    {
-        LocalKills += MonsterKills - Announcer->MonsterKillsSeen;
-    }
-    Announcer->MonsterKillsSeen = MonsterKills;
     CountLocalKills(AppState, Announcer, LocalKills);
 }
 
