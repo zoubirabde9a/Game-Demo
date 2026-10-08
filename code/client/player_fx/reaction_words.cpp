@@ -26,7 +26,9 @@
      along the edge does not flicker. Not in dungeons, where the server's
      threat table picks the target (sim/dungeon/threat.cpp).
 
-   Words starting together over one unit stack upward. Entry points:
+   Words starting together over one unit stack upward. A status word
+   that just started on a monster close by is not repeated, so a pack
+   frozen at once says "Rooted" once. Entry points:
    UpdateReactionWords and DrawReactionWords from player_fx.cpp. */
 
 #define MAX_REACTION_WORDS 48
@@ -37,6 +39,9 @@
 // per this many seconds, within this many pixels
 #define REACTION_WORD_REPEAT_SECONDS 0.4f
 #define REACTION_WORD_REPEAT_PIXELS 40.f
+// NOTE(zoubir): a pack frozen or stunned at once says so once, over the
+// first monster, not once a monster stacked on each other
+#define REACTION_WORD_GROUP_PIXELS 90.f
 #define REACTION_WORD_TRACKED ArrayCount(((world *)0)->Entities)
 #define REACTION_WORD_NO_ENTITY 0xFFFFFFFF
 #define REACTION_ALERT_SLACK 60.f
@@ -128,6 +133,23 @@ AddReactionWord(reaction_words *Fx, char *Text, u32 Color, v3 Position,
     return Word;
 }
 
+// NOTE(zoubir): whether Text started within Pixels of Position in the
+// last REACTION_WORD_REPEAT_SECONDS
+internal bool32
+ReactionWordNear(reaction_words *Fx, char *Text, v3 Position, float Pixels)
+{
+    for(u32 Index = 0; Index < Fx->Count; Index++)
+    {
+        reaction_word *Word = &Fx->Words[Index];
+        if (Word->Text == Text && Word->Age < REACTION_WORD_REPEAT_SECONDS &&
+            LengthSq(Word->Position.XY - Position.XY) < Square(Pixels))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 // NOTE(zoubir): from AddBurst (fx_bursts.cpp) for the bursts that are a
 // word; Position is the struck unit's chest
 internal void
@@ -135,14 +157,9 @@ AddBurstWord(app_state *AppState, sim_burst Kind, v3 Position)
 {
     reaction_words *Fx = GetReactionWords(AppState);
     char *Text = Kind == SimBurst_Blocked ? (char *)"Blocked" : (char *)"Dodged";
-    for(u32 Index = 0; Index < Fx->Count; Index++)
+    if (ReactionWordNear(Fx, Text, Position, REACTION_WORD_REPEAT_PIXELS))
     {
-        reaction_word *Word = &Fx->Words[Index];
-        if (Word->Text == Text && Word->Age < REACTION_WORD_REPEAT_SECONDS &&
-            LengthSq(Word->Position.XY - Position.XY) < Square(REACTION_WORD_REPEAT_PIXELS))
-        {
-            return;
-        }
+        return;
     }
     u32 Color = Kind == SimBurst_Blocked ? UI_RGBA(150, 215, 255, 255) :
         UI_RGBA(235, 240, 255, 255);
@@ -242,7 +259,10 @@ UpdateReactionWords(app_state *AppState, float DeltaTime)
         Fx->CastLeft[Index] = Entity->CastLeft;
         for(u32 Effect = 1; Started && Effect < StatusEffect_Count; Effect++)
         {
-            if (Started & (1 << Effect))
+            if ((Started & (1 << Effect)) &&
+                !(Entity->Type == EntityType_Monster &&
+                  ReactionWordNear(Fx, StatusTable[Effect].Name, Entity->Position,
+                                   REACTION_WORD_GROUP_PIXELS)))
             {
                 AddReactionWord(Fx, StatusTable[Effect].Name, StatusWordColor(Effect),
                                 Entity->Position, Entity->ID, Index, Stack++);
