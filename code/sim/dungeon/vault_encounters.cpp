@@ -14,7 +14,7 @@ global_variable encounter_row VaultEncounters[] =
     // 2, Shiver Hall: one big pack, as three small ones cost a party at
     // this level nothing. A shelled warden behind webs with toads shelling
     // over it, an elite brute with bats, a shaman raising the dead beside
-    // an elite slime, two elite shades at the back line and lurkers
+    // an elite slime, two elite shades at the back line and a lurker
     // tunnelling under the tank
     {2, 0, MonsterKind_Warden, 1, Encounter_Elite},
     {2, 0, MonsterKind_Spider, 2, 0},
