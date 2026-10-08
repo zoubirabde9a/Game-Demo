@@ -6,7 +6,8 @@
      1. reads every waiting datagram, answers joins and leaves, and queues
         inputs (input_queue.cpp)
      2. applies each client's next input and advances the game by one tick
-     3. every SERVER_SNAPSHOT_INTERVAL ticks, sends each client a snapshot
+     3. every SERVER_SNAPSHOT_INTERVAL ticks, sends each client a snapshot;
+        on any tick, the chat lines it has not confirmed (chat_relay.cpp)
      4. frees clients that have gone quiet
 
    The game itself sits behind game_api.h, so the server does not know
@@ -49,6 +50,7 @@ struct server
     net_socket Socket;
     net_server_clients Clients;
     server_input_queue InputQueues[NET_MAX_CLIENTS]; // input_queue.cpp
+    server_chat Chat; // chat_relay.cpp
     server_game Game;
     u32 Tick;
     bool32 Logging; // print joins, leaves, timeouts and stats to stdout

@@ -243,6 +243,52 @@ TestNamesRoundTripAndAreCleaned()
     Check(Out.ConnectRequest.Name[0] == 0);
 }
 
+// Chat packets: a full ChatLines (every line and name at its longest)
+// fits in one packet and comes back whole, text off the net is cleaned
+// like names, and more lines than NET_CHAT_MAX_LINES are refused.
+internal void
+TestChatRoundTrip()
+{
+    net_packet In = {};
+    In.Header.Type = NetPacket_Chat;
+    In.ChatSay.Heard = 41;
+    In.ChatSay.SayId = 7;
+    snprintf(In.ChatSay.Text, NET_CHAT_SIZE, "gg	all");
+    net_packet Out = RoundTrip(&In, 0);
+    Check(Out.ChatSay.Heard == 41 && Out.ChatSay.SayId == 7);
+    Check(strcmp(Out.ChatSay.Text, "gg?all") == 0);
+
+    static net_packet Full;
+    Full = {};
+    Full.Header.Type = NetPacket_ChatLines;
+    Full.ChatLines.SaidId = 9;
+    Full.ChatLines.Count = NET_CHAT_MAX_LINES;
+    for (u32 Index = 0; Index < NET_CHAT_MAX_LINES; ++Index)
+    {
+        net_chat_line *Line = &Full.ChatLines.Lines[Index];
+        Line->Number = 100 + Index;
+        Line->Slot = (u8)Index;
+        memset(Line->Name, 'n', NET_NAME_SIZE - 1);
+        memset(Line->Text, 'a' + (char)Index, NET_CHAT_SIZE - 1);
+    }
+    u8 Buffer[NET_MAX_PACKET_SIZE];
+    u32 Size = NetWritePacket(&Full, Buffer, sizeof(Buffer));
+    Check(Size > 0);
+    static net_packet Back;
+    Check(NetReadPacket(Buffer, Size, &Back));
+    Check(Back.ChatLines.SaidId == 9 && Back.ChatLines.Count == NET_CHAT_MAX_LINES);
+    for (u32 Index = 0; Index < NET_CHAT_MAX_LINES; ++Index)
+    {
+        Check(Back.ChatLines.Lines[Index].Number == 100 + Index);
+        Check(Back.ChatLines.Lines[Index].Slot == Index);
+        Check(strcmp(Back.ChatLines.Lines[Index].Text, Full.ChatLines.Lines[Index].Text) == 0);
+        Check(strcmp(Back.ChatLines.Lines[Index].Name, Full.ChatLines.Lines[Index].Name) == 0);
+    }
+    // the line count byte comes right after the header and SaidId
+    Buffer[4 + 1 + 2 + 2 + 4 + 2] = NET_CHAT_MAX_LINES + 1;
+    Check(!NetReadPacket(Buffer, Size, &Back));
+}
+
 internal void
 TestPackedEntityFields()
 {
@@ -1215,6 +1261,7 @@ main()
     TestConnectRoundTrip();
     TestPackedEntityFields();
     TestNamesRoundTripAndAreCleaned();
+    TestChatRoundTrip();
     TestInputRoundTrip();
     TestFullSnapshotFits();
     TestOverfullSnapshotIsTrimmed();

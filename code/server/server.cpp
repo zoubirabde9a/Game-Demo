@@ -10,6 +10,7 @@
 #include "game_api.h"
 #include "sim_game.cpp" // the game implementation; must come before server.h
 #include "input_queue.cpp" // inputs waiting for their tick; also before server.h
+#include "chat_relay.cpp" // lines players say, relayed to everyone; also before server.h
 #include "server.h"
 
 internal void
@@ -117,6 +118,33 @@ ServerAnswerInfo(server *Server, net_address From, net_packet *Request)
     ServerSend(Server, From, &Reply);
 }
 
+// NOTE(zoubir): the name the line goes out under is the one the game
+// shows, made unique when two players picked the same
+internal void
+ServerTakeChat(server *Server, u32 Slot, net_chat_say *Say)
+{
+    char Name[NET_NAME_SIZE];
+    char *GameName = Server->Game.AppState->Players[Slot].Name;
+    if (GameName[0]) snprintf(Name, sizeof(Name), "%s", GameName);
+    else snprintf(Name, sizeof(Name), "Player %u", Slot + 1);
+    net_chat_line *Line = ChatReceive(&Server->Chat, Slot, Say, Name);
+    if (Line) ServerLog(Server, "chat %u %s: %s", Slot, Line->Name, Line->Text);
+}
+
+internal void
+ServerSendChat(server *Server)
+{
+    ChatAdvance(&Server->Chat, 1.0f / SERVER_TICK_RATE);
+    net_packet Packet = {};
+    for (u32 Index = 0; Index < NET_MAX_CLIENTS; ++Index)
+    {
+        net_client_slot *Slot = &Server->Clients.Slots[Index];
+        if (!Slot->Connected || !ChatPacketFor(&Server->Chat, Index, &Packet.ChatLines)) continue;
+        NetServerStampHeader(Slot, &Packet, NetPacket_ChatLines);
+        ServerSend(Server, Slot->Address, &Packet);
+    }
+}
+
 internal void
 ServerReceiveAll(server *Server)
 {
@@ -163,6 +191,7 @@ ServerReceiveAll(server *Server)
                 ClearInputQueue(&Server->InputQueues[Result.SlotIndex]);
                 GamePlayerJoined(&Server->Game, Result.SlotIndex);
                 GamePlayerNamed(&Server->Game, Result.SlotIndex, Result.Name);
+                ChatJoined(&Server->Chat, Result.SlotIndex);
                 ServerLog(Server, "player %u joined from " ADDRESS_FORMAT " (%u/%u)", Result.SlotIndex,
                           ADDRESS_ARGS(From), ServerPlayerCount(Server), NET_MAX_CLIENTS);
             } break;
@@ -185,6 +214,10 @@ ServerReceiveAll(server *Server)
                 {
                     PushInput(&Server->InputQueues[Result.SlotIndex], &Result.NewInputs[Index]);
                 }
+            } break;
+            case NetReceive_Chat:
+            {
+                ServerTakeChat(Server, Result.SlotIndex, &Packet.ChatSay);
             } break;
             default: break;
         }
@@ -240,6 +273,7 @@ ServerTick(server *Server)
     Server->Clients.MapId = (u8)Server->Game.AppState->World.MapId;
     Server->Tick++;
     if (Server->Tick % SERVER_SNAPSHOT_INTERVAL == 0) ServerSendSnapshots(Server);
+    ServerSendChat(Server);
 
     u32 TimedOut = NetServerAdvance(&Server->Clients, Dt);
     for (u32 Index = 0; Index < NET_MAX_CLIENTS; ++Index)

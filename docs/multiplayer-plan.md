@@ -30,6 +30,7 @@ Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot car
 | Version mismatch | a server answers a packet from another protocol version with an 8-byte notice whose format never changes (`NetWriteVersionNotice`, `net/protocol.h`), so the player reads "other version" instead of "not answering" |
 | The server's world on the client | `client/replicas.cpp` (details in `client/replicas/`), smoothing in `client/replica_smoothing.cpp` |
 | Local player prediction | `client/prediction.cpp`; when inputs go out, `client/online_pacing.cpp`; the server's side, `server/input_queue.cpp` |
+| Chat (Enter while joined) | packets in `net/protocol/chat.h`; the relay, resends and flood limit in `server/chat_relay.cpp`; the client's side of the connection in `net/client_chat.*`; the typing line and the log in `ui/chat.cpp` and `ui/chat_view.cpp`; tests in `tests/chat_online_tests.cpp` |
 | Connect screen (server list), kill feed data | `ui/connect_screen.cpp`, `client/kill_feed.cpp` |
 | Bot players (`server --bots N`) | `server/bots.cpp`, kept topped up by `GameKeepBots` in `server/sim_game.cpp` |
 | Time rewinds (T, G, V): history, restore, what the snapshot says is frozen | `sim/time_rewind/`, `server/sim_game/rewinds.cpp`, `net_rewind` in `net/protocol.h`; the client's side in `client/rewind_fx/`; design in [time-rewind.md](time-rewind.md) |

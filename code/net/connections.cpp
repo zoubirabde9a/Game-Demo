@@ -190,6 +190,10 @@ NetServerReceive(net_server_clients *Clients, net_address From, net_packet *Pack
         }
         Result.Event = Result.NewInputCount ? NetReceive_Inputs : NetReceive_Ignored;
     }
+    else if (Packet->Header.Type == NetPacket_Chat)
+    {
+        Result.Event = NetReceive_Chat;
+    }
 
     return Result;
 }

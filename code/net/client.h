@@ -10,11 +10,13 @@
    connected, every input packet carries the last few inputs, so a lost packet is
    covered by the next one. Only snapshots newer than the one held are
    kept. If the server goes quiet for NET_CLIENT_TIMEOUT seconds the client
-   gives up and reports why in EndReason. */
+   gives up and reports why in EndReason. Chat goes through NetClientSay
+   and NetClientTakeChat (client_chat.h). */
 
 #include "protocol.h"
 #include "address.h"
 #include "socket.h"
+#include "client_chat.h"
 
 #define NET_CONNECT_RETRY 0.25f
 #define NET_CONNECT_GIVE_UP 5.0f
@@ -64,6 +66,7 @@ struct net_client
     u32 RecentInputCount;
     net_input RecentInputs[NET_MAX_INPUTS_PER_PACKET]; // newest first
     u32 InputsUnsent; // queued since the last input packet
+    net_client_chat Chat; // client_chat.h
 };
 
 // Resolves "host:port", "host" (SERVER port 27015) or "a.b.c.d:port" to

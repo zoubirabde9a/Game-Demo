@@ -62,8 +62,10 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     OpenGL->glClearColor(0.05f, 0.06f, 0.08f, 1.0f);
 
     // Input. While a screen such as the connect screen or the options
-    // menu is open, keys and clicks go to it.
-    bool32 KeysToUi = ConnectScreenTakesInput(AppState) || AppState->OptionsOpen;
+    // menu is open, keys and clicks go to it; while a chat line is open,
+    // the keys type into it and are gone from Input (ui/chat.cpp).
+    bool32 Chatting = ChatTakesKeys(AppState, Input);
+    bool32 KeysToUi = Chatting || ConnectScreenTakesInput(AppState) || AppState->OptionsOpen;
     player_input *LocalInput = &AppState->Players[AppState->LocalPlayerIndex].Input;
     *LocalInput = KeysToUi ? player_input{} : ReadKeyboardPlayerInput(Input, AppState);
     // NOTE(zoubir): a map vote comes from the menu, so even while it is

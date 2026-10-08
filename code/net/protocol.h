@@ -3,8 +3,9 @@
 /* Packet format shared by the game client and the dedicated server.
 
    Every packet is one UDP datagram: a header, then one body chosen by
-   Header.Type. Clients send ConnectRequest, Input and Disconnect. The
-   server sends ConnectAccepted, ConnectDenied, Snapshot and Disconnect.
+   Header.Type. Clients send ConnectRequest, Input, Chat and Disconnect.
+   The server sends ConnectAccepted, ConnectDenied, Snapshot, ChatLines
+   and Disconnect.
 
    Input packets carry the client's last few inputs, newest first, so a
    lost packet costs nothing as long as a later one arrives. Snapshots are
@@ -70,6 +71,8 @@ enum net_packet_type
     // the server cannot be used to multiply someone else's traffic.
     NetPacket_InfoRequest,
     NetPacket_InfoReply,
+    NetPacket_Chat,      // client to server: a line said, and lines heard (protocol/chat.h)
+    NetPacket_ChatLines, // server to client: lines said by anyone
     NetPacket_Count,
 };
 
@@ -449,6 +452,8 @@ struct net_snapshot
     net_player_cast Casts[NET_MAX_SNAPSHOT_CASTS];
 };
 
+#include "protocol/chat.h"
+
 struct net_packet
 {
     net_header Header;
@@ -462,6 +467,8 @@ struct net_packet
         net_info_reply InfoReply;
         net_input_batch Input;
         net_snapshot Snapshot;
+        net_chat_say ChatSay;
+        net_chat_lines ChatLines;
     };
 };
 
@@ -477,22 +484,7 @@ internal bool32 NetReadPacket(u8 *Buffer, u32 Size, net_packet *Packet);
 internal u32 NetWriteSnapshotFitting(net_packet *Packet, u8 *Buffer, u32 BufferSize,
                                      u32 *Dropped);
 
-// The version notice: a server answers a packet from another build of
-// this game (same "GDM" id prefix, different last letter) with these 8
-// bytes, its own protocol id then NET_VERSION_NOTICE_MAGIC. The format
-// never changes, so a client of any version can tell "the server runs a
-// different version" from "the server is not answering". It is smaller
-// than any packet that triggers it, so it multiplies nobody's traffic.
-#define NET_VERSION_NOTICE_SIZE 8
-#define NET_VERSION_NOTICE_MAGIC 0x3f524556u // "VER?"
-#define NET_PROTOCOL_FAMILY_MASK 0xffffff00u
-
-// True when Buffer starts with another version's protocol id.
-internal bool32 NetIsOtherVersion(u8 *Buffer, u32 Size);
-// Writes the notice into Buffer (NET_VERSION_NOTICE_SIZE bytes).
-internal void NetWriteVersionNotice(u8 *Buffer);
-// True when Buffer is a version notice; *ServerProtocol gets the sender's id.
-internal bool32 NetReadVersionNotice(u8 *Buffer, u32 Size, u32 *ServerProtocol);
+#include "protocol/version_notice.h"
 
 // True if sequence A is newer than B, treating the u16 counter as wrapping.
 internal bool32 NetSequenceNewer(u16 A, u16 B);

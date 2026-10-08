@@ -578,6 +578,7 @@ TestStatsCountTrafficAndTicks()
 #include "rewind_tests.cpp"
 #include "replay_tests.cpp"
 #include "motion_tests.cpp"
+#include "chat_online_tests.cpp"
 
 int
 main()
@@ -604,6 +605,7 @@ main()
     RunMotionTests();
     TestSnapshotsAcknowledgeInputs();
     TestPlayerNamesReachEveryone();
+    RunChatOnlineTests();
     TestNinthClientIsTurnedAway();
     TestFloodDoesNotStallTheServer();
     TestInfoQueryListsPlayers();

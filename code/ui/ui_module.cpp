@@ -35,3 +35,5 @@
 #include "dungeon/boss_alerts.cpp"
 #include "announcer/announcer.cpp"
 #include "shader_errors.cpp"
+#include "chat.cpp"
+#include "chat_view.cpp"

@@ -61,3 +61,4 @@
     bool32 FreeCameraOn; // the camera is loose from the dead local player, client/free_camera.cpp
     struct announcer *Announcer; // title cards, callouts and toasts about the match, ui/announcer/announcer.cpp
     struct boss_alerts *BossAlerts; // the banner when a boss fight turns, ui/dungeon/boss_alerts.cpp
+    struct chat *Chat; // lines said on the server and the line being typed, ui/chat.cpp

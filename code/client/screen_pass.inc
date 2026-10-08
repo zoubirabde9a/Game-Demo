@@ -30,6 +30,7 @@ DoCastModeToggle(RenderContext, AppState, Input, Window->Width); // quick cast c
 DrawXpOverlays(RenderContext, AppState, Window->Width, Window->Height); // XP gains and the level-up banner, ui/talent_panel/xp_bar.cpp
 DrawMinimap(RenderContext, AppState, Window->Width);
 DrawKillFeed(RenderContext, AppState, Window->Width); // recent kills under the minimap, ui/kill_feed_view.cpp
+DrawChat(RenderContext, AppState, Window->Width, Window->Height); // chat lines and the line being typed, bottom left, ui/chat_view.cpp
 DrawControlsPanel(RenderContext, AppState, Input, Window->Height);
 DrawDeathPlate(RenderContext, AppState, Window->Width, Window->Height); // who killed you and the respawn countdown, ui/kill_feed_view.cpp
 DrawFinalBlow(RenderContext, AppState, Window->Width, Window->Height); // over the HUD: film bars and the title while the duel's last death plays in slow motion, ui/final_blow_view.cpp

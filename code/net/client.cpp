@@ -59,6 +59,8 @@ NetClientSend(net_client *Client, net_packet *Packet, u8 Type)
     if (Size) NetSendTo(&Client->Socket, Client->Server, Buffer, Size);
 }
 
+#include "client_chat.cpp"
+
 internal void
 NetClientEnd(net_client *Client, net_client_end Reason)
 {
@@ -140,6 +142,11 @@ NetClientHandle(net_client *Client, net_packet *Packet)
             }
         } break;
 
+        case NetPacket_ChatLines:
+        {
+            if (Client->State == NetClient_Connected) NetClientChatHandle(Client, &Packet->ChatLines);
+        } break;
+
         case NetPacket_Disconnect:
         {
             if (Client->State == NetClient_Connected) NetClientEnd(Client, NetEnd_ServerClosed);
@@ -204,6 +211,10 @@ NetClientPoll(net_client *Client, float Dt)
         if (Client->SecondsSinceHeard >= NET_CLIENT_TIMEOUT)
         {
             NetClientEnd(Client, NetEnd_LostConnection);
+        }
+        else
+        {
+            NetClientChatPoll(Client, Dt);
         }
     }
 }

@@ -86,6 +86,7 @@ global_variable controls_row ControlsRows[] =
     {"",            "", Controls_Run, PlayerButton_Shockwave},
     {"N",           "Talents: spend a point each level"},
     {"Tab",         "Scoreboard"},
+    {"Enter",       "Chat, on a server"},
     {"Esc",         "Close what is open, else options"},
     {"F4",          "Play: map and server"},
     {"F1",          "Fullscreen"},

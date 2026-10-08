@@ -54,6 +54,7 @@ enum net_receive_event
     NetReceive_Denied,    // server full or wrong version (see Reply.ConnectDenied.Reason)
     NetReceive_Left,      // client said goodbye; slot is free again
     NetReceive_Inputs,    // NewInputs holds inputs not seen before, oldest first
+    NetReceive_Chat,      // a Chat packet from the client in SlotIndex (the packet's ChatSay)
 };
 
 struct net_receive_result

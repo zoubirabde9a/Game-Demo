@@ -57,6 +57,7 @@ NetSequenceNewer(u16 A, u16 B)
 }
 
 #include "protocol/entities.cpp"
+#include "protocol/chat.cpp"
 
 // Slot, kind and phase share a byte. Frozen bits past the snapshot's
 // entities (left out to make it fit) read as clear.
@@ -434,6 +435,9 @@ NetSerializePacket(net_stream *S, net_packet *P)
                 if (Cast->EntityIndex >= P->Snapshot.Count) return false;
             }
         } break;
+
+        case NetPacket_Chat: if (!NetSerializeChatSay(S, &P->ChatSay)) return false; break;
+        case NetPacket_ChatLines: if (!NetSerializeChatLines(S, &P->ChatLines)) return false; break;
 
         default: return false;
     }
