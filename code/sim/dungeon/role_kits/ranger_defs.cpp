@@ -47,8 +47,8 @@
 #define PIERCE_RANGE 720.f
 #define PIERCE_WIDTH 26.f
 #define PIERCE_SPEED 1900.f
-#define PIERCE_DAMAGE 28.f
-#define PIERCE_PER_FOCUS 0.45f
+#define PIERCE_DAMAGE 21.f
+#define PIERCE_PER_FOCUS 0.34f
 #define PIERCE_SHOVE 140.f
 #define PIERCE_COOLDOWN 8.f
 // NOTE(zoubir): each foe further down the line takes this share of what
