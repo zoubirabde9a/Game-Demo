@@ -10,7 +10,8 @@
    crouches with the daggers crossed then flings both arms out, and
    Eviscerate raises both overhead, glowing brighter through the wind-up
    over a mark on the ground where it will land, then drives them down
-   and stabs in turn. A critical strike
+   and stabs in turn. Deadly Throw snaps the front arm out and its
+   dagger flies spinning to the foe. A critical strike
    waiting lights the blades acid green; Shadow Dance puts a shadow beside
    the player that strikes a moment after it. Everything is read from the
    slot's ClassMeter and ClassFlags, its cast and its bursts, all of which
@@ -138,6 +139,20 @@ ShadowbladeHandsAt(app_state *AppState, player_slot *Slot, world_entity *Player,
             Result.Grip[Hand] = ShadowbladeLerp(Result.Grip[Hand], Grip, Stab);
             Result.Dir[Hand] = ShadowbladeNormal(ShadowbladeLerp(Result.Dir[Hand], Aim, Stab));
         }
+    }
+
+    // NOTE(zoubir): Deadly Throw: the front arm snaps out toward the foe
+    // and its dagger is gone (in the air) until a fresh one is drawn
+    float Throw = ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Throw) - Lag;
+    float Snap = ShadowbladeHold(Throw, 0.3f);
+    role_burst *Thrown = Snap > 0.f ? ShadowbladeNewestBurst(AppState, SlotIndex, ShadowbladeBurst_Throw) : 0;
+    if (Thrown)
+    {
+        v2 Toward = V2(Cos(Thrown->Angle), Sin(Thrown->Angle));
+        v2 Grip = Body + (0.45f * W + 8.f) * Toward + V2(0.f, -6.f);
+        Result.Grip[0] = ShadowbladeLerp(Result.Grip[0], Grip, Snap);
+        Result.Dir[0] = ShadowbladeNormal(ShadowbladeLerp(Result.Dir[0], Toward, Snap));
+        Result.Shown[0] = Clamp01((Throw - 0.3f) / 0.15f) + (Throw < 0.03f ? 1.f : 0.f);
     }
     return Result;
 }

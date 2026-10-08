@@ -19,6 +19,9 @@
                   spending them all. With no points it does not cast, and
                   the player is shown so (ShadowbladeBurst_Empty); with no
                   foe in reach it does not cast either.
+     X            Deadly Throw: the ranged finisher, a dagger thrown at a
+                  foe up to DEADLY_THROW_RANGE off, spending every point
+                  (shadowblade/deadly_throw.cpp).
      V (tree)     Shadow Dance: for DANCE_SECONDS every Twin Strike and
                   Eviscerate lands a shadow's echo too, and Shadowstep comes
                   back in DANCE_STEP_COOLDOWN.
@@ -28,8 +31,8 @@
    foe a full five-point Eviscerate leaves alive (StatusEffect_Stunned,
    which every client sees on the monster).
 
-   C and X do nothing for it (RoleDropsFireball), so it has five damage
-   keys, as the striker does.
+   C does nothing for it, and X is Deadly Throw, never the fireball
+   (RoleDropsFireball).
    Points fade out of a fight (shadowblade/effects.cpp). The critical
    strike and Shadow Dance are ClassFlags bits, so every client draws
    them (client/dungeon/classes/shadowblade.cpp). */
@@ -154,6 +157,7 @@ PoisonFoe(app_state *AppState, player_slot *Slot, world_entity *Foe)
 }
 
 #include "shadowblade/twin_strike.cpp"
+#include "shadowblade/deadly_throw.cpp"
 
 internal bool32
 CastShadowstep(app_state *AppState, world *World, memory_arena *Arena, player_slot *Slot,
@@ -249,6 +253,11 @@ CastShadowbladeKey(app_state *AppState, world *World, memory_arena *Arena, playe
             v2 ToFoe = Foe->Position.XY - Player->Position.XY;
             StartPlayerCast(Player, PlayerSpell_ShadowbladeB,
                             LengthSq(ToFoe) > 1.f ? DirectionTo(ToFoe) : Player->Aim);
+        } break;
+
+        case 5:
+        {
+            Result = CastDeadlyThrow(AppState, World, Slot, Player);
         } break;
 
         case 6:

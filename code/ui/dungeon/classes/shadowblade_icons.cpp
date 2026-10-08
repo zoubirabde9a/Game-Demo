@@ -264,10 +264,31 @@ PaintKidneyShotIcon(icon_canvas *Canvas)
     IconSparkle(Canvas, V2(0.72f, 0.18f), 0.08f, Solid(IconColor(255, 230, 110)));
 }
 
+// NOTE(zoubir): Deadly Throw: a dagger flying point first along a violet
+// trail, acid poison dripping off its tip, combo gems trailing behind
+internal void
+PaintDeadlyThrowIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.68f, 0.34f), 0.44f, IconColor(170, 110, 255, 150));
+    IconCapsule(Canvas, V2(0.1f, 0.88f), V2(0.5f, 0.5f), 0.06f,
+                Gradient(ShadowbladeIconViolet(20), ShadowbladeIconViolet(200), V2(0.1f, 0.88f), V2(0.5f, 0.5f)));
+    IconCapsule(Canvas, V2(0.22f, 0.78f), V2(0.5f, 0.5f), 0.02f, Solid(IconColor(240, 220, 255, 200)));
+    IconShadowbladeDagger(Canvas, V2(0.42f, 0.58f), V2(0.7071f, -0.7071f), 0.52f);
+    IconCircle(Canvas, V2(0.82f, 0.28f), 0.035f, Solid(ShadowbladeIconAcid()));
+    IconCircle(Canvas, V2(0.86f, 0.38f), 0.025f, Solid(ShadowbladeIconAcid(200)));
+    for(u32 Gem = 0; Gem < 3; Gem++)
+    {
+        v2 P = V2(0.14f + 0.12f * (float)Gem, 0.6f + 0.1f * (float)Gem);
+        v2 Diamond[4] = {P + V2(0.f, -0.04f), P + V2(0.04f, 0.f), P + V2(0.f, 0.04f), P + V2(-0.04f, 0.f)};
+        IconPolygon(Canvas, Diamond, 4, Solid(ShadowbladeIconViolet(120 + 50 * Gem)));
+    }
+    IconSparkle(Canvas, V2(0.88f, 0.12f), 0.07f, Solid(IconColor(240, 220, 255)));
+}
+
 global_variable role_icon_painter *ShadowbladeIconPainters[ROLE_KEYS] =
 {
     PaintShadowstepIcon, PaintFanOfKnivesIcon, 0, PaintShadowDanceIcon,
-    PaintEviscerateIcon, 0, PaintTwinStrikeIcon,
+    PaintEviscerateIcon, PaintDeadlyThrowIcon, PaintTwinStrikeIcon,
 };
 global_variable talent_icon_painter *ShadowbladeTalentIconPainters[ROLE_TALENTS] =
 {

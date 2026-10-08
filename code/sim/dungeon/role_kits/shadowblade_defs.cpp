@@ -6,7 +6,7 @@
 // NOTE(zoubir): Twin Strike (right click): two cuts at what is in front,
 // the second CUT_GAP after the first, each this hard; a foe within reach
 // (plus half its width) and inside the arc's half-angle is cut
-#define TWIN_STRIKE_DAMAGE 2.5f
+#define TWIN_STRIKE_DAMAGE 2.65f
 #define TWIN_STRIKE_REACH 70.f
 #define TWIN_STRIKE_HALF_ARC 1.f
 // NOTE(zoubir): the share of a cut the other foes in the arc take
@@ -16,7 +16,7 @@
 #define TWIN_STRIKE_COOLDOWN 0.5f
 // NOTE(zoubir): the poison Twin Strike leaves on what it cuts, for
 // BLADE_POISON_SECONDS, ticking every BLADE_POISON_TICK; a cut renews it
-#define BLADE_POISON_PER_SECOND 3.8f
+#define BLADE_POISON_PER_SECOND 4.f
 #define BLADE_POISON_SECONDS 6.f
 #define BLADE_POISON_TICK 0.5f
 // NOTE(zoubir): Shadowstep (A): behind a foe this far off at most,
@@ -43,6 +43,15 @@
 #define EVISCERATE_PER_POINT 10.f
 #define EVISCERATE_SHOVE 140.f
 #define EVISCERATE_COOLDOWN 6.f
+// NOTE(zoubir): Deadly Throw (X): the ranged finisher, a dagger at the
+// foe under the cursor this far off at most, a base and so much a combo
+// point it spends; the foe is poisoned and slowed so long a point
+#define DEADLY_THROW_RANGE 380.f
+#define DEADLY_THROW_DAMAGE 5.f
+#define DEADLY_THROW_PER_POINT 7.f
+#define DEADLY_THROW_SHOVE 60.f
+#define DEADLY_THROW_SLOW_PER_POINT 0.6f
+#define DEADLY_THROW_COOLDOWN 8.f
 // NOTE(zoubir): Shadow Dance (V, from the tree): for DANCE_SECONDS a
 // shadow strikes again beside every Twin Strike and Eviscerate
 // for DANCE_ECHO of it, and Shadowstep comes back in DANCE_STEP_COOLDOWN
@@ -85,6 +94,7 @@ enum shadowblade_burst
     ShadowbladeBurst_Fan,        // knives bursting out round the player
     ShadowbladeBurst_Eviscerate, // a flurry on the foe at Position
     ShadowbladeBurst_Empty,      // a finisher pressed with no combo points
+    ShadowbladeBurst_Throw,      // a dagger flying from the player to the foe at Position
 };
 
 // NOTE(zoubir): a burst carries a small number too (the points an
@@ -135,8 +145,8 @@ enum shadowblade_talent
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
-// slot 4 unlocks the V spell. The Shadowblade has no C spell: its five keys are A, R, V, W and
-// the right click
+// slot 4 unlocks the V spell. The Shadowblade has no C spell: its six keys are A, R, V, W, X
+// and the right click
 global_variable talent_def ShadowbladeTalentDefs[ROLE_TALENTS] =
 {
     {"Lethality", "All your damage is higher", "+5% damage",
@@ -189,7 +199,9 @@ global_variable role_spell ShadowbladeSpells[ROLE_KEYS] =
     {"Eviscerate", EVISCERATE_COOLDOWN,
      "Eviscerate: spend every combo point on one big strike at the foe in front",
      RoleAim_None, EVISCERATE_REACH, 0},
-    {},
+    {"Deadly Throw", DEADLY_THROW_COOLDOWN,
+     "Deadly Throw: spend every combo point on a poisoned dagger thrown at a foe; it slows",
+     RoleAim_Foe, DEADLY_THROW_RANGE, 0},
     {"Twin Strike", TWIN_STRIKE_COOLDOWN,
      "Twin Strike: two quick cuts in front that poison, a combo point",
      RoleAim_None, TWIN_STRIKE_REACH, 0},

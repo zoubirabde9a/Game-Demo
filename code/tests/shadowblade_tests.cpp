@@ -1,12 +1,12 @@
 /* Shadowblade tests (sim/dungeon/role_kits/shadowblade.cpp), included by
-   dungeon_tests.cpp: the class owns its five keys, V once learned, and X
-   and C do nothing; Twin Strike cuts twice in front, builds a point,
+   dungeon_tests.cpp: the class owns its six keys, V once learned, and C
+   does nothing; Twin Strike cuts twice in front, builds a point,
    takes a press a moment early and poisons for the Shadowblade;
    Shadowstep lands behind the foe and makes the next strike critical;
    Fan of Knives winds up, cuts every foe near and builds a point each;
    Eviscerate spends the points for damage by the point, refuses to
    cast with none or with no foe in reach, and strikes the foe it was
-   pressed on; Shadow Dance echoes strikes and hurries Shadowstep;
+   pressed on; Deadly Throw spends them from afar, poisons and slows; Shadow Dance echoes strikes and hurries Shadowstep;
    the talents, Knife Storm's wider, harder fan and Kidney Shot's stun
    among them; and points fading out of a fight. */
 
@@ -44,14 +44,15 @@ TestShadowbladeOwnsItsKeys()
     player_slot *Slot = ReadyShadowblade(&Crypt);
     Check(RoleHasKit(PlayerRole_Shadowblade));
     u32 Allowed = RunAllowedButtons(AppState, Slot, 0);
-    u32 Main = PlayerButton_Launch | PlayerButton_Push | PlayerButton_Shockwave | PlayerButton_Attack;
+    u32 Main = PlayerButton_Launch | PlayerButton_Push | PlayerButton_Shockwave | PlayerButton_Attack |
+        PlayerButton_Cast;
     Check((Allowed & Main) == Main);
-    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Kunai | PlayerButton_Cast)));
+    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Kunai)));
     Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_Envenom] = 2;
     Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_ShadowDance] = 1;
     Allowed = RunAllowedButtons(AppState, Slot, 0);
     Check(Allowed & PlayerButton_Kunai);
-    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Cast)));
+    Check(!(Allowed & PlayerButton_Slam));
     DestroyCryptWorld(&Crypt);
 }
 
@@ -260,6 +261,45 @@ TestEviscerate()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): what Deadly Throw with Points did, at once, to a fresh foe
+// Distance away
+internal float
+DeadlyThrowWith(crypt_world *Crypt, player_slot *Slot, u32 Points, float Distance)
+{
+    world_entity *Foe = StrikerDummy(Crypt, V3(Distance, 0.f, 0.f));
+    Slot->ClassMeter = (u8)Points;
+    Slot->RoleCooldowns[5] = 0.f;
+    PressAt(Crypt, 0, PlayerButton_Cast, Foe);
+    float Result = 2000.f - Foe->Hp;
+    if (Result > 0.f)
+    {
+        Check(Foe->StatusTimers[StatusEffect_Poisoned] > 0.f);
+        Check(Foe->StatusTimers[StatusEffect_Slowed] > 0.f);
+    }
+    KillEntity(Crypt->AppState, &Crypt->AppState->World, Foe, 0);
+    return Result;
+}
+
+// NOTE(zoubir): Deadly Throw: no wind-up, from far off, every point
+// spent, harder by the point; with no points or nobody in range it does
+// not cast and keeps its cooldown
+internal void
+TestDeadlyThrow()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    player_slot *Slot = ReadyShadowblade(&Crypt);
+    Check(DeadlyThrowWith(&Crypt, Slot, 0, 250.f) == 0.f);
+    Check(Slot->RoleCooldowns[5] == 0.f);
+    float One = DeadlyThrowWith(&Crypt, Slot, 1, 250.f);
+    Check(One > 0.f && Slot->ClassMeter == 0 && Slot->Entity->CastSpell == 0);
+    Check(Slot->RoleCooldowns[5] > DEADLY_THROW_COOLDOWN - 1.f);
+    float Five = DeadlyThrowWith(&Crypt, Slot, 5, 250.f);
+    Check(Five > 2.5f * One && Slot->ClassMeter == 0);
+    Check(DeadlyThrowWith(&Crypt, Slot, 3, DEADLY_THROW_RANGE + 120.f) == 0.f);
+    Check(Slot->ClassMeter == 3 && Slot->RoleCooldowns[5] == 0.f);
+    DestroyCryptWorld(&Crypt);
+}
+
 // NOTE(zoubir): Shadow Dance: half again on every strike, Shadowstep
 // back at once, and the flag clients read
 internal void
@@ -424,6 +464,7 @@ RunShadowbladeTests()
     TestShadowstep();
     TestFanOfKnives();
     TestEviscerate();
+    TestDeadlyThrow();
     TestShadowDance();
     TestShadowbladeTalents();
     TestKnifeStorm();

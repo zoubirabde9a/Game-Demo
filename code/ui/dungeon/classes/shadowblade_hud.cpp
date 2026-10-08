@@ -5,7 +5,7 @@
    Over the bar: five gem sockets on a dark plate, one lit per combo point
    (player_slot.ClassMeter). A point coming in pops its gem with a flash;
    at five the plate glows and pulses and says the finisher is ready; an
-   Eviscerate empties them in a flash; pressing it with none shakes the
+   Eviscerate or Deadly Throw empties them in a flash; pressing it with none shakes the
    plate red and says so; one whose foe got away in the wind-up keeps
    its points, and the plate says that too. Beside the plate, a ring that runs down while a
    critical strike waits (acid green) and while Shadow Dance lasts
@@ -90,7 +90,8 @@ DrawShadowbladeHud(render_context *RenderContext, app_state *AppState, player_sl
     role_burst *Evis = ShadowbladeNewestBurst(AppState, SlotIndex, ShadowbladeBurst_Eviscerate);
     float EvisAge = Evis ? Clock - Evis->Start : 100.f;
     bool32 Whiff = Evis && ShadowbladeBurstVariant(Evis->Position) == 0;
-    float Spent = Whiff ? 100.f : EvisAge;
+    float Spent = Minimum(Whiff ? 100.f : EvisAge,
+                          ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Throw));
     float Missed = Whiff ? EvisAge : 100.f;
     float Empty = ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Empty);
     float Shake = Empty < 0.4f ? 6.f * Sin(70.f * Empty) * (1.f - Empty / 0.4f) : 0.f;

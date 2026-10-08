@@ -10,7 +10,8 @@
    monster's armour does not turn the cuts (sim/monster_abilities/
    armor.cpp). It Shadowsteps in when the fight is a way off, Twin
    Strikes in reach (which poisons), throws Fan of Knives into a pack,
-   Eviscerates at four or five points and dances in a fight.
+   Eviscerates at four or five points, throws them (Deadly Throw) when
+   Eviscerate is cooling down or out of reach, and dances in a fight.
 
    It keeps out of what a monster telegraphs and of burning ground,
    through the melee bots' shared bots/bot_dangers.cpp: its spot behind
@@ -105,9 +106,9 @@ BotShadowbladeButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, w
               float Distance, v2 Direction, u32 *Held, u16 *Pick)
 {
     player_slot *Slot = &AppState->Players[Self->PlayerIndex];
-    // NOTE(zoubir): the right click is the daggers' here and X does
-    // nothing: the game's fireball and sword presses would cut at the
-    // wrong moments
+    // NOTE(zoubir): the right click is the daggers' here and X is Deadly
+    // Throw: the game's fireball and sword presses would cut and throw at
+    // the wrong moments
     *Held &= ~(u32)(NetButton_Fireball | NetButton_Sword);
     if (!Target || Target->Type != EntityType_Monster)
     {
@@ -188,6 +189,13 @@ BotShadowbladeButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, w
     else if (Ready[4] && Points >= 4 && Distance < EVISCERATE_REACH + 0.5f * Foe->Dimensions.X)
     {
         Result |= NetButton_Shockwave;
+    }
+    // NOTE(zoubir): full points and Eviscerate not to hand (cooling down,
+    // or the foe out of reach): throw them rather than let them cap
+    else if (Ready[5] && Points >= 4 && Distance < 0.9f * DEADLY_THROW_RANGE &&
+             (!Ready[4] || Distance >= EVISCERATE_REACH + 0.5f * Foe->Dimensions.X))
+    {
+        Result |= NetButton_Fireball;
     }
     else if (Ready[0] && Distance > 150.f && Distance < 0.95f * SHADOWSTEP_RANGE &&
              !BotDangerAt(Dangers, DangerCount,
