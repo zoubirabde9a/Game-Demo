@@ -21,7 +21,7 @@
 // NOTE(zoubir): Frostbolt (X): a bolt at the foe aimed at, the filler; it
 // chills the foe (slowed) and grows an Icicle
 #define FROSTBOLT_RANGE 560.f
-#define FROSTBOLT_DAMAGE 12.f
+#define FROSTBOLT_DAMAGE 20.f
 #define FROSTBOLT_CHILL_SECONDS 2.f
 #define FROSTBOLT_COOLDOWN 1.f
 
@@ -30,7 +30,7 @@
 #define BLIZZARD_RADIUS 95.f
 #define BLIZZARD_SECONDS 3.f
 #define BLIZZARD_TICK 0.5f
-#define BLIZZARD_TICK_DAMAGE 3.5f
+#define BLIZZARD_TICK_DAMAGE 5.f
 #define BLIZZARD_CHILL_SECONDS 1.f
 #define BLIZZARD_COOLDOWN 14.f
 
@@ -39,8 +39,8 @@
 // GLACIAL_SPIKE_PER_ICICLE for each Icicle it spends (all of them); on
 // five Icicles it freezes the foe (stunned) for GLACIAL_SPIKE_FREEZE
 #define GLACIAL_SPIKE_RANGE 600.f
-#define GLACIAL_SPIKE_DAMAGE 18.f
-#define GLACIAL_SPIKE_PER_ICICLE 7.f
+#define GLACIAL_SPIKE_DAMAGE 30.f
+#define GLACIAL_SPIKE_PER_ICICLE 12.f
 #define GLACIAL_SPIKE_FREEZE 1.5f
 #define GLACIAL_SPIKE_COOLDOWN 7.f
 // NOTE(zoubir): the spike flies faster than a bolt
