@@ -37,7 +37,7 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 |---|---|---|
 | Forgemaster Kragg | 900 | 2:10 |
 | Sskarra the Cinder Wyrm | 1150 | 1:50 |
-| Vol'karr the Ember Tyrant | 2500 | 2:50 |
+| Vol'karr the Ember Tyrant | 2150 | 2:50 |
 
 **Forgemaster Kragg**, a squat giant of riveted iron over a molten core, a forge hammer as long as he is tall.
 - Anvil Drop: a wide slam (115) that burns and leaves embers on the floor.
@@ -54,9 +54,9 @@ Each boss is a monster file in `sim/monsters/depths_*.cpp` with its own code-dra
 - At 66% two Dune Lurkers burst out of the floor, at 33% two frenzied ones. Alive after 16 s each crawls back into her and heals her 6%.
 
 **Vol'karr the Ember Tyrant**, a horned demon in charred plate, black wings, a mane of flame and a red-hot cleaver.
-- Hellfire Cleave: a 125 slam that burns and leaves the floor burning.
-- Flame Step: vanishes and comes down behind his target, 160 to 540 away. He leaves the tank for the back line; the tank has to taunt him back.
-- Cinderfall: three burning stones over the hall where the party is heading.
+- Hellfire Cleave: a 125 slam that burns and leaves the floor burning, every 4 s.
+- Flame Step: vanishes and comes down behind his target, 160 to 540 away, every 8 s. He leaves the tank for the back line; the tank has to taunt him back.
+- Cinderfall: three burning stones over the hall where the party is heading, every 7 s.
 - Crown of Fire (below 40%): four fireballs out in a cross round his target.
 - At 75%, 50% and 25% Cinder Imps pour from the braziers: two, three, then four. Alive after 14 s each returns to him and heals him 5%.
 - At 60% and 30% he binds a Magma Champion, an armoured elite Ravager. The party has 25 s to kill it, or it erupts for half of everyone's health and heals him 10%.
@@ -70,6 +70,8 @@ Kragg and Sskarra were then sped up so the depths play faster than the crypt: Kr
 Then the level got its pace (1.12). Over five seeds, the bots now wipe on each boss on one or two seeds, up to four times on Kragg or Sskarra and up to three on Vol'karr, and once or twice on the bridge. The bots also die on the bridge after it is cleared, with nothing near them, walking into the lava; that is the bots, not the room.
 
 `tools/dungeon_balance.cpp` follows the bots from the crypt into the depths in one long run (`dungeon_balance 90 3 2 4`). `PROBE_MAP=depths dungeon_balance 45 3 2 3` starts three bots in the depths with the experience of a full crypt behind them. Tune boss health in the monster files before the clocks, as the crypt does.
+
+Vol'karr was then made quicker and lighter: 2150 health instead of 2500, Cleave every 4 s, Flame Step every 8 s and Cinderfall every 7 s, each hitting for less (24, 12 and 10). Starting the bots in his hall over six seeds, he wipes them about as often as before (16 wipes against 14), the worst seed six times instead of nine, and falls in 72 to 122 s. Faster cooldowns at the old damage made him a wall (up to twelve wipes on a seed), so the extra hits had to be smaller.
 
 ## Online
 

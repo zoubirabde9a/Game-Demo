@@ -20,7 +20,7 @@ internal void
 DefineMonster_EmberTyrant(monster_def *Def)
 {
     Def->Name = "Vol'karr the Ember Tyrant";
-    Def->MaxHp = 2500.f;
+    Def->MaxHp = 2150.f;
     Def->Acceleration = 28000.f;
     Def->AggroRange = 720.f;
     Def->StopRange = 52.f;
@@ -58,11 +58,11 @@ DefineMonster_EmberTyrant(monster_def *Def)
     monster_ability *Cleave = AddMonsterAbility(Def, MonsterAbility_Slam,
                                                 "Hellfire Cleave");
     Cleave->MaxRange = 95.f;
-    Cleave->Cooldown = 4.5f;
+    Cleave->Cooldown = 4.f;
     Cleave->Windup = 1.1f;
     Cleave->Active = 0.3f;
     Cleave->Recover = 0.6f;
-    Cleave->Damage = 26.f;
+    Cleave->Damage = 24.f;
     Cleave->Radius = 125.f;
     Cleave->Knockback = 700.f;
     Cleave->Status = StatusEffect_Burning;
@@ -76,11 +76,11 @@ DefineMonster_EmberTyrant(monster_def *Def)
                                               "Flame Step");
     Step->MinRange = 160.f;
     Step->MaxRange = 540.f;
-    Step->Cooldown = 10.f;
+    Step->Cooldown = 8.f;
     Step->Windup = 1.f;
     Step->Active = 0.3f;
     Step->Recover = 0.6f;
-    Step->Damage = 16.f;
+    Step->Damage = 12.f;
     Step->Radius = 80.f;
     Step->Spread = 60.f;
     Step->Knockback = 500.f;
@@ -91,11 +91,11 @@ DefineMonster_EmberTyrant(monster_def *Def)
                                               "Cinderfall");
     Fall->MinRange = 100.f;
     Fall->MaxRange = 560.f;
-    Fall->Cooldown = 8.f;
+    Fall->Cooldown = 7.f;
     Fall->Windup = 1.2f;
     Fall->Active = 0.3f;
     Fall->Recover = 0.5f;
-    Fall->Damage = 14.f;
+    Fall->Damage = 10.f;
     Fall->Radius = 60.f;
     Fall->Knockback = 250.f;
     Fall->Count = 3;
