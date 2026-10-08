@@ -5,7 +5,7 @@
    Under ABILITY_HEALTH_LOW the fill pulses, faster as health runs out.
    Every part is a rounded shape (build/shaders/fx/round_rect.frag). */
 
-#define ABILITY_HEALTH_HEIGHT 14.f
+#define ABILITY_HEALTH_HEIGHT 18.f
 // NOTE(zoubir): the pale trail catches up at this share of the gap per
 // second
 #define ABILITY_HEALTH_TRAIL_RATE 3.f

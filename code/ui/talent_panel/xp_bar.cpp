@@ -17,8 +17,8 @@
    from snapshots (client/replicas/apply.cpp); this file only watches it
    change. */
 
-#define XP_STRIP_HEIGHT 4.f
-#define XP_BADGE_SIZE 38.f
+#define XP_STRIP_HEIGHT 6.f
+#define XP_BADGE_SIZE 48.f
 #define XP_GAIN_SECONDS 1.4f
 #define XP_GAIN_RISE 46.f
 #define XP_GAINS 6
@@ -182,8 +182,7 @@ DrawLevelBadge(render_context *RenderContext, app_state *AppState,
         DrawShaderQuad(RenderContext, Shader_Ring, CentreX - 0.5f * Ring, CentreY - 0.5f * Ring,
                        Ring, Ring, WithAlpha(XP_COLOR, Banner), RenderBlend_Additive);
     }
-    // NOTE(zoubir): the strong face, not the title: the medallion is small
-    font *Title = AppState->Fonts.Strong ? AppState->Fonts.Strong : AppState->Fonts.Body;
+    font *Title = AppState->Fonts.Title ? AppState->Fonts.Title : AppState->Fonts.Body;
     font *Small = AppState->Fonts.Small;
     char Text[8];
     snprintf(Text, sizeof(Text), "%u", ShownLevel(Slot));
@@ -214,7 +213,7 @@ DrawTalentPointsButton(render_context *RenderContext, app_state *AppState,
     {
         snprintf(Text, sizeof(Text), "Talents");
     }
-    float Size = 34.f;
+    float Size = 42.f;
     float Y = CentreY - 0.5f * Size;
     bool32 Hot = IsMouseOnRectangle(Input->MouseX, Input->MouseY, X, Y, Size, Size);
     float Pulse = Points ? 0.5f + 0.5f * Sin(4.f * RenderContext->Time) : 0.f;
