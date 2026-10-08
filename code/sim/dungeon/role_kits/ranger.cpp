@@ -1,13 +1,90 @@
 /* The Ranger's kit (role_abilities.cpp, through class_kits.cpp): a bow.
    Numbers, talents and the spell table are role_kits/ranger_defs.cpp; its
-   state is role_kits/ranger.h. */
+   state is role_kits/ranger.h.
+
+   X  Quick Shot: an arrow at the foe aimed at, the filler.
+   A  Volley: arrows rain on the circle at the cursor (ranger/ground.cpp).
+   R  Piercing Shot: a one-second draw (PlayerSpell_RangerA), then a heavy
+      arrow through every foe in a long line; it spends all the Focus
+      for more damage, and with Deadeye a full Focus crits.
+   W  Hunter's Mark: the foe aimed at takes MARK_SHARE more from the
+      Ranger for MARK_SECONDS; hits on it build Focus (ranger/shots.cpp).
+   C  Disengage (tree): a leap back that leaves a snare trap.
+   V  Rapid Fire (tree): a two-second channel (PlayerSpell_RangerB) that
+      looses RAPID_FIRE_ARROWS arrows at a foe while the Ranger walks
+      slowly.
+
+   The rotation: keep the mark on the boss, Quick Shot it to fill Focus,
+   spend Focus on a Piercing Shot lined up through the pack, Volley the
+   pack. Every hit lands when its arrow arrives, and clients fly the
+   arrows from the bursts (client/dungeon/classes/ranger.cpp). Focus goes
+   to clients as ClassMeter, and what the HUD and the looks need as
+   ClassFlags (RANGER_FLAG_*). */
+
+// NOTE(zoubir): the class's bursts, SimBurst_RangerFirst + n; the rows
+// are client/dungeon/classes/ranger_bursts.inc
+enum ranger_burst
+{
+    RangerBurst_Arrow,     // an arrow arriving at Position along Angle (RangerBurstAngle)
+    RangerBurst_Volley,    // a Volley's circle at Position, its radius as Angle
+    RangerBurst_Pierce,    // a Piercing Shot leaving Position along Angle
+    RangerBurst_Mark,      // Hunter's Mark landing on the foe at Position
+    RangerBurst_Leap,      // Disengage taking off at Position, along Angle
+    RangerBurst_Trap,      // a snare trap set at Position, for its life
+    RangerBurst_TrapSnap,  // the snare at Position springing
+    RangerBurst_FocusFull, // Focus coming full on the Ranger at Position
+};
+
+// NOTE(zoubir): what a hit is, for OnRangerHit and the arrows in flight
+enum ranger_shot
+{
+    RangerShot_None,
+    RangerShot_Quick,
+    RangerShot_Rapid,
+    RangerShot_Mark,
+    RangerShot_Volley,
+    RangerShot_Pierce,
+    RangerShot_Trap,
+};
+
+// NOTE(zoubir): an arrow burst's look
+enum ranger_arrow_variant
+{
+    RangerArrow_Quick,
+    RangerArrow_Miss,
+    RangerArrow_Rapid,
+};
+
+// NOTE(zoubir): a burst's angle carries a small number too, as whole
+// turns added to it: Cos and Sin do not see them, RangerBurstVariant
+// reads them back. An arrow's variant, a Piercing Shot's power
+inline float
+RangerBurstAngle(float Angle, u32 Variant)
+{
+    // NOTE(zoubir): ATan2 gives -Pi to Pi, and either end would read as a
+    // turn off; a thousandth of a radian in from them nobody sees
+    Angle = Maximum(-Pi32 + 0.001f, Minimum(Pi32 - 0.001f, Angle));
+    float Result = Angle + 2.f * Pi32 * (float)Variant;
+    return Result;
+}
+
+inline u32
+RangerBurstVariant(float Angle)
+{
+    float Turns = (Angle + Pi32) / (2.f * Pi32);
+    u32 Result = Turns > 0.f ? (u32)Turns : 0;
+    return Result;
+}
+
+#include "ranger/shots.cpp"
+#include "ranger/ground.cpp"
 
 // NOTE(zoubir): whether Key only starts a wind-up when pressed (the cast
 // runs through sim/player_casts.cpp, then FinishRangerCast fires it)
 internal bool32
 RangerKeyWindsUp(u32 Key)
 {
-    return false;
+    return Key == 1 || Key == 3;
 }
 
 // NOTE(zoubir): Key pressed, off cooldown and learned; true when it cast,
@@ -16,13 +93,151 @@ internal bool32
 CastRangerKey(app_state *AppState, world *World, memory_arena *Arena, player_slot *Slot,
            world_entity *Player, u32 Key)
 {
-    return false;
+    switch(Key)
+    {
+        case 0:
+        {
+            return CastVolley(AppState, Slot, Player);
+        } break;
+
+        case 1:
+        {
+            StartPlayerCast(Player, PlayerSpell_RangerA, GetPlayerAim(Player));
+            if (!Slot->Predicted)
+            {
+                EmitSound(&AppState->Events, AssetType_SfxMeteorCast, Player->Position);
+            }
+        } break;
+
+        case 2:
+        {
+            CastDisengage(AppState, Slot, Player);
+        } break;
+
+        case 3:
+        {
+            // NOTE(zoubir): the foe is picked again at each arrow when
+            // this one is gone; a client only starts the channel
+            StartPlayerCast(Player, PlayerSpell_RangerB, GetPlayerAim(Player));
+            Slot->Ranger.RapidTimer = PlayerSpells[PlayerSpell_RangerB].CastTime /
+                (float)RAPID_FIRE_ARROWS;
+            world_entity *Foe = Slot->Predicted ? 0 : AttackTarget(AppState, Slot, Player, RAPID_FIRE_RANGE);
+            Slot->Ranger.RapidSlot = Foe ? (u32)(Foe - World->Entities) : 0;
+            Slot->Ranger.RapidSerial = Foe ? Foe->MonsterSerial : 0;
+        } break;
+
+        case 4:
+        {
+            world_entity *Foe = AttackTarget(AppState, Slot, Player, MARK_RANGE);
+            if (!Foe)
+            {
+                return false;
+            }
+            MarkRangerFoe(AppState, Slot, Foe, Player->Position.XY);
+            v2 Offset = Foe->Position.XY - Player->Position.XY;
+            LooseRangerArrow(AppState, Player->PlayerIndex, Foe, RangerShot_Mark, MARK_DAMAGE,
+                             Length(Offset) / RANGER_ARROW_SPEED, NormalizeOr(Offset, V2(1.f, 0.f)));
+            EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
+        } break;
+
+        case 5:
+        {
+            world_entity *Foe = AttackTarget(AppState, Slot, Player, QUICK_SHOT_RANGE);
+            ShootRangerArrow(AppState, Player, Foe, RangerShot_Quick, QUICK_SHOT_DAMAGE,
+                             RangerArrow_Quick);
+            EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
+        } break;
+
+        default:
+        {
+            return false;
+        } break;
+    }
+    return true;
+}
+
+// NOTE(zoubir): the foe Rapid Fire shoots at now: its own while it lives,
+// else the one the Ranger aims at
+internal world_entity *
+RapidFireFoe(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
+    world_entity *Result = FindMonsterBySerial(&AppState->World, Slot->Ranger.RapidSlot,
+                                               Slot->Ranger.RapidSerial);
+    if (!Result || Result->Hp <= 0.f ||
+        Length(Result->Position.XY - Player->Position.XY) > RAPID_FIRE_RANGE)
+    {
+        Result = AttackTarget(AppState, Slot, Player, RAPID_FIRE_RANGE);
+        Slot->Ranger.RapidSlot = Result ? (u32)(Result - AppState->World.Entities) : 0;
+        Slot->Ranger.RapidSerial = Result ? Result->MonsterSerial : 0;
+    }
+    return Result;
+}
+
+internal void
+LooseRapidFireArrow(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
+    world_entity *Foe = RapidFireFoe(AppState, Slot, Player);
+    ShootRangerArrow(AppState, Player, Foe, RangerShot_Rapid, RAPID_FIRE_DAMAGE, RangerArrow_Rapid);
+    EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
+}
+
+// NOTE(zoubir): Piercing Shot: the heavy arrow along the aim, every foe in
+// its line struck as it passes; the Focus is spent
+internal void
+LoosePiercingShot(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
+    world *World = &AppState->World;
+    v2 Dir = NormalizeOr(Player->Aim, NormalizeOr(Player->CastingDirection, V2(1.f, 0.f)));
+    float Focus = Slot->Ranger.Focus;
+    bool32 Crit = Focus >= RANGER_FOCUS_MOST &&
+        RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Deadeye) > 0;
+    float Damage = (PIERCE_DAMAGE + PIERCE_PER_FOCUS * Focus) * (Crit ? DEADEYE_SCALE : 1.f);
+    Slot->Ranger.Focus = 0.f;
+    u32 Room = RoomAtPosition(World, Player->Position.XY);
+    v2 From = Player->Position.XY;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Monster = &World->Entities[EntityIndex];
+        if (!Monster->IsPresent || Monster->Type != EntityType_Monster || Monster->Hp <= 0.f ||
+            RoomAtPosition(World, Monster->Position.XY) != Room)
+        {
+            continue;
+        }
+        v2 Offset = Monster->Position.XY - From;
+        float Along = DotProduct(Offset, Dir);
+        float Across = Absolute(DotProduct(Offset, V2(-Dir.Y, Dir.X)));
+        if (Along > 0.f && Along < PIERCE_RANGE && Across < PIERCE_WIDTH + 0.5f * Monster->Dimensions.X)
+        {
+            LooseRangerArrow(AppState, Player->PlayerIndex, Monster, RangerShot_Pierce, Damage,
+                             Along / PIERCE_SPEED, Dir);
+        }
+    }
+    // NOTE(zoubir): the power rides in the angle: Focus in tenths, 11 for
+    // a crit
+    u32 Power = Crit ? 11 : (u32)(Focus / 10.f + 0.5f);
+    v3 Start = ChestOf(Player);
+    Start.XY += 20.f * Dir;
+    EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Pierce),
+              (u8)Player->PlayerIndex, Start, RangerBurstAngle(ATan2(Dir.Y, Dir.X), Power));
+    EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
+    if (Crit || Focus >= 50.f)
+    {
+        EmitSound(&AppState->Events, AssetType_SfxGiantFireball, Player->Position);
+    }
 }
 
 // NOTE(zoubir): a wind-up of this class is over
 internal void
 FinishRangerCast(app_state *AppState, player_slot *Slot, world_entity *Player, player_spell Spell)
 {
+    if (Spell == PlayerSpell_RangerA)
+    {
+        LoosePiercingShot(AppState, Slot, Player);
+    }
+    else if (Spell == PlayerSpell_RangerB)
+    {
+        LooseRapidFireArrow(AppState, Slot, Player);
+    }
 }
 
 // NOTE(zoubir): any hit of this class's player on a monster dealt Damage
@@ -30,6 +245,11 @@ internal void
 OnRangerHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
          world_entity *Source, float Damage)
 {
+    float Focus = RangerShotFocus(Attacker->Ranger.Hitting);
+    if (Focus > 0.f && IsRangerMarked(AppState, Attacker, Target))
+    {
+        AddRangerFocus(AppState, Attacker, Focus);
+    }
 }
 
 // NOTE(zoubir): the share of a hit on Target the player deals, and of a
@@ -37,7 +257,15 @@ OnRangerHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
 internal float
 RangerDealtScale(player_slot *Slot, world_entity *Target)
 {
-    return 1.f;
+    float Result = 1.f + MARKSMAN_SHARE * (float)RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Marksman);
+    ranger_slot *Ranger = &Slot->Ranger;
+    if (Target && Target->Type == EntityType_Monster && Ranger->MarkSeconds > 0.f &&
+        Ranger->MarkSerial == Target->MonsterSerial)
+    {
+        bool32 Lethal = RoleRank(Slot, PlayerRole_Ranger, RangerTalent_LethalMark) > 0;
+        Result *= 1.f + MARK_SHARE + (Lethal ? LETHAL_MARK_SHARE : 0.f);
+    }
+    return Result;
 }
 
 internal float
@@ -57,7 +285,46 @@ RangerSpellCooldown(player_slot *Slot, u32 Key, float Base)
 internal float
 RangerSpellRadius(player_slot *Slot, u32 Key, float Base)
 {
-    return Base;
+    float Result = Base;
+    if (Key == 0 && RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Barrage))
+    {
+        Result *= BARRAGE_RADIUS;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): once a tick for each Ranger: the mark, the channel's
+// arrows, Focus draining between fights, and what clients see of it
+internal void
+UpdateRangerSlot(app_state *AppState, dungeon_run *Run, player_slot *Slot, float DeltaTime)
+{
+    ranger_slot *Ranger = &Slot->Ranger;
+    world_entity *Player = Slot->Entity;
+    UpdateRangerMark(AppState, Slot, DeltaTime);
+    bool32 Rapid = Player && !IsDeadPlayer(Player) && Player->CastSpell == PlayerSpell_RangerB;
+    if (Rapid)
+    {
+        Ranger->RapidTimer -= DeltaTime;
+        // NOTE(zoubir): the last arrow goes as the cast ends (FinishRangerCast)
+        if (Ranger->RapidTimer <= 0.f && Player->CastLeft > DeltaTime)
+        {
+            Ranger->RapidTimer += PlayerSpells[PlayerSpell_RangerB].CastTime / (float)RAPID_FIRE_ARROWS;
+            LooseRapidFireArrow(AppState, Slot, Player);
+        }
+    }
+    Ranger->FocusHold = Maximum(0.f, Ranger->FocusHold - DeltaTime);
+    if (!Run->FightingRoom && Ranger->FocusHold <= 0.f)
+    {
+        Ranger->Focus = Maximum(0.f, Ranger->Focus - RANGER_FOCUS_DRAIN * DeltaTime);
+    }
+    u32 Index = (u32)(Slot - AppState->Players);
+    bool32 Deadeye = Ranger->Focus >= RANGER_FOCUS_MOST &&
+        RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Deadeye) > 0;
+    Slot->ClassMeter = (u8)(Ranger->Focus + 0.5f);
+    Slot->ClassFlags = (u8)((RangerMarkedFoe(AppState, Slot) ? RANGER_FLAG_MARK : 0) |
+                            (RangerTrapDown(&Run->Ranger, Index) ? RANGER_FLAG_TRAP : 0) |
+                            (Deadeye ? RANGER_FLAG_DEADEYE : 0) |
+                            (Rapid ? RANGER_FLAG_RAPID : 0));
 }
 
 // NOTE(zoubir): once a tick, from UpdateRoleEffects: what the class's
@@ -65,4 +332,22 @@ RangerSpellRadius(player_slot *Slot, u32 Key, float Base)
 internal void
 UpdateRangerEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
 {
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        if (Slot->Active && Slot->Role == PlayerRole_Ranger)
+        {
+            UpdateRangerSlot(AppState, Run, Slot, DeltaTime);
+        }
+        else
+        {
+            // NOTE(zoubir): a player who left the class leaves its Focus
+            // and mark behind
+            Slot->Ranger.Focus = 0.f;
+            Slot->Ranger.MarkSeconds = 0.f;
+        }
+    }
+    UpdateRangerArrows(AppState, &Run->Ranger, DeltaTime);
+    UpdateRangerVolleys(AppState, &Run->Ranger, DeltaTime);
+    UpdateRangerTraps(AppState, &Run->Ranger, DeltaTime);
 }
