@@ -52,7 +52,7 @@ Players cannot hurt each other in a run: a player's hit on another player does n
 
 ### Role talents
 
-In a run the talent panel (N) shows only the class's own tree, in its colour and under its name (`sim/dungeon/role_talents.cpp`); the game's three branches are hidden and take no point there. Six talents each, the same shape for every class: two of two ranks, then two, then one, then one, opening like the other branches. The second slot of the first tier unlocks the C spell, and the third tier the V spell.
+In a run the talent panel (N) shows only the class's own tree, in its colour and under its name (`sim/dungeon/role_talents.cpp`); the game's three branches are hidden and take no point there. Twelve talents each over six tiers, the same shape for every class, 29 points in all so a tree fills at level 30, the dungeon's top level. A tier opens after 2 points a tier above it, like the other branches. The second slot of the first tier unlocks the C spell, and the third tier the V spell. The first six are each class's own (below); the last six are listed after the table.
 
 | Tier | Bulwark | Mender | Striker |
 |---|---|---|---|
@@ -61,7 +61,20 @@ In a run the talent panel (N) shows only the class's own tree, in its colour and
 | 3 | **Last Stand** (V) | **Radiance** (V) | **Combustion** (V) |
 | 4 | Shatter Armor (Sunder is 25% for 12 s) | Miracle (revive in 1.5 s at 70%) | Overload (detonating a full mark gives back 3 s of Detonate) |
 
-The six slots are `Talent_RoleFirst` on in `sim/progression/talents.cpp`; their meaning is the player's class, so picking another class gives their points back, and they take no point outside a run.
+The deeper tiers, for every class. Slots 6, 7, 9 and 10 are stat talents of four ranks (`sim/dungeon/role_stats.cpp`): +4% damage, -4% damage taken, +6% health, -4% on every class spell's cooldown, +6% healing, +3% run speed, or 2% of damage dealt back as health, a rank. Slot 8 (4 ranks) strengthens a spell and slot 11 (1 rank) is the capstone.
+
+| Tier | Slot | Bulwark | Mender | Striker |
+|---|---|---|---|---|
+| 3 | 6 | Fortitude (health) | Blessed Hands (healing) | Kindling (damage) |
+| 4 | 7 | Plate Mastery (armor) | Inner Light (health) | Ember Mantle (health) |
+| 5 | 8 | Juggernaut: Shield Charge -1 s cooldown, +0.25 s stun a rank | Steadfast Ward: Ward +8 absorbed, -0.75 s cooldown a rank | Molten Ground: Meteor's ground slows, +1 s after the fire a rank |
+| 5 | 9 | Vengeance (damage) | Quickening (cooldowns) | Quickened Flame (cooldowns) |
+| 6 | 10 | Battle Rhythm (cooldowns) | Light Feet (run speed) | Heat Shield (armor) |
+| 6 | 11 | **Unbroken**: once a fight, a blow that would down you leaves you at 10% behind Shield Wall for 5 s | **Guardian Angel**: once per ally a fight, a blow taking them under 30% cannot kill; heals 40% and wards 40 | **Cataclysm**: Giant Fireball's blast stuns for 1.5 s |
+
+The Ranger, Berserker and Shadowblade trees are in `docs/dungeon-classes.md`.
+
+The twelve slots are `Talent_RoleFirst` on in `sim/progression/talents.cpp`; their meaning is the player's class, so picking another class gives their points back, and they take no point outside a run.
 
 ### Looks
 

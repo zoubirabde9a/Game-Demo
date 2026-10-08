@@ -45,6 +45,14 @@ Numbers, talents and the spell table of each class are `code/sim/dungeon/role_ki
 | 4 | Deadeye: Piercing Shot on full Focus always crits | Sweeping Strikes: Cleave and Whirlwind hit harder per foe | Opportunist: more damage from behind |
 | 5 | Rapid Fire (V) | Berserk (V) | Shadow Dance (V) |
 | 6 | Lethal Mark: the mark bites deeper and jumps on a kill | Massacre: Execute from 35% health, a kill refunds Rage | Relentless: a killing Eviscerate refunds points and Shadowstep |
+| 7 (4 ranks) | Keen Eye (damage) | Thick Hide (health) | Cutthroat (damage) |
+| 8 (4 ranks) | Survivalist (health) | Bloodlust (life steal) | Evasion (armor) |
+| 9 (4 ranks) | Pinning Volley: Volley's slow lasts 0.5 s longer a rank | Bladestorm: Whirlwind +15% a rank | Knife Storm: Fan of Knives +10% radius, +25% damage a rank |
+| 10 (4 ranks) | Steady Hands (cooldowns) | Brute Force (damage) | Quick Hands (cooldowns) |
+| 11 (4 ranks) | Fleet Hunter (run speed) | Unyielding (armor) | Siphon (life steal) |
+| 12 | Hunter's Net: Disengage's snare roots every foe within 120 when it springs | Shattering Leap: foes Leap lands on take 25% more from everyone for 6 s | Kidney Shot: a 5-point Eviscerate stuns its foe for 2.5 s |
+
+Slots 7, 8, 10 and 11 are the stat talents every class has (`docs/dungeon-plan.md`, "Role talents").
 
 ## Online
 
