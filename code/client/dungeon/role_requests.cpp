@@ -128,6 +128,25 @@ ApplyDeveloperRoom(app_state *AppState, memory_arena *Arena)
 #endif
 }
 
+// NOTE(zoubir): GAME_ROLE and GAME_ROOM, once per local player added,
+// as soon as the dungeon run exists: when a screenshot skips the connect
+// screen (misc\screenshot.bat) the player is added before the first
+// tick builds the run, so this runs again after each offline tick
+// (online/world_tick.cpp) until it can
+global_variable bool32 DeveloperStartDone;
+
+internal void
+ApplyDeveloperStart(app_state *AppState, memory_arena *Arena)
+{
+    if (DeveloperStartDone || !IsDungeon(AppState) || !AppState->Dungeon)
+    {
+        return;
+    }
+    DeveloperStartDone = true;
+    ApplyDeveloperRole(AppState);
+    ApplyDeveloperRoom(AppState, Arena);
+}
+
 // NOTE(zoubir): developer builds, offline, once a fight with a boss
 // starts: GAME_BOSS_HEALTH=0.59 puts the boss at that share of its
 // health, so a screenshot can show a phase (a Hollow Champion at 60%),

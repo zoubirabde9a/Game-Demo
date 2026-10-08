@@ -51,8 +51,8 @@ AddLocalPlayer(app_state *AppState, memory_arena *Arena)
                                             AppState->LocalPlayerIndex));
     AddFamiliar(AppState, &AppState->World, Arena, Player);
     AddDeveloperDummy(AppState, Arena, Player);
-    ApplyDeveloperRole(AppState);
-    ApplyDeveloperRoom(AppState, Arena);
+    DeveloperStartDone = false;
+    ApplyDeveloperStart(AppState, Arena);
 }
 
 // NOTE(zoubir): offline only. Throws the world away and starts MapId
