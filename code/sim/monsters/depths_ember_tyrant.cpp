@@ -25,7 +25,7 @@ DefineMonster_EmberTyrant(monster_def *Def)
     Def->AggroRange = 720.f;
     Def->StopRange = 52.f;
     Def->AttackRange = 68.f;
-    Def->AttackDamage = 18.f;
+    Def->AttackDamage = 16.5f;
     Def->AttackInterval = 1.f;
     Def->SpawnWeight = 0;
     Def->MaxAlive = 1;
@@ -44,7 +44,7 @@ DefineMonster_EmberTyrant(monster_def *Def)
     Crown->Windup = 0.9f;
     Crown->Active = 1.6f;
     Crown->Recover = 0.5f;
-    Crown->Damage = 12.f;
+    Crown->Damage = 11.f;
     Crown->Radius = 20.f;
     Crown->Speed = 270.f;
     Crown->Knockback = 150.f;
@@ -62,7 +62,7 @@ DefineMonster_EmberTyrant(monster_def *Def)
     Cleave->Windup = 1.1f;
     Cleave->Active = 0.3f;
     Cleave->Recover = 0.6f;
-    Cleave->Damage = 24.f;
+    Cleave->Damage = 22.f;
     Cleave->Radius = 125.f;
     Cleave->Knockback = 700.f;
     Cleave->Status = StatusEffect_Burning;
@@ -80,7 +80,7 @@ DefineMonster_EmberTyrant(monster_def *Def)
     Step->Windup = 1.f;
     Step->Active = 0.3f;
     Step->Recover = 0.6f;
-    Step->Damage = 12.f;
+    Step->Damage = 11.f;
     Step->Radius = 80.f;
     Step->Spread = 60.f;
     Step->Knockback = 500.f;
@@ -95,7 +95,7 @@ DefineMonster_EmberTyrant(monster_def *Def)
     Fall->Windup = 1.2f;
     Fall->Active = 0.3f;
     Fall->Recover = 0.5f;
-    Fall->Damage = 10.f;
+    Fall->Damage = 9.f;
     Fall->Radius = 60.f;
     Fall->Knockback = 250.f;
     Fall->Count = 3;

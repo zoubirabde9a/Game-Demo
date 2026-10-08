@@ -59,7 +59,7 @@ DefineMonster_Forgemaster(monster_def *Def)
     Anvil->Windup = 0.95f;
     Anvil->Active = 0.3f;
     Anvil->Recover = 0.6f;
-    Anvil->Damage = 22.f;
+    Anvil->Damage = 19.f;
     Anvil->Radius = 115.f;
     Anvil->Knockback = 650.f;
     Anvil->Status = StatusEffect_Burning;
@@ -75,7 +75,7 @@ DefineMonster_Forgemaster(monster_def *Def)
                                               "Hammer Hurl");
     Hurl->MinRange = 120.f;
     Hurl->MaxRange = 480.f;
-    Hurl->Cooldown = 4.f;
+    Hurl->Cooldown = 5.f;
     Hurl->Windup = 1.f;
     Hurl->Active = 0.3f;
     Hurl->Recover = 0.5f;

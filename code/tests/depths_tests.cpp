@@ -141,8 +141,8 @@ TestDepthsFoesAreTougher()
     }
     Check(SawPlain);
 
-    // NOTE(zoubir): the same hit from a monster lands 1.1 times as hard
-    // here as in the crypt
+    // NOTE(zoubir): the same hit from a monster lands the level's damage
+    // scale (above 1) times as hard here as in the crypt
     world_entity *Foe = &World->Entities[Run->FoeSlots[0]];
     float Before = Player->Hp;
     DamageEntity(AppState, World, Player, 10.f, Foe);
@@ -152,7 +152,10 @@ TestDepthsFoesAreTougher()
     DamageEntity(AppState, World, Player, 10.f, Foe);
     float CryptTaken = Before - Player->Hp;
     AppState->World.MapId = MapId_Depths;
-    Check(CryptTaken > 0.f && Taken > CryptTaken * 1.09f && Taken < CryptTaken * 1.11f);
+    float Scale = LevelFoeDamage(MapId_Depths);
+    Check(Scale > 1.f);
+    Check(CryptTaken > 0.f && Taken > CryptTaken * (Scale - 0.01f) &&
+          Taken < CryptTaken * (Scale + 0.01f));
     DestroyCryptWorld(&Depths);
 }
 
