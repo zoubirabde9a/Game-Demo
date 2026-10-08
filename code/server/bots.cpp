@@ -132,6 +132,7 @@ BotHurtAlly(app_state *AppState, world_entity *Self, float Range, float Below)
     return Result;
 }
 
+#include "bots/healer_footwork.cpp"
 #include "bots/class_bots.cpp"
 #include "bots/hazard_steer.cpp"
 
@@ -198,41 +199,7 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
     }
     else if (Slot->Role == PlayerRole_Healer)
     {
-        // NOTE(zoubir): out of the melee: back off what comes close
-        if (Target && Distance < 180.f)
-        {
-            *Held &= ~(u32)(NetButton_Left | NetButton_Right | NetButton_Up | NetButton_Down |
-                            NetButton_Sword);
-            *Held |= NetButtonsToward(-Direction);
-        }
-        // NOTE(zoubir): an ally down in the fight: walk to the body and
-        // stand over it until it is up (sim/dungeon/revive.cpp), the
-        // spells below still cast on the way
-        world_entity *Downed = 0;
-        float DownedGap = 0.f;
-        for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; ++SlotIndex)
-        {
-            player_slot *Other = &AppState->Players[SlotIndex];
-            world_entity *Body = Other->Entity;
-            float Gap = Body ? Length(Body->Position.XY - Self->Position.XY) : 0.f;
-            if (Other->Active && Body && Body != Self && IsDeadPlayer(Body) &&
-                AppState->Dungeon->FightingRoom &&
-                RoomAtPosition(&AppState->World, Body->Position.XY) == AppState->Dungeon->FightingRoom &&
-                (!Downed || Gap < DownedGap))
-            {
-                Downed = Body;
-                DownedGap = Gap;
-            }
-        }
-        if (Downed)
-        {
-            *Held &= ~(u32)(NetButton_Left | NetButton_Right | NetButton_Up | NetButton_Down |
-                            NetButton_Sword);
-            if (DownedGap > 0.5f * REVIVE_RADIUS)
-            {
-                *Held |= NetButtonsToward(DirectionTo(Downed->Position.XY - Self->Position.XY));
-            }
-        }
+        BotHealerFootwork(AppState, Self, Target, Distance, Direction, Held);
         world_entity *Hurt = BotHurtAlly(AppState, Self, MENDING_BOLT_RANGE, 0.85f);
         if (Hurt && Ready[0] && BotRandom(Bot) % 6 == 0)
         {
@@ -434,6 +401,10 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         if (Role == PlayerRole_Damage)
         {
             Role = BotDamageClass(AppState, Self->PlayerIndex);
+        }
+        else if (Role == PlayerRole_Healer)
+        {
+            Role = BotHealerClass(AppState, Self->PlayerIndex);
         }
         if (Slot->Role != Role)
         {

@@ -1,5 +1,5 @@
-/* Bot class tests (server/bots/class_bots.cpp): which damage class a bot
-   asks for. Included by server_tests.cpp, which calls RunBotClassTests. */
+/* Bot class tests (server/bots/class_bots.cpp): which damage and healer
+   class a bot asks for. Included by server_tests.cpp, which calls RunBotClassTests. */
 
 // NOTE(zoubir): the first damage bot of a party plays the Fire Mage
 // whatever slots the party sits in, so the balance probe (three bots in
@@ -28,8 +28,30 @@ TestFirstDamageBotIsTheFireMage()
     free(AppState);
 }
 
+// NOTE(zoubir): the first healer bot plays the Mender, wherever the party
+// sits; the second healer seat goes to the Druid
+internal void
+TestSecondHealerBotIsTheDruid()
+{
+    app_state *AppState = (app_state *)calloc(1, sizeof(app_state));
+    for (u32 Slot = 5; Slot < 8; ++Slot)
+    {
+        AppState->Players[Slot].Active = true;
+    }
+    Check(BotWantedRole[5] == PlayerRole_Healer);
+    Check(BotHealerClass(AppState, 5) == PlayerRole_Healer);
+    for (u32 Slot = 0; Slot < MAX_PLAYERS; ++Slot)
+    {
+        AppState->Players[Slot].Active = true;
+    }
+    Check(BotHealerClass(AppState, 1) == PlayerRole_Healer);
+    Check(BotHealerClass(AppState, 5) == PlayerRole_Druid);
+    free(AppState);
+}
+
 internal void
 RunBotClassTests()
 {
     TestFirstDamageBotIsTheFireMage();
+    TestSecondHealerBotIsTheDruid();
 }
