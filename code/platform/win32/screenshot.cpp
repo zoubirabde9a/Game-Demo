@@ -14,6 +14,10 @@
    "2:F4 5-90:D 40:A M:900,400" closes the Play screen, walks right,
    launches at frame 40 and aims to the right of the middle.
 
+   GAME_SCREENSHOT_TYPE scripts typing: Frame:text entries split by
+   semicolons, each typed all on that frame, with | for Enter.
+   "30:|;32:gg all|" opens the chat at frame 30 and says "gg all".
+
    GAME_WINDOW=1920x1080 (or =fullscreen) opens the game at that size, so
    a shot can check a layout at a resolution this monitor does not have
    (window.cpp). The PNG is in screen pixels: on a monitor at 150% it is
@@ -46,8 +50,16 @@ struct win32_scripted_key
     i32 MouseX, MouseY;
 };
 
+struct win32_scripted_typing
+{
+    u32 Frame;
+    char Text[60];
+};
+
 struct win32_screenshot
 {
+    win32_scripted_typing Typing[8];
+    u32 TypingCount;
     char Path[MAX_PATH];
     u32 Frame;
     u32 FramesDrawn;
@@ -108,6 +120,25 @@ Win32ParseScriptedKeys(win32_screenshot *Shot, char *Text)
     }
 }
 
+// NOTE(zoubir): reads GAME_SCREENSHOT_TYPE (see the top of this file)
+internal void
+Win32ParseScriptedTyping(win32_screenshot *Shot, char *Text)
+{
+    while (*Text && Shot->TypingCount < ArrayCount(Shot->Typing))
+    {
+        win32_scripted_typing *Typing = &Shot->Typing[Shot->TypingCount++];
+        Typing->Frame = (u32)strtoul(Text, &Text, 10);
+        if (*Text == ':') Text++;
+        u32 Length = 0;
+        for(; *Text && *Text != ';'; Text++)
+        {
+            if (Length + 1 < sizeof(Typing->Text)) Typing->Text[Length++] = *Text;
+        }
+        Typing->Text[Length] = 0;
+        if (*Text == ';') Text++;
+    }
+}
+
 internal app_button_state *
 Win32ScriptedButton(app_input *Input, char *Name)
 {
@@ -138,6 +169,20 @@ Win32ApplyScriptedKeys(win32_screenshot *Shot, app_input *Input)
             Button->EndedDown = true;
             Button->Pressed = Button->Pressed || Frame == Key->From;
         }
+    }
+    for(u32 Index = 0; Index < Shot->TypingCount; Index++)
+    {
+        win32_scripted_typing *Typing = &Shot->Typing[Index];
+        if (Typing->Frame != Frame) continue;
+        for(char *C = Typing->Text; *C; C++)
+        {
+            if (*C == '|') Input->TextSubmit = true;
+            else if (Input->TextInputCount + 1 < ArrayCount(Input->TextInput))
+            {
+                Input->TextInput[Input->TextInputCount++] = *C;
+            }
+        }
+        Input->TextInput[Input->TextInputCount] = 0;
     }
     if (Shot->HasMouse)
     {
@@ -178,6 +223,10 @@ Win32InitScreenshot(win32_screenshot *Shot)
     if (GetEnvironmentVariableA("GAME_SCREENSHOT_KEYS", Keys, sizeof(Keys)))
     {
         Win32ParseScriptedKeys(Shot, Keys);
+    }
+    if (GetEnvironmentVariableA("GAME_SCREENSHOT_TYPE", Keys, sizeof(Keys)))
+    {
+        Win32ParseScriptedTyping(Shot, Keys);
     }
 }
 
