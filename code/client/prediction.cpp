@@ -67,6 +67,9 @@ struct predicted_body
     u32 ComboTrail[PLAYER_COMBO_TRAIL];
     float ComboTrailAge[PLAYER_COMBO_TRAIL];
     bool32 LongJump;
+    // NOTE(zoubir): a class key waiting to cast (UseRoleAbilities)
+    u32 QueuedRoleKey;
+    float QueuedRoleSeconds;
 };
 
 inline predicted_body
@@ -85,6 +88,8 @@ SavePredictedBody(world_entity *Player)
         Result.ComboTrailAge[Index] = Player->ComboTrailAge[Index];
     }
     Result.LongJump = Player->LongJump;
+    Result.QueuedRoleKey = Player->QueuedRoleKey;
+    Result.QueuedRoleSeconds = Player->QueuedRoleSeconds;
     return Result;
 }
 
@@ -108,6 +113,8 @@ RestorePredictedBody(world_entity *Player, predicted_body *Body)
         Player->ComboTrailAge[Index] = Body->ComboTrailAge[Index];
     }
     Player->LongJump = Body->LongJump;
+    Player->QueuedRoleKey = Body->QueuedRoleKey;
+    Player->QueuedRoleSeconds = Body->QueuedRoleSeconds;
 }
 
 struct predicted_input

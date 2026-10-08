@@ -19,11 +19,10 @@ TestRunKeepsTheClassKeys()
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Launch | PlayerButton_Push));
+    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Launch | PlayerButton_Push |
+                      PlayerButton_Slam));
     Check(!(Allowed & (PlayerButton_Attack | PlayerButton_Dash | PlayerButton_Shockwave |
-                       PlayerButton_RewindSelf | PlayerButton_Kunai | PlayerButton_Slam)));
-    Slot->Ranks[Talent_RoleFirst + StrikerTalent_Detonate] = 1;
-    Check(RunAllowedButtons(AppState, Slot, 0) & PlayerButton_Slam);
+                       PlayerButton_RewindSelf | PlayerButton_Kunai)));
     Slot->Ranks[Talent_RoleFirst + StrikerTalent_Combustion] = 1;
     Check(RunAllowedButtons(AppState, Slot, 0) & PlayerButton_Kunai);
 

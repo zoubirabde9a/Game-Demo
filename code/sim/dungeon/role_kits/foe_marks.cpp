@@ -1,6 +1,7 @@
 /* Foe marks (foe_marks.h), included by role_abilities.cpp before the
    kits: the table of what role spells leave on monsters. The striker's
-   Searing stacks (striker.cpp) fade SEARING_SECONDS after the last; the
+   Searing stacks (striker.cpp) burn, and run out SEARING_SECONDS after
+   the last (UpdateSearing explodes them then); the
    tank's Sunder (tank.cpp) makes the monster take SUNDER_SHARE more from
    everyone for SUNDER_SECONDS. A row is used while either holds, and is
    dropped with its monster. */
@@ -58,13 +59,15 @@ GetFoeMark(dungeon_run *Run, world *World, world_entity *Monster)
     return Mark;
 }
 
-// NOTE(zoubir): one more Searing stack on Monster, its fade starting again
+// NOTE(zoubir): Stacks more Searing on Monster from the striker in slot
+// By, its clock starting again
 internal void
-AddSearing(dungeon_run *Run, world *World, world_entity *Monster)
+AddSearing(dungeon_run *Run, world *World, world_entity *Monster, u32 Stacks = 1, u32 By = 0)
 {
     foe_mark *Mark = GetFoeMark(Run, World, Monster);
-    Mark->Stacks = Minimum(Mark->Stacks + 1, (u32)SEARING_MOST);
+    Mark->Stacks = Minimum(Mark->Stacks + Stacks, (u32)SEARING_MOST);
     Mark->Seconds = SEARING_SECONDS;
+    Mark->SearBy = By;
 }
 
 // NOTE(zoubir): Monster takes Share more for Seconds, never cut shorter

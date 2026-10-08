@@ -146,7 +146,7 @@ internal void PaintProvokeIcon(icon_canvas *C) { PaintRoleTauntIcon(C); IconBadg
 internal void PaintBastionIcon(icon_canvas *C) { PaintRoleShieldSlamIcon(C); IconBadgeMore(C); }
 internal void PaintSwiftMendingIcon(icon_canvas *C) { PaintRoleMendingBoltIcon(C); IconBadgeMore(C); }
 internal void PaintDeepWardIcon(icon_canvas *C) { PaintRoleWardIcon(C); IconBadgeMore(C); }
-internal void PaintOverloadIcon(icon_canvas *C) { PaintRoleDetonateIcon(C); IconBadgeSooner(C); }
+internal void PaintOverloadIcon(icon_canvas *C) { PaintRoleDetonateIcon(C); IconBadgeMore(C); }
 internal void PaintShatterArmorIcon(icon_canvas *C) { PaintRoleShieldSlamIcon(C); IconBadgeMore(C); }
 internal void PaintWildfireIcon(icon_canvas *C) { PaintRoleInfernoIcon(C); IconBadgeMore(C); }
 

@@ -4,6 +4,10 @@
    on replicas, with nothing extra sent. Damage over time (burning,
    poison) is added up and shown at most every HIT_NUMBER_GAP seconds per
    target instead of every frame. Hits on the local player are red.
+   Health lost while no hit is fresh on the unit (HitFresh, every ApplyHit
+   sets it) and while it burns or is poisoned is damage over time: it
+   rises orange with a flame for fire (Burning, a fire mage's Searing
+   mark) and green with a drop for poison, and throws no sparks.
    Healing rises in green with a plus, added up the same way: on a player
    (a dungeon healer's spells), and on a monster (an elite stealing life,
    a healer monster's spell, a boss's adds feeding it), so a foe that
@@ -28,6 +32,14 @@
 // NOTE(zoubir): health tracking covers every world entity slot
 #define HIT_TRACKED ArrayCount(((world *)0)->Entities)
 
+// NOTE(zoubir): what a number's damage over time was, 0 for a hit
+enum hit_number_dot
+{
+    HitNumberDot_None,
+    HitNumberDot_Fire,
+    HitNumberDot_Poison,
+};
+
 struct hit_number
 {
     v2 Position;
@@ -35,6 +47,7 @@ struct hit_number
     u32 Amount;
     bool32 OnLocalPlayer;
     bool32 Heal;
+    u32 Dot;
 };
 
 struct hit_numbers
@@ -50,6 +63,8 @@ struct hit_numbers
     float LastHp[HIT_TRACKED];
     float Pending[HIT_TRACKED];
     float PendingHeal[HIT_TRACKED];
+    float PendingDot[HIT_TRACKED];
+    u8 DotKind[HIT_TRACKED];
     float Gap[HIT_TRACKED];
 
     u32 Combo;
@@ -66,9 +81,36 @@ ShowsHitNumbers(world_entity *Entity)
     return Result;
 }
 
+// NOTE(zoubir): the damage over time Entity (in world slot Index) is
+// under, fire before poison
+internal u32
+HitNumberDotOn(app_state *AppState, world_entity *Entity, u32 Index)
+{
+    if (HasStatus(Entity, StatusEffect_Burning))
+    {
+        return HitNumberDot_Fire;
+    }
+    if (IsDungeon(AppState) && AppState->Dungeon && Entity->Type == EntityType_Monster)
+    {
+        for(u32 Row = 0; Row < MAX_FOE_MARKS; Row++)
+        {
+            foe_mark *Mark = &AppState->Dungeon->Marks[Row];
+            if (Mark->Stacks && Mark->Slot == Index)
+            {
+                return HitNumberDot_Fire;
+            }
+        }
+    }
+    if (HasStatus(Entity, StatusEffect_Poisoned))
+    {
+        return HitNumberDot_Poison;
+    }
+    return HitNumberDot_None;
+}
+
 internal void
 AddHitNumber(hit_numbers *Fx, world_entity *Entity, u32 Amount,
-             bool32 OnLocalPlayer, bool32 Heal = false)
+             bool32 OnLocalPlayer, bool32 Heal = false, u32 Dot = HitNumberDot_None)
 {
     if (Fx->Count < MAX_HIT_NUMBERS)
     {
@@ -80,6 +122,7 @@ AddHitNumber(hit_numbers *Fx, world_entity *Entity, u32 Amount,
         Number->Amount = Amount;
         Number->OnLocalPlayer = OnLocalPlayer;
         Number->Heal = Heal;
+        Number->Dot = Dot;
     }
 }
 
@@ -106,6 +149,7 @@ UpdateHitNumbers(hit_numbers *Fx, app_state *AppState, float DeltaTime)
             Fx->LastHp[Index] = Entity->Hp;
             Fx->Pending[Index] = 0.f;
             Fx->PendingHeal[Index] = 0.f;
+            Fx->PendingDot[Index] = 0.f;
             Fx->Gap[Index] = 0.f;
             continue;
         }
@@ -113,7 +157,14 @@ UpdateHitNumbers(hit_numbers *Fx, app_state *AppState, float DeltaTime)
         float Before = Fx->LastHp[Index];
         float Lost = Before - Entity->Hp;
         Fx->LastHp[Index] = Entity->Hp;
-        if (Lost > 0.f)
+        u32 Dot = Entity->HitFresh > 0.f ? HitNumberDot_None :
+            HitNumberDotOn(AppState, Entity, Index);
+        if (Lost > 0.f && Dot)
+        {
+            Fx->PendingDot[Index] += Lost;
+            Fx->DotKind[Index] = (u8)Dot;
+        }
+        else if (Lost > 0.f)
         {
             Fx->Pending[Index] += Lost;
         }
@@ -136,6 +187,13 @@ UpdateHitNumbers(hit_numbers *Fx, app_state *AppState, float DeltaTime)
             AddHitNumber(Fx, Entity, (u32)(Fx->Pending[Index] + 0.5f),
                          Entity == Local);
             Fx->Pending[Index] = 0.f;
+            Fx->Gap[Index] = HIT_NUMBER_GAP;
+        }
+        else if (Fx->PendingDot[Index] >= 1.f && Fx->Gap[Index] <= 0.f)
+        {
+            AddHitNumber(Fx, Entity, (u32)(Fx->PendingDot[Index] + 0.5f),
+                         Entity == Local, false, Fx->DotKind[Index]);
+            Fx->PendingDot[Index] = 0.f;
             Fx->Gap[Index] = HIT_NUMBER_GAP;
         }
         else if (Fx->PendingHeal[Index] >= 1.f && Fx->Gap[Index] <= 0.f)
@@ -184,7 +242,7 @@ DrawHitNumbers(render_context *RenderContext, app_state *AppState,
         u32 Alpha = (u32)(255.f * Fade);
         v2 Start = Number->Position - CameraOffset.XY;
 
-        if (Number->Age < HIT_SPARK_SECONDS && !Number->Heal)
+        if (Number->Age < HIT_SPARK_SECONDS && !Number->Heal && !Number->Dot)
         {
             float SparkT = Number->Age / HIT_SPARK_SECONDS;
             u32 SparkColor = ((u32)(255.f * (1.f - SparkT)) << 24) | 0x0060E0FF;
@@ -204,6 +262,33 @@ DrawHitNumbers(render_context *RenderContext, app_state *AppState,
         if (Number->Heal)
         {
             Color = UI_RGBA(120, 245, 140, Alpha);
+        }
+        v2 Text0 = Start - V2(0.f, HIT_NUMBER_RISE * Rise);
+        if (Number->Dot == HitNumberDot_Fire)
+        {
+            Color = UI_RGBA(255, 140, 40, Alpha);
+        }
+        else if (Number->Dot == HitNumberDot_Poison)
+        {
+            Color = UI_RGBA(160, 235, 60, Alpha);
+        }
+        // NOTE(zoubir): a flame or a drop left of a damage over time number
+        if (Number->Dot && Alpha > 30)
+        {
+            float Width = UITextWidth(Font, Text);
+            v2 Icon = Text0 - V2(0.5f * Width + 8.f, 0.5f * UILineHeight(Font));
+            u32 A = Alpha << 24;
+            if (Number->Dot == HitNumberDot_Fire)
+            {
+                DrawFxDot(RenderContext, Icon, 5.f, A | 0x002080FF);
+                DrawFxDot(RenderContext, Icon - V2(0.f, 3.f), 3.5f, A | 0x0040C0FF);
+                DrawFxDot(RenderContext, Icon - V2(0.f, 6.f), 2.f, A | 0x0090E8FF);
+            }
+            else
+            {
+                DrawFxDot(RenderContext, Icon, 4.5f, A | 0x0040E0A0);
+                DrawFxDot(RenderContext, Icon - V2(0.f, 4.f), 2.5f, A | 0x0040E0A0);
+            }
         }
         if (Alpha > 30)
         {

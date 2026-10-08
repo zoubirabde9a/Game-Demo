@@ -64,6 +64,11 @@
     // NOTE(zoubir): set by the long jump combo until the player lands: the
     // air drag is cut so the dash's speed carries (movement.cpp)
     bool32 LongJump;
+    // NOTE(zoubir): a dungeon class key pressed that has not cast yet, + 1
+    // (0 for none), and the seconds it is still kept
+    // (sim/dungeon/role_abilities.cpp UseRoleAbilities)
+    u32 QueuedRoleKey;
+    float QueuedRoleSeconds;
     // NOTE(zoubir): on a sword entity, the slice it hits (update.cpp
     // IsInSwordSlice), from its cut (sword.cpp SwordCuts)
     float SwordReach;

@@ -13,10 +13,13 @@ struct foe_mark
     // with no stacks and no sunder is free (FoeMarkUsed)
     u32 Slot;
     u32 Serial;
-    // NOTE(zoubir): Searing stacks, 0 to SEARING_MOST, and the seconds
-    // until they fade
+    // NOTE(zoubir): Searing stacks, 0 to SEARING_MOST, the seconds until
+    // they run out and explode, the seconds since the last burn tick and
+    // the slot of the striker who laid the last stack
     u32 Stacks;
     float Seconds;
+    float BurnTimer;
+    u32 SearBy;
     // NOTE(zoubir): seconds the monster stays sundered, and the share more
     // it takes meanwhile
     float SunderSeconds;

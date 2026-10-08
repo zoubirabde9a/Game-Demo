@@ -185,6 +185,29 @@ PaintRoleDetonateIcon(icon_canvas *Canvas)
     }
 }
 
+// NOTE(zoubir): Fireguard: a round shield of fire, flames licking up
+// round its rim
+internal void
+PaintRoleFireguardIcon(icon_canvas *Canvas)
+{
+    v4 Yellow = IconColor(255, 235, 140);
+    v4 Orange = IconColor(255, 130, 40);
+    v4 Red = IconColor(190, 40, 20);
+    IconGlow(Canvas, V2(0.5f, 0.52f), 0.5f, IconColor(255, 110, 30, 140));
+    for(u32 Flame = 0; Flame < 9; Flame++)
+    {
+        float Angle = -Pi32 + Pi32 * (float)Flame / 8.f;
+        v2 Base = V2(0.5f + 0.3f * Cos(Angle), 0.54f + 0.3f * Sin(Angle));
+        v2 Tip = V2(0.5f + 0.44f * Cos(Angle), 0.54f + 0.44f * Sin(Angle));
+        IconTriangle(Canvas, Base + V2(-0.06f * Sin(Angle), 0.06f * Cos(Angle)),
+                     Base - V2(-0.06f * Sin(Angle), 0.06f * Cos(Angle)), Tip,
+                     Gradient(Orange, IconColor(255, 200, 80, 60), Base, Tip));
+    }
+    IconCircle(Canvas, V2(0.5f, 0.54f), 0.3f, Gradient(Orange, Red, V2(0.4f, 0.4f), V2(0.62f, 0.74f)));
+    IconCircle(Canvas, V2(0.5f, 0.54f), 0.22f, Gradient(Yellow, Orange, V2(0.42f, 0.44f), V2(0.6f, 0.68f)));
+    IconCircle(Canvas, V2(0.5f, 0.54f), 0.08f, Solid(IconColor(255, 250, 225)));
+}
+
 // NOTE(zoubir): Giant Fireball: a huge slow fireball with a long tail
 internal void
 PaintRoleGiantFireballIcon(icon_canvas *Canvas)
@@ -391,7 +414,7 @@ typedef void talent_icon_painter(icon_canvas *Canvas);
 // spell on
 global_variable role_icon_painter *StrikerIconPainters[ROLE_KEYS] =
 {
-    PaintRoleInfernoIcon, PaintRoleGiantFireballIcon, PaintRoleDetonateIcon, PaintRoleCombustionIcon,
+    PaintRoleInfernoIcon, PaintRoleGiantFireballIcon, PaintRoleFireguardIcon, PaintRoleCombustionIcon,
 };
 global_variable role_icon_painter *TankIconPainters[ROLE_KEYS] =
 {

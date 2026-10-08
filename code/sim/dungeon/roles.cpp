@@ -91,7 +91,7 @@ global_variable role_def RoleTable[PlayerRole_Count] =
 {
     // Name          MaxHp  Taken  Dealt  Threat
     {"Fire Mage",    110.f, 1.0f,  1.35f, 1.f, "Ranged",
-     "Meteor and Giant Fireball mark foes; Detonate blows the marks up",
+     "Fire spells leave a burn that explodes when it runs out; Fireguard shields you",
      RoleKind_Ranged, {240, 120, 60}},
     {"Bulwark",      240.f, 0.7f,  0.7f,  4.f, "Tank",
      "Taunt pulls foes; Shield Slam sunders them; Shield Charge stops a big attack",

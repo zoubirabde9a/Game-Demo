@@ -2,8 +2,8 @@
    them, included by role_fx.cpp, read from the run so the same offline
    and online (client/dungeon/dungeon_net.cpp):
    - Searing: a little flame over the monster's head for each stack,
-     burning hotter at a full mark so the striker knows Detonate is
-     ready to spend.
+     burning hotter at a full mark, and embers rising off the monster
+     while the mark burns, more of them the more stacks it has.
    - Sunder: a cracked steel ring at the monster's feet while it takes
      more from everyone, so the tank sees when to slam again. */
 
@@ -49,6 +49,17 @@ DrawFoeMarks(render_context *RenderContext, app_state *AppState, v3 CameraOffset
             continue;
         }
         bool32 Full = Mark->Stacks >= SEARING_MOST;
+        // NOTE(zoubir): embers off the body, two a stack
+        for(u32 Ember = 0; Ember < 2 * Mark->Stacks; Ember++)
+        {
+            float Phase = Clock * (1.1f + 0.15f * (float)(Ember % 3)) + 0.37f * (float)Ember;
+            float Rise = DungeonFxFraction(Phase);
+            float Side = (BurstJitter(Ember + 7 * Index, 97) - 0.5f) * Maximum(16.f, Monster->Dimensions.X);
+            v3 Point = Monster->Position +
+                V3(Side, 0.f, 6.f + Rise * (Maximum(24.f, Monster->Dimensions.Y) + 10.f));
+            DrawFxDot(RenderContext, BurstToScreen(Point, CameraOffset), 3.f - 1.5f * Rise,
+                      FxColor(0.9f * (1.f - Rise), Ember % 2 ? ROLE_FX_EMBER_RGB : ROLE_FX_FIRE_RGB));
+        }
         float Height = Maximum(24.f, Monster->Dimensions.Y) + SEARING_PIP_LIFT;
         v2 Head = BurstToScreen(V3(Monster->Position.X, Monster->Position.Y,
                                    Monster->Position.Z + Height), CameraOffset);

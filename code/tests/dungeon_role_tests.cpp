@@ -259,8 +259,8 @@ TestRoleTalents()
     Check(Slot->Ranks[Talent_RoleFirst + TankTalent_IronSkin] == 0);
     Check(TalentPointsLeft(Slot) == Left + 2);
     Check(LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_Wildfire) ||
-          LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_Detonate));
-    Check(Slot->Ranks[Talent_RoleFirst + StrikerTalent_Detonate] +
+          LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_SearingHeat));
+    Check(Slot->Ranks[Talent_RoleFirst + StrikerTalent_SearingHeat] +
           Slot->Ranks[Talent_RoleFirst + StrikerTalent_Wildfire] == 1);
 
     // NOTE(zoubir): in a run only the class's tree takes points
@@ -274,7 +274,7 @@ TestRoleTalents()
     // NOTE(zoubir): outside a run nobody can buy one
     dungeon_run *Run = AppState->Dungeon;
     AppState->Dungeon = 0;
-    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_Detonate));
+    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_SearingHeat));
     AppState->Dungeon = Run;
     DestroyCryptWorld(&Crypt);
 }

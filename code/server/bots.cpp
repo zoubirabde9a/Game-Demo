@@ -293,8 +293,9 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
     {
         // NOTE(zoubir): the striker's rotation (role_kits/striker.cpp):
         // fireballs build Searing on what it fights, Meteor opens on a
-        // pack, the Giant Fireball goes in between, Detonate spends a full
-        // mark or one about to fade, and Combustion goes up in a fight
+        // pack, the Giant Fireball goes in between, Fireguard goes up when
+        // something is after it or it is hurt, and Combustion goes up in a
+        // fight
         if (Distance > 80.f && Distance < PLAYER_AIM_REACH && Ready[0] &&
             BotRandom(Bot) % 25 == 0)
         {
@@ -305,9 +306,8 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
         {
             Result |= NetButton_Push;
         }
-        foe_mark *Mark = FindFoeMark(AppState->Dungeon, &AppState->World, Target);
-        if (Mark && Mark->Stacks && Ready[2] && Distance < DETONATE_RANGE &&
-            (Mark->Stacks >= SEARING_MOST || Mark->Seconds < 1.5f))
+        if (Ready[2] && AppState->Dungeon->FightingRoom &&
+            (Slot->Aggro || Self->Hp < 0.7f * Self->MaxHp) && BotRandom(Bot) % 20 == 0)
         {
             Result |= NetButton_Slam;
         }

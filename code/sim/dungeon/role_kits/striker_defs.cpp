@@ -4,7 +4,7 @@
 enum striker_talent
 {
     StrikerTalent_Pyromancer,
-    StrikerTalent_Detonate,
+    StrikerTalent_SearingHeat,
     StrikerTalent_Wildfire,
     StrikerTalent_Executioner,
     StrikerTalent_Combustion,
@@ -19,12 +19,15 @@ enum striker_talent
 
 // NOTE(zoubir): per rank, or once taken
 #define PYROMANCER_SHARE 0.06f
-// NOTE(zoubir): Detonate's second rank: this much more a Searing stack
+// NOTE(zoubir): Searing Heat, per rank: this much more burn a second
+// and this much more explosion, a Searing stack
+#define SEARING_HEAT_BURN 1.f
 #define SEARING_HEAT_PER_STACK 5.f
 #define WILDFIRE_SECONDS 2.f
 #define EXECUTIONER_BELOW 0.3f
 #define EXECUTIONER_SHARE 0.35f
-#define OVERLOAD_SECONDS 3.f
+// NOTE(zoubir): Overload: a full mark explodes this share harder
+#define OVERLOAD_SHARE 0.5f
 // NOTE(zoubir): Molten Ground: seconds of Slowed a burn of Meteor's
 // ground leaves, per rank; it burns every INFERNO_BURN_TICK, so any rank
 // slows a monster for as long as it stands in the fire, and more ranks
@@ -38,16 +41,16 @@ global_variable talent_def StrikerTalentDefs[ROLE_TALENTS] =
 {
         {"Pyromancer", "All your damage is higher", "+6% damage",
          TalentBranch_Role, 0, 0, 2, 0},
-        {"Detonate", "C: blow up the Searing marks on a foe; in fire, every marked foe there",
-         "rank 2: +5 a stack", TalentBranch_Role, 0, 1, 2, 0},
+        {"Searing Heat", "Searing burns hotter and explodes harder",
+         "+1 burn and +5 blast a stack", TalentBranch_Role, 0, 1, 2, 0},
         {"Wildfire", "Meteor's ground burns longer, keeping marks alive", "+2 s of burning ground",
          TalentBranch_Role, 1, 0, 1, 0},
         {"Executioner", "Hit harder on monsters under 30% health", "+35% damage on them",
          TalentBranch_Role, 1, 1, 1, 0},
         {"Combustion", "V: for 6 s every hit you land is 40% harder", "a new spell",
          TalentBranch_Role, 2, 0, 1, 0},
-        {"Overload", "Detonating a full mark gives back 3 s of Detonate",
-         "-3 s Detonate on a full mark", TalentBranch_Role, 3, 0, 1, 0},
+        {"Overload", "A full Searing mark explodes harder",
+         "+50% blast on a full mark", TalentBranch_Role, 3, 0, 1, 0},
         {"Kindling", "Your fire burns hotter", "+4% damage",
          TalentBranch_Role, 2, 1, 4, 0},
         {"Ember Mantle", "More health", "+6% health",

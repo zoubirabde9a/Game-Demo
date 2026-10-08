@@ -34,8 +34,10 @@
         ground.
      R  Giant Fireball: a 1.5 s cast, then a slow fireball that blows up
         on the first monster it reaches.
-     C  Detonate: blows up the Searing marks fireballs and meteors leave.
+     C  Fireguard: a shield of fire that takes the next 50 damage.
      V  Combustion: a few seconds of far more damage.
+     Every fire spell leaves Searing, a burn that explodes when it runs
+     out.
    The tank and the healer also have a weak basic attack on the right
    click, so neither is ever idle in a fight: Shield Bash and Smite Bolt.
    Every class's fireball (X) means something to it (OnRoleHit): the
@@ -48,7 +50,8 @@
    other ally in reach. Only a healer with nobody in reach casts on
    themselves, so no healer spell is a self heal (role_kits/allies.cpp).
 
-   UseRoleAbilities runs from UpdatePlayer before the game's abilities and
+   UseRoleAbilities (role_abilities/key_presses.cpp) runs from
+   UpdatePlayer before the game's abilities and
    takes the class's keys out of the input, so the game's spells on those
    keys never see them. While the client predicts its own player the keys
    are taken but nothing is cast: the server casts it. A spell with a cast
@@ -86,9 +89,9 @@ global_variable role_spell StrikerSpells[ROLE_KEYS] =
      {"Giant Fireball", GIANT_FIREBALL_COOLDOWN,
       "Giant Fireball: 1.5 s cast, a slow fireball that blows up a pack",
       RoleAim_Line, GIANT_FIREBALL_RANGE, 0},
-     {"Detonate", DETONATE_COOLDOWN,
-      "Detonate: blow up the Searing marks on a foe; in fire, every marked foe there",
-      RoleAim_Foe, DETONATE_RANGE, StrikerTalent_Detonate + 1},
+     {"Fireguard", FIREGUARD_COOLDOWN,
+      "Fireguard: a shield of fire that takes the next 50 damage",
+      RoleAim_None, 0.f, 0},
      {"Combustion", COMBUSTION_COOLDOWN, "Combustion: 6 s of 40% more damage",
       RoleAim_None, 0.f, StrikerTalent_Combustion + 1},
      {}};
@@ -366,7 +369,7 @@ OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
     }
     switch(Attacker->Role)
     {
-        case PlayerRole_Damage: OnStrikerShot(AppState, Target); break;
+        case PlayerRole_Damage: OnStrikerShot(AppState, (u32)(Attacker - AppState->Players), Target); break;
         case PlayerRole_Tank: OnTankShot(AppState, Attacker, Target); break;
         case PlayerRole_Healer:
         {
@@ -378,62 +381,7 @@ OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
     }
 }
 
-// NOTE(zoubir): a class key pressed with this much of its cooldown left
-// still casts, the rest added to the next cooldown, so the rate holds.
-// The same 0.25 s the game's sword and fireball keep a press for
-// (PLAYER_ACTION_LINGER): without it a click a moment early was lost, and
-// a Shadowblade's half-second Twin Strike dropped most of a player's clicks
-#define ROLE_EARLY_PRESS_SECONDS 0.25f
-
-// NOTE(zoubir): from UpdatePlayer, before the game's abilities
-internal void
-UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
-                 player_slot *Slot, float DeltaTime)
-{
-    world_entity *Player = Slot->Entity;
-    for(u32 Key = 0; Key < ROLE_KEYS; Key++)
-    {
-        Slot->RoleCooldowns[Key] = Maximum(0.f, Slot->RoleCooldowns[Key] - DeltaTime);
-    }
-    Slot->ShieldWallSeconds = Maximum(0.f, Slot->ShieldWallSeconds - DeltaTime);
-    for(u32 Key = 0; Key < ROLE_KEYS; Key++)
-    {
-        if (!RoleOwnsKey(AppState, Slot, Key))
-        {
-            continue;
-        }
-        u32 Button = RoleKeys[Key];
-        bool32 Pressed = WasPressed(&Slot->Input, Button);
-        Slot->Input.Pressed &= ~Button;
-        Slot->Input.ServerPressed &= ~Button;
-        // NOTE(zoubir): one cast at a time: nothing while a spell winds up.
-        // A client predicting its own player starts only the wind-ups
-        // (the pose, the slowdown, the bar); the rest waits for the server
-        if (!Pressed || (Slot->Predicted && !RoleKeyWindsUp(Slot, Key)) ||
-            Slot->RoleCooldowns[Key] > ROLE_EARLY_PRESS_SECONDS ||
-            IsDeadPlayer(Player) || !RoleSpellLearned(Slot, Key) ||
-            IsPlayerCasting(Player))
-        {
-            continue;
-        }
-        float Early = Slot->RoleCooldowns[Key];
-        bool32 Cast = false;
-        switch(Slot->Role)
-        {
-            case PlayerRole_Tank: Cast = CastTankKey(AppState, World, Arena, Slot, Player, Key); break;
-            case PlayerRole_Healer: Cast = CastHealerKey(AppState, Slot, Player, Key); break;
-            case PlayerRole_Damage: Cast = CastStrikerKey(AppState, Slot, Player, Key); break;
-            default: Cast = CastClassKey(AppState, World, Arena, Slot, Player, Key); break;
-        }
-        if (Cast)
-        {
-            // NOTE(zoubir): a cast may give part of its cooldown back
-            // (Overload, role_kits/striker.cpp)
-            Slot->RoleCooldowns[Key] = Maximum(0.f, Early + RoleSpellCooldown(Slot, Key) - Slot->CastRefund);
-            Slot->CastRefund = 0.f;
-        }
-    }
-}
+#include "role_abilities/key_presses.cpp"
 
 // NOTE(zoubir): how many monsters of the fight are after each player,
 // for the party frames

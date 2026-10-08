@@ -21,6 +21,10 @@
     // Combustion (role_kits/striker.cpp)
     v2 RoleCastPoint;
     float CombustSeconds;
+    // NOTE(zoubir): a striker's Fireguard: the damage it still takes and
+    // the seconds before it goes out (role_kits/striker.cpp)
+    float FireguardAbsorb;
+    float FireguardSeconds;
     // NOTE(zoubir): a tank's Shield Slam rallied this player: seconds left
     // and the share of damage it takes off; a healer's Renewal: seconds
     // left, health a second, and the healer's slot

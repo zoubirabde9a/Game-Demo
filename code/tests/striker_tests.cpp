@@ -1,11 +1,13 @@
 /* Striker and party synergy tests (sim/dungeon/role_kits/), included by
-   dungeon_tests.cpp: fireball hits leave Searing stacks, a
-   full mark detonates far harder than none, Detonate in burning ground
-   takes every marked monster in it, and marks fade; the tank's slam
-   sunders, and a sundered monster and a warded attacker both raise the
-   damage dealt; and the role talents that build on them (Detonate's
-   second rank, Overload, Shatter Armor), and the crowd control from the
-   tree's bottom: Molten Ground's slowing fire and Cataclysm's stun. */
+   dungeon_tests.cpp: fireball hits leave Searing stacks, a mark burns
+   harder the more stacks it has and explodes when it runs out, splashing
+   the monsters beside it, and Fireguard takes damage until it breaks or
+   runs out; a class key pressed during a cast goes off when the cast
+   ends; the tank's slam sunders, and a sundered monster and a warded
+   attacker both raise the damage dealt; and the role talents that build
+   on them (Searing Heat, Overload, Shatter Armor), and the crowd control
+   from the tree's bottom: Molten Ground's slowing fire and Cataclysm's
+   stun. */
 
 // NOTE(zoubir): a big monster Offset from the striker, held still
 internal world_entity *
@@ -19,14 +21,19 @@ StrikerDummy(crypt_world *Crypt, v3 Offset)
     return Result;
 }
 
-// NOTE(zoubir): what Detonate on Monster took off it
+// NOTE(zoubir): what Monster's mark exploding took off it, the mark run
+// out on the next update with no burn tick in between
 internal float
-DetonateOn(app_state *AppState, world_entity *Monster)
+ExplodeOn(app_state *AppState, world_entity *Monster)
 {
-    player_slot *Slot = &AppState->Players[0];
-    Slot->Input.Target = (u32)(Monster - AppState->World.Entities) + 1;
+    dungeon_run *Run = AppState->Dungeon;
+    foe_mark *Mark = FindFoeMark(Run, &AppState->World, Monster);
+    Check(Mark && Mark->Stacks > 0);
+    Mark->Seconds = 0.01f;
+    Mark->BurnTimer = 0.f;
     float Before = Monster->Hp;
-    Check(CastStrikerKey(AppState, Slot, Slot->Entity, 2));
+    UpdateSearing(AppState, Run, 0.02f);
+    Check(Mark->Stacks == 0);
     float Result = Before - Monster->Hp;
     return Result;
 }
@@ -48,11 +55,12 @@ TestMarkBitsFromFireball()
     Fireball.OwnerSlot = 0;
     DungeonScaleDamage(AppState, Monster, &Fireball, 1.f);
     Check(FindFoeMark(Run, World, Monster) && FindFoeMark(Run, World, Monster)->Stacks == 1);
-    DungeonScaleDamage(AppState, Monster, &Fireball, 1.f);
-    DungeonScaleDamage(AppState, Monster, &Fireball, 1.f);
-    DungeonScaleDamage(AppState, Monster, &Fireball, 1.f);
+    for(u32 Shot = 0; Shot < SEARING_MOST; Shot++)
+    {
+        DungeonScaleDamage(AppState, Monster, &Fireball, 1.f);
+    }
     Check(FindFoeMark(Run, World, Monster)->Stacks == SEARING_MOST);
-    // NOTE(zoubir): the striker's own blows (Detonate, a burn) add none
+    // NOTE(zoubir): the striker's own blows (a burn, an explosion) add none
     world_entity *Other = StrikerDummy(&Crypt, V3(0.f, 120.f, 0.f));
     DungeonScaleDamage(AppState, Other, Slot->Entity, 1.f);
     Check(FindFoeMark(Run, World, Other) == 0);
@@ -66,8 +74,12 @@ TestMarkBitsFromFireball()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): a mark burns by its stacks every SEARING_TICK, explodes
+// by its stacks when it runs out, and the explosion splashes the monster
+// beside it for DETONATE_SPLASH_SHARE but not one far off; a Meteor blast
+// leaves more stacks than a fireball, a Giant Fireball more again
 internal void
-TestDetonateSpendsAFullMark()
+TestSearingBurnsAndExplodes()
 {
     crypt_world Crypt = CreateCryptWorld(1);
     app_state *AppState = Crypt.AppState;
@@ -75,53 +87,114 @@ TestDetonateSpendsAFullMark()
     dungeon_run *Run = AppState->Dungeon;
     TickCrypt(&Crypt, 1);
     SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Damage);
-    world_entity *Marked = StrikerDummy(&Crypt, V3(120.f, 0.f, 0.f));
-    world_entity *Bare = StrikerDummy(&Crypt, V3(-120.f, 0.f, 0.f));
-    for(u32 Stack = 0; Stack < SEARING_MOST; Stack++)
-    {
-        AddSearing(Run, World, Marked);
-    }
-    float Full = DetonateOn(AppState, Marked);
-    float None = DetonateOn(AppState, Bare);
-    float Expected = (DETONATE_DAMAGE + DETONATE_PER_STACK * SEARING_MOST) / DETONATE_DAMAGE;
-    Check(None > 0.f && Full > 0.99f * Expected * None && Full < 1.01f * Expected * None);
-    Check(FindFoeMark(Run, World, Marked) == 0);
-    // NOTE(zoubir): nothing near the cursor: no cast, no cooldown spent
-    player_slot *Slot = &AppState->Players[0];
-    Slot->Input.Target = 0;
-    Slot->Entity->Aim = V2(0.f, 1.f);
-    Slot->Entity->AimReach = 0.9f;
-    Check(!CastStrikerKey(AppState, Slot, Slot->Entity, 2));
+    world_entity *Full = StrikerDummy(&Crypt, V3(160.f, 0.f, 0.f));
+    world_entity *Near = StrikerDummy(&Crypt, V3(200.f, 0.f, 0.f));
+    world_entity *One = StrikerDummy(&Crypt, V3(-200.f, 0.f, 0.f));
+    world_entity *Far = StrikerDummy(&Crypt, V3(-200.f, 200.f, 0.f));
+    AddSearing(Run, World, Full, SEARING_MOST, 0);
+    AddSearing(Run, World, One, 1, 0);
+
+    float FullBefore = Full->Hp;
+    float OneBefore = One->Hp;
+    UpdateSearing(AppState, Run, SEARING_TICK + 0.01f);
+    float FullBurn = FullBefore - Full->Hp;
+    float OneBurn = OneBefore - One->Hp;
+    Check(OneBurn > 0.f);
+    Check(FullBurn > 0.99f * SEARING_MOST * OneBurn && FullBurn < 1.01f * SEARING_MOST * OneBurn);
+    Check(FindFoeMark(Run, World, Full)->Stacks == SEARING_MOST);
+
+    float NearBefore = Near->Hp;
+    float FarBefore = Far->Hp;
+    float FullBlast = ExplodeOn(AppState, Full);
+    float OneBlast = ExplodeOn(AppState, One);
+    float Expected = (DETONATE_DAMAGE + DETONATE_PER_STACK * SEARING_MOST) /
+        (DETONATE_DAMAGE + DETONATE_PER_STACK);
+    Check(OneBlast > 0.f);
+    Check(FullBlast > 0.99f * Expected * OneBlast && FullBlast < 1.01f * Expected * OneBlast);
+    float Splash = NearBefore - Near->Hp;
+    Check(Splash > 0.99f * DETONATE_SPLASH_SHARE * FullBlast &&
+          Splash < 1.01f * DETONATE_SPLASH_SHARE * FullBlast);
+    Check(Far->Hp == FarBefore);
+    Check(FindFoeMark(Run, World, Full) == 0 && FindFoeMark(Run, World, Near) == 0);
+
+    // NOTE(zoubir): the bigger the spell, the more stacks it leaves
+    BurnAround(AppState, World, Far->Position, 10.f, 0, 1.f, SEARING_METEOR_STACKS);
+    Check(FindFoeMark(Run, World, Far)->Stacks == SEARING_METEOR_STACKS);
+    ExplodeOn(AppState, Far);
+    BurnAround(AppState, World, Far->Position, 10.f, 0, 1.f, SEARING_GIANT_STACKS);
+    Check(FindFoeMark(Run, World, Far)->Stacks == SEARING_GIANT_STACKS);
+    Check(SEARING_GIANT_STACKS > SEARING_METEOR_STACKS && SEARING_METEOR_STACKS > 1);
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Fireguard takes FIREGUARD_ABSORB, then lets the rest
+// through; it shows in the ClassMeter, and goes out with its time
 internal void
-TestDetonateInFireChains()
+TestFireguardAbsorbs()
 {
     crypt_world Crypt = CreateCryptWorld(1);
     app_state *AppState = Crypt.AppState;
     world *World = &AppState->World;
     dungeon_run *Run = AppState->Dungeon;
     TickCrypt(&Crypt, 1);
-    SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Damage);
-    world_entity *First = StrikerDummy(&Crypt, V3(150.f, 0.f, 0.f));
-    world_entity *Second = StrikerDummy(&Crypt, V3(190.f, 30.f, 0.f));
-    world_entity *Outside = StrikerDummy(&Crypt, V3(-200.f, 0.f, 0.f));
-    AddSearing(Run, World, First);
-    AddSearing(Run, World, Second);
-    AddSearing(Run, World, Second);
-    AddSearing(Run, World, Outside);
-    inferno *Fire = &Run->Infernos[0];
-    Fire->Position = First->Position;
-    Fire->Radius = INFERNO_RADIUS;
-    Fire->Seconds = INFERNO_BURN_SECONDS;
-    float SecondBefore = Second->Hp;
-    float OutsideBefore = Outside->Hp;
-    DetonateOn(AppState, First);
-    Check(Second->Hp < SecondBefore - DETONATE_DAMAGE - 2.f * DETONATE_PER_STACK);
-    Check(FindFoeMark(Run, World, Second) == 0);
-    Check(Outside->Hp == OutsideBefore);
-    Check(FindFoeMark(Run, World, Outside) != 0);
+    player_slot *Slot = &AppState->Players[0];
+    SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    world_entity *Striker = Slot->Entity;
+    Striker->SpawnShield = 0.f;
+    Check(RoleSpellLearned(Slot, 2));
+    Check(CastStrikerKey(AppState, Slot, Striker, 2));
+    Check(Slot->FireguardAbsorb == FIREGUARD_ABSORB);
+    UpdateInfernos(AppState, Run, 0.01f);
+    Check(Slot->ClassMeter == (u8)FIREGUARD_ABSORB);
+
+    float Before = Striker->Hp;
+    DamageEntity(AppState, World, Striker, 0.6f * FIREGUARD_ABSORB, 0);
+    Check(Striker->Hp == Before);
+    DamageEntity(AppState, World, Striker, 0.6f * FIREGUARD_ABSORB, 0);
+    float Through = Before - Striker->Hp;
+    Check(Through > 0.19f * FIREGUARD_ABSORB && Through < 0.21f * FIREGUARD_ABSORB);
+    Check(Slot->FireguardAbsorb == 0.f);
+
+    Check(CastStrikerKey(AppState, Slot, Striker, 2));
+    UpdateInfernos(AppState, Run, FIREGUARD_SECONDS + 0.1f);
+    Check(Slot->FireguardAbsorb == 0.f && Slot->ClassMeter == 0);
+    DestroyCryptWorld(&Crypt);
+}
+
+// NOTE(zoubir): a class key pressed while Meteor winds up is kept and
+// goes off when the cast ends, instead of being lost
+internal void
+TestClassKeyWaitsForTheCast()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    TickCrypt(&Crypt, 1);
+    player_slot *Slot = &AppState->Players[0];
+    SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    world_entity *Striker = Slot->Entity;
+    PressOnce(&Crypt, 0, PlayerButton_Launch);
+    Check(IsPlayerCasting(Striker));
+    TickCrypt(&Crypt, 10);
+    PressOnce(&Crypt, 0, PlayerButton_Slam);
+    Check(IsPlayerCasting(Striker));
+    Check(Slot->FireguardAbsorb == 0.f);
+    Check(Striker->QueuedRoleKey == 3);
+    for(u32 Tick = 0; Tick < 120 && IsPlayerCasting(Striker); Tick++)
+    {
+        TickCrypt(&Crypt, 1);
+    }
+    TickCrypt(&Crypt, 1);
+    Check(!IsPlayerCasting(Striker));
+    Check(Slot->FireguardAbsorb > 0.f);
+    Check(Striker->QueuedRoleKey == 0);
+
+    // NOTE(zoubir): a key pressed well before its cooldown ends, with no
+    // cast to wait for, is dropped as before
+    Slot->RoleCooldowns[2] = 5.f;
+    float Absorb = Slot->FireguardAbsorb;
+    PressOnce(&Crypt, 0, PlayerButton_Slam);
+    Check(Striker->QueuedRoleKey == 0);
+    Check(Slot->FireguardAbsorb <= Absorb);
     DestroyCryptWorld(&Crypt);
 }
 
@@ -155,10 +228,10 @@ TestSunderAndWardRaiseDamage()
     Check(Warded > 1.119f * Sundered && Warded < 1.121f * Sundered);
     Striker->WardAbsorb = 0.f;
 
-    // NOTE(zoubir): Detonate spends the stacks and leaves the sunder
-    AddSearing(Run, World, Monster);
-    Striker->Input.Target = (u32)(Monster - World->Entities) + 1;
-    Check(CastStrikerKey(AppState, Striker, Striker->Entity, 2));
+    // NOTE(zoubir): the Searing explosion spends the stacks and leaves
+    // the sunder
+    AddSearing(Run, World, Monster, 1, 0);
+    ExplodeOn(AppState, Monster);
     Mark = FindFoeMark(Run, World, Monster);
     Check(Mark && Mark->Stacks == 0 && Mark->SunderSeconds > 0.f);
     UpdateFoeMarks(Run, World, SUNDER_SECONDS + 0.1f);
@@ -181,25 +254,20 @@ TestRotationTalents()
     SetPlayerRole(AppState, Tank, PlayerRole_Tank);
     SetPlayerRole(AppState, Healer, PlayerRole_Healer);
 
-    // NOTE(zoubir): Detonate's second rank: a full mark is 12 + 25 x 3
-    Striker->Ranks[Talent_RoleFirst + StrikerTalent_Detonate] = 2;
+    // NOTE(zoubir): Searing Heat's two ranks add to every stack of the
+    // blast, and Overload makes a full mark's blast harder still
+    Striker->Ranks[Talent_RoleFirst + StrikerTalent_SearingHeat] = 2;
     Striker->Ranks[Talent_RoleFirst + StrikerTalent_Overload] = 1;
     world_entity *Marked = StrikerDummy(&Crypt, V3(120.f, 0.f, 0.f));
     world_entity *Bare = StrikerDummy(&Crypt, V3(-120.f, 0.f, 0.f));
-    for(u32 Stack = 0; Stack < SEARING_MOST; Stack++)
-    {
-        AddSearing(Run, World, Marked);
-    }
-    float Full = DetonateOn(AppState, Marked);
-    // NOTE(zoubir): Overload gives back part of the cooldown on a full
-    // mark only
-    Check(Striker->CastRefund == OVERLOAD_SECONDS);
-    Striker->CastRefund = 0.f;
-    float None = DetonateOn(AppState, Bare);
-    Check(Striker->CastRefund == 0.f);
-    float Expected = (DETONATE_DAMAGE + (DETONATE_PER_STACK + SEARING_HEAT_PER_STACK) *
-                      SEARING_MOST) / DETONATE_DAMAGE;
-    Check(Full > 0.99f * Expected * None && Full < 1.01f * Expected * None);
+    AddSearing(Run, World, Marked, SEARING_MOST, 0);
+    AddSearing(Run, World, Bare, 1, 0);
+    float Full = ExplodeOn(AppState, Marked);
+    float One = ExplodeOn(AppState, Bare);
+    float PerStack = DETONATE_PER_STACK + 2.f * SEARING_HEAT_PER_STACK;
+    float Expected = (1.f + OVERLOAD_SHARE) * (DETONATE_DAMAGE + PerStack * SEARING_MOST) /
+        (DETONATE_DAMAGE + PerStack);
+    Check(Full > 0.99f * Expected * One && Full < 1.01f * Expected * One);
 
     // NOTE(zoubir): Shatter Armor: a deeper, longer sunder
     Tank->Ranks[Talent_RoleFirst + TankTalent_ShatterArmor] = 1;
@@ -325,6 +393,7 @@ RunStrikerTests()
     TestRotationTalents();
     TestSunderAndWardRaiseDamage();
     TestMarkBitsFromFireball();
-    TestDetonateSpendsAFullMark();
-    TestDetonateInFireChains();
+    TestSearingBurnsAndExplodes();
+    TestFireguardAbsorbs();
+    TestClassKeyWaitsForTheCast();
 }

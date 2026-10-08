@@ -20,7 +20,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d6fu // "GDMo", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d70u // "GDMo", change it whenever the layout changes
 // (GDMo: 30 talent ranks, the class talents in 3 bits, for the deeper class trees)
 // (GDMm: a dungeon run sends one player's meter a snapshot)
 // (GDMl: an open map vote sends every player's answer)
@@ -130,8 +130,8 @@ enum net_button
 #define NET_MAX_INFERNOS 4
 #define NET_MAX_FOE_MARKS 4
 #define NET_ADD_BURSTS 0x80u
-#define NET_MARK_STACKS 3
-#define NET_MARK_SUNDER 4
+#define NET_MARK_STACKS 7
+#define NET_MARK_SUNDER 8
 #define NET_ZONE_WIDE 0x80u
 #define NET_INFERNO_FALLING 0x40u
 

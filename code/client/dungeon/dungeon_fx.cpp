@@ -26,6 +26,8 @@
 #define SANCTUARY_DOTS 28
 #define SHIELD_WALL_RGB 0x00F0E0D0
 #define WARD_RGB 0x00FFC070
+#define FIREGUARD_RGB 0x0030A0FF
+#define FIREGUARD_CORE_RGB 0x0080E0FF
 #define REVIVE_RGB 0x0070F090
 
 // NOTE(zoubir): in role_fx.cpp, included after this
@@ -180,6 +182,25 @@ DrawPartyMarks(render_context *RenderContext, app_state *AppState, v3 CameraOffs
             DrawDungeonRing(RenderContext, Player->Position + V3(0.f, 0.f, 16.f), 20.f, 16,
                             Clamp01(Slot->WardAbsorb / Maximum(1.f, Slot->WardFull)), 2.5f,
                             FxColor(0.8f, WARD_RGB), CameraOffset);
+        }
+        // NOTE(zoubir): a fire mage's Fireguard (role_kits/striker.cpp): a
+        // ring of flames that empties as it takes damage, what is left of
+        // it in the slot's ClassMeter, and flames turning round the body
+        if (Slot->Role == PlayerRole_Damage && Slot->ClassMeter > 0)
+        {
+            float Left = Clamp01((float)Slot->ClassMeter / FIREGUARD_ABSORB);
+            float Flicker = 0.75f + 0.25f * Sin(11.f * Clock + (float)SlotIndex);
+            DrawDungeonRing(RenderContext, Player->Position + V3(0.f, 0.f, 4.f), 26.f, 24,
+                            Left, 3.f, FxColor(0.9f * Flicker, FIREGUARD_RGB), CameraOffset);
+            for(u32 Flame = 0; Flame < 4; Flame++)
+            {
+                float Angle = 2.2f * Clock + 2.f * Pi32 * (float)Flame / 4.f;
+                float Lift = 10.f + 12.f * (0.5f + 0.5f * Sin(3.f * Clock + (float)Flame));
+                v3 Point = Player->Position + V3(24.f * Cos(Angle), 24.f * Sin(Angle), Lift);
+                v2 At = DungeonFxPoint(Point, CameraOffset);
+                DrawFxDot(RenderContext, At, 4.f, FxColor(0.8f * Left + 0.2f, FIREGUARD_RGB));
+                DrawFxDot(RenderContext, At - V2(0.f, 2.f), 2.f, FxColor(0.9f, FIREGUARD_CORE_RGB));
+            }
         }
     }
 }

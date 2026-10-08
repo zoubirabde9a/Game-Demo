@@ -145,22 +145,31 @@
 #define INFERNO_BURN_PER_SECOND 10.f
 #define INFERNO_BURN_TICK 0.5f
 #define INFERNO_COOLDOWN 9.f
-// NOTE(zoubir): Searing marks: each kunai, fireball or Inferno blast a
-// striker lands adds a stack, up to SEARING_MOST, and the mark fades
-// SEARING_SECONDS after its last stack; burning ground keeps it alive
-#define SEARING_MOST 3
-#define SEARING_SECONDS 6.f
-// NOTE(zoubir): Detonate (E) blows up the marks on the monster under the
-// cursor (or the marked one nearest the cursor within
-// DETONATE_PICK_RADIUS of it): DETONATE_DAMAGE plus DETONATE_PER_STACK a
-// stack, so a full mark hits for 72 before the role's 35%. A monster
-// standing in burning ground takes every other marked monster in that
-// fire with it
-#define DETONATE_RANGE 560.f
-#define DETONATE_PICK_RADIUS 140.f
+// NOTE(zoubir): Searing marks: a striker's fireball adds one stack, a
+// Meteor blast SEARING_METEOR_STACKS and a Giant Fireball blast
+// SEARING_GIANT_STACKS, up to SEARING_MOST. Every stack burns
+// SEARING_BURN_PER_STACK a second, in ticks of SEARING_TICK; the mark
+// lasts SEARING_SECONDS after its last stack (burning ground keeps it
+// going), and when it runs out it explodes
+#define SEARING_MOST 5
+#define SEARING_SECONDS 5.f
+#define SEARING_METEOR_STACKS 2
+#define SEARING_GIANT_STACKS 3
+#define SEARING_BURN_PER_STACK 2.f
+#define SEARING_TICK 1.f
+// NOTE(zoubir): the explosion when a mark runs out: DETONATE_DAMAGE plus
+// DETONATE_PER_STACK a stack on the marked monster, so a full mark blows
+// for 82 before the role's 35%, and DETONATE_SPLASH_SHARE of that on
+// every other monster within DETONATE_SPLASH_RADIUS
 #define DETONATE_DAMAGE 12.f
-#define DETONATE_PER_STACK 20.f
-#define DETONATE_COOLDOWN 7.f
+#define DETONATE_PER_STACK 14.f
+#define DETONATE_SPLASH_RADIUS 70.f
+#define DETONATE_SPLASH_SHARE 0.5f
+// NOTE(zoubir): Fireguard (C): a shield of fire on the striker that takes
+// the next FIREGUARD_ABSORB damage, gone after FIREGUARD_SECONDS
+#define FIREGUARD_ABSORB 50.f
+#define FIREGUARD_SECONDS 10.f
+#define FIREGUARD_COOLDOWN 18.f
 // NOTE(zoubir): Giant Fireball (R) winds up for its cast
 // (PlayerSpell_GiantFireball), then flies slowly along the aim and blows
 // up on the first monster it reaches, on leaving its room or at the end

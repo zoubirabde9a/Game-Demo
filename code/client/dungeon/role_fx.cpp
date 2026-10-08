@@ -14,9 +14,9 @@
    - Ward: a blue six-sided shell closing round the warded.
    - Sanctuary: a gold pillar blooming where the circle goes down.
    - Meteor: fire gathering at the caster's hands, and when the meteor
-     lands a flash, a ring of fire and embers thrown out. Detonate plays
-     the same blast on each monster it blows up. Combustion flares the
-     caster's hands.
+     lands a flash, a ring of fire and embers thrown out. A Searing
+     mark that runs out plays the same blast on its monster. Combustion
+     and Fireguard flare the caster's hands.
    - Giant Fireball: a big ball of fire flying from the striker's hand,
      each client flying its own copy (giant_fireball_fx.cpp), and the
      Meteor's blast, wider, where it bursts.

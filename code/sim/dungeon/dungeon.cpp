@@ -210,6 +210,8 @@ internal float GuardianAngelSave(app_state *AppState, world_entity *Ally, player
                                  float Damage);
 internal float TankRefusesToFall(app_state *AppState, player_slot *Slot, world_entity *Player,
                                float Damage);
+internal float FireguardTakes(app_state *AppState, player_slot *Slot, world_entity *Target,
+                              float Damage);
 
 // NOTE(zoubir): the world was just built for its map in Arena
 // (InitSimulation, RebuildWorldForMap): a dungeon map starts a fresh run
@@ -326,7 +328,9 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         {
             Result *= 1.f - Slot->RallyShare;
         }
-        // NOTE(zoubir): a healer's ward takes what it can
+        // NOTE(zoubir): a striker's Fireguard takes what it can, then a
+        // healer's ward
+        Result = FireguardTakes(AppState, Slot, Target, Result);
         float Absorbed = Minimum(Result, Slot->WardAbsorb);
         Slot->WardAbsorb -= Absorbed;
         Result -= Absorbed;
