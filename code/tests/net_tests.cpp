@@ -77,8 +77,13 @@ FullSnapshot()
         A->TimeLeft = 0.75f;
         A->AimX = 0.6f;
         A->AimY = -0.8f;
-        A->PointCount = NET_MAX_ABILITY_POINTS;
-        for (u32 Point = 0; Point < NET_MAX_ABILITY_POINTS; ++Point)
+        // The last one has two points fewer: with all of them as well it
+        // no longer fits, since the talent ranks and the second tree's
+        // seed grew five bytes for each class's second tree
+        // (TestOverfullSnapshotIsTrimmed).
+        A->PointCount = Index == NET_MAX_SNAPSHOT_ABILITIES - 1 ?
+            NET_MAX_ABILITY_POINTS - 2 : NET_MAX_ABILITY_POINTS;
+        for (u32 Point = 0; Point < A->PointCount; ++Point)
         {
             A->PointX[Point] = 100.0f * Point + 0.125f;
             A->PointY[Point] = 2000.0f;
@@ -103,6 +108,7 @@ FullSnapshot()
     {
         P.Snapshot.TalentRanks[Index] = (u8)(Index % 4);
     }
+    P.Snapshot.TreeSeed = 0xbeef;
 
     // ...and every facing slot...
     P.Snapshot.FacingCount = NET_MAX_SNAPSHOT_FACINGS;
@@ -471,6 +477,7 @@ TestFullSnapshotFits()
     Check(LastScore->Level == 2 * (NET_MAX_SNAPSHOT_SCORES - 1) + 1);
     Check(LastScore->Ward == ((NET_MAX_SNAPSHOT_SCORES - 1) & 1));
     Check(Out.Snapshot.Xp == 4321);
+    Check(Out.Snapshot.TreeSeed == 0xbeef);
     for (u32 Index = 0; Index < NET_TALENT_COUNT; ++Index)
     {
         Check(Out.Snapshot.TalentRanks[Index] == Index % 4);
@@ -1098,8 +1105,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d72u
-#define NET_GOLDEN_LAYOUT 0x8dec8607u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d73u
+#define NET_GOLDEN_LAYOUT 0xb25e466bu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

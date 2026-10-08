@@ -20,15 +20,13 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d72u // "GDMr", change it whenever the layout changes
-// (GDMr: player_role's fourth bit in net_score.DungeonMore bit 6, for the ninth and tenth classes)
+#define NET_PROTOCOL_ID 0x47444d73u // "GDMs", change it whenever the layout changes
+// (GDMs: 42 talent ranks, the second tree's seed and a 6-bit talent field, for each class's second tree;
+//  GDMr: player_role's fourth bit in net_score.DungeonMore bit 6, for the ninth and tenth classes)
 // (GDMq: the dungeon role request is a byte of its own, net_input.Role, as eight classes
 // and "none" do not fit the three spare bits of the held buttons)
 // (GDMo: 30 talent ranks, the class talents in 3 bits, for the deeper class trees)
-// (GDMm: a dungeon run sends one player's meter a snapshot)
-// (GDMl: an open map vote sends every player's answer)
-// (GDMk: two dungeon casts came in before the rewinds, so cast ids moved,
-// and two bursts for the Giant Fireball)
+// (older ids and why: git log -S NET_PROTOCOL_ID -- code/net/protocol.h)
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
 #define NET_PLAYER_HEALTH_STEPS 100.f
@@ -49,11 +47,12 @@
 #define NET_MAX_SNAPSHOT_REWINDS 4  // time rewinds under way the viewer can see
 #define NET_MAX_SNAPSHOT_CASTS 8    // players winding up a spell (MAX_PLAYERS)
 #define NET_COOLDOWN_COUNT 16       // the viewer's own ability cooldowns
-// NOTE(zoubir): ranks before NET_TALENT_WIDE_FIRST travel in 2 bits (a
-// duel talent has at most 3), the class talents from it in 3 (at most 4)
+// NOTE(zoubir): ranks travel in 2 bits, but the class tree's, from
+// NET_TALENT_WIDE_FIRST to NET_TALENT_WIDE_END, in 3 (at most 4)
 #define NET_TALENT_WIDE_FIRST 18
-#define NET_TALENT_BYTES 9
-#define NET_TALENT_COUNT 30         // the viewer's own talent ranks (sim/progression/talents.cpp)
+#define NET_TALENT_WIDE_END 30
+#define NET_TALENT_BYTES 12
+#define NET_TALENT_COUNT 42         // the viewer's own talent ranks (sim/progression/talents.cpp)
 #define NET_STATUS_COUNT 10        // status effects (sim/status_effects.cpp)
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_SERVER_NAME_SIZE 24     // server name, 23 characters plus the terminator
@@ -117,7 +116,7 @@ enum net_button
 // time it changes to something other than 0 (sim_game.cpp), so a lost
 // input loses nothing and a replay spends the same points.
 #define NET_LEARN_SHIFT 24
-#define NET_LEARN_MASK 0x1fu
+#define NET_LEARN_MASK 0x3fu
 // Bits NET_VOTE_SHIFT to NET_LEARN_SHIFT are a map vote request
 // (map_vote_request, sim/map_vote.cpp): a map asked for or an answer,
 // held and let go like the talent field.
@@ -364,6 +363,7 @@ struct net_snapshot
     // each rank 0..3 and sent in 2 bits. Everyone's level is in Scores.
     u16 Xp;
     u8 TalentRanks[NET_TALENT_COUNT];
+    u16 TreeSeed; // what its second tree rolled (sim/dungeon/run_tree/)
     // The viewer's own stagger from a shove (sim/hit.cpp), 0..255 of
     // PlayerStats.StaggerSeconds; its prediction replays from it, or every
     // shove would be braked away on the client and pulled back.

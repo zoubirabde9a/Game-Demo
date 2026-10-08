@@ -213,6 +213,7 @@ ApplyOwnProgression(player_slot *Own, net_snapshot *Snapshot)
     {
         Own->Ranks[Index] = Snapshot->TalentRanks[Index];
     }
+    Own->TreeSeed = Snapshot->TreeSeed;
 }
 
 // NOTE(zoubir): the local player's own cooldowns, which only the server

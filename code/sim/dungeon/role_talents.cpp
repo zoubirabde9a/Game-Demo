@@ -26,7 +26,10 @@
    slots 0 to 5, have code of their own in the class's kit.
 
    Each class's talents, their numbers and what they do are in
-   role_kits/<class>_defs.cpp; the kits read the ranks through RoleRank. */
+   role_kits/<class>_defs.cpp; the kits read the ranks through RoleRank.
+
+   Each class has a second tree beside this one, partly random:
+   run_tree/run_tree.cpp. */
 
 // NOTE(zoubir): the slots that unlock a spell, the same for every class:
 // the C spell, then the V spell
@@ -72,6 +75,8 @@ global_variable talent_def *RoleTalentDefs[PlayerRole_Count] =
     DruidTalentDefs,
 };
 
+// NOTE(zoubir): the second tree's talents, rolls and hit conditions
+#include "run_tree/run_tree.cpp"
 #include "role_stats.cpp"
 
 // NOTE(zoubir): the later classes' talents in play (role_kits/class_kits.cpp)
@@ -99,6 +104,10 @@ ShownTalentDef(player_slot *Slot, u32 Talent)
         u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
         Result = &RoleTalentDefs[Role][Talent - Talent_RoleFirst];
     }
+    if (IsRunTalent(Talent))
+    {
+        Result = ShownRunTalentDef(Slot, Talent);
+    }
     return Result;
 }
 
@@ -110,6 +119,7 @@ RoleTalentTakenScale(player_slot *Slot, world_entity *Player)
     float Result = 1.f - IRON_SKIN_SHARE * (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_IronSkin);
     Result *= Maximum(0.f, 1.f - RoleStatShare(Slot, RoleStat_Armor));
     Result *= ClassTakenScale(Slot, Player);
+    Result *= RunTakenScale(Slot, Player);
     return Result;
 }
 

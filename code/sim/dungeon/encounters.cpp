@@ -364,6 +364,7 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
     UpdateThreat(&Run->Threat, DeltaTime);
     UpdateMeter(Run, DeltaTime);
     UpdateRoleEffects(AppState, Run, DeltaTime);
+    UpdateRunTrees(AppState, Run, DeltaTime);
     RescueStrayPlayers(AppState, World, Arena, Run);
     if (!Run->FightingRoom)
     {

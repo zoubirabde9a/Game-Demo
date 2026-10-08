@@ -106,6 +106,10 @@ AddPlayerToSlot(app_state *AppState, world *World, memory_arena *Arena,
     *Slot = {};
     Slot->Active = true;
     Slot->Level = 1;
+    // NOTE(zoubir): the second tree's first roll (sim/dungeon/run_tree/),
+    // apart for each slot and for how full the world was at the join
+    // (16 bits, as a snapshot sends them)
+    Slot->TreeSeed = ((SlotIndex + 1) * 2654435761u ^ World->EntityCount * 40503u) >> 16;
     Slot->SpawnPosition = SpawnPosition;
     Slot->Entity = AddPlayer(AppState, World, Arena,
                              FindFreePlayerSpot(AppState, World, SpawnPosition, 0));

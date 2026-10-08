@@ -14,7 +14,13 @@
                                           health a rank
 
    A health talent changes the body's health the moment it is learned or
-   reset (RefreshRoleHealth), keeping the health it is missing. */
+   reset (RefreshRoleHealth), keeping the health it is missing.
+
+   The second tree's stat talents (run_tree/) add to the same seven
+   through RoleStatShare. */
+
+static_assert(RoleStat_Damage == RunEffect_Damage && RoleStat_Lifesteal == RunEffect_Leech &&
+              RoleStat_Count == RunEffect_Leech + 1, "the run tree's stats are the class tree's");
 
 // NOTE(zoubir): what one rank adds, by role_stat
 global_variable float RoleStatPerRank[RoleStat_Count] =
@@ -48,6 +54,9 @@ RoleStatShare(player_slot *Slot, u32 Stat)
                 Result += RoleStatPerRank[Stat] * (float)Slot->Ranks[Talent_RoleFirst + Index];
             }
         }
+        // NOTE(zoubir): and the second tree's plain stats, which are the
+        // same seven in the same order (run_tree/run_mods.cpp)
+        Result += RunEffectShare(Slot, Stat);
     }
     return Result;
 }

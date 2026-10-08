@@ -162,6 +162,9 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
         if (NewRun)
         {
             Slot->RunStartLevel = Slot->Level;
+            // NOTE(zoubir): the second tree's wild slots roll again
+            // (sim/dungeon/run_tree/run_tree.cpp)
+            RerollRunTree(Slot, SlotIndex, MapId * 2654435761u + Slot->Xp);
         }
         // NOTE(zoubir): after the ranks, which can raise its health
         ApplyRoleToPlayer(AppState, Slot);

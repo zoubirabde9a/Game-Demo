@@ -97,9 +97,11 @@ HealPlayer(app_state *AppState, u32 By, world_entity *Target, float Amount)
     }
     float Healing = By < MAX_PLAYERS ?
         1.f + RoleStatShare(&AppState->Players[By], RoleStat_Healing) : 1.f;
-    float Given = Minimum(Amount * Healing * PartySustainScale(AppState->Dungeon),
-                          Target->MaxHp - Target->Hp);
+    float Healed = Amount * Healing * PartySustainScale(AppState->Dungeon) *
+        RunHealTakenScale(AppState, Target);
+    float Given = Minimum(Healed, Target->MaxHp - Target->Hp);
     Target->Hp += Given;
+    OnRunOverheal(AppState, By, Target, Healed - Given);
     CountMeterHealing(AppState, By, Given);
     dungeon_run *Run = AppState->Dungeon;
     if (Run && Given > 0.f && By < MAX_PLAYERS)

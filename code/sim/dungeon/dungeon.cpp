@@ -207,6 +207,9 @@ IsDungeon(app_state *AppState)
 internal void AddThreat(threat_table *Table, world *World, world_entity *Monster,
                        u32 PlayerSlot, float Amount);
 internal void OnRoleKill(player_slot *Attacker);
+// NOTE(zoubir): the second tree's kill and hurt effects (run_tree/run_effects.cpp)
+internal void OnRunKill(app_state *AppState, player_slot *Attacker);
+internal void OnRunHurt(app_state *AppState, player_slot *Slot, world_entity *Source, float Damage);
 internal float FoeMarkDamageScale(dungeon_run *Run, world *World, world_entity *Monster);
 internal void OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
                         world_entity *Source, float Damage);
@@ -345,6 +348,7 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         // NOTE(zoubir): and a tank's Unbroken the blow that still downs it
         // (role_kits/tank.cpp)
         Result = TankRefusesToFall(AppState, Slot, Target, Result);
+        OnRunHurt(AppState, Slot, Source, Result);
     }
     player_slot *Attacker = DungeonAttackerSlot(AppState, Source);
     // NOTE(zoubir): a boss behind its pylons takes nothing, burns
@@ -367,6 +371,7 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
     {
         role_def *Role = GetRoleDef(Attacker->Role);
         Result *= Role->DamageDealt * RoleTalentDealtScale(Attacker, Target);
+        Result *= RunDealtScale(AppState, Attacker, Target);
         // NOTE(zoubir): a sundered monster takes more (role_kits/tank.cpp),
         // and a warded ally deals more (role_kits/healer.cpp)
         Result *= FoeMarkDamageScale(AppState->Dungeon, &AppState->World, Target);
@@ -380,11 +385,13 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
             Result *= 1.f + COMBUSTION_SHARE;
         }
         AddThreat(&AppState->Dungeon->Threat, &AppState->World, Target,
-                  (u32)(Attacker - AppState->Players), Result * Role->ThreatScale);
+                  (u32)(Attacker - AppState->Players),
+                  Result * Role->ThreatScale * RunThreatScale(Attacker));
         OnRoleHit(AppState, Attacker, Target, Source, Result);
         if (Result >= Target->Hp)
         {
             OnRoleKill(Attacker);
+            OnRunKill(AppState, Attacker);
         }
     }
     return Result;

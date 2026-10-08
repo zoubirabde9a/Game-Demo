@@ -282,6 +282,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
             }
             NetU16(S, &P->Snapshot.Xp);
             NetSerializeTalentRanks(S, P->Snapshot.TalentRanks);
+            NetU16(S, &P->Snapshot.TreeSeed);
             NetU8(S, &P->Snapshot.Stagger);
             NetU8(S, &P->Snapshot.RoundBreak);
             NetU8(S, &P->Snapshot.MapId);

@@ -103,7 +103,7 @@ BotPickTalent(bot_brain *Bot, app_state *AppState, player_slot *Slot)
     {
         u32 Talent = (Start + Step) % Talent_Count;
         // NOTE(zoubir): the role branch takes points only in a run
-        if (IsRoleTalent(Talent) && !IsDungeon(AppState)) continue;
+        if (IsClassTalent(Talent) && !IsDungeon(AppState)) continue;
         if (CanLearnTalent(Slot, Talent) == TalentRefusal_None &&
             !RoleReplacesTalent(AppState, Slot, Talent))
         {

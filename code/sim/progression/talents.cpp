@@ -42,6 +42,12 @@
    others; picking another role gives their points back. They take no
    point outside a run.
 
+   Each class has a second tree in a run too (sim/dungeon/run_tree/):
+   twelve more slots, Talent_RunFirst on, in TalentBranch_Run. Some of
+   its talents are the class's own and always there; the rest are wild
+   and roll again each run. The two trees share the player's points, so
+   a full run fills one and a half of them at most.
+
    This file is the table, the point rules and learning; what each level
    and rank changes in play is talents/effects.cpp. */
 
@@ -54,8 +60,8 @@
 // takes off: 6 s at level 1 is 5.1 at 2 and 4.2 at 3
 #define TALENT_COOLDOWN_PER_LEVEL 0.15f
 // NOTE(zoubir): player_input.Learn's value that resets every talent; the
-// talent field is 5 bits (NET_LEARN_MASK), and talents use 1..Talent_Count
-#define TALENT_LEARN_RESET 31
+// talent field is 6 bits (NET_LEARN_MASK), and talents use 1..Talent_Count
+#define TALENT_LEARN_RESET 63
 
 enum talent_branch
 {
@@ -64,12 +70,17 @@ enum talent_branch
     TalentBranch_Guard,
     // NOTE(zoubir): the dungeon role's own branch, shown only in a run
     TalentBranch_Role,
+    // NOTE(zoubir): the class's second tree, fixed and wild talents
+    // (sim/dungeon/run_tree/), shown beside the role's in a run
+    TalentBranch_Run,
     TalentBranch_Count
 };
 // NOTE(zoubir): the branches every map shows
 #define TALENT_GAME_BRANCHES 3
 // NOTE(zoubir): slots in the role branch, Talent_RoleFirst on
 #define ROLE_TALENTS 12
+// NOTE(zoubir): slots in the second tree, Talent_RunFirst on, are
+// RUN_TALENTS (sim/dungeon/run_tree/run_tree_fields.inc)
 
 // NOTE(zoubir): by branch, then tier; the order the panel lists them in
 // and the order snapshots carry their ranks in
@@ -98,6 +109,8 @@ enum talent_id
 
     Talent_RoleFirst,
     Talent_RoleLast = Talent_RoleFirst + ROLE_TALENTS - 1,
+    Talent_RunFirst,
+    Talent_RunLast = Talent_RunFirst + RUN_TALENTS - 1,
 
     Talent_Count
 };
@@ -186,12 +199,28 @@ global_variable talent_def TalentDefs[Talent_Count] =
     {"", "", "", TalentBranch_Role, 4, 1, 4, 0},
     {"", "", "", TalentBranch_Role, 5, 0, 4, 0},
     {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
+
+    // NOTE(zoubir): the second tree's shape, the same for every class:
+    // fixed talents of 3 ranks and wild ones of 2 in turn, then a wild
+    // keystone and the class's capstone (sim/dungeon/run_tree/run_tree.cpp)
+    {"", "", "", TalentBranch_Run, 0, 0, 3, 0},
+    {"", "", "", TalentBranch_Run, 0, 1, 2, 0},
+    {"", "", "", TalentBranch_Run, 1, 0, 2, 0},
+    {"", "", "", TalentBranch_Run, 1, 1, 3, 0},
+    {"", "", "", TalentBranch_Run, 2, 0, 3, 0},
+    {"", "", "", TalentBranch_Run, 2, 1, 2, 0},
+    {"", "", "", TalentBranch_Run, 3, 0, 2, 0},
+    {"", "", "", TalentBranch_Run, 3, 1, 3, 0},
+    {"", "", "", TalentBranch_Run, 4, 0, 3, 0},
+    {"", "", "", TalentBranch_Run, 4, 1, 2, 0},
+    {"", "", "", TalentBranch_Run, 5, 0, 1, 0},
+    {"", "", "", TalentBranch_Run, 5, 1, 1, 0},
 };
 static_assert(ArrayCount(TalentDefs) == Talent_Count, "one row per talent");
 
 global_variable char *TalentBranchNames[TalentBranch_Count] =
 {
-    "Fire", "Motion", "Guard", "Role",
+    "Fire", "Motion", "Guard", "Role", "Run",
 };
 
 inline bool32
@@ -201,11 +230,27 @@ IsRoleTalent(u32 Talent)
     return Result;
 }
 
+inline bool32
+IsRunTalent(u32 Talent)
+{
+    bool32 Result = Talent >= Talent_RunFirst && Talent <= Talent_RunLast;
+    return Result;
+}
+
+// NOTE(zoubir): a talent of either class tree, which takes points only in
+// a run and means what the player's class says
+inline bool32
+IsClassTalent(u32 Talent)
+{
+    bool32 Result = IsRoleTalent(Talent) || IsRunTalent(Talent);
+    return Result;
+}
+
 // NOTE(zoubir): how many tiers Branch has
 inline u32
 TalentBranchTiers(u32 Branch)
 {
-    u32 Result = Branch == TalentBranch_Role ? ROLE_TALENT_TIERS : TALENT_TIERS;
+    u32 Result = Branch >= TalentBranch_Role ? ROLE_TALENT_TIERS : TALENT_TIERS;
     return Result;
 }
 
@@ -369,12 +414,12 @@ PlayerAllowedButtons(player_slot *Slot)
 // body again after its talents changed (a health talent raises it)
 internal void RefreshRoleHealth(app_state *AppState, player_slot *Slot);
 
-// NOTE(zoubir): the role branch's points back, when its role changes
+// NOTE(zoubir): both class trees' points back, when its role changes
 // (sim/dungeon/roles.cpp, which sets the new role's health after)
 internal void
 ResetRoleTalents(player_slot *Slot)
 {
-    for(u32 Talent = Talent_RoleFirst; Talent <= Talent_RoleLast; Talent++)
+    for(u32 Talent = Talent_RoleFirst; Talent <= Talent_RunLast; Talent++)
     {
         Slot->Ranks[Talent] = 0;
     }
@@ -418,7 +463,7 @@ LearnTalent(app_state *AppState, u32 SlotIndex, u32 Talent)
     player_slot *Slot = &AppState->Players[SlotIndex];
     if (Talent >= Talent_Count || !Slot->Active ||
         CanLearnTalent(Slot, Talent) != TalentRefusal_None ||
-        (IsRoleTalent(Talent) && !AppState->Dungeon) ||
+        (IsClassTalent(Talent) && !AppState->Dungeon) ||
         RoleReplacesTalent(AppState, Slot, Talent))
     {
         return false;
@@ -429,7 +474,7 @@ LearnTalent(app_state *AppState, u32 SlotIndex, u32 Talent)
         Slot->WardReady = true;
         Slot->WardRecharge = 0.f;
     }
-    if (IsRoleTalent(Talent))
+    if (IsClassTalent(Talent))
     {
         RefreshRoleHealth(AppState, Slot);
     }

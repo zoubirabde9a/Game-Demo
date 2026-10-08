@@ -13,7 +13,7 @@
     float XpClock;
     // NOTE(zoubir): points spent in each talent, by talent_id. A base
     // ability's first level is free and not counted here
-#define TALENT_SLOTS 30
+#define TALENT_SLOTS 42
     u8 Ranks[TALENT_SLOTS];
     // NOTE(zoubir): the Ward talent: a charge that takes the next hit
     // whole, and the seconds until a spent one comes back

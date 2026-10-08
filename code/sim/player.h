@@ -147,6 +147,7 @@ struct player_slot
     // NOTE(zoubir): experience, level and talents (sim/progression/)
 #include "progression/progression_fields.inc"
 #include "dungeon/dungeon_slot_fields.inc"
+#include "dungeon/run_tree/run_tree_fields.inc"
 };
 
 inline bool32

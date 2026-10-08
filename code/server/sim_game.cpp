@@ -307,8 +307,10 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     // the ranks also make its prediction use the same cooldowns.
     static_assert(Talent_Count == NET_TALENT_COUNT, "one rank per talent");
     static_assert(Talent_RoleFirst == NET_TALENT_WIDE_FIRST, "class ranks travel wider");
-    static_assert(2 * NET_TALENT_WIDE_FIRST + 3 * (NET_TALENT_COUNT - NET_TALENT_WIDE_FIRST) <=
-                  8 * NET_TALENT_BYTES, "the ranks fit their bytes");
+    static_assert(Talent_RunFirst == NET_TALENT_WIDE_END, "second tree ranks travel narrower");
+    static_assert(2 * NET_TALENT_WIDE_FIRST + 3 * (NET_TALENT_WIDE_END - NET_TALENT_WIDE_FIRST) +
+                  2 * (NET_TALENT_COUNT - NET_TALENT_WIDE_END) <= 8 * NET_TALENT_BYTES,
+                  "the ranks fit their bytes");
     static_assert(TALENT_LEARN_RESET <= NET_LEARN_MASK && TALENT_LEARN_RESET > Talent_Count,
                   "the reset fits the talent field and is no talent");
     player_slot *Progress = &Game->AppState->Players[ViewerSlot];
@@ -317,6 +319,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     {
         Out->TalentRanks[Index] = Progress->Ranks[Index];
     }
+    Out->TreeSeed = (u16)Progress->TreeSeed;
     Out->AbilityCount = 0;
 
     // The viewer's own player goes first so it is never cut off by the

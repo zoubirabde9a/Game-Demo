@@ -537,6 +537,7 @@ TestNoFriendlyFireInADungeon()
 #include "meter_tests.cpp"
 #include "level_cap_tests.cpp"
 #include "class_tree_tests.cpp"
+#include "run_tree_tests.cpp"
 
 internal void
 RunDungeonTests()
@@ -561,6 +562,7 @@ RunDungeonTests()
     GROUP(RunMeterTests());
     GROUP(RunLevelCapTests());
     GROUP(RunClassTreeTests());
+    GROUP(RunRunTreeTests());
     GROUP(TestNoFriendlyFireInADungeon());
     GROUP(TestBlinksStopAtClosedGates());
     GROUP(TestClearedCryptStartsANewRun());

@@ -278,11 +278,11 @@ RoleKeyWindsUp(player_slot *Slot, u32 Key)
 
 // NOTE(zoubir): whether Talent does nothing for Slot in this run, so it
 // takes no point (LearnTalent, the talent panel): in a dungeon run only
-// the class's own tree counts
+// the class's own two trees count
 internal bool32
 RoleReplacesTalent(app_state *AppState, player_slot *Slot, u32 Talent)
 {
-    bool32 Result = IsDungeon(AppState) && Talent < Talent_Count && !IsRoleTalent(Talent);
+    bool32 Result = IsDungeon(AppState) && Talent < Talent_Count && !IsClassTalent(Talent);
     return Result;
 }
 
@@ -355,6 +355,7 @@ ChestOf(world_entity *Unit)
 #include "role_kits/healer.cpp"
 #include "role_kits/striker.cpp"
 #include "role_kits/class_kits.cpp"
+#include "run_tree/run_effects.cpp"
 
 // NOTE(zoubir): from DungeonScaleDamage: Attacker's hit on a monster dealt
 // Damage; a fireball means something to each class
@@ -363,6 +364,7 @@ OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
           world_entity *Source, float Damage)
 {
     OnClassHit(AppState, Attacker, Target, Source, Damage);
+    OnRunHit(Attacker);
     float Lifesteal = RoleStatShare(Attacker, RoleStat_Lifesteal);
     if (Lifesteal > 0.f && Attacker->Entity && Damage > 0.f)
     {
