@@ -8,3 +8,4 @@
 #include "crypt.cpp"
 #include "depths.cpp"
 #include "vault.cpp"
+#include "rift.cpp"

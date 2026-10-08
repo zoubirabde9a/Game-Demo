@@ -62,7 +62,7 @@ BotRandom(bot_brain *Bot)
 }
 
 // NOTE(zoubir): the nearest living player (not itself) or monster within
-// BOT_SIGHT, or 0
+// BOT_SIGHT, or 0; a boss behind its pylons is left to the tank
 internal world_entity *
 BotFindTarget(app_state *AppState, world_entity *Self)
 {
@@ -77,6 +77,8 @@ BotFindTarget(app_state *AppState, world_entity *Self)
         // NOTE(zoubir): a dungeon party fights the monsters together
         if (Other->Type == EntityType_Player && IsDungeon(AppState)) continue;
         if (IsDeadPlayer(Other)) continue;
+        if (Other->Type == EntityType_Monster && IsWardedBoss(AppState, Other) &&
+            AppState->Players[Self->PlayerIndex].Role != PlayerRole_Tank) continue;
         float DistanceSq = LengthSq(Other->Position.XY - Self->Position.XY);
         if (DistanceSq < BestSq)
         {
@@ -477,6 +479,7 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     if (Self && !IsDeadPlayer(Self))
     {
         Held = DodgeDangers(AppState, Self, Held);
+        Held = DodgeRiftDangers(AppState, Self, Held);
         Held = SteerAroundHazards(AppState, Self, Held, Target);
     }
     // A press needs the button up the tick before; drop repeats.

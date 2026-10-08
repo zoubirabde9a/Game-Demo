@@ -33,7 +33,7 @@
    PROBE_MAP=depths starts in the Ember Depths instead, the bots given
    the experience of the whole crypt first (and of the rooms skipped);
    PROBE_MAP=vault in the Rimeheart Vault, with the crypt's and the
-   depths'.
+   depths'; PROBE_MAP=rift in the Aurora Rift, with all three before it.
    Build and run: misc\balance.bat [same arguments], which rebuilds the
    probe only when the code changed. */
 
@@ -128,12 +128,18 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
     char *MapName = getenv("PROBE_MAP");
 #pragma warning(pop)
     u32 StartMap = (MapName && strcmp(MapName, "depths") == 0) ? MapId_Depths :
-        (MapName && strcmp(MapName, "vault") == 0) ? MapId_Vault : MapId_Crypt;
-    // NOTE(zoubir): a party reaching the depths has played the crypt, and
-    // one reaching the vault the depths as well
-    u32 RoomsBefore = StartMap == MapId_Depths ? CountRooms(MapId_Crypt) :
-        StartMap == MapId_Vault ? CountRooms(MapId_Crypt) + CountRooms(MapId_Depths) : 0;
-    u32 LevelsBefore = StartMap == MapId_Depths ? 1 : StartMap == MapId_Vault ? 2 : 0;
+        (MapName && strcmp(MapName, "vault") == 0) ? MapId_Vault :
+        (MapName && strcmp(MapName, "rift") == 0) ? MapId_Rift : MapId_Crypt;
+    // NOTE(zoubir): a party reaching a level has played every level
+    // before it
+    u32 RoomsBefore = 0;
+    u32 LevelsBefore = 0;
+    for(u32 MapId = MapId_Crypt; MapId != StartMap && LevelsBefore < ArrayCount(DungeonLevels);
+        MapId = NextRunMap(MapId))
+    {
+        RoomsBefore += CountRooms(MapId);
+        LevelsBefore++;
+    }
     GameInit(&Game, StartMap);
     dungeon_run *SeededRun = 0;
     u32 SeededBots = 0;

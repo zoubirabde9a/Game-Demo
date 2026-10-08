@@ -114,13 +114,21 @@ TestVaultBossesStand()
     }
 }
 
-// NOTE(zoubir): a run keeps one bit per boss event (BossEventsFired), and
+// NOTE(zoubir): a run keeps one bit per event of its boss (BossEventsFired), and
 // only the first four ability slots may make shots or ground hazards, so
 // each vault boss keeps its blow nobody dodges in the fifth
 internal void
 TestVaultBossesFit()
 {
-    Check(ArrayCount(BossEvents) <= 32);
+    for(u32 Kind = 0; Kind < MonsterKind_Count; Kind++)
+    {
+        u32 Rows = 0;
+        for(u32 Index = 0; Index < ArrayCount(BossEvents); Index++)
+        {
+            Rows += BossEvents[Index].Boss == (monster_kind)Kind;
+        }
+        Check(Rows <= 32);
+    }
     monster_kind Kinds[3] = {MonsterKind_FrostColossus, MonsterKind_PaleWitch,
                     MonsterKind_Rimeheart};
     for(u32 Index = 0; Index < 3; Index++)

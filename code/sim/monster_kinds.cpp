@@ -9,48 +9,7 @@
 #include "monster_affixes.cpp"
 #include "status_effects.cpp"
 
-enum monster_ability_kind
-{
-    MonsterAbility_None,
-    // NOTE(zoubir): hits every player within Radius of the monster
-    MonsterAbility_Slam,
-    // NOTE(zoubir): runs along the aim locked at windup start, hitting the
-    // first player it touches; a wall cuts it short and stuns the monster
-    MonsterAbility_Charge,
-    // NOTE(zoubir): marks Count spots around the target during windup,
-    // each blows up for Damage within Radius when the windup ends
-    MonsterAbility_Mortar,
-    // NOTE(zoubir): marks a spot behind the target during windup, then
-    // appears there and strikes everything within Radius
-    MonsterAbility_Blink,
-    // NOTE(zoubir): throws Count shots fanned over Spread degrees along
-    // the aim locked at windup start. Shots fly at Speed for Active
-    // seconds, stop at walls and hit the first player within Radius
-    MonsterAbility_Volley,
-    // NOTE(zoubir): raises Count monsters of SummonKind on spots marked
-    // during windup, while fewer than MaxActive of its summons live.
-    // Summons crumble when their summoner dies
-    MonsterAbility_Summon,
-    // NOTE(zoubir): heals the most hurt ally within Radius by Heal; only
-    // starts when an ally is below MEND_THRESHOLD of its health
-    MonsterAbility_Mend,
-    // NOTE(zoubir): digs in when the windup ends and stays underground
-    // (immune) for Active seconds while a ripple tunnels toward the
-    // target. The landing spot follows the target until the last
-    // BURROW_LOCK_SHARE of Active, then locks and is marked; the monster
-    // erupts there, hitting everything within Radius
-    MonsterAbility_Burrow,
-    // NOTE(zoubir): a blow nobody can step out of, dash through or jump
-    // over: it lands on the player the monster is after when the windup
-    // ends (by threat in a dungeon run), wherever they stand within
-    // MaxRange, so a party wants a tank to take it, and a tank that
-    // taunts during the windup takes it off a friend. Spread above 0
-    // first blinks the monster to Spread from the victim when it is
-    // farther than that. Hits only the victim; a ward still takes it.
-    // Radius is only the size of the mark drawn round the victim
-    MonsterAbility_Smite,
-    MonsterAbility_Count
-};
+#include "monster_ability_kinds.cpp"
 
 // NOTE(zoubir): how a shot looks; one sheet row each in art/monster_fx.cpp
 enum monster_shot_style
@@ -117,6 +76,9 @@ struct monster_ability
 };
 #define PHASE_CALM (1 << 0)
 #define PHASE_ENRAGED (1 << 1)
+// NOTE(zoubir): never picked in a fight: a Volley only a death effect
+// fires (DeathEffect_Shatter)
+#define PHASE_DEATH (1 << 2)
 
 #define MONSTER_SHEET_COLUMNS 6
 // NOTE(zoubir): sheet rows, top to bottom
@@ -141,6 +103,9 @@ enum monster_death_effect
     DeathEffect_None,
     // NOTE(zoubir): SplitCount monsters of SplitKind pop out of the corpse
     DeathEffect_Split,
+    // NOTE(zoubir): the corpse bursts into shards: the Volley at
+    // ShatterAbility, its Count shots spread evenly all the way round
+    DeathEffect_Shatter,
     DeathEffect_Count
 };
 
@@ -172,6 +137,7 @@ struct monster_def
     monster_death_effect DeathEffect;
     monster_kind SplitKind;
     u32 SplitCount;
+    u32 ShatterAbility;
 
     // NOTE(zoubir): share of damage a hit loses when it comes from inside
     // the front arc (centered on the monster's Direction)

@@ -1,6 +1,6 @@
 # The Rimeheart Vault: dungeon level three
 
-The third level of the co-op dungeon, after the Sunken Crypt (`docs/dungeon-plan.md`) and the Ember Depths (`docs/dungeon-depths.md`). Clearing the depths counts down 20 s and rebuilds the world as the vault, everyone in its first room with their role, level, experience and talents. Clearing the vault goes back up to the crypt. Players can also vote for it from the Esc menu; a vote starts everyone at level 1, which makes the vault close to impossible.
+The third level of the co-op dungeon, after the Sunken Crypt (`docs/dungeon-plan.md`) and the Ember Depths (`docs/dungeon-depths.md`). Clearing the depths counts down 20 s and rebuilds the world as the vault, everyone in its first room with their role, level, experience and talents. Clearing the vault goes on to the fourth level, the Aurora Rift (`docs/dungeon-rift.md`). Players can also vote for it from the Esc menu; a vote starts everyone at level 1, which makes the vault close to impossible.
 
 A party earns one level per room with monsters it clears (`sim/progression/experience.cpp`), so it arrives at the vault at about level 13 and can reach 19 by its last boss.
 

@@ -3,6 +3,7 @@
    the telegraphs a melee bot keeps out of). */
 
 #include "bot_dangers.cpp"
+#include "bot_rift_dangers.cpp"
 #include "ranger.cpp"
 #include "berserker.cpp"
 #include "shadowblade.cpp"

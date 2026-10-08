@@ -56,7 +56,8 @@ TestLevelsChain()
 {
     Check(NextRunMap(MapId_Crypt) == MapId_Depths);
     Check(NextRunMap(MapId_Depths) == MapId_Vault);
-    Check(NextRunMap(MapId_Vault) == MapId_Crypt);
+    Check(NextRunMap(MapId_Vault) == MapId_Rift);
+    Check(NextRunMap(MapId_Rift) == MapId_Crypt);
     Check(NextRunMap(MapId_Arena) == MapId_Arena);
     for(u32 Index = 0; Index < ArrayCount(DungeonLevels); Index++)
     {
@@ -105,14 +106,23 @@ TestClearedCryptGoesDown()
     Check(AppState->Players[0].Role == PlayerRole_Healer);
     Check(AppState->Players[1].Level == 6);
 
-    // NOTE(zoubir): a cleared depths goes down to the vault, and a
-    // cleared vault back up to the crypt
+    // NOTE(zoubir): a cleared depths goes down to the vault, a cleared
+    // vault on to the rift, and a cleared rift back up to the crypt
     for(u32 Room = 1; Room <= Run->RoomCount; Room++)
     {
         Run->RoomStates[Room] = RoomState_Cleared;
     }
     TickCrypt(&Crypt, (u32)(21.f * 60.f));
     Check(AppState->World.MapId == MapId_Vault);
+    Run = AppState->Dungeon;
+    Check(Run && Run->RoomCount == 7 && Run->RoomStates[2] == RoomState_Waiting);
+    Check(AppState->Players[0].Role == PlayerRole_Healer);
+    for(u32 Room = 1; Room <= Run->RoomCount; Room++)
+    {
+        Run->RoomStates[Room] = RoomState_Cleared;
+    }
+    TickCrypt(&Crypt, (u32)(21.f * 60.f));
+    Check(AppState->World.MapId == MapId_Rift);
     Run = AppState->Dungeon;
     Check(Run && Run->RoomCount == 7 && Run->RoomStates[2] == RoomState_Waiting);
     Check(AppState->Players[0].Role == PlayerRole_Healer);

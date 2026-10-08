@@ -95,11 +95,20 @@ TestMonsterDefsAreValid()
         for(u32 AbilityIndex = 0; AbilityIndex < Def->AbilityCount; AbilityIndex++)
         {
             u32 Mask = Def->Abilities[AbilityIndex].PhaseMask;
-            Check((Mask & ~(PHASE_CALM | PHASE_ENRAGED)) == 0);
+            Check((Mask & ~(PHASE_CALM | PHASE_ENRAGED | PHASE_DEATH)) == 0);
             if (Mask == PHASE_ENRAGED)
             {
                 Check(Def->EnrageHpShare > 0.f);
             }
+        }
+        // NOTE(zoubir): a shattering kind throws a death-only volley of
+        // shards whose slot fits the wire's two bits
+        if (Def->DeathEffect == DeathEffect_Shatter)
+        {
+            Check(Def->ShatterAbility < Def->AbilityCount && Def->ShatterAbility < 4);
+            monster_ability *Shards = &Def->Abilities[Def->ShatterAbility];
+            Check(Shards->Kind == MonsterAbility_Volley && Shards->PhaseMask == PHASE_DEATH);
+            Check(Shards->Count >= 1 && Shards->Count <= MAX_VOLLEY_SHOTS);
         }
         if (Def->DeathEffect == DeathEffect_Split)
         {

@@ -530,6 +530,7 @@ TestNoFriendlyFireInADungeon()
 #include "fight_end_tests.cpp"
 #include "depths_tests.cpp"
 #include "vault_tests.cpp"
+#include "rift_tests.cpp"
 #include "meter_tests.cpp"
 #include "level_cap_tests.cpp"
 #include "class_tree_tests.cpp"
@@ -550,6 +551,7 @@ RunDungeonTests()
     GROUP(RunFightEndTests());
     GROUP(RunDepthsTests());
     GROUP(RunVaultTests());
+    GROUP(RunRiftTests());
     GROUP(RunMeterTests());
     GROUP(RunLevelCapTests());
     GROUP(RunClassTreeTests());

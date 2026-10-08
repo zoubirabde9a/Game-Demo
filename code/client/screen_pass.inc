@@ -16,6 +16,7 @@ DrawCastPreview(RenderContext, AppState, CameraOffset); // range and area of the
 DrawTalentFx(RenderContext, AppState, CameraOffset); // frost on slowed and frozen units, the Ward talent's shell, client/talent_fx.cpp
 DrawDungeonFx(RenderContext, AppState, CameraOffset); // dungeon gates, sanctuaries, shield wall, wards and revives, client/dungeon/dungeon_fx.cpp
 DrawBossTethers(RenderContext, AppState, CameraOffset); // motes from each add a boss calls back to the boss, client/dungeon/boss_tethers.cpp
+DrawRiftFx(RenderContext, AppState, CameraOffset); // the Aurora Rift's frost waves, beams and pylon wards, client/dungeon/rift_fx.cpp
 DrawRewindFx(RenderContext, AppState, CameraOffset); // time rewinds' sigils, ghosts and flashes, client/rewind_fx/
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);
 DrawCursorTarget(RenderContext, AppState, CameraOffset); // brackets on the unit the cursor is on, client/targeting.cpp

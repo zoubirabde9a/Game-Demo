@@ -18,6 +18,7 @@
      start.cpp              what each kind locks in at windup start
      shots_and_hazards.cpp  shots, volleys and ground hazards
      trigger.cpp            what each kind does when the windup ends
+     waves_beams_shards.cpp frost waves to jump, sweeping beams, shatter
      movement.cpp           burrow, charge, slow turning
      armor.cpp              front shells
      phases.cpp             enrage phases */
@@ -33,6 +34,7 @@
 // NOTE(zoubir): the parts, in the order they depend on each other
 #include "monster_abilities/hits.cpp"
 #include "monster_abilities/helpers.cpp"
+#include "monster_abilities/waves_beams_shards.cpp"
 #include "monster_abilities/start.cpp"
 #include "monster_abilities/shots_and_hazards.cpp"
 #include "monster_abilities/trigger.cpp"
@@ -162,6 +164,14 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
                 {
                     Entity->AbilityTimer = 0.f;
                 }
+            }
+            if (Ability->Kind == MonsterAbility_Wave)
+            {
+                UpdateWave(AppState, World, Entity, Ability, DeltaTime);
+            }
+            if (Ability->Kind == MonsterAbility_Beam)
+            {
+                UpdateBeam(AppState, World, Entity, Ability, DeltaTime);
             }
             if (Ability->Kind == MonsterAbility_Burrow)
             {

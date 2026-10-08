@@ -46,6 +46,9 @@ Every ability runs windup, then active, then recover (`code/sim/monster_abilitie
 | `Summon` | marks up to `Count` graves `Spread` toward the target; a `SummonKind` monster climbs out of each one nobody stands on. Stops at `MaxActive` living summons; they crumble when the summoner dies | `SummonKind`, `Count`, `MaxActive`, `Spread` |
 | `Burrow` | digs in when the windup ends and stays underground (immune, drawn from the optional Special sheet row) for `Active` seconds; the landing spot follows the target until the last 40%, then locks and is ringed; erupts there hitting within `Radius` | `Active`, `Radius`, `Damage` |
 | `Mend` | only starts when an ally within `Radius` is under 70% health; heals the most hurt one by `Heal` when the windup ends | `Radius`, `Heal` |
+| `Smite` | a blow on whoever the monster is after when the windup ends, past any dodge; with `Spread` it first blinks to that far from them | `Damage`, `Spread`, `Radius` (the mark) |
+| `Wave` | `Count` rings of frost, `Spread` apart, roll out at `Speed` through the Active time, out to `Radius`, through walls; each hits every player on the ground once as it passes them. Jumping clears it. Keep `Speed * Active` at least `Radius + (Count - 1) * Spread` | `Count`, `Spread`, `Speed`, `Radius`, `Active` |
+| `Beam` | a beam `Speed` long and `2 Radius` wide, cut short by walls, shows its start during the windup and sweeps `Spread` degrees across the target through the Active time, hitting each player once as its edge crosses them. A jump does not clear it | `Speed` (length), `Radius`, `Spread`, `Active` |
 
 Monsters that point at each other (summons, heal targets) store the entity slot and a `MonsterSerial`, because slots are reused. Every monster made by the game goes through `SpawnMonster`, which hands out serials.
 
@@ -83,9 +86,10 @@ Elites are tinted and have a ring of dots in the affix color at their feet. Thei
 
 ## Death effects
 
-A kind can set `DeathEffect`. `DamageEntity` records the death; the population runs the effect on its next update (it is the code that can spawn entities). Today there is one:
+A kind can set `DeathEffect`. `DamageEntity` records the death; the population runs the effect on its next update (it is the code that can spawn entities). There are two:
 
 - `DeathEffect_Split`: `SplitCount` monsters of `SplitKind` pop out of the corpse, spread in a ring and never placed inside a wall. The tests reject a kind that splits into itself or into a kind that splits again.
+- `DeathEffect_Shatter`: the corpse throws the Volley at `ShatterAbility` all the way round. Give that Volley `PhaseMask = PHASE_DEATH` so it is never cast in a fight, and keep it in the first four slots, as a shot sends its ability's slot in 2 bits.
 
 A kind with `SpawnWeight = 0` only appears through another monster, like the Slimelet. Two related kinds can share one file: list both in the name pass (`MONSTER(Slime)` and `MONSTER(Slimelet)`), see `slime.cpp`.
 
@@ -112,5 +116,9 @@ A monster uses the first ability in its list that is off cooldown and whose `Min
 | Warlord | Ashen Warlord | Boss, one at a time. Cinder Cleave: slam that burns and leaves embers. Ember Storm: five-ember fan. Below half health enrages and adds Call the Brood: two Cinder Imps |
 | Lurker | Dune Lurker | Tunnel Strike: burrows, tunnels toward you, erupts under a ring that locks before it hits |
 | Slimelet | Slimelet | none; small and quick, only appears from a split |
+| Yeti | Frostmaw Yeti | Aurora Rift only. Ground Pound: a frost wave to jump. Bounding Leap |
+| Wisp | Aurora Wisp | Aurora Rift only, flies. Aurora Ray: a sweeping beam |
+| Sentinel | Rimeglass Sentinel | Aurora Rift only. Crystal Crush; shatters into six shards when it dies |
+| AuroraPylon | Aurora Pylon | raised by rift bosses, never moves, wards its boss. Pylon Lance: a long sweeping beam |
 
 The toad's shells now leave bile puddles that poison.

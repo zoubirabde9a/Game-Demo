@@ -90,6 +90,30 @@ global_variable boss_event BossEvents[] =
     {MonsterKind_Rimeheart, 0.45f, MonsterKind_Shaman, 1, 0.f, 0.f, 0.f, 0},
     {MonsterKind_Rimeheart, 0.6f, MonsterKind_Brute, 1, 20.f, 0.1f, 0.5f, MonsterAffix_Armored},
     {MonsterKind_Rimeheart, 0.3f, MonsterKind_Brute, 1, 20.f, 0.1f, 0.5f, MonsterAffix_Armored},
+    // NOTE(zoubir): the Aurora Rift (docs/dungeon-rift.md). Grondmaw:
+    // yetis come out of the snow at 75% and 25%, three at a time, their
+    // waves out of step with his, and walk back into him if left alone;
+    // at 50% three sentinels, which shatter when killed, so
+    // the party breaks them away from the tank and his fists
+    {MonsterKind_Grondmaw, 0.75f, MonsterKind_Yeti, 3, 16.f, 0.07f, 0.f, 0},
+    {MonsterKind_Grondmaw, 0.5f, MonsterKind_Sentinel, 3, 0.f, 0.f, 0.f, 0},
+    {MonsterKind_Grondmaw, 0.25f, MonsterKind_Yeti, 3, 16.f, 0.07f, 0.f, MonsterAffix_Frenzied},
+    // NOTE(zoubir): the Prism Warden: two pylons at 70%, three at 35%; it
+    // takes nothing while one stands (boss_wards.cpp); wisps drift out of
+    // the light at 85% and 50% and fly back into it if left alone
+    {MonsterKind_Prism, 0.85f, MonsterKind_Wisp, 2, 14.f, 0.05f, 0.f, 0},
+    {MonsterKind_Prism, 0.7f, MonsterKind_AuroraPylon, 2, 0.f, 0.f, 0.f, 0},
+    {MonsterKind_Prism, 0.5f, MonsterKind_Wisp, 3, 14.f, 0.05f, 0.f, 0},
+    {MonsterKind_Prism, 0.35f, MonsterKind_AuroraPylon, 3, 0.f, 0.f, 0.f, 0},
+    // NOTE(zoubir): Vaelith: two pylons at 70% and 35%, and yetis at 85%,
+    // 55% and 20%. A champion that erupted at 50% as well wiped the bots
+    // nearly every try on top of her sentinels; the pylons are her damage
+    // check
+    {MonsterKind_Everwinter, 0.85f, MonsterKind_Yeti, 1, 16.f, 0.07f, 0.f, 0},
+    {MonsterKind_Everwinter, 0.7f, MonsterKind_AuroraPylon, 2, 0.f, 0.f, 0.f, 0},
+    {MonsterKind_Everwinter, 0.55f, MonsterKind_Yeti, 2, 16.f, 0.07f, 0.f, 0},
+    {MonsterKind_Everwinter, 0.35f, MonsterKind_AuroraPylon, 2, 0.f, 0.f, 0.f, 0},
+    {MonsterKind_Everwinter, 0.2f, MonsterKind_Yeti, 2, 16.f, 0.07f, 0.f, MonsterAffix_Frenzied},
 };
 
 // NOTE(zoubir): the fight's boss, as encounters.cpp spawned it, or 0 once
@@ -122,12 +146,19 @@ UpdateBossEvents(app_state *AppState, world *World, memory_arena *Arena,
     u32 Standing;
     float HealthScale = LevelFoeHealth(World->MapId) *
         PartyHealthScale(CountPartyPlayers(AppState, &Standing));
+    // NOTE(zoubir): a run keeps one bit per event of the boss it fights,
+    // by the event's place among that boss's rows, so the table can grow
+    // past 32 rows as long as no one boss has more
+    u32 Ordinal = 0;
     for(u32 Index = 0; Index < ArrayCount(BossEvents); Index++)
     {
         boss_event *Event = &BossEvents[Index];
-        u32 Bit = 1u << Index;
-        if (Event->Boss != Boss->MonsterKind || (Run->BossEventsFired & Bit) ||
-            Share > Event->HpShare)
+        if (Event->Boss != Boss->MonsterKind)
+        {
+            continue;
+        }
+        u32 Bit = 1u << (Ordinal++ & 31);
+        if ((Run->BossEventsFired & Bit) || Share > Event->HpShare)
         {
             continue;
         }

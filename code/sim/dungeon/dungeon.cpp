@@ -275,6 +275,7 @@ DungeonAttackerSlot(app_state *AppState, world_entity *Source)
 }
 
 #include "meter.cpp"
+#include "boss_wards.cpp"
 
 // NOTE(zoubir): from DamageEntity and ApplyHit: in a dungeon run a player
 // never hurts, shoves or stuns another; outside one this is never true
@@ -343,6 +344,16 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         Result = TankRefusesToFall(AppState, Slot, Target, Result);
     }
     player_slot *Attacker = DungeonAttackerSlot(AppState, Source);
+    // NOTE(zoubir): a boss behind its pylons takes nothing, burns
+    // included (boss_wards.cpp); a blow shows Blocked
+    if (IsWardedBoss(AppState, Target))
+    {
+        if (Attacker)
+        {
+            WardDeflects(AppState, Target);
+        }
+        return 0.f;
+    }
     if (Attacker && Target->Type == EntityType_Monster)
     {
         role_def *Role = GetRoleDef(Attacker->Role);

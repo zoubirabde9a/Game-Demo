@@ -32,6 +32,7 @@ struct encounter_row
 #include "crypt_encounters.cpp"
 #include "depths_encounters.cpp"
 #include "vault_encounters.cpp"
+#include "rift_encounters.cpp"
 
 struct dungeon_level
 {
@@ -56,7 +57,9 @@ struct dungeon_level
 // the bosses are 45% tougher and harder-hitting on top; with the levels and talents a party gains in
 // the Crypt, that keeps the second level a step up rather than a wall.
 // The Rimeheart Vault's are 70% tougher, hit 40% harder and play 20%
-// faster than the Crypt's, for a party that has levelled through both
+// faster than the Crypt's, for a party that has levelled through both.
+// The Aurora Rift's are tougher, harder-hitting and faster again, for a
+// party that has come through all three (docs/dungeon-rift.md)
 global_variable dungeon_level DungeonLevels[] =
 {
     {MapId_Crypt, 1, CryptRooms, CryptEncounters, ArrayCount(CryptEncounters),
@@ -64,7 +67,9 @@ global_variable dungeon_level DungeonLevels[] =
     {MapId_Depths, 2, DepthsRooms, DepthsEncounters, ArrayCount(DepthsEncounters),
      DepthsRoomNames, ArrayCount(DepthsRoomNames), 1.35f, 1.2f, 1.12f, 1.45f, MapId_Vault},
     {MapId_Vault, 3, VaultRooms, VaultEncounters, ArrayCount(VaultEncounters),
-     VaultRoomNames, ArrayCount(VaultRoomNames), 1.7f, 1.9f, 1.2f, 2.4f, MapId_Crypt},
+     VaultRoomNames, ArrayCount(VaultRoomNames), 1.7f, 1.9f, 1.2f, 2.4f, MapId_Rift},
+    {MapId_Rift, 4, RiftRooms, RiftEncounters, ArrayCount(RiftEncounters),
+     RiftRoomNames, ArrayCount(RiftRoomNames), 2.05f, 2.35f, 1.28f, 2.75f, MapId_Crypt},
 };
 
 // NOTE(zoubir): the level played on MapId, 0 for a map that is not one

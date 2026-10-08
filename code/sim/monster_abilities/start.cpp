@@ -186,6 +186,11 @@ StartMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
             Entity->AbilityPoints[Entity->AbilityPointCount++] = Target->Position.XY;
         } break;
 
+        case MonsterAbility_Beam:
+        {
+            StartBeam(AppState, Entity, Ability);
+        } break;
+
         case MonsterAbility_Mend:
         {
             world_entity *Ally = FindMendTarget(World, Entity, Ability->Radius);

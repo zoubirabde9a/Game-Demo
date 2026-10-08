@@ -53,6 +53,11 @@ global_variable boss_clock_def BossClockDefs[] =
     {MonsterKind_FrostColossus, 110.f},
     {MonsterKind_PaleWitch, 90.f},
     {MonsterKind_Rimeheart, 130.f},
+    // NOTE(zoubir): the Aurora Rift (docs/dungeon-rift.md); the warded
+    // bosses' clocks run on while their pylons stand
+    {MonsterKind_Grondmaw, 115.f},
+    {MonsterKind_Prism, 130.f},
+    {MonsterKind_Everwinter, 150.f},
 };
 
 // NOTE(zoubir): the party the limits are tuned for
