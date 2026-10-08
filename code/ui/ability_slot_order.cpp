@@ -3,7 +3,9 @@
    in its own order, each ability once the player has it. In a run the
    class's spells come first, on A, R, C, V and W, then a gap and the
    abilities every class shares (sim/dungeon/role_abilities.cpp,
-   RunAllowedButtons); a class spell shows once its tree unlocked it. */
+   RunAllowedButtons), with the right click's after X for a class that
+   swings its own weapon there; a class spell shows once its tree
+   unlocked it. */
 
 // NOTE(zoubir): a run's bar, left to right; 0 is the gap
 global_variable u32 RunSlotButtons[] =
@@ -15,6 +17,7 @@ global_variable u32 RunSlotButtons[] =
     PlayerButton_Shockwave,
     0,
     PlayerButton_Cast,
+    PlayerButton_Attack,
     PlayerButton_Shield,
     PlayerButton_Blink,
     PlayerButton_Jump,

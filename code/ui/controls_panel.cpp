@@ -60,14 +60,18 @@ struct controls_row
 #define CONTROLS_TALENT_BUTTONS (PlayerButton_Shockwave | PlayerButton_Push | PlayerButton_Slam | \
                                  PlayerButton_FrostNova | PlayerButton_GravityWell)
 
+// NOTE(zoubir): one string for both schemes' fireball rows, so a class
+// that owns X can put its own spell's line there (ControlsRowAction)
+global_variable char ControlsFireballLine[] = "Fireball at the cursor, every 6 s";
+
 global_variable controls_row ControlsRows[] =
 {
     {"ZQSD",        "Move", Controls_Always, 0, Controls_KeysMove},
     {"Left click",  "Walk there; hold to keep walking", Controls_Always, 0, Controls_MouseMoves},
     {"Mouse",       "Aim; you face the cursor"},
-    {"Click, X",    "Fireball at the cursor, every 6 s", Controls_Always, 0, Controls_KeysMove},
-    {"",            "Fireball at the cursor, every 6 s", Controls_Always, PlayerButton_Cast,
-                    Controls_MouseMoves},
+    {"Click, X",    ControlsFireballLine, Controls_Always, 0, Controls_KeysMove},
+    {"",            ControlsFireballLine, Controls_Always, PlayerButton_Cast, Controls_MouseMoves},
+    {"",            "", Controls_Run, PlayerButton_Attack},
     {"",            "Jump; fireballs and blasts pass under", Controls_Always, PlayerButton_Jump},
     {"",            "Shield: nothing hurts you for 2 s", Controls_Always, PlayerButton_Shield},
     {"",            "Blink to the cursor after 0.2 s", Controls_Always, PlayerButton_Blink},
@@ -97,7 +101,13 @@ ShownControlsRows(app_state *AppState, controls_row **Rows)
     u32 Result = 0;
     for(u32 Row = 0; Row < ArrayCount(ControlsRows); Row++)
     {
-        if (ControlsRows[Row].Where != Hidden && ControlsRows[Row].Scheme != OtherScheme)
+        // NOTE(zoubir): a run's row with no text of its own (the right
+        // click) shows only for a class with a spell there
+        controls_row *Each = &ControlsRows[Row];
+        bool32 Empty = Each->Where == Controls_Run && !Each->Action[0] &&
+            !RoleSpellOnButton(AppState, AppState->Players[AppState->LocalPlayerIndex].Entity,
+                               Each->Buttons);
+        if (Each->Where != Hidden && Each->Scheme != OtherScheme && !Empty)
         {
             Rows[Result++] = &ControlsRows[Row];
         }
@@ -114,6 +124,11 @@ ShownControlsRows(app_state *AppState, controls_row **Rows)
 internal char *
 ControlsRowAction(app_state *AppState, controls_row *Row)
 {
+    // NOTE(zoubir): the fireball rows say what a class that owns X casts
+    if (Row->Action == ControlsFireballLine)
+    {
+        return RoleControlsLine(AppState, PlayerButton_Cast, Row->Action);
+    }
     if (Row->Where != Controls_Run)
     {
         return Row->Action;
