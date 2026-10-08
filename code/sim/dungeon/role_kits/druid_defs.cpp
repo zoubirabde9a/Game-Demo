@@ -14,6 +14,10 @@
 // NOTE(zoubir): bolts fly at this speed; a hit lands when its bolt gets
 // there (client/dungeon/classes/druid.cpp flies the same speed)
 #define DRUID_BOLT_SPEED 1000.f
+// NOTE(zoubir): a Moonfire or a Rejuvenation is sent to clients again
+// this often while it lasts, so its look never drops out of their short
+// list of bursts (client/dungeon/role_fx.cpp) and follows who it is on
+#define DRUID_KEEP_SECONDS 1.5f
 
 // NOTE(zoubir): Wrath (right click): a quick bolt of nature at the foe
 // aimed at, the filler; grows a Bloom
@@ -43,6 +47,8 @@
 #define STARFIRE_RANGE 560.f
 #define STARFIRE_DAMAGE 26.f
 #define STARFIRE_BLOOM 2
+// NOTE(zoubir): the star falls this long before it strikes
+#define STARFIRE_FALL 0.35f
 #define STARFIRE_COOLDOWN 6.f
 
 // NOTE(zoubir): Regrowth (W): an ally heals REGROWTH_HEAL at once and
@@ -142,6 +148,22 @@ global_variable u8 DruidTalentStats[ROLE_TALENTS] =
     RoleStat_Healing, RoleStat_Vitality, RoleStat_None, RoleStat_Haste, RoleStat_Damage, RoleStat_None,
 };
 
-// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click. Empty
-// until the kit lands (role_kits/druid.cpp)
-global_variable role_spell DruidSpells[ROLE_KEYS] = {};
+// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click
+global_variable role_spell DruidSpells[ROLE_KEYS] =
+{
+    {"Rejuvenation", REJUVENATION_COOLDOWN,
+     "Rejuvenation: an ally heals over 8 s, and at once for each Bloom spent",
+     RoleAim_Ally, REJUVENATION_RANGE, 0},
+    {"Starfire", STARFIRE_COOLDOWN, "Starfire: 1.5 s cast, a falling star on a foe; grows two Bloom",
+     RoleAim_Foe, STARFIRE_RANGE, 0},
+    {"Entangling Roots", ROOTS_COOLDOWN, "Entangling Roots: hold every foe in the circle and hurt them",
+     RoleAim_Ground, ROOTS_RADIUS, DruidTalent_EntanglingRoots + 1},
+    {"Tranquility", TRANQUILITY_COOLDOWN, "Tranquility: 3 s channel that heals every ally around you",
+     RoleAim_None, 0.f, DruidTalent_Tranquility + 1},
+    {"Regrowth", REGROWTH_COOLDOWN, "Regrowth: heal an ally at once, more for each Bloom spent",
+     RoleAim_Ally, REGROWTH_RANGE, 0},
+    {"Moonfire", MOONFIRE_COOLDOWN, "Moonfire: burn a foe with moonlight for 12 s",
+     RoleAim_Foe, MOONFIRE_RANGE, 0},
+    {"Wrath", WRATH_COOLDOWN, "Wrath: a quick bolt of nature at a foe; grows a Bloom",
+     RoleAim_None, WRATH_RANGE, 0},
+};
