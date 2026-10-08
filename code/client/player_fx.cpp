@@ -22,6 +22,8 @@
    - reaction words: a status effect's name over a unit as it starts
      ("Stunned", "Rooted"), and "Blocked" or "Dodged" where a hit did
      nothing (player_fx/reaction_words.cpp);
+   - hurt direction: a red arc round the local player on the side a
+     hit came from (player_fx/hurt_direction.cpp);
    - cast glow: light gathering in the hand of every player winding up a
      spell, and its flash when the spell goes off (player_fx/cast_glow.cpp,
      cast_fx.cpp);
@@ -41,12 +43,14 @@
 #include "player_fx/shield_bubble.cpp"
 #include "player_fx/status_fx.cpp"
 #include "player_fx/reaction_words.cpp"
+#include "player_fx/hurt_direction.cpp"
 #include "player_fx/cast_glow.cpp"
 
 struct player_fx
 {
     dash_streaks Dashes;
     hit_numbers Hits;
+    hurt_direction Hurt;
     fireball_trails Embers;
     kunai_trails Kunai;
     float ShieldGrow[MAX_PLAYERS];
@@ -69,6 +73,7 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     UpdateDashStreaks(&Fx->Dashes, AppState, DeltaTime);
     UpdateHitNumbers(&Fx->Hits, AppState, DeltaTime);
     UpdateReactionWords(AppState, DeltaTime);
+    UpdateHurtDirection(&Fx->Hurt, AppState, DeltaTime);
     UpdateFireBallTrails(&Fx->Embers, AppState, DeltaTime);
     UpdateKunaiTrails(&Fx->Kunai, AppState, DeltaTime);
 
@@ -77,6 +82,7 @@ DrawPlayerAbilityFx(render_context *RenderContext, app_state *AppState,
     DrawDashGhosts(RenderContext, AppState, &Fx->Dashes, CameraOffset);
     DrawDashStreaks(RenderContext, &Fx->Dashes, CameraOffset);
     DrawStatusMotes(RenderContext, AppState, CameraOffset);
+    DrawHurtDirection(RenderContext, AppState, &Fx->Hurt, CameraOffset);
     DrawShieldBubbles(RenderContext, AppState, Fx->ShieldGrow, CameraOffset, DeltaTime);
     DrawBlinkPreview(RenderContext, AppState, CameraOffset);
     DrawAimMarker(RenderContext, AppState, CameraOffset);
