@@ -8,7 +8,11 @@
    Radiance heals and wards every living player within RADIANCE_RADIUS
    of the healer.
    Renewal (role_talents.cpp) leaves healing over time on whoever a bolt
-   lands on, run by UpdateRenewals.
+   lands on, run by UpdateRenewals. Steadfast Ward makes Ward absorb more
+   and come back sooner (RoleSpellCooldown) per rank. Guardian Angel, the
+   capstone, catches each ally once a fight (GuardianAngelSave): the blow
+   that would take them under GUARDIAN_ANGEL_HP_SHARE of their health
+   cannot kill them, and they heal and are warded at once.
 
    A warded ally also deals WARD_EMPOWER_SHARE more while the ward holds
    (DungeonScaleDamage), so the ward is the healer's call in a damage
@@ -62,7 +66,9 @@ CastWard(app_state *AppState, player_slot *Slot, world_entity *Player)
     u8 SlotIndex = (u8)Player->PlayerIndex;
     world_entity *Ally = PickAllyFor(AppState, Slot, Player, MENDING_BOLT_RANGE);
     float Absorb = (WARD_ABSORB + DEEP_WARD_ABSORB *
-                    (float)RoleRank(Slot, PlayerRole_Healer, HealerTalent_DeepWard)) *
+                    (float)RoleRank(Slot, PlayerRole_Healer, HealerTalent_DeepWard) +
+                    STEADFAST_WARD_ABSORB *
+                    (float)RoleRank(Slot, PlayerRole_Healer, HealerTalent_SteadfastWard)) *
         PartySustainScale(AppState->Dungeon);
     player_slot *AllySlot = &AppState->Players[Ally->PlayerIndex];
     AllySlot->WardAbsorb = Absorb;
@@ -244,5 +250,62 @@ UpdateRenewals(app_state *AppState, float DeltaTime)
             continue;
         }
         HealPlayer(AppState, Slot->RenewBy, Player, Slot->RenewPerSecond * DeltaTime);
+    }
+}
+
+// NOTE(zoubir): from DungeonScaleDamage, after the ward took its share:
+// Damage is about to land on Ally in a fight. With a living healer in the
+// party holding Guardian Angel, the first blow each fight that would take
+// Ally under GUARDIAN_ANGEL_HP_SHARE of their health cannot kill them;
+// once it lands they heal and hold a fresh ward. Returns the damage left
+internal float
+GuardianAngelSave(app_state *AppState, world_entity *Ally, player_slot *AllySlot, float Damage)
+{
+    dungeon_run *Run = AppState->Dungeon;
+    if (!Run || !Run->FightingRoom || AllySlot->AngelSpent || !(Damage > 0.f) ||
+        IsDeadPlayer(Ally) || Ally->Hp - Damage >= GUARDIAN_ANGEL_HP_SHARE * Ally->MaxHp)
+    {
+        return Damage;
+    }
+    u32 By = MAX_PLAYERS;
+    for(u32 Index = 0; Index < MAX_PLAYERS && By == MAX_PLAYERS; Index++)
+    {
+        if (LivingPlayerInSlot(AppState, Index) &&
+            RoleRank(&AppState->Players[Index], PlayerRole_Healer, HealerTalent_GuardianAngel))
+        {
+            By = Index;
+        }
+    }
+    if (By == MAX_PLAYERS)
+    {
+        return Damage;
+    }
+    AllySlot->AngelSpent = 1;
+    float Result = Minimum(Damage, Maximum(0.f, Ally->Hp - 1.f));
+    // NOTE(zoubir): the heal counts from the health left after the blow,
+    // which the caller takes off once this returns
+    Ally->Hp -= Result;
+    HealPlayer(AppState, By, Ally, GUARDIAN_ANGEL_HEAL_SHARE * Ally->MaxHp);
+    Ally->Hp += Result;
+    float Ward = GUARDIAN_ANGEL_WARD * PartySustainScale(Run);
+    if (AllySlot->WardAbsorb < Ward)
+    {
+        AllySlot->WardAbsorb = Ward;
+        AllySlot->WardFull = Ward;
+    }
+    EmitBurst(&AppState->Events, SimBurst_SanctuaryCast, (u8)By, Ally->Position);
+    EmitBurst(&AppState->Events, SimBurst_WardCast, (u8)By, ChestOf(Ally));
+    EmitSound(&AppState->Events, AssetType_SfxHeal, Ally->Position);
+    return Result;
+}
+
+// NOTE(zoubir): once a tick: between fights every ally may be caught by
+// Guardian Angel again
+internal void
+UpdateGuardianAngels(app_state *AppState, dungeon_run *Run)
+{
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS && !Run->FightingRoom; SlotIndex++)
+    {
+        AppState->Players[SlotIndex].AngelSpent = 0;
     }
 }

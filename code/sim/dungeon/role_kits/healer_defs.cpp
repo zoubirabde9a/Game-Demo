@@ -9,6 +9,12 @@ enum healer_talent
     HealerTalent_Renewal,
     HealerTalent_Radiance,
     HealerTalent_Miracle,
+    HealerTalent_BlessedHands,
+    HealerTalent_InnerLight,
+    HealerTalent_SteadfastWard,
+    HealerTalent_Quickening,
+    HealerTalent_LightFeet,
+    HealerTalent_GuardianAngel,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -21,6 +27,16 @@ enum healer_talent
 #define HALLOWED_HEAL 1.5f
 #define MIRACLE_SECONDS 1.5f
 #define MIRACLE_HP_SHARE 0.7f
+// NOTE(zoubir): Steadfast Ward, per rank: more absorbed, seconds off
+// Ward's cooldown
+#define STEADFAST_WARD_ABSORB 8.f
+#define STEADFAST_WARD_SECONDS 0.75f
+// NOTE(zoubir): Guardian Angel: a blow that takes an ally under this share
+// of their health cannot kill them; once it lands they heal this share of
+// their health and hold at least this ward, once per ally per fight
+#define GUARDIAN_ANGEL_HP_SHARE 0.3f
+#define GUARDIAN_ANGEL_HEAL_SHARE 0.4f
+#define GUARDIAN_ANGEL_WARD 40.f
 
 global_variable talent_def HealerTalentDefs[ROLE_TALENTS] =
 {
@@ -40,14 +56,14 @@ global_variable talent_def HealerTalentDefs[ROLE_TALENTS] =
          TalentBranch_Role, 2, 1, 4, 0},
         {"Inner Light", "More health", "+6% health",
          TalentBranch_Role, 3, 1, 4, 0},
-        // NOTE(zoubir): slot 8, a class spell made stronger, by rank: to be written
-        {"", "", "", TalentBranch_Role, 4, 0, 4, 0},
+        {"Steadfast Ward", "Ward absorbs more and comes back sooner",
+         "+8 absorbed, -0.75 s cooldown", TalentBranch_Role, 4, 0, 4, 0},
         {"Quickening", "Every spell comes back sooner", "-4% cooldowns",
          TalentBranch_Role, 4, 1, 4, 0},
         {"Light Feet", "You run faster", "+3% run speed",
          TalentBranch_Role, 5, 0, 4, 0},
-        // NOTE(zoubir): slot 11, the capstone: to be written
-        {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
+        {"Guardian Angel", "A blow taking an ally under 30% health can't kill: heal 40%, ward 40",
+         "once per ally per fight", TalentBranch_Role, 5, 1, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None

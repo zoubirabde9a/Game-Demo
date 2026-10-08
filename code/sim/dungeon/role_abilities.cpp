@@ -164,6 +164,10 @@ RoleSpellCooldown(player_slot *Slot, u32 Key)
     {
         Result -= PROVOKE_COOLDOWN * (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_Provoke);
     }
+    if (Key == 1)
+    {
+        Result -= STEADFAST_WARD_SECONDS * (float)RoleRank(Slot, PlayerRole_Healer, HealerTalent_SteadfastWard);
+    }
     Result = ClassSpellCooldown(Slot, Key, Result);
     Result *= RoleStatCooldownScale(Slot);
     return Result;
@@ -479,6 +483,7 @@ UpdateRoleEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
 {
     UpdateSanctuaries(AppState, Run, DeltaTime);
     UpdateRenewals(AppState, DeltaTime);
+    UpdateGuardianAngels(AppState, Run);
     UpdateInfernos(AppState, Run, DeltaTime);
     UpdateGiantFireballs(AppState, Run, DeltaTime);
     UpdateClassEffects(AppState, Run, DeltaTime);

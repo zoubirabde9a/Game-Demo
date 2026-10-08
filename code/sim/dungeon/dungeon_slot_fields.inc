@@ -29,6 +29,9 @@
     float RenewSeconds;
     float RenewPerSecond;
     u8 RenewBy;
+    // NOTE(zoubir): a healer's Guardian Angel caught this player this
+    // fight (role_kits/healer.cpp)
+    u8 AngelSpent;
     // NOTE(zoubir): how many monsters of the fight are after this player
     // (CountAggro), for the party frames
     u8 Aggro;

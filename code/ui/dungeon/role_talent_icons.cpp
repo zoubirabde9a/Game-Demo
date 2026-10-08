@@ -146,8 +146,8 @@ global_variable talent_icon_painter *HealerTalentIconPainters[ROLE_TALENTS] =
 {
     PaintSwiftMendingIcon, PaintRoleSanctuaryIcon, PaintDeepWardIcon, PaintRenewalIcon,
     PaintRoleRadianceIcon, PaintMiracleIcon,
-    PaintStatHealingIcon, PaintStatVitalityIcon, 0, PaintStatHasteIcon,
-    PaintStatSwiftnessIcon, 0,
+    PaintStatHealingIcon, PaintStatVitalityIcon, PaintSteadfastWardIcon, PaintStatHasteIcon,
+    PaintStatSwiftnessIcon, PaintGuardianAngelIcon,
 };
 global_variable talent_icon_painter **RoleTalentIconPainters[PlayerRole_Count] =
 {

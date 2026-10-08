@@ -5,7 +5,8 @@
    toward the spot it was cast at; a client predicting its own striker
    shows the Meteor and Giant Fireball wind-ups but fires neither; the tree's V spells (Combustion, Last Stand, Radiance) do what
    they say; the tank's and healer's W attacks land; and their right-click
-   basic attacks, Shield Bash and Smite Bolt, hit a little. */
+   basic attacks, Shield Bash and Smite Bolt, hit a little; and the
+   Mender's Steadfast Ward and Guardian Angel do what they say. */
 
 // NOTE(zoubir): the run lets through the shared keys and the class's
 // learned spells, nothing else
@@ -311,6 +312,75 @@ TestBasicAttacks()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the Mender's later talents: Steadfast Ward's ranks make
+// Ward absorb more and come back sooner; Guardian Angel keeps a blow from
+// killing an ally, heals and wards them, once per ally per fight
+internal void
+TestMenderLaterTalents()
+{
+    crypt_world Crypt = CreateCryptWorld(2);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Crypt, 1);
+    player_slot *Striker = &AppState->Players[0];
+    player_slot *Healer = &AppState->Players[1];
+    SetPlayerRole(AppState, Striker, PlayerRole_Damage);
+    SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+    world_entity *Ally = Striker->Entity;
+    world_entity *Mender = Healer->Entity;
+    MovePlayerTo(AppState, World, &Crypt.Arena, Ally, Mender->Position + V3(60.f, 0.f, 0.f));
+    float Sustain = PartySustainScale(Run);
+
+    float Plain = RoleSpellCooldown(Healer, 1);
+    Healer->Ranks[Talent_RoleFirst + HealerTalent_SteadfastWard] = 4;
+    Check(NearHp(RoleSpellCooldown(Healer, 1), Plain - 4.f * STEADFAST_WARD_SECONDS));
+    Healer->Input.Target = (u32)(Ally - World->Entities) + 1;
+    Striker->WardAbsorb = 0.f;
+    Check(CastHealerKey(AppState, Healer, Mender, 1));
+    Check(NearHp(Striker->WardAbsorb, (WARD_ABSORB + 4.f * STEADFAST_WARD_ABSORB) * Sustain));
+
+    // NOTE(zoubir): without the capstone a blow lands whole
+    Run->FightingRoom = 2;
+    Striker->WardAbsorb = 0.f;
+    Ally->Hp = 0.5f * Ally->MaxHp;
+    Check(GuardianAngelSave(AppState, Ally, Striker, 1000.f) == 1000.f);
+    Check(Ally->Hp == 0.5f * Ally->MaxHp && !Striker->AngelSpent);
+
+    // NOTE(zoubir): with it a killing blow leaves the ally standing,
+    // healed and warded
+    Healer->Ranks[Talent_RoleFirst + HealerTalent_GuardianAngel] = 1;
+    DamageEntity(AppState, World, Ally, 100000.f, 0);
+    Check(!IsDeadPlayer(Ally) && Striker->AngelSpent);
+    Check(NearHp(Ally->Hp, 1.f + GUARDIAN_ANGEL_HEAL_SHARE * Ally->MaxHp * Sustain));
+    Check(NearHp(Striker->WardAbsorb, GUARDIAN_ANGEL_WARD * Sustain));
+
+    // NOTE(zoubir): a blow that leaves the ally over the share is not
+    // caught, nor a second one the same fight
+    Striker->AngelSpent = 0;
+    Ally->Hp = Ally->MaxHp;
+    Check(GuardianAngelSave(AppState, Ally, Striker, 0.5f * Ally->MaxHp) == 0.5f * Ally->MaxHp);
+    Check(!Striker->AngelSpent);
+    Striker->AngelSpent = 1;
+    Ally->Hp = 0.5f * Ally->MaxHp;
+    Check(GuardianAngelSave(AppState, Ally, Striker, Ally->MaxHp) == Ally->MaxHp);
+    Check(Ally->Hp == 0.5f * Ally->MaxHp);
+
+    // NOTE(zoubir): the next fight it catches them again
+    Run->FightingRoom = 0;
+    UpdateGuardianAngels(AppState, Run);
+    Check(!Striker->AngelSpent);
+    Run->FightingRoom = 2;
+    Striker->WardAbsorb = 0.f;
+    float Hit = 0.3f * Ally->MaxHp;
+    float Left = GuardianAngelSave(AppState, Ally, Striker, Hit);
+    Check(Left == Hit && Striker->AngelSpent);
+    Check(NearHp(Ally->Hp - Left, (0.2f + GUARDIAN_ANGEL_HEAL_SHARE * Sustain) * Ally->MaxHp));
+    Check(Striker->WardAbsorb > 0.f);
+    Run->FightingRoom = 0;
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunClassKitTests()
 {
@@ -321,4 +391,5 @@ RunClassKitTests()
     TestTreeFinishers();
     TestAttackSpells();
     TestBasicAttacks();
+    TestMenderLaterTalents();
 }
