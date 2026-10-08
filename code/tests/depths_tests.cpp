@@ -1,8 +1,9 @@
 /* Depths tests (dungeon_tests.cpp): the Ember Depths, the dungeon's
    second level. Its rooms match its map, clearing the crypt goes on to
    it with everyone's progress, its monsters are tougher and faster,
-   its bosses stand in their rooms on a clock, Sskarra's dive leaves
-   magma, and clearing it starts over at the crypt. */
+   its bosses stand in their rooms on a clock and their adds fall with
+   them, Sskarra's dive leaves magma, and clearing it starts over at
+   the crypt. */
 
 // NOTE(zoubir): the depths' room map is the size of its layout, every
 // gate tile is open ground, seven rooms with a gate between each pair,
@@ -284,6 +285,34 @@ TestMagmaDiveLeavesMagma()
     DestroyCryptWorld(&Depths);
 }
 
+// NOTE(zoubir): when a boss falls, the adds its script brought fall with
+// it, so the room clears with the boss instead of waiting on a straggler
+internal void
+TestBossAddsFallWithTheBoss()
+{
+    crypt_world Depths = CreateDungeonWorld(MapId_Depths, 1);
+    app_state *AppState = Depths.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    Run->RoomStates[1] = Run->RoomStates[2] = RoomState_Cleared;
+    TickCrypt(&Depths, 1);
+    MovePlayerTo(AppState, World, &Depths.Arena, AppState->Players[0].Entity,
+                 Run->RoomEntry[3]);
+    TickCrypt(&Depths, 2);
+    world_entity *Boss = FightBoss(World, Run);
+    Check(Boss && Boss->MonsterKind == MonsterKind_Forgemaster);
+    Boss->Hp = Boss->MaxHp * 0.65f;
+    TickCrypt(&Depths, 1);
+    Check(Run->Clock.AddCount > 0);
+    u32 AddSlot = Run->Clock.AddSlots[0];
+    u32 AddSerial = Run->Clock.AddSerials[0];
+    Check(FindMonsterBySerial(World, AddSlot, AddSerial) != 0);
+    DamageEntity(AppState, World, Boss, Boss->Hp, AppState->Players[0].Entity);
+    TickCrypt(&Depths, 1);
+    Check(FindMonsterBySerial(World, AddSlot, AddSerial) == 0);
+    DestroyCryptWorld(&Depths);
+}
+
 internal void
 RunDepthsTests()
 {
@@ -294,4 +323,5 @@ RunDepthsTests()
     TestDepthsBossesStand();
     TestDepthsFoesPlayFaster();
     TestMagmaDiveLeavesMagma();
+    TestBossAddsFallWithTheBoss();
 }

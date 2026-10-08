@@ -82,6 +82,10 @@ UpdateBossEvents(app_state *AppState, world *World, memory_arena *Arena,
                  dungeon_run *Run)
 {
     world_entity *Boss = FightBoss(World, Run);
+    if ((!Boss || Boss->Hp <= 0.f) && Run->BossSerial)
+    {
+        CrumbleBossAdds(World, Run);
+    }
     UpdateBossClock(AppState, Run, Boss);
     UpdateBossAdds(AppState, World, Run, Boss);
     if (!Boss || Boss->MaxHp <= 0.f)

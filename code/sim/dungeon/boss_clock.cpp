@@ -203,6 +203,26 @@ TimeBossAdd(dungeon_run *Run, world *World, world_entity *Add, float Seconds, fl
     }
 }
 
+// NOTE(zoubir): the boss is dead: its timed adds fall apart with it, as
+// a summoner's summons do (CrumbleOrphanedSummons), without credit. Left
+// standing, one the party did not chase kept the room from clearing for
+// minutes after the boss fell
+internal void
+CrumbleBossAdds(world *World, dungeon_run *Run)
+{
+    boss_clock *Clock = &Run->Clock;
+    for(u32 Index = 0; Index < Clock->AddCount; Index++)
+    {
+        world_entity *Add = FindMonsterBySerial(World, Clock->AddSlots[Index],
+                                                Clock->AddSerials[Index]);
+        if (Add)
+        {
+            RemoveEntity(World, Add);
+        }
+    }
+    Clock->AddCount = 0;
+}
+
 // NOTE(zoubir): once a tick while a fight lasts: adds whose time is up
 // die, heal the boss and maybe erupt; dead ones leave the list
 internal void
