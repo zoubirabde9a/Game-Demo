@@ -181,6 +181,10 @@ struct app_controller_input
 };
 
 //TODO(zoubir): mb to big for stack
+// NOTE(zoubir): the two keys in app_input.TextInput that are not text
+#define TEXT_KEY_ERASE '\b'
+#define TEXT_KEY_ERASE_WORD ((char)127)
+
 struct app_input
 {
     float DeltaTime;
@@ -282,9 +286,10 @@ struct app_input
         };
     };
 
-    // NOTE(zoubir): text typed this frame, null-terminated, printable
-    // ASCII; TextErase is one backspace, TextSubmit an Enter
-    bool32 TextErase;
+    // NOTE(zoubir): keys typed this frame in the order typed,
+    // null-terminated: printable ASCII (a paste comes in as typing),
+    // TEXT_KEY_ERASE for Backspace and TEXT_KEY_ERASE_WORD for
+    // Ctrl+Backspace. TextSubmit is an Enter
     bool32 TextSubmit;
     char TextInput[64];
     u32 TextInputCount;

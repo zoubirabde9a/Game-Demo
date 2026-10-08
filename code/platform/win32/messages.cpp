@@ -1,28 +1,69 @@
 /* Windows messages: characters typed this frame (WM_CHAR) and the
    message loop that turns key messages into input. */
 
-// NOTE(zoubir): characters typed since the last frame, from WM_CHAR;
-// printable ASCII only, backspace as an erase and Enter as a submit
+// NOTE(zoubir): keys typed since the last frame, from WM_CHAR, in order:
+// printable ASCII, and Backspace and Ctrl+Backspace as TEXT_KEY_ERASE and
+// TEXT_KEY_ERASE_WORD (app_input.TextInput); Enter is a submit
 global_variable char GlobalTypedText[64];
 global_variable u32 GlobalTypedCount;
-global_variable bool32 GlobalTypedErase;
 global_variable bool32 GlobalTypedSubmit;
+
+internal void
+Win32AddTypedKey(char Key)
+{
+    if (GlobalTypedCount + 1 < ArrayCount(GlobalTypedText))
+    {
+        GlobalTypedText[GlobalTypedCount++] = Key;
+    }
+}
+
+// NOTE(zoubir): Ctrl+V types the clipboard's first line, printable ASCII
+// only; tabs become spaces
+internal void
+Win32PasteClipboard()
+{
+    if (IsClipboardFormatAvailable(CF_TEXT) && OpenClipboard(0))
+    {
+        HANDLE Data = GetClipboardData(CF_TEXT);
+        char *Text = Data ? (char *)GlobalLock(Data) : 0;
+        if (Text)
+        {
+            for(; *Text && *Text != '\r' && *Text != '\n'; Text++)
+            {
+                char C = (*Text == '\t') ? ' ' : *Text;
+                if (C >= 32 && C < 127)
+                {
+                    Win32AddTypedKey(C);
+                }
+            }
+            GlobalUnlock(Data);
+        }
+        CloseClipboard();
+    }
+}
 
 internal void
 Win32AddTypedCharacter(u32 Character)
 {
-    if (Character == '')
+    if (Character == '\b')
     {
-        GlobalTypedErase = true;
+        Win32AddTypedKey(TEXT_KEY_ERASE);
     }
-    else if (Character == '')
+    else if (Character == 127)
+    {
+        Win32AddTypedKey(TEXT_KEY_ERASE_WORD);
+    }
+    else if (Character == 22)
+    {
+        Win32PasteClipboard();
+    }
+    else if (Character == '\r')
     {
         GlobalTypedSubmit = true;
     }
-    else if (Character >= 32 && Character < 127 &&
-             GlobalTypedCount + 1 < ArrayCount(GlobalTypedText))
+    else if (Character >= 32 && Character < 127)
     {
-        GlobalTypedText[GlobalTypedCount++] = (char)Character;
+        Win32AddTypedKey((char)Character);
     }
 }
 
@@ -38,10 +79,8 @@ Win32TakeTypedText(app_input *Input)
         Input->TextInput[Input->TextInputCount++] = GlobalTypedText[Index];
     }
     Input->TextInput[Input->TextInputCount] = 0;
-    Input->TextErase = GlobalTypedErase;
     Input->TextSubmit = GlobalTypedSubmit;
     GlobalTypedCount = 0;
-    GlobalTypedErase = false;
     GlobalTypedSubmit = false;
 }
 

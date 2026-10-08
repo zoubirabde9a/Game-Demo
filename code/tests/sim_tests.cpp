@@ -777,6 +777,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "collision_tests.cpp"
 #include "online_tests.cpp"
 #include "player_name_tests.cpp"
+#include "text_field_tests.cpp"
 #include "player_ability_tests.cpp"
 #include "cursor_tests.cpp"
 #include "control_scheme_tests.cpp"
@@ -834,6 +835,7 @@ main()
     RunCollisionTests();
     RunOnlineTests();
     RunPlayerNameTests();
+    RunTextFieldTests();
     RunPlayerAbilityTests();
     RunCursorTests();
     RunControlSchemeTests();
