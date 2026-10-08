@@ -27,6 +27,10 @@ echo "[client] building $REV (release) for version $NAME"
 rm -rf "$SRC" "$OUT"
 mkdir -p "$SRC" "$OUT/files"
 git archive --format=tar HEAD | tar -x -C "$SRC"
+# The join probe from the same tree, beside the game: deploy.sh joins the
+# new server with it over the internet (deploy/build_probe.bat)
+cmd.exe //c "$(cygpath -w "$SRC/deploy/build_probe.bat")" > "$SRC/probe.log" 2>&1 &
+PROBE_JOB=$!
 cmd.exe //c "$(cygpath -w "$SRC/build.bat")" release > "$SRC/build.log" 2>&1 || {
     grep -iE "error|warning C" "$SRC/build.log" | head -20 >&2
     echo "[client] build failed; full log in $SRC/build.log" >&2
@@ -57,5 +61,7 @@ LAUNCHER_HASH="$(hash_of "$GAME/launcher.exe")"
 cp "$GAME/launcher.exe" "$OUT/files/$LAUNCHER_HASH"
 cp "$GAME/launcher.exe" "$OUT/GameDemo.exe"
 cp "$SRC/deploy/web/index.html" "$OUT/index.html"
+
+wait "$PROBE_JOB" || { cat "$SRC/probe.log" >&2; echo "[client] the probe did not build" >&2; exit 1; }
 
 echo "[client] packaged ${#FILES[@]} files, $(du -sh "$OUT" | cut -f1) in $OUT"

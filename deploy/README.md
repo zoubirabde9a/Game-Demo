@@ -11,7 +11,9 @@ The live server today is `vps-eu` (152.53.147.77, ARM, Debian 13), next to other
 
 It sends the committed code, builds it on the server, installs it as the `game-demo` service, and checks that a player can join. If the check fails, the previous release goes back up and the command fails. Players connect to UDP port 27015.
 
-What the machine needs: Ubuntu or Debian on x86 or ARM, ssh access as root or a user with sudo, and UDP 27015 open in the hosting provider's firewall (the install opens it in ufw). The install puts in `g++` itself if it is missing. The smallest plan is enough. Measured on vps-eu with 8 bot players fighting over the internet: ticks average 0.36 ms and peak 4.3 ms of their 16.7 ms, no late ticks, every player gets 19.9 of 20 snapshots a second, and the server sends about 7 KB/s per player (at most 24 KB/s: 20 snapshots of under 1200 bytes).
+How long it takes (2026-10-08, from Windows to vps-eu): about 30 s when the server code changed, mostly the server's 21 s build, which runs while the game builds here; about 20 s when only the game changed, because the server sees its code is the same (`install.sh` hashes what it would compile) and keeps running without a restart. Each line it prints starts with the seconds since it began. Before this it took about 1 min 45 s: the whole repository went up (41 MB), the server built four programs one after the other after the game had built, the whole game went up (12 MB, 28 s) and it opened eight ssh connections at 1.5 s each. Now three connections, about 3 MB of source and only the game files the site lacks.
+
+What the machine needs: Ubuntu or Debian on x86 or ARM, ssh access as root or a user with sudo that does not ask for a password, and UDP 27015 open in the hosting provider's firewall (the install opens it in ufw). The install puts in `g++` itself if it is missing. The smallest plan is enough. Measured on vps-eu with 8 bot players fighting over the internet: ticks average 0.36 ms and peak 4.3 ms of their 16.7 ms, no late ticks, every player gets 19.9 of 20 snapshots a second, and the server sends about 7 KB/s per player (at most 24 KB/s: 20 snapshots of under 1200 bytes).
 
 ## Before a deploy
 
@@ -26,7 +28,7 @@ Players download one file, `GameDemo.exe` (the launcher), from https://game.sind
 | Task | Command |
 |---|---|
 | Set up the download site (once per machine) | `deploy/setup_downloads.sh vps-eu game.sindansolutions.com`. The DNS A record must point at the machine first. It starts the `game-demo-web` file server container and adds one site block to the shared Caddy (`/opt/work-app/deploy/Caddyfile`, backup next to it) |
-| Publish the game again without a server deploy | `deploy/package_client.sh` then `deploy/publish_client.sh vps-eu`. Only from the commit the server runs, or players get a build the server turns away |
+| Publish the game again without a server deploy | `deploy/package_client.sh` then `deploy/publish_client.sh vps-eu`. Only from the commit the server runs, or players get a build the server turns away. `deploy/deploy.sh` does this too and skips the server when its code did not change |
 | Which game build is live | `curl -s https://game.sindansolutions.com/manifest.txt \| head -2` |
 | Roll the game back | `ls /opt/game-demo/web/manifests`, then `cp /opt/game-demo/web/manifests/<name>.txt /opt/game-demo/web/manifest.txt`. Roll the server back to the same release, or players cannot join |
 | Test the launcher against a local copy | serve `build/client_package` (`python -m http.server 8765`) and run `GameDemo.exe --url http://127.0.0.1:8765/ --dir C:\test\gamedemo` |
