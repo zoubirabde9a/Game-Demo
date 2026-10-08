@@ -20,6 +20,7 @@
      V  Last Stand: heals the tank and raises Shield Wall.
      W  Shield Throw: the shield hits a foe and bounces to two more,
         sundering each.
+     X  Shield Charge: rushes a foe, stuns it and cancels its wind-up.
    Healer (Mender, role_kits/healer.cpp)
      A  Mending Bolt: heals an ally.
      R  Ward: an ally absorbs the next hits, and the allies round them
@@ -106,7 +107,9 @@ global_variable role_spell TankSpells[ROLE_KEYS] =
      {"Shield Throw", SHIELD_THROW_COOLDOWN,
       "Shield Throw: hit a foe and bounce to two more, sundering each",
       RoleAim_Foe, SHIELD_THROW_RANGE, 0},
-     {},
+     {"Shield Charge", SHIELD_CHARGE_COOLDOWN,
+      "Shield Charge: rush a foe and stun it 2 s; an attack it is winding up is cancelled",
+      RoleAim_Foe, SHIELD_CHARGE_RANGE, 0},
      {"Shield Bash", SHIELD_BASH_COOLDOWN, "Shield Bash: strike what is in front with your shield",
       RoleAim_None, 0.f, 0}};
 

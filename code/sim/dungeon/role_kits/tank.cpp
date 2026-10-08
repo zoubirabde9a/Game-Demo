@@ -1,6 +1,11 @@
 /* The tank's kit (role_abilities.cpp): Taunt on A, Shield Slam on R,
-   Shield Throw on W, and from its tree Intercept on C and Last Stand on
-   V.
+   Shield Throw on W, Shield Charge on X, and from its tree Intercept on C
+   and Last Stand on V.
+
+   Shield Charge is the tank's stop: it rushes the foe it aims at, stuns
+   it for SHIELD_CHARGE_STUN, and a foe winding up an attack (its danger
+   zone on the ground) loses that attack and recovers as if it had gone
+   off. A stun alone only pauses a wind-up (sim/update.cpp).
 
    Shield Throw is the tank's attack: the shield hits the foe it aims at
    for SHIELD_THROW_DAMAGE, then bounces to the nearest foe the throw has
@@ -166,6 +171,54 @@ CastShieldThrow(app_state *AppState, world *World, player_slot *Slot, world_enti
     return true;
 }
 
+// NOTE(zoubir): Foe's wind-up ends with nothing let off, and it recovers
+// as after the attack, so the cooldown still runs; returns whether there
+// was one
+internal bool32
+BreakWindup(world_entity *Foe)
+{
+    bool32 Result = Foe->AbilityPhase == AbilityPhase_Windup;
+    if (Result)
+    {
+        monster_ability *Ability = &GetMonsterDef(Foe->MonsterKind)->Abilities[Foe->AbilityIndex];
+        SetMonsterPhase(Foe, AbilityPhase_Recover, Ability->Recover);
+        Foe->AbilityPointCount = 0;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): returns whether the tank found a foe to charge
+internal bool32
+CastShieldCharge(app_state *AppState, world *World, memory_arena *Arena,
+                 player_slot *Slot, world_entity *Player)
+{
+    u8 SlotIndex = (u8)Player->PlayerIndex;
+    world_entity *Foe = AttackTarget(AppState, Slot, Player, SHIELD_CHARGE_RANGE);
+    if (!Foe)
+    {
+        return false;
+    }
+    v2 Toward = DirectionTo(Foe->Position.XY - Player->Position.XY);
+    float Angle = ATan2(Toward.Y, Toward.X);
+    EmitBurst(&AppState->Events, SimBurst_Lunge, SIM_NOBODY, ChestOf(Player), Angle);
+    float Gap = SHIELD_CHARGE_LANDING_GAP + 0.5f * Foe->Dimensions.X;
+    if (Length(Foe->Position.XY - Player->Position.XY) > Gap)
+    {
+        v3 Landing = Foe->Position;
+        Landing.XY -= Gap * Toward;
+        Landing.Z = Player->Position.Z;
+        MovePlayerTo(AppState, World, Arena, Player, Landing);
+    }
+    BreakWindup(Foe);
+    hit Hit = {SHIELD_CHARGE_DAMAGE, SHIELD_CHARGE_SHOVE, 0.f, 0.f, SHIELD_CHARGE_STUN,
+               SimBurst_Impact};
+    AddThreat(&AppState->Dungeon->Threat, World, Foe, SlotIndex, SHIELD_CHARGE_THREAT);
+    ApplyHit(AppState, World, Foe, &Hit, Toward, Player, SlotIndex);
+    EmitBurst(&AppState->Events, SimBurst_InterceptLand, SlotIndex, Player->Position, Angle);
+    EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Player->Position);
+    return true;
+}
+
 // NOTE(zoubir): Shield Bash (right click): every foe in front within the
 // shield's reach is struck and shoved, and makes threat; it swings even
 // at nothing, as a sword does
@@ -203,8 +256,8 @@ CastShieldBash(app_state *AppState, world *World, player_slot *Slot, world_entit
 }
 
 // NOTE(zoubir): returns whether the key cast (an intercept with nobody
-// to leap to, or a shield throw with no foe in reach, does not, and
-// keeps its cooldown)
+// to leap to, or a shield throw or charge with no foe in reach, does not,
+// and keeps its cooldown)
 internal bool32
 CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
             player_slot *Slot, world_entity *Player, u32 Key)
@@ -270,6 +323,11 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
         case 4:
         {
             return CastShieldThrow(AppState, World, Slot, Player);
+        } break;
+
+        case 5:
+        {
+            return CastShieldCharge(AppState, World, Arena, Slot, Player);
         } break;
 
         case 6:

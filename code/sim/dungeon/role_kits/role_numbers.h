@@ -62,6 +62,18 @@
 #define SHIELD_THROW_BOUNCE_RADIUS 200.f
 #define SHIELD_THROW_BOUNCE_SHARE 0.75f
 #define SHIELD_THROW_COOLDOWN 6.f
+// NOTE(zoubir): Shield Charge (X): the tank rushes to the foe it aims at
+// within SHIELD_CHARGE_RANGE, landing SHIELD_CHARGE_LANDING_GAP short of
+// it, and stuns it for SHIELD_CHARGE_STUN. A foe winding up an attack
+// loses it: the wind-up ends and it recovers as if the attack had gone
+// off, so the tank's job in a boss fight is to stop the big ones
+#define SHIELD_CHARGE_RANGE 400.f
+#define SHIELD_CHARGE_LANDING_GAP 40.f
+#define SHIELD_CHARGE_DAMAGE 20.f
+#define SHIELD_CHARGE_SHOVE 90.f
+#define SHIELD_CHARGE_STUN 2.f
+#define SHIELD_CHARGE_THREAT 60.f
+#define SHIELD_CHARGE_COOLDOWN 12.f
 
 // NOTE(zoubir): Shield Bash (right click): the shield driven into what
 // is in front, every SHIELD_BASH_COOLDOWN: SHIELD_BASH_DAMAGE before the

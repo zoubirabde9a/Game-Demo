@@ -31,11 +31,11 @@ TestRolesScaleHealthAndDamage()
     Check(Tank->MaxHp == GetRoleDef(PlayerRole_Damage)->MaxHp);
     SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Tank);
     SetPlayerRole(AppState, &AppState->Players[1], PlayerRole_Healer);
-    Check(Tank->MaxHp == 180.f && Tank->Hp == 180.f);
+    Check(Tank->MaxHp == 240.f && Tank->Hp == 240.f);
     Check(Healer->MaxHp == 100.f);
 
     DamageEntity(AppState, Test.World, Tank, 10.f, 0);
-    Check(Tank->Hp == 180.f - 7.f);
+    Check(Tank->Hp == 240.f - 7.f);
 
     world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
                                           {500, 300, 0}, Test.UnitVolume);
@@ -457,7 +457,7 @@ TestClearedCryptStartsANewRun()
     world_entity *Player = AppState->Players[0].Entity;
     Check(Player && !IsDeadPlayer(Player));
     Check(RoomAtPosition(&AppState->World, Player->Position.XY) == 1);
-    Check(AppState->Players[0].Role == PlayerRole_Tank && Player->MaxHp == 180.f);
+    Check(AppState->Players[0].Role == PlayerRole_Tank && Player->MaxHp == 240.f);
     DestroyCryptWorld(&Crypt);
 }
 
@@ -520,6 +520,7 @@ TestNoFriendlyFireInADungeon()
 #include "dungeon_role_tests.cpp"
 #include "boss_clock_tests.cpp"
 #include "striker_tests.cpp"
+#include "tank_tests.cpp"
 #include "class_kit_tests.cpp"
 #include "ranger_tests.cpp"
 #include "berserker_tests.cpp"
@@ -535,6 +536,7 @@ RunDungeonTests()
     RunDungeonRoleTests();
     RunBossClockTests();
     RunStrikerTests();
+    RunTankTests();
     RunClassKitTests();
     RunRangerTests();
     RunBerserkerTests();

@@ -330,6 +330,36 @@ PaintRoleShieldBashIcon(icon_canvas *Canvas)
     IconSparkle(Canvas, V2(0.86f, 0.3f), 0.06f, Solid(IconColor(255, 255, 255)));
 }
 
+// NOTE(zoubir): Shield Charge: the kite shield rushing forward, speed
+// lines behind it and stars over the foe it struck
+internal void
+PaintRoleShieldChargeIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.56f, 0.5f), 0.44f, IconColor(140, 180, 255, 110));
+    for(u32 Streak = 0; Streak < 4; Streak++)
+    {
+        float Y = 0.3f + 0.13f * (float)Streak;
+        IconCapsule(Canvas, V2(0.04f, Y), V2(0.3f, Y), 0.02f,
+                    Gradient(IconColor(170, 200, 255, 0), IconColor(210, 225, 255, 220),
+                             V2(0.04f, Y), V2(0.3f, Y)));
+    }
+    v2 Rim[5] = {V2(0.3f, 0.24f), V2(0.6f, 0.24f), V2(0.6f, 0.56f), V2(0.45f, 0.86f),
+                 V2(0.3f, 0.56f)};
+    IconPolygon(Canvas, Rim, 5, Gradient(IconColor(235, 238, 245), IconColor(110, 120, 140),
+                                         V2(0.34f, 0.26f), V2(0.56f, 0.8f)));
+    v2 Field[5] = {V2(0.35f, 0.3f), V2(0.55f, 0.3f), V2(0.55f, 0.54f), V2(0.45f, 0.76f),
+                   V2(0.35f, 0.54f)};
+    IconPolygon(Canvas, Field, 5, Gradient(IconColor(80, 120, 210), IconColor(30, 50, 110),
+                                           V2(0.4f, 0.32f), V2(0.52f, 0.7f)));
+    IconCircle(Canvas, V2(0.45f, 0.46f), 0.05f, Solid(IconColor(240, 205, 90)));
+    IconArc(Canvas, V2(0.62f, 0.5f), 0.14f, 0.024f, Solid(IconColor(255, 245, 220, 230)), -1.1f, 1.1f);
+    // NOTE(zoubir): the stun, three stars in a ring
+    IconArc(Canvas, V2(0.8f, 0.24f), 0.13f, 0.014f, Solid(IconColor(255, 230, 140, 150)), 0.f, 6.28f);
+    IconSparkle(Canvas, V2(0.68f, 0.2f), 0.06f, Solid(IconColor(255, 230, 120)));
+    IconSparkle(Canvas, V2(0.92f, 0.22f), 0.05f, Solid(IconColor(255, 230, 120)));
+    IconSparkle(Canvas, V2(0.8f, 0.36f), 0.05f, Solid(IconColor(255, 255, 255)));
+}
+
 // NOTE(zoubir): Smite Bolt: a small bolt of gold light flying, a pale
 // trail behind it
 internal void
@@ -365,7 +395,7 @@ global_variable role_icon_painter *StrikerIconPainters[ROLE_KEYS] =
 global_variable role_icon_painter *TankIconPainters[ROLE_KEYS] =
 {
     PaintRoleTauntIcon, PaintRoleShieldSlamIcon, PaintRoleInterceptIcon, PaintRoleLastStandIcon,
-    PaintRoleShieldThrowIcon, 0, PaintRoleShieldBashIcon,
+    PaintRoleShieldThrowIcon, PaintRoleShieldChargeIcon, PaintRoleShieldBashIcon,
 };
 global_variable role_icon_painter *HealerIconPainters[ROLE_KEYS] =
 {
