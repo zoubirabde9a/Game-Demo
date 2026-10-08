@@ -10,9 +10,12 @@
      right click  Cleave: a wide swing through every foe in front, each
                   swing the other way round from the one before.
      A            Leap: a high jump to the cursor; landing strikes and
-                  stuns everything round the spot (berserker/leap.cpp).
+                  stuns everything round the spot (berserker/leap.cpp);
+                  with Shattering Leap (the capstone) what it strikes
+                  takes more damage from everyone for a few seconds.
      R            Whirlwind: costs Rage, then spins for its cast, hitting
-                  everything round the Berserker WHIRLWIND_HITS times.
+                  everything round the Berserker WHIRLWIND_HITS times,
+                  harder with each rank of Bladestorm (tree).
      W            Execute: needs Rage; the axe goes up for its wind-up,
                   then one chop spends all the Rage, the more the harder,
                   twice as hard on a foe near death; with Bloodthirst

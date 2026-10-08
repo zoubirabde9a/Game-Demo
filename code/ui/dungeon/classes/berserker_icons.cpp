@@ -5,7 +5,8 @@
 
    They share a great axe (BerserkerIconAxe): a dark haft bound in leather
    and a broad steel blade, lit along its edge, over a blood-red glow. A
-   talent that changes a spell shows that spell with a badge saying how. */
+   talent that changes a spell shows that spell with a badge saying how:
+   Shattering Leap's is a cracked shield. */
 
 // NOTE(zoubir): the axe's blade: its socket on the haft at Socket, the haft
 // running along Along, the edge facing Across; Size about the blade's
@@ -216,9 +217,24 @@ PaintUnbridledWrathIcon(icon_canvas *Canvas)
     IconCircle(Canvas, V2(0.36f, 0.57f), 0.035f, Solid(IconColor(255, 210, 210)));
 }
 
+// NOTE(zoubir): a "broken" badge: a cracked shield, for armor a blow breaks
+internal void
+BerserkerIconBadgeBroken(icon_canvas *Canvas)
+{
+    BerserkerIconBadge(Canvas, IconColor(255, 90, 70));
+    v2 Shield[5] = {V2(0.7f, 0.69f), V2(0.86f, 0.69f), V2(0.86f, 0.79f), V2(0.78f, 0.88f),
+                    V2(0.7f, 0.79f)};
+    IconPolygon(Canvas, Shield, 5, Solid(IconColor(40, 14, 12)));
+    IconCapsule(Canvas, V2(0.77f, 0.69f), V2(0.8f, 0.76f), 0.012f, Solid(IconColor(255, 210, 180)));
+    IconCapsule(Canvas, V2(0.8f, 0.76f), V2(0.76f, 0.81f), 0.012f, Solid(IconColor(255, 210, 180)));
+    IconCapsule(Canvas, V2(0.76f, 0.81f), V2(0.79f, 0.88f), 0.012f, Solid(IconColor(255, 210, 180)));
+}
+
 internal void PaintSweepingStrikesIcon(icon_canvas *C) { PaintBerserkerCleaveIcon(C); BerserkerIconBadgeWider(C); }
 internal void PaintMassacreIcon(icon_canvas *C) { PaintBerserkerExecuteIcon(C); BerserkerIconBadgeMore(C); }
 internal void PaintBloodthirstTalentIcon(icon_canvas *C) { PaintBerserkerBloodthirstIcon(C); }
+internal void PaintBladestormIcon(icon_canvas *C) { PaintBerserkerWhirlwindIcon(C); BerserkerIconBadgeMore(C); }
+internal void PaintShatteringLeapIcon(icon_canvas *C) { PaintBerserkerLeapIcon(C); BerserkerIconBadgeBroken(C); }
 
 global_variable role_icon_painter *BerserkerIconPainters[ROLE_KEYS] =
 {
@@ -230,6 +246,6 @@ global_variable talent_icon_painter *BerserkerTalentIconPainters[ROLE_TALENTS] =
 {
     PaintBrutalityIcon, PaintBloodthirstTalentIcon, PaintUnbridledWrathIcon, PaintSweepingStrikesIcon,
     PaintBerserkerBerserkIcon, PaintMassacreIcon,
-    PaintStatVitalityIcon, PaintStatLifestealIcon, 0, PaintStatDamageIcon,
-    PaintStatArmorIcon, 0,
+    PaintStatVitalityIcon, PaintStatLifestealIcon, PaintBladestormIcon, PaintStatDamageIcon,
+    PaintStatArmorIcon, PaintShatteringLeapIcon,
 };

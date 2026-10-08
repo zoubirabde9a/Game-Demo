@@ -1,6 +1,6 @@
 /* Berserker strikes (role_kits/berserker.cpp): the axe's blows. Cleave and
    Whirlwind hit every foe they catch, harder for each other one with
-   Sweeping Strikes; Execute spends the Rage, and heals with Bloodthirst.
+   Sweeping Strikes, and Whirlwind harder still with Bladestorm; Execute spends the Rage, and heals with Bloodthirst.
    Each reaches only foes in the
    Berserker's room, so no blow wakes the room behind a gate. */
 
@@ -138,14 +138,17 @@ Cleave(app_state *AppState, world *World, player_slot *Slot, world_entity *Playe
                  CLEAVE_SPLASH);
 }
 
-// NOTE(zoubir): one turn of the Whirlwind: everything round the Berserker
+// NOTE(zoubir): one turn of the Whirlwind: everything round the Berserker,
+// harder by each rank of Bladestorm
 internal void
 WhirlHit(app_state *AppState, player_slot *Slot, world_entity *Player)
 {
     Slot->Berserker.WhirlHits++;
     EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);
+    float Damage = WHIRLWIND_DAMAGE * (1.f + BLADESTORM_SHARE *
+        (float)RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_Bladestorm));
     StrikeAround(AppState, Slot, Player, GetPlayerAim(Player), WHIRLWIND_RADIUS, Pi32,
-                 WHIRLWIND_DAMAGE, 40.f);
+                 Damage, 40.f);
 }
 
 // NOTE(zoubir): the end of Execute's wind-up: the chop lands on the foe it

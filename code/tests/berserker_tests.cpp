@@ -7,7 +7,8 @@
    need their Rage and spend it; Execute's big hit on a foe near death and
    Massacre's refund; the Leap lands at the cursor and stuns; Bloodthirst
    makes Execute heal, more at rank 2;
-   Berserk; and a client predicting its own Berserker winds up but leaves
+   Berserk; Bladestorm makes Whirlwind hit harder by rank; Shattering
+   Leap sunders what the landing strikes; and a client predicting its own Berserker winds up but leaves
    the blows and the Rage to the server. */
 
 // NOTE(zoubir): a big brute Offset from the Berserker in slot 0, stunned
@@ -385,6 +386,64 @@ TestPredictedBerserkerWindsUp()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Bladestorm: each rank makes a turn of the Whirlwind hit
+// BLADESTORM_SHARE harder, +60% at rank 4
+internal void
+TestBladestormWhirlsHarder()
+{
+    crypt_world Crypt = BerserkerCrypt();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *Foe = BerserkerDummy(&Crypt, V3(60.f, 0.f, 0.f));
+    WhirlHit(AppState, Slot, Slot->Entity);
+    float Plain = 2000.f - Foe->Hp;
+    Check(Plain > 0.f);
+    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Bladestorm] = 4;
+    Foe->Hp = 2000.f;
+    WhirlHit(AppState, Slot, Slot->Entity);
+    float Storm = 2000.f - Foe->Hp;
+    float Want = (1.f + 4.f * BLADESTORM_SHARE) * Plain;
+    Check(Storm > 0.99f * Want && Storm < 1.01f * Want);
+    DestroyCryptWorld(&Crypt);
+}
+
+// NOTE(zoubir): Shattering Leap: a foe the landing strikes is sundered for
+// SHATTERING_LEAP_SECONDS, taking SHATTERING_LEAP_SHARE more from
+// everyone; one out of reach is not, and without the talent nothing is
+internal void
+TestShatteringLeapSunders()
+{
+    for(u32 Learned = 0; Learned < 2; Learned++)
+    {
+        crypt_world Crypt = BerserkerCrypt();
+        app_state *AppState = Crypt.AppState;
+        player_slot *Slot = &AppState->Players[0];
+        world_entity *Player = Slot->Entity;
+        world *World = &AppState->World;
+        Slot->Ranks[Talent_RoleFirst + BerserkerTalent_ShatteringLeap] = (u8)Learned;
+        world_entity *Near = BerserkerDummy(&Crypt, V3(40.f, 0.f, 0.f));
+        world_entity *Away = BerserkerDummy(&Crypt, V3(-250.f, 0.f, 0.f));
+        LeapSlam(AppState, Slot, Player);
+        Check(Near->Hp < 2000.f && Away->Hp == 2000.f);
+        foe_mark *Mark = FindFoeMark(AppState->Dungeon, World, Near);
+        Check(!FindFoeMark(AppState->Dungeon, World, Away));
+        if (Learned)
+        {
+            Check(Mark && Mark->SunderSeconds == SHATTERING_LEAP_SECONDS);
+            float Scale = FoeMarkDamageScale(AppState->Dungeon, World, Near);
+            Check(Scale > 0.999f * (1.f + SHATTERING_LEAP_SHARE) &&
+                  Scale < 1.001f * (1.f + SHATTERING_LEAP_SHARE));
+            UpdateFoeMarks(AppState->Dungeon, World, SHATTERING_LEAP_SECONDS + 0.1f);
+            Check(FoeMarkDamageScale(AppState->Dungeon, World, Near) == 1.f);
+        }
+        else
+        {
+            Check(!Mark);
+        }
+        DestroyCryptWorld(&Crypt);
+    }
+}
+
 internal void
 RunBerserkerTests()
 {
@@ -398,4 +457,6 @@ RunBerserkerTests()
     TestLeapFlightIgnoresTheKeys();
     TestBloodthirstHeals();
     TestPredictedBerserkerWindsUp();
+    TestBladestormWhirlsHarder();
+    TestShatteringLeapSunders();
 }

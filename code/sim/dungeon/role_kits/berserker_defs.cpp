@@ -79,6 +79,15 @@
 // this much Rage back when it kills
 #define MASSACRE_LOW_SHARE 0.35f
 #define MASSACRE_REFUND 30
+// NOTE(zoubir): Bladestorm (slot 8): Whirlwind hits this share harder a
+// rank, so +60% at rank 4
+#define BLADESTORM_SHARE 0.15f
+// NOTE(zoubir): Shattering Leap (slot 11, the capstone): every foe Leap's
+// landing strikes is sundered (foe_marks.cpp) after the blow, taking this
+// share more from everyone for this long. Clients see it as a sundered
+// monster, the mark the tank's slam leaves, so it needs nothing new online
+#define SHATTERING_LEAP_SHARE 0.25f
+#define SHATTERING_LEAP_SECONDS 6.f
 
 enum berserker_talent
 {
@@ -88,6 +97,12 @@ enum berserker_talent
     BerserkerTalent_SweepingStrikes,
     BerserkerTalent_Berserk,
     BerserkerTalent_Massacre,
+    BerserkerTalent_ThickHide,
+    BerserkerTalent_Bloodlust,
+    BerserkerTalent_Bladestorm,
+    BerserkerTalent_BruteForce,
+    BerserkerTalent_Unyielding,
+    BerserkerTalent_ShatteringLeap,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
@@ -110,14 +125,14 @@ global_variable talent_def BerserkerTalentDefs[ROLE_TALENTS] =
      TalentBranch_Role, 2, 1, 4, 0},
     {"Bloodlust", "Your hits heal you", "2% of damage back as health",
      TalentBranch_Role, 3, 1, 4, 0},
-    // NOTE(zoubir): slot 8, a class spell made stronger, by rank: to be written
-    {"", "", "", TalentBranch_Role, 4, 0, 4, 0},
+    {"Bladestorm", "Whirlwind hits harder", "+15% Whirlwind damage",
+     TalentBranch_Role, 4, 0, 4, 0},
     {"Brute Force", "Your axe hits harder", "+4% damage",
      TalentBranch_Role, 4, 1, 4, 0},
     {"Unyielding", "You take less damage", "-4% damage taken",
      TalentBranch_Role, 5, 0, 4, 0},
-    // NOTE(zoubir): slot 11, the capstone: to be written
-    {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
+    {"Shattering Leap", "Foes Leap lands on take 25% more damage from everyone for 6 s",
+     "Leap breaks armor", TalentBranch_Role, 5, 1, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None

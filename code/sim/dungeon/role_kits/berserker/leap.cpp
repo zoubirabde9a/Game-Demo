@@ -1,6 +1,8 @@
 /* Berserker Leap (role_kits/berserker.cpp): A throws the Berserker up and
    over to the cursor in a high arc, LEAP_SECONDS long, and the landing
    slams everything within LEAP_RADIUS: a hit, a stun and a shove out.
+   With Shattering Leap (the capstone) the slam also sunders what it
+   strikes, so the party hits it harder for SHATTERING_LEAP_SECONDS.
 
    The flight is the body's own physics: the jump's speed up, and across
    the speed that reaches the spot in that time, the air barely slowing it
@@ -36,11 +38,13 @@ StartLeap(app_state *AppState, player_slot *Slot, world_entity *Player)
 }
 
 // NOTE(zoubir): the landing: every foe round the Berserker struck, stunned
-// and thrown out
+// and thrown out; with Shattering Leap each one left alive is sundered
+// after the blow (foe_marks.cpp), taking more from the whole party
 internal void
 LeapSlam(app_state *AppState, player_slot *Slot, world_entity *Player)
 {
     world *World = &AppState->World;
+    bool32 Shatter = RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_ShatteringLeap) > 0;
     u32 Room = RoomAtPosition(World, Player->Position.XY);
     hit Hit = {LEAP_DAMAGE, LEAP_SHOVE, 160.f, 160.f, LEAP_STUN, SimBurst_Count};
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
@@ -53,6 +57,11 @@ LeapSlam(app_state *AppState, player_slot *Slot, world_entity *Player)
         }
         v2 Away = NormalizeOr(Monster->Position.XY - Player->Position.XY, V2(1.f, 0.f));
         ApplyHit(AppState, World, Monster, &Hit, Away, Player, Player->PlayerIndex);
+        if (Shatter && AppState->Dungeon && Monster->Hp > 0.f)
+        {
+            AddSunder(AppState->Dungeon, World, Monster, SHATTERING_LEAP_SECONDS,
+                      SHATTERING_LEAP_SHARE);
+        }
     }
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, BerserkerBurst_Slam),
               (u8)Player->PlayerIndex, Player->Position);
