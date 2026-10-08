@@ -178,6 +178,16 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
 
     u32 RowCount;
     encounter_row *Rows = GetEncounters(World->MapId, &RowCount);
+    // NOTE(zoubir): a room of packs, no boss, takes the level's pack scale
+    bool32 BossRoom = false;
+    for(u32 RowIndex = 0; RowIndex < RowCount; RowIndex++)
+    {
+        BossRoom |= Rows[RowIndex].Room == Room && (Rows[RowIndex].Flags & Encounter_Boss);
+    }
+    if (!BossRoom)
+    {
+        HealthScale *= LevelPackScale(World->MapId);
+    }
     // NOTE(zoubir): where the packs placed so far stand, to keep the next
     // apart from them
     v3 PackSpots[8];

@@ -6,7 +6,10 @@
    encounter table and its room names, and makes every monster in it
    FoeHealth as tough and FoeDamage as hard-hitting on top of the
    dungeon's own numbers (party_scaling.cpp), and FoePace as fast (it
-   moves, bites and recharges its abilities that much sooner), so a deeper level is harder
+   moves, bites and recharges its abilities that much sooner); a room
+   with no boss in it has its monsters PackScale as tough and as
+   hard-hitting again, since the bosses are tuned one by one and the
+   packs are not, so a deeper level is harder
    than the one before even for a party that levelled up on the way. */
 
 enum encounter_flag
@@ -42,19 +45,21 @@ struct dungeon_level
     float FoeHealth;
     float FoeDamage;
     float FoePace;
+    float PackScale;
     // NOTE(zoubir): the map played after this one is cleared
     u32 NextMapId;
 };
 
 // NOTE(zoubir): the Depths' monsters have 35% more health, hit 20%
-// harder and play 12% faster than the Crypt's; with the levels and talents a party gains in
+// harder and play 12% faster than the Crypt's, and the packs between
+// the bosses are 30% tougher and harder-hitting on top; with the levels and talents a party gains in
 // the Crypt, that keeps the second level a step up rather than a wall
 global_variable dungeon_level DungeonLevels[] =
 {
     {MapId_Crypt, 1, CryptRooms, CryptEncounters, ArrayCount(CryptEncounters),
-     CryptRoomNames, ArrayCount(CryptRoomNames), 1.f, 1.f, 1.f, MapId_Depths},
+     CryptRoomNames, ArrayCount(CryptRoomNames), 1.f, 1.f, 1.f, 1.f, MapId_Depths},
     {MapId_Depths, 2, DepthsRooms, DepthsEncounters, ArrayCount(DepthsEncounters),
-     DepthsRoomNames, ArrayCount(DepthsRoomNames), 1.35f, 1.2f, 1.12f, MapId_Crypt},
+     DepthsRoomNames, ArrayCount(DepthsRoomNames), 1.35f, 1.2f, 1.12f, 1.3f, MapId_Crypt},
 };
 
 // NOTE(zoubir): the level played on MapId, 0 for a map that is not one
@@ -134,5 +139,13 @@ LevelFoePace(u32 MapId)
 {
     dungeon_level *Level = GetDungeonLevel(MapId);
     float Result = Level ? Level->FoePace : 1.f;
+    return Result;
+}
+
+inline float
+LevelPackScale(u32 MapId)
+{
+    dungeon_level *Level = GetDungeonLevel(MapId);
+    float Result = Level ? Level->PackScale : 1.f;
     return Result;
 }

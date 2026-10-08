@@ -39,14 +39,15 @@ global_variable encounter_row DepthsEncounters[] =
     // 6, Ashfall Bridge: the hardest room of the dungeon, on a causeway
     // over lava where a shove can throw you in. Two big packs rather than
     // three small ones, as a party that meets one pack at a time loses
-    // nobody: shells and fire in front of an elite brute while a shaman
-    // raises the dead, then two elites at once
-    {6, 0, MonsterKind_Warden, 2, 0},
+    // nobody: elite shells and fire in front of an elite brute while a shaman
+    // raises the dead, then two elites and a second shell at once
+    {6, 0, MonsterKind_Warden, 2, Encounter_Elite},
     {6, 0, MonsterKind_Imp, 2, 0},
     {6, 0, MonsterKind_Brute, 1, Encounter_Elite},
     {6, 0, MonsterKind_Shaman, 1, 0},
     {6, 0, MonsterKind_Thrall, 2, 0},
     {6, 1, MonsterKind_Warden, 1, Encounter_Elite},
+    {6, 1, MonsterKind_Warden, 1, 0},
     {6, 1, MonsterKind_Ravager, 1, Encounter_Elite},
     {6, 1, MonsterKind_Imp, 1, 0},
     // 7, Throne of Embers: the last boss, Vol'karr the Ember Tyrant

@@ -128,6 +128,10 @@ TestDepthsFoesAreTougher()
     MovePlayerTo(AppState, World, &Depths.Arena, Player, Run->RoomEntry[2]);
     TickCrypt(&Depths, 1);
     Check(Run->FightingRoom == 2 && Run->FoeCount >= 9);
+    // NOTE(zoubir): room 2 is a room of packs, so its monsters take the
+    // pack scale on top of the level's
+    float Tough = LevelFoeHealth(MapId_Depths) * LevelPackScale(MapId_Depths);
+    Check(LevelPackScale(MapId_Depths) > 1.f && LevelPackScale(MapId_Crypt) == 1.f);
     bool32 SawPlain = false;
     for(u32 Index = 0; Index < Run->FoeCount; Index++)
     {
@@ -136,13 +140,13 @@ TestDepthsFoesAreTougher()
         if (!Foe->EliteAffix)
         {
             SawPlain = true;
-            Check(Foe->MaxHp > Plain * 1.34f && Foe->MaxHp < Plain * 1.36f);
+            Check(Foe->MaxHp > Plain * (Tough - 0.01f) && Foe->MaxHp < Plain * (Tough + 0.01f));
         }
     }
     Check(SawPlain);
 
-    // NOTE(zoubir): the same hit from a monster lands the level's damage
-    // scale (above 1) times as hard here as in the crypt
+    // NOTE(zoubir): the same hit from a pack's monster lands the level's
+    // damage and pack scales times as hard here as in the crypt
     world_entity *Foe = &World->Entities[Run->FoeSlots[0]];
     float Before = Player->Hp;
     DamageEntity(AppState, World, Player, 10.f, Foe);
@@ -152,7 +156,7 @@ TestDepthsFoesAreTougher()
     DamageEntity(AppState, World, Player, 10.f, Foe);
     float CryptTaken = Before - Player->Hp;
     AppState->World.MapId = MapId_Depths;
-    float Scale = LevelFoeDamage(MapId_Depths);
+    float Scale = LevelFoeDamage(MapId_Depths) * LevelPackScale(MapId_Depths);
     Check(Scale > 1.f);
     Check(CryptTaken > 0.f && Taken > CryptTaken * (Scale - 0.01f) &&
           Taken < CryptTaken * (Scale + 0.01f));

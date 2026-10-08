@@ -304,6 +304,10 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
             Result *= RunBossDamage(Run);
             // NOTE(zoubir): and a deeper level harder still (levels.cpp)
             Result *= LevelFoeDamage(AppState->World.MapId);
+            if (!Run->BossSerial)
+            {
+                Result *= LevelPackScale(AppState->World.MapId);
+            }
         }
         Result *= BossClockDamageScale(&Run->Clock, Run->FightingRoom, Run->BossSerial);
         if (Slot->ShieldWallSeconds > 0.f)
