@@ -29,7 +29,7 @@
 // filler; it jumps SPARK_JUMPS times for SPARK_JUMP_SHARE of the one
 // before
 #define SPARK_RANGE 540.f
-#define SPARK_DAMAGE 9.f
+#define SPARK_DAMAGE 13.f
 #define SPARK_JUMPS 1
 #define SPARK_JUMP_SHARE 0.6f
 #define SPARK_SHOVE 30.f
@@ -41,7 +41,7 @@
 // each CHAIN_JUMP_SHARE of the one before and never on a foe twice;
 // CHAIN_CHARGE for every foe struck
 #define CHAIN_RANGE 540.f
-#define CHAIN_DAMAGE 15.f
+#define CHAIN_DAMAGE 18.f
 #define CHAIN_JUMPS 3
 #define CHAIN_JUMP_SHARE 0.8f
 #define CHAIN_SHOVE 50.f
@@ -69,8 +69,8 @@
 // more also stuns it and splashes the foes round it
 #define THUNDERCLAP_RANGE 540.f
 #define THUNDERCLAP_MIN_CHARGE 20.f
-#define THUNDERCLAP_DAMAGE 10.f
-#define THUNDERCLAP_PER_CHARGE 0.32f
+#define THUNDERCLAP_DAMAGE 14.f
+#define THUNDERCLAP_PER_CHARGE 0.6f
 #define THUNDERCLAP_SHOVE 60.f
 #define THUNDERCLAP_STUN 1.f
 #define THUNDERCLAP_SPLASH_RADIUS 80.f
