@@ -168,7 +168,8 @@ TestEscClosesTheTopScreenFirst()
     DestroyTestWorld(&Test);
 }
 
-// NOTE(zoubir): the vote line names every player's answer
+// NOTE(zoubir): the vote line names every player's answer, the local
+// player as You
 internal void
 TestVoteAnswersNameEveryPlayer()
 {
@@ -182,7 +183,9 @@ TestVoteAnswersNameEveryPlayer()
     AppState->Votes[1] = MapVote_None;
     char Text[48];
     Check(VoteAnswerText(AppState, 0, Text, sizeof(Text)) == UI_COLOR_GOOD);
-    Check(strcmp(Text, "Gary: yes") == 0);
+    // NOTE(zoubir): slot 0 is the local player, named You on the line
+    Check(AppState->LocalPlayerIndex == 0);
+    Check(strcmp(Text, "You: yes") == 0);
     Check(VoteAnswerText(AppState, 1, Text, sizeof(Text)) == UI_COLOR_TEXT_MUTED);
     Check(strcmp(Text, "Mira: ...") == 0);
     AppState->Votes[1] = MapVote_No;

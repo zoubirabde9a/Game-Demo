@@ -66,12 +66,17 @@ VoteMapText(app_state *AppState, char *Out, u32 OutSize)
     }
 }
 
-// NOTE(zoubir): one player's part of the answers line: "Gary: yes"
+// NOTE(zoubir): one player's part of the answers line: "Gary: yes", and
+// "You: ..." for the local player
 internal u32
 VoteAnswerText(app_state *AppState, u32 SlotIndex, char *Out, u32 OutSize)
 {
     char Name[24];
     GetPlayerName(AppState, SlotIndex, Name, sizeof(Name));
+    if (SlotIndex == AppState->LocalPlayerIndex)
+    {
+        snprintf(Name, sizeof(Name), "You");
+    }
     u8 Answer = AppState->Votes[SlotIndex];
     char *Word = (char *)(Answer == MapVote_Yes ? "yes" : Answer == MapVote_No ? "no" : "...");
     snprintf(Out, OutSize, "%s: %s", Name, Word);
