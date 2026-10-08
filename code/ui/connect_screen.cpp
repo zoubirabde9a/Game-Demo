@@ -5,7 +5,12 @@
    F4 opens and closes it; it also opens at launch when no server is
    configured. While it is open the keyboard and mouse belong to it, not
    to the player (ConnectScreenTakesInput). A connect from here is saved
-   to server.txt (client/online_config.cpp). */
+   to server.txt (client/online_config.cpp). No connect goes out without
+   a name (client/player_name.cpp): a player without one first gets the
+   name prompt (name_prompt.cpp), and a bad one shakes the name field. */
+
+// NOTE(zoubir): how long the name field shakes after a refused name
+#define NAME_PROMPT_SHAKE_SECONDS 0.4f
 
 struct connect_screen
 {
@@ -13,12 +18,20 @@ struct connect_screen
     // NOTE(zoubir): a connect from this screen is in progress; the screen
     // closes itself once it succeeds
     bool32 WaitingToJoin;
+    // NOTE(zoubir): showing the name prompt instead of the full screen
+    bool32 AskingName;
+    // NOTE(zoubir): a connect was refused for the name: its problem shows
+    // in red, and the field shakes for Shake more seconds
+    bool32 ShowNameProblem;
+    float Shake;
+    u32 SuggestionSeed;
     ui_state Address;
     ui_state Name;
     ui_state LeftButton;
     ui_state RightButton;
     ui_state MapButtons[MapId_Count];
     ui_state JoinButton;
+    ui_state ShuffleButton;
     server_browser Browser;
 };
 
@@ -34,19 +47,34 @@ SetEditBoxText(ui_state *EditBox, char *Text)
     }
 }
 
+internal void SuggestNameInPrompt(connect_screen *Screen, ui_context *UIContext);
+
+// NOTE(zoubir): with no usable name it opens on the name prompt, the
+// field filled with a suggestion
 internal void
 OpenConnectScreen(connect_screen *Screen, online_session *Online,
                   ui_context *UIContext)
 {
     Screen->Open = true;
+    Screen->ShowNameProblem = false;
     SetEditBoxText(&Screen->Address, Online->AddressText);
     SetEditBoxText(&Screen->Name, Online->NameText);
     UISelectEditBox(UIContext, &Screen->Name);
+    Screen->AskingName = PlayerNameProblem(Online->NameText) != 0;
+    if (Screen->AskingName)
+    {
+        if (!Screen->SuggestionSeed)
+        {
+            Screen->SuggestionSeed = (u32)time(0);
+        }
+        SuggestNameInPrompt(Screen, UIContext);
+    }
 }
 
 // NOTE(zoubir): made on first use; opens at once when there is no server
 // to join (never in the browser, which cannot, nor for a developer
-// screenshot, misc/screenshot.bat, which wants the game)
+// screenshot, misc/screenshot.bat, which wants the game), or when the
+// session waits for a name
 internal connect_screen *
 GetConnectScreen(app_state *AppState)
 {
@@ -64,7 +92,8 @@ GetConnectScreen(app_state *AppState)
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
-        if (AppState->Online && !AppState->Online->Enabled && !Screenshot)
+        online_session *Online = AppState->Online;
+        if (Online && ((!Online->Enabled && !Screenshot) || Online->NeedsName))
         {
             OpenConnectScreen(Screen, AppState->Online, AppState->UIContext);
         }
@@ -81,17 +110,37 @@ ConnectScreenTakesInput(app_state *AppState)
     return Result;
 }
 
-// NOTE(zoubir): joins Address from the screen and remembers it for the
-// next launch
+// NOTE(zoubir): joins Address as the name in the field, and remembers
+// both for the next launch. A name with a problem joins nothing: the
+// field shakes, says why, and takes the keyboard
 internal void
-ConnectScreenJoin(connect_screen *Screen, online_session *Online, char *Address)
+ConnectScreenJoin(connect_screen *Screen, online_session *Online,
+                  ui_context *UIContext, char *Address)
 {
-    if (OnlineConnect(Online, Address, Screen->Name.Text))
+    char Name[NET_NAME_SIZE];
+    CleanPlayerName(Name, sizeof(Name), Screen->Name.Text);
+    SetEditBoxText(&Screen->Name, Name);
+    if (PlayerNameProblem(Name))
+    {
+        Screen->ShowNameProblem = true;
+        Screen->Shake = NAME_PROMPT_SHAKE_SECONDS;
+        UISelectEditBox(UIContext, &Screen->Name);
+        return;
+    }
+    if (UIContext->SelectedState == &Screen->Name)
+    {
+        UISelectEditBox(UIContext, &Screen->Name);
+    }
+    Online->NeedsName = false;
+    Screen->ShowNameProblem = false;
+    if (OnlineConnect(Online, Address, Name))
     {
         SaveOnlineConfig(Online->AddressText, Online->NameText);
         Screen->WaitingToJoin = true;
     }
 }
+
+#include "name_prompt.cpp"
 
 #define CONNECT_SERVER_ROW_HEIGHT 54.f
 
@@ -206,7 +255,11 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
 #if !COMPILER_EMSCRIPTEN
     if (Input->ButtonF4.Pressed)
     {
-        if (Screen->Open)
+        if (Screen->Open && Screen->AskingName)
+        {
+            Screen->AskingName = false;
+        }
+        else if (Screen->Open)
         {
             Screen->Open = false;
         }
@@ -224,6 +277,11 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
     if (!Screen->Open)
     {
         StopServerBrowser(&Screen->Browser);
+        return;
+    }
+    if (Screen->AskingName)
+    {
+        DoNamePrompt(RenderContext, AppState, UIContext, Input, WindowWidth, WindowHeight);
         return;
     }
     UpdateServerBrowser(&Screen->Browser, Input->DeltaTime);
@@ -269,13 +327,14 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
                           &Screen->Browser.Servers[Index], Current,
                           Left + Pad, Top + Y, FieldWidth))
         {
-            ConnectScreenJoin(Screen, Online, Entry->Address);
+            ConnectScreenJoin(Screen, Online, UIContext, Entry->Address);
         }
         Y += CONNECT_SERVER_ROW_HEIGHT + UI_GAP_SMALL;
     }
     Y += UI_GAP;
 
     UIText(RenderContext, Font, Left + Pad, Top + Y, "Your name", UI_COLOR_TEXT_MUTED);
+    DrawNameLabelNote(RenderContext, AppState, Screen, Left + Width - Pad, Top + Y + 2.f);
     Y += LabelHeight;
     float NameY = Y;
     Y += RowHeight + UI_GAP;
@@ -315,7 +374,8 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
         }
     }
 
-    DoEditBox(&Screen->Name, AppState, UIContext, Pad, NameY,
+    DoEditBox(&Screen->Name, AppState, UIContext,
+              Pad + NameFieldShake(Screen, Input->DeltaTime), NameY,
               FieldWidth, RowHeight, NET_NAME_SIZE - 1);
     float JoinWidth = 96.f;
     DoEditBox(&Screen->Address, AppState, UIContext, Pad, AddressY,
@@ -325,7 +385,21 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
                  Width - Pad - JoinWidth, AddressY, JoinWidth, RowHeight, "Join") &&
         Screen->Address.Text[0])
     {
-        ConnectScreenJoin(Screen, Online, Screen->Address.Text);
+        ConnectScreenJoin(Screen, Online, UIContext, Screen->Address.Text);
+    }
+    // NOTE(zoubir): Enter in the address joins it; in the name, rejoins
+    // the server in use with the new name
+    if (Input->TextSubmit && !Trying)
+    {
+        if (UIContext->SelectedState == &Screen->Address && Screen->Address.Text[0])
+        {
+            ConnectScreenJoin(Screen, Online, UIContext, Screen->Address.Text);
+        }
+        else if (UIContext->SelectedState == &Screen->Name)
+        {
+            ConnectScreenJoin(Screen, Online, UIContext, Online->AddressText[0] ?
+                              Online->AddressText : ServerList[0].Address);
+        }
     }
 
     bool32 Ended = (Phase == OnlinePhase_Ended);
@@ -342,7 +416,7 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
         }
         else
         {
-            ConnectScreenJoin(Screen, Online, Online->AddressText[0] ?
+            ConnectScreenJoin(Screen, Online, UIContext, Online->AddressText[0] ?
                               Online->AddressText : ServerList[0].Address);
         }
     }

@@ -40,6 +40,9 @@ struct online_session
     char ResolvedText[64];
     net_address Resolved;
     char NameText[NET_NAME_SIZE];
+    // NOTE(zoubir): a server was set at launch but no name, so the session
+    // waits offline for the player to pick one (ui/name_prompt.cpp)
+    bool32 NeedsName;
     // NOTE(zoubir): set by OnlineConnect, cleared when the player leaves;
     // while set, a dropped connection is retried
     bool32 KeepTrying;
@@ -159,9 +162,12 @@ WillReconnect(online_session *Online)
 
 // NOTE(zoubir): joins the configured server, or DefaultAddress when none
 // is configured (the game passes the live server; tests pass nothing and
-// stay offline). An address of "offline" means stay offline
+// stay offline). An address of "offline" means stay offline. With
+// RequireName and no name saved it does not join yet: NeedsName is set
+// and the connect screen asks for one first
 internal online_session *
-StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0)
+StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0,
+                   bool32 RequireName = false)
 {
     online_session *Online = AllocateStruct(Arena, online_session);
     ZeroSize(Online, sizeof(*Online));
@@ -176,7 +182,12 @@ StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0)
     {
         Online->AddressText[0] = 0;
     }
-    if (Online->AddressText[0])
+    char Name[NET_NAME_SIZE];
+    CleanPlayerName(Name, sizeof(Name), Online->NameText);
+    CopyString(Online->NameText, sizeof(Online->NameText), Name);
+    Online->NeedsName = RequireName && Online->AddressText[0] &&
+        PlayerNameProblem(Online->NameText) != 0;
+    if (Online->AddressText[0] && !Online->NeedsName)
     {
         OnlineConnect(Online, Online->AddressText, Online->NameText);
     }
@@ -387,7 +398,8 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
 }
 
 internal online_session *
-StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0)
+StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0,
+                   bool32 RequireName = false)
 {
     online_session *Online = AllocateStruct(Arena, online_session);
     ZeroSize(Online, sizeof(*Online));

@@ -138,7 +138,7 @@ StartClient(app_state *AppState, transient_state *TransientState,
 #endif
     InitSimulation(AppState, &AppState->WorldArena, ConstantsArena);
     AddLocalPlayer(AppState, &AppState->WorldArena);
-    AppState->Online = StartOnlineSession(MemoryArena, ONLINE_DEFAULT_SERVER);
+    AppState->Online = StartOnlineSession(MemoryArena, ONLINE_DEFAULT_SERVER, true);
     AppState->KeyboardLayout = ReadSavedKeyboardLayout();
     GlobalKeyboardLayout = (keyboard_layout)AppState->KeyboardLayout;
     AppState->ControlScheme = ReadSavedControlScheme();

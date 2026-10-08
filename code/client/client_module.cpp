@@ -32,6 +32,7 @@
 #include "keyboard_layout.cpp"
 #include "control_scheme.cpp"
 #include "online_config.cpp"
+#include "player_name.cpp"
 #include "window_mode.cpp"
 #include "online_quality.cpp"
 #include "online_pacing.cpp"
