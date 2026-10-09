@@ -36,7 +36,7 @@ Attack, base spells, then each branch's pair. A spell marked *new* is designed a
 | Shadowblade | Twin Strike | Eviscerate, Fan of Knives | Assassination: Deadly Throw or *Garrote* (cancels a wind-up and poisons) | Subtlety: Shadowstep or Shadow Dance |
 | Stormcaller | Spark | Thunderclap, Chain Lightning | Conduction: Static Field or *Ball Lightning* (a slow orb that zaps what it passes) | Tempest: Lightning Dash or Eye of the Storm |
 | Duelist | Thrust | Heartseeker, Lunge | Bladework: Perfect Form or *Disarm* (a strike that halves a foe's damage for a while) | Guard: Riposte or Feint |
-| Frost Mage | Frostbolt | Glacial Spike, Frost Nova | Winter: Blizzard or *Cone of Cold* (a cone that chills and grows an Icicle a foe) | Shatter: Frozen Orb or Ice Barrier |
+| Frost Mage | Frostbolt | Glacial Spike, Frost Nova | Winter: Blizzard or Cone of Cold (right click: a cone that chills and grows an Icicle a foe) | Shatter: Frozen Orb or Ice Barrier |
 | Bulwark | Shield Bash | Shield Slam, Taunt, Shield Charge, Shield Throw | Bastion: Last Stand or *Rallying Cry* (allies near gain health for a while) | Vanguard: Intercept or *Demoralizing Roar* (foes near deal less) |
 | Mender | Smite Bolt | Mending Bolt, Ward, Holy Fire, Radiance | Sanctum: Sanctuary or *Prayer of Healing* (heals the most hurt allies at once) | Dawn: *Dawnbreak* or *Purify* (light that heals through damage, or a cleanse and a shield) |
 | Druid | Wrath | Rejuvenation, Regrowth, Moonfire, Starfire | Grove: Tranquility or *Lifebloom* (a heal that blooms when it runs out) | Moon: Entangling Roots or *Starfall* (stars on every foe near) |
@@ -49,7 +49,7 @@ A bot takes a spell of each pair first, which of the two by a coin toss, so a pa
 
 ## Status
 
-Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above not marked *new*. To build: the thirteen spells still marked *new*. Class keys run A, R, C, V, W, X, the right click, G and T; a new spell takes a key its class leaves free.
+Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above not marked *new*. To build: the twelve spells still marked *new*. Class keys run A, R, C, V, W, X, the right click, G and T; a new spell takes a key its class leaves free.
 
 ## Balance
 

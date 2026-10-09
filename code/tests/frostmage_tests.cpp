@@ -369,12 +369,34 @@ TestDeepFreezeBlizzard()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Cone of Cold strikes and chills the foes in front, not the
+// one behind, and grows an Icicle for each struck
+internal void
+TestConeOfCold()
+{
+    crypt_world Crypt = CreateFrostMageWorld();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    ranger_dummies Dummies = {};
+    world_entity *Front = RangerDummy(&Crypt, &Dummies, V3(120.f, 0.f, 0.f));
+    world_entity *Side = RangerDummy(&Crypt, &Dummies, V3(110.f, 60.f, 0.f));
+    world_entity *Behind = RangerDummy(&Crypt, &Dummies, V3(-120.f, 0.f, 0.f));
+    Slot->FrostMage.Icicles = 0;
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    Check(Slot->RoleCooldowns[6] > 0.f);
+    Check(Front->Hp < 2000.f && Side->Hp < 2000.f && Behind->Hp == 2000.f);
+    Check(HasStatus(Front, StatusEffect_Slowed) && !HasStatus(Behind, StatusEffect_Slowed));
+    Check(Slot->FrostMage.Icicles == 2);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunFrostMageTests()
 {
     TestFrostMageKeys();
     TestFrostboltLandsAndChills();
     TestShatter();
+    TestConeOfCold();
     TestGlacialSpike();
     TestBlizzard();
     TestDeepFreezeBlizzard();

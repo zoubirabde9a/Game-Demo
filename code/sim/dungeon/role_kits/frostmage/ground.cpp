@@ -131,6 +131,42 @@ CastFrostNova(app_state *AppState, player_slot *Slot, world_entity *Player)
     EmitSound(&AppState->Events, AssetType_SfxAreaCast, Player->Position);
 }
 
+// NOTE(zoubir): Cone of Cold: every foe in the cone in front struck and
+// chilled, an Icicle for each of the first CONE_OF_COLD_ICICLES
+internal void
+CastConeOfCold(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
+    world *World = &AppState->World;
+    u32 By = Player->PlayerIndex;
+    v2 Aim = NormalizeOr(GetPlayerAim(Player), V2(1.f, 0.f));
+    float Edge = Cos(CONE_OF_COLD_HALF_ANGLE);
+    bool32 Permafrost = RoleRank(Slot, PlayerRole_FrostMage, FrostMageTalent_Permafrost) > 0;
+    float Chill = CONE_OF_COLD_CHILL + (Permafrost ? PERMAFROST_SECONDS : 0.f);
+    u32 Room = RangerShotRoom(AppState, Player);
+    u32 Struck = 0;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Monster = &World->Entities[EntityIndex];
+        v2 Offset = Monster->Position.XY - Player->Position.XY;
+        float Distance = Length(Offset);
+        if (!Monster->IsPresent || Monster->Type != EntityType_Monster || Monster->Hp <= 0.f ||
+            RoomAtPosition(World, Monster->Position.XY) != Room ||
+            Distance > CONE_OF_COLD_REACH + 0.5f * Monster->Dimensions.X ||
+            (Distance > 1.f && DotProduct(Offset, Aim) < Edge * Distance))
+        {
+            continue;
+        }
+        FrostMageHit(AppState, By, Monster, FrostShot_Cone, CONE_OF_COLD_DAMAGE, 40.f,
+                     NormalizeOr(Offset, Aim), StatusEffect_Slowed, Chill);
+        Struck++;
+    }
+    AddIcicles(AppState, Slot, Minimum(Struck, (u32)CONE_OF_COLD_ICICLES));
+    v3 Feet = V3(Player->Position.X, Player->Position.Y, Player->GroundZ);
+    EmitBurst(&AppState->Events, ClassBurst(SimBurst_FrostMageFirst, FrostBurst_Nova), (u8)By,
+              RangerBurstSpot(Feet, 0), ATan2(Aim.Y, Aim.X));
+    EmitSound(&AppState->Events, AssetType_SfxAreaCast, Player->Position);
+}
+
 // NOTE(zoubir): Ice Barrier: the slot's fire shield (FireguardTakes,
 // role_kits/striker.cpp) as ice; a fresh one replaces what is left
 internal void

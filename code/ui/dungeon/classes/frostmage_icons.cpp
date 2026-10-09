@@ -58,6 +58,22 @@ IconFrostBadgeLonger(icon_canvas *Canvas)
 }
 
 // NOTE(zoubir): Frostbolt: a shard flying up and right in a frosty trail
+// NOTE(zoubir): Cone of Cold: a fan of ice shards spreading from the
+// lower left, frost hanging between them
+internal void
+PaintConeOfColdIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.6f, 0.4f), 0.5f, IconColor(140, 210, 255, 140));
+    v2 From = V2(0.14f, 0.86f);
+    for(u32 Shard = 0; Shard < 5; Shard++)
+    {
+        float A = -0.25f * Pi32 + 0.15f * ((float)Shard - 2.f);
+        v2 Tip = From + 0.82f * V2(Cos(A), Sin(A));
+        PaintFrostShard(Canvas, From + 0.2f * (Tip - From), Tip, 0.07f);
+    }
+    PaintFrostFlake(Canvas, V2(0.72f, 0.3f), 0.09f, 0.015f, IconColor(235, 248, 255));
+}
+
 internal void
 PaintFrostboltIcon(icon_canvas *Canvas)
 {
@@ -234,7 +250,7 @@ PaintAbsoluteZeroIcon(icon_canvas *Canvas)
 global_variable role_icon_painter *FrostMageIconPainters[ROLE_KEYS] =
 {
     PaintBlizzardIcon, PaintGlacialSpikeIcon, PaintIceBarrierIcon, PaintFrozenOrbIcon,
-    PaintFrostMageNovaIcon, PaintFrostboltIcon, 0,
+    PaintFrostMageNovaIcon, PaintFrostboltIcon, PaintConeOfColdIcon,
 };
 global_variable talent_icon_painter *FrostMageTalentIconPainters[ROLE_TALENTS] =
 {

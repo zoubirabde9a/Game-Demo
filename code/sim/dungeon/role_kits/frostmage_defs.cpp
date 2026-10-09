@@ -53,6 +53,18 @@
 #define FROST_NOVA_ROOT 3.f
 #define FROST_NOVA_COOLDOWN 16.f
 
+// NOTE(zoubir): Cone of Cold (right click, from Winter's pair against
+// Blizzard): every foe within CONE_OF_COLD_REACH in front, inside
+// CONE_OF_COLD_HALF_ANGLE of the aim, takes CONE_OF_COLD_DAMAGE and is
+// chilled CONE_OF_COLD_CHILL (longer with Permafrost); each foe struck
+// grows an Icicle, CONE_OF_COLD_ICICLES at most a cast
+#define CONE_OF_COLD_REACH 190.f
+#define CONE_OF_COLD_HALF_ANGLE 0.8f
+#define CONE_OF_COLD_DAMAGE 16.f
+#define CONE_OF_COLD_CHILL 2.f
+#define CONE_OF_COLD_ICICLES 3
+#define CONE_OF_COLD_COOLDOWN 8.f
+
 // NOTE(zoubir): Ice Barrier (C, from the tree): a shield of ice that takes
 // the next ICE_BARRIER_ABSORB damage for ICE_BARRIER_SECONDS; its second
 // rank makes it ICE_BARRIER_ABSORB_2
@@ -88,6 +100,7 @@ enum frostmage_talent
     FrostMageTalent_AbsoluteZero,
     FrostMageTalent_FrostNova,
     FrostMageTalent_Blizzard,
+    FrostMageTalent_ConeOfCold,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -143,6 +156,8 @@ global_variable talent_def FrostMageTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Blizzard", "A: ice falls on the circle at the cursor for 3 s, chilling",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Cone of Cold", "Right click: a cone of frost in front that chills and grows an Icicle a foe",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
@@ -171,5 +186,7 @@ global_variable role_spell FrostMageSpells[ROLE_KEYS] =
     {"Frostbolt", FROSTBOLT_COOLDOWN,
      "Frostbolt: a bolt that chills a foe and grows an Icicle; frozen foes take 40% more",
      RoleAim_Foe, FROSTBOLT_RANGE, 0},
-    {},
+    {"Cone of Cold", CONE_OF_COLD_COOLDOWN,
+     "Cone of Cold: frost in a cone in front; it chills what it strikes and grows an Icicle a foe",
+     RoleAim_None, CONE_OF_COLD_REACH, FrostMageTalent_ConeOfCold + 1},
 };

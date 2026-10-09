@@ -122,16 +122,16 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
       {CT(DuelistTalent_Stamina), RM(Spikes), RM(Stubborn), RM(SecondBreath), RM(Feast),
        RM(Vigor)}}},
 
-    // NOTE(zoubir): the Frost Mage. Cold Snap holds Winter's second spell
-    // slot until Cone of Cold is in
+    // NOTE(zoubir): the Frost Mage
     {{"Winter", "Shatter"},
-     {CLASS_BRANCH(CT(FrostMageTalent_Permafrost), CT(FrostMageTalent_Blizzard), CT(FrostMageTalent_ColdSnap),
+     {CLASS_BRANCH(CT(FrostMageTalent_Permafrost), CT(FrostMageTalent_Blizzard), CT(FrostMageTalent_ConeOfCold),
                    CT(FrostMageTalent_DeepFreeze), RM(ShatterPoint), RM(DeepWinter),
                    CT(FrostMageTalent_AbsoluteZero)),
       CLASS_BRANCH(CT(FrostMageTalent_Frostbite), CT(FrostMageTalent_FrozenOrb), CT(FrostMageTalent_IceBarrier),
                    CT(FrostMageTalent_FingersOfFrost), CT(FrostMageTalent_SplittingIce), RM(GlacialSkin),
                    RM(ColdCalculation))},
-     {{RM(Cleaver), RM(Bloodrush), RM(RisingGlory), CT(FrostMageTalent_GlacialArmor), RM(Stubborn)},
+     {{RM(Cleaver), RM(Bloodrush), RM(RisingGlory), CT(FrostMageTalent_GlacialArmor), RM(Stubborn),
+       CT(FrostMageTalent_ColdSnap)},
       {CT(FrostMageTalent_IceShards), CT(FrostMageTalent_WintersGrace), RM(Cadence), RM(Giantslayer),
        RM(Leeching), RM(OpeningSalvo)}}},
 

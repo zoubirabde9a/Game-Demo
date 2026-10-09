@@ -25,7 +25,7 @@ BotFrostMageButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, wor
     player_slot *Slot = &AppState->Players[Self->PlayerIndex];
     // NOTE(zoubir): X and W are the Frost Mage's: the game's fireball and
     // shockwave presses from BotThink would cast them at random
-    *Held &= ~(u32)(NetButton_Fireball | NetButton_Shockwave);
+    *Held &= ~(u32)(NetButton_Fireball | NetButton_Shockwave | NetButton_Sword);
     if (!Target || Target->Type != EntityType_Monster || IsPlayerCasting(Self))
     {
         return 0;
@@ -99,6 +99,11 @@ BotFrostMageButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, wor
     {
         Result |= NetButton_Push;
         *Pick = (u16)(Target->ID + 1);
+    }
+    else if (Ready[6] && !Hold && Distance < 0.9f * CONE_OF_COLD_REACH)
+    {
+        // NOTE(zoubir): Cone of Cold on what is in front, the aim on it
+        Result |= NetButton_Sword;
     }
     else if (Ready[0] && !Hold && Distance < PLAYER_AIM_REACH && (Target == Boss || Pack) &&
              BotRandom(Bot) % 8 == 0)

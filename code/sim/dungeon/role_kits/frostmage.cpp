@@ -53,6 +53,7 @@ enum frostmage_shot
     FrostShot_Blizzard,
     FrostShot_Nova,
     FrostShot_Orb,
+    FrostShot_Cone,
 };
 
 // NOTE(zoubir): a Frostbolt burst's look
@@ -95,6 +96,7 @@ CastFrostMageKey(app_state *AppState, world *World, memory_arena *Arena, player_
         case 3: return CastFrozenOrb(AppState, Slot, Player);
         case 4: CastFrostNova(AppState, Slot, Player); break;
         case 5: CastFrostbolt(AppState, Slot, Player); break;
+        case 6: CastConeOfCold(AppState, Slot, Player); break;
         default: return false;
     }
     return true;
