@@ -40,7 +40,8 @@ PackDungeonScoreMore(app_state *AppState, player_slot *Slot)
         ((Slot->RenewSeconds > 0.f) ? (1 << 1) : 0) |
         ((u32)Minimum((u32)Slot->Aggro, 7u) << 2) |
         (((u32)Slot->Role & 4) << 3) |
-        (((u32)Slot->Role & 8) << 3);
+        (((u32)Slot->Role & 8) << 3) |
+        (((u32)Slot->Skin & 1) << 7);
     return (u8)Result;
 }
 

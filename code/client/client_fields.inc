@@ -49,7 +49,7 @@
     u32 VoteHolding; // the vote field held in the input now, 0 for none, client/vote_requests.cpp
     float VoteHoldLeft; // seconds the vote field stays held, client/vote_requests.cpp
     float VoteGapLeft; // seconds the vote field stays empty before the next request, client/vote_requests.cpp
-    u32 RoleRequest; // a dungeon role picked online, player_role + 1, not yet sent, client/dungeon/dungeon_net.cpp
+    u32 RoleRequest; // a dungeon role picked online, player_role + 1 and its look (net_input.Role), not yet sent, client/dungeon/dungeon_net.cpp
     u32 RoleHolding; // the role field held in the input now, 0 for none, client/dungeon/dungeon_net.cpp
     float RoleHoldLeft; // seconds the role field stays held, client/dungeon/dungeon_net.cpp
     float RoleGapLeft; // seconds the role field stays empty before the next request, client/dungeon/dungeon_net.cpp

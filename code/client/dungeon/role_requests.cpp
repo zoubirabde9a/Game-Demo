@@ -1,19 +1,22 @@
 /* Role requests: a dungeon role picked in the role picker
-   (ui/dungeon/dungeon_hud.cpp) on its way to the server. It rides in the
+   (ui/dungeon/dungeon_hud.cpp), and the look picked for it
+   (ui/dungeon/skin_picker.cpp), on their way to the server. It rides in the
    role byte of the input (net_input.Role, net/protocol.h), held
    for a few inputs and let go like a map vote (vote_requests.cpp), so a
    lost packet loses nothing; the server takes it between fights
    (TakeRoleRequests, sim/dungeon/encounters.cpp). Offline the picker
    sets the role directly. Developer builds also read GAME_ROLE at start
-   (ApplyDeveloperRole), GAME_ROOM to start in a later room
+   (ApplyDeveloperRole, with GAME_SKIN=heroic for the painted skin), GAME_ROOM to start in a later room
    (ApplyDeveloperRoom) and GAME_MARKS to mark the fight's monsters
    (ApplyDeveloperMarks) and GAME_BOSS_HEALTH to start a boss part
    spent (ApplyDeveloperBossHealth), for scripted screenshots. */
 
+// NOTE(zoubir): the look picked for the class rides along (Skin, a
+// hero_skin), so a request always says both
 internal void
-RequestDungeonRole(app_state *AppState, u32 Role)
+RequestDungeonRole(app_state *AppState, u32 Role, u32 Skin = HeroSkin_Chibi)
 {
-    AppState->RoleRequest = Role + 1;
+    AppState->RoleRequest = (Role + 1) | ((Skin & 1) << 4);
 }
 
 // NOTE(zoubir): online, the role byte of this frame's input
@@ -98,6 +101,15 @@ ApplyDeveloperRole(app_state *AppState)
     if (Picked < PlayerRole_Count)
     {
         SetPlayerRole(AppState, Slot, Picked);
+    }
+    // NOTE(zoubir): GAME_SKIN=heroic wears the class's painted skin
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    char *Skin = getenv("GAME_SKIN");
+#pragma warning(pop)
+    if (Skin && SameWordsAnyCase(Skin, "heroic"))
+    {
+        SetPlayerSkin(Slot, HeroSkin_Heroic);
     }
 #endif
 }

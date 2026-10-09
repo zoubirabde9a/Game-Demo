@@ -99,6 +99,17 @@ TestDungeonRolesAndRoomsOnline()
     Check(Client->Players[Client->LocalPlayerIndex].Role == PlayerRole_Healer);
     world_entity *Own = GetLocalPlayer(Client);
     Check(Own && Own->MaxHp == GetRoleDef(PlayerRole_Healer)->MaxHp);
+    // NOTE(zoubir): the look rides with the class; picking it alone keeps
+    // the class and its resource, and comes back to the client
+    Check(Game->Players[SlotIndex].Skin == HeroSkin_Chibi);
+    Game->Players[SlotIndex].ClassMeter = 3;
+    RequestDungeonRole(Client, PlayerRole_Healer, HeroSkin_Heroic);
+    RunDungeonOnlineTest(&Test, SERVER_TICK_RATE);
+    Check(Game->Players[SlotIndex].Skin == HeroSkin_Heroic);
+    Check(Game->Players[SlotIndex].Role == PlayerRole_Healer);
+    Check(Game->Players[SlotIndex].ClassMeter == 3);
+    Check(Client->Players[Client->LocalPlayerIndex].Skin == HeroSkin_Heroic);
+    Game->Players[SlotIndex].ClassMeter = 0;
     Check(Client->Dungeon->ShownBossKind == MonsterKind_Count);
 
     // NOTE(zoubir): a sanctuary on the server is drawn on the client

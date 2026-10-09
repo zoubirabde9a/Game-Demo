@@ -4,7 +4,7 @@
    Each score's Dungeon byte gives a player's role (with the health it
    brings, so the party frames and the bar show the right share), Shield
    Wall, a ward and revive progress; DungeonMore a rally, a renewal and
-   how many monsters are after them. The snapshot's dungeon block gives
+   how many monsters are after them, and the look the player wears. The snapshot's dungeon block gives
    the rooms, the fight, the healers' sanctuaries, the infernos and the
    foe marks, Searing and Sunder (on the replicas they were sent for), and
    one player's meter, kept until that player comes round again; the
@@ -36,6 +36,7 @@ ApplyDungeonScore(app_state *AppState, player_slot *Slot, u8 Packed, u8 More)
     Slot->RallySeconds = (More & 1) ? RALLY_SECONDS : 0.f;
     Slot->RenewSeconds = (More & (1 << 1)) ? RENEWAL_SECONDS : 0.f;
     Slot->Aggro = (u8)((More >> 2) & 7);
+    Slot->Skin = (u8)(More >> 7);
 }
 
 // NOTE(zoubir): a new fight count zeroes every player's meter, as
