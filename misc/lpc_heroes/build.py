@@ -58,7 +58,8 @@ class Layer:
         self.oversize = oversize or {}        # lpc anim -> (relpath, frame size)
         self.optional = optional              # missing sheet just means nothing drawn (bg halves)
         self.optional_in = set(optional_in)   # LPC sheets where this layer may be absent (reported)
-        self.transplant = transplant          # may borrow its walk frame 0 for idle
+        # sheets where a missing frame may be borrowed from the layer's walk frame 0 (aligned to the body)
+        self.transplant = set(transplant) if isinstance(transplant, (tuple, list, set)) else ({'idle'} if transplant else set())
         self.sheetdef = sheetdef
         self.files = files or {}              # lpc anim -> explicit relpath (64px)
         self._cache = {}
@@ -97,9 +98,10 @@ def frame_of(layer, anim, row, col):
     return im.crop((col * fs, row * fs, (col + 1) * fs, (row + 1) * fs)), fs
 
 # ---------------------------------------------------------------- classes
-def body(kind):
-    return [Layer('body', 10, f'body/bodies/{kind}', sheetdef='body/body.json'),
-            Layer('head', 100, f'head/heads/human/{kind}',
+def body(kind, skin=None):
+    rc = [('body', 'light', 'body', skin)] if skin else None
+    return [Layer('body', 10, f'body/bodies/{kind}', recolor=rc, sheetdef='body/body.json'),
+            Layer('head', 100, f'head/heads/human/{kind}', recolor=rc,
                   sheetdef=f'head/heads/human/heads_human_{kind}.json')]
 
 def staff_simple():
@@ -187,6 +189,92 @@ CLASSES['mender'] = dict(
     attack=('thrust', list(range(8)), 12),
 )
 
+# ---- seven weaponless classes (the game draws their weapons itself)
+def hair(path, colour, sheetdef, z=120, name='hair'):
+    return Layer(name, z, path, recolor=[('hair', 'orange', 'hair', colour)], sheetdef=sheetdef)
+
+def robe(top, skirt):
+    return [Layer('robe_skirt', 20, 'legs/skirts/plain/male', recolor=cloth(skirt),
+                  sheetdef='legs/skirts/legs_skirts_plain.json'),
+            Layer('robe_top', 35, 'torso/clothes/longsleeve/longsleeve2/male', recolor=cloth(top),
+                  sheetdef='torso/shirts/longsleeve/torso_clothes_longsleeve2.json')]
+
+def shirt(c): return Layer('shirt', 35, 'torso/clothes/longsleeve/longsleeve2/male', recolor=cloth(c),
+                           sheetdef='torso/shirts/longsleeve/torso_clothes_longsleeve2.json')
+def pants(c): return Layer('pants', 20, 'legs/pants/male', recolor=cloth(c), sheetdef='legs/pants/legs_pants.json')
+def boots(c, kind='fold', sd='feet/boots/feet_boots_fold.json'):
+    return Layer('boots', 25, f'feet/boots/{kind}/male', recolor=cloth(c), sheetdef=sd)
+def hood(c): return Layer('hood', 130, 'hat/cloth/hood/adult', recolor=cloth(c),
+                          sheetdef='headwear/coverings/hoods/hat_hood_cloth.json')
+def mantle(c): return Layer('mantle', 75, 'shoulders/mantal/male', recolor=cloth(c),
+                            sheetdef='arms/shoulders/shoulders_mantal.json')
+def bracers(c='leather'): return Layer('bracers', 70, 'arms/bracers/male', recolor=[('metal', 'steel', 'cloth', c)],
+                                      sheetdef='arms/wrists/arms_bracers.json')
+
+UNARMED = ('slash', list(range(6)), 12)
+
+CLASSES['ranger'] = dict(colour=(90, 210, 170), layers=body('male') + [
+    hair('hair/plain/adult', 'light_brown', 'hair/short/hair_plain.json'),
+    Layer('quiver', 8, 'quiver', variant='quiver', transplant=('idle', 'jump'), sheetdef='torso/backpack/quiver.json'),
+    pants('leather'), boots('brown'), shirt('teal'),
+    Layer('leather_armour', 60, 'torso/armour/leather/male',
+          sheetdef='torso/armour/torso_armour_leather.json'),
+    hood('green')], attack=UNARMED)
+
+CLASSES['berserker'] = dict(colour=(225, 50, 50), layers=body('male', 'bronze') + [
+    hair('hair/long_messy/adult', 'carrot', 'hair/long/hair_long_messy.json'),
+    hair('beards/beard/basic', 'carrot', 'hair/beards/beards_beard.json', z=110, name='beard'),
+    Layer('pants', 20, 'legs/pantaloons/male', recolor=cloth('red'), sheetdef='legs/pants/legs_pantaloons.json'),
+    boots('brown'),
+    Layer('fur_shoulders', 65, 'shoulders/bauldron/male', recolor=cloth('brown'), sheetdef='arms/bauldron.json'),
+    Layer('headband', 125, 'hat/headband/thick/adult', recolor=cloth('red'),
+          sheetdef='headwear/coverings/headbands/hat_headband_thick.json')], attack=UNARMED)
+
+CLASSES['shadowblade'] = dict(colour=(170, 110, 255), layers=body('male') + [
+    hair('hair/plain/adult', 'black', 'hair/short/hair_plain.json'),
+    pants('black'), boots('black'), shirt('charcoal'),
+    Layer('leather_armour', 60, 'torso/armour/leather/male', recolor=[('cloth', 'leather', 'cloth', 'black')],
+          sheetdef='torso/armour/torso_armour_leather.json'),
+    Layer('scarf', 90, 'neck/scarf', recolor=cloth('purple'), sheetdef='headwear/neck/neck_scarf.json'),
+    Layer('mask', 114, 'facial/masks/plain/adult', variant='black', sheetdef='headwear/accessories/facial_mask_plain.json'),
+    hood('charcoal')], attack=UNARMED)
+CASTER = ('thrust', list(range(8)), 12)
+
+CLASSES['stormcaller'] = dict(colour=(250, 220, 80), layers=body('male') + [
+    hair('hair/plain/adult', 'white', 'hair/short/hair_plain.json'),
+    hair('beards/beard/winter/male', 'white', 'hair/beards/beards_winter.json', z=110, name='beard'),
+    boots('navy'), *robe('navy', 'navy'), mantle('yellow'),
+    Layer('hat', 130, 'hat/magic/celestial/adult', variant='navy', sheetdef='headwear/hats/magic/hat_magic_celestial.json'),
+    Layer('hat_trim', 131, 'hat/magic/celestial/trim/adult', variant='gold',
+          sheetdef='headwear/hats/magic/hat_magic_celestial_trim.json')], attack=CASTER)
+
+CLASSES['duelist'] = dict(colour=(240, 110, 170), layers=body('male') + [
+    hair('hair/parted/adult', 'dark_brown', 'hair/short/hair_parted.json'),
+    hair('beards/mustache/basic', 'dark_brown', 'hair/mustaches/beards_mustache.json', z=111, name='mustache'),
+    pants('black'), boots('black'), shirt('pink'),
+    Layer('lace_cuffs', 70, 'arms/wrists/lace/male', recolor=cloth('white'), sheetdef='arms/wrists/wrists_cuffs_lace.json'),
+    Layer('jabot', 90, 'neck/jabot/male', recolor=cloth('white'), sheetdef='headwear/neck/neck_jabot.json'),
+    Layer('hat', 130, 'hat/pirate/cavalier/adult', variant='maroon', sheetdef='headwear/hats/caps/hat_cap_cavalier.json'),
+    Layer('hat_feather', 131, 'hat/pirate/cavalier/feather/adult', variant='pink',
+          sheetdef='headwear/hats/caps/hat_cap_cavalier_feather.json')], attack=UNARMED,
+    skip={'run': 'hat feather has no art in frames 1-7 of LPC run'})
+
+CLASSES['frostmage'] = dict(colour=(150, 215, 255), layers=body('male') + [
+    hair('hair/plain/adult', 'platinum', 'hair/short/hair_plain.json'),
+    boots('white', 'basic', 'feet/boots/feet_boots_basic.json'), *robe('sky', 'sky'),
+    Layer('hat', 130, 'hat/magic/wizard/base/adult', variant='sky', sheetdef='headwear/hats/magic/hat_magic_wizard.json'),
+    Layer('hat_band', 131, 'hat/magic/wizard/belt/adult', variant='white',
+          sheetdef='headwear/hats/magic/hat_magic_wizard_belt.json')], attack=CASTER)
+
+CLASSES['druid'] = dict(colour=(165, 200, 60), layers=body('male') + [
+    hair('hair/long/adult', 'gray', 'hair/long/hair_long.json'),
+    hair('beards/beard/winter/male', 'gray', 'hair/beards/beards_winter.json', z=110, name='beard'),
+    boots('brown', 'basic', 'feet/boots/feet_boots_basic.json'), *robe('forest', 'brown'), mantle('green'),
+    Layer('headband', 125, 'hat/headband/thick/adult', recolor=cloth('leather'),
+          sheetdef='headwear/coverings/headbands/hat_headband_thick.json'),
+    Layer('headband_rune', 126, 'hat/headband/thick/rune/adult', recolor=[('cloth', 'red', 'cloth', 'green')],
+          sheetdef='headwear/coverings/headbands/hat_headband_thick_rune.json')], attack=CASTER)
+
 # output animation -> (lpc sheet, frames, fps, loop, facings)
 def anim_plan(cls):
     a = cls['attack']
@@ -200,7 +288,7 @@ def anim_plan(cls):
         'jump':   ('jump', list(range(5)), 10, False, FACINGS),
         'hurt':   ('hurt', [0, 1, 2], 8, False, ['down']),
         'death':  ('hurt', list(range(6)), 8, False, ['down']),
-        'shoot':  ('shoot', list(range(13)), 12, False, FACINGS),
+        # shoot dropped: no class carries a bow in the sprite (13 frames would not fit the 8-column packer either)
     }
 
 # fallbacks when an LPC sheet is not drawn for every layer: list of (sheet, frame) pairs
@@ -244,13 +332,13 @@ def compose(layers, picks, facing, notes):
         canvas = Image.new('RGBA', (fs, fs), (0, 0, 0, 0))
         for l in sorted(layers, key=lambda l: l.z):
             im, lfs = frame_of(l, sheet, row, col)
-            if im is None and l.transplant and sheet in ('idle',):
+            if im is None and sheet in l.transplant and l.resolve(sheet) is None:
                 w, _ = frame_of(l, 'walk', ROWS[facing], 0)
                 if w is not None:
-                    b = body_layer(layers)
+                    b = body_layer(layers) if sheet == 'idle' else next(x for x in layers if x.name == 'head')  # back items follow the head in jumps
                     bw, _ = frame_of(b, 'walk', ROWS[facing], 0)
                     bt, _ = frame_of(b, sheet, row, col)
-                    dx, dy = best_offset(bw, bt)
+                    dx, dy = best_offset(bw, bt, 3 if sheet == 'idle' else 12)
                     im = Image.new('RGBA', (64, 64)); im.alpha_composite(w, (max(dx, 0), max(dy, 0)), (max(-dx, 0), max(-dy, 0)))
                     lfs = 64
                     notes.add(f'{l.name}: borrowed walk frame for {sheet}')
@@ -269,7 +357,7 @@ def covered(layers, sheet):
     missing = []
     for l in layers:
         if l.resolve(sheet) is None and not l.optional and sheet not in l.optional_in:
-            if l.transplant and sheet == 'idle' and l.resolve('walk'): continue
+            if sheet in l.transplant and l.resolve('walk'): continue
             missing.append(l.name)
     return missing
 
@@ -294,6 +382,8 @@ def main():
         entries, rows_for_sheet, notes = {}, [], set()
         rep = report.setdefault(cname, {'skipped': {}, 'fallback': {}, 'notes': []})
         for anim, (sheet, cols, fps, loop, facings) in anim_plan(cls).items():
+            if anim in cls.get('skip', {}):
+                rep['skipped'][anim] = cls['skip'][anim]; continue
             miss = covered(layers, sheet)
             picks = [(sheet, c) for c in cols]
             if miss:

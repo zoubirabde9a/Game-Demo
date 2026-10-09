@@ -20,9 +20,16 @@ FACINGS = ['down', 'up', 'right', 'left']
 FRONT_ONLY = {'hurt', 'death'}
 # NOTE: must match HeroLpcFrames in code/client/heroes/lpc_sheets.cpp
 FRAMES = {
-    'firemage': [2, 8, 8, 7, 3, 2, 3, 6],
-    'bulwark':  [2, 8, 6, 7, 3, 5, 3, 6],
-    'mender':   [2, 8, 8, 7, 3, 2, 3, 6],
+    'firemage':    [2, 8, 8, 7, 3, 2, 3, 6],
+    'bulwark':     [2, 8, 6, 7, 3, 5, 3, 6],
+    'mender':      [2, 8, 8, 7, 3, 2, 3, 6],
+    'ranger':      [2, 8, 6, 7, 3, 5, 3, 6],
+    'berserker':   [2, 8, 6, 7, 3, 5, 3, 6],
+    'shadowblade': [2, 8, 6, 7, 3, 5, 3, 6],
+    'stormcaller': [2, 8, 8, 7, 3, 2, 3, 6],
+    'duelist':     [2, 8, 6, 7, 3, 5, 3, 6],
+    'frostmage':   [2, 8, 8, 7, 3, 2, 3, 6],
+    'druid':       [2, 8, 8, 7, 3, 2, 3, 6],
 }
 CELL, COLUMNS = 64, 8
 

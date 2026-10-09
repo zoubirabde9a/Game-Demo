@@ -48,6 +48,13 @@ global_variable u8 HeroLpcFrames[HERO_SKIN_CLASSES][HeroAnim_Count] =
     {2, 8, 8, 7, 3, 2, 3, 6},
     {2, 8, 6, 7, 3, 5, 3, 6},
     {2, 8, 8, 7, 3, 2, 3, 6},
+    {2, 8, 6, 7, 3, 5, 3, 6},
+    {2, 8, 6, 7, 3, 5, 3, 6},
+    {2, 8, 6, 7, 3, 5, 3, 6},
+    {2, 8, 8, 7, 3, 2, 3, 6},
+    {2, 8, 6, 7, 3, 5, 3, 6},
+    {2, 8, 8, 7, 3, 2, 3, 6},
+    {2, 8, 8, 7, 3, 2, 3, 6},
 };
 global_variable char *HeroSkinFileNames[HERO_SKIN_CLASSES] =
 {
