@@ -117,9 +117,12 @@ IsHeroLookTexture(asset_id Texture)
 }
 
 // NOTE(zoubir): from UpdateEntityUvs: a player in a run takes its class's
-// sheet, a player in a duel the base class's, in the look picked
-// (GlobalHeroLook); the classic one when the new one failed to load, the
-// original hero's when that one did too
+// sheet, a player in a duel the base class's, in the look that player
+// picked: this machine's own setting (GlobalHeroLook) for the local
+// player, written to its entity for the offline simulation, and the one
+// the server sent (HeroLookPick) for everyone else. The classic sheet
+// when the new one failed to load, the original hero's when that one did
+// too
 internal void
 PickHeroSkin(app_state *AppState, world_entity *Entity)
 {
@@ -132,7 +135,12 @@ PickHeroSkin(app_state *AppState, world_entity *Entity)
     {
         u32 Role = IsDungeon(AppState) ? AppState->Players[Entity->PlayerIndex].Role :
             (u32)PlayerRole_Damage;
-        if (Role < PlayerRole_Count && GlobalHeroLook == HeroLook_New && HeroLookLoaded[Role])
+        if (Entity == GetLocalPlayer(AppState))
+        {
+            Entity->HeroLookPick = (GlobalHeroLook == HeroLook_Classic) ? 1 : 0;
+        }
+        bool32 New = Entity->HeroLookPick == 0;
+        if (Role < PlayerRole_Count && New && HeroLookLoaded[Role])
         {
             Texture = {AssetType_HeroSkin, PlayerRole_Count + Role};
         }

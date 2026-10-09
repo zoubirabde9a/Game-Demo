@@ -164,9 +164,14 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     }
     // NOTE(zoubir): the role byte's top bits ask for a team (sim/teams/)
     Player->Bot = (Role & NET_ROLE_BOT) != 0;
+    // NOTE(zoubir): the hero look rides in every input, not held and let go
+    if (Player->Entity)
+    {
+        Player->Entity->HeroLookPick = (Role & NET_ROLE_LOOK_CLASSIC) ? 1 : 0;
+    }
     if (Role && Role != RoleBefore)
     {
-        u32 Picked = Role & ((1u << NET_ROLE_TEAM_SHIFT) - 1);
+        u32 Picked = Role & NET_ROLE_PICK_MASK;
         u32 Team = (Role >> NET_ROLE_TEAM_SHIFT) & NET_ROLE_TEAM_MASK;
         if (Picked) Out->Role = Picked;
         if (Team) Out->Team = Team;

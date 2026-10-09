@@ -9,6 +9,11 @@
 // makes, so a replay knows the bots too; the server clears it in inputs
 // that come over the network. A map vote for a team duel sets
 // NET_VOTE_TEAMS in net_snapshot.VoteMap.
+// Bit 4 of the role byte is set in every input of a player who picked the
+// classic hero look (sim/player_fields.inc HeroLookPick); it is not part
+// of the role picked.
+#define NET_ROLE_PICK_MASK 0x0Fu
+#define NET_ROLE_LOOK_CLASSIC 0x10u
 #define NET_ROLE_TEAM_SHIFT 5
 #define NET_ROLE_TEAM_MASK 3u
 #define NET_ROLE_BOT 0x80u

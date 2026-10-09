@@ -156,7 +156,7 @@ struct net_input
     float AimY;
     u16 Target;    // the unit the cursor is on: its entity Id + 1, 0 for none
     u8 Role;       // a dungeon role request (sim/dungeon/roles.cpp): the player_role
-                   // picked + 1 in bits 0-3, or 0 (bit 4 free), and a team
+                   // picked + 1 in bits 0-3, or 0, the hero look in bit 4, and a team
                    // asked for in bits 5-6 (protocol/teams.h); held and let go like the talent field
 };
 

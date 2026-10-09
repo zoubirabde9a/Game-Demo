@@ -56,6 +56,12 @@
     // SwingSwordCut), for drawing only; ComboStep is not it, a thrust
     // counts as the chain's first cut
     u32 SwingLook;
+    // NOTE(zoubir): the hero look the player picked, for drawing only: 0
+    // the newly drawn heroes, 1 the classic ones (hero_look,
+    // client/heroes/hero_looks.cpp). Its client sends it in every input
+    // (NET_ROLE_LOOK_CLASSIC) and the server passes it on in the
+    // snapshot (PLAYER_AFFIX_LOOK_CLASSIC)
+    u32 HeroLookPick;
     // NOTE(zoubir): an area ability's row + 1 that fires when the player
     // lands (a slam), 0 for none
     u32 PendingLandArea;

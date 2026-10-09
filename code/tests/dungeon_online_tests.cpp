@@ -100,6 +100,37 @@ TestDungeonRolesAndRoomsOnline()
     Check(Client->Players[Client->LocalPlayerIndex].Role == PlayerRole_Healer);
     world_entity *Own = GetLocalPlayer(Client);
     Check(Own && Own->MaxHp == GetRoleDef(PlayerRole_Healer)->MaxHp);
+
+    // NOTE(zoubir): the hero look rides in every input's role byte, beside
+    // a role request, and the server's player wears it
+    world_entity *TheirOwn = Game->Players[SlotIndex].Entity;
+    Check(TheirOwn && TheirOwn->HeroLookPick == 0);
+    GlobalHeroLook = HeroLook_Classic;
+    RequestDungeonRole(Client, PlayerRole_Tank);
+    RunDungeonOnlineTest(&Test, SERVER_TICK_RATE);
+    TheirOwn = Game->Players[SlotIndex].Entity;
+    Check(TheirOwn && TheirOwn->HeroLookPick == 1);
+    Check(Game->Players[SlotIndex].Role == PlayerRole_Tank);
+    // NOTE(zoubir): and comes back in the player's Affix, beside its swing
+    if (TheirOwn)
+    {
+        TheirOwn->SwingLook = PlayerSwing_Heavy;
+        net_snapshot *Packed = (net_snapshot *)calloc(1, sizeof(net_snapshot));
+        SimGameWriteEntity(TheirOwn, 1, Packed);
+        world_entity Shown = *TheirOwn;
+        Shown.SwingLook = 0;
+        Shown.HeroLookPick = 0;
+        ApplyStateToReplica(Client, &Test.Arena, &Shown, &Packed->Entities[0]);
+        Check(Shown.SwingLook == PlayerSwing_Heavy && Shown.HeroLookPick == 1);
+        TheirOwn->SwingLook = PlayerSwing_Cut;
+        free(Packed);
+    }
+    GlobalHeroLook = HeroLook_New;
+    RequestDungeonRole(Client, PlayerRole_Healer);
+    RunDungeonOnlineTest(&Test, SERVER_TICK_RATE);
+    TheirOwn = Game->Players[SlotIndex].Entity;
+    Check(TheirOwn && TheirOwn->HeroLookPick == 0);
+    Check(Game->Players[SlotIndex].Role == PlayerRole_Healer);
     Check(Client->Dungeon->ShownBossKind == MonsterKind_Count);
 
     // NOTE(zoubir): a sanctuary on the server is drawn on the client

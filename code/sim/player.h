@@ -24,6 +24,11 @@ enum player_swing
     PlayerSwing_Thrust,
     PlayerSwing_Count
 };
+// NOTE(zoubir): a player's snapshot Affix: the player_swing in the low
+// two bits, and this bit when the player picked the classic hero look
+// (HeroLookPick)
+#define PLAYER_AFFIX_SWING_MASK 3u
+#define PLAYER_AFFIX_LOOK_CLASSIC 4u
 // NOTE(zoubir): how fast and far the player moves against the numbers the
 // moves were first tuned at: run speed, dash, blink, long jump and the
 // speed checks that follow them are written as old number times this. At

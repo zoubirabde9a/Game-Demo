@@ -492,6 +492,7 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     // NOTE(zoubir): the kind of each other player's last swing (player_swing,
     // drawn by the new hero look), and how often it was not the first cut
     u32 SwingsCompared = 0, WrongSwing = 0, ServerOtherSwings = 0, ClientOtherSwings = 0;
+    u32 WrongLook = 0, ServerClassicLooks = 0;
     // NOTE(zoubir): bots throw kunai (server/bots.cpp); replicas of them
     // compared with the server's
     u32 KunaiCompared = 0;
@@ -641,6 +642,8 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
                     {
                         ++SwingsCompared;
                         WrongSwing += Ours->SwingLook != Theirs->SwingLook ? 1 : 0;
+                        WrongLook += Ours->HeroLookPick != Theirs->HeroLookPick ? 1 : 0;
+                        ServerClassicLooks += Theirs->HeroLookPick ? 1 : 0;
                         ServerOtherSwings += Theirs->SwingLook != PlayerSwing_Cut ? 1 : 0;
                         ClientOtherSwings += Ours->SwingLook != PlayerSwing_Cut ? 1 : 0;
                     }
@@ -684,6 +687,9 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     printf("  parity: other players' swings %u compared, %u wrong, past the first cut on server/client %u/%u\n",
            SwingsCompared, WrongSwing, ServerOtherSwings, ClientOtherSwings);
     Check(SwingsCompared > 100 && WrongSwing == 0);
+    printf("  parity: other players' hero looks %u wrong, %u classic on the server\n",
+           WrongLook, ServerClassicLooks);
+    Check(WrongLook == 0 && ServerClassicLooks > 0);
     Check(ServerOtherSwings == 0 || ClientOtherSwings > 0);
     printf("  parity: %u compared; wrong type %u, kind %u, affix %u, max hp %u, tint %u; "
            "seen on server/client: wind-ups %u/%u, burrows %u/%u, elites %u/%u, enrage flashes %u/%u\n",

@@ -395,8 +395,10 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     Bot->Held = Held;
     Bot->HeldRole = RoleAsked;
     Input.Buttons = Held;
-    // NOTE(zoubir): marked as a bot's, for team duels (sim/teams/)
-    Input.Role = (u8)(RoleAsked | NET_ROLE_BOT);
+    // NOTE(zoubir): marked as a bot's, for team duels (sim/teams/); every
+    // other bot wears the classic hero look, so both are seen
+    u32 Look = (Self && (Self->PlayerIndex & 1)) ? NET_ROLE_LOOK_CLASSIC : 0;
+    Input.Role = (u8)(RoleAsked | Look | NET_ROLE_BOT);
     Input.AimX = AimReach * Direction.X;
     Input.AimY = AimReach * Direction.Y;
     Input.Target = Pick;

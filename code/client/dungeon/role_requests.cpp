@@ -16,7 +16,8 @@ RequestDungeonRole(app_state *AppState, u32 Role)
     AppState->RoleRequest = Role + 1;
 }
 
-// NOTE(zoubir): online, the role byte of this frame's input
+// NOTE(zoubir): online, the role byte of this frame's input: the role
+// request, and in every input the hero look picked (NET_ROLE_LOOK_CLASSIC)
 internal u32
 OnlineRoleRequest(app_state *AppState, float DeltaTime)
 {
@@ -40,6 +41,10 @@ OnlineRoleRequest(app_state *AppState, float DeltaTime)
         AppState->RoleHoldLeft = TALENT_HOLD_SECONDS;
     }
     u32 Result = AppState->RoleHolding;
+    if (GlobalHeroLook == HeroLook_Classic)
+    {
+        Result |= NET_ROLE_LOOK_CLASSIC;
+    }
     return Result;
 }
 

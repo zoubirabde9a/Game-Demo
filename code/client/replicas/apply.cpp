@@ -35,11 +35,12 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
     {
         Replica->AnimationType = (animation_type)State->Animation;
     }
-    // NOTE(zoubir): a player's Affix is the kind of its last swing
-    // (pack.cpp), drawn by the new hero look; players have no affix
+    // NOTE(zoubir): a player's Affix is the kind of its last swing and
+    // the hero look it picked (pack.cpp); players have no affix
     if (Replica->Type == EntityType_Player)
     {
-        Replica->SwingLook = State->Affix;
+        Replica->SwingLook = State->Affix & PLAYER_AFFIX_SWING_MASK;
+        Replica->HeroLookPick = (State->Affix & PLAYER_AFFIX_LOOK_CLASSIC) ? 1 : 0;
     }
     else
     {
