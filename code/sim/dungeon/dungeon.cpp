@@ -88,6 +88,7 @@ struct giant_fireball
 
 #include "boss_clock.h"
 #include "role_kits/foe_marks.h"
+#include "frost_tombs.h"
 
 struct dungeon_run
 {
@@ -116,6 +117,8 @@ struct dungeon_run
     u32 BossSerial;
     u32 BossEventsFired;
     boss_clock Clock;
+    // NOTE(zoubir): Vaelith's ice tombs (frost_tombs.cpp)
+    frost_tombs FrostTombs;
     // NOTE(zoubir): the wall entities closing each gate, as slot + 1
     // (0 for none). Built on the first tick, so only a world that
     // simulates has them
@@ -354,6 +357,11 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         // (role_kits/tank.cpp)
         Result = TankRefusesToFall(AppState, Slot, Target, Result);
         OnRunHurt(AppState, Slot, Source, Result);
+    }
+    // NOTE(zoubir): Vaelith's Frost Mark only shows where the ice comes
+    if (IsFrostMark(Target))
+    {
+        return 0.f;
     }
     player_slot *Attacker = DungeonAttackerSlot(AppState, Source);
     // NOTE(zoubir): a boss behind its pylons takes nothing, burns

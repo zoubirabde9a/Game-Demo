@@ -14,6 +14,7 @@
    has an enrage timer (boss_clock.cpp). */
 
 #include "boss_clock.cpp"
+#include "frost_tombs.cpp"
 
 struct boss_event
 {
@@ -167,6 +168,7 @@ UpdateBossEvents(app_state *AppState, world *World, memory_arena *Arena,
     }
     UpdateBossClock(AppState, Run, Boss);
     UpdateBossAdds(AppState, World, Run, Boss);
+    UpdateFrostTombs(AppState, World, Arena, Run, Boss);
     if (!Boss || Boss->MaxHp <= 0.f)
     {
         return;
