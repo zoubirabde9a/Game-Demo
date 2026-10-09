@@ -67,9 +67,23 @@ struct stormcaller_field
     u8 By;
 };
 
+// NOTE(zoubir): a Ball Lightning rolling along its way
+struct stormcaller_ball
+{
+    v3 Position;
+    v2 Direction;
+    float Seconds;
+    float TickTimer;
+    float Radius;
+    float TickDamage;
+    u8 By;
+};
+
 #define STORMCALLER_MAX_FIELDS 8
+#define STORMCALLER_MAX_BALLS 8
 
 struct stormcaller_run
 {
     stormcaller_field Fields[STORMCALLER_MAX_FIELDS];
+    stormcaller_ball Balls[STORMCALLER_MAX_BALLS];
 };

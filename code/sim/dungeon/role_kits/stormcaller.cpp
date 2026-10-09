@@ -122,6 +122,7 @@ StormcallerBoltLength(u32 Variant)
 #include "stormcaller/charge.cpp"
 #include "stormcaller/bolts.cpp"
 #include "stormcaller/storm.cpp"
+#include "stormcaller/ball.cpp"
 
 // NOTE(zoubir): whether Key only starts a wind-up when pressed (the cast
 // runs through sim/player_casts.cpp, then FinishStormcallerCast fires it):
@@ -181,6 +182,11 @@ CastStormcallerKey(app_state *AppState, world *World, memory_arena *Arena, playe
         case 5:
         {
             CastSpark(AppState, Slot, Player);
+        } break;
+
+        case 6:
+        {
+            Result = CastBallLightning(AppState, Slot, Player);
         } break;
 
         default:
@@ -373,4 +379,5 @@ UpdateStormcallerEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
         }
     }
     UpdateStaticFields(AppState, &Run->Stormcaller, DeltaTime);
+    UpdateBallLightning(AppState, &Run->Stormcaller, DeltaTime);
 }

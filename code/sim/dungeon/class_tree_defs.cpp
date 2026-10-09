@@ -93,17 +93,16 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
       {CT(ShadowbladeTalent_Evasion), RM(Bloodrush), RM(Slip), RM(Shroud), RM(Stubborn),
        RM(KeenEdge)}}},
 
-    // NOTE(zoubir): the Stormcaller. High Voltage holds Conduction's second
-    // spell slot until Ball Lightning is in
+    // NOTE(zoubir): the Stormcaller
     {{"Conduction", "Tempest"},
-     {CLASS_BRANCH(CT(StormcallerTalent_Voltage), CT(StormcallerTalent_StaticField), CT(StormcallerTalent_HighVoltage),
+     {CLASS_BRANCH(CT(StormcallerTalent_Voltage), CT(StormcallerTalent_StaticField), CT(StormcallerTalent_BallLightning),
                    CT(StormcallerTalent_Conductor), CT(StormcallerTalent_ArcField), RM(StormFront),
                    CT(StormcallerTalent_Stormbringer)),
       CLASS_BRANCH(CT(StormcallerTalent_Capacitor), CT(StormcallerTalent_LightningDash), CT(StormcallerTalent_EyeOfTheStorm),
                    CT(StormcallerTalent_LiveWire), RM(Grounded), CT(StormcallerTalent_Tailwind),
                    RM(Surge))},
      {{RM(StaticBuild), RM(RisingGlory), RM(Bloodrush), RM(Leeching),
-       CT(StormcallerTalent_Grounding)},
+       CT(StormcallerTalent_Grounding), CT(StormcallerTalent_HighVoltage)},
       {RM(Giantslayer), RM(Cornered), RM(Wayfarer), RM(Quickened), RM(Toughened),
        CT(StormcallerTalent_Quickening)}}},
 

@@ -39,7 +39,7 @@ BotStormcallerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, w
     player_slot *Slot = &AppState->Players[Self->PlayerIndex];
     // NOTE(zoubir): X and W are the Stormcaller's: the game's fireball and
     // shockwave presses from BotThink would cast them at random
-    *Held &= ~(u32)(NetButton_Fireball | NetButton_Shockwave);
+    *Held &= ~(u32)(NetButton_Fireball | NetButton_Shockwave | NetButton_Sword);
     if (!Target || Target->Type != EntityType_Monster || IsPlayerCasting(Self))
     {
         return 0;
@@ -138,6 +138,12 @@ BotStormcallerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, w
     {
         *Pick = (u16)(Target->ID + 1);
         Result |= NetButton_Push;
+    }
+    else if (Ready[6] && !Hold && Distance < BALL_LIGHTNING_SPEED * BALL_LIGHTNING_SECONDS &&
+             (Target == Boss || NearTarget >= 2) && BotRandom(Bot) % 6 == 0)
+    {
+        // NOTE(zoubir): Ball Lightning rolled at what it fights, the aim on it
+        Result |= NetButton_Sword;
     }
     else if (Ready[0] && Distance < 0.95f * CHAIN_RANGE && NearTarget >= 3 && BotRandom(Bot) % 4 == 0)
     {

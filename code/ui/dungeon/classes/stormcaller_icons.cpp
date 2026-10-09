@@ -260,10 +260,35 @@ PaintStormcallerStormbringerIcon(icon_canvas *Canvas)
     IconSparkle(Canvas, V2(0.52f, 0.94f), 0.12f, Solid(IconColor(255, 255, 255)));
 }
 
+// NOTE(zoubir): Ball Lightning: a crackling ball rolling to the right,
+// arcs reaching out of it
+internal void
+PaintStormcallerBallIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.55f, 0.5f), 0.5f, IconColor(255, 230, 90, 150));
+    IconCircle(Canvas, V2(0.55f, 0.5f), 0.22f,
+               Gradient(IconColor(255, 255, 230), IconColor(240, 180, 40), V2(0.48f, 0.42f), V2(0.7f, 0.66f)));
+    for(u32 Arc = 0; Arc < 5; Arc++)
+    {
+        float A = 2.f * Pi32 * (float)Arc / 5.f + 0.4f;
+        v2 Mid = V2(0.55f + 0.32f * Cos(A), 0.5f + 0.32f * Sin(A));
+        v2 Tip = V2(0.55f + 0.44f * Cos(A + 0.25f), 0.5f + 0.44f * Sin(A + 0.25f));
+        IconCapsule(Canvas, V2(0.55f + 0.2f * Cos(A), 0.5f + 0.2f * Sin(A)), Mid, 0.02f,
+                    Solid(IconColor(255, 245, 160)));
+        IconCapsule(Canvas, Mid, Tip, 0.015f, Solid(IconColor(255, 245, 160, 200)));
+    }
+    for(u32 Line = 0; Line < 3; Line++)
+    {
+        float Y = 0.4f + 0.1f * (float)Line;
+        IconCapsule(Canvas, V2(0.04f, Y), V2(0.26f, Y), 0.012f,
+                    Gradient(IconColor(255, 240, 150, 0), IconColor(255, 240, 150, 200), V2(0.04f, 0.f), V2(0.26f, 0.f)));
+    }
+}
+
 global_variable role_icon_painter *StormcallerIconPainters[ROLE_KEYS] =
 {
     PaintStormcallerChainIcon, PaintStormcallerFieldIcon, PaintStormcallerDashIcon, PaintStormcallerEyeIcon,
-    PaintStormcallerThunderclapIcon, PaintStormcallerSparkIcon, 0,
+    PaintStormcallerThunderclapIcon, PaintStormcallerSparkIcon, PaintStormcallerBallIcon,
 };
 global_variable talent_icon_painter *StormcallerTalentIconPainters[ROLE_TALENTS] =
 {

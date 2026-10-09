@@ -374,9 +374,31 @@ TestThunderclap()
 
 #include "stormcaller/storm_tests.cpp"
 
+// NOTE(zoubir): Ball Lightning rolls along the aim, zaps the foe it
+// passes and gives Charge for it, and leaves one off its way alone
+internal void
+TestBallLightning()
+{
+    crypt_world Crypt = CreateStormWorld();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    Slot->Entity->Aim = V2(1.f, 0.f);
+    ranger_dummies Dummies = {};
+    world_entity *OnWay = RangerDummy(&Crypt, &Dummies, V3(150.f, 0.f, 0.f));
+    world_entity *Off = RangerDummy(&Crypt, &Dummies, V3(150.f, 300.f, 0.f));
+    Slot->Stormcaller.Charge = 0.f;
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    Check(Slot->RoleCooldowns[6] > 0.f);
+    RangerTick(&Crypt, &Dummies, (u32)(60.f * BALL_LIGHTNING_SECONDS));
+    Check(OnWay->Hp < 2000.f && Off->Hp == 2000.f);
+    Check(Slot->Stormcaller.Charge > 0.f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunStormcallerTests()
 {
+    TestBallLightning();
     TestStormcallerKeys();
     TestSparkJumpsAndCharges();
     TestChainLightningNeverTwice();

@@ -62,6 +62,18 @@
 #define STATIC_ARC_SHARE 0.4f
 #define STATIC_FIELD_COOLDOWN 15.f
 
+// NOTE(zoubir): Ball Lightning (right click, from Conduction's pair against
+// Static Field, stormcaller/ball.cpp): a ball rolling along the aim at
+// BALL_LIGHTNING_SPEED for BALL_LIGHTNING_SECONDS, zapping each foe within
+// BALL_LIGHTNING_RADIUS every BALL_LIGHTNING_TICK
+#define BALL_LIGHTNING_SPEED 130.f
+#define BALL_LIGHTNING_SECONDS 3.f
+#define BALL_LIGHTNING_RADIUS 75.f
+#define BALL_LIGHTNING_TICK 0.4f
+#define BALL_LIGHTNING_DAMAGE 5.f
+#define BALL_LIGHTNING_CHARGE 2.f
+#define BALL_LIGHTNING_COOLDOWN 14.f
+
 // NOTE(zoubir): Thunderclap (W): needs THUNDERCLAP_MIN_CHARGE; after its
 // cast (PlayerSpell_StormcallerB) a bolt from the sky on the foe it was
 // pressed on, THUNDERCLAP_DAMAGE plus THUNDERCLAP_PER_CHARGE for each
@@ -127,6 +139,7 @@ enum stormcaller_talent
     StormcallerTalent_Stormbringer,
     StormcallerTalent_ChainLightning,
     StormcallerTalent_StaticField,
+    StormcallerTalent_BallLightning,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -184,6 +197,8 @@ global_variable talent_def StormcallerTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Static Field", "R: a field at the cursor that hurts, slows, and arcs your bolts to every foe inside",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Ball Lightning", "Right click: a slow ball of lightning that zaps what it rolls past, building Charge",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
@@ -215,5 +230,7 @@ global_variable role_spell StormcallerSpells[ROLE_KEYS] =
     {"Spark", SPARK_COOLDOWN,
      "Spark: an instant bolt at a foe that jumps to one more; builds Charge",
      RoleAim_Foe, SPARK_RANGE, 0},
-    {},
+    {"Ball Lightning", BALL_LIGHTNING_COOLDOWN,
+     "Ball Lightning: a slow ball rolls along your aim, zapping what is near it and building Charge",
+     RoleAim_Line, BALL_LIGHTNING_SPEED * BALL_LIGHTNING_SECONDS, StormcallerTalent_BallLightning + 1},
 };
