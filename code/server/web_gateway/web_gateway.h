@@ -7,7 +7,10 @@
    datagram the server answers back as one message. The server sees an
    ordinary client at the gateway's address, so nothing in it changes.
    Only servers on the allowed list (GatewayAllow) can be reached, so the
-   gateway is no open relay. A WebSocket idle for GATEWAY_IDLE_SECONDS, or
+   gateway is no open relay. An entry can also say where the packets
+   really go: "a:p=b:q" lets browsers ask for a:p and sends to b:q, for a
+   gateway in a container that reaches its host's server at another
+   address than the public one browsers know. A WebSocket idle for GATEWAY_IDLE_SECONDS, or
    one sending more than GATEWAY_MAX_MESSAGES a second, is closed; when
    the browser falls behind, server packets are dropped, as UDP would.
 
@@ -58,7 +61,8 @@ struct web_gateway
     u64 Listener;
     u16 Port;
     u32 AllowedCount;
-    net_address Allowed[GATEWAY_MAX_ALLOWED];
+    net_address Asked[GATEWAY_MAX_ALLOWED];  // what a browser may ask for
+    net_address SendTo[GATEWAY_MAX_ALLOWED]; // where its packets go
     char Files[256];       // a folder to serve over HTTP, "" for none
     double Now;
     u32 OpenLinks;
@@ -71,7 +75,8 @@ struct web_gateway
 // Loopback true accepts connections from this machine only.
 internal bool32 GatewayStart(web_gateway *Gateway, u16 Port, bool32 Loopback);
 
-// Allows "host:port" or "a.b.c.d:port"; a host name is looked up now.
+// Allows "host:port" or "a.b.c.d:port", or "asked=sent" to send a server
+// browsers ask for to another address; host names are looked up now.
 internal bool32 GatewayAllow(web_gateway *Gateway, const char *Server);
 
 // Serves the files in Folder to plain HTTP requests.

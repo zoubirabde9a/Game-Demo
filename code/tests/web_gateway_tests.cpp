@@ -2,7 +2,8 @@
    WebSocket handshake key and frames, and a whole trip in one process: a
    test "browser" on TCP asks for a WebSocket, its message reaches a UDP
    "server" as one datagram, and the server's answer comes back as one
-   frame. Also that a server not on the allowed list is refused, that an
+   frame, sent on to the address its allowed entry routes to. Also that a
+   server not on the allowed list is refused, that an
    idle connection is closed, and the 426 a plain request to /net/ gets. */
 
 #include "../server/web_gateway/web_gateway.cpp"
@@ -96,9 +97,14 @@ TestGatewayRelaysPackets()
     Check(GatewayStart(&Gateway, 0, true));
     net_socket Server = NetOpenSocket(0);
     Check(Server.Open);
+    // NOTE(zoubir): browsers ask for 10.9.9.9 and the packets go to this
+    // machine, as a containerised gateway sends its host's public address
+    // to the host's address on the container network
     char Allowed[64];
-    snprintf(Allowed, sizeof(Allowed), "127.0.0.1:%u", NetSocketPort(&Server));
-    Check(GatewayAllow(&Gateway, Allowed));
+    char Route[96];
+    snprintf(Allowed, sizeof(Allowed), "10.9.9.9:%u", NetSocketPort(&Server));
+    snprintf(Route, sizeof(Route), "%s=127.0.0.1:%u", Allowed, NetSocketPort(&Server));
+    Check(GatewayAllow(&Gateway, Route));
 
     double Now = 100.0;
     u64 Browser = TcpConnectLoopback(Gateway.Port);
@@ -155,6 +161,7 @@ TestGatewayRefusesOtherServers()
     Check(GatewayStart(&Gateway, 0, true));
     Check(GatewayAllow(&Gateway, "127.0.0.1:27015"));
     Check(!GatewayAllow(&Gateway, "not a server"));
+    Check(!GatewayAllow(&Gateway, "10.0.0.2:27015=nowhere"));
     double Now = 0.0;
     u64 Browser = TcpConnectLoopback(Gateway.Port);
     const char *Request = "GET /net/10.0.0.1:27015 HTTP/1.1\r\nUpgrade: websocket\r\n"

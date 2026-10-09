@@ -4,7 +4,10 @@
                       [--local]
      --port    the TCP port browsers connect to (default 27080)
      --allow   a game server browsers may reach; repeat for more. Without
-               one, 127.0.0.1:27015 (a server on this machine)
+               one, 127.0.0.1:27015 (a server on this machine).
+               host:port=host2:port2 lets browsers ask for the first and
+               sends to the second (deploy/install.sh: the public address
+               browsers know, and the host as seen from the container)
      --files   also serve this folder over HTTP, to try the browser game
                on one machine: web_gateway --files web\build
      --local   accept connections from this machine only

@@ -107,9 +107,19 @@ GatewayStart(web_gateway *Gateway, u16 Port, bool32 Loopback)
 internal bool32
 GatewayAllow(web_gateway *Gateway, const char *Server)
 {
-    net_address Address;
-    if (Gateway->AllowedCount >= GATEWAY_MAX_ALLOWED || !GatewayResolve(Server, &Address)) return false;
-    Gateway->Allowed[Gateway->AllowedCount++] = Address;
+    char Asked[160];
+    snprintf(Asked, sizeof(Asked), "%s", Server);
+    char *SendTo = strchr(Asked, '=');
+    if (SendTo) *SendTo++ = 0;
+    net_address AskedAddress, SendToAddress;
+    if (Gateway->AllowedCount >= GATEWAY_MAX_ALLOWED || !GatewayResolve(Asked, &AskedAddress) ||
+        !GatewayResolve(SendTo ? SendTo : Asked, &SendToAddress))
+    {
+        return false;
+    }
+    Gateway->Asked[Gateway->AllowedCount] = AskedAddress;
+    Gateway->SendTo[Gateway->AllowedCount] = SendToAddress;
+    Gateway->AllowedCount++;
     return true;
 }
 
@@ -135,13 +145,18 @@ GatewayStop(web_gateway *Gateway)
 internal void
 GatewayOpenWebSocket(web_gateway *Gateway, gateway_link *Link, ws_request *Request)
 {
+    net_address Asked = {};
     net_address Server = {};
     bool32 Allowed = false;
-    if (GatewayResolve(Request->Path + 5, &Server))
+    if (GatewayResolve(Request->Path + 5, &Asked))
     {
-        for (u32 Index = 0; Index < Gateway->AllowedCount; Index++)
+        for (u32 Index = 0; Index < Gateway->AllowedCount && !Allowed; Index++)
         {
-            Allowed |= NetAddressEqual(Gateway->Allowed[Index], Server);
+            if (NetAddressEqual(Gateway->Asked[Index], Asked))
+            {
+                Server = Gateway->SendTo[Index];
+                Allowed = true;
+            }
         }
     }
     if (!Allowed)

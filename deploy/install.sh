@@ -118,7 +118,8 @@ healthy() {
 # reach the server. It runs in a container on the download site's Docker
 # network, next to game-demo-web, whose Caddy passes /net/ to it, so it
 # opens no port of its own. It may only reach the server's public address,
-# kept in $GATEWAY_CONFIG (ALLOW=ip:port; edit it and redeploy to change).
+# kept in $GATEWAY_CONFIG (ALLOW=ip:port; edit it and redeploy to change),
+# which it reaches through the Docker network's address for this machine.
 # Without Docker or the download site (deploy/setup_downloads.sh) there is
 # no browser game to serve and this does nothing. A gateway that does not
 # answer is reported but does not undo the server's release: the desktop
@@ -135,10 +136,16 @@ start_gateway() {
     fi
     ALLOW="$(sed -n 's/^ALLOW=//p' "$GATEWAY_CONFIG")"
     NETWORK="$(docker inspect game-demo-web -f '{{range $Name, $_ := .NetworkSettings.Networks}}{{$Name}} {{end}}' | cut -d' ' -f1)"
+    # NOTE: from inside a container the machine's public address does not
+    # loop back to the server; the network's gateway address is the host
+    # itself. Browsers still ask for the public one (client/server_list.cpp)
+    HOST="$(docker network inspect "$NETWORK" -f '{{(index .IPAM.Config 0).Gateway}}')"
+    ROUTE="$ALLOW"
+    case "$ALLOW" in *=*) ;; *) [ -n "$HOST" ] && ROUTE="$ALLOW=$HOST:${ALLOW##*:}" ;; esac
     docker rm -f "$GATEWAY" >/dev/null 2>&1 || true
     if ! docker run -d --name "$GATEWAY" --restart unless-stopped --network "$NETWORK" \
         --memory 64m --read-only -v "$RELEASE/web_gateway:/web_gateway:ro" \
-        debian:stable-slim /web_gateway --allow "$ALLOW" >/dev/null; then
+        debian:stable-slim /web_gateway --allow "$ROUTE" >/dev/null; then
         say "WARNING: the web gateway container did not start; the browser game cannot join"
         return 0
     fi
@@ -147,7 +154,16 @@ start_gateway() {
     for _ in 1 2 3 4 5 6 7 8 9 10; do
         ANSWER="$(docker exec game-demo-web wget -q -S -O /dev/null "http://$GATEWAY:27080/net/" 2>&1 || true)"
         case "$ANSWER" in
-            *" 426"*) say "web gateway up: browsers reach $ALLOW"; return 0 ;;
+            *" 426"*)
+                # NOTE: and a player can join from where the gateway sits,
+                # at the address it sends to
+                PID="$(docker inspect -f '{{.State.Pid}}' "$GATEWAY")"
+                if nsenter -t "$PID" -n "$RELEASE/probe" "${ROUTE##*=}" >/dev/null 2>&1; then
+                    say "web gateway up: browsers reach $ROUTE"
+                else
+                    say "WARNING: the web gateway runs but cannot reach ${ROUTE##*=}; the browser game cannot join"
+                fi
+                return 0 ;;
         esac
         sleep 0.5
     done
