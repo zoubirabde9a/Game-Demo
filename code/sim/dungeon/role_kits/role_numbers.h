@@ -220,3 +220,6 @@
 #define COMBUSTION_SHARE 0.4f
 #define COMBUSTION_SECONDS 6.f
 #define COMBUSTION_COOLDOWN 30.f
+// NOTE(zoubir): a striker's ClassFlags bit while Combustion lasts, so
+// every client draws its white-hot hands (client/dungeon/role_looks.cpp)
+#define STRIKER_FLAG_COMBUST 0x1

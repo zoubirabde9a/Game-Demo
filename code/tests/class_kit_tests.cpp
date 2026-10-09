@@ -161,7 +161,8 @@ TestPredictedStrikerWindsUp()
     DestroyCryptWorld(&Crypt);
 }
 
-// NOTE(zoubir): the V spells: Combustion raises the striker's damage,
+// NOTE(zoubir): the V spells: Combustion raises the striker's damage
+// (and flags it for the clients),
 // Last Stand heals the tank behind Shield Wall, Radiance heals and wards
 // everyone round the healer
 internal void
@@ -189,6 +190,13 @@ TestTreeFinishers()
     float Burning = DungeonScaleDamage(AppState, Monster, Striker->Entity, 10.f);
     Check(Burning > (1.f + COMBUSTION_SHARE) * Plain - 0.01f &&
           Burning < (1.f + COMBUSTION_SHARE) * Plain + 0.01f);
+    // NOTE(zoubir): the flag every client draws it from lasts as long
+    Check(Striker->ClassFlags & STRIKER_FLAG_COMBUST);
+    UpdateFireguards(AppState, 0.1f);
+    Check(Striker->ClassFlags & STRIKER_FLAG_COMBUST);
+    Striker->CombustSeconds = 0.f;
+    UpdateFireguards(AppState, 0.1f);
+    Check(!(Striker->ClassFlags & STRIKER_FLAG_COMBUST));
 
     world_entity *Body = Tank->Entity;
     Body->Hp = 0.5f * Body->MaxHp;

@@ -157,7 +157,7 @@ DetonateMarks(app_state *AppState, world_entity *Player)
 }
 
 // NOTE(zoubir): once a tick: a Fireguard runs out with its time, and what
-// is left of it goes out as a striker's ClassMeter
+// is left of it goes out as a striker's ClassMeter, Combustion as a flag
 internal void
 UpdateFireguards(app_state *AppState, float DeltaTime)
 {
@@ -172,6 +172,8 @@ UpdateFireguards(app_state *AppState, float DeltaTime)
         if (Slot->Role == PlayerRole_Damage)
         {
             Slot->ClassMeter = (u8)Minimum(255.f, Slot->FireguardAbsorb + 0.99f);
+            Slot->ClassFlags = (u8)((Slot->ClassFlags & ~STRIKER_FLAG_COMBUST) |
+                                    (Slot->CombustSeconds > 0.f ? STRIKER_FLAG_COMBUST : 0));
         }
     }
 }
@@ -241,6 +243,7 @@ CastStrikerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32
         case 3:
         {
             Slot->CombustSeconds = COMBUSTION_SECONDS;
+            Slot->ClassFlags |= STRIKER_FLAG_COMBUST;
             EmitSound(&AppState->Events, AssetType_SfxCombustion, Player->Position);
             EmitBurst(&AppState->Events, SimBurst_InfernoCast, SlotIndex, ChestOf(Player),
                       ATan2(Player->Aim.Y, Player->Aim.X));

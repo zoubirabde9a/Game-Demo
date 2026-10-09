@@ -9,7 +9,9 @@
      light circling the body, and a soft green glow at the feet; the
      sprite is tinted toward pale gold.
    - Striker (damage): flames licking up from both hands, embers rising
-     off the shoulders; the sprite is tinted warm.
+     off the shoulders; the sprite is tinted warm. While Combustion lasts
+     (STRIKER_FLAG_COMBUST) the hands burn white-hot and bigger, and a
+     heat haze pulses round the body.
 
    The later classes' looks are their own files (classes/<class>.cpp).
 
@@ -257,14 +259,38 @@ DrawHandFlame(render_context *RenderContext, v2 Base, float Size, float Clock, u
 }
 
 internal void
-DrawStrikerLook(render_context *RenderContext, world_entity *Player, float Clock,
-                v3 CameraOffset)
+DrawStrikerLook(render_context *RenderContext, player_slot *Slot, world_entity *Player,
+                float Clock, v3 CameraOffset)
 {
     v2 Body = RoleLookPoint(Player, 0.36f, CameraOffset);
     float Out = 0.4f * Player->Dimensions.X;
     float Size = 0.14f * Player->Dimensions.Y;
-    DrawHandFlame(RenderContext, Body + V2(-Out, 0.f), Size, Clock, 2 * Player->PlayerIndex);
-    DrawHandFlame(RenderContext, Body + V2(Out, 0.f), Size, Clock, 2 * Player->PlayerIndex + 1);
+    bool32 Combust = (Slot->ClassFlags & STRIKER_FLAG_COMBUST) != 0;
+    if (Combust)
+    {
+        // NOTE(zoubir): a heat haze beating round the body, under the hands
+        float Beat = 0.5f + 0.5f * Sin(7.f * Clock);
+        v2 Chest = RoleLookPoint(Player, 0.5f, CameraOffset);
+        float Haze = (1.5f + 0.25f * Beat) * Player->Dimensions.X;
+        DrawShaderQuad(RenderContext, Shader_Glow, Chest.X - 0.5f * Haze, Chest.Y - 0.6f * Haze,
+                       Haze, 1.2f * Haze, FxColor(0.35f + 0.25f * Beat, ROLE_LOOK_FLAME_RGB),
+                       RenderBlend_Additive);
+        Size *= 1.45f;
+    }
+    for(u32 Hand = 0; Hand < 2; Hand++)
+    {
+        v2 Palm = Body + V2(Hand ? Out : -Out, 0.f);
+        DrawHandFlame(RenderContext, Palm, Size, Clock, 2 * Player->PlayerIndex + Hand);
+        if (Combust)
+        {
+            float Flicker = 0.8f + 0.2f * Sin(23.f * Clock + 3.f * (float)Hand);
+            DrawShaderQuad(RenderContext, Shader_Glow, Palm.X - 1.6f * Size, Palm.Y - 2.2f * Size,
+                           3.2f * Size, 3.2f * Size, FxColor(0.8f * Flicker, 0x00E0F8FF),
+                           RenderBlend_Additive);
+            DrawFxDot(RenderContext, Palm - V2(0.f, 0.5f * Size), 0.6f * Size * Flicker,
+                      FxColor(1.f, 0x00FFFFFF));
+        }
+    }
     // NOTE(zoubir): embers drifting up off the shoulders
     v2 Shoulders = RoleLookPoint(Player, 0.7f, CameraOffset);
     for(u32 Ember = 0; Ember < 4; Ember++)
@@ -296,7 +322,7 @@ DrawRoleLooks(render_context *RenderContext, app_state *AppState, v3 CameraOffse
         {
             case PlayerRole_Tank:   { DrawTankLook(RenderContext, Slot, Player, Clock, CameraOffset); } break;
             case PlayerRole_Healer: { DrawHealerLook(RenderContext, Player, Clock, CameraOffset); } break;
-            case PlayerRole_Damage: { DrawStrikerLook(RenderContext, Player, Clock, CameraOffset); } break;
+            case PlayerRole_Damage: { DrawStrikerLook(RenderContext, Slot, Player, Clock, CameraOffset); } break;
             default: { DrawClassLook(RenderContext, AppState, Slot, Player, Clock, CameraOffset); } break;
         }
     }
