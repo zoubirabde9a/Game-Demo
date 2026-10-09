@@ -9,7 +9,7 @@
 inline bool32
 FoeMarkUsed(foe_mark *Mark)
 {
-    bool32 Result = Mark->Stacks > 0 || Mark->SunderSeconds > 0.f;
+    bool32 Result = Mark->Stacks > 0 || Mark->SunderSeconds > 0.f || Mark->WeakenSeconds > 0.f;
     return Result;
 }
 
@@ -46,8 +46,8 @@ GetFoeMark(dungeon_run *Run, world *World, world_entity *Monster)
                 Mark = Row;
                 break;
             }
-            if (Maximum(Row->Seconds, Row->SunderSeconds) <
-                Maximum(Mark->Seconds, Mark->SunderSeconds))
+            if (Maximum(Maximum(Row->Seconds, Row->SunderSeconds), Row->WeakenSeconds) <
+                Maximum(Maximum(Mark->Seconds, Mark->SunderSeconds), Mark->WeakenSeconds))
             {
                 Mark = Row;
             }
@@ -91,6 +91,26 @@ FoeMarkDamageScale(dungeon_run *Run, world *World, world_entity *Monster)
 }
 
 // NOTE(zoubir): once a tick: marks fade, and go with their monster
+// NOTE(zoubir): Monster weakened for Seconds: it deals Share less
+// (FoeWeakenScale), the stronger of what it had and this
+internal void
+WeakenFoe(dungeon_run *Run, world *World, world_entity *Monster, float Seconds, float Share)
+{
+    foe_mark *Mark = GetFoeMark(Run, World, Monster);
+    Mark->WeakenSeconds = Maximum(Mark->WeakenSeconds, Seconds);
+    Mark->WeakenShare = Maximum(Mark->WeakenShare, Share);
+}
+
+// NOTE(zoubir): the share of its hit a weakened monster Source still
+// deals, from DungeonScaleDamage; 1 for anything else
+internal float
+FoeWeakenScale(dungeon_run *Run, world *World, world_entity *Source)
+{
+    foe_mark *Mark = (Source && Source->Type == EntityType_Monster) ? FindFoeMark(Run, World, Source) : 0;
+    float Result = (Mark && Mark->WeakenSeconds > 0.f) ? 1.f - Mark->WeakenShare : 1.f;
+    return Result;
+}
+
 internal void
 UpdateFoeMarks(dungeon_run *Run, world *World, float DeltaTime)
 {
@@ -106,6 +126,11 @@ UpdateFoeMarks(dungeon_run *Run, world *World, float DeltaTime)
         if (Mark->SunderSeconds <= 0.f)
         {
             Mark->SunderShare = 0.f;
+        }
+        Mark->WeakenSeconds = Maximum(0.f, Mark->WeakenSeconds - DeltaTime);
+        if (Mark->WeakenSeconds <= 0.f)
+        {
+            Mark->WeakenShare = 0.f;
         }
         if (Mark->Seconds <= 0.f)
         {

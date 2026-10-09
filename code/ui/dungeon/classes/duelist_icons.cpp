@@ -132,6 +132,20 @@ PaintFeintIcon(icon_canvas *Canvas)
                 Gradient(DuelistIconRose(0), IconColor(255, 230, 240), V2(0.04f, 0.f), V2(0.5f, 0.f)));
 }
 
+// NOTE(zoubir): Disarm: the rapier's point flicking a dark blade out of a
+// foe's grip, the blade spinning away
+internal void
+PaintDisarmIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.5f, 0.5f), 0.5f, IconColor(240, 110, 170, 140));
+    IconDuelistRapier(Canvas, V2(0.12f, 0.88f), DuelistNormalIcon(V2(1.f, -1.f)), 0.6f);
+    v2 Spin = V2(0.68f, 0.3f);
+    IconCapsule(Canvas, Spin - V2(0.14f, -0.06f), Spin + V2(0.14f, -0.06f), 0.035f,
+                Gradient(IconColor(90, 90, 110), IconColor(40, 40, 50), Spin, Spin + V2(0.14f, 0.f)));
+    IconArc(Canvas, Spin, 0.2f, 0.02f, Solid(DuelistIconRose(180)), 3.6f, 5.6f);
+    IconSparkle(Canvas, V2(0.5f, 0.5f), 0.08f, Solid(IconColor(255, 240, 245)));
+}
+
 // NOTE(zoubir): Riposte: the rapier held across, a gold clang where a blow
 // meets it, and the counter's point turning back
 internal void
@@ -291,7 +305,7 @@ PaintMasterstrokeIcon(icon_canvas *Canvas)
 global_variable role_icon_painter *DuelistIconPainters[ROLE_KEYS] =
 {
     PaintLungeIcon, PaintRiposteIcon, PaintFeintIcon, PaintPerfectFormIcon,
-    PaintHeartseekerIcon, 0, PaintThrustIcon,
+    PaintHeartseekerIcon, PaintDisarmIcon, PaintThrustIcon,
 };
 global_variable talent_icon_painter *DuelistTalentIconPainters[ROLE_TALENTS] =
 {

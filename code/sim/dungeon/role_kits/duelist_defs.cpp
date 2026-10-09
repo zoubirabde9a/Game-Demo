@@ -9,6 +9,14 @@
 #define THRUST_HALF_ARC 0.45f
 #define THRUST_SHOVE 25.f
 #define THRUST_COOLDOWN 0.5f
+// NOTE(zoubir): Disarm (X, from Bladework's pair against Perfect Form):
+// a flick at the foe in reach that strikes it for DISARM_DAMAGE and leaves
+// it dealing DISARM_SHARE less for DISARM_SECONDS (role_kits/foe_marks.cpp)
+#define DISARM_REACH 110.f
+#define DISARM_DAMAGE 12.f
+#define DISARM_SHARE 0.3f
+#define DISARM_SECONDS 6.f
+#define DISARM_COOLDOWN 12.f
 // NOTE(zoubir): Lunge (A): to just in front of a foe this far off at
 // most, LUNGE_GAP past its half width, and a strike
 #define LUNGE_RANGE 300.f
@@ -161,6 +169,7 @@ enum duelist_talent
     DuelistTalent_Lunge,
     DuelistTalent_Riposte,
     DuelistTalent_Feint,
+    DuelistTalent_Disarm,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
@@ -198,6 +207,8 @@ global_variable talent_def DuelistTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Feint", "C: a quick step; the next blow on you in 1 s misses and gives a Tempo",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Disarm", "X: a flick at the foe in reach; it deals 30% less for 6 s",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
@@ -225,7 +236,8 @@ global_variable role_spell DuelistSpells[ROLE_KEYS] =
     {"Heartseeker", HEARTSEEKER_COOLDOWN,
      "Heartseeker: a piercing strike at the foe in front, harder with Tempo and on a hurt foe",
      RoleAim_None, HEARTSEEKER_REACH, 0},
-    {},
+    {"Disarm", DISARM_COOLDOWN, "Disarm: a flick at the foe in reach; it deals 30% less for 6 s",
+     RoleAim_None, DISARM_REACH, DuelistTalent_Disarm + 1},
     {"Thrust", THRUST_COOLDOWN, "Thrust: a quick stab at the first foe in front",
      RoleAim_None, THRUST_REACH, 0},
 };

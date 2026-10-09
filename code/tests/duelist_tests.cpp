@@ -79,7 +79,7 @@ TestDuelistOwnsItsKeys()
     SetClassTalentRank(Slot, DuelistTalent_PerfectForm, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);
     Check(Allowed & PlayerButton_Kunai);
-    Check((Allowed & PlayerButton_Slam) && !(Allowed & PlayerButton_Cast));
+    Check((Allowed & PlayerButton_Slam) && (Allowed & PlayerButton_Cast));
     Check(DuelistKeyWindsUp(4) && !DuelistKeyWindsUp(1) && !DuelistKeyWindsUp(6));
     Check(RoleSpellOnButton(AppState, Slot->Entity, PlayerButton_Attack) == &DuelistSpells[6]);
     DestroyCryptWorld(&Crypt);
@@ -395,6 +395,27 @@ TestFeint()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Disarm strikes the foe in reach and leaves it dealing
+// DISARM_SHARE less until DISARM_SECONDS run out
+internal void
+TestDisarm()
+{
+    crypt_world Crypt = DuelistCrypt();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    PressOnce(&Crypt, 0, PlayerButton_Cast);
+    Check(Slot->RoleCooldowns[5] == 0.f);
+    world_entity *Foe = DuelistDummy(&Crypt, V3(80.f, 0.f, 0.f));
+    Check(FoeWeakenScale(AppState->Dungeon, &AppState->World, Foe) == 1.f);
+    PressAt(&Crypt, 0, PlayerButton_Cast, Foe);
+    Check(Slot->RoleCooldowns[5] > 0.f && Foe->Hp < 2000.f);
+    float Scale = FoeWeakenScale(AppState->Dungeon, &AppState->World, Foe);
+    Check(Scale > 1.f - DISARM_SHARE - 0.001f && Scale < 1.f - DISARM_SHARE + 0.001f);
+    TickCrypt(&Crypt, (u32)(60.f * DISARM_SECONDS) + 2);
+    Check(FoeWeakenScale(AppState->Dungeon, &AppState->World, Foe) == 1.f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDuelistTests()
 {
@@ -405,6 +426,7 @@ RunDuelistTests()
     TestRiposte();
     TestRiposteWhiff();
     TestFeint();
+    TestDisarm();
     TestPredictedDuelist();
     TestHeartseeker();
     TestPerfectForm();

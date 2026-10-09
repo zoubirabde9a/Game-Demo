@@ -284,7 +284,13 @@ BotDuelistButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world
     // NOTE(zoubir): a key other than the last one, so it gains Tempo
     bool32 ThrustAgain = Last == 6 + 1;
     u32 Result = 0;
-    if (Ready[3] && Fighting && Run->BossSerial && Distance < 2.f * Reach)
+    if (Ready[5] && Distance < DISARM_REACH + 0.5f * Foe->Dimensions.X &&
+        (Foe->MonsterSerial == Run->BossSerial || BotDuelistBiteComing(AppState, Self)))
+    {
+        // NOTE(zoubir): Disarm the boss, or what is about to bite
+        Result = NetButton_Fireball;
+    }
+    else if (Ready[3] && Fighting && Run->BossSerial && Distance < 2.f * Reach)
     {
         Result = NetButton_Kunai;
     }

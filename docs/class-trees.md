@@ -35,7 +35,7 @@ Attack, base spells, then each branch's pair. A spell marked *new* is designed a
 | Berserker | Cleave | Execute, Whirlwind | Fury: Berserk or Battle Shout | Carnage: Leap or *Rampage* (a charge through a line of foes, Rage for each) |
 | Shadowblade | Twin Strike | Eviscerate, Fan of Knives | Assassination: Deadly Throw or Garrote (C: breaks the wind-up of the foe in reach, holds and poisons it, two combo points) | Subtlety: Shadowstep or Shadow Dance |
 | Stormcaller | Spark | Thunderclap, Chain Lightning | Conduction: Static Field or Ball Lightning (right click: a slow ball that zaps what it rolls past and builds Charge) | Tempest: Lightning Dash or Eye of the Storm |
-| Duelist | Thrust | Heartseeker, Lunge | Bladework: Perfect Form or *Disarm* (a strike that halves a foe's damage for a while) | Guard: Riposte or Feint |
+| Duelist | Thrust | Heartseeker, Lunge | Bladework: Perfect Form or Disarm (X: a flick that leaves the foe dealing 30% less for 6 s) | Guard: Riposte or Feint |
 | Frost Mage | Frostbolt | Glacial Spike, Frost Nova | Winter: Blizzard or Cone of Cold (right click: a cone that chills and grows an Icicle a foe) | Shatter: Frozen Orb or Ice Barrier |
 | Bulwark | Shield Bash | Shield Slam, Taunt, Shield Charge, Shield Throw | Bastion: Last Stand or *Rallying Cry* (allies near gain health for a while) | Vanguard: Intercept or *Demoralizing Roar* (foes near deal less) |
 | Mender | Smite Bolt | Mending Bolt, Ward, Holy Fire, Radiance | Sanctum: Sanctuary or *Prayer of Healing* (heals the most hurt allies at once) | Dawn: *Dawnbreak* or *Purify* (light that heals through damage, or a cleanse and a shield) |
@@ -49,7 +49,7 @@ A bot takes a spell of each pair first, which of the two by a coin toss, so a pa
 
 ## Status
 
-Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above not marked *new*. To build: the nine spells still marked *new*. Class keys run A, R, C, V, W, X, the right click, G and T; a new spell takes a key its class leaves free.
+Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above not marked *new*. To build: the eight spells still marked *new*. Class keys run A, R, C, V, W, X, the right click, G and T; a new spell takes a key its class leaves free.
 
 ## Balance
 

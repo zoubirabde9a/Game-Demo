@@ -209,6 +209,9 @@ IsDungeon(app_state *AppState)
 
 #include "party_scaling.cpp"
 
+// NOTE(zoubir): role_kits/foe_marks.cpp: the share of its hit a monster
+// the Duelist's Disarm weakened still deals
+internal float FoeWeakenScale(dungeon_run *Run, world *World, world_entity *Source);
 // NOTE(zoubir): in threat.cpp and role_kits/striker.cpp, included by
 // encounters.cpp later
 internal void AddThreat(threat_table *Table, world *World, world_entity *Monster,
@@ -330,6 +333,8 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         {
             Result *= Slot->Role == PlayerRole_Tank ? PartySustainScale(Run) : RunPartyDamage(Run);
             Result *= RunBossDamage(Run);
+            // NOTE(zoubir): a Duelist's Disarm (role_kits/foe_marks.cpp)
+            Result *= FoeWeakenScale(Run, &AppState->World, Source);
             // NOTE(zoubir): and a deeper level harder still (levels.cpp)
             Result *= LevelFoeDamage(AppState->World.MapId);
             if (!Run->BossSerial)

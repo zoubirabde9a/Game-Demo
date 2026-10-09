@@ -105,17 +105,16 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
       {RM(Giantslayer), RM(Cornered), RM(Wayfarer), RM(Quickened), RM(Toughened),
        CT(StormcallerTalent_Quickening)}}},
 
-    // NOTE(zoubir): the Duelist. Flurry holds Bladework's second spell slot
-    // until Disarm is in
+    // NOTE(zoubir): the Duelist
     {{"Bladework", "Guard"},
-     {CLASS_BRANCH(CT(DuelistTalent_Finesse), CT(DuelistTalent_PerfectForm), CT(DuelistTalent_Flurry),
+     {CLASS_BRANCH(CT(DuelistTalent_Finesse), CT(DuelistTalent_PerfectForm), CT(DuelistTalent_Disarm),
                    CT(DuelistTalent_Precision), CT(DuelistTalent_Crescendo), RM(CoupDeGrace),
                    CT(DuelistTalent_Masterstroke)),
       CLASS_BRANCH(CT(DuelistTalent_Parade), CT(DuelistTalent_Riposte), CT(DuelistTalent_Feint),
                    CT(DuelistTalent_Bait), RM(Measured), RM(PerfectForm),
                    RM(Lifeline))},
      {{CT(DuelistTalent_KeenEdge), RM(Precision), RM(Giantslayer),
-       RM(Panache), CT(DuelistTalent_QuickWrist), CT(DuelistTalent_Footwork)},
+       RM(Panache), CT(DuelistTalent_QuickWrist), CT(DuelistTalent_Footwork), CT(DuelistTalent_Flurry)},
       {CT(DuelistTalent_Stamina), RM(Spikes), RM(Stubborn), RM(SecondBreath), RM(Feast),
        RM(Vigor)}}},
 

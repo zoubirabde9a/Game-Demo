@@ -127,6 +127,11 @@ CastDuelistKey(app_state *AppState, world *World, memory_arena *Arena, player_sl
         {
             CastThrust(AppState, Slot, Player);
         } break;
+
+        case 5:
+        {
+            Result = CastDisarm(AppState, Slot, Player);
+        } break;
     }
     if (!Slot->Predicted)
     {

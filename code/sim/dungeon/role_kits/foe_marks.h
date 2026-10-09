@@ -24,4 +24,8 @@ struct foe_mark
     // it takes meanwhile
     float SunderSeconds;
     float SunderShare;
+    // NOTE(zoubir): seconds the monster stays weakened (the Duelist's
+    // Disarm), and the share less it deals meanwhile
+    float WeakenSeconds;
+    float WeakenShare;
 };

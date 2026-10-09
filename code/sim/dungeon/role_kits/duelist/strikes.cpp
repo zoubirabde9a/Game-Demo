@@ -115,6 +115,34 @@ CastThrust(app_state *AppState, player_slot *Slot, world_entity *Player)
     }
 }
 
+// NOTE(zoubir): Disarm (X): a flick at the foe in reach, which deals less
+// for a while after; a Tempo stack when it lands on a fresh key. False
+// with no foe in reach, which costs nothing
+internal bool32
+CastDisarm(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
+    world_entity *Foe = AttackTarget(AppState, Slot, Player, DISARM_REACH);
+    if (!Foe)
+    {
+        return false;
+    }
+    bool32 Fresh = DuelistUseKey(Slot, 5);
+    v2 Toward = DuelistAway(Player, Foe);
+    DuelistStrike(AppState, Slot, Player, Foe, DISARM_DAMAGE, 40.f);
+    if (Foe->IsPresent && Foe->Hp > 0.f)
+    {
+        WeakenFoe(AppState->Dungeon, &AppState->World, Foe, DISARM_SECONDS, DISARM_SHARE);
+    }
+    if (Fresh)
+    {
+        AddTempo(Slot, 1);
+    }
+    EmitBurst(&AppState->Events, ClassBurst(SimBurst_DuelistFirst, DuelistBurst_Counter),
+              (u8)Player->PlayerIndex, ChestOf(Foe), ATan2(Toward.Y, Toward.X));
+    EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);
+    return true;
+}
+
 // NOTE(zoubir): Lunge (A): to just in front of the foe and a strike;
 // false with no foe in range, which costs nothing
 internal bool32
