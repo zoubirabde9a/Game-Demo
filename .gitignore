@@ -29,8 +29,8 @@ build/gcc_works.*
 build/layout.log
 build/layout.code
 build/*.tmp
-# webuild.bat copies these from build/shaders/fx
-web/shaders/fx/
+# The browser game, built by web/build.bat
+web/build/
 build/client_src/
 build/client_package/
 # build.bat compiles code/platform/game.rc into this

@@ -121,7 +121,6 @@ ChatTakesKeys(app_state *AppState, app_input *Input)
     Chat->TypingFor += Input->DeltaTime;
 
     bool32 CanChat = false;
-#if !COMPILER_EMSCRIPTEN
     online_session *Online = AppState->Online;
     if (IsOnline(Online))
     {
@@ -132,7 +131,6 @@ ChatTakesKeys(app_state *AppState, app_input *Input)
         }
         CanChat = !ConnectScreenTakesInput(AppState) && !AppState->OptionsOpen;
     }
-#endif
     if (!CanChat)
     {
         Chat->Typing = false;
@@ -162,12 +160,10 @@ ChatTakesKeys(app_state *AppState, app_input *Input)
             {
                 Chat->Typing = false;
             }
-#if !COMPILER_EMSCRIPTEN
             else if (NetClientSay(&Online->Client, Chat->Draft))
             {
                 Chat->Typing = false;
             }
-#endif
             else
             {
                 Chat->Refused = 0.6f;

@@ -4,10 +4,9 @@
    AppGetSoundSamples mixes the sound the frame asked for. */
 
 // NOTE(zoubir): network code for the online session. The dedicated server
-// includes it itself before this file; the browser build has no UDP.
-// (__EMSCRIPTEN__ comes from the compiler; COMPILER_EMSCRIPTEN is not
-// defined yet at this point.)
-#if !defined(NET_CLIENT_H) && !defined(__EMSCRIPTEN__)
+// includes it itself before this file. The browser build sends its packets
+// over WebSockets instead of UDP (net/platform/web_socket.cpp).
+#if !defined(NET_CLIENT_H)
 #include "net/protocol.cpp"
 #include "net/socket.cpp"
 #include "net/client.cpp"

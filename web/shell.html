@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- The page the browser game runs in. web\build.bat compiles the game
+     with this as Emscripten's shell: the game's script goes where
+     {{{ SCRIPT }}} is. The canvas fills the window; the game sizes its
+     drawing buffer to it (code/platform/emscripten_app.cpp). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Demo</title>
+<style>
+  :root { --bg: #16181d; --text: #eef0f3; --muted: #a5abb6; --gold: #e0b84a; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); }
+  canvas { display: block; width: 100vw; height: 100vh; outline: none; }
+  #loading {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+    color: var(--text); font: 16px/1.5 "Segoe UI", system-ui, sans-serif;
+  }
+  #loading h1 { margin: 0; font-size: 32px; letter-spacing: -0.5px; }
+  #bar { width: min(320px, 70vw); height: 6px; border-radius: 3px; background: #2a2e37; overflow: hidden; }
+  #fill { width: 0; height: 100%; background: var(--gold); transition: width 0.2s; }
+  #status { color: var(--muted); font-size: 14px; min-height: 1.5em; text-align: center; padding: 0 16px; }
+</style>
+</head>
+<body>
+<canvas id="canvas" tabindex="-1"></canvas>
+<div id="loading">
+  <h1>Game Demo</h1>
+  <div id="bar"><div id="fill"></div></div>
+  <div id="status">Loading…</div>
+</div>
+<script>
+  var Loading = document.getElementById("loading");
+  var Fill = document.getElementById("fill");
+  var Status = document.getElementById("status");
+  var Canvas = document.getElementById("canvas");
+  Canvas.addEventListener("contextmenu", function(Event) { Event.preventDefault(); });
+  Canvas.addEventListener("webglcontextlost", function(Event)
+  {
+    Event.preventDefault();
+    Module.gameFailed("The graphics card stopped the game. Reload the page to play again.");
+  });
+
+  var Module = {
+    canvas: Canvas,
+    // NOTE: Emscripten reports download progress as "Downloading data... (12/34)"
+    setStatus: function(Text)
+    {
+      var Progress = /\((\d+(\.\d+)?)\/(\d+)\)/.exec(Text);
+      if (Progress) Fill.style.width = (100 * Progress[1] / Progress[3]) + "%";
+      if (Text) Status.textContent = Text.replace(/\s*\(.*\)$/, "") || "Loading…";
+    },
+    onRuntimeInitialized: function() { Loading.style.display = "none"; Canvas.focus(); },
+    gameFailed: function(Text)
+    {
+      Loading.style.display = "flex";
+      Fill.parentNode.style.display = "none";
+      Status.textContent = Text;
+    },
+    print: function(Text) { console.log(Text); },
+    printErr: function(Text) { console.warn(Text); },
+  };
+  window.addEventListener("error", function()
+  {
+    Module.gameFailed("The game stopped with an error. Reload the page to play again.");
+  });
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

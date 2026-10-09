@@ -65,18 +65,14 @@ struct online_session
     // frame made, for prediction
     u32 HeldSinceTick;
     u32 NewTicks;
-#if !COMPILER_EMSCRIPTEN
     net_client Client;
     // NOTE(zoubir): the last deaths read and the snapshot tick of each;
     // the server sends each twice (server/event_relay.cpp)
     net_kill RecentKills[ONLINE_RECENT_KILLS];
     u32 RecentKillTicks[ONLINE_RECENT_KILLS];
     u32 RecentKillCursor;
-#endif
 };
 
-
-#if !COMPILER_EMSCRIPTEN
 
 // NOTE(zoubir): the held keys, in the network's button bits. The server
 // turns new presses into actions itself.
@@ -398,46 +394,3 @@ GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
 // NOTE(zoubir): the frame's world update, from the snapshot or the simulation
 #include "online/world_tick.cpp"
 
-#else
-
-internal void
-RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
-{
-    SimulateTick(AppState, Arena, DeltaTime);
-}
-
-internal online_session *
-StartOnlineSession(memory_arena *Arena, char *DefaultAddress = 0,
-                   bool32 RequireName = false)
-{
-    online_session *Online = AllocateStruct(Arena, online_session);
-    ZeroSize(Online, sizeof(*Online));
-    return Online;
-}
-
-internal void
-UpdateOnlineSession(online_session *Online, app_input *Input,
-                    bool32 KeysToUi = false, v2 Aim = {}, u32 LearnBits = 0,
-                    u32 Target = 0, u32 RoleRequest = 0) {}
-internal void OnlineDisconnect(online_session *Online) {}
-internal bool32
-OnlineConnect(online_session *Online, char *Address, char *Name)
-{
-    return false;
-}
-inline bool32 IsOnline(online_session *Online) { return false; }
-internal online_quality *GetOnlineQuality(online_session *Online) { return 0; }
-inline float GetOnlineSilence(online_session *Online) { return 0.f; }
-internal online_phase
-GetOnlinePhase(online_session *Online)
-{
-    return OnlinePhase_Offline;
-}
-internal void
-GetOnlineStatusText(online_session *Online, char *Out, u32 OutSize)
-{
-    Out[0] = 0;
-}
-internal char *GetOnlineServerName(online_session *Online) { return (char *)""; }
-
-#endif

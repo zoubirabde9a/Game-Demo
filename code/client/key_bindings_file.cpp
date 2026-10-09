@@ -117,7 +117,6 @@ FormatKeyBindings(key_bindings *Bindings, char *Out, u32 OutSize)
 // NOTE(zoubir): room for every row of every set on its own line
 #define KEY_BINDINGS_FILE_SIZE (BindingMode_Count * 2 * BINDING_COUNT * 48)
 
-#if !COMPILER_EMSCRIPTEN
 // NOTE(zoubir): fopen is portable; MSVC's "unsafe" warning does not apply
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -151,8 +150,4 @@ SaveKeyBindings(key_bindings *Bindings)
 }
 #if defined(_MSC_VER)
 #pragma warning(pop)
-#endif
-#else
-internal void LoadKeyBindings(key_bindings *Bindings) { *Bindings = {}; }
-internal void SaveKeyBindings(key_bindings *Bindings) {}
 #endif

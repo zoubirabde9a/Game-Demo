@@ -184,7 +184,6 @@ ReadSavedHeroLook()
 #pragma warning(pop)
 #endif
 
-#if !COMPILER_EMSCRIPTEN
 // NOTE(zoubir): fopen and fprintf are portable; see the warning note above
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -225,10 +224,6 @@ SaveLocalSettings()
 }
 #if defined(_MSC_VER)
 #pragma warning(pop)
-#endif
-#else
-internal void SaveOnlineConfig(char *Address, char *Name) {}
-internal void SaveLocalSettings() {}
 #endif
 
 // NOTE(zoubir): the hero look picked, from the Esc options

@@ -1,500 +1,222 @@
-/* Web platform: the browser build's entry point, compiled with emscripten
-   and SDL. It supplies the file, memory and work-queue calls the game
-   expects from a platform, maps SDL keys and mouse buttons to app_input,
-   and main creates the window and GL context, then hands MainLoop to
-   emscripten_set_main_loop. The whole game comes in through app.cpp. */
-#include "../third_party/SDL/SDL.h"
-//#undef main
-#include <emscripten\emscripten.h>
+/* The browser game: the entry point web\build.bat compiles with
+   Emscripten. It makes a WebGL 2 context on the page's canvas, hands the
+   game its memory and the platform calls, and runs one game frame per
+   1/60 s from the browser's animation frames, with input, sound and the
+   canvas size, as the Windows layer does. The parts are in web/; the
+   whole game comes in through app.cpp, network code included (its
+   packets go over WebSockets, net/platform/web_socket.cpp).
+
+   The page (web/shell.html) can pass settings in its address: any
+   GAME_... parameter becomes that environment variable, as on the
+   desktop, so ?GAME_SERVER=127.0.0.1:27015 joins a local server. */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
 #include <GLES3/gl3.h>
 #include "../app_platform.h"
 
 #include "../app.cpp"
 
+#include "web/files.cpp"
+#include "web/input.cpp"
+#include "web/sound.cpp"
+#include "web/opengl.cpp"
 
-DEBUG_PLATFORM_READ_ENTIRE_FILE(WebReadEntireFile)
+#define WEB_FRAME_SECONDS (1.f / 60.f)
+
+struct web_frame_loop
 {
-    debug_read_file_result Result = {};
-
-    FILE *File = fopen(fileName, "rb");
-    if (File)
-    {
-        fseek(File, 0l, SEEK_END);
-        u32 Size = ftell(File);
-        fseek(File, 0l, SEEK_SET);
-        void *Memory = malloc(Size);
-        fread(Memory, Size, 1, File);
-
-        Result.Memory = Memory;
-        Result.Size = Size;        
-    }
-    
-    return Result;
-}
-DEBUG_PLATFORM_FREE_FILE_MEMORY(WebFreeFileMemory)
-{
-    free(memory);
-}
-
-DEBUG_PLATFORM_WRITE_ENTIRE_FILE(WebWriteEntireFile)
-{    
-    bool32 Result = 0;
-
-    FILE *File = fopen(fileName, "wb+");
-    if (File)
-    {
-        Result = (fwrite(memory, memorySize, 1, File) == memorySize);
-    }
-    
-    return Result;
-}
-
-PLATFORM_ADD_WORK_ENTRY(WebAddWorkEntry)
-{
-    
-}
-
-inline void *
-WebAllocateSize(u32 Size)
-{
-    void *Result = calloc(1, Size);
-    return Result;
-}
-
-#define WebAllocateStruct(Type) (Type *)(WebAllocateSize(sizeof(Type)))
-
-inline void
-WebFree(void *Memory)
-{
-    free(Memory);
-}
-
-struct web_platform_file_handle
-{
-    platform_file_handle H;
-    FILE *Handle;
+    thread_context Thread;
+    open_gl OpenGL;
+    app_memory Memory;
+    app_input Inputs[2];
+    app_input *OldInput;
+    app_input *NewInput;
+    double LastNow;
+    double Owed; // seconds of game time the browser's clock is ahead by
+    int CanvasWidth;
+    int CanvasHeight;
 };
 
-struct web_platform_file_group
-{
-    platform_file_group H;
-};
+global_variable web_frame_loop WebLoop;
 
-internal
-PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(WebGetAllFilesOfTypeBegin)
-{
-    web_platform_file_group *WebFileGroup =
-        WebAllocateStruct(web_platform_file_group);
-    WebFileGroup->H.FileCount = 1;
-    
-    return (platform_file_group *)WebFileGroup;    
-}
-    
-internal
-PLATFORM_GET_ALL_FILES_OF_TYPE_END(WebGetAllFilesOfTypeEnd)
-{
-    
-    web_platform_file_group *WebFileGroup =
-        (web_platform_file_group *)(FileGroup);
-    if(WebFileGroup)
+EM_JS(int, WebIsFullscreen, (), {
+    return document.fullscreenElement ? 1 : 0;
+});
+
+// NOTE(zoubir): a page may go full screen only shortly after a click or a
+// key; if this frame is too late, the next mouse or key release does it
+EM_JS(void, WebAskFullscreen, (int On), {
+    var Apply = function()
     {
-        WebFree(WebFileGroup);
-    }
-}
-
-internal
-PLATFORM_OPEN_NEXT_FILE(WebOpenNextFile)
-{
-    web_platform_file_group *WebFileGroup =
-        (web_platform_file_group *)FileGroup;
-    web_platform_file_handle *Result = 0;
-
-    Result = WebAllocateStruct(web_platform_file_handle);
-    char *FileName = "asset_1.zas";
-    Result->Handle = fopen(FileName, "rb");
-    Result->H.HasErrors = (Result->Handle == 0);
-    return (platform_file_handle *)Result;
-}
-
-internal
-PLATFORM_FILE_ERROR(WebFileError)
-{
-    printf("fail with %s\n", Error);
-    Handle->HasErrors = true;
-}
-
-internal
-PLATFORM_READ_DATA_FROM_FILE(WebReadDataFromFile)
-{
-    if(PlatformNoFileErrors(Source))
+        if (On && !document.fullscreenElement && document.documentElement.requestFullscreen)
+            return document.documentElement.requestFullscreen();
+        if (!On && document.fullscreenElement) return document.exitFullscreen();
+        return Promise.resolve();
+    };
+    Apply().catch(function()
     {
-        web_platform_file_handle *Handle =
-            (web_platform_file_handle *)Source;
-        
-        u32 FileSize32 = (u32)(Size);
+        var Retry = function()
+        {
+            window.removeEventListener("mouseup", Retry, true);
+            window.removeEventListener("keyup", Retry, true);
+            Apply().catch(function() {});
+        };
+        window.addEventListener("mouseup", Retry, true);
+        window.addEventListener("keyup", Retry, true);
+    });
+});
 
-        Assert(FileSize32 == Size) ;
-        fseek(Handle->Handle, Offset, SEEK_SET);
-        
-        fseek(Handle->Handle, Offset, SEEK_SET);
-        u32 BytesRead = fread(Dest, FileSize32, 1, Handle->Handle);
-    }
-}
+// NOTE(zoubir): the page's GAME_... address parameters, one NAME=value
+// per line
+EM_JS(void, WebPageSettings, (char *Out, int OutSize), {
+    Out = Number(Out);
+    var Lines = "";
+    new URLSearchParams(location.search).forEach(function(Value, Name)
+    {
+        if (/^GAME_[A-Z_]+$/.test(Name)) Lines += Name + "=" + Value + "\n";
+    });
+    stringToUTF8(Lines, Out, OutSize);
+});
 
 internal void
-WebLoadOpenglFunctions(open_gl *OpenGL)
+WebApplyPageSettings()
 {
-#define GetOpenglFunction(Name) OpenGL->Name = Name
-    
-    GetOpenglFunction(glGenTextures);
-    GetOpenglFunction(glBindTexture);
-    GetOpenglFunction(glTexImage2D);
-    GetOpenglFunction(glTexParameteri);
-    GetOpenglFunction(glEnable);
-    GetOpenglFunction(glBlendFunc);
-    GetOpenglFunction(glClear);
-    GetOpenglFunction(glClearColor);
-    GetOpenglFunction(glGetString);
-    
-    GetOpenglFunction(glDrawArrays);
-    GetOpenglFunction(glCreateProgram);
-    GetOpenglFunction(glGenerateMipmap);
-    GetOpenglFunction(glGenVertexArrays);
-    GetOpenglFunction(glGenBuffers);
-    GetOpenglFunction(glUseProgram);
-    GetOpenglFunction(glVertexAttribPointer); 
-    GetOpenglFunction(glEnableVertexAttribArray);
-    GetOpenglFunction(glGetUniformLocation);
-    GetOpenglFunction(glUniformMatrix4fv);
-    GetOpenglFunction(glDisableVertexAttribArray);    
-    GetOpenglFunction(glBindBuffer);
-    GetOpenglFunction(glBufferData);
-    GetOpenglFunction(glBufferSubData);
-    GetOpenglFunction(glBindVertexArray);
-    GetOpenglFunction(glShaderSource);
-    GetOpenglFunction(glCompileShader);
-    GetOpenglFunction(glGetShaderiv);
-    GetOpenglFunction(glGetShaderInfoLog);
-    GetOpenglFunction(glDeleteShader);
-    GetOpenglFunction(glUniform1i);
-    GetOpenglFunction(glCreateShader);
-    GetOpenglFunction(glBindAttribLocation);
-    GetOpenglFunction(glAttachShader);
-    GetOpenglFunction(glLinkProgram);
-    GetOpenglFunction(glGetProgramiv);
-    GetOpenglFunction(glGetProgramInfoLog);
-    GetOpenglFunction(glDeleteProgram);
-    GetOpenglFunction(glDetachShader);    
-    GetOpenglFunction(glUniform1f);
-    GetOpenglFunction(glUniform2f);
-    GetOpenglFunction(glGenFramebuffers);
-    GetOpenglFunction(glBindFramebuffer);
-    GetOpenglFunction(glFramebufferTexture2D);
-    GetOpenglFunction(glCheckFramebufferStatus);
-    GetOpenglFunction(glUniform4fv);
-    GetOpenglFunction(glGetIntegerv);
-}
-
-internal app_button_state *
-WebMapSDLKeyToAppKey(app_input *Input, u32 SDLKey)
-{
-    
-    app_button_state *Result = 0;
-    
-    switch(SDLKey)
+    char Settings[2048];
+    WebPageSettings(Settings, (int)sizeof(Settings));
+    for (char *Line = Settings; *Line;)
     {
-        case SDLK_UP:
+        char *End = strchr(Line, '\n');
+        if (!End) break;
+        *End = 0;
+        char *Equals = strchr(Line, '=');
+        if (Equals)
         {
-            Result = &Input->ArrowUp;
-            break;
-        };
-        case SDLK_DOWN:
-        {
-            Result = &Input->ArrowDown;            
-            break;
-        };
-        case SDLK_RIGHT:
-        {
-            Result = &Input->ArrowRight;
-            break;
-        };
-        case SDLK_LEFT:
-        {
-            Result = &Input->ArrowLeft;
-            break;
-
-        };
-        
-        case SDLK_CAPSLOCK:
-        {
-            Result = &Input->CapsButton;
-            break;
-        };
-        case SDLK_BACKSPACE:
-        {
-            Result = &Input->BackspaceButton;
-            break;
-        };
-        case SDLK_SPACE:
-        {
-            Result = &Input->SpaceButton;
-            break;
-        };
-        case SDLK_LSHIFT:
-        {
-            Result = &Input->ShiftButton;
-            break;
-        };
-        case SDLK_LALT:
-        {
-            Result = &Input->AltButton;
-            break;
-        };
-        case SDLK_TAB:
-        {
-            Result = &Input->TabButton;
-            break;
-        };
-        case SDLK_ESCAPE:
-        {
-            Result = &Input->EscapeButton;
-            break;
-        };
-        // NOTE(zoubir): W and A move on QWERTY (client/keyboard_layout.cpp)
-        case SDLK_w:
-        {
-            Result = &Input->ButtonW;
-            break;
-        };
-        case SDLK_a:
-        {
-            Result = &Input->ButtonA;
-            break;
-        };
-        
-        case SDLK_z:
-        {
-            Result = &(Input->ButtonZ);
-            break;
-        };
-        case SDLK_s:
-        {
-            Result = &Input->ButtonS;
-            break;
-        };
-        case SDLK_q:
-        {
-            Result = &Input->ButtonQ;
-            break;
-        };
-        case SDLK_d:
-        {
-            Result = &Input->ButtonD;
-            break;
-        };
-
-        case SDL_BUTTON_LEFT:
-        {
-            Result = &Input->LeftButton;
-            break;
-        };
-        case SDL_BUTTON_MIDDLE:
-        {
-            Result = &Input->MidButton;
-            break;
-        };
-        case SDL_BUTTON_RIGHT:
-        {
-            Result = &Input->RightButton;
-            break;
-        };
-        
-
-
-
-
-    }
-    return Result;    
-}
-
-internal void
-WebOnSDLKeyDown(app_input *Input,
-                u32 SDLKey)
-{
-    app_button_state *State =
-        WebMapSDLKeyToAppKey(Input, SDLKey);
-
-    if (State)
-    {
-    
-        State->Pressed = !State->EndedDown;
-        State->Released = 0;
-
-        if (State->EndedDown != true)
-        {
-            State->EndedDown = true;
-            State->halfTransitionCount++;
+            *Equals = 0;
+            setenv(Line, Equals + 1, 1);
         }
+        Line = End + 1;
     }
-    
 }
 
-internal void
-WebOnSDLKeyUp(app_input *Input,
-              u32 SDLKey)
+// NOTE(zoubir): the canvas fills the page; its drawing buffer follows the
+// page's size in device pixels, and the game works in CSS pixels, the
+// browser's 96-DPI ones
+internal app_window
+WebSizeCanvas(web_frame_loop *Loop)
 {
-    app_button_state *State =
-        WebMapSDLKeyToAppKey(Input, SDLKey);
-
-    if (State)
+    double CssWidth = 0, CssHeight = 0;
+    emscripten_get_element_css_size("#canvas", &CssWidth, &CssHeight);
+    double Ratio = emscripten_get_device_pixel_ratio();
+    if (CssWidth < 1) CssWidth = 1280;
+    if (CssHeight < 1) CssHeight = 720;
+    int PixelWidth = (int)(CssWidth * Ratio + 0.5);
+    int PixelHeight = (int)(CssHeight * Ratio + 0.5);
+    if (PixelWidth != Loop->CanvasWidth || PixelHeight != Loop->CanvasHeight)
     {
-    
-        State->Pressed = 0;
-        State->Released = State->EndedDown;
-        if (State->EndedDown != false)
-        {
-            State->EndedDown = false;
-            State->halfTransitionCount++;
-        }
+        emscripten_set_canvas_element_size("#canvas", PixelWidth, PixelHeight);
+        Loop->CanvasWidth = PixelWidth;
+        Loop->CanvasHeight = PixelHeight;
     }
-    
+    glViewport(0, 0, PixelWidth, PixelHeight);
+
+    app_window Window = {};
+    Window.Width = Maximum(1, (int)(CssWidth + 0.5));
+    Window.Height = Maximum(1, (int)(CssHeight + 0.5));
+    Window.Fullscreen = WebIsFullscreen();
+    return Window;
 }
 
-global_variable SDL_Window *Window;
-global_variable thread_context *Thread;
-global_variable app_memory AppMemory;
-global_variable app_input Input;
-global_variable int WindowWidth;
-global_variable int WindowHeight;
-global_variable int MouseX;
-global_variable int MouseY;
-global_variable float Fps = 24.f;
-
 internal void
-MainLoop()
+WebRunGameFrame(web_frame_loop *Loop)
 {
+    app_input *NewInput = Loop->NewInput;
+    NewInput->DeltaTime = WEB_FRAME_SECONDS;
+    WebReadInput(Loop->OldInput, NewInput);
 
-    float TargetSecondsPerFrame = 1.f / Fps;
-    Input.DeltaTime = TargetSecondsPerFrame;
-    
-    SDL_Event Event;
-    while(SDL_PollEvent(&Event)){
-        switch (Event.type) {
-            case SDL_QUIT:
-            {
-                // QUIT
-                exit(0);
-                break;
-            }
-            case SDL_MOUSEMOTION:
-            {
-                MouseX = Event.motion.x;
-                MouseY = WindowHeight - Event.motion.y;
-                break;
-            }
-            case SDL_KEYDOWN:
-            {
-                WebOnSDLKeyDown(&Input,
-                                Event.key.keysym.sym);
-                break;
-            }
-            case SDL_KEYUP:
-            {
-                WebOnSDLKeyUp(&Input,
-                              Event.key.keysym.sym);
-                break;
-            }
-            case SDL_MOUSEBUTTONDOWN:
-            {
-                WebOnSDLKeyDown(&Input,
-                              Event.button.button);
-                break;
-            }
-            case SDL_MOUSEBUTTONUP:
-            {
-                WebOnSDLKeyUp(&Input,
-                              Event.button.button);
-                break;
-            }
-            default:
-            {
-                break;
-            }
-        }
+    app_window Window = WebSizeCanvas(Loop);
+    AppUpdateAndRender(&Loop->Thread, &Loop->Memory, NewInput, &Window);
+    if (Window.FullscreenRequest != FullscreenRequest_None &&
+        (Window.FullscreenRequest == FullscreenRequest_On) != Window.Fullscreen)
+    {
+        WebAskFullscreen(Window.FullscreenRequest == FullscreenRequest_On);
     }
+    WebWriteFrameSound(&Loop->Thread, &Loop->Memory);
 
-    Input.MouseX = MouseX;
-    Input.MouseY = MouseY;
-    Input.MouseZ = 0;
+    Loop->NewInput = Loop->OldInput;
+    Loop->OldInput = NewInput;
+}
 
-    render_context *RenderContext = &Thread->RenderContext;
-    open_gl *OpenGL = RenderContext->OpenGL;
+// NOTE(zoubir): called on every animation frame, which may come 60, 120
+// or 144 times a second; the game runs at 60, at most two frames to catch
+// up, and a long stall (a hidden tab) is forgiven rather than replayed
+internal void
+WebAnimationFrame()
+{
+    web_frame_loop *Loop = &WebLoop;
+    double Now = emscripten_get_now() / 1000.0;
+    Loop->Owed += Now - Loop->LastNow;
+    Loop->LastNow = Now;
+    if (Loop->Owed > 0.25) Loop->Owed = WEB_FRAME_SECONDS;
 
-    app_window AppWindow = {WindowWidth, WindowHeight};
-    AppWindow.Fullscreen = (SDL_GetWindowFlags(Window) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
-    AppUpdateAndRender(Thread, &AppMemory, &Input, &AppWindow);
-    // NOTE(zoubir): the browser goes full screen only from a click, which
-    // the options menu's button is
-    if (AppWindow.FullscreenRequest != FullscreenRequest_None)
-        SDL_SetWindowFullscreen(Window, AppWindow.FullscreenRequest == FullscreenRequest_On ?
-                                SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-
-    SDL_GL_SwapWindow(Window);
+    // NOTE(zoubir): a 60 Hz screen's frames come a little early or late;
+    // the slack keeps one game frame per screen frame there
+    double Slack = 0.004;
+    for (int Run = 0; Run < 2 && Loop->Owed >= WEB_FRAME_SECONDS - Slack; Run++)
+    {
+        WebRunGameFrame(Loop);
+        Loop->Owed -= WEB_FRAME_SECONDS;
+    }
+    if (Loop->Owed < -Slack) Loop->Owed = -Slack;
 }
 
 int main()
 {
-    int Width, Height;
-    SDL_GLContext Context;
-    if (SDL_Init(SDL_INIT_EVERYTHING)) {
-        
-    }
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
-    Window = SDL_CreateWindow("randomWindow", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 900, 768, SDL_WINDOW_OPENGL);
-    Context = SDL_GL_CreateContext(Window);
-    if (!Context) {
-    }
-    
-    {
-    }
+    WebApplyPageSettings();
 
-    
-    SDL_GL_SetSwapInterval(0);
-        
+    EmscriptenWebGLContextAttributes Attributes;
+    emscripten_webgl_init_context_attributes(&Attributes);
+    Attributes.majorVersion = 2;
+    Attributes.minorVersion = 0;
+    Attributes.alpha = false;
+    Attributes.antialias = false;
+    Attributes.depth = false;
+    Attributes.stencil = false;
+    EMSCRIPTEN_WEBGL_CONTEXT_HANDLE Context = emscripten_webgl_create_context("#canvas", &Attributes);
+    if (Context <= 0)
+    {
+        EM_ASM({ if (Module.gameFailed) Module.gameFailed("This browser cannot run WebGL 2."); });
+        return 1;
+    }
+    emscripten_webgl_make_context_current(Context);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    SDL_GetWindowSize(Window, &WindowWidth, &WindowHeight);
 
-     
-    open_gl OpenGL;
-    WebLoadOpenglFunctions(&OpenGL);
-    thread_context ThreadContext = {};
-    ThreadContext.RenderContext.OpenGL = &OpenGL;
-    Thread = &ThreadContext;
-    AppMemory = {};
+    web_frame_loop *Loop = &WebLoop;
+    WebLoadOpenglFunctions(&Loop->OpenGL);
+    Loop->Thread.RenderContext.OpenGL = &Loop->OpenGL;
+    WebFillPlatformApi(&Loop->Memory.PlatformApi);
+    Loop->Memory.PermanentStorageSize = Megabytes(64);
+    Loop->Memory.TransientStorageSize = Megabytes(64);
+    Loop->Memory.PermanentStorage = calloc(Loop->Memory.PermanentStorageSize, 1);
+    Loop->Memory.TransientStorage = calloc(Loop->Memory.TransientStorageSize, 1);
+    if (!Loop->Memory.PermanentStorage || !Loop->Memory.TransientStorage)
+    {
+        EM_ASM({ if (Module.gameFailed) Module.gameFailed("Not enough memory to start the game."); });
+        return 1;
+    }
+    Loop->OldInput = &Loop->Inputs[0];
+    Loop->NewInput = &Loop->Inputs[1];
+    Loop->LastNow = emscripten_get_now() / 1000.0;
+    Loop->Owed = WEB_FRAME_SECONDS;
 
-    AppMemory.PlatformApi.GetAllFilesOfTypeBegin = WebGetAllFilesOfTypeBegin;
-    AppMemory.PlatformApi.GetAllFilesOfTypeEnd = WebGetAllFilesOfTypeEnd;
-    AppMemory.PlatformApi.OpenNextFile = WebOpenNextFile;
-    AppMemory.PlatformApi.ReadDataFromFile = WebReadDataFromFile;
-    AppMemory.PlatformApi.FileError = WebFileError;
-
-    AppMemory.PlatformApi.ReadEntireFile = WebReadEntireFile;
-    AppMemory.PlatformApi.FreeFileMemory = WebFreeFileMemory;
-    AppMemory.PlatformApi.WriteEntireFile = WebWriteEntireFile;
-    AppMemory.PlatformApi.AddWorkEntry = WebAddWorkEntry;
-
-    AppMemory.PermanentStorageSize = Megabytes(64);
-    AppMemory.TransientStorageSize = Megabytes(8);
-    
-    AppMemory.PermanentStorage = calloc(AppMemory.PermanentStorageSize, 1);
-    AppMemory.TransientStorage = calloc(AppMemory.TransientStorageSize, 1);
-
-
-    
-    app_state *AppState = (app_state *)AppMemory.PermanentStorage;
-    
-    emscripten_set_main_loop(MainLoop, Fps, true);
+    WebKeepSavedFiles();
+    WebStartInput();
+    WebInitSound();
+    emscripten_set_main_loop(WebAnimationFrame, 0, true);
+    return 0;
 }
-         

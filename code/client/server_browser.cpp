@@ -29,28 +29,23 @@ struct server_status
     u8 MaxPlayers;
     u8 MapId;
     char Name[NET_SERVER_NAME_SIZE]; // what the server calls itself, "" until it answers
-#if !COMPILER_EMSCRIPTEN
     // Implementation detail below; read the fields above.
     bool32 Resolved;
     net_address Address;
     u32 Nonce;
     float SentAt;
     float HeardAt;
-#endif
 };
 
 struct server_browser
 {
     server_status Servers[SERVER_LIST_COUNT];
-#if !COMPILER_EMSCRIPTEN
     net_socket Socket;
     float Clock;
     float NextRound;
     u32 NextNonce;
-#endif
 };
 
-#if !COMPILER_EMSCRIPTEN
 
 internal void
 ServerBrowserReceive(server_browser *Browser)
@@ -162,9 +157,3 @@ StopServerBrowser(server_browser *Browser)
     *Browser = {};
 }
 
-#else
-
-internal void UpdateServerBrowser(server_browser *Browser, float DeltaTime) {}
-internal void StopServerBrowser(server_browser *Browser) {}
-
-#endif

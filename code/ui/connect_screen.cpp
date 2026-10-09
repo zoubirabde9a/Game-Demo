@@ -83,7 +83,6 @@ GetConnectScreen(app_state *AppState)
         connect_screen *Screen =
             AllocateStruct(&AppState->MemoryArena, connect_screen);
         *Screen = {};
-#if !COMPILER_EMSCRIPTEN
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4996) // getenv: read once, never kept
@@ -97,7 +96,6 @@ GetConnectScreen(app_state *AppState)
         {
             OpenConnectScreen(Screen, AppState->Online, AppState->UIContext);
         }
-#endif
         AppState->ConnectScreen = Screen;
     }
     return AppState->ConnectScreen;
@@ -252,7 +250,6 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
         return;
     }
     connect_screen *Screen = GetConnectScreen(AppState);
-#if !COMPILER_EMSCRIPTEN
     if (Input->ButtonF4.Pressed)
     {
         if (Screen->Open && Screen->AskingName)
@@ -268,7 +265,6 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
             OpenConnectScreen(Screen, Online, UIContext);
         }
     }
-#endif
     if (Screen->WaitingToJoin && IsOnline(Online))
     {
         Screen->WaitingToJoin = false;

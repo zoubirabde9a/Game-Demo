@@ -32,7 +32,12 @@ typedef uint64_t u64;
 #define local_persist static
 #define global_variable static
 
-#if APP_DEV
+#if APP_DEV && defined(__EMSCRIPTEN__)
+// NOTE(zoubir): WebAssembly lets a program write to address 0, so the
+// browser stops on a trap instead, with the call stack in the console
+#define Assert(expression) if (!(expression)) {__builtin_trap();}
+#define InvalidCodePath Assert(!"InvalidCodePath")
+#elif APP_DEV
 #define Assert(expression) if (!(expression)) {*(volatile int *)0 = 0;}
 #define InvalidCodePath Assert(!"InvalidCodePath")
 #else

@@ -6,8 +6,10 @@
    with DrawShaderQuad (engine/render/shapes.cpp), alpha or additive.
 
    Files under fx/ are written once for both the desktop (GLSL 1.30) and
-   the browser (GLSL ES 1.00): the loader puts a prelude in front that
-   defines ATTRIBUTE, VARYING, TEXTURE and FragColor for each. Every
+   the browser (WebGL 2, GLSL ES 3.00): the loader puts a prelude in front
+   that defines ATTRIBUTE, VARYING, TEXTURE and FragColor for each. The
+   sprite and line shaders start with their own "#version 130"; in the
+   browser the loader swaps that line for the ES one. Every
    program gets the same three attributes (vertexPosition, vertexColor,
    vertexUV) and may use two uniforms: P, the projection, and Time,
    seconds since launch. A row may also name a Library, a file of shared
@@ -73,15 +75,22 @@ global_variable char *ShaderAttributes[] =
 };
 
 #if COMPILER_EMSCRIPTEN
+// NOTE(zoubir): replaces the "#version 130" line the sprite and line
+// shaders start with
+global_variable char ShaderEsVersion[] =
+    "#version 300 es\n"
+    "precision highp float;\n";
 global_variable char ShaderVertexPrelude[] =
-    "#define ATTRIBUTE attribute\n"
-    "#define VARYING varying\n";
+    "#version 300 es\n"
+    "precision highp float;\n"
+    "#define ATTRIBUTE in\n"
+    "#define VARYING out\n";
 global_variable char ShaderFragmentPrelude[] =
-    "#extension GL_OES_standard_derivatives : enable\n"
-    "precision mediump float;\n"
-    "#define VARYING varying\n"
-    "#define TEXTURE texture2D\n"
-    "#define FragColor gl_FragColor\n";
+    "#version 300 es\n"
+    "precision highp float;\n"
+    "#define VARYING in\n"
+    "#define TEXTURE texture\n"
+    "out vec4 FragColor;\n";
 #else
 global_variable char ShaderVertexPrelude[] =
     "#version 130\n"
@@ -115,6 +124,26 @@ HashShaderBytes(u32 Hash, u8 *Bytes, u32 Size)
         Hash = (Hash ^ Bytes[Index]) * 16777619u;
     }
     return Hash;
+}
+
+// NOTE(zoubir): in the browser, a shader with no prelude has its own
+// "#version 130" line swapped for the ES one; elsewhere nothing changes
+internal void
+UseOwnVersionLine(char **Prelude, i32 *PreludeSize, char **Text, i32 *Size)
+{
+#if COMPILER_EMSCRIPTEN
+    char *At = *Text;
+    char *End = At + *Size;
+    while (At < End && (*At == '\r' || *At == '\n' || *At == ' ' || *At == '\t')) At++;
+    if (End - At >= 8 && At[0] == '#' && At[1] == 'v')
+    {
+        while (At < End && *At != '\n') At++;
+        *Text = At;
+        *Size = (i32)(End - At);
+        *Prelude = ShaderEsVersion;
+        *PreludeSize = (i32)(sizeof(ShaderEsVersion) - 1);
+    }
+#endif
 }
 
 // NOTE(zoubir): builds program Index from its files. A failure keeps the
@@ -152,6 +181,13 @@ LoadShaderProgram(render_context *RenderContext, u32 Index, bool32 Force)
                                         (char *)Fragment.Memory};
             i32 FragmentSizes[3] = {Def->Shared ? (i32)(sizeof(ShaderFragmentPrelude) - 1) : 0,
                                     (i32)Library.Size, (i32)Fragment.Size};
+            if (!Def->Shared)
+            {
+                UseOwnVersionLine(&VertexSources[0], &VertexSizes[0],
+                                  &VertexSources[2], &VertexSizes[2]);
+                UseOwnVersionLine(&FragmentSources[0], &FragmentSizes[0],
+                                  &FragmentSources[2], &FragmentSizes[2]);
+            }
             char Error[SHADER_ERROR_SIZE];
             u32 ID = BuildProgram(OpenGL, 3, VertexSources, VertexSizes,
                                   FragmentSources, FragmentSizes,
