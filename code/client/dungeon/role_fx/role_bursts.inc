@@ -8,3 +8,5 @@
     {BurstShape_Role, 0.5f, FLAME_WAVE_REACH, 0x002080FF, false, 0.3f, BurstPose_Release}, // FlameWave
     {BurstShape_Role, 0.5f, DETONATE_SPELL_REACH, 0x002080FF, false, 0.35f, BurstPose_Release}, // Detonate
     {BurstShape_Role, 0.35f, 30.f, 0x002080FF, false, 0.f, BurstPose_None},               // DetonateLink
+    {BurstShape_Role, 0.6f, RALLYING_CRY_REACH, 0x0060E0FF, false, 0.3f, BurstPose_Release}, // RallyingCry
+    {BurstShape_Role, 0.6f, DEMORALIZING_ROAR_REACH, 0x00A04070, false, 0.4f, BurstPose_Release}, // DemoralizingRoar

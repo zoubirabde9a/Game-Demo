@@ -4,7 +4,17 @@
    - Shield Throw: the tank's kite shield spinning through the air from
      foe to foe, one burst a hop, each waiting for the hops before it
      (its number: SHIELD_THROW_HOP times the hop, plus how far it flew),
-     and a clang of steel sparks where it strikes. */
+     and a clang of steel sparks where it strikes.
+   - Rallying Cry: a gold and white war cry, rings racing out to its
+     reach (the burst's number) and bright chevrons climbing over the
+     tank, a call to stand up.
+   - Demoralizing Roar: a dark violet roar, a heavy ring rolling out to
+     its reach with a smoky wake, and chevrons sinking at its edge, the
+     foes' hearts going out of them. */
+
+#define BULWARK_FX_CRY_RGB 0x0060E0FF
+#define BULWARK_FX_ROAR_RGB 0x00A04070
+#define BULWARK_FX_SMOKE_RGB 0x00301020
 
 internal void
 DrawShieldThrow(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
@@ -48,6 +58,60 @@ DrawShieldThrow(render_context *RenderContext, role_burst *Burst, float T, v3 Ca
     }
 }
 
+internal void
+DrawRallyingCry(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
+{
+    v2 Centre = BurstToScreen(Burst->Position, CameraOffset);
+    float Reach = Burst->Number ? (float)Burst->Number : RALLYING_CRY_REACH;
+    float Ease = 1.f - (1.f - T) * (1.f - T);
+    float Fade = 1.f - T * T;
+    for(u32 Wave = 0; Wave < 2; Wave++)
+    {
+        float Front = Reach * Minimum(1.f, Ease * (1.f - 0.25f * (float)Wave) + 0.05f);
+        DrawWaveFront(RenderContext, Centre, 0.f, 2.f * Pi32, Front, 16.f * (1.f - T),
+                      Fade * (1.f - 0.4f * (float)Wave), Wave ? 0x00F0F8FF : BULWARK_FX_CRY_RGB);
+    }
+    float Glow = 100.f * (0.6f + 0.4f * Ease);
+    DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 0.5f * Glow, Centre.Y - Glow, Glow, Glow,
+                   FxColor(0.7f * Fade, BULWARK_FX_CRY_RGB), RenderBlend_Additive);
+    // NOTE(zoubir): chevrons pointing up, climbing over the tank
+    for(u32 Chevron = 0; Chevron < 3; Chevron++)
+    {
+        float Rise = DungeonFxFraction(1.4f * T + 0.33f * (float)Chevron);
+        v2 Tip = Centre - V2(0.f, 50.f + 50.f * Rise);
+        u32 Color = FxColor(Fade * (1.f - Rise), BULWARK_FX_CRY_RGB);
+        DrawFxStreak(RenderContext, Tip + V2(-12.f, 9.f), Tip, 4.f, Color, Color);
+        DrawFxStreak(RenderContext, Tip + V2(12.f, 9.f), Tip, 4.f, Color, Color);
+    }
+}
+
+internal void
+DrawDemoralizingRoar(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
+{
+    v2 Centre = BurstToScreen(Burst->Position, CameraOffset);
+    float Reach = Burst->Number ? (float)Burst->Number : DEMORALIZING_ROAR_REACH;
+    float Ease = 1.f - (1.f - T) * (1.f - T);
+    float Fade = 1.f - T * T;
+    float Front = Reach * Minimum(1.f, Ease + 0.05f);
+    DrawArcBand(RenderContext, Centre, 0.f, 2.f * Pi32, 0.f, Front,
+                FxColor(0.f, BULWARK_FX_SMOKE_RGB), FxColor(0.35f * Fade, BULWARK_FX_SMOKE_RGB),
+                RenderBlend_Alpha);
+    DrawWaveFront(RenderContext, Centre, 0.f, 2.f * Pi32, Front, 26.f * (1.f - T), Fade,
+                  BULWARK_FX_ROAR_RGB);
+    float Glow = 110.f * (0.6f + 0.4f * Ease);
+    DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 0.5f * Glow, Centre.Y - 0.9f * Glow,
+                   Glow, Glow, FxColor(0.6f * Fade, BULWARK_FX_ROAR_RGB), RenderBlend_Additive);
+    // NOTE(zoubir): chevrons riding the front, pointing down and sinking
+    for(u32 Mark = 0; Mark < 10; Mark++)
+    {
+        float A = 2.f * Pi32 * (float)Mark / 10.f;
+        v2 Tip = Centre + GroundCircle(A, 0.9f * Front) - V2(0.f, 20.f - 14.f * T);
+        u32 Color = FxColor(Fade, BULWARK_FX_ROAR_RGB);
+        DrawFxStreak(RenderContext, Tip + V2(-7.f, -6.f), Tip, 3.f, Color, Color);
+        DrawFxStreak(RenderContext, Tip + V2(7.f, -6.f), Tip, 3.f, Color, Color);
+    }
+}
+
 // NOTE(zoubir): a burst of the Bulwark's later spells; false for any other
 internal bool32
 DrawBulwarkBurst(render_context *RenderContext, app_state *AppState, role_burst *Burst,
@@ -56,6 +120,8 @@ DrawBulwarkBurst(render_context *RenderContext, app_state *AppState, role_burst 
     switch(Burst->Kind)
     {
         case SimBurst_ShieldThrow: DrawShieldThrow(RenderContext, Burst, T, CameraOffset); break;
+        case SimBurst_RallyingCry: DrawRallyingCry(RenderContext, Burst, T, CameraOffset); break;
+        case SimBurst_DemoralizingRoar: DrawDemoralizingRoar(RenderContext, Burst, T, CameraOffset); break;
         default: return false;
     }
     return true;

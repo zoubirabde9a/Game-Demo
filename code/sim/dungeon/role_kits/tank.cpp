@@ -368,7 +368,7 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
                 (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_Provoke));
             TauntAround(AppState, &AppState->Dungeon->Threat, Player, Reach);
             Slot->ShieldWallSeconds = Maximum(Slot->ShieldWallSeconds, TAUNT_WALL_SECONDS);
-            EmitBurst(&AppState->Events, SimBurst_Taunt, SlotIndex, Player->Position);
+            EmitBurst(&AppState->Events, SimBurst_Taunt, SlotIndex, NumberedBurstSpot(Player->Position, (u32)Reach));
             EmitSound(&AppState->Events, AssetType_SfxTaunt, Player->Position);
         } break;
 

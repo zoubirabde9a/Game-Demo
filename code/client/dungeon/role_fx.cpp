@@ -5,7 +5,8 @@
    and an angle: a Mending Bolt flies from wherever its healer stands
    when it lands. Each keeps the clock it started at and plays out:
 
-   - Taunt: a red war cry, two rings racing out to the taunt's reach.
+   - Taunt: a red war cry, two rings racing out to the taunt's reach
+     (the burst's number, which Provoke widens).
    - Shield Slam: the ground cracks in a steel ring, a shield of light
      flares over the tank and a pale ring runs out to the rallied.
    - Intercept and Shield Charge: a steel streak and fading afterimage
@@ -178,7 +179,8 @@ DrawRoleBurst(render_context *RenderContext, app_state *AppState, role_burst *Bu
         {
             for(u32 Wave = 0; Wave < 2; Wave++)
             {
-                float Front = TAUNT_RADIUS * Minimum(1.f, EaseOut * (1.f - 0.2f * (float)Wave) + 0.05f);
+                float Reach = Burst->Number ? (float)Burst->Number : TAUNT_RADIUS;
+                float Front = Reach * Minimum(1.f, EaseOut * (1.f - 0.2f * (float)Wave) + 0.05f);
                 DrawWaveFront(RenderContext, Centre, 0.f, 2.f * Pi32, Front,
                               18.f * (1.f - T), Fade * (1.f - 0.4f * (float)Wave), ROLE_FX_TAUNT_RGB);
             }

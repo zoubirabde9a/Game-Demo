@@ -30,7 +30,8 @@ CastRallyingCry(app_state *AppState, player_slot *Slot, world_entity *Player)
         AllySlot->WardFull = Maximum(AllySlot->WardAbsorb, AllySlot->WardFull);
         EmitBurst(&AppState->Events, SimBurst_WardCast, SlotIndex, ChestOf(Ally));
     }
-    EmitBurst(&AppState->Events, SimBurst_Taunt, SlotIndex, Player->Position);
+    EmitBurst(&AppState->Events, SimBurst_RallyingCry, SlotIndex,
+              NumberedBurstSpot(Player->Position, (u32)RALLYING_CRY_REACH));
     EmitSound(&AppState->Events, AssetType_SfxTaunt, Player->Position);
 }
 
@@ -51,6 +52,7 @@ CastDemoralizingRoar(app_state *AppState, world *World, player_slot *Slot, world
         WeakenFoe(AppState->Dungeon, World, Monster, DEMORALIZING_ROAR_SECONDS, DEMORALIZING_ROAR_SHARE);
     }
     TauntAround(AppState, &AppState->Dungeon->Threat, Player, DEMORALIZING_ROAR_REACH);
-    EmitBurst(&AppState->Events, SimBurst_Taunt, SlotIndex, Player->Position);
+    EmitBurst(&AppState->Events, SimBurst_DemoralizingRoar, SlotIndex,
+              NumberedBurstSpot(Player->Position, (u32)DEMORALIZING_ROAR_REACH));
     EmitSound(&AppState->Events, AssetType_SfxTaunt, Player->Position);
 }

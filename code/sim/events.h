@@ -67,7 +67,7 @@ enum sim_burst
     SimBurst_SwordHit,     // a sword's cut across what it struck, along Angle
     // NOTE(zoubir): dungeon role spells (sim/dungeon/role_kits/), drawn by
     // client/dungeon/role_fx.cpp
-    SimBurst_Taunt,        // a tank's war cry, a red ring out to its reach
+    SimBurst_Taunt,        // a tank's war cry, a red ring out to its number's reach
     SimBurst_ShieldSlam,   // a tank's shield slammed into the ground
     SimBurst_InterceptLand, // where a tank's leap to an ally lands
     SimBurst_MendingBolt,  // light from the healer in Slot to the healed at Position
@@ -107,6 +107,8 @@ enum sim_burst
     SimBurst_FlameWave,    // Flame Wave's fire rolling out from Position along Angle, its number deep
     SimBurst_Detonate,     // Detonate's pulse out from the striker at Position to its number's reach
     SimBurst_DetonateLink, // a line of fire from the striker in Slot to a mark at Position it blows
+    SimBurst_RallyingCry,  // a gold war cry out to its number's reach
+    SimBurst_DemoralizingRoar, // a dark violet roar out to its number's reach
     SimBurst_Count
 };
 static_assert(SimBurst_Count <= 128, "a burst kind and its number flag share a byte");
