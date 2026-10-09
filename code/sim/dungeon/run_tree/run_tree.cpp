@@ -223,7 +223,8 @@ RunScale(float Share)
 
 // NOTE(zoubir): from DungeonScaleDamage: the share of Attacker's hit on
 // Target its second tree's conditions give (Execute, Opener, Bossbane or
-// Packbane, Desperate, Cadence, Frenzy) and its allies' Anthem
+// Packbane, Desperate, Cadence, Frenzy, Vanguard, Glory) and its allies'
+// Anthem
 internal float
 RunDealtScale(app_state *AppState, player_slot *Attacker, world_entity *Target)
 {
@@ -253,6 +254,12 @@ RunDealtScale(app_state *AppState, player_slot *Attacker, world_entity *Target)
     {
         Result *= RunScale(RunEffectShare(Attacker, RunEffect_Frenzy));
     }
+    if (Run && Run->FightingRoom && Run->MeterSeconds < RUN_VANGUARD_SECONDS)
+    {
+        Result *= RunScale(RunEffectShare(Attacker, RunEffect_Vanguard));
+    }
+    u32 Rooms = Minimum(AppState->DungeonRoomsCleared, (u32)RUN_GLORY_ROOMS);
+    Result *= RunScale((float)Rooms * RunEffectShare(Attacker, RunEffect_Glory));
     return Result;
 }
 

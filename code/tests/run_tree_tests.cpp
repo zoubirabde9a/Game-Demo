@@ -179,10 +179,91 @@ TestRunTalentsDoWhatTheySay()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): a seed that rolls Mod in one of Role's wild slots, and
+// which slot, for a test that needs a wild talent; 0 seed if none
+internal u32
+SeedRolling(u32 Role, u32 Mod, u32 *SlotOut)
+{
+    for(u32 Seed = 1; Seed <= RUN_SEED_MASK; Seed++)
+    {
+        u8 Tree[RUN_TALENTS];
+        RollRunTree(Seed, Role, Tree);
+        for(u32 Index = 0; Index < RUN_TALENTS; Index++)
+        {
+            if (RunSlotWild[Index] && Tree[Index] == Mod)
+            {
+                *SlotOut = Index;
+                return Seed;
+            }
+        }
+    }
+    return 0;
+}
+
+// NOTE(zoubir): the talents that follow the run: Opening Salvo early in a
+// fight only, Rising Glory with the rooms cleared, Lifeline once a fight
+internal void
+TestRunTalentsFollowTheRun()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    TickCrypt(&Crypt, 1);
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *Player = Slot->Entity;
+    dungeon_run *Run = AppState->Dungeon;
+    SetPlayerRole(AppState, Slot, PlayerRole_Ranger);
+    world_entity Foe = {};
+    Foe.MaxHp = 100.f;
+    Foe.Hp = 60.f;
+    Slot->RunHits = 0;
+
+    u32 At = 0;
+    Slot->TreeSeed = SeedRolling(PlayerRole_Ranger, RunMod_OpeningSalvo, &At);
+    Check(Slot->TreeSeed != 0);
+    Slot->Ranks[Talent_RunFirst + At] = 2;
+    Run->FightingRoom = 2;
+    Run->MeterSeconds = 2.f;
+    float Early = 1.f + 2.f * RunModDefs[RunMod_OpeningSalvo].PerRank[0];
+    Check(RunDealtScale(AppState, Slot, &Foe) > Early - 0.001f &&
+          RunDealtScale(AppState, Slot, &Foe) < Early + 0.001f);
+    Run->MeterSeconds = RUN_VANGUARD_SECONDS + 1.f;
+    Check(RunDealtScale(AppState, Slot, &Foe) == 1.f);
+    Slot->Ranks[Talent_RunFirst + At] = 0;
+
+    Slot->TreeSeed = SeedRolling(PlayerRole_Ranger, RunMod_RisingGlory, &At);
+    Check(Slot->TreeSeed != 0);
+    Slot->Ranks[Talent_RunFirst + At] = 2;
+    AppState->DungeonRoomsCleared = 4;
+    float Glory = 1.f + 4.f * 2.f * RunModDefs[RunMod_RisingGlory].PerRank[0];
+    Check(RunDealtScale(AppState, Slot, &Foe) > Glory - 0.001f &&
+          RunDealtScale(AppState, Slot, &Foe) < Glory + 0.001f);
+    AppState->DungeonRoomsCleared = 40;
+    float Most = 1.f + RUN_GLORY_ROOMS * 2.f * RunModDefs[RunMod_RisingGlory].PerRank[0];
+    Check(RunDealtScale(AppState, Slot, &Foe) < Most + 0.001f);
+    Slot->Ranks[Talent_RunFirst + At] = 0;
+
+    Slot->TreeSeed = SeedRolling(PlayerRole_Ranger, RunMod_Lifeline, &At);
+    Check(Slot->TreeSeed != 0);
+    Slot->Ranks[Talent_RunFirst + At] = 1;
+    Player->Hp = 0.2f * Player->MaxHp;
+    UpdateRunTrees(AppState, Run, 1.f / 60.f);
+    Check(Player->Hp > 0.3f * Player->MaxHp && Slot->RunLifelineSpent);
+    Player->Hp = 0.2f * Player->MaxHp;
+    UpdateRunTrees(AppState, Run, 1.f / 60.f);
+    Check(Player->Hp < 0.21f * Player->MaxHp);
+    // NOTE(zoubir): the next fight it catches again
+    Run->MeterFight++;
+    UpdateRunTrees(AppState, Run, 1.f / 60.f);
+    Check(Player->Hp > 0.3f * Player->MaxHp);
+    Run->FightingRoom = 0;
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunRunTreeTests()
 {
     TestRunTreesRollFittingTalents();
     TestRunTreeRollsAgainEachRun();
     TestRunTalentsDoWhatTheySay();
+    TestRunTalentsFollowTheRun();
 }

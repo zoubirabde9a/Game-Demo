@@ -19,6 +19,10 @@
     float RunAuraDamage;
     // NOTE(zoubir): Thorns owed to the monster that hit last, paid on the
     // next tick so a hit never lands inside another
+    // NOTE(zoubir): the fight (dungeon_run.MeterFight) these were last
+    // reset for, and whether Lifeline went off in it
+    u32 RunFightSeen;
+    bool32 RunLifelineSpent;
     u32 RunThornsSlot;
     u32 RunThornsSerial;
     float RunThornsOwed;

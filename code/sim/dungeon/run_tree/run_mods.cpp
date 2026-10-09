@@ -46,6 +46,13 @@ enum run_effect
     RunEffect_Threat,
     RunEffect_HealTaken,
     RunEffect_Overflow,
+    // NOTE(zoubir): how the run goes (run_tree.cpp, run_effects.cpp):
+    // more damage early in a fight, more for every room cleared this run,
+    // a heal once a fight when low, kills that heal allies
+    RunEffect_Vanguard,
+    RunEffect_Glory,
+    RunEffect_Lifeline,
+    RunEffect_SharedFeast,
     RunEffect_Count
 };
 
@@ -56,6 +63,9 @@ enum run_effect
 #define RUN_CADENCE_EVERY 5
 #define RUN_FRENZY_SECONDS 6.f
 #define RUN_AURA_REACH 320.f
+#define RUN_VANGUARD_SECONDS 8.f
+#define RUN_GLORY_ROOMS 10
+#define RUN_LIFELINE_BELOW 0.3f
 
 #define RUN_KIND_TANK (1u << RoleKind_Tank)
 #define RUN_KIND_HEALER (1u << RoleKind_Healer)
@@ -84,9 +94,11 @@ enum run_mod
     RunMod_Cleaver, RunMod_Cornered, RunMod_Stubborn, RunMod_Feast, RunMod_Reprisal,
     RunMod_Cadence, RunMod_Spikes, RunMod_SecondBreath, RunMod_Bloodrush, RunMod_Rallying,
     RunMod_WarSong, RunMod_Menace, RunMod_Unseen, RunMod_Overflowing, RunMod_Receptive,
+    RunMod_OpeningSalvo, RunMod_RisingGlory, RunMod_Lifeline, RunMod_SharedSpoils,
     // NOTE(zoubir): the wild keystones
     RunMod_GlassCannon, RunMod_Colossus, RunMod_BloodPact, RunMod_Zealotry, RunMod_Headsman,
     RunMod_Martyr, RunMod_Unyielding, RunMod_Warlord, RunMod_Bloodbath, RunMod_Thornwall,
+    RunMod_Blitz, RunMod_Legend,
     // NOTE(zoubir): the classes' fixed talents (run_tree.cpp lays them out)
     RunMod_KindledWrath, RunMod_CinderSkin, RunMod_FireWithin, RunMod_Pyroclasm, RunMod_Smoulder,
     RunMod_PhoenixHeart,
@@ -110,7 +122,7 @@ enum run_mod
     RunMod_HeartOfTheWild,
     RunMod_Count,
     RunMod_WildFirst = RunMod_KeenEdge,
-    RunMod_WildLast = RunMod_Thornwall,
+    RunMod_WildLast = RunMod_Legend,
 };
 
 #define RUN_MOD(Name, Summary, E0, P0, E1, P1, Kinds, Keystone) \
@@ -130,7 +142,7 @@ global_variable run_mod_def RunModDefs[RunMod_Count] =
             RUN_KIND_TANK | RUN_KIND_DAMAGE, false),
     RUN_MOD("Finisher", "More damage to foes under 35% health", Execute, 0.12f, None, 0.f,
             RUN_KIND_DAMAGE, false),
-    RUN_MOD("Ambusher", "More damage to foes above 80% health", Opener, 0.12f, None, 0.f,
+    RUN_MOD("Ambusher", "More damage to foes above 80% health", Opener, 0.16f, None, 0.f,
             RUN_KIND_DAMAGE, false),
     RUN_MOD("Giantslayer", "More damage to bosses", Bossbane, 0.07f, None, 0.f,
             RUN_KIND_TANK | RUN_KIND_DAMAGE, false),
@@ -144,7 +156,7 @@ global_variable run_mod_def RunModDefs[RunMod_Count] =
             RUN_KIND_TANK | RUN_KIND_DAMAGE, false),
     RUN_MOD("Reprisal", "A kill takes time off every class spell", Refund, 0.5f, None, 0.f,
             RUN_KIND_DAMAGE, false),
-    RUN_MOD("Cadence", "Every fifth hit lands much harder", Cadence, 0.35f, None, 0.f,
+    RUN_MOD("Cadence", "Every fifth hit lands much harder", Cadence, 0.25f, None, 0.f,
             RUN_KIND_DAMAGE, false),
     RUN_MOD("Spikes", "Monsters that hit you take some of it back", Thorns, 0.15f, None, 0.f,
             RUN_KIND_TANK | RUN_KIND_MELEE, false),
@@ -161,6 +173,14 @@ global_variable run_mod_def RunModDefs[RunMod_Count] =
     RUN_MOD("Overflowing Grace", "Healing past full health becomes a ward", Overflow, 0.25f, None, 0.f,
             RUN_KIND_HEALER, false),
     RUN_MOD("Receptive", "Heals on you heal more", HealTaken, 0.08f, None, 0.f, RUN_KIND_ALL, false),
+    RUN_MOD("Opening Salvo", "More damage in the first 8 s of a fight", Vanguard, 0.14f, None, 0.f,
+            RUN_KIND_TANK | RUN_KIND_DAMAGE, false),
+    RUN_MOD("Rising Glory", "More damage for every room cleared this run", Glory, 0.005f, None, 0.f,
+            RUN_KIND_ALL, false),
+    RUN_MOD("Lifeline", "Once a fight, falling under 30% health heals you", Lifeline, 0.15f, None, 0.f,
+            RUN_KIND_ALL, false),
+    RUN_MOD("Shared Spoils", "Your kills heal allies near you", SharedFeast, 0.015f, None, 0.f,
+            RUN_KIND_TANK | RUN_KIND_DAMAGE, false),
 
     RUN_MOD("Glass Cannon", "Deal much more damage, and take more", Damage, 0.18f, Armor, -0.15f,
             RUN_KIND_DAMAGE, true),
@@ -182,9 +202,13 @@ global_variable run_mod_def RunModDefs[RunMod_Count] =
             Bossbane, -0.08f, RUN_KIND_DAMAGE, true),
     RUN_MOD("Thornwall", "Monsters that hit you take half of it back, and a slower run", Thorns, 0.5f,
             Speed, -0.05f, RUN_KIND_TANK, true),
+    RUN_MOD("Blitz", "A huge opening burst each fight, and less damage after it", Vanguard, 0.6f,
+            Damage, -0.08f, RUN_KIND_DAMAGE, true),
+    RUN_MOD("Legend", "Far more damage for every room cleared this run, for less health", Glory, 0.015f,
+            Health, -0.1f, RUN_KIND_ALL, true),
 
     // NOTE(zoubir): Fire Mage, Ashbringer
-    RUN_MOD("Kindled Wrath", "More damage to foes above 80% health", Opener, 0.08f, None, 0.f, 0, false),
+    RUN_MOD("Kindled Wrath", "More damage to foes above 80% health", Opener, 0.12f, None, 0.f, 0, false),
     RUN_MOD("Cinder Skin", "You take less damage", Armor, 0.04f, None, 0.f, 0, false),
     RUN_MOD("Fire Within", "More damage to bosses", Bossbane, 0.05f, None, 0.f, 0, false),
     RUN_MOD("Pyroclasm", "More damage to everything but bosses", Packbane, 0.06f, None, 0.f, 0, false),
@@ -208,10 +232,10 @@ global_variable run_mod_def RunModDefs[RunMod_Count] =
     RUN_MOD("Saint's Vigil", "Allies near you take less, and heals on you heal more", Aura, 0.06f,
             HealTaken, 0.15f, 0, false),
     // NOTE(zoubir): Ranger, Wildstalker
-    RUN_MOD("Patience", "More damage to foes above 80% health", Opener, 0.09f, None, 0.f, 0, false),
+    RUN_MOD("Patience", "More damage to foes above 80% health", Opener, 0.13f, None, 0.f, 0, false),
     RUN_MOD("Big Game", "More damage to bosses", Bossbane, 0.05f, None, 0.f, 0, false),
     RUN_MOD("Trailwise", "You run faster", Speed, 0.04f, None, 0.f, 0, false),
-    RUN_MOD("Killing Rhythm", "Every fifth hit lands much harder", Cadence, 0.3f, None, 0.f, 0, false),
+    RUN_MOD("Killing Rhythm", "Every fifth hit lands much harder", Cadence, 0.2f, None, 0.f, 0, false),
     RUN_MOD("Trophy", "A kill takes time off every class spell", Refund, 0.4f, None, 0.f, 0, false),
     RUN_MOD("Apex Predator", "Far more damage to weak foes, and a kill makes you deadlier",
             Execute, 0.3f, Frenzy, 0.1f, 0, false),
@@ -226,13 +250,13 @@ global_variable run_mod_def RunModDefs[RunMod_Count] =
     // NOTE(zoubir): Shadowblade, Nightfall
     RUN_MOD("Assassinate", "More damage to foes under 35% health", Execute, 0.1f, None, 0.f, 0, false),
     RUN_MOD("Shroud", "Your damage makes less threat", Threat, -0.12f, None, 0.f, 0, false),
-    RUN_MOD("Ambush", "More damage to foes above 80% health", Opener, 0.1f, None, 0.f, 0, false),
+    RUN_MOD("Ambush", "More damage to foes above 80% health", Opener, 0.14f, None, 0.f, 0, false),
     RUN_MOD("Quick Hands", "Every class spell comes back sooner", Haste, 0.04f, None, 0.f, 0, false),
     RUN_MOD("Slip", "You run faster", Speed, 0.04f, None, 0.f, 0, false),
     RUN_MOD("Death Mark", "More damage to bosses, and every fifth hit lands harder", Bossbane, 0.12f,
-            Cadence, 0.25f, 0, false),
+            Cadence, 0.15f, 0, false),
     // NOTE(zoubir): Stormcaller, Tempest
-    RUN_MOD("Static Build", "Every fifth hit lands much harder", Cadence, 0.3f, None, 0.f, 0, false),
+    RUN_MOD("Static Build", "Every fifth hit lands much harder", Cadence, 0.2f, None, 0.f, 0, false),
     RUN_MOD("Storm Front", "More damage to everything but bosses", Packbane, 0.07f, None, 0.f, 0, false),
     RUN_MOD("Conductor", "Every class spell comes back sooner", Haste, 0.04f, None, 0.f, 0, false),
     RUN_MOD("Grounded", "You take less damage", Armor, 0.04f, None, 0.f, 0, false),
@@ -241,7 +265,7 @@ global_variable run_mod_def RunModDefs[RunMod_Count] =
             Frenzy, 0.1f, 0, false),
     // NOTE(zoubir): Duelist, Flourish
     RUN_MOD("Footwork", "You run faster", Speed, 0.04f, None, 0.f, 0, false),
-    RUN_MOD("Precision", "Every fifth hit lands much harder", Cadence, 0.3f, None, 0.f, 0, false),
+    RUN_MOD("Precision", "Every fifth hit lands much harder", Cadence, 0.2f, None, 0.f, 0, false),
     RUN_MOD("Measured", "You take less damage", Armor, 0.04f, None, 0.f, 0, false),
     RUN_MOD("Coup de Grace", "More damage to foes under 35% health", Execute, 0.1f, None, 0.f, 0, false),
     RUN_MOD("Panache", "A kill makes you deal more damage for 6 s", Frenzy, 0.06f, None, 0.f, 0, false),
@@ -294,6 +318,10 @@ global_variable char *RunEffectFormats[RunEffect_Count] =
     "%+.0f%% threat",
     "%+.0f%% healing received",
     "%.0f%% of overhealing as a ward",
+    "%+.0f%% damage in a fight's first 8 s",
+    "%+.1f%% damage a room cleared, 10 at most",
+    "%.0f%% health back once a fight when low",
+    "%.1f%% health to allies near on a kill",
 };
 
 // NOTE(zoubir): Amount as RunEffectFormats prints it: a share as

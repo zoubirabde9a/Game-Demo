@@ -15,8 +15,8 @@ OnRunHit(player_slot *Attacker)
 }
 
 // NOTE(zoubir): from DungeonScaleDamage: Attacker's hit is about to kill
-// a monster: Feast heals, Reprisal takes time off the class spells,
-// Frenzy starts
+// a monster: Feast heals, Shared Spoils heals the allies near, Reprisal
+// takes time off the class spells, Frenzy starts
 internal void
 OnRunKill(app_state *AppState, player_slot *Attacker)
 {
@@ -29,6 +29,17 @@ OnRunKill(app_state *AppState, player_slot *Attacker)
     if (Feast > 0.f)
     {
         HealPlayer(AppState, Self->PlayerIndex, Self, Feast * Self->MaxHp);
+    }
+    float Shared = RunEffectShare(Attacker, RunEffect_SharedFeast);
+    for(u32 OtherIndex = 0; OtherIndex < MAX_PLAYERS && Shared > 0.f; OtherIndex++)
+    {
+        world_entity *Ally = AppState->Players[OtherIndex].Entity;
+        if (OtherIndex != Self->PlayerIndex && AppState->Players[OtherIndex].Active && Ally &&
+            Ally->IsPresent && !IsDeadPlayer(Ally) &&
+            LengthSq(Ally->Position.XY - Self->Position.XY) <= RUN_AURA_REACH * RUN_AURA_REACH)
+        {
+            HealPlayer(AppState, Self->PlayerIndex, Ally, Shared * Ally->MaxHp);
+        }
     }
     float Refund = RunEffectShare(Attacker, RunEffect_Refund);
     for(u32 Key = 0; Key < ROLE_KEYS && Refund > 0.f; Key++)
@@ -61,9 +72,10 @@ OnRunHurt(app_state *AppState, player_slot *Slot, world_entity *Source, float Da
     Slot->RunThornsOwed += Thorns * Damage;
 }
 
-// NOTE(zoubir): once a tick, from UpdateDungeon: Frenzy runs down, Thorns
-// pays, Regen heals in a fight, and each player gets its allies' Aura and
-// Anthem
+// NOTE(zoubir): once a tick, from UpdateDungeon: a new fight resets
+// Cadence's count and Lifeline, Frenzy runs down, Thorns pays, Regen
+// heals in a fight, Lifeline catches a player falling low, and each
+// player gets its allies' Aura and Anthem
 internal void
 UpdateRunTrees(app_state *AppState, dungeon_run *Run, float DeltaTime)
 {
@@ -74,6 +86,12 @@ UpdateRunTrees(app_state *AppState, dungeon_run *Run, float DeltaTime)
         if (!Slot->Active)
         {
             continue;
+        }
+        if (Slot->RunFightSeen != Run->MeterFight)
+        {
+            Slot->RunFightSeen = Run->MeterFight;
+            Slot->RunLifelineSpent = false;
+            Slot->RunHits = 0;
         }
         Slot->RunFrenzySeconds = Maximum(0.f, Slot->RunFrenzySeconds - DeltaTime);
         Slot->RunAuraArmor = 0.f;
@@ -98,6 +116,13 @@ UpdateRunTrees(app_state *AppState, dungeon_run *Run, float DeltaTime)
         if (Regen > 0.f && Run->FightingRoom)
         {
             HealPlayer(AppState, SlotIndex, Self, Regen * Self->MaxHp * DeltaTime);
+        }
+        float Lifeline = RunEffectShare(Slot, RunEffect_Lifeline);
+        if (Lifeline > 0.f && Run->FightingRoom && !Slot->RunLifelineSpent && Self->MaxHp > 0.f &&
+            Self->Hp < RUN_LIFELINE_BELOW * Self->MaxHp)
+        {
+            Slot->RunLifelineSpent = true;
+            HealPlayer(AppState, SlotIndex, Self, Lifeline * Self->MaxHp);
         }
         for(u32 OtherIndex = 0; OtherIndex < MAX_PLAYERS; OtherIndex++)
         {

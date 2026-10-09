@@ -73,9 +73,9 @@ A tier opens at 2 points a tier in this tree; points in the class tree do not co
 
 **Fixed slots** hold the same talent every run, chosen for the class. The Bulwark's are Menacing (more threat), Stoneform (armor), Retaliation (thorns), Steady Heart (regeneration in a fight), Shield Brother (allies near take less) and the capstone Living Fortress (+15% health, 20% less damage taken under 40% health).
 
-**Wild slots** roll a talent from a shared pool of 24 when a new run starts, and roll again at the next one. Points already in a wild slot stay there and buy whatever it rolled. The pool only offers what fits the class's role: a healer never rolls Finisher, a damage class never rolls Menace. No minor wild slot repeats an effect another slot already gives. The panel marks a wild slot with a die and its tooltip says it changes each run.
+**Wild slots** roll a talent from a shared pool of 28 when a new run starts, and roll again at the next one. Points already in a wild slot stay there and buy whatever it rolled. The pool only offers what fits the class's role: a healer never rolls Finisher, a damage class never rolls Menace. No minor wild slot repeats an effect another slot already gives. The panel marks a wild slot with a die and its tooltip says it changes each run.
 
-**Keystones** roll in the sixth tier's wild slot and trade a cost for a big effect: Glass Cannon (+18% damage, 15% more taken), Colossus (+25% health, 8% slower), Blood Pact (6% of damage healed back, 30% less healing received), Zealotry (spells 15% faster, 10% less health), Headsman, Martyr, Unyielding, Warlord, Bloodbath, Thornwall.
+**Keystones** roll in the sixth tier's wild slot and trade a cost for a big effect: Glass Cannon (+18% damage, 15% more taken), Colossus (+25% health, 8% slower), Blood Pact (6% of damage healed back, 30% less healing received), Zealotry (spells 15% faster, 10% less health), Headsman, Martyr, Unyielding, Warlord, Bloodbath, Thornwall, Blitz (+60% damage in a fight's first 8 s, 8% less after), Legend (+1.5% damage a room cleared this run, 10% less health).
 
 A talent is one or two effects, each with an amount a rank:
 
@@ -94,6 +94,10 @@ A talent is one or two effects, each with an amount a rank:
 | aura / anthem | allies within 320 take less / deal more (15% at most from all allies) |
 | threat | more or less threat from your damage |
 | heal taken / overflow | heals on you heal more / healing past full becomes a ward |
+| vanguard | more damage in the first 8 s of each fight |
+| glory | more damage for every room cleared this run, counted up to 10 |
+| lifeline | once a fight, dropping under 30% health heals you |
+| shared feast | a kill heals the allies within 320 |
 
 The roll is a hash of the player's 16-bit tree seed, the class and the slot. The server sends each player only its seed, and the client rolls the same tree. Every number is a row in `run_tree/run_mods.cpp`; the classes' fixed talents and tree names are `RunTrees` in `run_tree/run_tree.cpp`. `code/tests/run_tree_tests.cpp` checks the rolls and the effects. `miscalance.bat` with `PROBE_TREE=class` or `PROBE_TREE=run` has the probe's bots spend in one tree.
 

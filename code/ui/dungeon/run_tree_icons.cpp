@@ -32,6 +32,10 @@ global_variable talent_icon_painter *RunEffectIconPainters[RunEffect_Count] =
     PaintRoleTauntIcon,
     PaintRoleMendingBoltIcon,
     PaintRoleWardIcon,
+    PaintStormcallerThunderclapIcon,
+    PaintRoleCombustionIcon,
+    PaintSecondWindIcon,
+    PaintDruidWildGrowthIcon,
 };
 
 internal void
