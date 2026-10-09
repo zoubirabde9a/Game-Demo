@@ -100,17 +100,22 @@ AddRangerFocus(app_state *AppState, player_slot *Slot, float Amount)
     }
 }
 
-// NOTE(zoubir): Slot's mark goes on Foe, fresh, and clients are told
+// NOTE(zoubir): Slot's mark goes on Foe, fresh, and clients are told.
+// Jumped when Lethal Mark carries it from a foe that died at From: its
+// burst's number is then 2 plus the distance, so clients draw it leaping
+// from there instead of an arrow from the bow
 internal void
-MarkRangerFoe(app_state *AppState, player_slot *Slot, world_entity *Foe, v2 From)
+MarkRangerFoe(app_state *AppState, player_slot *Slot, world_entity *Foe, v2 From,
+              bool32 Jumped = false)
 {
     ranger_slot *Ranger = &Slot->Ranger;
     Ranger->MarkSlot = (u32)(Foe - AppState->World.Entities);
     Ranger->MarkSerial = Foe->MonsterSerial;
     Ranger->MarkSeconds = MARK_SECONDS;
     Ranger->MarkKeep = RANGER_KEEP_SECONDS;
+    u32 Variant = Jumped ? 2 + (u32)(Length(Foe->Position.XY - From) + 0.5f) : 0;
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Mark),
-              (u8)(Slot - AppState->Players), ChestOf(Foe),
+              (u8)(Slot - AppState->Players), RangerBurstSpot(ChestOf(Foe), Variant),
               ATan2(Foe->Position.Y - From.Y, Foe->Position.X - From.X));
 }
 
@@ -281,7 +286,7 @@ UpdateRangerMark(app_state *AppState, player_slot *Slot, float DeltaTime)
                                         RangerShotRoom(AppState, Slot->Entity), 0, 0);
         if (Next)
         {
-            MarkRangerFoe(AppState, Slot, Next, Where);
+            MarkRangerFoe(AppState, Slot, Next, Where, true);
         }
     }
 }

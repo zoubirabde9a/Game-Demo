@@ -4,7 +4,8 @@
    circle that stick in the floor and fade, for as long as the server's
    rain lasts (longer and wider with Barrage). Hunter's Mark: a turning
    reticle over the foe and a ring under it, following the foe; it
-   closes in with a flash where the marking arrow lands. A snare trap:
+   closes in with a flash where the marking arrow lands (with Lethal Mark,
+   where it leaps over from a foe that died). A snare trap:
    steel jaws round a teal rune, and when it springs the jaws bite shut
    and roots of light wrap the foe (with Hunter's Net, a net of light
    flies out over every foe it grabbed); an Explosive Trap is drawn by
@@ -160,14 +161,39 @@ DrawRangerMark(render_context *RenderContext, app_state *AppState, role_burst *B
     {
         return;
     }
-    // NOTE(zoubir): follow the foe from frame to frame
-    bool32 Landing = RangerBurstVariant(Burst->Position) == 0;
-    Burst->Position = RangerBurstSpot(ChestOf(Foe), Landing ? 0 : 1);
+    // NOTE(zoubir): follow the foe from frame to frame. The number: 0 a
+    // fresh mark, 1 sent again, 2 and up one Lethal Mark jumped (2 plus
+    // how far, from the foe that died along Angle)
+    u32 Variant = RangerBurstVariant(Burst->Position);
+    bool32 Landing = Variant != 1;
+    Burst->Position = RangerBurstSpot(ChestOf(Foe), Variant);
     float Elapsed = T * RoleBurstLife(Burst->Kind);
+    world_entity *Caster = AppState->Players[Burst->Slot].Entity;
+    if (Variant >= 2)
+    {
+        // NOTE(zoubir): the mark leaping over from the foe that died, a
+        // teal streak arcing to this one
+        float Distance = (float)(Variant - 2);
+        float Flight = Maximum(0.1f, Distance / (0.6f * RANGER_ARROW_SPEED));
+        if (Elapsed < Flight)
+        {
+            v2 To = BurstToScreen(ChestOf(Foe), CameraOffset);
+            v2 From = To - Distance * V2(Cos(Burst->Angle), Sin(Burst->Angle));
+            float Fly = Elapsed / Flight;
+            float Back = Maximum(0.f, Fly - 0.3f);
+            v2 Head = From + Fly * (To - From) - V2(0.f, 40.f * 4.f * Fly * (1.f - Fly));
+            v2 Tail = From + Back * (To - From) - V2(0.f, 40.f * 4.f * Back * (1.f - Back));
+            DrawFxStroke(RenderContext, Tail, Head, 0.f, 5.f, FxColor(0.f, RANGER_FX_TEAL_RGB),
+                         FxColor(0.9f, RANGER_FX_PALE_RGB));
+            DrawShaderQuad(RenderContext, Shader_Glow, Head.X - 12.f, Head.Y - 12.f, 24.f, 24.f,
+                           FxColor(0.8f, RANGER_FX_TEAL_RGB), RenderBlend_Additive);
+            return;
+        }
+        Elapsed -= Flight;
+    }
     // NOTE(zoubir): the marking arrow flies from the bow first, a pale
     // teal one, and the reticle closes as it strikes
-    world_entity *Caster = AppState->Players[Burst->Slot].Entity;
-    if (Landing && Caster)
+    else if (Landing && Caster)
     {
         float Flight = Length(Foe->Position.XY - Caster->Position.XY) / RANGER_ARROW_SPEED;
         if (Elapsed < Flight)
