@@ -183,6 +183,23 @@ RangerTrapReaches(ranger_trap *Trap, world_entity *Monster, float Radius)
     return Result;
 }
 
+// NOTE(zoubir): a trap of Slot's caught Monster: Trapper's Focus fills the
+// bow, Exposing Trap leaves it taking more from the party
+internal void
+OnRangerTrapCatch(app_state *AppState, player_slot *Slot, world_entity *Monster)
+{
+    u32 Focus = RoleRank(Slot, PlayerRole_Ranger, RangerTalent_TrappersFocus);
+    if (Focus)
+    {
+        AddRangerFocus(AppState, Slot, TRAPPERS_FOCUS * (float)Focus);
+    }
+    if (Monster->IsPresent && Monster->Hp > 0.f &&
+        RoleRank(Slot, PlayerRole_Ranger, RangerTalent_ExposingTrap))
+    {
+        AddSunder(AppState->Dungeon, &AppState->World, Monster, EXPOSING_TRAP_SECONDS, EXPOSING_TRAP_SHARE);
+    }
+}
+
 // NOTE(zoubir): the snare grabs Monster: it stops, is rooted, and bitten
 internal void
 SnareRangerFoe(app_state *AppState, player_slot *Slot, ranger_trap *Trap, world_entity *Monster)
@@ -195,6 +212,7 @@ SnareRangerFoe(app_state *AppState, player_slot *Slot, ranger_trap *Trap, world_
     Monster->Velocity.XY = V2(0.f, 0.f);
     RangerHit(AppState, Trap->By, Monster, RangerShot_Trap, TRAP_DAMAGE + (Snare ? SNARE_DAMAGE : 0.f), 0.f,
               NormalizeOr(Offset, V2(1.f, 0.f)), StatusEffect_Rooted, Root);
+    OnRangerTrapCatch(AppState, Slot, Monster);
     // NOTE(zoubir): Pinning Volley keeps it slow after the root lets go
     float Pin = (float)RoleRank(Slot, PlayerRole_Ranger, RangerTalent_PinningVolley);
     if (Pin > 0.f && Monster->IsPresent && Monster->Hp > 0.f)
@@ -223,6 +241,7 @@ BlowExplosiveTrap(app_state *AppState, player_slot *Slot, ranger_trap *Trap, boo
         v2 Away = NormalizeOr(Monster->Position.XY - Trap->Position.XY, V2(1.f, 0.f));
         RangerHit(AppState, Trap->By, Monster, RangerShot_Trap, EXPLOSIVE_TRAP_DAMAGE,
                   EXPLOSIVE_TRAP_SHOVE, Away);
+        OnRangerTrapCatch(AppState, Slot, Monster);
         if (Monster->IsPresent && Monster->Hp > 0.f)
         {
             if (Net)

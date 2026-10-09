@@ -539,6 +539,38 @@ TestExplosiveTrap()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the Survival pool's talents: Trapper's Focus fills the bow
+// for each foe a trap catches, Exposing Trap leaves it taking more from
+// the party
+internal void
+TestTrapTalents()
+{
+    crypt_world Crypt = CreateRangerWorld();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    Check(SetClassTalentRank(Slot, RangerTalent_TrappersFocus, 2) < Talent_Count);
+    GrantClassSpells(Slot);
+    v2 Point = AimPoint(Slot->Entity);
+    v3 Spot = V3(Point.X, Point.Y, 0.f) - Slot->Entity->Position;
+    Spot.Z = 0.f;
+    Slot->Ranger.Focus = 0.f;
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    ranger_dummies Dummies = {};
+    world_entity *On = RangerDummy(&Crypt, &Dummies, Spot);
+    RangerDummy(&Crypt, &Dummies, Spot + V3(60.f, 30.f, 0.f));
+    RangerTick(&Crypt, &Dummies, 2);
+    Check(!RangerTrapDown(&AppState->Dungeon->Ranger, 0));
+    Check(Slot->Ranger.Focus >= 2.f * 2.f * TRAPPERS_FOCUS - 0.01f);
+
+    world *World = &AppState->World;
+    Check(FoeMarkDamageScale(AppState->Dungeon, World, On) == 1.f);
+    Check(SetClassTalentRank(Slot, RangerTalent_ExposingTrap, 1) < Talent_Count);
+    OnRangerTrapCatch(AppState, Slot, On);
+    float Scale = FoeMarkDamageScale(AppState->Dungeon, World, On);
+    Check(Scale > 1.f + EXPOSING_TRAP_SHARE - 0.001f && Scale < 1.f + EXPOSING_TRAP_SHARE + 0.001f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunRangerTests()
 {
@@ -547,6 +579,7 @@ RunRangerTests()
     TestQuickShotMarks();
     TestKillShot();
     TestExplosiveTrap();
+    TestTrapTalents();
     TestPiercingShotThroughALine();
     TestVolleyRainsOnTheCircle();
     TestDisengageLeavesASnare();

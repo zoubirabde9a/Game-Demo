@@ -60,8 +60,8 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    RM(PackHunter))},
      {{CT(RangerTalent_KeenEye), CT(RangerTalent_SteadyHands), RM(KillingRhythm), RM(Finisher),
        RM(Leeching), CT(RangerTalent_Survivalist), CT(RangerTalent_LethalMark)},
-      {RM(Cleaver), RM(Bloodrush), RM(Feast), RM(Toughened), RM(Vigor), RM(Trophy),
-       CT(RangerTalent_FleetHunter)}}},
+      {RM(Cleaver), RM(Bloodrush), RM(Toughened), RM(Vigor), RM(Trophy),
+       CT(RangerTalent_FleetHunter), CT(RangerTalent_TrappersFocus), CT(RangerTalent_ExposingTrap)}}},
 
     // NOTE(zoubir): the Berserker
     {{"Fury", "Carnage"},

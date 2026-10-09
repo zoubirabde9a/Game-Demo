@@ -120,6 +120,8 @@ enum ranger_talent
     RangerTalent_Volley,
     RangerTalent_KillShot,
     RangerTalent_ExplosiveTrap,
+    RangerTalent_TrappersFocus,
+    RangerTalent_ExposingTrap,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -147,6 +149,13 @@ enum ranger_talent
 #define HUNTERS_NET_RADIUS 120.f
 // NOTE(zoubir): and a Volley's first strike roots what it catches this long
 #define HUNTERS_NET_VOLLEY_ROOT 1.f
+// NOTE(zoubir): Trapper's Focus, per rank: Focus for each foe a trap (the
+// snare or Explosive Trap) catches, so traps feed Piercing Shot
+#define TRAPPERS_FOCUS 12.f
+// NOTE(zoubir): Exposing Trap: a foe a trap catches takes this share more
+// from the whole party for this long (a sunder, foe_marks.cpp)
+#define EXPOSING_TRAP_SHARE 0.1f
+#define EXPOSING_TRAP_SECONDS 5.f
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 1 unlocks the C spell, slot 4 the V spell
@@ -183,6 +192,10 @@ global_variable talent_def RangerTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Explosive Trap", "Right click: a trap thrown to the cursor that blows on every foe near it",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Trapper's Focus", "Each foe your traps catch gives Focus", "+12 Focus a foe",
+     TalentBranch_Role, 0, 0, 2, 0},
+    {"Exposing Trap", "A foe your traps catch takes 10% more from the party for 5 s",
+     "+10% damage taken", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
