@@ -289,15 +289,54 @@ BALD_RX = 7.0
 BALD_RY = 7.2
 BALD_DROP = 1.0
 BALD_FACE_LIFT = 2.5
-# NOTE: the face's middle row when standing facing the camera, plus a pixel
-# of bob; lower than this the head is lifted
-FACE_Y_MAX = 13.0
+# NOTE: how far a head may bob from its facing's standing height (pixels)
+HEAD_BOB = 1.0
+# NOTE: the face's middle sits this far under the headphones' middle, and
+# a patch of skin further than this from there is not the face
+FACE_BELOW_PHONES = 4.5
+FACE_NEAR_PHONES = 6.5
+# NOTE: a head further than this from the body (pixels) gets a neck
+NECK_GAP = 2.0
 
 
-def bald_head(cell, look=None):
+def join_neck(cell, dome, bx, by):
+    """a neck from the head's chin to the nearest part of the body when the
+    two are apart: the original lunges with its head far forward, and its
+    long hair used to fill the gap"""
+    op = cell[..., 3] > 0
+    body = op & ~neighbours8(dome) & (np.mgrid[0:32, 0:32][0] > by)
+    if not body.any():
+        return cell
+    chin = np.array([by + BALD_RY - 1.0, bx])
+    ys, xs = np.nonzero(body)
+    d = np.hypot(ys - chin[0], xs - chin[1])
+    k = d.argmin()
+    if d[k] <= NECK_GAP:
+        return cell
+    target = np.array([ys[k], xs[k]])
+    new = np.zeros((32, 32), bool)
+    for t in np.linspace(0.0, 1.0, 12):
+        y, x = chin + t * (target - chin)
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                yi, xi = int(round(y)) + dy, int(round(x)) + dx
+                if 0 <= yi < 32 and 0 <= xi < 32 and (abs(dy) + abs(dx) < 2):
+                    new[yi, xi] = True
+    new &= ~op | is_col(cell, [OUTLINE])
+    cell[new] = SKIN[1] + (255,)
+    op = cell[..., 3] > 0
+    edge = ~op & neighbours8(new)
+    edge &= (np.roll(new, 1, 0) | np.roll(new, -1, 0) | np.roll(new, 1, 1) | np.roll(new, -1, 1))
+    cell[edge] = OUTLINE + (255,)
+    return cell
+
+
+def bald_head(cell, look=None, rest_y=None, measure=False):
     """takes the hair (and the headphones) away and draws a round bald head
-    a size smaller in their place, shaded from the upper left, then puts
-    the original face (skin, eyes, mouth) back on it"""
+    a size smaller in their place, then puts the original face (skin, eyes,
+    mouth) back on it. rest_y is the head's height in the standing frame of
+    the same facing: the head bobs at most HEAD_BOB from it, so it never
+    jumps between frames. measure returns the head's own height instead"""
     h = head_of(cell)
     if h is None:
         return cell
@@ -313,22 +352,32 @@ def bald_head(cell, look=None):
         if is_streak(patch, -99, wide):
             for y, x in patch:
                 streak[y, x] = True
-    # NOTE: the face is the topmost patch of skin; the head is found from
-    # it, since a hair bun sticking up throws the sprite's top off
+    # NOTE: the face is the patch of skin nearest the headphones, which sit
+    # on the head in every frame; a hand raised to cast is never it, nor
+    # does a hair bun sticking up throw it off. With no headphones in
+    # view, the topmost patch of skin
+    phones = is_col(cell, METAL) & (yy < top + 15)
+    candidates = [p for p in components(skin & ~streak) if len(p) >= 4]
     face_patch = None
-    for patch in components(skin & ~streak):
-        if len(patch) >= 4 and min(y for y, x in patch) <= top + 18:
-            if face_patch is None or min(y for y, x in patch) < min(y for y, x in face_patch):
-                face_patch = patch
+    if phones.sum() >= 3:
+        py, px = [v.mean() for v in np.nonzero(phones)]
+        def gap(p):
+            return np.hypot(np.mean([y for y, x in p]) - (py + FACE_BELOW_PHONES),
+                            np.mean([x for y, x in p]) - px)
+        near = [p for p in candidates if gap(p) <= FACE_NEAR_PHONES]
+        if near:
+            face_patch = min(near, key=gap)
+    else:
+        for patch in candidates:
+            if min(y for y, x in patch) <= top + 18:
+                if face_patch is None or min(y for y, x in patch) < min(y for y, x in face_patch):
+                    face_patch = patch
     if face_patch:
         fy = np.array([y for y, x in face_patch])
         fx = np.array([x for y, x in face_patch])
         cy = fy.mean() + 0.5 - BALD_FACE_LIFT - BALD_DROP
         neck = fy.max() + 1.5
-        # NOTE: the original ducks its head when it runs toward the camera
-        # (its hair bun hid it); a bald head is lifted back to its standing
-        # height, give or take a pixel, and a neck fills in under it
-        lift = max(0, int(round(fy.mean() - FACE_Y_MAX)))
+        lift = 0
         box = (yy >= fy.min() - 2) & (yy <= fy.max()) & (xx >= fx.min() - 2) & (xx <= fx.max() + 2)
         face = box & (skin | is_col(cell, ACCENT + [WHITE])) & ~streak
     else:
@@ -340,10 +389,28 @@ def bald_head(cell, look=None):
     face &= yy + 0.5 < neck
     keep = cell.copy()
     gone = old & ~streak & (cell[..., 3] > 0)
+    # NOTE: an arm or a hand raised across the head (a cast, a swing) is
+    # not head: it comes back over the new head, with its outline
+    limbs = (cell[..., 3] > 0) & is_col(cell, CLOTH + ACCENT + SKIN) & ~face
+    arm = np.zeros((32, 32), bool)
+    for patch in components(limbs):
+        if any(not old[y, x] for y, x in patch):
+            for y, x in patch:
+                arm[y, x] = True
+    arm &= gone
+    arm_line = gone & is_col(cell, [OUTLINE]) & neighbours8(arm) & ~neighbours8(face)
     cell[gone] = 0
     # NOTE: the head sits where the face says, the face on its lower half;
     # seen from behind (no face) a little under the hair's centre
-    by = cy + BALD_DROP - lift
+    by = cy + BALD_DROP
+    if measure:
+        return by
+    # NOTE: the original ducks and lunges its head where its hair hid it;
+    # the bald head stays within HEAD_BOB of its standing height, its face
+    # moving with it, and a neck joins it to the body
+    if rest_y is not None:
+        lift = int(round(by - np.clip(by, rest_y - HEAD_BOB, rest_y + HEAD_BOB)))
+    by -= lift
     bx = cx
     nx = (xx + 0.5 - bx) / BALD_RX
     ny = (yy + 0.5 - by) / BALD_RY
@@ -360,12 +427,13 @@ def bald_head(cell, look=None):
     # anywhere (the long hair down the back, the ponytail)
     moved = np.roll(face, -lift, 0)
     cell[moved] = np.roll(keep, -lift, 0)[moved]
-    if lift and face_patch:
+    if lift > 0 and face_patch:
         mx = fx.mean()
         for y in range(int(fy.max()) - lift + 1, int(fy.max()) + 1):
             for x in range(int(mx - 1.5), int(mx + 2.5)):
                 if 0 <= y < 32 and 0 <= x < 32 and (cell[y, x, 3] == 0 or tuple(cell[y, x, :3]) == OUTLINE):
                     cell[y, x] = SKIN[1] + (255,)
+    cell[arm | arm_line] = keep[arm | arm_line]
     hair = is_col(cell, HAIR) | (is_col(cell, METAL) & old)
     cell[hair] = 0
     cell = reoutline(cell, hair | gone)
@@ -386,6 +454,7 @@ def bald_head(cell, look=None):
         eye_row = fy.min() - lift + 1
     else:
         eye_row = by
+    cell = join_neck(cell, dome, bx, by)
     info = {'bx': bx, 'by': by, 'rx': BALD_RX, 'ry': BALD_RY, 'dome': dome,
             'face': moved, 'eye_row': eye_row}
     cell = draw_look(cell, info, look)
@@ -417,8 +486,8 @@ def despeck(cell):
     return out
 
 
-def class_cell(cell, pal):
-    cell = thicken_legs(trim_hips(widen(bald_head(cell, LOOKS.get(pal.get('name'))))))
+def class_cell(cell, pal, rest_y=None):
+    cell = thicken_legs(trim_hips(widen(bald_head(cell, LOOKS.get(pal.get('name')), rest_y))))
     h = head_of(cell)
     out = cell.copy()
     yy, xx = np.mgrid[0:32, 0:32]
@@ -501,12 +570,31 @@ LOOKS = {
 }
 
 
+# NOTE: the cells the game plays, by facing (sim/animations.cpp): first
+# frame and count of each animation, and the standing frame of each facing
+PLAYED = {
+    'down': [(177, 1), (180, 4), (32, 6), (96, 4), (184, 4), (103, 2)],
+    'up': [(241, 1), (244, 4), (80, 6), (160, 4), (248, 4), (167, 2)],
+    'right': [(209, 1), (212, 4), (64, 6), (128, 4), (216, 4), (135, 2)],
+}
+FACING_OF = {s + k: f for f, runs in PLAYED.items() for s, n in runs for k in range(n)}
+
+
+def sheet_cell(sheet, index):
+    """the cell the game's frame index names (rows counted from the bottom)"""
+    r, c = 15 - index // 16, index % 16
+    return r, c, sheet[r * 32:(r + 1) * 32, c * 32:(c + 1) * 32]
+
+
 def class_sheet(sheet, pal):
-    """every 32-pixel cell of the sheet, in place of the original's"""
+    """every 32-pixel cell of the sheet, in place of the original's; a
+    played cell keeps its head near its facing's standing height"""
+    rest = {f: bald_head(sheet_cell(sheet, runs[0][0])[2], measure=True) for f, runs in PLAYED.items()}
     out = sheet.copy()
-    for r in range(16):
-        for c in range(16):
-            out[r * 32:(r + 1) * 32, c * 32:(c + 1) * 32] = class_cell(sheet[r * 32:(r + 1) * 32, c * 32:(c + 1) * 32], pal)
+    for index in range(256):
+        r, c, cell = sheet_cell(sheet, index)
+        f = FACING_OF.get(index)
+        out[r * 32:(r + 1) * 32, c * 32:(c + 1) * 32] = class_cell(cell, pal, rest.get(f))
     return out
 
 
