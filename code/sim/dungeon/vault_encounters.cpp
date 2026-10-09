@@ -12,18 +12,18 @@ global_variable encounter_row VaultEncounters[] =
 {
     // NOTE(zoubir): 1, Frostgate Landing, is empty: the party arrives there
     // 2, Shiver Hall: two big pulls, as three small ones cost a party at
-    // this level nothing. First a shelled warden behind webs with toads
-    // shelling over it, an elite brute with bats and a lurker tunnelling
+    // this level nothing. First a shelled warden behind webs with two toads
+    // shelling over it, an elite brute with two bats and a lurker tunnelling
     // under the tank; then a shaman raising the dead beside a slime, and
     // two shades at the back line, one elite. One pull of eighteen with
     // five elites walled every party whose damage class hits one foe at a
     // time (a Duelist party wiped thirteen times a kill here)
     {2, 0, MonsterKind_Warden, 1, Encounter_Elite},
     {2, 0, MonsterKind_Spider, 2, 0},
-    {2, 0, MonsterKind_Toad, 3, 0},
+    {2, 0, MonsterKind_Toad, 2, 0},
     {2, 0, MonsterKind_Lurker, 1, 0},
     {2, 0, MonsterKind_Brute, 1, Encounter_Elite},
-    {2, 0, MonsterKind_Bat, 3, 0},
+    {2, 0, MonsterKind_Bat, 2, 0},
     {2, 1, MonsterKind_Shaman, 1, 0},
     {2, 1, MonsterKind_Thrall, 3, 0},
     {2, 1, MonsterKind_Slime, 1, 0},
