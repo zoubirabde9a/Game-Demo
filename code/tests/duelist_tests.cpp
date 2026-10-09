@@ -416,6 +416,34 @@ TestDisarm()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the Guard pool's talents: Unnerving Parry leaves a foe
+// whose blow was dodged dealing less; Composure keeps a Tempo a rank of
+// those a hit off guard takes
+internal void
+TestGuardPoolTalents()
+{
+    crypt_world Crypt = DuelistCrypt();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *Foe = DuelistDummy(&Crypt, V3(80.f, 0.f, 0.f));
+    Check(SetClassTalentRank(Slot, DuelistTalent_UnnervingParry, 1) < Talent_Count);
+    PressOnce(&Crypt, 0, PlayerButton_Slam);
+    Check(Slot->ClassFlags & DUELIST_FLAG_FEINT);
+    HitDuelist(&Crypt, Foe, 30.f);
+    float Scale = FoeWeakenScale(AppState->Dungeon, &AppState->World, Foe);
+    Check(Scale > 1.f - UNNERVING_PARRY_SHARE - 0.001f && Scale < 1.f - UNNERVING_PARRY_SHARE + 0.001f);
+    TickCrypt(&Crypt, 2);
+
+    for(u32 Rank = 0; Rank <= 2; Rank++)
+    {
+        Check(SetClassTalentRank(Slot, DuelistTalent_Composure, Rank) < Talent_Count);
+        Slot->ClassMeter = 5;
+        HitDuelist(&Crypt, Foe, 1.f);
+        Check(Slot->ClassMeter == 5 - (TEMPO_HIT_LOSS > Rank ? TEMPO_HIT_LOSS - Rank : 0));
+    }
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDuelistTests()
 {
@@ -427,6 +455,7 @@ RunDuelistTests()
     TestRiposteWhiff();
     TestFeint();
     TestDisarm();
+    TestGuardPoolTalents();
     TestPredictedDuelist();
     TestHeartseeker();
     TestPerfectForm();

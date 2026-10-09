@@ -113,7 +113,7 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
      {{CT(DuelistTalent_KeenEdge), RM(Precision), RM(Giantslayer),
        RM(Panache), CT(DuelistTalent_QuickWrist), CT(DuelistTalent_Footwork), CT(DuelistTalent_Flurry)},
       {CT(DuelistTalent_Stamina), RM(Lifeline), RM(Stubborn), RM(SecondBreath), RM(Feast),
-       RM(Vigor)}}},
+       RM(Vigor), CT(DuelistTalent_UnnervingParry), CT(DuelistTalent_Composure)}}},
 
     // NOTE(zoubir): the Frost Mage
     {{"Winter", "Shatter"},

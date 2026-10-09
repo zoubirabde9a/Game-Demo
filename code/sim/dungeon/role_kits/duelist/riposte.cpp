@@ -65,6 +65,19 @@ StartGuard(app_state *AppState, player_slot *Slot, world_entity *Player)
     EmitSound(&AppState->Events, AssetType_SfxShield, Player->Position);
 }
 
+// NOTE(zoubir): Slot's Duelist parried or dodged a blow by Source:
+// Unnerving Parry leaves a monster dealing less
+internal void
+OnDuelistAvoided(app_state *AppState, player_slot *Slot, world_entity *Source)
+{
+    if (Source && Source->Type == EntityType_Monster && Source->Hp > 0.f &&
+        RoleRank(Slot, PlayerRole_Duelist, DuelistTalent_UnnervingParry))
+    {
+        WeakenFoe(AppState->Dungeon, &AppState->World, Source, UNNERVING_PARRY_SECONDS,
+                  UNNERVING_PARRY_SHARE);
+    }
+}
+
 // NOTE(zoubir): from ApplyHit (sim/hit.cpp), before a hit of Damage by
 // Source lands on Target: true when a Duelist's guard parried it, which
 // cancels all of it. A Duelist off guard loses Tempo to it instead
@@ -87,6 +100,7 @@ DuelistParriesHit(app_state *AppState, world_entity *Target, world_entity *Sourc
     {
         Duel->FeintSeconds = 0.f;
         AddTempo(Slot, FEINT_TEMPO);
+        OnDuelistAvoided(AppState, Slot, Source);
         if (RoleRank(Slot, PlayerRole_Duelist, DuelistTalent_Bait))
         {
             HealPlayer(AppState, Target->PlayerIndex, Target, BAIT_HEAL_SHARE * Target->MaxHp);
@@ -114,6 +128,7 @@ DuelistParriesHit(app_state *AppState, world_entity *Target, world_entity *Sourc
         Duel->CounterSerial = Source->MonsterSerial;
     }
     AddTempo(Slot, COUNTER_TEMPO);
+    OnDuelistAvoided(AppState, Slot, Source);
     Slot->RoleCooldowns[1] = Minimum(Slot->RoleCooldowns[1], RIPOSTE_READY_SECONDS);
     v2 Toward = Source ? NormalizeOr(Source->Position.XY - Target->Position.XY, GetPlayerAim(Target)) :
         NormalizeOr(GetPlayerAim(Target), V2(1.f, 0.f));

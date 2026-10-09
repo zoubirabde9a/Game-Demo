@@ -36,17 +36,20 @@ AddTempo(player_slot *Slot, u32 Amount)
 }
 
 // NOTE(zoubir): a hit landed on the Duelist that Riposte did not stop:
-// TEMPO_HIT_LOSS stacks go (none under Perfect Form), and every client
-// sees them break (DuelistBurst_Break, the Tempo before)
+// TEMPO_HIT_LOSS stacks go, a rank of Composure fewer (none under Perfect
+// Form), and every client sees them break (DuelistBurst_Break, the Tempo
+// before)
 internal void
 LoseTempo(app_state *AppState, player_slot *Slot, world_entity *Player)
 {
     u32 Before = DuelistTempo(Slot);
-    if (Before == 0 || Slot->Duelist.FormSeconds > 0.f)
+    u32 Kept = RoleRank(Slot, PlayerRole_Duelist, DuelistTalent_Composure);
+    u32 Loss = TEMPO_HIT_LOSS > Kept ? TEMPO_HIT_LOSS - Kept : 0;
+    if (Before == 0 || Loss == 0 || Slot->Duelist.FormSeconds > 0.f)
     {
         return;
     }
-    Slot->ClassMeter = (u8)(Before > TEMPO_HIT_LOSS ? Before - TEMPO_HIT_LOSS : 0);
+    Slot->ClassMeter = (u8)(Before > Loss ? Before - Loss : 0);
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_DuelistFirst, DuelistBurst_Break),
               (u8)Player->PlayerIndex, DuelistBurstSpot(ChestOf(Player), Before));
 }

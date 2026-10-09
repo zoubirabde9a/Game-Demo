@@ -74,6 +74,10 @@
 #define PRECISION_LOW_HEALTH 0.45f
 #define BAIT_GUARD_SECONDS 1.2f
 #define BAIT_HEAL_SHARE 0.1f
+// NOTE(zoubir): Unnerving Parry: a monster whose blow Riposte parried or
+// Feint dodged deals this share less for this long (WeakenFoe)
+#define UNNERVING_PARRY_SHARE 0.2f
+#define UNNERVING_PARRY_SECONDS 4.f
 // NOTE(zoubir): Feint (C, from Guard's pair against Riposte): a quick
 // step, Hasted for FEINT_HASTE_SECONDS, and for FEINT_SECONDS the next
 // blow on the Duelist misses whole and gives FEINT_TEMPO; with Bait the
@@ -170,6 +174,8 @@ enum duelist_talent
     DuelistTalent_Riposte,
     DuelistTalent_Feint,
     DuelistTalent_Disarm,
+    DuelistTalent_UnnervingParry,
+    DuelistTalent_Composure,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
@@ -209,6 +215,10 @@ global_variable talent_def DuelistTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Disarm", "X: a flick at the foe in reach; it deals 30% less for 6 s",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Unnerving Parry", "A foe whose blow you parry or dodge deals 20% less for 4 s",
+     "-20% damage dealt", TalentBranch_Role, 0, 0, 1, 0},
+    {"Composure", "A hit you take off guard costs a Tempo less", "-1 Tempo lost a rank",
+     TalentBranch_Role, 0, 0, 2, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
