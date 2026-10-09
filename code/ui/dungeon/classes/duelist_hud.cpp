@@ -155,11 +155,15 @@ DrawDuelistHud(render_context *RenderContext, app_state *AppState, player_slot *
     font *Small = AppState->Fonts.Small;
     float LineY = Centre.Y - 0.5f * Height - UILineHeight(Small) - 2.f;
     float Parried = DuelistBurstAge(AppState, SlotIndex, DuelistBurst_Parry);
+    role_burst *Parry = DuelistNewestBurst(AppState, SlotIndex, DuelistBurst_Parry);
+    bool32 Dodged = Parry && DuelistBurstVariant(Parry->Position) == DUELIST_PARRY_DODGE;
     if (Parried < 0.9f)
     {
         float Fade = 1.f - Clamp01((Parried - 0.6f) / 0.3f);
-        UIText(RenderContext, Small, Centre.X, LineY, (char *)"Parried! Riposte back in 2 s",
-               WithAlpha(UI_RGBA(255, 215, 110, 255), Fade), UIAlign_Center);
+        UIText(RenderContext, Small, Centre.X, LineY,
+               Dodged ? (char *)"Dodged!" : (char *)"Parried! Riposte back in 2 s",
+               WithAlpha(Dodged ? UI_RGBA(235, 225, 255, 255) : UI_RGBA(255, 215, 110, 255), Fade),
+               UIAlign_Center);
     }
     else if (Broke < 0.9f && Before > Tempo)
     {

@@ -7,8 +7,9 @@
 
 // NOTE(zoubir): developer builds, offline: GAME_DUELIST=full gives a
 // Duelist every talent and full Tempo, kept full; "full guard" keeps it
-// on guard and "full form" keeps Perfect Form up, so a scripted screenshot
-// (misc\screenshot.bat) can show the looks
+// on guard, "full form" keeps Perfect Form up and "full feint" keeps
+// Feint's dodge ready, so a scripted screenshot (misc\screenshot.bat) can
+// show the looks
 internal void
 ApplyDeveloperDuelist(player_slot *Slot)
 {
@@ -32,6 +33,10 @@ ApplyDeveloperDuelist(player_slot *Slot)
         if (strstr(Value, "form"))
         {
             Slot->Duelist.FormSeconds = Maximum(Slot->Duelist.FormSeconds, 1.f);
+        }
+        if (strstr(Value, "feint"))
+        {
+            Slot->Duelist.FeintSeconds = Maximum(Slot->Duelist.FeintSeconds, 0.5f);
         }
     }
 #endif

@@ -30,6 +30,12 @@
 
 #define DUELIST_MOST_TEMPO 5
 
+// NOTE(zoubir): burst variants that tell a key's look from another's on
+// the same burst (the rest are in duelist_defs.cpp): a Guard burst that
+// is Feint's step, a Parry burst that is Feint's dodge
+#define DUELIST_GUARD_FEINT 2
+#define DUELIST_PARRY_DODGE 1
+
 struct duelist_slot
 {
     // NOTE(zoubir): the role key the Duelist used last (RoleKeys order)

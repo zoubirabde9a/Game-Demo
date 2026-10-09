@@ -13,7 +13,8 @@
    once it has parried. Tempo lights the blade rose, more with every
    stack, and at full Tempo a glint runs up it; small diamonds over the
    head show the stacks to the party. Perfect Form leaves rose afterimages
-   behind the Duelist and petals drifting off it. Everything is read from
+   behind the Duelist and petals drifting off it. While Feint's dodge is
+   ready (a ClassFlags bit) a pale afterimage wavers a step to the side. Everything is read from
    the slot's ClassMeter and ClassFlags, its cast and its bursts, all of
    which reach every client. The bursts are duelist/bursts.cpp; the shapes
    duelist/shapes.cpp. */
@@ -169,6 +170,20 @@ DrawDuelistLook(render_context *RenderContext, app_state *AppState, player_slot 
                              -0.3f * H + 0.9f * H * Phase);
             DrawDuelistPetal(RenderContext, P, 6.f, 3.f * Clock + (float)Petal, (1.f - Phase) * Minimum(1.f, 5.f * Phase));
         }
+    }
+
+    // NOTE(zoubir): Feint's dodge ready: a pale afterimage a step to the
+    // side, wavering, slid out from the body when the Feint went off
+    if (Slot->ClassFlags & DUELIST_FLAG_FEINT)
+    {
+        float Out = DuelistEase(DuelistBurstAge(AppState, SlotIndex, DuelistBurst_Guard) / 0.15f);
+        float Waver = 0.5f + 0.5f * Sin(11.f * Clock + (float)SlotIndex);
+        v2 Side = DuelistFeintSide(ATan2(Aim.Y, Aim.X));
+        v2 Offset = (20.f * Out + 2.f * Sin(5.f * Clock)) * Side;
+        float Fade = 0.3f + 0.15f * Waver;
+        DrawDuelistGhost(RenderContext, Feet + Offset, 0.9f * W, 0.95f * H, Facing, Fade, DUELIST_PALE_RGB);
+        duelist_pose Echo = DuelistPoseAt(AppState, Slot, Player, Clock, Body + Offset, 0.05f);
+        DrawDuelistRapier(RenderContext, Echo.Grip, Echo.Dir, DUELIST_RAPIER * H, 0.f, 0.6f * Fade);
     }
 
     // NOTE(zoubir): the guard's shimmering arc in front, gold once it

@@ -42,8 +42,9 @@ StartFeint(app_state *AppState, player_slot *Slot, world_entity *Player)
     Slot->Duelist.FeintSeconds = FEINT_SECONDS;
     ApplyStatus(Player, StatusEffect_Hasted, FEINT_HASTE_SECONDS);
     v2 Aim = NormalizeOr(GetPlayerAim(Player), V2(1.f, 0.f));
-    EmitBurst(&AppState->Events, ClassBurst(SimBurst_DuelistFirst, DuelistBurst_Lunge),
-              (u8)Player->PlayerIndex, DuelistBurstSpot(ChestOf(Player), 0), ATan2(Aim.Y, Aim.X));
+    EmitBurst(&AppState->Events, ClassBurst(SimBurst_DuelistFirst, DuelistBurst_Guard),
+              (u8)Player->PlayerIndex, DuelistBurstSpot(ChestOf(Player), DUELIST_GUARD_FEINT),
+              ATan2(Aim.Y, Aim.X));
     EmitSound(&AppState->Events, AssetType_SfxDash, Player->Position);
 }
 
@@ -107,7 +108,8 @@ DuelistParriesHit(app_state *AppState, world_entity *Target, world_entity *Sourc
         }
         v2 Aim = NormalizeOr(GetPlayerAim(Target), V2(1.f, 0.f));
         EmitBurst(&AppState->Events, ClassBurst(SimBurst_DuelistFirst, DuelistBurst_Parry),
-                  (u8)Target->PlayerIndex, ChestOf(Target), ATan2(Aim.Y, Aim.X));
+                  (u8)Target->PlayerIndex, DuelistBurstSpot(ChestOf(Target), DUELIST_PARRY_DODGE),
+                  ATan2(Aim.Y, Aim.X));
         return true;
     }
     if (Duel->GuardSeconds <= 0.f)

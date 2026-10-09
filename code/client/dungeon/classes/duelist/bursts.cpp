@@ -6,9 +6,12 @@
      at its point when it struck.
    - Lunge: a long rose streak back along the way it came, dust kicked up
      where it left.
-   - Guard: a pale crescent swept across in front as the blade comes up.
+   - Guard: a pale crescent swept across in front as the blade comes up;
+     for Feint's step, a pale afterimage sliding off to the side and a
+     swish across the chest.
    - Parry: a gold and white clang at the chest toward the blow, sparks
-     flying off it and a ring.
+     flying off it and a ring; Feint's dodge is a pale blur instead, the
+     body smeared sideways and an afterimage left behind.
    - Counter: a quick rose cross on the foe it struck.
    - Heartseeker: a piercing line through the foe and a rose heart
      flashing on it, bigger with more Tempo; a sweeping crescent with
@@ -120,6 +123,59 @@ DrawParryBurst(render_context *RenderContext, v2 Chest, float Angle, float Age)
     DrawArcBand(RenderContext, C, 0.f, 2.f * Pi32, 10.f + 70.f * DuelistEase(Age / 0.35f),
                 14.f + 74.f * DuelistEase(Age / 0.35f), FxColor(0.f, DUELIST_GOLD_RGB),
                 FxColor(0.7f * Fade, 0x00FFFFFF));
+}
+
+// NOTE(zoubir): Feint's step: where the Duelist stood, a pale afterimage
+// sliding off to the side and fading, and a swish across the chest
+internal void
+DrawFeintBurst(render_context *RenderContext, v2 Feet, float Angle, float Age, float Width, float Height)
+{
+    v2 Aim = V2(Cos(Angle), Sin(Angle));
+    float Facing = Aim.X < -0.1f ? -1.f : 1.f;
+    v2 Side = DuelistFeintSide(Angle);
+    float Out = DuelistEase(Age / 0.2f);
+    float Fade = 1.f - DuelistEase(Age / 0.3f);
+    DrawDuelistGhost(RenderContext, Feet + (26.f * Out) * Side, 0.9f * Width, 0.95f * Height, Facing,
+                     0.55f * Fade, DUELIST_PALE_RGB);
+    v2 Chest = Feet - V2(0.f, 0.45f * Height);
+    for(u32 Line = 0; Line < 3; Line++)
+    {
+        v2 Row = Chest + V2(0.f, 7.f * ((float)Line - 1.f));
+        v2 From = Row - (20.f - 12.f * (float)(Line % 2)) * Side;
+        v2 To = Row + (10.f + 30.f * Out) * Side;
+        DrawFxStroke(RenderContext, From, To, 0.f, 2.f, FxColor(0.f, 0x00FFFFFF),
+                     FxColor(0.8f * Fade, DUELIST_PALE_RGB));
+    }
+}
+
+// NOTE(zoubir): Feint's dodge: a blow that found nothing. The body
+// smears off to the side in pale streaks out to an afterimage, a soft
+// glow; no clang, nothing struck metal
+internal void
+DrawDodgeBurst(render_context *RenderContext, v2 Feet, float Angle, float Age, float Width, float Height)
+{
+    v2 Aim = V2(Cos(Angle), Sin(Angle));
+    float Facing = Aim.X < -0.1f ? -1.f : 1.f;
+    v2 Side = DuelistFeintSide(Angle);
+    float Ease = DuelistEase(Age / 0.25f);
+    float Fade = 1.f - DuelistEase(Age / 0.45f);
+    v2 Chest = Feet - V2(0.f, 0.45f * Height);
+    DrawShaderQuad(RenderContext, Shader_Glow, Chest.X - 28.f, Chest.Y - 28.f, 56.f, 56.f,
+                   FxColor(0.2f * Fade, DUELIST_PALE_RGB), RenderBlend_Additive);
+    DrawDuelistGhost(RenderContext, Feet + (30.f * Ease) * Side, 0.9f * Width, 0.95f * Height, Facing,
+                     0.45f * Fade, DUELIST_PALE_RGB);
+    // NOTE(zoubir): streaks from the body out to the afterimage, thin
+    // where they leave
+    for(u32 Line = 0; Line < 5; Line++)
+    {
+        float Y = 0.17f * Height * ((float)Line - 2.f);
+        float Lag = 0.6f + 0.4f * BurstJitter(Line, 761);
+        v2 Row = Chest + V2(0.f, Y);
+        v2 From = Row - 6.f * Side;
+        v2 To = Row + (12.f + 40.f * Ease * Lag) * Side;
+        DrawFxStroke(RenderContext, From, To, 0.f, 2.5f, FxColor(0.f, DUELIST_PALE_RGB),
+                     FxColor(0.55f * Fade, 0x00FFFFFF));
+    }
 }
 
 internal void
@@ -235,6 +291,8 @@ DrawDuelistBurst(render_context *RenderContext, app_state *AppState, role_burst 
     v2 Centre = BurstToScreen(DuelistBurstPlace(Burst->Position), CameraOffset);
     world_entity *Caster = Burst->Slot < MAX_PLAYERS ? AppState->Players[Burst->Slot].Entity : 0;
     float Height = Caster ? Caster->Dimensions.Y : 60.f;
+    float Width = Caster ? Caster->Dimensions.X : 30.f;
+    v2 Feet = Caster ? RoleLookPoint(Caster, 0.f, CameraOffset) : Centre + V2(0.f, 0.45f * Height);
     switch(Index)
     {
         case DuelistBurst_Thrust:
@@ -250,14 +308,28 @@ DrawDuelistBurst(render_context *RenderContext, app_state *AppState, role_burst 
 
         case DuelistBurst_Guard:
         {
-            v2 Chest = Caster ? RoleLookPoint(Caster, 0.45f, CameraOffset) : Centre;
-            DrawGuardBurst(RenderContext, Chest, Burst->Angle, Age);
+            if (Variant & DUELIST_GUARD_FEINT)
+            {
+                DrawFeintBurst(RenderContext, Feet, Burst->Angle, Age, Width, Height);
+            }
+            else
+            {
+                v2 Chest = Caster ? RoleLookPoint(Caster, 0.45f, CameraOffset) : Centre;
+                DrawGuardBurst(RenderContext, Chest, Burst->Angle, Age);
+            }
         } break;
 
         case DuelistBurst_Parry:
         {
-            v2 Chest = Caster ? RoleLookPoint(Caster, 0.45f, CameraOffset) : Centre;
-            DrawParryBurst(RenderContext, Chest, Burst->Angle, Age);
+            if (Variant == DUELIST_PARRY_DODGE)
+            {
+                DrawDodgeBurst(RenderContext, Feet, Burst->Angle, Age, Width, Height);
+            }
+            else
+            {
+                v2 Chest = Caster ? RoleLookPoint(Caster, 0.45f, CameraOffset) : Centre;
+                DrawParryBurst(RenderContext, Chest, Burst->Angle, Age);
+            }
         } break;
 
         case DuelistBurst_Counter:
@@ -272,7 +344,6 @@ DrawDuelistBurst(render_context *RenderContext, app_state *AppState, role_burst 
 
         case DuelistBurst_Form:
         {
-            v2 Feet = Caster ? RoleLookPoint(Caster, 0.f, CameraOffset) : Centre;
             DrawFormBurst(RenderContext, Feet, Age, Height);
         } break;
 

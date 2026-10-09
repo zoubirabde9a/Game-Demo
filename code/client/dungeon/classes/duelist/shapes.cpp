@@ -76,6 +76,17 @@ DuelistNormal(v2 V)
     return Result;
 }
 
+// NOTE(zoubir): the way a Feint steps, on the screen: back from the
+// facing and a little across the aim on the ground
+inline v2
+DuelistFeintSide(float Angle)
+{
+    v2 Aim = V2(Cos(Angle), Sin(Angle));
+    float Facing = Aim.X < -0.1f ? -1.f : 1.f;
+    v2 Result = DuelistNormal(V2(-Facing, 0.f) + 0.6f * V2(-Aim.Y, 0.5f * Aim.X));
+    return Result;
+}
+
 inline v2
 DuelistRotate(v2 V, float Angle)
 {
@@ -262,11 +273,12 @@ DrawDuelistHeart(render_context *RenderContext, v2 C, float Size, u32 RGB, float
 }
 
 // NOTE(zoubir): a fencer's afterimage standing at Feet, Height tall,
-// side-on toward Facing (+1 right, -1 left): a rose body, the lead leg
-// out, the off arm up behind, the blade arm out in front
+// side-on toward Facing (+1 right, -1 left): a body in RGB (rose unless
+// asked), the lead leg out, the off arm up behind, the blade arm out in
+// front
 internal void
 DrawDuelistGhost(render_context *RenderContext, v2 Feet, float Width, float Height, float Facing,
-                 float Alpha)
+                 float Alpha, u32 RGB = DUELIST_RGB)
 {
     if (Alpha <= 0.01f)
     {
@@ -275,10 +287,10 @@ DrawDuelistGhost(render_context *RenderContext, v2 Feet, float Width, float Heig
     v2 Hip = Feet - V2(0.f, 0.45f * Height);
     v2 Neck = Feet - V2(0.f, 0.75f * Height);
     v2 Head = Feet - V2(0.f, 0.86f * Height);
-    u32 Body = FxColor(0.55f * Alpha, DUELIST_RGB);
+    u32 Body = FxColor(0.55f * Alpha, RGB);
     u32 Rim = FxColor(0.8f * Alpha, DUELIST_PALE_RGB);
     DrawShaderQuad(RenderContext, Shader_Glow, Hip.X - 0.9f * Width, Hip.Y - 0.6f * Height, 1.8f * Width,
-                   1.3f * Height, FxColor(0.45f * Alpha, DUELIST_RGB), RenderBlend_Additive);
+                   1.3f * Height, FxColor(0.45f * Alpha, RGB), RenderBlend_Additive);
     DrawFxStroke(RenderContext, Hip, Neck, 0.38f * Width, 0.3f * Width, Body, Body);
     DrawFxStroke(RenderContext, Hip, Feet + V2(Facing * 0.42f * Width, 0.f), 0.16f * Width, 0.1f * Width,
                  Body, Body);
