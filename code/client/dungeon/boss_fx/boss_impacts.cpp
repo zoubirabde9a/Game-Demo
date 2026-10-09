@@ -8,10 +8,11 @@
    GatherBossLights), and the camera shakes for whoever stands near. A
    Smite and a Falling Star also drop a shaft of light out of the sky onto
    where they land; a gravity well's collapse gets its own shock too
-   (WatchBossCollapses).
+   (WatchBossCollapses), and so does an add erupting as it merges into
+   its boss (WatchAddEruptions).
 
-   Only the shown boss's casts and what falls while a Starless boss is
-   away count, so a room of packs stays calm; all of it is read from what
+   Only the shown boss's casts, what falls while a Starless boss is away
+   and Vaelith's frost count, so a room of packs stays calm; all of it is read from what
    snapshots carry, so online looks the same. */
 
 #define BOSS_IMPACT_MAX 24
@@ -22,6 +23,10 @@
 // player standing on it (fx_bursts.cpp fades it with distance)
 #define BOSS_IMPACT_SHAKE 0.32f
 #define BOSS_SMITE_SHOCK_RADIUS 70.f
+// NOTE(zoubir): an add's eruption hits everyone in the room, so its shock
+// rolls out this far from the boss, and shakes every camera this much more
+#define BOSS_ERUPTION_RADIUS 520.f
+#define BOSS_ERUPTION_SHAKE 0.45f
 #define BOSS_FX_TRACKED ArrayCount(((world *)0)->Entities)
 
 #define BOSS_SHOCK_SPIRIT UI_RGBA(190, 120, 255, 255)
@@ -50,6 +55,9 @@ struct boss_fx
     // open last frame, so its collapse can be seen; 0 for none
     u32 WellOpen[BOSS_FX_TRACKED];
     v2 WellAt[BOSS_FX_TRACKED];
+    // NOTE(zoubir): the add clock the HUD showed last frame
+    u32 AddSeconds;
+    bool32 AddBursts;
 };
 
 internal boss_fx *
@@ -250,6 +258,46 @@ WatchBossCollapses(app_state *AppState, float Now)
                            BOSS_SHOCK_VOID, -1.f, Now);
         }
         Fx->WellOpen[Slot] = 0;
+    }
+}
+
+// NOTE(zoubir): once a frame: an add that erupts as it merges (a Magma
+// Champion, sim/dungeon/boss_clock.cpp) hits the whole room for a share of
+// everyone's health. The HUD's add clock (online from the snapshot) puts
+// one that erupts first; when it was in its last second and then is gone,
+// or the clock jumps to the next one, it went off
+internal void
+WatchAddEruptions(app_state *AppState, float Now)
+{
+    boss_fx *Fx = GetBossFx(AppState);
+    dungeon_run *Run = AppState->Dungeon;
+    u32 Seconds = Run ? Run->Clock.ShownAddSeconds : 0;
+    bool32 Bursts = Run && Run->Clock.ShownAddBursts && Seconds;
+    bool32 WentOff = Fx->AddBursts && Fx->AddSeconds <= 1 &&
+        (!Bursts || Seconds > Fx->AddSeconds);
+    Fx->AddSeconds = Seconds;
+    Fx->AddBursts = Bursts;
+    world_entity *Boss = 0;
+    world *World = &AppState->World;
+    for(u32 Index = 0; WentOff && Index < World->EntityCount; Index++)
+    {
+        world_entity *Entity = &World->Entities[Index];
+        if (Entity->IsPresent && Entity->Type == EntityType_Monster && Entity->Hp > 0.f &&
+            (u32)Entity->MonsterKind == Run->ShownBossKind)
+        {
+            Boss = Entity;
+            break;
+        }
+    }
+    if (!Boss)
+    {
+        return;
+    }
+    PushBossImpact(AppState, Boss->Position.XY, BOSS_ERUPTION_RADIUS,
+                   CastTellColor(MonsterAbility_Slam, 255), -1.f, Now);
+    if (AppState->FxBursts)
+    {
+        AppState->FxBursts->Trauma = Minimum(1.f, AppState->FxBursts->Trauma + BOSS_ERUPTION_SHAKE);
     }
 }
 

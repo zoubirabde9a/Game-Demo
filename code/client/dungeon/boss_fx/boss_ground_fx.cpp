@@ -249,6 +249,7 @@ DrawBossGroundFx(render_context *RenderContext, app_state *AppState, v3 CameraOf
     world *World = &AppState->World;
     float Now = GetFxClock(AppState);
     WatchBossCollapses(AppState, Now);
+    WatchAddEruptions(AppState, Now);
     for(u32 Index = 0; Index < World->EntityCount; Index++)
     {
         world_entity *Monster = &World->Entities[Index];
