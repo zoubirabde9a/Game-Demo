@@ -16,6 +16,7 @@
      cuts, one a point spent, and a last cross, bigger the more points;
      when the foe got away, two faint cuts in the air.
    - Deadly Throw: shadowblade/throw_fx.cpp.
+   - Garrote: shadowblade/garrote_fx.cpp.
    - Empty: five empty sockets over the head, shaking, for a finisher
      pressed with no combo points. */
 
@@ -40,6 +41,7 @@ DrawShadowbladeSpray(render_context *RenderContext, v2 Centre, float Age, float 
 }
 
 #include "throw_fx.cpp"
+#include "garrote_fx.cpp"
 
 internal void
 DrawTwinStrikeBurst(render_context *RenderContext, v2 Centre, float Angle, float Age)
@@ -395,6 +397,13 @@ DrawShadowbladeBurst(render_context *RenderContext, app_state *AppState, role_bu
             v2 From = Caster ? RoleLookPoint(Caster, 0.5f, CameraOffset) :
                 Centre - 120.f * V2(Cos(Burst->Angle), Sin(Burst->Angle));
             DrawDeadlyThrowBurst(RenderContext, From, Centre, Burst->Angle, Age, Variant);
+        } break;
+
+        case ShadowbladeBurst_Garrote:
+        {
+            v2 Hands = Caster ? RoleLookPoint(Caster, 0.45f, CameraOffset) :
+                Centre - 50.f * V2(Cos(Burst->Angle), Sin(Burst->Angle));
+            DrawGarroteBurst(RenderContext, Hands, Centre, Burst->Angle, Age, Variant != 0);
         } break;
 
         case ShadowbladeBurst_Empty:
