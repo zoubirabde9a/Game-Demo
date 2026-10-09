@@ -119,6 +119,34 @@ P = {
  'druid':      dict(hair=[(50,44,36),(90,80,66),(140,128,108),(196,186,166)], cloth=[(34,48,20),(56,76,30),(96,124,52)], metal=[(100,70,40),(156,116,72)], accent=[(80,130,30),(160,210,60)]),
 }
 EYE = [(40, 24, 30), (70, 44, 50)]
+# NOTE: a man's skin: warm tan in place of the original's pinks, which
+# also takes the blush and the lip colour away
+MALE_SKIN = [(104, 58, 36), (190, 130, 92), (234, 186, 146)]
+WHITE = (255, 255, 255)
+# NOTE: a patch of skin colour bigger than this is the sword's slash
+# streak, not a hand or a face
+SLASH_PIXELS = 20
+
+
+def components(mask):
+    """lists of (y, x) for each 4-connected patch of mask"""
+    seen = np.zeros_like(mask)
+    out = []
+    for y0, x0 in zip(*np.nonzero(mask)):
+        if seen[y0, x0]:
+            continue
+        stack, patch = [(y0, x0)], []
+        seen[y0, x0] = True
+        while stack:
+            y, x = stack.pop()
+            patch.append((y, x))
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                ny, nx = y + dy, x + dx
+                if 0 <= ny < 32 and 0 <= nx < 32 and mask[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True
+                    stack.append((ny, nx))
+        out.append(patch)
+    return out
 
 
 def class_cell(cell, pal):
@@ -149,6 +177,25 @@ def class_cell(cell, pal):
     put(ACCENT[1], EYE[1], head)
     put(ACCENT[0], pal['accent'][0], ~head)
     put(ACCENT[1], pal['accent'][1], ~head)
+    # NOTE: a man's face: no sparkle in the eyes (they shrink to the dark
+    # pupil), tan skin, and the girl's ribbon tie under the chin becomes
+    # part of the collar
+    put(WHITE, MALE_SKIN[2], head)
+    if h:
+        neck = ~head & (np.abs(xx + 0.5 - cx) <= 2.5) & (yy + 0.5 >= cy + 7.5) & (yy + 0.5 <= cy + 14.)
+        put(ACCENT[0], pal['cloth'][1], neck)
+        put(ACCENT[1], pal['cloth'][2], neck)
+    skin = is_col(cell, SKIN)
+    slash = np.zeros((32, 32), bool)
+    for patch in components(skin):
+        if len(patch) > SLASH_PIXELS:
+            for y, x in patch:
+                slash[y, x] = True
+    for s, d in zip(SKIN, MALE_SKIN):
+        put(s, d, ~slash)
+    put(SKIN[0], pal['accent'][0], slash)
+    put(SKIN[1], pal['accent'][0], slash)
+    put(SKIN[2], pal['accent'][1], slash)
     return out
 
 
