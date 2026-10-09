@@ -1,6 +1,7 @@
 /* art: pictures drawn by code instead of loaded from asset_1.zas. Builds
    every monster, shot and hazard sprite sheet at startup and uploads them
-   as textures, and draws ability telegraphs, status pips and elite auras
+   as textures, draws the player skins of the classes that have them
+   (heroes/), and draws ability telegraphs, status pips and elite auras
    over the world. Client only: the server never includes this.
 
    Entry points: AddMonsterTextures (call once after InitializeAssets),
@@ -16,3 +17,4 @@
 #include "terrain_hazard_art.cpp"
 #include "monster_render.cpp"
 #include "monster_telegraphs.cpp"
+#include "heroes/hero_art.cpp"
