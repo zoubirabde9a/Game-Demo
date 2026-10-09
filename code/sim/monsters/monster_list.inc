@@ -38,3 +38,4 @@
 #include "starless_ommoroth.cpp"
 #include "starless_varn.cpp"
 #include "starless_nyxara.cpp"
+#include "rift_ice_tomb.cpp"
