@@ -115,6 +115,8 @@ StartClient(app_state *AppState, transient_state *TransientState,
     LoadUIFonts(&AppState->Fonts, OpenGL, MemoryArena);
     AppState->DefaultFont = AppState->Fonts.Body;
     AppState->UIContext = UIContextCreate(MemoryArena, UI_COUNT);
+    // NOTE(zoubir): after the fonts, so the textures before keep their ids
+    AddHeroTextures(Assets, OpenGL, TransientArena);
 
     // NOTE(zoubir): developer switch until the server picks the map:
     // GAME_MAP=keep (or any map name) chooses what offline play builds

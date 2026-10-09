@@ -45,7 +45,11 @@ internal u32
 RoleBodyTint(app_state *AppState, world_entity *Entity)
 {
     u32 Result = RGBA8_WHITE;
-    switch(EntityRole(AppState, Entity))
+    // NOTE(zoubir): a skin is already dressed in its class's colours
+    // (client/heroes/hero_skins.cpp)
+    u32 Role = Entity->Texture.Type == AssetType_HeroSkin ? PlayerRole_Count :
+        EntityRole(AppState, Entity);
+    switch(Role)
     {
         case PlayerRole_Tank:   { Result = 0xFFFFF0E4; } break;
         case PlayerRole_Healer: { Result = 0xFFE8FFFF; } break;
@@ -54,7 +58,7 @@ RoleBodyTint(app_state *AppState, world_entity *Entity)
         // NOTE(zoubir): the later classes: a light tint toward the class colour
         default:
         {
-            u32 RGB = RoleRGB(EntityRole(AppState, Entity));
+            u32 RGB = RoleRGB(Role);
             u32 R = 255 - (255 - (RGB & 0xFF)) / 8;
             u32 G = 255 - (255 - ((RGB >> 8) & 0xFF)) / 8;
             u32 B = 255 - (255 - ((RGB >> 16) & 0xFF)) / 8;
@@ -180,8 +184,12 @@ DrawTankLook(render_context *RenderContext, player_slot *Slot, world_entity *Pla
     v2 Body = RoleLookPoint(Player, 0.4f, CameraOffset);
     v2 Centre = Body + V2(Facing * (0.34f + TANK_BASH_REACH * Punch) * Player->Dimensions.X, 2.f);
     float Size = 0.48f * Player->Dimensions.Y * (0.8f + 0.2f * Behind) * (1.f + 0.12f * Punch);
-    // NOTE(zoubir): the shield squares up to the blow, flat to its target
-    DrawKiteShield(RenderContext, Centre, Size, (Facing * 0.18f + Sway) * (1.f - Punch), Behind);
+    // NOTE(zoubir): the shield squares up to the blow, flat to its target;
+    // a skin carries its own shield, so only the bash's flare is added
+    if (Player->Texture.Type != AssetType_HeroSkin)
+    {
+        DrawKiteShield(RenderContext, Centre, Size, (Facing * 0.18f + Sway) * (1.f - Punch), Behind);
+    }
     if (Punch > 0.f)
     {
         float Flare = Size * (0.9f + 0.5f * Punch);

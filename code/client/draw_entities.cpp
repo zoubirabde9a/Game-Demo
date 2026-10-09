@@ -204,7 +204,8 @@ DrawEntity(render_context *RenderContext,
     {
         TextureInfo = &GetAssetInfo(Assets, Entity->Texture)->Texture;
         Texture = GetTexture(Assets, OpenGL, AppState, Entity->Texture);
-        v2 Dimensions = Entity->Dimensions * Pose.Scale;
+        // NOTE(zoubir): a skin's cell has its own size (heroes/hero_skins.cpp)
+        v2 Dimensions = SpriteDrawDimensions(Entity) * Pose.Scale;
         v2 EntityTexturePosition = EntityCameraPosition -
             TextureInfo->Origin * Dimensions;
         EntityTexturePosition.Y -= DrawZ;
@@ -298,7 +299,7 @@ DrawEntity(render_context *RenderContext,
         {
             float Health = Clamp01(Entity->Hp / Entity->MaxHp);
             float Width = Entity->Dimensions.X * 0.5f;
-            float X = EntityTexturePosition.X + Entity->Dimensions.X * 0.25f;
+            float X = EntityTexturePosition.X + 0.5f * Dimensions.X - 0.5f * Width;
             float Y = EntityTexturePosition.Y - 10.f;
             u32 Red = (u32)(255.f * Minimum(1.f, 2.f * (1.f - Health)));
             u32 Green = (u32)(220.f * Minimum(1.f, 2.f * Health));
@@ -354,6 +355,17 @@ UpdateEntityUvs(world_entity *Entity, assets *Assets, app_state *AppState)
             Shown.CurrentType = AnimationType_JumpUp;
             Shown.SlotIndex = 0;
         }
+        // NOTE(zoubir): a class's skin picks its own frame
+        if (UpdateHeroSkinUvs(AppState, Assets, Entity, &Shown))
+        {
+            return;
+        }
+        Texture = GetTexture(Assets, AppState->OpenGL, AppState, Entity->Texture);
+        TextureInfo = &GetAssetInfo(Assets, Entity->Texture)->Texture;
+        if (!Texture)
+        {
+            return;
+        }
         Entity->Uvs = GetAnimationUvs(&Shown, Entity->AnimationSet,
                                       Texture->Width, Texture->Height,
                                       TextureInfo->NumTilesX,
@@ -376,7 +388,9 @@ DrawWorldEntities(render_context *RenderContext, app_state *AppState,
         EntityIndex++)
     {
         world_entity *Entity = &World->Entities[EntityIndex];
-        if (!Entity->IsPresent || (IsDeadPlayer(Entity) && Entity != Falling))
+        // NOTE(zoubir): a downed hero in a skin lies where it fell
+        if (!Entity->IsPresent ||
+            (IsDeadPlayer(Entity) && Entity != Falling && !DrawsDownedHero(AppState, Entity)))
         {
             continue;
         }

@@ -21,6 +21,8 @@ set Result=0
 
 REM The game runs from build\ and loads its fonts from build\fonts; web\fonts is the one copy in git
 xcopy /y /q /i ..\web\fonts fonts > NUL
+REM The painted player skins (client\heroes\hero_skins.cpp) load from build\heroes; web\heroes is the copy in git
+xcopy /y /q /i ..\web\heroes heroes > NUL
 
 REM Packs art and sound into asset_1.zas
 cl %CommonCompilerFlags% ..\code\tools\test_asset_builder.cpp /link %CommonLinkerFlags%
