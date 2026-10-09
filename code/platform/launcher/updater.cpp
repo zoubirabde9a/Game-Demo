@@ -145,6 +145,13 @@ UpdaterThread(void *Parameter)
         }
         LauncherSetStatus(Status, L"A new version is out. Restarting the game", 0, true);
         CloseGame(&Game);
+        // NOTE(zoubir): the install copied the settings before the
+        // download; the player may have changed some since
+        wchar_t OldFolder[LAUNCHER_PATH_COUNT];
+        wchar_t NewFolder[LAUNCHER_PATH_COUNT];
+        VersionFolder(Paths, Current, OldFolder);
+        VersionFolder(Paths, Published.Version, NewFolder);
+        CarrySettings(OldFolder, NewFolder);
         strncpy_s(Current, sizeof(Current), Published.Version, _TRUNCATE);
         RemoveOldVersions(Paths, Current, Current);
         if (!StartGame(Paths, Current, &Game))

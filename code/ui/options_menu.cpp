@@ -132,6 +132,7 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     // code being reloaded in development; the globals do not
     GlobalKeyboardLayout = (keyboard_layout)AppState->KeyboardLayout;
     GlobalControlScheme = (control_scheme)AppState->ControlScheme;
+    GlobalQuickCast = GetCastTargeting(AppState)->Mode == CastMode_Quick;
     SyncKeyBindings(AppState);
     if (Input->EscapeButton.Pressed)
     {

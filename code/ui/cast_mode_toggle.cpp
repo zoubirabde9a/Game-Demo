@@ -5,7 +5,8 @@
    ability is aimed, that line names it instead and says how to cast or
    cancel it, in the ability's colour. It stays inside the plate, as the
    dungeon HUD's objective line sits just under it.
-   The modes themselves are client/cast_targeting.cpp. */
+   The modes themselves are client/cast_targeting.cpp. The pick is saved
+   on server.txt's sixth line for the next launch (client/online_config.cpp). */
 
 #define CAST_TOGGLE_TOP 12.f
 #define CAST_TOGGLE_BOX 16.f
@@ -75,6 +76,9 @@ DoCastModeToggle(render_context *RenderContext, app_state *AppState,
         Targeting->Mode = Quick ? CastMode_Standard : CastMode_Quick;
         Targeting->Aiming = 0;
         Quick = !Quick;
+        // NOTE(zoubir): kept for the next launch (client/online_config.cpp)
+        GlobalQuickCast = Quick;
+        SaveLocalSettings();
     }
 
     DrawUIPanel(RenderContext, X, Y, Width, Height,

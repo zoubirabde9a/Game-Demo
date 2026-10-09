@@ -3,9 +3,10 @@
    lines of server.txt in the folder the game runs from. A connect from
    the connect screen writes server.txt so the next launch reuses it.
    Its third line is the keyboard layout (keyboard_layout.cpp), the fourth
-   the control scheme (control_scheme.cpp) and the fifth the window,
-   "fullscreen" or "window"; they are kept here because the launcher
-   carries server.txt over to each new version.
+   the control scheme (control_scheme.cpp), the fifth the window,
+   "fullscreen" or "window", and the sixth the cast mode, "quick" or
+   "standard" (cast_targeting.cpp); they are kept here because the
+   launcher carries server.txt over to each new version.
    With neither, the game joins ONLINE_DEFAULT_SERVER, the first server in
    server_list.cpp; GAME_SERVER=offline keeps it offline.
    online.cpp uses ReadOnlineConfig and SaveOnlineConfig. */
@@ -20,6 +21,13 @@
 // launch (ui/options_menu.cpp); a global like the layout so a save from
 // the connect screen keeps it
 global_variable bool32 GlobalFullscreen = true;
+// NOTE(zoubir): the cast mode for the next launch
+// (ui/cast_mode_toggle.cpp), a global for the same reason
+global_variable bool32 GlobalQuickCast = false;
+
+// NOTE(zoubir): room for every line: the address (128), the name (64)
+// and the setting words
+#define ONLINE_FILE_SIZE 512
 
 // NOTE(zoubir): A and B hold the same letters, ignoring case
 internal bool32
@@ -85,7 +93,7 @@ SkipLines(char *Text, u32 LineIndex)
 internal bool32
 ReadOnlineConfig(char *Address, u32 AddressSize, char *Name, u32 NameSize)
 {
-    char File[256] = {};
+    char File[ONLINE_FILE_SIZE] = {};
     FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "rb");
     if (Handle)
     {
@@ -107,7 +115,7 @@ ReadOnlineConfig(char *Address, u32 AddressSize, char *Name, u32 NameSize)
 internal void
 ReadSavedSetting(u32 LineIndex, char *Word, u32 WordSize)
 {
-    char File[256] = {};
+    char File[ONLINE_FILE_SIZE] = {};
     FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "rb");
     if (Handle)
     {
@@ -150,6 +158,16 @@ ReadSavedFullscreen()
     bool32 Result = !StringsMatchIgnoringCase(Word, (char *)"window");
     return Result;
 }
+
+// NOTE(zoubir): the sixth line; standard cast unless it says "quick"
+internal bool32
+ReadSavedQuickCast()
+{
+    char Word[16];
+    ReadSavedSetting(5, Word, sizeof(Word));
+    bool32 Result = StringsMatchIgnoringCase(Word, (char *)"quick");
+    return Result;
+}
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
@@ -166,20 +184,21 @@ SaveOnlineConfig(char *Address, char *Name)
     FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "wb");
     if (Handle)
     {
-        fprintf(Handle, "%s\n%s\n%s\n%s\n%s\n", Address, Name,
+        fprintf(Handle, "%s\n%s\n%s\n%s\n%s\n%s\n", Address, Name,
                 KeyboardLayoutWord(GlobalKeyboardLayout),
                 ControlSchemeWord(GlobalControlScheme),
-                GlobalFullscreen ? "fullscreen" : "window");
+                GlobalFullscreen ? "fullscreen" : "window",
+                GlobalQuickCast ? "quick" : "standard");
         fclose(Handle);
     }
 }
 
-// NOTE(zoubir): rewrites server.txt with the layout, scheme and window in
-// use, keeping the address and name lines as they were in the file
+// NOTE(zoubir): rewrites server.txt with the layout, scheme, window and
+// cast mode in use, keeping the address and name lines as they were in the file
 internal void
 SaveLocalSettings()
 {
-    char File[256] = {};
+    char File[ONLINE_FILE_SIZE] = {};
     FILE *Handle = fopen(ONLINE_ADDRESS_FILE, "rb");
     if (Handle)
     {

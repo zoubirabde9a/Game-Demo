@@ -70,6 +70,24 @@ InstallOneFile(launcher_paths *Paths, manifest_file *File, wchar_t *Target,
     return false;
 }
 
+// NOTE(zoubir): the player's settings, from the folder From to the folder
+// To: server.txt holds the server they last picked and the options
+// (client/online_config.cpp), keys.txt the keys they picked
+// (client/key_bindings_file.cpp)
+internal void
+CarrySettings(wchar_t *From, wchar_t *To)
+{
+    char *Names[] = {"server.txt", "keys.txt"};
+    for(u32 Index = 0; Index < ArrayCount(Names); ++Index)
+    {
+        wchar_t FromPath[LAUNCHER_PATH_COUNT];
+        wchar_t ToPath[LAUNCHER_PATH_COUNT];
+        JoinPath(From, Names[Index], FromPath);
+        JoinPath(To, Names[Index], ToPath);
+        CopyFileW(FromPath, ToPath, FALSE);
+    }
+}
+
 // NOTE(zoubir): installs New (whose text is ManifestText) next to the
 // installed version OldVersion ("" for none) and makes it current.
 // Shows progress when Show is set. False leaves the old version current
@@ -120,16 +138,7 @@ InstallVersion(launcher_paths *Paths, manifest *New, char *ManifestText,
 
     if (Result && Old)
     {
-        // NOTE(zoubir): the server the player last picked (online_config.cpp)
-        wchar_t From[LAUNCHER_PATH_COUNT];
-        wchar_t To[LAUNCHER_PATH_COUNT];
-        JoinPath(OldFolder, "server.txt", From);
-        JoinPath(Partial, "server.txt", To);
-        CopyFileW(From, To, FALSE);
-        // NOTE(zoubir): and the keys they picked (client/key_bindings_file.cpp)
-        JoinPath(OldFolder, "keys.txt", From);
-        JoinPath(Partial, "keys.txt", To);
-        CopyFileW(From, To, FALSE);
+        CarrySettings(OldFolder, Partial);
     }
 
     wchar_t ManifestPath[LAUNCHER_PATH_COUNT];
