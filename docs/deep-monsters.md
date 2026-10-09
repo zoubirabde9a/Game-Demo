@@ -94,7 +94,18 @@ Wipes per kill over 64 bot runs (`set PROBE_MAP=rift& misc\balance.bat 120 3 2 6
 
 The boss rooms do not change; their numbers moved by about the probe's own noise, which is about 0.3 wipes per kill between runs and more in the pack rooms.
 
-Those runs were on main before the class trees were reshaped. On the main this landed on, the same probe reads every room of both levels two to twenty times harder for the bots, the boss rooms too, with or without these ten (the Everwinter Throne alone went from about 1 to about 21 wipes per kill), so the table is worth running again once the class work settles. Against that main the new packs cost about twice the old ones, about what they cost before.
+Those runs were on main before the class trees were reshaped. Once the class work settled, the same probe over 64 runs on one main, with and without the commit that puts the ten in the rooms:
+
+| Room | Without | With |
+|---|---|---|
+| Hoarfrost Gallery | 0.19 | 0.34 |
+| Lightfall Crevasse | 0.29 | 1.08 |
+| Starfrost Bridge | 1.10 | 1.12 |
+| Hall of Whispers | 0.60 | 0.74 |
+| Shattered Orrery | 0.96 | 1.95 |
+| The Brink | 1.39 | 1.58 |
+
+The boss rooms read the same both ways. The Lightfall Crevasse (a Harrier's lanes and a Mammoth's stomp) and the Shattered Orrery (a Glutton, an Accretor and a Matron in one room) cost the most; the rest cost a little.
 
 What moved the numbers:
 - The first draft gave the new monsters damage near the boss abilities'. With the pack scale a Glutton's bite on two players did about 180 each, and the deep's rooms wiped 15 to 33 times per kill. Every new monster's damage came down to the range of the older pack monsters (10 to 15 before scaling).
