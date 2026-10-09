@@ -30,24 +30,29 @@ A party earns one level per room with monsters it clears, so it arrives at the d
 `sim/maps/starless.cpp`, drawn by a script. Black basalt and old stone, crags of broken rock (slow ground), runes in every boss room that lift slows. The darkest colour grade in the game, violet in the shadows and the dead star's gold in the lights (`client/map_moods.cpp`), and gold ash drifting through the air (`client/ambient_motes.cpp`).
 
 1. **Fallen Gate.** Where the party arrives. No monsters; a spring.
-2. **Hall of Whispers.** A long basalt nave. Two packs: two Obsidian Knights (one elite) behind two Void Seers with a Bilecaller Toad; two Collapsars under an Aurora Wisp's beam, with an elite seer and an elite Hollow Shade at the back line.
+2. **Hall of Whispers.** A long basalt nave. Two packs: two Obsidian Knights behind two Void Seers with a Starfall Acolyte; two Collapsars under an Aurora Wisp's beam, with an elite seer and an Accretor.
 3. **The Maw.** Boss 1, Ommoroth the Hungering Dark. A round bowl of open floor, nothing to snag on while a well drags you about.
-4. **Shattered Orrery.** A wide hall of pillars round three plinths. Three packs: Collapsars, a seer and an elite Rimeglass Sentinel, whose shards fly when a well has pulled everyone onto it; an elite knight with two Frostmaw Yetis and a wisp; an elite Collapsar, a knight and a seer round a Bone Shaman raising thralls.
+4. **Shattered Orrery.** A wide hall of pillars round three plinths. Three packs: a Collapsar and an Accretor, a seer and an elite Rimeglass Sentinel, whose shards fly when a well has pulled everyone onto it; a knight with a Frostmaw Yeti, a Hollow Glutton and a Lidless Watcher (a jump on the spot counts as standing still), the one pack with no Void Seer, whose brand would pick the same player as the Glutton's bite; a Collapsar, a knight and a seer round a Duskweb Matron and an acolyte.
 5. **Obsidian Court.** Boss 2, Varn the Mirror Lord. A square hall, four pillars, runes in the corners.
-6. **The Brink.** The hardest room of packs in the dungeon: a causeway of stone through crag. Two Collapsars (one elite) whose wells drag the party off the stone, with a knight, a seer and two wisps; then two knights (one elite), an elite seer, a sentinel, a yeti and a toad.
+6. **The Brink.** The hardest room of packs in the dungeon: a causeway of stone through crag. An elite Collapsar whose wells drag the party off the stone and an Accretor, with a knight, a seer, a wisp and an acolyte; then two knights (one elite), an elite seer, a watcher, a yeti and a matron.
 7. **Throne of the Black Sun.** Boss 3, Nyxara the Black Sun. A great hall with two rows of pillars and a basalt dais.
 
 Walls are entities and the soak test caps a world at 1000 present entities. The first draft had 953 wall pieces and peaked at 972 entity slots; with fewer pillars and a smaller Maw it has 861 and peaks at 934, under the rift's 949.
 
 ## Monsters
 
-Three new kinds, each in `sim/monsters/starless_*.cpp` with a code-drawn sprite, none of which roam the duel maps (`SpawnWeight 0`):
+Eight new kinds, each in `sim/monsters/starless_*.cpp` with a code-drawn sprite, none of which roam the duel maps (`SpawnWeight 0`). The last five are on the ability kinds of `docs/deep-monsters.md`:
 
 | Kind | Health | What it does |
 |---|---|---|
 | Void Seer | 85 | Flies. Void Brand on the farthest player (12, out to 120). Umbral Bolts, three at a time. Fragile. |
 | Collapsar | 190 | Gravity Well under its target: 230 of reach for 2 s, a core of 70 (16). Crushing Mass round it. |
 | Obsidian Knight | 160 | Mirror Guard: 2.4 s of mirror every 10 s, half of each blow back, at most 18. Shield Rush. |
+| Lidless Watcher | 110 | Flies. Unblinking Stare: 15 on whoever still moves within 380. Lidless Ray: a sweeping beam. |
+| Hollow Glutton | 200 | Gorge: 11 split between everyone in a circle of 90 on the player farthest off, who bleed. Gulp: a well at its own feet. |
+| Starfall Acolyte | 95 | Starfall Rows: three burning lanes 340 long, 100 apart (10). Falling Step blinks behind whoever closes in. |
+| Accretor | 210 | Accretion Disc: a ring out to 230 that spares the 85 round its core (10). Core Flare: a slam on the core (11, burns). |
+| Duskweb Matron | 170 | Hush of the Web: 10 and rooted for whoever still moves within 320. Venom Spray: a cone that poisons. Starsilk Snare: webs. |
 
 ## Bosses
 

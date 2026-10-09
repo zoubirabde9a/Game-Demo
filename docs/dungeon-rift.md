@@ -32,18 +32,18 @@ A party earns one level per room with monsters it clears, so it arrives at the r
 `sim/maps/rift.cpp`, drawn by a script. Rooms where waves come have open floor to land jumps on; rooms where beams come are full of pillars to hide behind. A night-sky colour grade, green in the shadows and violet in the lights (`client/map_moods.cpp`), and motes of the aurora drifting through the air (`client/ambient_motes.cpp`).
 
 1. **Rift Mouth.** Where the party arrives. No monsters; a spring.
-2. **Hoarfrost Gallery.** Snow and ice sheets round crystal pillars. Two big packs: three Rimeglass Sentinels (one elite) with two Frostmaw Yetis round an elite Hexweaver Spider's webs; an elite Yeti under three Aurora Wisps' beams, with two Bilecaller Toads and an elite Hollow Shade.
+2. **Hoarfrost Gallery.** Snow and ice sheets round crystal pillars. Two big packs: three Rimeglass Sentinels (one elite) with a Frostmaw Yeti and a Rimecrown Stag round an elite Hexweaver Spider's webs; an elite Yeti under three Aurora Wisps' beams, with an Aurora Siren (stop for her song, then jump the wave), a Bilecaller Toad and an elite Hollow Shade.
 3. **Avalanche Den.** Boss 1, Grondmaw the Avalanche. A round den of snow round a floor of packed stone, nothing to hide behind.
-4. **Lightfall Crevasse.** A long hall with pillars, split by a crevasse of deep water with a ford in the middle. Three Wisps with an elite Sentinel and two Toads; two Yetis, an elite Shade and two Wisps; two elite Wisps over an elite Carapace Warden and a Yeti.
+4. **Lightfall Crevasse.** A long hall with pillars, split by a crevasse of deep water with a ford in the middle. Three Wisps with an elite Sentinel and a Shardwing Harrier raking lanes across the beams; two Yetis, a Crevasse Crawler and two Wisps; two elite Wisps over an elite Carapace Warden and a Rimetusk Mammoth.
 5. **Prism Sanctum.** Boss 2, the Prism Warden. A square hall with a staggered grid of pillars and runes.
-6. **Starfrost Bridge.** The hardest room of packs. An ice bridge over black water that turns east. Two elite Yetis whose waves throw whoever does not jump them off the ice, behind an elite Warden, with two Wisps; then two elite Sentinels, an elite Shade and a Bone Shaman raising two Skeletal Thralls under three Wisps.
+6. **Starfrost Bridge.** The hardest room of packs. An ice bridge over black water that turns east. Two elite Yetis whose waves throw whoever does not jump them off the ice, behind an elite Warden, with a Wisp and a Siren; then two elite Sentinels, an elite Stag and a Bone Shaman raising two Skeletal Thralls under two Wisps and a Harrier.
 7. **Everwinter Throne.** Boss 3, Vaelith the Everwinter. A great hall with two rows of pillars and ice before the throne.
 
 Every map's walls are entities, and the soak test caps a world at 1000 of them in all; the first draft of this map had 978 wall pieces and failed at its first tick. It has 890 now, as many as the vault.
 
 ## Monsters
 
-Four new kinds, each in `sim/monsters/rift_*.cpp` with a code-drawn sprite, none of which roam the duel maps (`SpawnWeight 0`):
+Nine new kinds, each in `sim/monsters/rift_*.cpp` with a code-drawn sprite, none of which roam the duel maps (`SpawnWeight 0`). The last five are on the ability kinds of `docs/deep-monsters.md`:
 
 | Kind | Health | What it does |
 |---|---|---|
@@ -51,6 +51,11 @@ Four new kinds, each in `sim/monsters/rift_*.cpp` with a code-drawn sprite, none
 | Aurora Wisp | 60 | Flies. Aurora Ray: a beam 320 long sweeping 70 degrees across its target. Fragile. |
 | Rimeglass Sentinel | 175 | Slow. Crystal Crush round it. Shatters into six shards when it dies. |
 | Aurora Pylon | 130 | Raised only by boss scripts. Never moves. Pylon Lance: a beam 720 long sweeping 100 degrees. Wards its boss. |
+| Rimecrown Stag | 140 | Aurora Bellow: a cone of frost 230 long and 70 degrees wide (14, slows). Antler Rush. |
+| Shardwing Harrier | 80 | Flies. Icicle Rake: three lanes 300 long, 80 apart (10). Quill Flurry. Fragile. |
+| Rimetusk Mammoth | 230 | Slow. Avalanche Stomp: 13 split between everyone in a circle of 85 on the player farthest off. Tusk Tremor: two waves. |
+| Aurora Siren | 90 | Flies. Stillsong: 15 on whoever still moves within 340. Lullaby heals an ally 40. Shimmer Note. |
+| Crevasse Crawler | 130 | Fissure Lines: four lanes 70 apart, its target in the middle gap (12, slows). Crevasse Dive burrows. |
 
 ## Bosses
 
