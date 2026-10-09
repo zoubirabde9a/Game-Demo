@@ -15,9 +15,10 @@
    While it is open the player holds no keys and clicks do not cast
    (app.cpp). The game does not pause: online, the world goes on. */
 
-#define OPTIONS_WIDTH 420.f
-#define OPTIONS_CHOICE_HEIGHT 64.f
-#define OPTIONS_BUTTON_HEIGHT 36.f
+#define OPTIONS_WIDTH 540.f
+#define OPTIONS_LABEL_WIDTH 110.f
+#define OPTIONS_CHOICE_HEIGHT 46.f
+#define OPTIONS_BUTTON_HEIGHT 32.f
 
 // NOTE(zoubir): the map vote's section (ui/map_vote_view.cpp, included
 // after this file)
@@ -58,9 +59,9 @@ OptionsButton(render_context *RenderContext, app_input *Input, float X, float Y,
     return Result;
 }
 
-// NOTE(zoubir): a heading over two side-by-side choices, each a name and
-// a hint under it; Picked is the lit one. Returns the one clicked this
-// frame that was not already picked, -1 for none, and moves Top past it
+// NOTE(zoubir): a heading on the left of two side-by-side choices, each a
+// name and a hint under it; Picked is the lit one. Returns the one clicked
+// this frame that was not already picked, -1 for none, and moves Top past it
 internal i32
 OptionsChoicePair(render_context *RenderContext, app_state *AppState, app_input *Input,
                   float Left, float *Top, float Inner, char *Heading,
@@ -68,13 +69,14 @@ OptionsChoicePair(render_context *RenderContext, app_state *AppState, app_input 
 {
     font *Body = AppState->Fonts.Body;
     font *Small = AppState->Fonts.Small;
-    UIText(RenderContext, Body, Left, *Top, Heading, UI_COLOR_TEXT);
-    *Top += UILineHeight(Body) + UI_GAP_SMALL;
+    UIText(RenderContext, Body, Left, *Top + 0.5f * (OPTIONS_CHOICE_HEIGHT - UILineHeight(Body)),
+           Heading, UI_COLOR_TEXT);
     i32 Result = -1;
-    float ChoiceWidth = 0.5f * (Inner - UI_GAP);
+    float ChoicesLeft = Left + OPTIONS_LABEL_WIDTH;
+    float ChoiceWidth = 0.5f * (Inner - OPTIONS_LABEL_WIDTH - UI_GAP_SMALL);
     for(u32 Index = 0; Index < 2; Index++)
     {
-        float ChoiceX = Left + Index * (ChoiceWidth + UI_GAP);
+        float ChoiceX = ChoicesLeft + Index * (ChoiceWidth + UI_GAP_SMALL);
         bool32 Selected = Picked == Index;
         if (OptionsButton(RenderContext, Input, ChoiceX, *Top, ChoiceWidth,
                           OPTIONS_CHOICE_HEIGHT, Selected) && !Selected)
@@ -90,7 +92,7 @@ OptionsChoicePair(render_context *RenderContext, app_state *AppState, app_input 
         UIText(RenderContext, Small, CenterX, LinesTop + UILineHeight(Body), Hints[Index],
                UI_COLOR_TEXT_MUTED, UIAlign_Center);
     }
-    *Top += OPTIONS_CHOICE_HEIGHT + UI_GAP_LARGE;
+    *Top += OPTIONS_CHOICE_HEIGHT + UI_GAP_SMALL;
     return Result;
 }
 
@@ -171,10 +173,10 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     font *Small = AppState->Fonts.Small;
     float Pad = UI_GAP_LARGE;
     float Width = Minimum(OPTIONS_WIDTH, (float)WindowWidth - 2.f * UI_GAP);
-    float ChoiceRow = UILineHeight(Body) + UI_GAP_SMALL + OPTIONS_CHOICE_HEIGHT + UI_GAP_LARGE;
-    float Height = Pad + UILineHeight(Title) + UI_GAP + 4.f * ChoiceRow +
+    float ChoiceRow = OPTIONS_CHOICE_HEIGHT + UI_GAP_SMALL;
+    float Height = Pad + UILineHeight(Title) + UI_GAP + 4.f * ChoiceRow + UI_GAP +
         UILineHeight(Body) + UI_GAP_SMALL + MapVoteSectionHeight(AppState) + UI_GAP_LARGE +
-        2.f * OPTIONS_BUTTON_HEIGHT + UI_GAP + Pad;
+        OPTIONS_BUTTON_HEIGHT + Pad;
     float X = 0.5f * ((float)WindowWidth - Width);
     float Y = Maximum(UI_GAP, 0.5f * ((float)WindowHeight - Height));
 
@@ -240,6 +242,7 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
         RequestFullscreen(AppState, WindowPick == 0);
     }
 
+    Top += UI_GAP;
     UIText(RenderContext, Body, Left, Top, "Mode and map", UI_COLOR_TEXT);
     UIText(RenderContext, Small, Left + Inner, Top + UILineHeight(Body) - UILineHeight(Small),
            GetMapDef((map_id)AppState->World.MapId)->Name, UI_COLOR_TEXT_MUTED, UIAlign_Right);
@@ -247,20 +250,20 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     DoMapVoteSection(RenderContext, AppState, Input, Left, Top, Inner);
     Top += MapVoteSectionHeight(AppState) + UI_GAP_LARGE;
 
-    if (OptionsButton(RenderContext, Input, Left, Top, Inner, OPTIONS_BUTTON_HEIGHT, false))
+    // NOTE(zoubir): Key bindings and Back to game share the last row
+    float Half = 0.5f * (Inner - UI_GAP_SMALL);
+    float TextY = Top + 0.5f * (OPTIONS_BUTTON_HEIGHT - UILineHeight(Body));
+    if (OptionsButton(RenderContext, Input, Left, Top, Half, OPTIONS_BUTTON_HEIGHT, false))
     {
         OpenKeyBindingsMenu(AppState);
     }
-    UIText(RenderContext, Body, Left + 0.5f * Inner,
-           Top + 0.5f * (OPTIONS_BUTTON_HEIGHT - UILineHeight(Body)), "Key bindings",
-           UI_COLOR_TEXT, UIAlign_Center);
-    Top += OPTIONS_BUTTON_HEIGHT + UI_GAP;
-
-    if (OptionsButton(RenderContext, Input, Left, Top, Inner, OPTIONS_BUTTON_HEIGHT, false))
+    UIText(RenderContext, Body, Left + 0.5f * Half, TextY, "Key bindings", UI_COLOR_TEXT,
+           UIAlign_Center);
+    float BackX = Left + Half + UI_GAP_SMALL;
+    if (OptionsButton(RenderContext, Input, BackX, Top, Half, OPTIONS_BUTTON_HEIGHT, false))
     {
         AppState->OptionsOpen = false;
     }
-    UIText(RenderContext, Body, Left + 0.5f * Inner,
-           Top + 0.5f * (OPTIONS_BUTTON_HEIGHT - UILineHeight(Body)), "Back to game",
-           UI_COLOR_TEXT, UIAlign_Center);
+    UIText(RenderContext, Body, BackX + 0.5f * Half, TextY, "Back to game", UI_COLOR_TEXT,
+           UIAlign_Center);
 }
