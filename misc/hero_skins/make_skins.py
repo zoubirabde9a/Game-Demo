@@ -126,6 +126,7 @@ WHITE = (255, 255, 255)
 # NOTE: a patch of skin colour bigger than this is the sword's slash
 # streak, not a hand or a face
 SLASH_PIXELS = 20
+SLASH_WIDTH = 10
 
 
 def components(mask):
@@ -149,8 +150,41 @@ def components(mask):
     return out
 
 
+# NOTE: rows from the head's centre down to where the legs start, and how
+# many columns the body gains down its middle from the neck on
+WAIST_BELOW_HEAD = 8.5
+NECK_BELOW_HEAD = 6.5
+WIDEN = 2
+
+
+def widen(cell):
+    """a broader man: from the neck down, every row is split at the head's
+    centre and each half pushed out a pixel, the middle columns repeated,
+    so the shoulders, chest and stance widen while the head keeps its size"""
+    h = head_of(cell)
+    if h is None:
+        return cell
+    cx, cy = h
+    c = int(round(cx))
+    out = cell.copy()
+    half = WIDEN // 2
+    for y in range(int(cy + NECK_BELOW_HEAD), 32):
+        row = cell[y]
+        new = row.copy()
+        for x in range(32):
+            if x < c - half:
+                src = x + half
+            elif x >= c + half:
+                src = x - half
+            else:
+                src = c - half if x < c else c
+            new[x] = row[min(31, max(0, src))]
+        out[y] = new
+    return out
+
+
 def class_cell(cell, pal):
-    cell = haircut(cell)
+    cell = widen(haircut(cell))
     h = head_of(cell)
     out = cell.copy()
     yy, xx = np.mgrid[0:32, 0:32]
@@ -188,7 +222,10 @@ def class_cell(cell, pal):
     skin = is_col(cell, SKIN)
     slash = np.zeros((32, 32), bool)
     for patch in components(skin):
-        if len(patch) > SLASH_PIXELS:
+        # NOTE: a face with its neck can be as big, but it is narrow; the
+        # streak is wide
+        xs = [x for y, x in patch]
+        if len(patch) > SLASH_PIXELS and max(xs) - min(xs) + 1 >= SLASH_WIDTH:
             for y, x in patch:
                 slash[y, x] = True
     for s, d in zip(SKIN, MALE_SKIN):
@@ -196,6 +233,15 @@ def class_cell(cell, pal):
     put(SKIN[0], pal['accent'][0], slash)
     put(SKIN[1], pal['accent'][0], slash)
     put(SKIN[2], pal['accent'][1], slash)
+    # NOTE: trousers, not a skirt over red stockings: below the waist the
+    # red stripes, the hem and the bare thigh all become plain trousers
+    if h:
+        legs = (yy + 0.5 >= cy + WAIST_BELOW_HEAD) & ~slash
+        pants = pal.get('pants', [pal['cloth'][0], pal['cloth'][1]])
+        put(ACCENT[0], pants[0], legs)
+        put(ACCENT[1], pants[1], legs)
+        for s in SKIN:
+            put(s, pants[1], legs)
     return out
 
 
