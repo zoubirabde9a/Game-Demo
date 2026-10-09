@@ -57,10 +57,10 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    RM(ApexPredator)),
       CLASS_BRANCH(CT(RangerTalent_Barrage), CT(RangerTalent_Disengage), CT(RangerTalent_ExplosiveTrap),
                    CT(RangerTalent_PinningVolley), CT(RangerTalent_HuntersNet), RM(Trailwise),
-                   RM(Trophy))},
+                   RM(PackHunter))},
      {{CT(RangerTalent_KeenEye), CT(RangerTalent_SteadyHands), RM(KillingRhythm), RM(Finisher),
        RM(Leeching), CT(RangerTalent_Survivalist), CT(RangerTalent_LethalMark)},
-      {RM(Cleaver), RM(Bloodrush), RM(Feast), RM(Toughened), RM(Vigor),
+      {RM(Cleaver), RM(Bloodrush), RM(Feast), RM(Toughened), RM(Vigor), RM(Trophy),
        CT(RangerTalent_FleetHunter)}}},
 
     // NOTE(zoubir): the Berserker
@@ -70,11 +70,11 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    RM(UndyingFury)),
       CLASS_BRANCH(CT(BerserkerTalent_UnbridledWrath), CT(BerserkerTalent_Leap), CT(BerserkerTalent_Rampage),
                    CT(BerserkerTalent_SweepingStrikes), CT(BerserkerTalent_ShatteringLeap), RM(Savagery),
-                   RM(RedMist))},
+                   RM(RedTide))},
      {{CT(BerserkerTalent_BruteForce), CT(BerserkerTalent_Bloodlust), RM(Finisher), RM(Gorge),
        RM(Stubborn), CT(BerserkerTalent_ThickHide)},
-      {CT(BerserkerTalent_Unyielding), RM(Reprisal), RM(Spikes), RM(Wayfarer), RM(Cadence),
-       RM(Vigor), CT(BerserkerTalent_Bladestorm)}}},
+      {CT(BerserkerTalent_Unyielding), RM(Reprisal), RM(Spikes), RM(Wayfarer), RM(RedMist),
+       RM(Vigor), CT(BerserkerTalent_Bladestorm), RM(Cadence)}}},
 
     // NOTE(zoubir): the Shadowblade
     {{"Assassination", "Subtlety"},
@@ -96,10 +96,10 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    CT(StormcallerTalent_Stormbringer)),
       CLASS_BRANCH(CT(StormcallerTalent_Capacitor), CT(StormcallerTalent_LightningDash), CT(StormcallerTalent_EyeOfTheStorm),
                    CT(StormcallerTalent_LiveWire), RM(Grounded), CT(StormcallerTalent_Tailwind),
-                   RM(Surge))},
+                   RM(StormUnbound))},
      {{RM(StaticBuild), RM(RisingGlory), RM(Bloodrush), RM(Leeching),
        CT(StormcallerTalent_Grounding), CT(StormcallerTalent_HighVoltage)},
-      {RM(Giantslayer), RM(Cornered), RM(Wayfarer), RM(Quickened), RM(Toughened),
+      {RM(Giantslayer), RM(Cornered), RM(Wayfarer), RM(Surge), RM(Toughened),
        CT(StormcallerTalent_Quickening)}}},
 
     // NOTE(zoubir): the Duelist
@@ -109,10 +109,10 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    CT(DuelistTalent_Masterstroke)),
       CLASS_BRANCH(CT(DuelistTalent_Parade), CT(DuelistTalent_Riposte), CT(DuelistTalent_Feint),
                    CT(DuelistTalent_Bait), RM(Measured), RM(PerfectForm),
-                   RM(Lifeline))},
+                   RM(IronGuard))},
      {{CT(DuelistTalent_KeenEdge), RM(Precision), RM(Giantslayer),
        RM(Panache), CT(DuelistTalent_QuickWrist), CT(DuelistTalent_Footwork), CT(DuelistTalent_Flurry)},
-      {CT(DuelistTalent_Stamina), RM(Spikes), RM(Stubborn), RM(SecondBreath), RM(Feast),
+      {CT(DuelistTalent_Stamina), RM(Lifeline), RM(Stubborn), RM(SecondBreath), RM(Feast),
        RM(Vigor)}}},
 
     // NOTE(zoubir): the Frost Mage
@@ -122,10 +122,10 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    CT(FrostMageTalent_AbsoluteZero)),
       CLASS_BRANCH(CT(FrostMageTalent_Frostbite), CT(FrostMageTalent_FrozenOrb), CT(FrostMageTalent_IceBarrier),
                    CT(FrostMageTalent_FingersOfFrost), CT(FrostMageTalent_SplittingIce), RM(GlacialSkin),
-                   RM(ColdCalculation))},
+                   RM(Shatterstorm))},
      {{RM(Cleaver), RM(Bloodrush), RM(RisingGlory), CT(FrostMageTalent_GlacialArmor), RM(Stubborn),
        CT(FrostMageTalent_ColdSnap)},
-      {CT(FrostMageTalent_IceShards), CT(FrostMageTalent_WintersGrace), RM(Cadence), RM(Giantslayer),
+      {CT(FrostMageTalent_IceShards), CT(FrostMageTalent_WintersGrace), RM(ColdCalculation), RM(Giantslayer),
        RM(Leeching), RM(OpeningSalvo)}}},
 
     // NOTE(zoubir): the Druid

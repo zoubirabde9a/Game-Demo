@@ -195,7 +195,9 @@ global_variable talent_icon_painter *TalentIconPainters[Talent_RoleFirst] =
 #include "../dungeon/run_tree_icons.cpp"
 
 #define TALENT_ICON_SIZE 96
-#define TALENT_ATLAS_COLUMNS 8
+// NOTE(zoubir): wide enough that the atlas stays under 4096 tall, the
+// most some WebGL drivers take
+#define TALENT_ATLAS_COLUMNS 16
 // NOTE(zoubir): the game's talents, every class's role slots, then one
 // cell per run talent (ui/dungeon/run_tree_icons.cpp)
 #define TALENT_RUN_ICON_FIRST (Talent_RoleFirst + PlayerRole_Count * CLASS_TALENTS)

@@ -42,6 +42,8 @@ Attack, base spells, then each branch's pair, with the key a spell new to the re
 | Mender | Smite Bolt | Mending Bolt, Ward, Holy Fire, Radiance | Sanctum: Sanctuary or Prayer of Healing (G: the three most hurt allies near heal 28 at once) | Dawn: Dawnbreak (X: a beam of light through every foe on the aim, each hit healing the most hurt ally) or Purify (T: an ally rid of burns, poison, slows, roots and stuns, with a ward of 30) |
 | Druid | Wrath | Rejuvenation, Regrowth, Moonfire, Starfire | Grove: Tranquility or Lifebloom (G: an ally heals over 6 s, then blooms for a big heal, more for each Bloom spent) | Moon: Entangling Roots or Starfall (T: a star on every foe near, a Bloom for each) |
 
+Every capstone is a big effect made for its branch. Five branches that ended in one small generic effect now end in two: Ranger Survival in Pack Hunter (more damage to packs, a kill takes time off every spell), Berserker Carnage in Red Tide (more damage to packs, a kill heals), Stormcaller Tempest in Storm Unbound (spells back much sooner, a faster run), Duelist Guard in Iron Guard (a third of every hit sent back, less taken) and Frost Mage Shatter in Shatterstorm (more damage to weak foes, spells back sooner). Each old capstone moved into its branch's pool.
+
 A branch's pool holds class talents for its deep wild slots where the class has them. The Druid's Moon pool has two made for it: Shooting Stars (each Moonfire bite takes 0.35 s a rank off Starfire and Starfall) and Waxing Moon (every third bite of a Moonfire grows a Bloom), so a burn feeds both the stars and the heals.
 
 The fixed talents and the pools are in `class_tree_defs.cpp`; each class's talents and their numbers in `role_kits/<class>_defs.cpp`.

@@ -120,6 +120,9 @@ enum run_mod
     RunMod_Permafrost, RunMod_AbsoluteZero,
     RunMod_Overgrowth, RunMod_Barkskin, RunMod_WildBloom, RunMod_Verdant, RunMod_Moonlit,
     RunMod_HeartOfTheWild,
+    // NOTE(zoubir): capstones made for a branch whose old capstone was one
+    // small effect, now in that branch's pool (class_tree_defs.cpp)
+    RunMod_PackHunter, RunMod_RedTide, RunMod_StormUnbound, RunMod_IronGuard, RunMod_Shatterstorm,
     RunMod_Count,
     RunMod_WildFirst = RunMod_KeenEdge,
     RunMod_WildLast = RunMod_Legend,
@@ -285,6 +288,18 @@ global_variable run_mod_def RunModDefs[RunMod_Count] =
     RUN_MOD("Verdant", "Heal a little every second of a fight", Regen, 0.003f, None, 0.f, 0, false),
     RUN_MOD("Moonlit", "You deal more damage", Damage, 0.04f, None, 0.f, 0, false),
     RUN_MOD("Heart of the Wild", "Heal more, and more health", Healing, 0.1f, Health, 0.1f, 0, false),
+    // NOTE(zoubir): the branch capstones: Ranger Survival, Berserker
+    // Carnage, Stormcaller Tempest, Duelist Guard, Frost Mage Shatter
+    RUN_MOD("Pack Hunter", "Far more damage to packs, and a kill takes time off every class spell",
+            Packbane, 0.15f, Refund, 0.8f, 0, false),
+    RUN_MOD("Red Tide", "Far more damage to packs, and a kill heals you", Packbane, 0.15f,
+            Feast, 0.04f, 0, false),
+    RUN_MOD("Storm Unbound", "Every class spell comes back much sooner, and you run faster", Haste, 0.12f,
+            Speed, 0.06f, 0, false),
+    RUN_MOD("Iron Guard", "Monsters that hit you take a third of it back, and you take less",
+            Thorns, 0.35f, Armor, 0.06f, 0, false),
+    RUN_MOD("Shatterstorm", "Far more damage to weak foes, and spells come back sooner",
+            Execute, 0.25f, Haste, 0.08f, 0, false),
 };
 #undef RUN_MOD
 
