@@ -16,8 +16,9 @@
 #define DANGER_PALETTE_HARM 0
 #define DANGER_PALETTE_SPIRIT 128
 #define DANGER_PALETTE_GRAVE 255
-// NOTE(zoubir): a volley's lane is as wide as a shot can graze a player
-#define DANGER_VOLLEY_WIDTH 22.f
+// NOTE(zoubir): a volley's shots leave their caster this far in front of
+// it (AddMonsterShot)
+#define DANGER_VOLLEY_START 12.f
 #define DANGER_GRAVE_RADIUS 18.f
 
 inline bool32
@@ -215,10 +216,13 @@ DrawDangerCast(render_context *RenderContext, world *World, v3 CameraOffset,
                                             MAX_VOLLEY_SHOTS);
             for(u32 Shot = 0; Shot < Count; Shot++)
             {
-                DrawDangerLane(RenderContext, World, CameraOffset, Cast->Self,
-                               Directions[Shot], Ability->Speed * Ability->Active,
-                               DANGER_VOLLEY_WIDTH, Progress, DANGER_PALETTE_HARM,
-                               Strength);
+                // NOTE(zoubir): a shot hits whoever comes within Radius of
+                // it on its way (UpdateMonsterShot)
+                DrawDangerSweep(RenderContext, World, CameraOffset,
+                                Cast->Self + DANGER_VOLLEY_START * Directions[Shot],
+                                Directions[Shot], Ability->Speed * Ability->Active,
+                                Ability->Radius, Progress, DANGER_PALETTE_HARM,
+                                Strength);
             }
         } break;
 
