@@ -1,10 +1,8 @@
 #if !defined(WORLD_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Zoubir $
-   ======================================================================== */
+/* The world's types: tiles, the chunks of the spatial index and their
+   entity lists, the chunk range a box covers, and the world struct
+   itself (entities, chunk hash, map id, terrain collision shapes). The
+   code that fills them is in world.cpp. */
 
 #define WORLD_H
 #include "entity.h"

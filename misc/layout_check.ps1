@@ -111,10 +111,7 @@ foreach ($File in $Sources) {
     if ($First -notmatch '^\s*(/\*|//)') {
         $Failures.Add("${Name}: start the file with a comment saying what it is for")
     }
-    # NOTE(zoubir): sim/world.* are in the terrain agent's claim; until it
-    # writes their summaries (.agents/issues/world-banners.md) they pass
-    elseif (($Lines -join "`n") -match '\$File: \$' -and
-            $Name -notin @('code/sim/world.cpp', 'code/sim/world.h')) {
+    elseif (($Lines -join "`n") -match '\$File: \$') {
         $Failures.Add("${Name}: replace the empty `$File: `$ banner with a comment saying what the file is for")
     }
 }

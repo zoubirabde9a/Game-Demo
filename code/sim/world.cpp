@@ -1,9 +1,10 @@
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: zoubir $
-   ======================================================================== */
+/* World storage (world.h): the spatial index of chunks, kept in a hash
+   table by signed chunk coordinates, and the entity lists each chunk
+   holds. AddEntity and RemoveEntity put an entity in or take it out of
+   the world and every chunk its collision box touches;
+   CheckAndChangeEntityChunk moves it between chunks after it moves.
+   GatherEntitiesInBox answers "what is near this box" for movement and
+   hit checks, with stand-ins for terrain that keeps no entities. */
 #include "world.h"
 
 inline cannonical_position
