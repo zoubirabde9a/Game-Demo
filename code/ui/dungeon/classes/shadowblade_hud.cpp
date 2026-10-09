@@ -9,7 +9,7 @@
    plate red and says so; one whose foe got away in the wind-up keeps
    its points, and the plate says that too. Beside the plate, a ring that runs down while a
    critical strike waits (acid green) and while Shadow Dance lasts
-   (violet). It reads the slot's meter and flags and the class's bursts,
+   (violet), timed from when its flag goes up. It reads the slot's meter and flags and the class's bursts,
    which every client gets, so it is the same online. */
 
 #define SHADOWBLADE_HUD_GEM 18.f
@@ -165,16 +165,27 @@ DrawShadowbladeHud(render_context *RenderContext, app_state *AppState, player_sl
                UIAlign_Center);
     }
 
-    // NOTE(zoubir): the timers, left the critical strike, right the dance
+    // NOTE(zoubir): the timers, left the critical strike, right the dance,
+    // timed from when each flag went up; a Shadowstep or Dance burst newer
+    // than that restarted a window that never closed
+    shadowblade_slot *Blade = &Slot->Shadowblade;
+    u32 Rose = Slot->ClassFlags & ~Blade->ShownFlags;
+    Blade->CritClock = (Rose & SHADOWBLADE_FLAG_CRIT) ? Clock : Blade->CritClock;
+    Blade->DanceClock = (Rose & SHADOWBLADE_FLAG_DANCE) ? Clock : Blade->DanceClock;
+    Blade->ShownFlags = Slot->ClassFlags;
+    Blade->CritClock = Maximum(Blade->CritClock,
+                               Clock - ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Step));
+    Blade->DanceClock = Maximum(Blade->DanceClock,
+                                Clock - ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Dance));
     float Side = 0.5f * Width + 22.f;
-    float Step = ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Step);
+    float Step = Clock - Blade->CritClock;
     if ((Slot->ClassFlags & SHADOWBLADE_FLAG_CRIT) && Step < SHADOWBLADE_CRIT_SECONDS)
     {
         v2 C = Centre - V2(Side, 0.f);
         DrawShadowbladeTimer(RenderContext, C, 11.f, 1.f - Step / SHADOWBLADE_CRIT_SECONDS, 0x0046FF96, 1.f);
         DrawShadowbladeDagger(RenderContext, C + V2(-4.f, 5.f), ShadowbladeNormal(V2(0.6f, -1.f)), 13.f, 1.f, 1.f);
     }
-    float Dance = ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Dance);
+    float Dance = Clock - Blade->DanceClock;
     if ((Slot->ClassFlags & SHADOWBLADE_FLAG_DANCE) && Dance < DANCE_SECONDS)
     {
         v2 C = Centre + V2(Side, 0.f);

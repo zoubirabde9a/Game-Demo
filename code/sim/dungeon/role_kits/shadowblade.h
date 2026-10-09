@@ -46,6 +46,12 @@ struct shadowblade_slot
     // and serial), struck when the wind-up ends
     u32 EviscerateSlot;
     u32 EviscerateSerial;
+    // NOTE(zoubir): client only (ui/dungeon/classes/shadowblade_hud.cpp):
+    // the flags the HUD last drew and when it saw the critical strike and
+    // Shadow Dance start (their bursts are gone well before either ends)
+    u32 ShownFlags;
+    float CritClock;
+    float DanceClock;
 };
 
 // NOTE(zoubir): Twin Strike's poison on a monster: whose, how long it
