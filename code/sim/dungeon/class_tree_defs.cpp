@@ -60,19 +60,18 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
       {CT(RangerTalent_FleetHunter), RM(Cleaver), RM(Bloodrush), RM(Feast), RM(Toughened),
        RM(Vigor)}}},
 
-    // NOTE(zoubir): the Berserker. Bladestorm holds Carnage's second spell
-    // slot until Battle Shout is in
+    // NOTE(zoubir): the Berserker
     {{"Fury", "Carnage"},
      {CLASS_BRANCH(CT(BerserkerTalent_Brutality), CT(BerserkerTalent_Execute), CT(BerserkerTalent_Berserk),
                    CT(BerserkerTalent_Bloodthirst), CT(BerserkerTalent_Massacre), RM(CorneredBeast),
                    RM(UndyingFury)),
-      CLASS_BRANCH(CT(BerserkerTalent_UnbridledWrath), CT(BerserkerTalent_Leap), CT(BerserkerTalent_Bladestorm),
+      CLASS_BRANCH(CT(BerserkerTalent_UnbridledWrath), CT(BerserkerTalent_Leap), CT(BerserkerTalent_BattleShout),
                    CT(BerserkerTalent_SweepingStrikes), CT(BerserkerTalent_ShatteringLeap), RM(Savagery),
                    RM(RedMist))},
      {{CT(BerserkerTalent_BruteForce), CT(BerserkerTalent_Bloodlust), RM(Finisher), RM(Gorge),
        RM(Stubborn), CT(BerserkerTalent_ThickHide)},
       {CT(BerserkerTalent_Unyielding), RM(Reprisal), RM(Spikes), RM(Wayfarer), RM(Cadence),
-       RM(Vigor)}}},
+       RM(Vigor), CT(BerserkerTalent_Bladestorm)}}},
 
     // NOTE(zoubir): the Shadowblade
     {{"Assassination", "Subtlety"},

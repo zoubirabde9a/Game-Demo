@@ -141,6 +141,23 @@ PaintBerserkerBloodthirstIcon(icon_canvas *Canvas)
 
 // NOTE(zoubir): Berserk: a dark helm with burning red eyes, rage flaring
 // off it
+// NOTE(zoubir): Battle Shout: a roar going out in three red rings from an
+// open mouth on the left
+internal void
+PaintBerserkerBattleShoutIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.45f, 0.5f), 0.5f, IconColor(255, 80, 50, 130));
+    IconCircle(Canvas, V2(0.22f, 0.5f), 0.12f, Solid(IconColor(120, 30, 25)));
+    IconCircle(Canvas, V2(0.22f, 0.5f), 0.07f, Solid(IconColor(40, 8, 8)));
+    for(u32 Ring = 0; Ring < 3; Ring++)
+    {
+        float Radius = 0.24f + 0.17f * (float)Ring;
+        IconArc(Canvas, V2(0.22f, 0.5f), Radius, 0.05f - 0.01f * (float)Ring,
+                Solid(IconColor(255, 120 + 40 * Ring, 70, 255 - 50 * Ring)), -0.75f, 0.75f);
+    }
+    IconSparkle(Canvas, V2(0.82f, 0.22f), 0.08f, Solid(IconColor(255, 230, 200)));
+}
+
 internal void
 PaintBerserkerBerserkIcon(icon_canvas *Canvas)
 {
@@ -238,7 +255,7 @@ internal void PaintShatteringLeapIcon(icon_canvas *C) { PaintBerserkerLeapIcon(C
 
 global_variable role_icon_painter *BerserkerIconPainters[ROLE_KEYS] =
 {
-    PaintBerserkerLeapIcon, PaintBerserkerWhirlwindIcon, 0,
+    PaintBerserkerLeapIcon, PaintBerserkerWhirlwindIcon, PaintBerserkerBattleShoutIcon,
     PaintBerserkerBerserkIcon, PaintBerserkerExecuteIcon, 0,
     PaintBerserkerCleaveIcon,
 };

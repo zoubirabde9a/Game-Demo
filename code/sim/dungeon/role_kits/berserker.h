@@ -19,6 +19,8 @@
 #define BERSERKER_FLAG_BERSERK 0x1
 #define BERSERKER_FLAG_NO_RAGE 0x2
 #define BERSERKER_FLAG_LEAPING 0x4
+// NOTE(zoubir): Battle Shout is up
+#define BERSERKER_FLAG_SHOUT 0x8
 
 // NOTE(zoubir): the class's bursts, SimBurst_BerserkerFirst + these:
 // - Cleave, CleaveBack: the axe's swing round Position (the feet), across
@@ -54,6 +56,9 @@ struct berserker_slot
     float LastHp;
     float BerserkSeconds;
     float NoRageSeconds;
+    // NOTE(zoubir): seconds left of Battle Shout, which the allies near
+    // share (UpdateRunTrees)
+    float ShoutSeconds;
     // NOTE(zoubir): the next Cleave swings the other way round
     bool32 CleaveBack;
     // NOTE(zoubir): a Leap in flight: where it lands and the seconds since

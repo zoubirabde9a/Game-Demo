@@ -448,10 +448,50 @@ TestShatteringLeapSunders()
     }
 }
 
+// NOTE(zoubir): Battle Shout fills the Rage, raises the damage of the
+// Berserker and an ally near, not one far off, runs out with its time,
+// and with Shattering Leap sunders the foes round it
+internal void
+TestBattleShout()
+{
+    crypt_world Crypt = BerserkerCrypt(3);
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    player_slot *Near = &AppState->Players[1];
+    player_slot *Far = &AppState->Players[2];
+    world_entity *Player = Slot->Entity;
+    v3 Old = Near->Entity->Position;
+    Near->Entity->Position = Player->Position + V3(100.f, 0.f, 0.f);
+    CheckAndChangeEntityChunk(AppState, &AppState->World, &Crypt.Arena, Old, Near->Entity);
+    Old = Far->Entity->Position;
+    Far->Entity->Position = Player->Position + V3(0.f, BATTLE_SHOUT_REACH + 200.f, 0.f);
+    CheckAndChangeEntityChunk(AppState, &AppState->World, &Crypt.Arena, Old, Far->Entity);
+    // NOTE(zoubir): the far ally is checked by distance, wherever the walls
+    // put it
+    float FarOff = Length(Far->Entity->Position.XY - Player->Position.XY);
+    world_entity *Foe = BerserkerDummy(&Crypt, V3(80.f, 40.f, 0.f));
+    SetClassTalentRank(Slot, BerserkerTalent_ShatteringLeap, 1);
+    GrantClassSpells(Slot);
+    Check(BerserkerRage(Slot) == 0);
+    PressOnce(&Crypt, 0, PlayerButton_Slam);
+    TickCrypt(&Crypt, 1);
+    Check(BerserkerRage(Slot) == BERSERKER_RAGE_MAX);
+    Check(Slot->RoleCooldowns[2] > 0.f && (Slot->ClassFlags & BERSERKER_FLAG_SHOUT));
+    Check(Slot->RunAuraDamage >= BATTLE_SHOUT_SHARE - 0.001f);
+    Check(Near->RunAuraDamage >= BATTLE_SHOUT_SHARE - 0.001f);
+    FarOff = Length(Far->Entity->Position.XY - Player->Position.XY);
+    Check(FarOff <= BATTLE_SHOUT_REACH || Far->RunAuraDamage < 0.001f);
+    Check(FindFoeMark(AppState->Dungeon, &AppState->World, Foe) != 0);
+    TickCrypt(&Crypt, (u32)(60.f * BATTLE_SHOUT_SECONDS) + 2);
+    Check(!(Slot->ClassFlags & BERSERKER_FLAG_SHOUT) && Near->RunAuraDamage < 0.001f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunBerserkerTests()
 {
     TestBerserkerKeys();
+    TestBattleShout();
     TestCleaveHitsTheArc();
     TestCleaveFollowsThePick();
     TestRageBuildsAndDrains();

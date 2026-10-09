@@ -137,7 +137,21 @@ UpdateRunTrees(app_state *AppState, dungeon_run *Run, float DeltaTime)
             Slot->RunAuraArmor += RunEffectShare(Other, RunEffect_Aura);
             Slot->RunAuraDamage += RunEffectShare(Other, RunEffect_Anthem);
         }
+        // NOTE(zoubir): a Berserker's Battle Shout, its own or one near,
+        // outside the cap and never twice (role_kits/berserker.cpp)
+        float Shout = 0.f;
+        for(u32 OtherIndex = 0; OtherIndex < MAX_PLAYERS; OtherIndex++)
+        {
+            player_slot *Other = &AppState->Players[OtherIndex];
+            world_entity *Body = Other->Entity;
+            if (Other->Active && Other->Role == PlayerRole_Berserker &&
+                Other->Berserker.ShoutSeconds > 0.f && Body && Body->IsPresent && !IsDeadPlayer(Body) &&
+                LengthSq(Body->Position.XY - Self->Position.XY) <= BATTLE_SHOUT_REACH * BATTLE_SHOUT_REACH)
+            {
+                Shout = BATTLE_SHOUT_SHARE;
+            }
+        }
         Slot->RunAuraArmor = Minimum(RUN_AURA_MOST, Slot->RunAuraArmor);
-        Slot->RunAuraDamage = Minimum(RUN_AURA_MOST, Slot->RunAuraDamage);
+        Slot->RunAuraDamage = Minimum(RUN_AURA_MOST, Slot->RunAuraDamage) + Shout;
     }
 }

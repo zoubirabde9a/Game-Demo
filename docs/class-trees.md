@@ -93,7 +93,7 @@ Every class has its two branches, its spell pairs and its pools in the game (`cl
 | Bulwark | Shield Slam does not taunt yet; Vanguard's capstone is Retaliation until the ally guard is built; the bot does not pick Taunt |
 | Mender | the atonement talent is not built |
 | Ranger | Barrage and Hunter's Net only help Volley and Disengage; its bot always takes Rapid Fire |
-| Berserker | Battle Shout (C) is not built; Bladestorm holds its place |
+| Berserker | its bot always takes Leap, never Battle Shout |
 | Shadowblade | nothing beyond tuning |
 | Stormcaller | nothing beyond tuning |
 | Duelist | Feint (C) is not built; Footwork holds its place |

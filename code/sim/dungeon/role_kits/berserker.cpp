@@ -22,9 +22,14 @@
                   (tree) it heals for part of it.
      V            Berserk (tree): seconds of more damage, less taken, and
                   Rage that holds.
+     C            Battle Shout (tree): Rage to full, and the party near
+                  deals more for a while; with Shattering Leap it sunders
+                  the foes round it as a Leap's landing does.
 
-   C and X do nothing for it (RoleDropsFireball), so it has five damage
-   keys, as the striker does.
+   X does nothing for it (RoleDropsFireball). Cleave and Whirlwind are its
+   base kit; the tree gives one of Execute and Berserk (Fury) and one of
+   Leap and Battle Shout (Carnage), so it casts four
+   (class_tree_defs.cpp).
 
    Online the clients see Rage and the flags (ClassFlags), the casts and
    the bursts, SimBurst_BerserkerFirst + berserker_burst; how they look is
@@ -35,6 +40,30 @@
 #include "berserker/rage.cpp"
 #include "berserker/strikes.cpp"
 #include "berserker/leap.cpp"
+
+// NOTE(zoubir): Battle Shout: Rage to full and the shout's seconds; with
+// Shattering Leap every foe near is sundered
+internal void
+BattleShout(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
+    AddRage(Slot, (float)BERSERKER_RAGE_MAX);
+    Slot->Berserker.ShoutSeconds = BATTLE_SHOUT_SECONDS;
+    world *World = &AppState->World;
+    if (!AppState->Dungeon || !RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_ShatteringLeap))
+    {
+        return;
+    }
+    u32 Room = RoomAtPosition(World, Player->Position.XY);
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Monster = &World->Entities[EntityIndex];
+        if (IsBerserkerFoe(World, Monster, Room) &&
+            Length(Monster->Position.XY - Player->Position.XY) <= BATTLE_SHOUT_SUNDER_REACH)
+        {
+            AddSunder(AppState->Dungeon, World, Monster, SHATTERING_LEAP_SECONDS, SHATTERING_LEAP_SHARE);
+        }
+    }
+}
 
 // NOTE(zoubir): whether Key only starts a wind-up when pressed (the cast
 // runs through sim/player_casts.cpp, then FinishBerserkerCast fires it):
@@ -74,6 +103,14 @@ CastBerserkerKey(app_state *AppState, world *World, memory_arena *Arena, player_
             {
                 EmitSound(&AppState->Events, AssetType_SfxAreaCast, Player->Position);
             }
+        } break;
+
+        case 2:
+        {
+            BattleShout(AppState, Slot, Player);
+            EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, BerserkerBurst_Berserk),
+                      SlotIndex, Player->Position, ATan2(Aim.Y, Aim.X));
+            EmitSound(&AppState->Events, AssetType_SfxTaunt, Player->Position);
         } break;
 
         case 3:
@@ -226,7 +263,9 @@ UpdateBerserkerEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
             }
         }
         UpdateLeap(AppState, Slot, Player, DeltaTime);
+        Slot->Berserker.ShoutSeconds = Maximum(0.f, Slot->Berserker.ShoutSeconds - DeltaTime);
         u32 Flags = 0;
+        Flags |= Slot->Berserker.ShoutSeconds > 0.f ? BERSERKER_FLAG_SHOUT : 0;
         Flags |= Slot->Berserker.BerserkSeconds > 0.f ? BERSERKER_FLAG_BERSERK : 0;
         Flags |= Slot->Berserker.NoRageSeconds > 0.f ? BERSERKER_FLAG_NO_RAGE : 0;
         Flags |= Slot->Berserker.Leaping ? BERSERKER_FLAG_LEAPING : 0;
