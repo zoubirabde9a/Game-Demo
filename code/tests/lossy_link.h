@@ -3,6 +3,10 @@
    to the relay's port as if it were the server; the server sees the relay
    as the client. Call LossyPump once per simulated frame; a datagram's
    delay is counted in frames, so delays also reorder packets.
+   MinDelayFrames and BurstFrames, set after LossyOpen, make it a long
+   link (every datagram waits at least that long) and one whose losses
+   come in runs (a drop also drops everything in the same direction for
+   up to BurstFrames frames), as a busy wifi or mobile link does.
    Needs code/net/socket.cpp compiled in first. */
 
 #define LOSSY_QUEUE_SIZE 512
@@ -25,6 +29,10 @@ struct lossy_link
     u32 DropPercent;
     u32 DuplicatePercent;
     u32 MaxDelayFrames;
+    u32 MinDelayFrames;
+    u32 BurstFrames;
+    // NOTE: a run of losses drops this direction until this frame
+    u32 DropUntilFrame[2];
     u32 Random;
     u32 Frame;
 
@@ -72,7 +80,8 @@ LossyQueue(lossy_link *Link, u8 *Data, u32 Size, bool32 ToServer)
     memcpy(D->Data, Data, Size);
     D->Size = Size;
     D->ToServer = ToServer;
-    D->DeliverAtFrame = Link->Frame + LossyRandom(Link, Link->MaxDelayFrames + 1);
+    D->DeliverAtFrame = Link->Frame + Link->MinDelayFrames +
+        LossyRandom(Link, Link->MaxDelayFrames + 1);
 }
 
 internal void
@@ -86,7 +95,17 @@ LossyPump(lossy_link *Link)
         bool32 ToServer = !NetAddressEqual(From, Link->Server);
         if (ToServer) { Link->Client = From; Link->HasClient = true; }
 
-        if (LossyRandom(Link, 100) < Link->DropPercent) { Link->Dropped++; continue; }
+        if (Link->DropUntilFrame[ToServer ? 1 : 0] > Link->Frame) { Link->Dropped++; continue; }
+        if (LossyRandom(Link, 100) < Link->DropPercent)
+        {
+            Link->Dropped++;
+            if (Link->BurstFrames)
+            {
+                Link->DropUntilFrame[ToServer ? 1 : 0] =
+                    Link->Frame + 1 + LossyRandom(Link, Link->BurstFrames);
+            }
+            continue;
+        }
         LossyQueue(Link, Buffer, Size, ToServer);
         if (LossyRandom(Link, 100) < Link->DuplicatePercent)
         {

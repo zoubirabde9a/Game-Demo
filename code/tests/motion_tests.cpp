@@ -65,6 +65,11 @@ struct motion_result
     float CorrectedDistance;
     float LocalTravel;
     float RemoteTravel;
+    // NOTE: the round trip the client measured, inputs' wait in the
+    // server's queue included, averaged over the measured frames
+    float RoundTripMs;
+    u32 MostBuffered;
+    u32 Measured;
 };
 
 internal void
@@ -79,7 +84,8 @@ PrintMotionTrack(const char *Name, motion_track *Track)
 // each waits a random amount up to it, so packets also arrive out of order
 internal motion_result
 PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed,
-           u32 EdgePattern = 0, bool32 Offline = false, u32 MapId = MapId_Arena)
+           u32 EdgePattern = 0, bool32 Offline = false, u32 MapId = MapId_Arena,
+           u32 BaseDelayMs = 0, u32 BurstMs = 0)
 {
     motion_result Result = {};
     static server Server;
@@ -103,6 +109,10 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed,
     float FrameSeconds = 1.0f / FrameRate;
     u32 DelayFrames = (u32)((float)MaxDelayMs * 0.001f / FrameSeconds + 0.5f);
     Check(LossyOpen(&Link, LocalServer(&Server), DropPercent, 0, DelayFrames, Seed));
+    // NOTE: the link is pumped twice a frame, and counts its delays in
+    // pumps
+    Link.MinDelayFrames = (u32)(2.f * (float)BaseDelayMs * 0.001f / FrameSeconds + 0.5f);
+    Link.BurstFrames = (u32)(2.f * (float)BurstMs * 0.001f / FrameSeconds + 0.5f);
     char Address[32];
     net_address LinkAddress = LossyAddress(&Link);
     snprintf(Address, sizeof(Address), "127.0.0.1:%u", LinkAddress.Port);
@@ -208,6 +218,10 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed,
             app_window View = GetWorldView(Client, &Window);
             UpdateCamera(Client, &View, &Input, false);
             TrackMotion(&Result.Camera, Client->CameraOffset.XY, DeltaTime, Allowed);
+            Result.Measured++;
+            Result.RoundTripMs += Online->Quality.RoundTripMs;
+            Result.MostBuffered = Maximum(Result.MostBuffered,
+                                          (u32)Online->Client.Snapshot.InputBuffered);
             Result.LocalTravel += Length(Local->Position.XY - LocalStart);
             Result.RemoteTravel += Length(Remote->Position.XY - RemoteStart);
             LocalStart = Local->Position.XY;
@@ -217,6 +231,7 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed,
 
     if (GetLocalPlayer(Client)) Result.LocalEnd = GetLocalPlayer(Client)->Position.XY;
     Result.Corrections = Online->Prediction.Corrections;
+    if (Result.Measured) Result.RoundTripMs /= (float)Result.Measured;
     Result.CorrectedDistance = Online->Prediction.CorrectedDistance;
     NetClientDisconnect(&Mover);
     OnlineDisconnect(Online);
@@ -305,10 +320,55 @@ TestOnlineGroundPredictsExactly()
     }
 }
 
+// A long, lossy link: a 200 ms round trip, packets 0-40 ms late on top,
+// one in ten lost, alone or in runs of up to 100 ms, as over busy wifi or
+// a mobile network. The local player must walk without corrections from
+// the server, and others must move evenly. Before every unconfirmed input
+// went out again, the server let a dozen inputs pile up before skipping
+// some, and replicas waited out a run of lost snapshots, runs of losses
+// made 13 to 27 corrections here and a remote player jolted 26 times.
+// The last case loses everything for up to 300 ms now and then: a
+// correction after such a dropout cannot be helped, so it is only shown.
+internal void
+TestOnlineMotionOnABadLink()
+{
+    struct bad_case { const char *Name; u32 Drop; u32 BurstMs; u32 Pattern; bool32 Strict; };
+    bad_case Cases[] =
+    {
+        {"200 ms, 10% loss", 10, 0, 0, true},
+        {"200 ms, 10% loss, wandering", 10, 0, 4, true},
+        {"200 ms, 10% loss in runs", 10, 100, 0, true},
+        {"200 ms, 10% loss in runs, wandering", 10, 100, 4, true},
+        {"200 ms, dropouts of up to 300 ms", 3, 300, 0, false},
+    };
+    for (u32 Index = 0; Index < ArrayCount(Cases); ++Index)
+    {
+        bad_case *Case = &Cases[Index];
+        motion_result Result = PlayMotion(144.0f, 80, Case->Drop, 80 + Index, Case->Pattern, false,
+                                          MapId_Arena, 100, Case->BurstMs);
+        printf("  motion, %s: %u corrections (%.1f units), round trip %.0f ms, "
+               "at most %u inputs waiting, local walked %.0f, remote %.0f\n",
+               Case->Name, Result.Corrections, Result.CorrectedDistance, Result.RoundTripMs,
+               Result.MostBuffered, Result.LocalTravel, Result.RemoteTravel);
+        PrintMotionTrack("local", &Result.Local);
+        PrintMotionTrack("remote", &Result.Remote);
+        PrintMotionTrack("camera", &Result.Camera);
+        Check(Result.Joined);
+        if (!Case->Strict) continue;
+        Check(Result.Corrections <= 1);
+        Check(Result.Local.Jolts * 100 <= Result.Local.Frames);
+        Check(Result.Remote.Jolts * 100 <= Result.Remote.Frames);
+        // NOTE: 200 ms on the link, up to 40 more, and a few ticks waiting
+        // in the server's queue
+        Check(Result.RoundTripMs < 300.0f);
+    }
+}
+
 internal void
 RunMotionTests()
 {
     GROUP(TestOnlineMotionIsSmooth());
     GROUP(TestOnlineEdgesAreSmooth());
     GROUP(TestOnlineGroundPredictsExactly());
+    GROUP(TestOnlineMotionOnABadLink());
 }
