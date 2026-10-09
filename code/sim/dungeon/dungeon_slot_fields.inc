@@ -9,7 +9,7 @@
     // seconds left of the tank's Shield Wall, and the damage a healer's
     // Ward still absorbs and absorbed when cast, for the ring that empties
     // (sim/dungeon/role_abilities.cpp)
-#define ROLE_KEYS 7
+#define ROLE_KEYS 9
     float RoleCooldowns[ROLE_KEYS];
     float ShieldWallSeconds;
     float WardAbsorb;

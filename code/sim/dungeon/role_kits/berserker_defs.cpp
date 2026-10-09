@@ -164,7 +164,7 @@ global_variable u8 BerserkerTalentStats[CLASS_TALENTS] =
     RoleStat_Vitality, RoleStat_Lifesteal, RoleStat_None, RoleStat_Damage, RoleStat_Armor, RoleStat_None,
 };
 
-// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click
+// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click, G, T
 global_variable role_spell BerserkerSpells[ROLE_KEYS] =
 {
     {"Leap", LEAP_COOLDOWN, "Leap: jump to the cursor and slam down, stunning what is there",

@@ -168,7 +168,7 @@ global_variable u8 DruidTalentStats[CLASS_TALENTS] =
     RoleStat_Healing, RoleStat_Vitality, RoleStat_None, RoleStat_Haste, RoleStat_Damage, RoleStat_None,
 };
 
-// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click
+// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click, G, T
 global_variable role_spell DruidSpells[ROLE_KEYS] =
 {
     {"Rejuvenation", REJUVENATION_COOLDOWN,

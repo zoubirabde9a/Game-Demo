@@ -194,7 +194,7 @@ global_variable u8 StormcallerTalentStats[CLASS_TALENTS] =
     RoleStat_Damage, RoleStat_Vitality, RoleStat_None, RoleStat_Haste, RoleStat_Swiftness, RoleStat_None,
 };
 
-// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click
+// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click, G, T
 global_variable role_spell StormcallerSpells[ROLE_KEYS] =
 {
     {"Chain Lightning", CHAIN_COOLDOWN,

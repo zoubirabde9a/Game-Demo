@@ -192,7 +192,7 @@ global_variable u8 ShadowbladeTalentStats[CLASS_TALENTS] =
     RoleStat_Damage, RoleStat_Armor, RoleStat_None, RoleStat_Haste, RoleStat_Lifesteal, RoleStat_None,
 };
 
-// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click
+// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click, G, T
 global_variable role_spell ShadowbladeSpells[ROLE_KEYS] =
 {
     {"Shadowstep", SHADOWSTEP_COOLDOWN,

@@ -297,7 +297,8 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         float Distance = Target ? Length(Target->Position.XY - Self->Position.XY) : 0.f;
         // NOTE(zoubir): A, R, C and V are the class's keys in a run
         // (BotRoleButtons); the game's presses on them go
-        Held &= ~(u32)(NetButton_Kunai | NetButton_Launch | NetButton_Push | NetButton_Slam);
+        Held &= ~(u32)(NetButton_Kunai | NetButton_Launch | NetButton_Push | NetButton_Slam |
+                       NetButton_FrostNova | NetButton_GravityWell);
         // NOTE(zoubir): the striker fights from range and, against a
         // monster whose shell takes hits from the front (sim/monster_
         // abilities/armor.cpp), from behind it, as the tank holds it

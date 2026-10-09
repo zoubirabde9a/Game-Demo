@@ -153,7 +153,7 @@ global_variable u8 FrostMageTalentStats[CLASS_TALENTS] =
     RoleStat_Damage, RoleStat_Armor, RoleStat_None, RoleStat_Haste, RoleStat_Vitality, RoleStat_None,
 };
 
-// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click
+// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click, G, T
 global_variable role_spell FrostMageSpells[ROLE_KEYS] =
 {
     {"Blizzard", BLIZZARD_COOLDOWN, "Blizzard: ice falls on the circle at the cursor for 3 s, chilling",

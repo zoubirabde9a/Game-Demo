@@ -68,7 +68,10 @@
    whether or not it has a healer. */
 
 // NOTE(zoubir): the keys a role casts on, and the slot each one's
-// cooldown has in player_slot.RoleCooldowns
+// cooldown has in player_slot.RoleCooldowns. G and T, the duel's Frost Nova
+// and Gravity Well keys, come last: a tank or a healer casts up to six
+// spells and an attack, seven at the top level, more than the first
+// seven keys hold beside the pairs (docs/class-trees.md)
 global_variable u32 RoleKeys[ROLE_KEYS] =
 {
     PlayerButton_Launch,
@@ -78,6 +81,8 @@ global_variable u32 RoleKeys[ROLE_KEYS] =
     PlayerButton_Shockwave,
     PlayerButton_Cast,
     PlayerButton_Attack,
+    PlayerButton_FrostNova,
+    PlayerButton_GravityWell,
 };
 
 // NOTE(zoubir): the game's abilities every class keeps in a run

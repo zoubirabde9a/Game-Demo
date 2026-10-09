@@ -98,7 +98,7 @@ TestTakenKeySwaps()
 }
 
 // NOTE(zoubir): a dungeon key does not move the duel's, nor the other
-// scheme's; the dungeon tab has no talent abilities
+// scheme's; the dungeon tab holds every class key, G and T among them
 internal void
 TestEachSetKeepsItsKeys()
 {
@@ -113,7 +113,7 @@ TestEachSetKeepsItsKeys()
     Check(!KeyCodeBoundNow(KeyCode_0 + 1));
     Check(!BindingRowUsed(BindingMode_Duel, ControlScheme_Mouse, BINDING_MOVE_UP));
     Check(BindingRowUsed(BindingMode_Duel, ControlScheme_Keys, 9));
-    Check(!BindingRowUsed(BindingMode_Dungeon, ControlScheme_Keys, 9));
+    Check(BindingRowUsed(BindingMode_Dungeon, ControlScheme_Keys, 9));
     Check(BindingRowUsed(BindingMode_Dungeon, ControlScheme_Keys, 4));
     // NOTE(zoubir): a picked key is the key itself; a default letter
     // follows the layout

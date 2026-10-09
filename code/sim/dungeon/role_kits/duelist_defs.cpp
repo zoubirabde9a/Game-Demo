@@ -208,7 +208,7 @@ global_variable u8 DuelistTalentStats[CLASS_TALENTS] =
     RoleStat_Damage, RoleStat_Armor, RoleStat_None, RoleStat_Haste, RoleStat_Vitality, RoleStat_None,
 };
 
-// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click
+// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click, G, T
 global_variable role_spell DuelistSpells[ROLE_KEYS] =
 {
     {"Lunge", LUNGE_COOLDOWN, "Lunge: dash to the foe under the cursor and strike it",
