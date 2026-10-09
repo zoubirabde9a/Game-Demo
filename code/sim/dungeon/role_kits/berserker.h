@@ -25,13 +25,15 @@
 // NOTE(zoubir): the class's bursts, SimBurst_BerserkerFirst + these:
 // - Cleave, CleaveBack: the axe's swing round Position (the feet), across
 //   Angle, one way round or the other; BERSERKER_WIDE_CLEAVE higher when
-//   Sweeping Strikes widens it;
+//   Sweeping Strikes widens it, and its number (RangerBurstSpot) 1 when it
+//   caught one foe alone, which it hits harder;
 // - Rampage: the charge from Position along Angle, its length the burst's
 //   number (RangerBurstSpot), as the Berserker is moved to its end;
 // - Shout: Battle Shout's cry at Position, out to BATTLE_SHOUT_REACH;
 // - Leap: the jump starting, Position where it lands;
 // - Slam: the Leap landing at Position;
-// - Execute: the chop landing at Position, along Angle;
+// - Execute: the chop landing at Position, along Angle, its number 1 when
+//   the foe was low enough to take the doubled blow;
 // - Berserk: the war cry at Position as Berserk goes up
 #define BERSERKER_WIDE_CLEAVE 1000.f
 

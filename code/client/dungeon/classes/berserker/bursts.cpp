@@ -2,13 +2,17 @@
    row in berserker_bursts.inc, T 0..1 over its Seconds:
    - Cleave: the crescent the axe's edge leaves at CLEAVE_REACH, the
      slice the blow hits, chasing the blade round and thinning away, then
-     red sparks thrown on from the end of the cut;
+     red sparks thrown on from the end of the cut; a swing that caught
+     one foe alone (the burst's number) hits it harder and draws a
+     heavier, wider crescent with a white edge and more sparks;
    - Leap: a red ring on the ground where it will land, filling as it
      comes down, and a mark at its middle;
    - Slam: a white flash, a red shock ring racing to LEAP_RADIUS, dust
      rolling out and rocks thrown up and falling back;
    - Execute: a column of light chopping down on the spot, a flash, a
-     spray of blood along the blow and a small shock ring;
+     spray of blood along the blow and a small shock ring; on a foe low
+     enough for the doubled blow (the burst's number), a white-hot column
+     from higher up and a second, wider white ring;
    - Berserk: a war cry, two red rings out from the Berserker, steam
      bursting off it;
    - Rampage: the charge's path from where it started, its length the
@@ -55,8 +59,10 @@ DrawCleaveBurst(render_context *RenderContext, app_state *AppState, role_burst *
                 float T, v3 CameraOffset)
 {
     world_entity *Caster = Burst->Slot < MAX_PLAYERS ? AppState->Players[Burst->Slot].Entity : 0;
-    bool32 Wide = Burst->Position.Z >= 0.5f * BERSERKER_WIDE_CLEAVE;
-    v3 Feet = Caster ? Caster->Position : Burst->Position;
+    v3 Place = RangerBurstPlace(Burst->Position);
+    bool32 Wide = Place.Z >= 0.5f * BERSERKER_WIDE_CLEAVE;
+    bool32 Lone = RangerBurstVariant(Burst->Position) == 1;
+    v3 Feet = Caster ? Caster->Position : Place;
     if (!Caster && Wide)
     {
         Feet.Z -= BERSERKER_WIDE_CLEAVE;
@@ -71,6 +77,15 @@ DrawCleaveBurst(render_context *RenderContext, app_state *AppState, role_burst *
                     0.3f * Reach, Maximum(0.f, Tail - 0.1f), Maximum(0.f, Lead - 0.14f), 0.4f * Fade);
     DrawAxeCrescent(RenderContext, Centre, Burst->Angle, Side, CLEAVE_HALF_ANGLE, Reach, 0.5f * Reach,
                     Tail, Lead, Fade);
+    if (Lone)
+    {
+        // NOTE(zoubir): a foe caught alone takes the heavier blow: a third,
+        // thicker crescent out past the reach and a white-hot edge on it
+        DrawAxeCrescent(RenderContext, Centre, Burst->Angle, Side, CLEAVE_HALF_ANGLE, 1.15f * Reach,
+                        0.75f * Reach, Tail, Lead, Fade);
+        DrawAxeCrescent(RenderContext, Centre, Burst->Angle, Side, CLEAVE_HALF_ANGLE, 1.17f * Reach,
+                        0.08f * Reach, Maximum(0.f, Tail - 0.05f), Lead, 0.8f * Fade);
+    }
     // NOTE(zoubir): a flare riding the edge while it moves
     float At = Burst->Angle + Side * CLEAVE_HALF_ANGLE * (2.f * Lead - 1.f);
     v2 Edge = Centre + Reach * V2(Cos(At), Sin(At));
@@ -86,8 +101,8 @@ DrawCleaveBurst(render_context *RenderContext, app_state *AppState, role_burst *
         float End = Burst->Angle + Side * CLEAVE_HALF_ANGLE;
         v2 Out = V2(Cos(End), Sin(End));
         v2 Onward = Side * V2(-Out.Y, Out.X);
-        DrawBloodSparks(RenderContext, Centre + Reach * Out, Onward, 0.5f, 0.4f * Reach, 7, SparkT,
-                        Index * 31);
+        DrawBloodSparks(RenderContext, Centre + Reach * Out, Onward, 0.5f, (Lone ? 0.6f : 0.4f) * Reach,
+                        Lone ? 12 : 7, SparkT, Index * 31);
     }
 }
 
@@ -128,8 +143,9 @@ DrawSlamBurst(render_context *RenderContext, v2 Centre, float T, float Radius)
 internal void
 DrawExecuteBurst(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
 {
-    v2 Spot = BurstToScreen(Burst->Position, CameraOffset);
+    v2 Spot = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
     v2 Dir = V2(Cos(Burst->Angle), Sin(Burst->Angle));
+    bool32 Big = RangerBurstVariant(Burst->Position) == 1;
     float Chop = Clamp01(T / 0.14f);
     float Fade = 1.f - Square(Clamp01((T - 0.1f) / 0.9f));
     // NOTE(zoubir): the blow coming down: a column of red light from above
@@ -139,6 +155,15 @@ DrawExecuteBurst(render_context *RenderContext, role_burst *Burst, float T, v3 C
                  FxColor(0.9f * Fade, BERSERKER_CRIMSON_RGB));
     DrawFxStroke(RenderContext, Sky, Head, 0.f, 6.f * Fade, FxColor(0.f, 0x00FFFFFF),
                  FxColor(Fade, BERSERKER_PALE_RGB));
+    if (Big)
+    {
+        // NOTE(zoubir): the doubled blow on a foe near death: a white-hot
+        // column, wider and from higher up
+        v2 High = Spot - V2(0.f, 170.f);
+        v2 Fall = High + (1.f - Square(1.f - Chop)) * (Spot - High);
+        DrawFxStroke(RenderContext, High, Fall, 6.f, 34.f * Fade, FxColor(0.f, 0x00FFFFFF),
+                     FxColor(0.8f * Fade, 0x00FFFFFF));
+    }
     if (Chop < 1.f)
     {
         return;
@@ -151,6 +176,13 @@ DrawExecuteBurst(render_context *RenderContext, role_burst *Burst, float T, v3 C
     DrawShaderQuad(RenderContext, Shader_Glow, Spot.X - 60.f, Spot.Y - 50.f, 120.f, 100.f,
                    FxColor(0.8f * (1.f - Land), BERSERKER_CRIMSON_RGB), RenderBlend_Additive);
     DrawBerserkerRing(RenderContext, Spot, 70.f * EaseOut, 16.f * (1.f - Land) + 2.f, 1.f - Land);
+    if (Big)
+    {
+        // NOTE(zoubir): and a second ring, white, out twice as far
+        DrawArcBand(RenderContext, Spot, 0.f, 2.f * Pi32, 140.f * EaseOut - 6.f, 140.f * EaseOut,
+                    FxColor(0.f, 0x00FFFFFF), FxColor(0.8f * (1.f - Land), BERSERKER_PALE_RGB));
+        DrawLightCross(RenderContext, Spot, 90.f * (1.f - Land), FxColor(1.f - Land, 0x00FFFFFF));
+    }
     // NOTE(zoubir): the cut along the blow, white hot and thinning
     v2 Across = V2(-Dir.Y, Dir.X);
     DrawFxStroke(RenderContext, Spot + 30.f * Dir, Spot - 20.f * Dir, 0.f, 4.f * (1.f - Land),

@@ -133,11 +133,13 @@ Cleave(app_state *AppState, world *World, player_slot *Slot, world_entity *Playe
     berserker_burst Burst = Slot->Berserker.CleaveBack ? BerserkerBurst_CleaveBack :
         BerserkerBurst_Cleave;
     Slot->Berserker.CleaveBack = !Slot->Berserker.CleaveBack;
+    u32 Caught = StrikeAround(AppState, Slot, Player, Dir, Reach, CLEAVE_HALF_ANGLE, CLEAVE_DAMAGE,
+                              CLEAVE_SHOVE, CLEAVE_SPLASH, CLEAVE_LONE_SCALE);
+    // NOTE(zoubir): the burst after the strike, the same tick, so its
+    // number can say the swing caught one foe alone and hit it harder
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, Burst),
-              (u8)Player->PlayerIndex, At, ATan2(Dir.Y, Dir.X));
+              (u8)Player->PlayerIndex, RangerBurstSpot(At, Caught == 1 ? 1 : 0), ATan2(Dir.Y, Dir.X));
     EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);
-    StrikeAround(AppState, Slot, Player, Dir, Reach, CLEAVE_HALF_ANGLE, CLEAVE_DAMAGE, CLEAVE_SHOVE,
-                 CLEAVE_SPLASH, CLEAVE_LONE_SCALE);
 }
 
 // NOTE(zoubir): one turn of the Whirlwind: everything round the Berserker,
@@ -191,6 +193,7 @@ Execute(app_state *AppState, player_slot *Slot, world_entity *Player)
     }
     v3 Spot = Player->Position;
     Spot.XY += 0.6f * EXECUTE_REACH * Dir;
+    u32 Big = 0;
     if (Foe)
     {
         Dir = NormalizeOr(Foe->Position.XY - Player->Position.XY, Dir);
@@ -201,6 +204,7 @@ Execute(app_state *AppState, player_slot *Slot, world_entity *Player)
         if (Foe->MaxHp > 0.f && Foe->Hp < Low * Foe->MaxHp)
         {
             Damage *= EXECUTE_LOW_SCALE;
+            Big = 1;
             EmitSound(&AppState->Events, AssetType_SfxExplosion, Foe->Position);
         }
         hit Hit = {Damage, EXECUTE_SHOVE, 120.f, 160.f, 0.f, SimBurst_Count};
@@ -222,6 +226,6 @@ Execute(app_state *AppState, player_slot *Slot, world_entity *Player)
         Spot = Foe->Position;
     }
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, BerserkerBurst_Execute),
-              (u8)Player->PlayerIndex, Spot, ATan2(Dir.Y, Dir.X));
+              (u8)Player->PlayerIndex, RangerBurstSpot(Spot, Big), ATan2(Dir.Y, Dir.X));
     EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Spot);
 }

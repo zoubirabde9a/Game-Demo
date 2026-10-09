@@ -161,7 +161,7 @@ StartBerserkerBursts(app_state *AppState)
         }
         else if (Kind == BerserkerBurst_Execute)
         {
-            AddGroundCrack(AppState, Burst->Position, 46.f, GetFxClock(AppState));
+            AddGroundCrack(AppState, RangerBurstPlace(Burst->Position), 46.f, GetFxClock(AppState));
         }
     }
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
