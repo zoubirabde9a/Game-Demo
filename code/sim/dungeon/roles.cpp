@@ -97,7 +97,11 @@ struct role_spell
 // NOTE(zoubir): Dealt was raised while a class cast four spells and its
 // attack counted among them, then brought back near where it started
 // once attacks were free and the caps rose (docs/class-trees.md): the
-// balance probe found parties a quarter faster than before the reshape
+// balance probe found parties a quarter faster than before the reshape.
+// Then the classes that lagged on one foe (the training dummy's damage,
+// the mean over builds) went up: Berserker, Shadowblade, Stormcaller and
+// Frost Mage. The Fire Mage, the most, stayed: a Druid party leans on it,
+// and lowering it doubled that party's wipes at the Throne of Embers
 global_variable role_def RoleTable[PlayerRole_Count] =
 {
     // Name          MaxHp  Taken  Dealt  Threat
@@ -113,19 +117,19 @@ global_variable role_def RoleTable[PlayerRole_Count] =
     {"Ranger",       110.f, 1.0f,  1.35f, 0.7f, "Ranged",
      "A bow: Quick Shot marks a foe and builds Focus, Piercing Shot spends it",
      RoleKind_Ranged, {90, 210, 170}},
-    {"Berserker",    140.f, 0.85f, 1.35f, 0.7f, "Melee",
+    {"Berserker",    140.f, 0.85f, 1.5f,  0.7f, "Melee",
      "A great axe: hits build Rage, Rage feeds the big swings",
      RoleKind_Melee, {225, 50, 50}},
-    {"Shadowblade",  130.f, 0.85f, 1.35f, 1.f, "Melee",
+    {"Shadowblade",  130.f, 0.85f, 1.5f,  1.f, "Melee",
      "Twin daggers: quick cuts build combo points, finishers spend them",
      RoleKind_Melee, {170, 110, 255}},
-    {"Stormcaller",  105.f, 1.0f,  1.35f, 0.85f, "Ranged",
+    {"Stormcaller",  105.f, 1.0f,  1.5f,  0.85f, "Ranged",
      "Lightning that leaps foe to foe; Charge makes it stronger until it overloads",
      RoleKind_Ranged, {250, 220, 80}},
     {"Duelist",      125.f, 0.85f, 1.35f, 1.f, "Melee",
      "A rapier: weave your strikes to build Tempo, parry to keep it",
      RoleKind_Melee, {240, 110, 170}},
-    {"Frost Mage",   110.f, 1.0f,  1.35f, 0.7f, "Ranged",
+    {"Frost Mage",   110.f, 1.0f,  1.45f, 0.7f, "Ranged",
      "Ice that slows and freezes; frozen foes shatter under your spells",
      RoleKind_Ranged, {150, 215, 255}},
     {"Druid",        115.f, 1.0f,  1.0f,  0.7f, "Healer",

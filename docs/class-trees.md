@@ -72,7 +72,9 @@ Measured with the balance probe (`miscalance.bat 200 3 2 16`, `PROBE_LEVELS=2`)
 | Druid as the healer | 16 | 57 | 32 | 50 | 0.9 |
 | Fire Mage before the reshape | 17 | 57 | 32 | 52 | 0.4 |
 
-Measured after deeper tiers began to grow run talents (rule 7), before the Druid's Moon pool talents. Sixteen seeds is noisy: a worst room of 1.0 a kill is three or four wipes over the sixteen.
+Measured after deeper tiers began to grow run talents (rule 7), before the Druid's Moon pool talents. Then the four classes that lagged on a single foe went up (`RoleTable`, roles.cpp): the Berserker, the Shadowblade and the Stormcaller from 1.35 to 1.5 times their damage, the Frost Mage to 1.45. That cut the Berserker's and the Frost Mage's Throne of Dust by seven to thirteen seconds. Lowering the Fire Mage was tried and undone: a Druid party leans on its damage, and its wipes at the Throne of Embers doubled.
+
+The training dummy (another agent's probe) gives each class's damage on one foe that never moves. It is refilled to full health, so talents that add damage to foes above 80% health count on every hit there; read it per spell build, not by its best seed. Sixteen seeds is noisy: a worst room of 1.0 a kill is three or four wipes over the sixteen.
 
 With every class's full kit (all fourteen spells new to the reshape built), every party clears both levels within about one wipe a kill at its worst room.
 
