@@ -39,7 +39,8 @@
    only, PROBE_TREE=run in the second tree first (sim/dungeon/run_tree/);
    unset, they pick from both at random as a server's bots do.
    PROBE_TREE=core-class and core-run unlock the class's C and V spells
-   first, then spend the rest in that one tree.
+   first, then spend the rest in that one tree; PROBE_TREE_ONLY=tank
+   (healer, ranged, melee) keeps core-run to that role's bot.
    Build and run: misc\balance.bat [same arguments], which rebuilds the
    probe only when the code changed. */
 
@@ -116,9 +117,22 @@ SpendBotTalents(server_game *Game)
         // V spells first, as a player would, then spend the rest in one
         // tree, so the two trees' points compare
         bool32 Core = Tree && strncmp(Tree, "core-", 5) == 0;
+        // NOTE(zoubir): PROBE_TREE_ONLY=tank (healer, ranged, melee) keeps
+        // the second tree to that role's bot; the others go core-class
+#pragma warning(push)
+#pragma warning(disable: 4996)
+        char *Only = getenv("PROBE_TREE_ONLY");
+#pragma warning(pop)
+        bool32 RunTree = Core && strcmp(Tree + 5, "run") == 0;
+        if (RunTree && Only && Only[0] &&
+            strcmp(Only, RoleKindNames[RoleKindOf(Player->Role)]) != 0 &&
+            !(Only[0] == RoleKindNames[RoleKindOf(Player->Role)][0] + 32))
+        {
+            RunTree = false;
+        }
         if (Core)
         {
-            Wanted = strcmp(Tree + 5, "run") == 0 ? TalentBranch_Run : TalentBranch_Role;
+            Wanted = RunTree ? TalentBranch_Run : TalentBranch_Role;
         }
         while (TalentPointsLeft(Player) > 0)
         {
@@ -126,8 +140,7 @@ SpendBotTalents(server_game *Game)
             {
                 bool32 Spells = Player->Ranks[Talent_RoleFirst + ROLE_TALENT_C_SPELL] &&
                     Player->Ranks[Talent_RoleFirst + ROLE_TALENT_V_SPELL];
-                Wanted = Spells ? (strcmp(Tree + 5, "run") == 0 ? TalentBranch_Run : TalentBranch_Role) :
-                    TalentBranch_Role;
+                Wanted = (Spells && RunTree) ? TalentBranch_Run : TalentBranch_Role;
             }
             u32 Pick = BotPickTalent(&Game->Bots[Slot], Game->AppState, Player) >> NET_LEARN_SHIFT;
             for (u32 Try = 0; Try < 64 && Pick && Wanted != TalentBranch_Count &&

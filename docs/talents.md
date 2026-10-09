@@ -99,7 +99,9 @@ A talent is one or two effects, each with an amount a rank:
 | lifeline | once a fight, dropping under 30% health heals you |
 | shared feast | a kill heals the allies within 320 |
 
-The roll is a hash of the player's 16-bit tree seed, the class and the slot. The server sends each player only its seed, and the client rolls the same tree. Every number is a row in `run_tree/run_mods.cpp`; the classes' fixed talents and tree names are `RunTrees` in `run_tree/run_tree.cpp`. `code/tests/run_tree_tests.cpp` checks the rolls and the effects. `miscalance.bat` with `PROBE_TREE=class` or `PROBE_TREE=run` has the probe's bots spend in one tree.
+**How the two trees compare.** With the C and V spells unlocked first, bots that spend the rest in the second tree kill each boss within about 5-8% of the time bots in the class tree take (balance probe, 32-64 seeds a boss). They wipe more in the last two levels, mostly because the class tree holds the capstones that save a life (the Bulwark's Unbroken, the Mender's Guardian Angel and Miracle) and the second tree has nothing like them. That is the choice: the class tree's capstone, or the second tree's numbers and rolls.
+
+The roll is a hash of the player's 16-bit tree seed, the class and the slot. The server sends each player only its seed, and the client rolls the same tree. Every number is a row in `run_tree/run_mods.cpp`; the classes' fixed talents and tree names are `RunTrees` in `run_tree/run_tree.cpp`. `code/tests/run_tree_tests.cpp` checks the rolls and the effects. `miscalance.bat` with `PROBE_TREE=class` or `PROBE_TREE=run` has the probe's bots spend in one tree; `PROBE_TREE=core-class` or `core-run` unlocks the spells first, and `PROBE_TREE_ONLY=tank` limits `core-run` to one role's bot.
 
 Experience and talents live on the player slot, not the entity, so a time rewind never takes them back. Leaving the server resets them.
 
