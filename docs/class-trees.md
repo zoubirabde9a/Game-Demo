@@ -31,7 +31,7 @@ Attack, base spells, then each branch's pair. A spell marked *new* is designed a
 | Class | Attack | Base | Branch: pair | Branch: pair |
 |---|---|---|---|---|
 | Fire Mage | Fireball | Giant Fireball, Meteor | Wildfire: Fireguard or *Flame Wave* (a cone that leaves Searing on everything it burns) | Pyre: Combustion or Detonate |
-| Ranger | Quick Shot | Piercing Shot, Volley | Marksmanship: Rapid Fire or Kill Shot | Survival: Disengage or *Explosive Trap* (a trap thrown at the cursor that blows on the first foe) |
+| Ranger | Quick Shot | Piercing Shot, Volley | Marksmanship: Rapid Fire or Kill Shot | Survival: Disengage or Explosive Trap (right click: a trap thrown at the cursor that blows on every foe near it) |
 | Berserker | Cleave | Execute, Whirlwind | Fury: Berserk or Battle Shout | Carnage: Leap or *Rampage* (a charge through a line of foes, Rage for each) |
 | Shadowblade | Twin Strike | Eviscerate, Fan of Knives | Assassination: Deadly Throw or *Garrote* (cancels a wind-up and poisons) | Subtlety: Shadowstep or Shadow Dance |
 | Stormcaller | Spark | Thunderclap, Chain Lightning | Conduction: Static Field or *Ball Lightning* (a slow orb that zaps what it passes) | Tempest: Lightning Dash or Eye of the Storm |
@@ -49,21 +49,21 @@ A bot takes a spell of each pair first, which of the two by a coin toss, so a pa
 
 ## Status
 
-Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above not marked *new*. To build: the fourteen *new* spells, then the balance retuned for the bigger kits (each class casts one or two spells more than when the balance below was measured).
+Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above not marked *new*. To build: the thirteen spells still marked *new*. Class keys run A, R, C, V, W, X, the right click, G and T; a new spell takes a key its class leaves free.
 
 ## Balance
 
-Measured with the balance probe (`misc\balance.bat 200 3 2 16`, `PROBE_LEVELS=2`): a tank, a healer and one damage bot, 16 seeds, crypt into depths, each bot taking a coin toss of every pair. Wipes a kill at the worst room, and the last boss's average fight:
+Measured with the balance probe (`miscalance.bat 200 3 2 16`, `PROBE_LEVELS=2`): a tank, a healer and one damage bot, 16 seeds, crypt into depths, each bot taking a coin toss of every pair. Average fight in seconds at four rooms, and the worst wipes a kill:
 
-| Damage or healer bot | Worst wipes a kill | Throne of Embers | Before the reshape (Throne of Embers) |
-|---|---|---|---|
-| Fire Mage | 1.1 | 59 s | 52 s |
-| Berserker | 2.8 (Anvil Hall) | 91 s | 85 s |
-| Duelist | 2.8 (Slag Pits) | 54 s | 55 s |
-| Ranger | 1.5 | 57 s | |
-| Shadowblade | 1.75 | 62 s | |
-| Stormcaller | 1.7 | 75 s | |
-| Frost Mage | 1.0 | 56 s | |
-| Druid as the healer | 1.9 | 64 s | |
+| Damage bot | Bone Halls | Throne of Dust | Anvil Hall | Throne of Embers | Worst wipes a kill |
+|---|---|---|---|---|---|
+| Fire Mage | 15 | 57 | 37 | 50 | 0.4 |
+| Ranger | 12 | 63 | 29 | 55 | 1.1 (3 seeds stuck) |
+| Berserker | 14 | 63 | 69 | 87 | 0.75 |
+| Shadowblade | 12 | 58 | 48 | 57 | 1.3 |
+| Stormcaller | 11 | 64 | 31 | 73 | 0.75 |
+| Duelist | 14 | 46 | 44 | 48 | 2.2 (Ashfall Bridge) |
+| Frost Mage | 12 | 60 | 31 | 55 | 0.7 |
+| Fire Mage before the reshape | 17 | 57 | 32 | 52 | 0.4 |
 
-How it got there: on the first trees every party took about twice as long, and given every spell back the same party was as fast as before, so four spells had to hit as hard as six. The pairs moved to the first tier with the first one free, every class's damage rose by about what it lost (`RoleTable`, roles.cpp), and the Berserker and the Druid got their spender and their steady heal back in the base kit. The crypt's first room is still slower than it was (24 to 28 s against 17): a level-1 party casts three spells.
+How it got there: on the first trees, with four spells counting the attack, every party took about twice as long; given every spell back it was as fast as before, so the caps, not the tree, were the cost. Class damage rose to make up for it, then came back near its old values once attacks were free and the caps rose to four and six (`RoleTable`, roles.cpp).
