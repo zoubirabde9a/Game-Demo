@@ -14,7 +14,8 @@
                    smoke over the whole room; each light is a pool of
                    gold, its rim on the edge of the safe ground and its
                    countdown just outside.
-   Waves           each ring rolls out as a band of light over the floor,
+   Waves           a faint band at the reach through the windup; then
+                   each ring rolls out as a band of light over the floor,
                    frost or, for Nyxara's Corona Flare, fire, under the
                    ice spikes rift_fx.cpp stands on it.
    Void brands     a violet ring the size of the burst under the branded,
@@ -144,11 +145,20 @@ internal void
 DrawBossWaveGround(render_context *RenderContext, world *World, world_entity *Monster,
                    monster_ability *Ability, v3 CameraOffset)
 {
-    if (Monster->AbilityPhase != AbilityPhase_Active || Ability->Radius <= 0.f)
+    if (Ability->Radius <= 0.f)
     {
         return;
     }
     float Fire = Monster->MonsterKind == MonsterKind_Nyxara ? 1.f : 0.f;
+    if (Monster->AbilityPhase == AbilityPhase_Windup)
+    {
+        // NOTE(zoubir): a faint band at the reach, so the party sees how
+        // far the rings go, or that running will not do
+        float Progress = BossWindup(Monster, Ability);
+        DrawBossMark(RenderContext, World, CameraOffset, Monster->Position.XY, Ability->Radius,
+                     BossGround_Wave, 0.985f, Fire, 0.2f + 0.3f * Progress);
+        return;
+    }
     float Elapsed = AbilityActiveElapsed(Monster, Ability);
     u32 Rings = Maximum(1u, Ability->Count);
     for(u32 Ring = 0; Ring < Rings; Ring++)

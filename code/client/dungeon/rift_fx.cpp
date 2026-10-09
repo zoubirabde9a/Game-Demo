@@ -3,7 +3,7 @@
 
    Frost waves  while the monster winds up, frost gathers in a ring at its
                 feet and the reach of the wave is traced faintly round
-                it; then each ring rolls out as a band of ice spikes
+                it (a band on the floor with the shader); then each ring rolls out as a band of ice spikes
                 (of flames for Nyxara's Corona Flare), over a band of
                 light on the floor (dungeon/boss_fx/boss_ground_fx.cpp). When
                 a ring is about to reach the local player standing on the
@@ -99,8 +99,9 @@ DrawWaveFx(render_context *RenderContext, world_entity *Monster, monster_ability
         DrawFrostRing(RenderContext, Centre, 20.f + 25.f * Progress, 0.4f + 0.6f * Progress,
                       Monster->ID, Fire);
         // NOTE(zoubir): the reach, faint, so the party sees how far to run
-        // or that running will not do
-        u32 Dots = 64;
+        // or that running will not do; with the shader a band on the
+        // floor shows it (boss_ground_fx.cpp)
+        u32 Dots = BossFxReady(RenderContext, Shader_BossGround) ? 0 : 64;
         for(u32 Dot = 0; Dot < Dots; Dot++)
         {
             float Angle = 2.f * Pi32 * ((float)Dot / (float)Dots + 0.02f * Clock);
