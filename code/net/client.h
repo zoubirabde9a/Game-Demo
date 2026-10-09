@@ -7,8 +7,9 @@
 
    While connecting, the request is resent every NET_CONNECT_RETRY seconds
    until the server answers or NET_CONNECT_GIVE_UP seconds pass. Once
-   connected, every input packet carries the last few inputs, so a lost packet is
-   covered by the next one. Only snapshots newer than the one held are
+   connected, every input packet carries again each input the snapshots
+   do not yet say the server has (up to NET_MAX_INPUTS_PER_PACKET), so a
+   run of lost packets is covered by the next one that arrives. Only snapshots newer than the one held are
    kept. If the server goes quiet for NET_CLIENT_TIMEOUT seconds the client
    gives up and reports why in EndReason. Chat goes through NetClientSay
    and NetClientTakeChat (client_chat.h). */
@@ -63,6 +64,9 @@ struct net_client
     u16 NextSequence;
     u16 NewestReceived;
     u32 InputTick;
+    // NOTE(zoubir): the newest input the server is known to hold, applied
+    // or waiting, by the newest snapshot; older ones are not sent again
+    u32 ServerInputTick;
     u32 RecentInputCount;
     net_input RecentInputs[NET_MAX_INPUTS_PER_PACKET]; // newest first
     u32 InputsUnsent; // queued since the last input packet

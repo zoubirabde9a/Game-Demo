@@ -20,16 +20,16 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d77u // "GDMw" (45 talent ranks, the duel seed in TreeSeed); change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d78u // "GDMx" (up to 32 inputs a packet, each older one only what changed); change it whenever the layout changes
+// (GDMw: 45 talent ranks, the duel seed in TreeSeed)
 // (GDMv: a foe mark's Id in 12 bits, Sunder beside its stacks, a weaken bit each in MarkCount)
 // (GDMu: a burst's height carries its class number apart, NetBurstHeight in protocol.cpp)
-// (GDMt: team duels, net_snapshot.Teams and a team request in net_input.Role bits 5-6)
 // (older ids and why: git log -S NET_PROTOCOL_ID -- code/net/protocol.h)
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
 #define NET_PLAYER_HEALTH_STEPS 100.f
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
-#define NET_MAX_INPUTS_PER_PACKET 8
+#define NET_MAX_INPUTS_PER_PACKET 32 // every input the server has not confirmed (protocol/inputs.cpp)
 // The server's ticks a second. Each net_input is one tick's worth: the
 // client sends one per tick, whatever its frame rate, and the server
 // applies one per tick.
@@ -246,7 +246,7 @@ struct net_connect_denied { u32 ClientSalt; u8 Reason; };
 struct net_input_batch
 {
     u8 Count;
-    net_input Inputs[NET_MAX_INPUTS_PER_PACKET]; // newest first
+    net_input Inputs[NET_MAX_INPUTS_PER_PACKET]; // newest first, one tick apart
 };
 
 // Which way a front-armoured monster faces, so the client draws its shell

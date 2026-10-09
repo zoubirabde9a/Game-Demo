@@ -61,6 +61,7 @@ NetSequenceNewer(u16 A, u16 B)
 #include "protocol/chat.cpp"
 #include "protocol/talent_ranks.cpp"
 #include "protocol/teams.cpp"
+#include "protocol/inputs.cpp"
 
 // Slot, kind and phase share a byte. Frozen bits past the snapshot's
 // entities (left out to make it fit) read as clear.
@@ -119,17 +120,6 @@ NetSerializeAbility(net_stream *S, net_ability_state *A, u16 EntityCount)
         NetPosition(S, &A->PointY[Index], S->OriginY);
     }
     return true;
-}
-
-internal void
-NetSerializeInput(net_stream *S, net_input *Input)
-{
-    NetU32(S, &Input->Tick);
-    NetU32(S, &Input->Buttons);
-    NetUnitFloat(S, &Input->AimX);
-    NetUnitFloat(S, &Input->AimY);
-    NetU16(S, &Input->Target);
-    NetU8(S, &Input->Role);
 }
 
 // One function both writes and reads, so the two directions cannot drift apart.
@@ -208,9 +198,13 @@ NetSerializePacket(net_stream *S, net_packet *P)
         {
             NetU8(S, &P->Input.Count);
             if (P->Input.Count == 0 || P->Input.Count > NET_MAX_INPUTS_PER_PACKET) return false;
-            for (u32 Index = 0; Index < P->Input.Count; ++Index)
+            NetSerializeInput(S, &P->Input.Inputs[0]);
+            for (u32 Index = 1; Index < P->Input.Count; ++Index)
             {
-                NetSerializeInput(S, &P->Input.Inputs[Index]);
+                if (!NetSerializeOlderInput(S, &P->Input.Inputs[Index], &P->Input.Inputs[Index - 1]))
+                {
+                    return false;
+                }
             }
         } break;
 

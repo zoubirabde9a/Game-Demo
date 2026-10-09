@@ -139,6 +139,11 @@ NetClientHandle(net_client *Client, net_packet *Packet)
             {
                 Client->Snapshot = Packet->Snapshot;
                 Client->HasSnapshot = true;
+                u32 Held = Packet->Snapshot.InputTick + Packet->Snapshot.InputBuffered;
+                if (Held > Client->ServerInputTick && Held <= Client->InputTick)
+                {
+                    Client->ServerInputTick = Held;
+                }
             }
         } break;
 
@@ -248,8 +253,14 @@ NetClientFlushInputs(net_client *Client)
 {
     if (Client->State != NetClient_Connected || !Client->InputsUnsent) return;
     net_packet Out = {};
-    Out.Input.Count = (u8)Client->RecentInputCount;
-    for (u32 Index = 0; Index < Client->RecentInputCount; ++Index)
+    u32 Count = 1;
+    while (Count < Client->RecentInputCount &&
+           Client->RecentInputs[Count].Tick > Client->ServerInputTick)
+    {
+        Count++;
+    }
+    Out.Input.Count = (u8)Count;
+    for (u32 Index = 0; Index < Count; ++Index)
     {
         Out.Input.Inputs[Index] = Client->RecentInputs[Index];
     }

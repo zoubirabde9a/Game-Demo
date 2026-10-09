@@ -382,6 +382,43 @@ TestInputRoundTrip()
     Check(Out.Input.Inputs[1].Role == 8);
 }
 
+// A full batch of inputs, as a client sends after a run of lost packets:
+// each older input costs a byte when it repeats the one after it, and
+// every field still arrives as it was, its tick one before the next.
+internal void
+TestFullInputBatchIsSmall()
+{
+    net_packet In = {};
+    In.Header = {NetPacket_Input, 1, 2};
+    In.Input.Count = NET_MAX_INPUTS_PER_PACKET;
+    for (u32 Index = 0; Index < NET_MAX_INPUTS_PER_PACKET; ++Index)
+    {
+        net_input *Input = &In.Input.Inputs[Index];
+        Input->Tick = 1000 - Index;
+        Input->Buttons = (Index < 10) ? NetButton_Left : NetButton_Right;
+        Input->AimX = (Index < 20) ? 0.25f : -0.75f;
+        Input->AimY = 0.5f;
+        Input->Target = (Index == 5) ? 42 : 0;
+        Input->Role = (Index >= 30) ? 3 : 0;
+    }
+    u32 Size = 0;
+    net_packet Out = RoundTrip(&In, &Size);
+    printf("  a full batch of %u inputs: %u bytes\n", NET_MAX_INPUTS_PER_PACKET, Size);
+    Check(Size < 100);
+    Check(Out.Input.Count == NET_MAX_INPUTS_PER_PACKET);
+    for (u32 Index = 0; Index < NET_MAX_INPUTS_PER_PACKET; ++Index)
+    {
+        net_input *Sent = &In.Input.Inputs[Index];
+        net_input *Got = &Out.Input.Inputs[Index];
+        Check(Got->Tick == 1000 - Index);
+        Check(Got->Buttons == Sent->Buttons);
+        Check(Got->AimX > Sent->AimX - 0.0001f && Got->AimX < Sent->AimX + 0.0001f);
+        Check(Got->AimY > 0.4999f && Got->AimY < 0.5001f);
+        Check(Got->Target == Sent->Target);
+        Check(Got->Role == Sent->Role);
+    }
+}
+
 // Every list full at once is more than one datagram: writing it plainly
 // fails, and NetWriteSnapshotFitting leaves out the last (farthest)
 // entities, and what pointed at them, until it fits.
@@ -1132,8 +1169,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d77u
-#define NET_GOLDEN_LAYOUT 0xa3f70f6fu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d78u
+#define NET_GOLDEN_LAYOUT 0x5839efa8u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -1308,6 +1345,7 @@ main()
     TestNamesRoundTripAndAreCleaned();
     TestChatRoundTrip();
     TestInputRoundTrip();
+    TestFullInputBatchIsSmall();
     TestFullSnapshotFits();
     TestBurstNumbersArriveWhole();
     TestOverfullSnapshotIsTrimmed();
