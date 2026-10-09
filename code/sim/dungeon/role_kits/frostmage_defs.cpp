@@ -150,7 +150,7 @@ global_variable role_spell FrostMageSpells[ROLE_KEYS] =
      RoleAim_Ground, BLIZZARD_RADIUS, 0},
     {"Glacial Spike", GLACIAL_SPIKE_COOLDOWN,
      "Glacial Spike: 1.25 s cast, a spike at a foe that spends your Icicles; five freeze it",
-     RoleAim_Foe, GLACIAL_SPIKE_RANGE, 0},
+     RoleAim_Foe, GLACIAL_SPIKE_RANGE, 0, "All Icicles"},
     {"Ice Barrier", ICE_BARRIER_COOLDOWN, "Ice Barrier: a shield of ice that takes the next 45 damage",
      RoleAim_None, 0.f, FrostMageTalent_IceBarrier + 1},
     {"Frozen Orb", FROZEN_ORB_COOLDOWN,

@@ -24,6 +24,7 @@
 #include "talent_panel/talent_panel.cpp"
 #include "ability_health.cpp"
 #include "ability_slot_order.cpp"
+#include "ability_tooltip.cpp"
 #include "ability_bar.cpp"
 #include "round_break_view.cpp"
 #include "final_blow_view.cpp"

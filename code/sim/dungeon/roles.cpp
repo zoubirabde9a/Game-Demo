@@ -89,6 +89,9 @@ struct role_spell
     // (role_talents.cpp) + 1, 0 for a main spell the class has from the
     // start
     u32 Unlock;
+    // NOTE(zoubir): what a cast spends, for the ability bar's tooltip
+    // (ui/ability_tooltip.cpp); 0 for a spell that costs nothing
+    char *Cost;
 };
 
 global_variable role_def RoleTable[PlayerRole_Count] =

@@ -6,7 +6,8 @@
    a flash. A slot that comes ready flashes a ring of light; pressing a
    key squeezes its slot, and pressing one still recharging shakes it red.
    A cooldown cut short (a kill's refund) pulls a ring in and flashes.
-   Hovering a slot names the ability, its level and its cooldown.
+   Hovering a slot shows a card with what the ability does, its numbers,
+   its cooldown and its cost (ability_tooltip.cpp).
 
    Health is a bar over the slots (ability_health.cpp). Experience runs
    as a thin strip between health and the slots, with the
@@ -51,6 +52,7 @@ struct ability_bar
     health_bar Health;                    // the bar's trail and glide, ability_health.cpp
     bool32 WasShown[ABILITY_SLOT_DEF_COUNT]; // the player had it last frame
     bool32 ShownSeen; // WasShown holds a real frame, so a new slot is an unlock
+    ability_tip Tip;  // the hovered slot's card, drawn over the other screens
 };
 
 // NOTE(zoubir): share of Button's cooldown still to run (0 = ready) and
@@ -134,6 +136,10 @@ internal void
 DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *Input,
                u32 WindowWidth, u32 WindowHeight)
 {
+    if (AppState->AbilityBar)
+    {
+        AppState->AbilityBar->Tip.Slot = -1;
+    }
     world_entity *Player = GetLocalPlayer(AppState);
     // NOTE(zoubir): the connect screen covers the middle of the screen
     if (!Player || Player->MaxHp <= 0.f || ConnectScreenTakesInput(AppState))
@@ -435,40 +441,30 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
 
     if (Hovered >= 0)
     {
-        ability_slot_def *Def = &AbilitySlotDefs[Hovered];
-        float Share, Seconds, Full = 0.f;
-        char Text[96];
-        char Level[24] = "";
-        u32 Talent = TalentForButton(Def->Button);
-        if (Talent < Talent_Count)
-        {
-            snprintf(Level, sizeof(Level), "  level %u/%u", TalentLevel(LocalSlot, Talent),
-                     TalentDefs[Talent].MaxLevel);
-        }
-        // NOTE(zoubir): a dungeon role's spell on the key (sim/dungeon/
-        // role_abilities.cpp) goes by its own name
-        role_spell *RoleSpell = RoleSpellOnButton(AppState, Player, Def->Button);
-        char *Name = RoleSpell ? RoleSpell->Name : Def->Name;
-        if (RoleSpell)
-        {
-            Level[0] = 0;
-        }
-        if (AbilityCooldownLeft(AppState, Player, Def->Button, &Share, &Seconds, &Full))
-        {
-            snprintf(Text, sizeof(Text), "%s  (%s)%s  %.1f s cooldown", Name,
-                     ActionKeyLabel(Def->Button), Level, Full);
-        }
-        else
-        {
-            snprintf(Text, sizeof(Text), "%s  (%s)%s", Name, ActionKeyLabel(Def->Button),
-                     Level);
-        }
-        font *Body = AppState->Fonts.Body;
-        float TipWidth = UITextWidth(Body, Text) + 24.f;
-        float TipHeight = UILineHeight(Body) + 12.f;
-        float TipX = Maximum(8.f, HoveredX - 0.5f * TipWidth);
-        float TipY = PlateTop - TipHeight - 8.f;
-        DrawUIPanel(RenderContext, TipX, TipY, TipWidth, TipHeight, Def->Accent);
-        UIText(RenderContext, Body, TipX + 12.f, TipY + 6.f, Text, UI_COLOR_TEXT);
+        // NOTE(zoubir): drawn later in the frame (DrawAbilityTip), so the
+        // panels drawn after the bar never cover it
+        ability_tip *Tip = &Bar->Tip;
+        float Share;
+        Tip->Full = 0.f;
+        AbilityCooldownLeft(AppState, Player, AbilitySlotDefs[Hovered].Button, &Share,
+                            &Tip->Left, &Tip->Full);
+        Tip->Slot = Hovered;
+        Tip->X = HoveredX;
+        Tip->Bottom = PlateTop;
+    }
+}
+
+// NOTE(zoubir): the card over the slot the mouse was on this frame
+// (ability_tooltip.cpp), over the class meters and the panels
+internal void
+DrawAbilityTip(render_context *RenderContext, app_state *AppState, u32 WindowWidth)
+{
+    ability_bar *Bar = AppState->AbilityBar;
+    world_entity *Player = GetLocalPlayer(AppState);
+    if (Bar && Player && Bar->Tip.Slot >= 0)
+    {
+        ability_tip *Tip = &Bar->Tip;
+        DrawAbilityTooltip(RenderContext, AppState, Player, &AbilitySlotDefs[Tip->Slot], Tip->X,
+                           Tip->Bottom, WindowWidth, Tip->Full, Tip->Left);
     }
 }

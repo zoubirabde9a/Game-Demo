@@ -162,7 +162,7 @@ global_variable role_spell RangerSpells[ROLE_KEYS] =
      RoleAim_Ground, VOLLEY_RADIUS, 0},
     {"Piercing Shot", PIERCE_COOLDOWN,
      "Piercing Shot: 1 s draw, an arrow through every foe in a line; spends Focus for more",
-     RoleAim_Line, PIERCE_RANGE, 0},
+     RoleAim_Line, PIERCE_RANGE, 0, "All Focus"},
     {"Disengage", DISENGAGE_COOLDOWN, "Disengage: leap back from the aim and leave a snare trap",
      RoleAim_None, 0.f, RangerTalent_Disengage + 1},
     {"Rapid Fire", RAPID_FIRE_COOLDOWN, "Rapid Fire: 2 s of arrows at a foe, walking slowly",

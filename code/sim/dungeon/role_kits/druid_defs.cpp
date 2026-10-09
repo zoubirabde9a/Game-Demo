@@ -153,7 +153,7 @@ global_variable role_spell DruidSpells[ROLE_KEYS] =
 {
     {"Rejuvenation", REJUVENATION_COOLDOWN,
      "Rejuvenation: an ally heals over 8 s, and at once for each Bloom spent",
-     RoleAim_Ally, REJUVENATION_RANGE, 0},
+     RoleAim_Ally, REJUVENATION_RANGE, 0, "All Bloom"},
     {"Starfire", STARFIRE_COOLDOWN, "Starfire: 1.5 s cast, a falling star on a foe; grows two Bloom",
      RoleAim_Foe, STARFIRE_RANGE, 0},
     {"Entangling Roots", ROOTS_COOLDOWN, "Entangling Roots: hold every foe in the circle and hurt them",
@@ -161,7 +161,7 @@ global_variable role_spell DruidSpells[ROLE_KEYS] =
     {"Tranquility", TRANQUILITY_COOLDOWN, "Tranquility: 3 s channel that heals every ally around you",
      RoleAim_None, 0.f, DruidTalent_Tranquility + 1},
     {"Regrowth", REGROWTH_COOLDOWN, "Regrowth: heal an ally at once, more for each Bloom spent",
-     RoleAim_Ally, REGROWTH_RANGE, 0},
+     RoleAim_Ally, REGROWTH_RANGE, 0, "All Bloom"},
     {"Moonfire", MOONFIRE_COOLDOWN, "Moonfire: burn a foe with moonlight for 12 s",
      RoleAim_Foe, MOONFIRE_RANGE, 0},
     {"Wrath", WRATH_COOLDOWN, "Wrath: a quick bolt of nature at a foe; grows a Bloom",

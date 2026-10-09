@@ -205,7 +205,7 @@ global_variable role_spell StormcallerSpells[ROLE_KEYS] =
      RoleAim_None, 0.f, StormcallerTalent_EyeOfTheStorm + 1},
     {"Thunderclap", THUNDERCLAP_COOLDOWN,
      "Thunderclap: needs 20 Charge; 0.5 s cast, a bolt from the sky that spends all Charge; 70+ stuns",
-     RoleAim_Foe, THUNDERCLAP_RANGE, 0},
+     RoleAim_Foe, THUNDERCLAP_RANGE, 0, "All Charge, 20 at least"},
     {"Spark", SPARK_COOLDOWN,
      "Spark: an instant bolt at a foe that jumps to one more; builds Charge",
      RoleAim_Foe, SPARK_RANGE, 0},
