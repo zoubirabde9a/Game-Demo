@@ -46,7 +46,9 @@ struct web_input
 {
     bool32 Down[WEB_BUTTON_COUNT];
     bool32 WentDown[WEB_BUTTON_COUNT]; // since the last frame
-    i32 MouseX, MouseY;                // CSS pixels from the canvas's top left
+    bool32 TouchDown[WEB_BUTTON_COUNT]; // held by the touch controls (touch.cpp)
+    i32 MouseX, MouseY;                // game pixels from the canvas's top left
+    float Scale;                       // game pixels per CSS pixel, 0 until the first frame
     char Typed[64];
     u32 TypedCount;
     bool32 Submit;
@@ -137,8 +139,9 @@ WebOnMouse(int EventType, const EmscriptenMouseEvent *Event, void *UserData)
 {
     if (EventType == EMSCRIPTEN_EVENT_MOUSEMOVE || EventType == EMSCRIPTEN_EVENT_MOUSEDOWN)
     {
-        WebInput.MouseX = (i32)Event->targetX;
-        WebInput.MouseY = (i32)Event->targetY;
+        float Scale = WebInput.Scale > 0.f ? WebInput.Scale : 1.f;
+        WebInput.MouseX = (i32)((float)Event->targetX * Scale);
+        WebInput.MouseY = (i32)((float)Event->targetY * Scale);
     }
     if (EventType != EMSCRIPTEN_EVENT_MOUSEMOVE && Event->button < 5)
     {
@@ -212,7 +215,8 @@ WebReadInput(app_input *OldInput, app_input *NewInput)
         app_button_state *New = WebButton(NewInput, Index);
         // NOTE(zoubir): a key that went down and up since the last frame
         // counts as held this frame, so the next one sees it released
-        bool32 IsDown = WebInput.Down[Index] || WebInput.WentDown[Index];
+        bool32 IsDown = WebInput.Down[Index] || WebInput.TouchDown[Index] ||
+            WebInput.WentDown[Index];
         New->Pressed = !Old->EndedDown && IsDown;
         New->Released = Old->EndedDown && !IsDown;
         New->halfTransitionCount = (Old->EndedDown != IsDown) ? 1 : 0;

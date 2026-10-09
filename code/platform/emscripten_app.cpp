@@ -4,7 +4,9 @@
    1/60 s from the browser's animation frames, with input, sound and the
    canvas size, as the Windows layer does. The parts are in web/; the
    whole game comes in through app.cpp, network code included (its
-   packets go over WebSockets, net/platform/web_socket.cpp).
+   packets go over WebSockets, net/platform/web_socket.cpp). On a touch
+   screen the page draws a joystick and ability buttons, and web/touch.cpp
+   turns them into keys and the cursor.
 
    The page (web/shell.html) can pass settings in its address: any
    GAME_... parameter becomes that environment variable, as on the
@@ -23,6 +25,7 @@
 
 #include "web/files.cpp"
 #include "web/input.cpp"
+#include "web/touch.cpp"
 #include "web/sound.cpp"
 #include "web/opengl.cpp"
 
@@ -105,7 +108,7 @@ WebApplyPageSettings()
 
 // NOTE(zoubir): the canvas fills the page; its drawing buffer follows the
 // page's size in device pixels, and the game works in CSS pixels, the
-// browser's 96-DPI ones
+// browser's 96-DPI ones (times WebInput.Scale on a phone)
 internal app_window
 WebSizeCanvas(web_frame_loop *Loop)
 {
@@ -124,9 +127,13 @@ WebSizeCanvas(web_frame_loop *Loop)
     }
     glViewport(0, 0, PixelWidth, PixelHeight);
 
+    // NOTE(zoubir): on a phone the game lays out a larger window than the
+    // page, so its screens, sized for a desktop, fit round the touch
+    // controls (touch.cpp); the mouse is scaled the same way (input.cpp)
+    WebInput.Scale = WebTouchUiScale(CssWidth, CssHeight);
     app_window Window = {};
-    Window.Width = Maximum(1, (int)(CssWidth + 0.5));
-    Window.Height = Maximum(1, (int)(CssHeight + 0.5));
+    Window.Width = Maximum(1, (int)(CssWidth * WebInput.Scale + 0.5));
+    Window.Height = Maximum(1, (int)(CssHeight * WebInput.Scale + 0.5));
     Window.Fullscreen = WebIsFullscreen();
     return Window;
 }
@@ -136,6 +143,7 @@ WebRunGameFrame(web_frame_loop *Loop)
 {
     app_input *NewInput = Loop->NewInput;
     NewInput->DeltaTime = WEB_FRAME_SECONDS;
+    WebApplyTouch(&Loop->Memory, NewInput);
     WebReadInput(Loop->OldInput, NewInput);
 
     app_window Window = WebSizeCanvas(Loop);
@@ -146,6 +154,7 @@ WebRunGameFrame(web_frame_loop *Loop)
         WebAskFullscreen(Window.FullscreenRequest == FullscreenRequest_On);
     }
     WebWriteFrameSound(&Loop->Thread, &Loop->Memory);
+    WebShowTouch(&Loop->Memory);
 
     Loop->NewInput = Loop->OldInput;
     Loop->OldInput = NewInput;

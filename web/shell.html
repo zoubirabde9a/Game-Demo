@@ -2,11 +2,20 @@
 <!-- The page the browser game runs in. web\build.bat compiles the game
      with this as Emscripten's shell: the game's script goes where
      {{{ SCRIPT }}} is. The canvas fills the window; the game sizes its
-     drawing buffer to it (code/platform/emscripten_app.cpp). -->
+     drawing buffer to it (code/platform/emscripten_app.cpp).
+
+     On a phone or tablet (a coarse pointer, or ?GAME_TOUCH=1; =0 turns
+     it off) the page draws touch controls over the canvas: a joystick on
+     the left, the abilities as buttons on the right, a row of menu keys
+     at the top left (only a Back button while a game screen is open).
+     code/platform/web/touch.cpp reads them through
+     Module.touch and sends back which abilities to show. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Game Demo</title>
 <style>
   :root { --bg: #16181d; --text: #eef0f3; --muted: #a5abb6; --gold: #e0b84a; }
@@ -21,10 +30,70 @@
   #bar { width: min(320px, 70vw); height: 6px; border-radius: 3px; background: #2a2e37; overflow: hidden; }
   #fill { width: 0; height: 100%; background: var(--gold); transition: width 0.2s; }
   #status { color: var(--muted); font-size: 14px; min-height: 1.5em; text-align: center; padding: 0 16px; }
+
+  /* Touch controls */
+  body.touch { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  #touch { position: fixed; inset: 0; pointer-events: none; display: none;
+    font: 600 11px/1.15 "Segoe UI", system-ui, sans-serif; color: var(--text); }
+  body.touch #touch { display: block; }
+  #touch.hidden #stickzone, #touch.hidden #abilities, #touch.naming #menukeys { display: none; }
+  /* while a game screen is open the row is only a way back */
+  #touch.hidden #menukeys button { display: none; }
+  #touch.hidden #menukeys #back { display: block; }
+  #back { display: none; }
+  #stickzone { position: absolute; left: 0; bottom: 0; width: 42%; height: 66%; pointer-events: auto; }
+  #touch.nostick #stickzone { display: none; }
+  #stick { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%;
+    background: rgba(20, 23, 30, 0.35); border: 2px solid rgba(238, 240, 243, 0.25); }
+  #knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px;
+    border-radius: 50%; background: rgba(238, 240, 243, 0.35); border: 2px solid rgba(238, 240, 243, 0.55); }
+  #stick.active { background: rgba(20, 23, 30, 0.5); }
+  #stick.active #knob { background: rgba(224, 184, 74, 0.55); border-color: var(--gold); }
+  .ability { position: absolute; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
+    box-sizing: border-box; display: flex; align-items: center; justify-content: center; text-align: center;
+    background: rgba(20, 23, 30, 0.62); border: 2px solid var(--accent); pointer-events: auto;
+    overflow: hidden; padding: 0 4px; text-shadow: 0 1px 2px #000; }
+  .ability.big { width: 80px; height: 80px; margin: -40px 0 0 -40px; font-size: 13px; }
+  .ability.down { background: rgba(224, 184, 74, 0.45); transform: scale(0.93); }
+  .ability .sweep { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+    background: conic-gradient(rgba(0, 0, 0, 0.62) calc(var(--cd, 0) * 360deg), transparent 0); }
+  .ability .secs { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: #fff; pointer-events: none; }
+  .ability .name { position: relative; }
+  .ability.cooling .name { opacity: 0.35; }
+  #aimring { position: absolute; width: 160px; height: 160px; margin: -80px 0 0 -80px; border-radius: 50%;
+    border: 2px dashed rgba(238, 240, 243, 0.35); display: none; }
+  #aimdot { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+    background: var(--gold); opacity: 0.8; display: none; }
+  /* under the game's kill counts, clear of the minimap and the cast mode box */
+  #menukeys { position: absolute; top: calc(44px + env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left));
+    display: flex; gap: 6px; pointer-events: auto; }
+  #menukeys button { font: inherit; color: var(--text); background: rgba(20, 23, 30, 0.62);
+    border: 1px solid rgba(238, 240, 243, 0.3); border-radius: 8px; min-width: 44px; height: 34px; padding: 0 9px; }
+  #menukeys button.down { background: rgba(224, 184, 74, 0.45); }
+  #typing { position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0;
+    font-size: 16px; pointer-events: none; }
+  #turn { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; text-align: center;
+    padding: 0 24px; background: var(--bg); color: var(--text); font: 18px/1.5 "Segoe UI", system-ui, sans-serif; }
+  @media (orientation: portrait) { body.touch.playing #turn { display: flex; } }
 </style>
 </head>
 <body>
 <canvas id="canvas" tabindex="-1"></canvas>
+<div id="touch" class="hidden">
+  <div id="stickzone"><div id="stick"><div id="knob"></div></div></div>
+  <div id="abilities"><div id="aimring"></div><div id="aimdot"></div></div>
+  <div id="menukeys">
+    <button data-key="Enter" data-code="Enter" data-typing="1">Chat</button>
+    <button data-key="Tab" data-code="Tab" data-hold="1">Scores</button>
+    <button data-key="n" data-code="KeyN">Talents</button>
+    <button data-key="Escape" data-code="Escape">Menu</button>
+    <button id="back" data-key="Escape" data-code="Escape">Back</button>
+    <button id="fullscreen" hidden>Full screen</button>
+  </div>
+  <input id="typing" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send">
+</div>
+<div id="turn">Turn your device sideways to play.</div>
 <div id="loading">
   <h1>Game Demo</h1>
   <div id="bar"><div id="fill"></div></div>
@@ -51,7 +120,12 @@
       if (Progress) Fill.style.width = (100 * Progress[1] / Progress[3]) + "%";
       if (Text) Status.textContent = Text.replace(/\s*\(.*\)$/, "") || "Loading…";
     },
-    onRuntimeInitialized: function() { Loading.style.display = "none"; Canvas.focus(); },
+    onRuntimeInitialized: function()
+    {
+      Loading.style.display = "none";
+      document.body.classList.add("playing");
+      Canvas.focus();
+    },
     gameFailed: function(Text)
     {
       Loading.style.display = "flex";
@@ -65,6 +139,365 @@
   {
     Module.gameFailed("The game stopped with an error. Reload the page to play again.");
   });
+</script>
+<script>
+  // Touch controls. Module.touch is what touch.cpp reads each frame
+  // (moveX/moveY, read() for the held ability bits, dragging, aimX/aimY)
+  // and where it sends the abilities to show (show()).
+  (function()
+  {
+    var AIM_PIXELS = 80;   // a drag this long aims at full reach
+    var STICK_PIXELS = 46; // the knob's travel
+    var Layer = document.getElementById("touch");
+    var Abilities = document.getElementById("abilities");
+    var AimRing = document.getElementById("aimring");
+    var AimDot = document.getElementById("aimdot");
+    var Typing = document.getElementById("typing");
+    var Asked = new URLSearchParams(location.search).get("GAME_TOUCH");
+    var Touch = {
+      on: false, moveX: 0, moveY: 0, held: 0, dragging: 0, aimX: 0, aimY: 0,
+      fresh: 0, tapped: 0, wantsTyping: false, buttons: {}, layout: "",
+    };
+    Module.touch = Touch;
+
+    function TurnOn()
+    {
+      if (Touch.on || Asked === "0") return;
+      Touch.on = true;
+      document.body.classList.add("touch");
+    }
+    if (Asked === "1" || (Asked !== "0" && window.matchMedia("(pointer: coarse)").matches)) TurnOn();
+    window.addEventListener("touchstart", TurnOn, {capture: true, passive: true});
+
+    // NOTE: the held bits, with a press that came and went since the last
+    // frame still counted once, so the game sees every tap
+    Touch.read = function()
+    {
+      var Result = Touch.held | Touch.tapped;
+      Touch.tapped = 0;
+      Touch.fresh = 0;
+      return Result;
+    };
+
+    function Key(Type, KeyName, Code)
+    {
+      window.dispatchEvent(new KeyboardEvent(Type, {key: KeyName, code: Code, bubbles: true, cancelable: true}));
+    }
+    function Mouse(Type, X, Y)
+    {
+      Canvas.dispatchEvent(new MouseEvent(Type, {clientX: X, clientY: Y, button: 0, bubbles: true, cancelable: true}));
+    }
+
+    // NOTE: a finger on the canvas is the mouse: menus, the talent panel
+    // and the ground take it as a click
+    var CanvasFinger = null;
+    function OnCanvas(Event)
+    {
+      Event.preventDefault();
+      for (var Index = 0; Index < Event.changedTouches.length; Index++)
+      {
+        var Finger = Event.changedTouches[Index];
+        if (Event.type === "touchstart" && CanvasFinger === null)
+        {
+          CanvasFinger = Finger.identifier;
+          Mouse("mousemove", Finger.clientX, Finger.clientY);
+          Mouse("mousedown", Finger.clientX, Finger.clientY);
+          if (Touch.wantsTyping) Typing.focus();
+        }
+        else if (Finger.identifier === CanvasFinger)
+        {
+          Mouse("mousemove", Finger.clientX, Finger.clientY);
+          if (Event.type !== "touchmove")
+          {
+            Mouse("mouseup", Finger.clientX, Finger.clientY);
+            CanvasFinger = null;
+          }
+        }
+      }
+    }
+    ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(function(Type)
+    {
+      Canvas.addEventListener(Type, OnCanvas, {passive: false});
+    });
+
+    // NOTE: the joystick appears where the thumb lands in its zone
+    var Zone = document.getElementById("stickzone");
+    var Stick = document.getElementById("stick");
+    var Knob = document.getElementById("knob");
+    var StickFinger = null, StickX = 0, StickY = 0;
+    function PlaceStick(X, Y)
+    {
+      var Box = Zone.getBoundingClientRect();
+      Stick.style.left = (X - Box.left) + "px";
+      Stick.style.top = (Y - Box.top) + "px";
+    }
+    function RestStick()
+    {
+      var Box = Zone.getBoundingClientRect();
+      PlaceStick(Box.left + Math.max(90, Box.width * 0.3), Box.bottom - 90);
+      Knob.style.transform = "";
+      Stick.classList.remove("active");
+      Touch.moveX = Touch.moveY = 0;
+      StickFinger = null;
+    }
+    function OnStick(Event)
+    {
+      Event.preventDefault();
+      for (var Index = 0; Index < Event.changedTouches.length; Index++)
+      {
+        var Finger = Event.changedTouches[Index];
+        if (Event.type === "touchstart" && StickFinger === null)
+        {
+          StickFinger = Finger.identifier;
+          StickX = Finger.clientX;
+          StickY = Finger.clientY;
+          PlaceStick(StickX, StickY);
+          Stick.classList.add("active");
+        }
+        else if (Finger.identifier === StickFinger)
+        {
+          if (Event.type !== "touchmove") { RestStick(); continue; }
+          var DX = Finger.clientX - StickX, DY = Finger.clientY - StickY;
+          var Length = Math.sqrt(DX * DX + DY * DY);
+          var Scale = Length > STICK_PIXELS ? STICK_PIXELS / Length : 1;
+          Knob.style.transform = "translate(" + DX * Scale + "px," + DY * Scale + "px)";
+          Touch.moveX = DX * Scale / STICK_PIXELS;
+          Touch.moveY = DY * Scale / STICK_PIXELS;
+        }
+      }
+    }
+    ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(function(Type)
+    {
+      Zone.addEventListener(Type, OnStick, {passive: false});
+    });
+    window.addEventListener("resize", RestStick);
+    RestStick();
+
+    // NOTE: an ability button holds its key; dragging off it aims
+    var AbilityFinger = null, AbilityBit = 0, AbilityX = 0, AbilityY = 0;
+    function OnAbility(Event)
+    {
+      Event.preventDefault();
+      for (var Index = 0; Index < Event.changedTouches.length; Index++)
+      {
+        var Finger = Event.changedTouches[Index];
+        if (Event.type === "touchstart" && AbilityFinger === null)
+        {
+          var Button = Event.currentTarget;
+          var Box = Button.getBoundingClientRect();
+          AbilityFinger = Finger.identifier;
+          AbilityBit = Number(Button.dataset.bit);
+          AbilityX = Box.left + Box.width / 2;
+          AbilityY = Box.top + Box.height / 2;
+          Touch.held |= AbilityBit;
+          Touch.fresh |= AbilityBit;
+          Touch.dragging = AbilityBit;
+          Touch.aimX = Touch.aimY = 0;
+          Button.classList.add("down");
+          AimRing.style.left = AimDot.style.left = AbilityX + "px";
+          AimRing.style.top = AimDot.style.top = AbilityY + "px";
+          AimRing.style.display = AimDot.style.display = "block";
+        }
+        else if (Finger.identifier === AbilityFinger)
+        {
+          var DX = (Finger.clientX - AbilityX) / AIM_PIXELS, DY = (Finger.clientY - AbilityY) / AIM_PIXELS;
+          var Length = Math.sqrt(DX * DX + DY * DY);
+          if (Length > 1) { DX /= Length; DY /= Length; }
+          Touch.aimX = DX;
+          Touch.aimY = DY;
+          AimDot.style.left = (AbilityX + DX * AIM_PIXELS) + "px";
+          AimDot.style.top = (AbilityY + DY * AIM_PIXELS) + "px";
+          if (Event.type === "touchmove") continue;
+          if (Touch.fresh & AbilityBit) Touch.tapped |= AbilityBit;
+          Touch.held &= ~AbilityBit;
+          Touch.dragging = 0;
+          Event.currentTarget.classList.remove("down");
+          AimRing.style.display = AimDot.style.display = "none";
+          AbilityFinger = null;
+        }
+      }
+    }
+
+    // NOTE: the big button sits in the corner, the others on quarter
+    // circles round it: three on the first, then four, five
+    function Layout(Lines)
+    {
+      var Big = null, Near = [], Far = [];
+      Lines.forEach(function(Line)
+      {
+        if (Line.group === 0 && !Big) Big = Line;
+        else (Line.group === 1 ? Near : Far).push(Line);
+      });
+      var Order = Near.concat(Far);
+      var Rings = [Order.slice(0, 3), Order.slice(3, 7), Order.slice(7)];
+      var Width = window.innerWidth, Height = window.innerHeight;
+      var CornerX = Width - 64, CornerY = Height - 64;
+      var Places = {};
+      if (Big) Places[Big.bit] = {x: CornerX, y: CornerY, big: true};
+      [96, 160, 224].forEach(function(Radius, Ring)
+      {
+        var Row = Rings[Ring];
+        Row.forEach(function(Line, Index)
+        {
+          // NOTE: the outer ring stops short of straight up, under the minimap
+          var Span = Ring === 2 ? 65 : 90;
+          var Angle = Row.length === 1 ? 135 : 180 - Index * Span / (Row.length - 1);
+          var Radians = Angle * Math.PI / 180;
+          Places[Line.bit] = {x: CornerX + Math.cos(Radians) * Radius, y: CornerY - Math.sin(Radians) * Radius};
+        });
+      });
+      return Places;
+    }
+
+    function Parse(State)
+    {
+      var Lines = State.split("\n");
+      var Result = {flags: Number(Lines[0]), abilities: []};
+      for (var Index = 1; Index < Lines.length; Index++)
+      {
+        var Parts = Lines[Index].split(",");
+        Result.abilities.push({bit: Number(Parts[0]), group: Number(Parts[1]), colour: Parts[2],
+          share: Number(Parts[3]), seconds: Number(Parts[4]), name: Parts.slice(5).join(",")});
+      }
+      return Result;
+    }
+
+    Touch.show = function(Text)
+    {
+      var State = Parse(Text);
+      var Hidden = !(State.flags & 1);
+      if (Layer.classList.contains("hidden") && !Hidden)
+      {
+        Layer.classList.remove("hidden");
+        RestStick();
+      }
+      Layer.classList.toggle("hidden", Hidden);
+      Layer.classList.toggle("naming", (State.flags & 8) !== 0);
+      Layer.classList.toggle("nostick", !(State.flags & 4));
+      var WantsTyping = (State.flags & 2) !== 0;
+      if (Touch.wantsTyping && !WantsTyping) Typing.blur();
+      Touch.wantsTyping = WantsTyping;
+
+      var Shape = window.innerWidth + "x" + window.innerHeight + ":" +
+        State.abilities.map(function(Line) { return Line.bit + Line.name; }).join("|");
+      if (Shape !== Touch.layout)
+      {
+        Touch.layout = Shape;
+        var Places = Layout(State.abilities);
+        var Kept = {};
+        State.abilities.forEach(function(Line)
+        {
+          var Button = Touch.buttons[Line.bit];
+          if (!Button)
+          {
+            Button = document.createElement("div");
+            Button.className = "ability";
+            Button.dataset.bit = Line.bit;
+            Button.innerHTML = '<div class="sweep"></div><span class="name"></span><span class="secs"></span>';
+            ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(function(Type)
+            {
+              Button.addEventListener(Type, OnAbility, {passive: false});
+            });
+            Abilities.appendChild(Button);
+            Touch.buttons[Line.bit] = Button;
+          }
+          var Place = Places[Line.bit];
+          Button.classList.toggle("big", !!Place.big);
+          Button.style.left = Place.x + "px";
+          Button.style.top = Place.y + "px";
+          Button.style.setProperty("--accent", Line.colour);
+          Button.querySelector(".name").textContent = Line.name;
+          Kept[Line.bit] = true;
+        });
+        Object.keys(Touch.buttons).forEach(function(Bit)
+        {
+          if (Kept[Bit]) return;
+          Touch.buttons[Bit].remove();
+          delete Touch.buttons[Bit];
+        });
+      }
+      State.abilities.forEach(function(Line)
+      {
+        var Button = Touch.buttons[Line.bit];
+        Button.style.setProperty("--cd", Line.share);
+        Button.classList.toggle("cooling", Line.share > 0);
+        var Seconds = Line.share > 0 && Line.seconds > 0 ? String(Line.seconds) : "";
+        var Secs = Button.querySelector(".secs");
+        if (Secs.textContent !== Seconds) Secs.textContent = Seconds;
+      });
+    };
+
+    // NOTE: the menu row sends the keys a keyboard would; Scores is held
+    document.querySelectorAll("#menukeys button[data-key]").forEach(function(Button)
+    {
+      Button.addEventListener("touchstart", function(Event)
+      {
+        Event.preventDefault();
+        Button.classList.add("down");
+        Key("keydown", Button.dataset.key, Button.dataset.code);
+        if (!Button.dataset.hold) Key("keyup", Button.dataset.key, Button.dataset.code);
+        if (Button.dataset.typing) Typing.focus();
+      }, {passive: false});
+      Button.addEventListener("touchend", function(Event)
+      {
+        Event.preventDefault();
+        Button.classList.remove("down");
+        if (Button.dataset.hold) Key("keyup", Button.dataset.key, Button.dataset.code);
+      }, {passive: false});
+    });
+    var Fullscreen = document.getElementById("fullscreen");
+    if (document.documentElement.requestFullscreen)
+    {
+      Fullscreen.hidden = false;
+      Fullscreen.addEventListener("click", function()
+      {
+        if (document.fullscreenElement) { document.exitFullscreen(); return; }
+        document.documentElement.requestFullscreen().then(function()
+        {
+          if (screen.orientation && screen.orientation.lock) return screen.orientation.lock("landscape");
+        }).catch(function() {});
+      });
+      document.addEventListener("fullscreenchange", function()
+      {
+        Fullscreen.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen";
+      });
+    }
+
+    // NOTE: the phone's keyboard types into a hidden field; what changed
+    // in it goes to the game as key presses. It keeps some filler so
+    // Backspace always has something to delete
+    var FILLER = "__________";
+    Typing.value = FILLER;
+    Typing.addEventListener("input", function()
+    {
+      var Before = Typing.dataset.last || FILLER, After = Typing.value;
+      var Same = 0;
+      while (Same < Before.length && Same < After.length && Before[Same] === After[Same]) Same++;
+      for (var Erase = Before.length - Same; Erase > 0; Erase--)
+      {
+        Key("keydown", "Backspace", "Backspace");
+        Key("keyup", "Backspace", "Backspace");
+      }
+      for (var Index = Same; Index < After.length; Index++)
+      {
+        Key("keydown", After[Index], "");
+        Key("keyup", After[Index], "");
+      }
+      if (After.length < FILLER.length || After.length > 200) Typing.value = FILLER;
+      Typing.dataset.last = Typing.value;
+    });
+    Typing.addEventListener("keydown", function(Event)
+    {
+      Event.stopPropagation();
+      if (Event.key === "Enter")
+      {
+        Event.preventDefault();
+        Key("keydown", "Enter", "Enter");
+        Key("keyup", "Enter", "Enter");
+      }
+    });
+    Typing.addEventListener("keyup", function(Event) { Event.stopPropagation(); });
+  })();
 </script>
 {{{ SCRIPT }}}
 </body>

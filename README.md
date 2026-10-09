@@ -47,6 +47,8 @@ The Esc menu has the rest:
 - **Control scheme.** Switch to mouse movement: a left click walks there, and the spells move onto the keys under the left hand.
 - **Quick cast.** The checkbox at the top of the screen. When it is on, a spell key casts at once. When it is off, an area spell's key shows its range first and a left click casts it.
 
+On a phone or tablet the browser game shows touch controls: a joystick on the left moves, and each ability is a button on the right. Tap a button to cast at the nearest foe, or drag from it to aim. Tapping the ground works like a left click. The row at the top left has chat, the scoreboard, talents and the menu. Add `?GAME_TOUCH=1` to the address to get them on any screen, or `?GAME_TOUCH=0` to turn them off.
+
 F3 opens the tile editor. In developer builds on Windows, F2 records input and a second press loops the recording.
 
 ## Building on Windows
