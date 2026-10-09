@@ -1,5 +1,6 @@
 /* Berserker strikes (role_kits/berserker.cpp): the axe's blows. Cleave and
-   Whirlwind hit every foe they catch, harder for each other one with
+   Whirlwind hit every foe they catch (a Cleave half again as hard on a foe
+   it catches alone), harder for each other one with
    Sweeping Strikes, and Whirlwind harder still with Bladestorm; Execute spends the Rage, and heals with Bloodthirst.
    Each reaches only foes in the
    Berserker's room, so no blow wakes the room behind a gate. */
@@ -51,11 +52,12 @@ SweepingScale(player_slot *Slot, u32 Count)
 
 // NOTE(zoubir): Damage and Shove to every foe within Reach and HalfAngle
 // of Dir from the Berserker (HalfAngle Pi for all round), the one most
-// squarely in front taking all of it and the rest Splash of it; returns
-// how many
+// squarely in front taking all of it and the rest Splash of it, Lone
+// times all of it when it is the only one; returns how many
 internal u32
 StrikeAround(app_state *AppState, player_slot *Slot, world_entity *Player, v2 Dir,
-             float Reach, float HalfAngle, float Damage, float Shove, float Splash = 1.f)
+             float Reach, float HalfAngle, float Damage, float Shove, float Splash = 1.f,
+             float Lone = 1.f)
 {
     world *World = &AppState->World;
     u32 Room = RoomAtPosition(World, Player->Position.XY);
@@ -83,7 +85,7 @@ StrikeAround(app_state *AppState, player_slot *Slot, world_entity *Player, v2 Di
             Main = Index;
         }
     }
-    float Full = Damage * SweepingScale(Slot, Count);
+    float Full = Damage * SweepingScale(Slot, Count) * (Count == 1 ? Lone : 1.f);
     for(u32 Index = 0; Index < Count; Index++)
     {
         hit Hit = {Index == Main ? Full : Splash * Full, Shove, 0.f, 0.f, 0.f, SimBurst_Count};
@@ -135,7 +137,7 @@ Cleave(app_state *AppState, world *World, player_slot *Slot, world_entity *Playe
               (u8)Player->PlayerIndex, At, ATan2(Dir.Y, Dir.X));
     EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);
     StrikeAround(AppState, Slot, Player, Dir, Reach, CLEAVE_HALF_ANGLE, CLEAVE_DAMAGE, CLEAVE_SHOVE,
-                 CLEAVE_SPLASH);
+                 CLEAVE_SPLASH, CLEAVE_LONE_SCALE);
 }
 
 // NOTE(zoubir): one turn of the Whirlwind: everything round the Berserker,

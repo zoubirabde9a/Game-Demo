@@ -25,6 +25,9 @@
 // NOTE(zoubir): the foe most squarely in front takes the whole Cleave,
 // every other one it catches this share
 #define CLEAVE_SPLASH 0.6f
+// NOTE(zoubir): a Cleave that catches one foe alone deals this many times
+// as much, so the axe that sweeps packs still bites a boss
+#define CLEAVE_LONE_SCALE 1.5f
 // NOTE(zoubir): Leap (A): a high jump to the cursor, LEAP_SECONDS in the
 // air; landing strikes and stuns every foe within LEAP_RADIUS
 #define LEAP_SECONDS 0.55f
@@ -197,6 +200,6 @@ global_variable role_spell BerserkerSpells[ROLE_KEYS] =
      RoleAim_None, EXECUTE_REACH, 0, "All Rage, 20 at least"},
     {"Rampage", RAMPAGE_COOLDOWN, "Rampage: charge along your aim through every foe in the way, building Rage",
      RoleAim_Line, RAMPAGE_LENGTH, BerserkerTalent_Rampage + 1},
-    {"Cleave", CLEAVE_COOLDOWN, "Cleave: a wide swing of the axe through everything in front",
+    {"Cleave", CLEAVE_COOLDOWN, "Cleave: a wide swing of the axe through everything in front, half again as hard on a foe alone",
      RoleAim_None, CLEAVE_REACH, 0},
 };

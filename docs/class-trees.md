@@ -59,7 +59,7 @@ Measured with the balance probe (`miscalance.bat 200 3 2 16`, `PROBE_LEVELS=2`)
 |---|---|---|---|---|---|
 | Fire Mage | 15 | 48 | 32 | 48 | 0.5 |
 | Ranger | 12 | 58 | 29 | 57 | 0.7 |
-| Berserker | 14 | 57 | 67 | 77 | 0.6 (2 seeds stuck) |
+| Berserker | 10 | 60 | 61 | 68 | 0.7 |
 | Shadowblade | 13 | 50 | 47 | 61 | 0.8 |
 | Stormcaller | 10 | 69 | 31 | 66 | 0.8 |
 | Duelist | 14 | 43 | 45 | 46 | 0.9 |
