@@ -195,7 +195,8 @@ AddBossImpact(app_state *AppState, danger_cast *Cast, float Now)
 
 // NOTE(zoubir): once a frame: a well collapses at the end of its Active
 // phase, which danger_zones.cpp does not watch, so its slot is watched
-// here for leaving Active
+// here for leaving Active. Offline it goes on to Recover; online Recover
+// is not sent, so the snapshot shows it Ready
 internal void
 WatchBossCollapses(app_state *AppState, float Now)
 {
@@ -224,7 +225,9 @@ WatchBossCollapses(app_state *AppState, float Now)
             continue;
         }
         if (Fx->WellOpen[Slot] && Slot < World->EntityCount && Monster->IsPresent &&
-            Monster->ID == Fx->WellOpen[Slot] && Monster->AbilityPhase == AbilityPhase_Recover)
+            Monster->ID == Fx->WellOpen[Slot] && Monster->Hp > 0.f &&
+            (Monster->AbilityPhase == AbilityPhase_Recover ||
+             Monster->AbilityPhase == AbilityPhase_Ready))
         {
             monster_def *Def = GetMonsterDef(Monster->MonsterKind);
             float Core = 0.f;
