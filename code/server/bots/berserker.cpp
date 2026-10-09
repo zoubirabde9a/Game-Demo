@@ -143,7 +143,13 @@ BotBerserkerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, wor
     bool32 Low = Foe->MaxHp > 0.f && Foe->Hp < EXECUTE_LOW_SHARE * Foe->MaxHp;
     u32 Near = BotFoesAround(AppState, Self, WHIRLWIND_RADIUS);
     bool32 Thirsty = RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_Bloodthirst) > 0;
-    if (Ready[3] && Fighting && Distance < 2.f * Reach && Rage >= 30)
+    if (Ready[2] && Fighting && Distance < 2.f * Reach && Rage < 30)
+    {
+        // NOTE(zoubir): Battle Shout: Rage to full and the party near
+        // hits harder, so in the thick of it with the Rage spent
+        Result |= NetButton_Slam;
+    }
+    else if (Ready[3] && Fighting && Distance < 2.f * Reach && Rage >= 30)
     {
         Result |= NetButton_Kunai;
     }

@@ -264,6 +264,12 @@ BotDuelistButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world
     {
         return NetButton_Push;
     }
+    // NOTE(zoubir): a Duelist that took Feint over Riposte dodges the same
+    // blows with it
+    if (Ready[2] && Slot->Duelist.FeintSeconds <= 0.f && BotDuelistMustParry(AppState, Self, Guard))
+    {
+        return NetButton_Slam;
+    }
     // NOTE(zoubir): in harm's way otherwise: out first (DodgeDangers walks it)
     if (BotDangerAt(Dangers, DangerCount, Self->Position.XY))
     {
@@ -295,6 +301,11 @@ BotDuelistButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world
     else if (Ready[1] && !Guarding && Distance < Reach + 20.f && BotDuelistBiteComing(AppState, Self))
     {
         Result = NetButton_Push;
+    }
+    else if (Ready[2] && Slot->Duelist.FeintSeconds <= 0.f && Distance < Reach + 20.f &&
+             BotDuelistBiteComing(AppState, Self))
+    {
+        Result = NetButton_Slam;
     }
     else if (Ready[0] && ThrustAgain && Tempo < DUELIST_MOST_TEMPO && Distance < Reach + 20.f)
     {

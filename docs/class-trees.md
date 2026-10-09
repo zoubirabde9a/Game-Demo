@@ -81,7 +81,7 @@ Base kit first, then each branch: its spell pair, its fixed talents, and what it
 
 ## Bots
 
-A class bot takes the left spell of each pair unless its class says otherwise, then fills its main branch and spends the rest in the other. The balance probe's `PROBE_TREE` modes pick the branch.
+A bot takes a spell of each pair first, which of the two by a coin toss, so a party of bots plays both builds of a class; then it spends at random. Every class bot casts whichever spells it took: the Fire Mage detonates once its marks near hold a full mark's worth of stacks, the Ranger takes its Kill Shot on a marked foe nearly dead or on the boss, the Berserker shouts in the thick of a fight with its Rage spent, the Duelist feints the blows it would parry. The balance probe's `PROBE_TREE` modes pick the branch.
 
 ## Status
 
@@ -89,14 +89,14 @@ Every class has its two branches, its spell pairs and its pools in the game (`cl
 
 | Class | Still to do |
 |---|---|
-| Fire Mage | its bot always takes Combustion, never Detonate |
+| Fire Mage | nothing beyond tuning |
 | Bulwark | Shield Slam does not taunt yet; Vanguard's capstone is Retaliation until the ally guard is built; the bot does not pick Taunt |
 | Mender | the atonement talent is not built |
-| Ranger | its bot always takes Rapid Fire and Volley |
-| Berserker | its bot always takes Leap, never Battle Shout |
+| Ranger | nothing beyond tuning |
+| Berserker | nothing beyond tuning |
 | Shadowblade | nothing beyond tuning |
 | Stormcaller | nothing beyond tuning |
-| Duelist | its bot always takes Riposte, never Feint |
+| Duelist | nothing beyond tuning |
 | Frost Mage | nothing beyond tuning |
 | Druid | the Moon branch's capstone is Shared Spoils until a capstone of its own is built |
-| Every class | the bots take the left spell of each pair; the balance probe has not been rerun |
+| Every class | the balance probe has not been rerun on the new trees |

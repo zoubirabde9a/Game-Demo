@@ -108,6 +108,19 @@ BotRangerTank(app_state *AppState, v2 Point, bool32 *Down)
     return Result;
 }
 
+// NOTE(zoubir): whether Kill Shot is worth its cooldown now: its marked
+// foe in reach and nearly dead, or a boss it can only chip
+internal bool32
+BotRangerKillShot(app_state *AppState, player_slot *Slot, world_entity *Self)
+{
+    world_entity *Marked = RangerMarkedFoe(AppState, Slot);
+    dungeon_run *Run = AppState->Dungeon;
+    bool32 Result = Marked && Length(Marked->Position.XY - Self->Position.XY) < 0.95f * KILL_SHOT_RANGE &&
+        Marked->MaxHp > 0.f && (Marked->Hp < KILL_SHOT_LOW * Marked->MaxHp ||
+                                (Run->BossSerial && Marked->MonsterSerial == Run->BossSerial));
+    return Result;
+}
+
 internal u32
 BotRangerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_entity *Target,
               float Distance, v2 Direction, u32 *Held, u16 *Pick)
@@ -201,6 +214,10 @@ BotRangerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_
              (Target == Boss || Target->Hp > 80.f) && BotRandom(Bot) % 20 == 0)
     {
         Result |= NetButton_Kunai;
+    }
+    else if (Ready[4] && !Hold && BotRangerKillShot(AppState, Slot, Self))
+    {
+        Result |= NetButton_Shockwave;
     }
     else if (Ready[5] && Distance < QUICK_SHOT_RANGE)
     {
