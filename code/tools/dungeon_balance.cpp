@@ -33,7 +33,8 @@
    PROBE_MAP=depths starts in the Ember Depths instead, the bots given
    the experience of the whole crypt first (and of the rooms skipped);
    PROBE_MAP=vault in the Rimeheart Vault, with the crypt's and the
-   depths'; PROBE_MAP=rift in the Aurora Rift, with all three before it.
+   depths'; PROBE_MAP=rift in the Aurora Rift, with all three before it;
+   PROBE_MAP=starless in the Starless Deep, with all four.
    Build and run: misc\balance.bat [same arguments], which rebuilds the
    probe only when the code changed. */
 
@@ -129,7 +130,8 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
 #pragma warning(pop)
     u32 StartMap = (MapName && strcmp(MapName, "depths") == 0) ? MapId_Depths :
         (MapName && strcmp(MapName, "vault") == 0) ? MapId_Vault :
-        (MapName && strcmp(MapName, "rift") == 0) ? MapId_Rift : MapId_Crypt;
+        (MapName && strcmp(MapName, "rift") == 0) ? MapId_Rift :
+        (MapName && strcmp(MapName, "starless") == 0) ? MapId_Starless : MapId_Crypt;
     // NOTE(zoubir): a party reaching a level has played every level
     // before it
     u32 RoomsBefore = 0;

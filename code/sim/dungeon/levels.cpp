@@ -33,6 +33,7 @@ struct encounter_row
 #include "depths_encounters.cpp"
 #include "vault_encounters.cpp"
 #include "rift_encounters.cpp"
+#include "starless_encounters.cpp"
 
 struct dungeon_level
 {
@@ -59,7 +60,9 @@ struct dungeon_level
 // The Rimeheart Vault's are 70% tougher, hit 40% harder and play 20%
 // faster than the Crypt's, for a party that has levelled through both.
 // The Aurora Rift's are tougher, harder-hitting and faster again, for a
-// party that has come through all three (docs/dungeon-rift.md)
+// party that has come through all three (docs/dungeon-rift.md), and the
+// Starless Deep's past those, for a party near the level cap
+// (docs/dungeon-starless.md)
 global_variable dungeon_level DungeonLevels[] =
 {
     {MapId_Crypt, 1, CryptRooms, CryptEncounters, ArrayCount(CryptEncounters),
@@ -69,7 +72,9 @@ global_variable dungeon_level DungeonLevels[] =
     {MapId_Vault, 3, VaultRooms, VaultEncounters, ArrayCount(VaultEncounters),
      VaultRoomNames, ArrayCount(VaultRoomNames), 1.7f, 1.9f, 1.2f, 2.4f, MapId_Rift},
     {MapId_Rift, 4, RiftRooms, RiftEncounters, ArrayCount(RiftEncounters),
-     RiftRoomNames, ArrayCount(RiftRoomNames), 2.05f, 2.35f, 1.28f, 2.75f, MapId_Crypt},
+     RiftRoomNames, ArrayCount(RiftRoomNames), 2.05f, 2.35f, 1.28f, 2.75f, MapId_Starless},
+    {MapId_Starless, 5, StarlessRooms, StarlessEncounters, ArrayCount(StarlessEncounters),
+     StarlessRoomNames, ArrayCount(StarlessRoomNames), 2.4f, 2.6f, 1.33f, 2.9f, MapId_Crypt},
 };
 
 // NOTE(zoubir): the level played on MapId, 0 for a map that is not one

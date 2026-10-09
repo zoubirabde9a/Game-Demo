@@ -4,7 +4,8 @@
    lush and golden under drifting sun shafts, the crypt dark, lit by the
    lanterns its players carry, the Ember Depths dark and red-hot, the
    Rimeheart Vault dark and bitter cold, the Aurora Rift open to a night
-   sky with the aurora's green and violet in it.
+   sky with the aurora's green and violet in it, the Starless Deep the
+   darkest of all, violet-black with the dead star's gold in the lights.
    One look per map, picked by name (MoodFor) since MapId follows the
    order of sim/maps/map_list.inc; a map without one gets DefaultMood. */
 
@@ -48,6 +49,11 @@ global_variable map_mood VaultMood = {{-0.015f, 0.005f, 0.060f}, 0.75f, {0.010f,
 // aurora overhead, still lit by lanterns
 global_variable map_mood RiftMood = {{-0.020f, 0.030f, 0.040f}, 0.95f, {0.030f, 0.005f, 0.050f}, 0.78f, 0.40f, 0.35f, 0.6f, 0.f, 0.f, 0.15f};
 
+// NOTE(zoubir): the Starless Deep: violet in the shadows, a warm gold in
+// the lights from the dead star, darker than the rift and lit mostly by
+// the lanterns the party carries
+global_variable map_mood StarlessMood = {{0.020f, -0.010f, 0.050f}, 0.8f, {0.050f, 0.030f, -0.010f}, 0.55f, 0.5f, 0.f, 0.95f, 0.f, 0.f, 0.2f};
+
 internal map_mood *
 MoodFor(u32 MapId)
 {
@@ -61,6 +67,7 @@ MoodFor(u32 MapId)
         case MapId_Depths: Result = &DepthsMood; break;
         case MapId_Vault: Result = &VaultMood; break;
         case MapId_Rift: Result = &RiftMood; break;
+        case MapId_Starless: Result = &StarlessMood; break;
         default: break;
     }
     return Result;

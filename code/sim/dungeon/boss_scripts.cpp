@@ -114,6 +114,35 @@ global_variable boss_event BossEvents[] =
     {MonsterKind_Everwinter, 0.55f, MonsterKind_Yeti, 2, 16.f, 0.07f, 0.f, 0},
     {MonsterKind_Everwinter, 0.35f, MonsterKind_AuroraPylon, 2, 0.f, 0.f, 0.f, 0},
     {MonsterKind_Everwinter, 0.2f, MonsterKind_Yeti, 2, 16.f, 0.07f, 0.f, MonsterAffix_Frenzied},
+    // NOTE(zoubir): the Starless Deep (docs/dungeon-starless.md).
+    // Ommoroth: three Collapsars crawl out of the Maw's floor at 75% and
+    // 25%
+    // and walk back into him if left alone, their wells on top of his
+    // horizon; at 50% two Void Seers brand the back line
+    {MonsterKind_Ommoroth, 0.75f, MonsterKind_Collapsar, 3, 16.f, 0.06f, 0.f, 0},
+    {MonsterKind_Ommoroth, 0.5f, MonsterKind_Seer, 2, 0.f, 0.f, 0.f, 0},
+    {MonsterKind_Ommoroth, 0.25f, MonsterKind_Collapsar, 3, 16.f, 0.06f, 0.f, MonsterAffix_Frenzied},
+    // NOTE(zoubir): Varn: Obsidian Knights at 70% and 35%, whose mirrors
+    // come up out of step with his, so somebody always has to hold their
+    // fire; at 60% he binds a Sunguard, a Frenzied Obsidian Knight that
+    // has 25 s to die or it erupts for 30% of everyone's health; its
+    // mirror comes up often, so the party has to time its burst between
+    // them. An armoured one that erupted for 40% after 20 s wiped the
+    // bots nine times per kill. Void Seers at 50%
+    {MonsterKind_Varn, 0.7f, MonsterKind_ObsidianKnight, 2, 16.f, 0.06f, 0.f, 0},
+    {MonsterKind_Varn, 0.6f, MonsterKind_ObsidianKnight, 1, 25.f, 0.1f, 0.3f, MonsterAffix_Frenzied},
+    {MonsterKind_Varn, 0.5f, MonsterKind_Seer, 3, 0.f, 0.f, 0.f, 0},
+    {MonsterKind_Varn, 0.35f, MonsterKind_ObsidianKnight, 2, 16.f, 0.06f, 0.f, MonsterAffix_Frenzied},
+    // NOTE(zoubir): Nyxara: Collapsars at 80% and 20%, two Obsidian
+    // Knights at 60%, each walking back into her if left alone, and three
+    // Void Seers at 40%. At 50% she binds a Star Shard, an armoured
+    // Collapsar: 22 s to break it or it erupts for 35% of everyone's
+    // health and heals her 10%
+    {MonsterKind_Nyxara, 0.8f, MonsterKind_Collapsar, 2, 16.f, 0.06f, 0.f, 0},
+    {MonsterKind_Nyxara, 0.6f, MonsterKind_ObsidianKnight, 2, 16.f, 0.06f, 0.f, 0},
+    {MonsterKind_Nyxara, 0.5f, MonsterKind_Collapsar, 1, 22.f, 0.1f, 0.35f, MonsterAffix_Armored},
+    {MonsterKind_Nyxara, 0.4f, MonsterKind_Seer, 3, 0.f, 0.f, 0.f, 0},
+    {MonsterKind_Nyxara, 0.2f, MonsterKind_Collapsar, 2, 16.f, 0.06f, 0.f, MonsterAffix_Frenzied},
 };
 
 // NOTE(zoubir): the fight's boss, as encounters.cpp spawned it, or 0 once

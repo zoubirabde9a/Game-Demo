@@ -58,6 +58,11 @@ global_variable boss_clock_def BossClockDefs[] =
     {MonsterKind_Grondmaw, 115.f},
     {MonsterKind_Prism, 130.f},
     {MonsterKind_Everwinter, 150.f},
+    // NOTE(zoubir): the Starless Deep (docs/dungeon-starless.md); Varn's
+    // clock runs on while his mirror is up and nobody can hit him
+    {MonsterKind_Ommoroth, 105.f},
+    {MonsterKind_Varn, 155.f},
+    {MonsterKind_Nyxara, 120.f},
 };
 
 // NOTE(zoubir): the party the limits are tuned for

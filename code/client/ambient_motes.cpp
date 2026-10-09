@@ -3,8 +3,8 @@
    rising off the Ashen Wastes, snow falling on Frostbite Keep, pollen and
    blinking fireflies in the Verdant Wilds, dust in the Old Arena and the
    crypt, sparks in the Ember Depths, frost glinting in the Rimeheart
-   Vault, motes of the fallen aurora in the Aurora Rift. One look per map
-   (MoteLookFor).
+   Vault, motes of the fallen aurora in the Aurora Rift, ash of the dead
+   star drifting in the Starless Deep. One look per map (MoteLookFor).
 
    Nothing is stored. The world is cut into square cells; each cell holds
    Count motes, and each mote lives a cycle of Life seconds, born at a
@@ -42,6 +42,7 @@ global_variable mote_look WastesMotes = {2, 110.f, 4.f, {4.f, -26.f}, 12.f, 2.1f
 global_variable mote_look DepthsMotes = {2, 120.f, 5.f, {3.f, -18.f}, 9.f, 1.6f, 2.5f, 0x001E70FF, 0.8f, 0.f, true};    // sparks off the magma
 global_variable mote_look VaultMotes = {2, 120.f, 9.f, {3.f, 9.f}, 8.f, 0.6f, 2.5f, 0x00FFF0D8, 0.7f, 0.6f, true};      // frost glinting as it falls
 global_variable mote_look RiftMotes = {2, 130.f, 8.f, {10.f, -5.f}, 12.f, 0.8f, 3.f, 0x00D0FF90, 0.75f, 0.8f, true};    // motes of the fallen aurora
+global_variable mote_look StarlessMotes = {2, 120.f, 9.f, {-4.f, -8.f}, 9.f, 0.7f, 2.5f, 0x0050C8F0, 0.7f, 0.5f, true}; // gold ash of the dead star
 global_variable mote_look WildsMotes = {2, 120.f, 7.f, {5.f, -4.f}, 14.f, 0.9f, 6.f, 0x0040F0FF, 1.f, 1.f, true};      // fireflies
 
 internal mote_look *
@@ -58,6 +59,7 @@ MoteLookFor(u32 MapId)
         case MapId_Depths: Result = &DepthsMotes; break;
         case MapId_Vault: Result = &VaultMotes; break;
         case MapId_Rift: Result = &RiftMotes; break;
+        case MapId_Starless: Result = &StarlessMotes; break;
         default: break;
     }
     return Result;

@@ -49,6 +49,10 @@ Every ability runs windup, then active, then recover (`code/sim/monster_abilitie
 | `Smite` | a blow on whoever the monster is after when the windup ends, past any dodge; with `Spread` it first blinks to that far from them | `Damage`, `Spread`, `Radius` (the mark) |
 | `Wave` | `Count` rings of frost, `Spread` apart, roll out at `Speed` through the Active time, out to `Radius`, through walls; each hits every player on the ground once as it passes them. Jumping clears it. Keep `Speed * Active` at least `Radius + (Count - 1) * Spread` | `Count`, `Spread`, `Speed`, `Radius`, `Active` |
 | `Beam` | a beam `Speed` long and `2 Radius` wide, cut short by walls, shows its start during the windup and sweeps `Spread` degrees across the target through the Active time, hitting each player once as its edge crosses them. A jump does not clear it | `Speed` (length), `Radius`, `Spread`, `Active` |
+| `Pull` | a gravity well opens `Spread` toward the target (0 at the monster's feet, at most on the target) and drags every player within `Radius` toward it at `Speed` (an acceleration) through the Active time, then collapses on everyone within `InnerRadius`. A jump does not help | `Spread`, `Radius`, `Speed`, `InnerRadius`, `Active` |
+| `Brand` | brands the player within `MaxRange` farthest from the monster; the brand follows them through the windup, then bursts on them (past any dodge) and every other player within `Radius` of them | `MaxRange`, `Windup`, `Radius` |
+| `Reflect` | a mirror held up through the Active time: in a dungeon run hits on the monster do nothing and `Spread` of each, at most `Damage`, lands on whoever struck (`sim/dungeon/mirror_guard.cpp`). `Radius` is the size drawn | `Active`, `Spread`, `Damage` |
+| `Eclipse` | `Count` circles of light of `Radius`, up to `Spread` from the monster and in its sight; when the windup ends every player outside all of them is hit, past any dodge or jump | `Count`, `Radius`, `Spread` |
 
 Monsters that point at each other (summons, heal targets) store the entity slot and a `MonsterSerial`, because slots are reused. Every monster made by the game goes through `SpawnMonster`, which hands out serials.
 
@@ -120,5 +124,8 @@ A monster uses the first ability in its list that is off cooldown and whose `Min
 | Wisp | Aurora Wisp | Aurora Rift only, flies. Aurora Ray: a sweeping beam |
 | Sentinel | Rimeglass Sentinel | Aurora Rift only. Crystal Crush; shatters into six shards when it dies |
 | AuroraPylon | Aurora Pylon | raised by rift bosses, never moves, wards its boss. Pylon Lance: a long sweeping beam |
+| Seer | Void Seer | Starless Deep only, flies. Void Brand on the farthest player. Umbral Bolts |
+| Collapsar | Collapsar | Starless Deep only. Gravity Well under its target. Crushing Mass |
+| ObsidianKnight | Obsidian Knight | Starless Deep only. Mirror Guard turns blows back. Shield Rush |
 
 The toad's shells now leave bile puddles that poison.

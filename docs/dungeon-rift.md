@@ -1,6 +1,6 @@
 # The Aurora Rift: dungeon level four
 
-The fourth level of the co-op dungeon, after the Sunken Crypt (`docs/dungeon-plan.md`), the Ember Depths (`docs/dungeon-depths.md`) and the Rimeheart Vault (`docs/dungeon-vault.md`). Clearing the vault counts down 20 s and rebuilds the world as the rift, everyone in its first room with their role, level, experience and talents. Clearing the rift goes back up to the crypt. Players can also vote for it from the Esc menu; a vote starts everyone at level 1, which makes the rift close to impossible.
+The fourth level of the co-op dungeon, after the Sunken Crypt (`docs/dungeon-plan.md`), the Ember Depths (`docs/dungeon-depths.md`) and the Rimeheart Vault (`docs/dungeon-vault.md`). Clearing the vault counts down 20 s and rebuilds the world as the rift, everyone in its first room with their role, level, experience and talents. Clearing the rift goes on to the fifth level, the Starless Deep (`docs/dungeon-starless.md`). Players can also vote for it from the Esc menu; a vote starts everyone at level 1, which makes the rift close to impossible.
 
 The vault is ice that slows you where you stand. The rift is ice of a different kind: a crevasse in a glacier open to the night sky, where the aurora fell and froze into crystal. Its monsters each bring a way to dodge the game did not have before, and its bosses ask for two or three of them at once.
 
@@ -121,4 +121,4 @@ Nothing new on the wire. The new ability kinds, the shatter and the ward are dra
 
 ## Tests
 
-`tests/rift_tests.cpp` (the rooms match the map, the level is the hardest, the bosses stand on their clocks with their adds, the pylons ward the boss until broken, a beam stops at a pillar) and `tests/rift_ability_tests.cpp` (a wave passes under a jump, each ring hits once, running into a ring is a hit, a beam sweeps across its target and spares one beside it, a sentinel shatters only when it dies). `TestClearedCryptGoesDown` follows a party from the crypt through all four levels and back.
+`tests/rift_tests.cpp` (the rooms match the map, the level is the hardest, the bosses stand on their clocks with their adds, the pylons ward the boss until broken, a beam stops at a pillar) and `tests/rift_ability_tests.cpp` (a wave passes under a jump, each ring hits once, running into a ring is a hit, a beam sweeps across its target and spares one beside it, a sentinel shatters only when it dies). `TestClearedCryptGoesDown` follows a party from the crypt through all five levels and back.
