@@ -16,8 +16,6 @@ usage: python -I make_skins.py <asset_1.zas> <out folder>
 import struct, sys, os
 import numpy as np
 from PIL import Image
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from accessories import draw_look
 
 
 def original_sheet(zas):
@@ -331,7 +329,7 @@ def join_neck(cell, dome, bx, by):
     return cell
 
 
-def bald_head(cell, look=None, rest_y=None, measure=False):
+def bald_head(cell, rest_y=None, measure=False):
     """takes the hair (and the headphones) away and draws a round bald head
     a size smaller in their place, then puts the original face (skin, eyes,
     mouth) back on it. rest_y is the head's height in the standing frame of
@@ -445,19 +443,7 @@ def bald_head(cell, look=None, rest_y=None, measure=False):
     rim = dome & ~(np.roll(dome, 1, 0) & np.roll(dome, -1, 0) & np.roll(dome, 1, 1) & np.roll(dome, -1, 1))
     rim &= ~moved
     cell[rim & (cell[..., 3] > 0)] = OUTLINE + (255,)
-    # NOTE: what the class wears (accessories.py), placed from the head
-    # and the face
-    whites = np.nonzero(is_col(cell, [WHITE]) & moved)[0]
-    if len(whites):
-        eye_row = whites.min()
-    elif face_patch:
-        eye_row = fy.min() - lift + 1
-    else:
-        eye_row = by
     cell = join_neck(cell, dome, bx, by)
-    info = {'bx': bx, 'by': by, 'rx': BALD_RX, 'ry': BALD_RY, 'dome': dome,
-            'face': moved, 'eye_row': eye_row}
-    cell = draw_look(cell, info, look)
     # NOTE: the streak keeps marker colours from here on, so the new head
     # it may touch is never taken for it
     for src, mark in zip(SKIN, STREAK):
@@ -487,7 +473,7 @@ def despeck(cell):
 
 
 def class_cell(cell, pal, rest_y=None):
-    cell = thicken_legs(trim_hips(widen(bald_head(cell, LOOKS.get(pal.get('name')), rest_y))))
+    cell = thicken_legs(trim_hips(widen(bald_head(cell, rest_y))))
     h = head_of(cell)
     out = cell.copy()
     yy, xx = np.mgrid[0:32, 0:32]
@@ -553,23 +539,6 @@ def class_cell(cell, pal, rest_y=None):
     return despeck(out)
 
 
-# NOTE: what each class wears over the bald head (accessories.py); the
-# Bulwark stays a clean-shaven bald knight
-LOOKS = {
-    'firemage': {'beard': [(40, 20, 14), (74, 40, 26), (108, 64, 40)]},
-    'berserker': {'beard': [(92, 26, 10), (156, 52, 22), (206, 92, 44)]},
-    'frostmage': {'beard': [(150, 160, 176), (212, 220, 232), (250, 252, 255)]},
-    'druid': {'beard': [(88, 82, 72), (140, 132, 116), (190, 184, 168)]},
-    'ranger': {'cloak': [(20, 44, 28), (34, 72, 44), (60, 110, 70)]},
-    'shadowblade': {'cloak': [(18, 12, 28), (40, 28, 62), (72, 52, 108)]},
-    'stormcaller': {'cloak': [(12, 18, 46), (26, 40, 92), (52, 76, 150)]},
-    'mender': {'keffiyeh': {'cloth': [(176, 172, 160), (232, 228, 216), (252, 250, 244)],
-                            'agal': [(40, 30, 26), (80, 62, 40)]}},
-    'duelist': {'keffiyeh': {'cloth': [(176, 172, 160), (232, 228, 216), (252, 250, 244)],
-                             'check': (186, 38, 48), 'agal': [(30, 22, 22), (66, 48, 40)]}},
-}
-
-
 # NOTE: the cells the game plays, by facing (sim/animations.cpp): first
 # frame and count of each animation, and the standing frame of each facing
 PLAYED = {
@@ -605,5 +574,5 @@ if __name__ == '__main__':
     sheet = original_sheet(zas)
     os.makedirs(out, exist_ok=True)
     for name, pal in P.items():
-        Image.fromarray(class_sheet(sheet, dict(pal, name=name))).save(os.path.join(out, f'{name}.png'), optimize=True)
+        Image.fromarray(class_sheet(sheet, pal)).save(os.path.join(out, f'{name}.png'), optimize=True)
         print(name)
