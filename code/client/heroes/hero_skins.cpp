@@ -1,5 +1,7 @@
 /* Hero skins: in a dungeon run, each class's player is drawn from that
-   class's sheet instead of the original hero's. A sheet is the original
+   class's sheet instead of the original hero's; outside a run (duels)
+   every player wears the base class's sheet, the one a player has on
+   joining (PlayerRole_Damage). A sheet is the original
    hero's own, cell for cell (16 by 16 cells of 32 pixels), recoloured for
    the class and with the hair cut short (misc/hero_skins/make_skins.py),
    loaded from heroes/<class>.png. So only the texture changes: the frames
@@ -94,7 +96,8 @@ SpriteDrawDimensions(world_entity *Entity)
 }
 
 // NOTE(zoubir): from UpdateEntityUvs: a player in a run takes its class's
-// sheet, anyone else the original hero's
+// sheet, a player in a duel the base class's, the original hero's when
+// that sheet failed to load
 internal void
 PickHeroSkin(app_state *AppState, world_entity *Entity)
 {
@@ -103,9 +106,10 @@ PickHeroSkin(app_state *AppState, world_entity *Entity)
         return;
     }
     asset_id Texture = {AssetType_Zoubir};
-    if (IsDungeon(AppState) && Entity->PlayerIndex < MAX_PLAYERS)
+    if (Entity->PlayerIndex < MAX_PLAYERS)
     {
-        u32 Role = AppState->Players[Entity->PlayerIndex].Role;
+        u32 Role = IsDungeon(AppState) ? AppState->Players[Entity->PlayerIndex].Role :
+            (u32)PlayerRole_Damage;
         if (Role < PlayerRole_Count && HeroSkinLoaded[Role])
         {
             Texture = {AssetType_HeroSkin, Role};
