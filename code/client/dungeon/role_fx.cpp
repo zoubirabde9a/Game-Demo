@@ -151,6 +151,7 @@ DrawLightCross(render_context *RenderContext, v2 P, float Size, u32 Color)
 }
 
 #include "classes/class_fx.cpp"
+#include "role_fx/bulwark_fx.cpp"
 #include "role_fx/mender_fx.cpp"
 
 internal void
@@ -158,6 +159,7 @@ DrawRoleBurst(render_context *RenderContext, app_state *AppState, role_burst *Bu
               float T, v3 CameraOffset)
 {
     if (DrawClassBurst(RenderContext, AppState, Burst, T, CameraOffset) ||
+        DrawBulwarkBurst(RenderContext, AppState, Burst, T, CameraOffset) ||
         DrawMenderBurst(RenderContext, AppState, Burst, T, CameraOffset))
     {
         return;

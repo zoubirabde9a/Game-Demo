@@ -72,6 +72,8 @@
 #define SHIELD_THROW_BOUNCE_RADIUS 200.f
 #define SHIELD_THROW_BOUNCE_SHARE 0.75f
 #define SHIELD_THROW_COOLDOWN 6.f
+// NOTE(zoubir): how long the drawn shield takes over each hop
+#define SHIELD_THROW_HOP_SECONDS 0.11f
 // NOTE(zoubir): Shield Charge (X): the tank rushes to the foe it aims at
 // within SHIELD_CHARGE_RANGE, landing SHIELD_CHARGE_LANDING_GAP short of
 // it, and stuns it for SHIELD_CHARGE_STUN. A foe winding up an attack

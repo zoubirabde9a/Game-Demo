@@ -161,6 +161,10 @@ GuardAllyFrom(app_state *AppState, world *World, player_slot *Slot, world_entity
     }
 }
 
+// NOTE(zoubir): a Shield Throw burst's number: which hop it is and how
+// far it flew (client/dungeon/role_fx/bulwark_fx.cpp)
+#define SHIELD_THROW_HOP 1000
+
 // NOTE(zoubir): returns whether the shield found a foe to hit
 internal bool32
 CastShieldThrow(app_state *AppState, world *World, player_slot *Slot, world_entity *Player)
@@ -175,6 +179,7 @@ CastShieldThrow(app_state *AppState, world *World, player_slot *Slot, world_enti
     world_entity *Struck[1 + SHIELD_THROW_BOUNCES];
     u32 StruckCount = 0;
     v2 From = Player->Position.XY;
+    v3 Flown = ChestOf(Player);
     float Damage = SHIELD_THROW_DAMAGE;
     // NOTE(zoubir): the Lunge's thrust with no player behind it, so it does
     // not write the Lunge combo's name over the tank (Intercept does the same)
@@ -189,6 +194,12 @@ CastShieldThrow(app_state *AppState, world *World, player_slot *Slot, world_enti
         OnTankShot(AppState, Slot, Foe);
         v2 Toward = DirectionTo(Foe->Position.XY - From);
         From = Foe->Position.XY;
+        v3 Chest = ChestOf(Foe);
+        float Hop = Minimum(Length(Chest.XY - Flown.XY), (float)SHIELD_THROW_HOP - 1.f);
+        EmitBurst(&AppState->Events, SimBurst_ShieldThrow, SlotIndex,
+                  NumberedBurstSpot(Chest, SHIELD_THROW_HOP * (StruckCount - 1) + (u32)Hop),
+                  ATan2(Chest.Y - Flown.Y, Chest.X - Flown.X));
+        Flown = Chest;
         ApplyHit(AppState, World, Foe, &Hit, Toward, Player, SlotIndex);
         Damage *= SHIELD_THROW_BOUNCE_SHARE;
         Foe = NearestFoe(World, From, SHIELD_THROW_BOUNCE_RADIUS, Room, Struck, StruckCount);
