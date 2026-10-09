@@ -37,7 +37,7 @@ enum frostmage_burst
     FrostBurst_Blizzard, // a Blizzard's circle at Position, for its life
     FrostBurst_Spike,    // a Glacial Spike arriving at Position along Angle; its Icicles, +8 split
     FrostBurst_Nova,     // a Frost Nova round Position; Deep Freeze's ranks, or FROST_NOVA_CONE
-    FrostBurst_Barrier,  // Ice Barrier raised on the mage at Position
+    FrostBurst_Barrier,  // Ice Barrier raised on the mage at Position; variant 1 it shattering off
     FrostBurst_Orb,      // a Frozen Orb leaving Position along Angle
     FrostBurst_Freeze,   // a foe at Position frozen; seconds in halves
     FrostBurst_Full,     // five Icicles on the mage at Position; FROST_FULL_* other ice breaking
@@ -184,6 +184,14 @@ UpdateFrostMageSlot(app_state *AppState, dungeon_run *Run, player_slot *Slot, fl
         Mage->MeltTimer = 0.f;
     }
     u32 Index = (u32)(Slot - AppState->Players);
+    // NOTE(zoubir): Ice Barrier gone, run out or broken: it shatters off
+    bool32 Barrier = Slot->FireguardAbsorb > 0.f;
+    if (Mage->Barrier && !Barrier && Slot->Entity && !IsDeadPlayer(Slot->Entity))
+    {
+        EmitBurst(&AppState->Events, ClassBurst(SimBurst_FrostMageFirst, FrostBurst_Barrier), (u8)Index,
+                  RangerBurstSpot(ChestOf(Slot->Entity), 1));
+    }
+    Mage->Barrier = Barrier;
     bool32 Fingers = RoleRank(Slot, PlayerRole_FrostMage, FrostMageTalent_FingersOfFrost) > 0 &&
         ((Mage->Bolts + 1) % FINGERS_OF_FROST_EVERY) == 0;
     Slot->ClassMeter = (u8)Mage->Icicles;

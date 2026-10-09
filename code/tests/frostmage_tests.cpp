@@ -214,8 +214,15 @@ TestIceBarrier()
         float Left = DungeonScaleDamage(AppState, Slot->Entity, 0, 20.f);
         Check(Left == 0.f && Slot->Entity->Hp == Before);
         Check(Slot->FireguardAbsorb > Absorb - 20.5f && Slot->FireguardAbsorb < Absorb - 19.5f);
-        TickCrypt(&Crypt, (u32)(60.f * ICE_BARRIER_SECONDS) + 2);
+        // NOTE(zoubir): run out, it shatters off where clients see it
+        u32 Shattered = 0;
+        for(u32 Tick = 0; Tick < (u32)(60.f * ICE_BARRIER_SECONDS) + 2; Tick++)
+        {
+            TickCrypt(&Crypt, 1);
+            Shattered += CountFrostBursts(AppState, FrostBurst_Barrier, 1, 1);
+        }
         Check(Slot->FireguardAbsorb == 0.f && !(Slot->ClassFlags & FROSTMAGE_FLAG_BARRIER));
+        Check(Shattered == 1);
         DestroyCryptWorld(&Crypt);
     }
 }

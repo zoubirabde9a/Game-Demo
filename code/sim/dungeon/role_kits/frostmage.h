@@ -32,6 +32,8 @@ struct frostmage_slot
     // OnFrostMageHit and FrostMageDealtScale
     u32 Hitting;
     bool32 Shattering;
+    // NOTE(zoubir): whether Ice Barrier held last tick, so its end shows
+    bool32 Barrier;
     // NOTE(zoubir): a bot's (server/bots/frostmage.cpp): how long it has
     // waited for its tank to pull
     float BotWaited;

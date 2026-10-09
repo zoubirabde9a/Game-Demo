@@ -7,13 +7,13 @@
    as the server's lasts. Frost Nova is a ring racing out across the
    floor; a frozen foe stands in a block of ice for the seconds its burst
    carries, cracking as it runs out. Ice Barrier closes a shell round the
-   mage (the shell itself is drawn from ClassFlags, classes/frostmage.cpp).
-   Cone of Cold is a wedge of frost blown out along the aim to its reach,
-   shards flying out across it. A Shatter cracks white across the foe it
-   struck; Absolute Zero breaks out from a frozen foe as a white ring of
-   shards to its reach.
-   A Frozen Orb rolls along its angle for as long as the server's does,
-   flinging shards. Five Icicles flash over the mage. */
+   mage (the shell itself is drawn from ClassFlags, classes/frostmage.cpp)
+   and breaks off it in shards as it goes. A Frozen Orb rolls along its
+   angle for as long as the server's does, flinging shards. Cone of Cold
+   is a wedge of frost blown out along the aim to its reach, shards flying
+   through it. A Shatter cracks white across the foe it struck; Absolute
+   Zero breaks out from a frozen foe as a white ring of shards to its
+   reach. Five Icicles flash over the mage. */
 
 // NOTE(zoubir): where the bolt of the mage in Slot comes from on screen
 inline v2
@@ -241,10 +241,28 @@ DrawFrostNovaBurst(render_context *RenderContext, role_burst *Burst, float T, v3
     }
 }
 
+// NOTE(zoubir): Ice Barrier closing round the mage; as it goes (variant
+// 1) its shell breaks, shards falling away from where it was
 internal void
 DrawIceBarrierBurst(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
 {
-    v2 Centre = BurstToScreen(Burst->Position, CameraOffset);
+    v2 Centre = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
+    if (RangerBurstVariant(Burst->Position) == 1)
+    {
+        float Ease = 1.f - (1.f - T) * (1.f - T);
+        float Fade = 1.f - T;
+        FrostGlow(RenderContext, Centre, 36.f, 0.6f * Clamp01(1.f - 4.f * T), FROST_FX_GLOW_RGB);
+        FrostRing(RenderContext, Centre, 30.f + 14.f * Ease, 4.f, 0.7f * Fade);
+        for(u32 Shard = 0; Shard < 10; Shard++)
+        {
+            float A = 2.f * Pi32 * ((float)Shard + 0.4f * BurstJitter(Shard, 481)) / 10.f;
+            v2 Out = V2(Cos(A), Sin(A));
+            v2 P = Centre + (30.f + 22.f * Ease) * Out + V2(0.f, 40.f * T * T);
+            float Turn = A + 4.f * T * (BurstJitter(Shard, 482) - 0.5f);
+            DrawIceShard(RenderContext, P, V2(Cos(Turn), Sin(Turn)), 10.f, 4.f, Fade);
+        }
+        return;
+    }
     float Close = 1.f - T;
     for(u32 Shard = 0; Shard < 8; Shard++)
     {
