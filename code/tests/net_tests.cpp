@@ -431,6 +431,28 @@ TestOverfullSnapshotIsTrimmed()
     Check(Dropped == 0 && P.Snapshot.Count == 10);
 }
 
+// A class burst's number rides in its height in whole steps of 4096 (a
+// Static Field's radius, a bolt's length): it arrives whole, small or
+// large, and so does the height under it.
+internal void
+TestBurstNumbersArriveWhole()
+{
+    float Heights[] = {0.f, -3.5f, 4096.f + 12.5f, 4096.f * 3.f, 4096.f * 150.f + 12.5f,
+                       4096.f * 127.f, 4096.f * 128.f - 2.f};
+    for (u32 Index = 0; Index < ArrayCount(Heights); ++Index)
+    {
+        static net_packet In;
+        In = {};
+        In.Header.Type = NetPacket_Snapshot;
+        In.Snapshot.BurstCount = 1;
+        In.Snapshot.Bursts[0].Kind = 3;
+        In.Snapshot.Bursts[0].Z = Heights[Index];
+        u32 Size = 0;
+        net_packet Out = RoundTrip(&In, &Size);
+        Check(Out.Snapshot.BurstCount == 1 && Out.Snapshot.Bursts[0].Z == Heights[Index]);
+    }
+}
+
 internal void
 TestFullSnapshotFits()
 {
@@ -1110,8 +1132,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d74u
-#define NET_GOLDEN_LAYOUT 0x94b33fa5u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d75u
+#define NET_GOLDEN_LAYOUT 0x08655a5eu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -1285,6 +1307,7 @@ main()
     TestChatRoundTrip();
     TestInputRoundTrip();
     TestFullSnapshotFits();
+    TestBurstNumbersArriveWhole();
     TestOverfullSnapshotIsTrimmed();
     TestFixedPointPrecisionAndClamping();
     TestRejectsAbilityForMissingEntity();

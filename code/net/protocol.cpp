@@ -56,6 +56,7 @@ NetSequenceNewer(u16 A, u16 B)
     return Distance != 0 && Distance < 0x8000;
 }
 
+#include "protocol/bursts.cpp"
 #include "protocol/entities.cpp"
 #include "protocol/chat.cpp"
 #include "protocol/talent_ranks.cpp"
@@ -403,12 +404,13 @@ NetSerializePacket(net_stream *S, net_packet *P)
             for (u32 Index = 0; Index < P->Snapshot.BurstCount; ++Index)
             {
                 net_burst *Burst = &P->Snapshot.Bursts[Index];
-                NetU8(S, &Burst->Kind);
+                float Height = Burst->Z;
+                if (!NetBurstKindAndHeight(S, &Burst->Kind, &Height)) return false;
                 NetU8(S, &Burst->Slot);
                 NetU8(S, &Burst->Angle);
                 NetPosition(S, &Burst->X, S->OriginX);
                 NetPosition(S, &Burst->Y, S->OriginY);
-                NetFixed16(S, &Burst->Z, NET_POSITION_STEPS);
+                Burst->Z = Height;
             }
             NetU8(S, &P->Snapshot.RewindCount);
             if (P->Snapshot.RewindCount > NET_MAX_SNAPSHOT_REWINDS) return false;

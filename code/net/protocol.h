@@ -20,12 +20,11 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d74u // "GDMt", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d75u // "GDMu", change it whenever the layout changes
+// (GDMu: a burst's height carries its class number apart, NetBurstHeight in protocol.cpp)
 // (GDMt: team duels, net_snapshot.Teams and a team request in net_input.Role bits 5-6)
 // (GDMs: 42 talent ranks, the second tree's seed and a 6-bit talent field, for each class's second tree;
 //  GDMr: player_role's fourth bit in net_score.DungeonMore bit 6, for the ninth and tenth classes)
-// (GDMq: the dungeon role request is a byte of its own, net_input.Role, as eight classes
-// and "none" do not fit the three spare bits of the held buttons)
 // (older ids and why: git log -S NET_PROTOCOL_ID -- code/net/protocol.h)
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
