@@ -83,6 +83,9 @@ struct ranger_trap
     float Seconds;
     float Keep;
     u8 By;
+    // NOTE(zoubir): an Explosive Trap's, which blows on every foe near it
+    // instead of snaring the first
+    bool32 Explosive;
 };
 
 #define RANGER_MAX_ARROWS 48

@@ -18,6 +18,8 @@
       slowly.
    W  Kill Shot (tree): an arrow at the foe under the Ranger's mark, far
       harder on one nearly dead; a kill brings it back at once.
+   Right click  Explosive Trap (tree): a trap thrown to the cursor that
+      blows on every foe near it (ranger/ground.cpp).
 
    Quick Shot and Piercing Shot are its base kit; the tree gives one of
    Rapid Fire and Kill Shot (Marksmanship) and one of Volley and
@@ -158,6 +160,11 @@ CastRangerKey(app_state *AppState, world *World, memory_arena *Arena, player_slo
             ShootRangerArrow(AppState, Player, Foe, RangerShot_Kill, KILL_SHOT_DAMAGE,
                              RangerArrow_Quick);
             EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
+        } break;
+
+        case 6:
+        {
+            ThrowExplosiveTrap(AppState, Slot, Player);
         } break;
 
         case 5:

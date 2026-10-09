@@ -126,9 +126,10 @@ BotRangerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_
               float Distance, v2 Direction, u32 *Held, u16 *Pick)
 {
     player_slot *Slot = &AppState->Players[Self->PlayerIndex];
-    // NOTE(zoubir): X and W are the Ranger's: the game's fireball and
-    // shockwave presses from BotThink would cast them at random
-    *Held &= ~(u32)(NetButton_Fireball | NetButton_Shockwave);
+    // NOTE(zoubir): X, W and the right click are the Ranger's: the game's
+    // fireball, shockwave and sword presses from BotThink would cast them
+    // at random
+    *Held &= ~(u32)(NetButton_Fireball | NetButton_Shockwave | NetButton_Sword);
     if (!Target || Target->Type != EntityType_Monster || IsPlayerCasting(Self))
     {
         return 0;
@@ -214,6 +215,14 @@ BotRangerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_
              (Target == Boss || Target->Hp > 80.f) && BotRandom(Bot) % 20 == 0)
     {
         Result |= NetButton_Kunai;
+    }
+    else if (Ready[6] && !Hold && Distance < 0.9f * EXPLOSIVE_TRAP_RANGE &&
+             (Target == Boss || BotRangerFoesNear(AppState, Target->Position.XY, EXPLOSIVE_TRAP_RADIUS) >= 2) &&
+             BotRandom(Bot) % 6 == 0)
+    {
+        // NOTE(zoubir): the aim is on Target (BotThink), so the trap lands
+        // at its feet
+        Result |= NetButton_Sword;
     }
     else if (Ready[4] && !Hold && BotRangerKillShot(AppState, Slot, Self))
     {

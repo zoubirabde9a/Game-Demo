@@ -78,6 +78,24 @@ PaintRangerKillShotIcon(icon_canvas *Canvas)
     IconSparkle(Canvas, V2(0.74f, 0.26f), 0.1f, Solid(IconColor(255, 230, 210)));
 }
 
+// NOTE(zoubir): Explosive Trap: a round trap on the ground, a burst of
+// orange flame rising out of it
+internal void
+PaintRangerExplosiveTrapIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.5f, 0.55f), 0.5f, IconColor(255, 150, 60, 150));
+    IconCircle(Canvas, V2(0.5f, 0.78f), 0.2f, Solid(IconColor(90, 70, 50)));
+    IconArc(Canvas, V2(0.5f, 0.78f), 0.2f, 0.04f, Solid(IconColor(200, 170, 110)), 0.f, 2.f * Pi32);
+    for(u32 Ray = 0; Ray < 7; Ray++)
+    {
+        float A = Pi32 * (0.15f + 0.7f * (float)Ray / 6.f);
+        v2 End = V2(0.5f - 0.38f * Cos(A), 0.66f - 0.48f * Sin(A));
+        IconCapsule(Canvas, V2(0.5f, 0.7f), End, 0.035f,
+                    Gradient(IconColor(255, 230, 120), IconColor(255, 90, 40, 60), V2(0.5f, 0.7f), End));
+    }
+    IconSparkle(Canvas, V2(0.5f, 0.3f), 0.1f, Solid(IconColor(255, 245, 210)));
+}
+
 // NOTE(zoubir): Volley: arrows coming down on a teal circle on the ground
 internal void
 PaintRangerVolleyIcon(icon_canvas *Canvas)
@@ -299,7 +317,7 @@ PaintRangerHuntersNetIcon(icon_canvas *Canvas)
 global_variable role_icon_painter *RangerIconPainters[ROLE_KEYS] =
 {
     PaintRangerVolleyIcon, PaintRangerPiercingShotIcon, PaintRangerDisengageIcon, PaintRangerRapidFireIcon,
-    PaintRangerKillShotIcon, PaintRangerQuickShotIcon, 0,
+    PaintRangerKillShotIcon, PaintRangerQuickShotIcon, PaintRangerExplosiveTrapIcon,
 };
 global_variable talent_icon_painter *RangerTalentIconPainters[ROLE_TALENTS] =
 {

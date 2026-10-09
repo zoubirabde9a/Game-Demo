@@ -106,13 +106,12 @@ UpdateRangerVolleys(app_state *AppState, ranger_run *Run, float DeltaTime)
     }
 }
 
-// NOTE(zoubir): Disengage: the Ranger leaps back from its aim and a snare
-// goes down where it stood, taking the place of its last one
-internal void
-CastDisengage(app_state *AppState, player_slot *Slot, world_entity *Player)
+// NOTE(zoubir): a trap of the Ranger in slot By down at Feet, taking the
+// place of its last one; 0 when every trap is in use
+internal ranger_trap *
+SetRangerTrap(app_state *AppState, u8 By, v3 Feet, bool32 Explosive)
 {
     ranger_run *Run = &AppState->Dungeon->Ranger;
-    u8 By = (u8)Player->PlayerIndex;
     ranger_trap *Free = 0;
     for(u32 Index = 0; Index < RANGER_MAX_TRAPS; Index++)
     {
@@ -126,15 +125,41 @@ CastDisengage(app_state *AppState, player_slot *Slot, world_entity *Player)
             Free = Trap;
         }
     }
-    v3 Feet = V3(Player->Position.X, Player->Position.Y, Player->GroundZ);
     if (Free)
     {
         Free->Position = Feet;
         Free->Seconds = TRAP_SECONDS;
         Free->Keep = RANGER_KEEP_SECONDS;
         Free->By = By;
+        Free->Explosive = Explosive;
         EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Trap), By, Feet);
     }
+    return Free;
+}
+
+// NOTE(zoubir): Explosive Trap: thrown to the cursor, no farther than
+// EXPLOSIVE_TRAP_RANGE
+internal void
+ThrowExplosiveTrap(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
+    v2 Point = AimPoint(Player);
+    v2 Offset = Point - Player->Position.XY;
+    if (Length(Offset) > EXPLOSIVE_TRAP_RANGE)
+    {
+        Point = Player->Position.XY + EXPLOSIVE_TRAP_RANGE * DirectionTo(Offset);
+    }
+    SetRangerTrap(AppState, (u8)Player->PlayerIndex, V3(Point.X, Point.Y, Player->GroundZ), true);
+    EmitSound(&AppState->Events, AssetType_SfxAreaCast, Player->Position);
+}
+
+// NOTE(zoubir): Disengage: the Ranger leaps back from its aim and a snare
+// goes down where it stood, taking the place of its last one
+internal void
+CastDisengage(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
+    u8 By = (u8)Player->PlayerIndex;
+    v3 Feet = V3(Player->Position.X, Player->Position.Y, Player->GroundZ);
+    SetRangerTrap(AppState, By, Feet, false);
     v2 Back = -1.f * GetPlayerAim(Player);
     Player->Velocity.XY = DISENGAGE_SPEED * Back;
     Player->Velocity.Z = Maximum(Player->Velocity.Z, DISENGAGE_LIFT);
@@ -178,15 +203,57 @@ SnareRangerFoe(app_state *AppState, player_slot *Slot, ranger_trap *Trap, world_
     }
 }
 
+// NOTE(zoubir): an Explosive Trap blows: every foe within its blast (wider
+// with Barrage) is struck and thrown back, slowed after with Pinning
+// Volley, rooted with Hunter's Net
+internal void
+BlowExplosiveTrap(app_state *AppState, player_slot *Slot, ranger_trap *Trap, bool32 Net)
+{
+    world *World = &AppState->World;
+    bool32 Barrage = RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Barrage) > 0;
+    float Radius = EXPLOSIVE_TRAP_RADIUS * (Barrage ? BARRAGE_RADIUS : 1.f);
+    float Pin = (float)RoleRank(Slot, PlayerRole_Ranger, RangerTalent_PinningVolley);
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Monster = &World->Entities[EntityIndex];
+        if (!RangerTrapReaches(Trap, Monster, Radius))
+        {
+            continue;
+        }
+        v2 Away = NormalizeOr(Monster->Position.XY - Trap->Position.XY, V2(1.f, 0.f));
+        RangerHit(AppState, Trap->By, Monster, RangerShot_Trap, EXPLOSIVE_TRAP_DAMAGE,
+                  EXPLOSIVE_TRAP_SHOVE, Away);
+        if (Monster->IsPresent && Monster->Hp > 0.f)
+        {
+            if (Net)
+            {
+                ApplyStatus(Monster, StatusEffect_Rooted, HUNTERS_NET_VOLLEY_ROOT);
+            }
+            if (Pin > 0.f)
+            {
+                ApplyStatus(Monster, StatusEffect_Slowed, VOLLEY_SLOW_SECONDS + PINNING_VOLLEY_SECONDS * Pin);
+            }
+        }
+    }
+    EmitSound(&AppState->Events, AssetType_SfxExplosion, Trap->Position);
+}
+
 // NOTE(zoubir): the snare springs on First and is gone; with Hunter's Net
 // it grabs every other foe within HUNTERS_NET_RADIUS too, and its burst
 // says so (variant 1), so clients draw the net that wide
 internal void
 SpringRangerTrap(app_state *AppState, player_slot *Slot, ranger_trap *Trap, world_entity *First)
 {
-    SnareRangerFoe(AppState, Slot, Trap, First);
     bool32 Net = RoleRank(Slot, PlayerRole_Ranger, RangerTalent_HuntersNet) > 0;
-    if (Net)
+    if (Trap->Explosive)
+    {
+        BlowExplosiveTrap(AppState, Slot, Trap, Net);
+    }
+    else
+    {
+        SnareRangerFoe(AppState, Slot, Trap, First);
+    }
+    if (Net && !Trap->Explosive)
     {
         world *World = &AppState->World;
         for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)

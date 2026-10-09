@@ -71,6 +71,19 @@
 #define TRAP_ROOT_SECONDS 2.5f
 #define TRAP_DAMAGE 10.f
 
+// NOTE(zoubir): Explosive Trap (right click, from Survival's pair against
+// Disengage): a trap thrown to the cursor, up to EXPLOSIVE_TRAP_RANGE
+// away, that blows when a foe steps within TRAP_RADIUS of it: every foe
+// within EXPLOSIVE_TRAP_RADIUS takes EXPLOSIVE_TRAP_DAMAGE and is thrown
+// back. Survival's talents follow it as they follow the snare: Barrage
+// widens the blast, Pinning Volley slows what it caught, Hunter's Net
+// roots it
+#define EXPLOSIVE_TRAP_RANGE 420.f
+#define EXPLOSIVE_TRAP_RADIUS 95.f
+#define EXPLOSIVE_TRAP_DAMAGE 34.f
+#define EXPLOSIVE_TRAP_SHOVE 160.f
+#define EXPLOSIVE_TRAP_COOLDOWN 12.f
+
 // NOTE(zoubir): Kill Shot (W, from Marksmanship's pair against Rapid
 // Fire): an arrow at the foe under the Ranger's own mark, within
 // KILL_SHOT_RANGE, for KILL_SHOT_DAMAGE, KILL_SHOT_LOW_SCALE times that on
@@ -106,6 +119,7 @@ enum ranger_talent
     RangerTalent_HuntersNet,
     RangerTalent_Volley,
     RangerTalent_KillShot,
+    RangerTalent_ExplosiveTrap,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -167,6 +181,8 @@ global_variable talent_def RangerTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Kill Shot", "W: an arrow at your marked foe, twice as hard under 25%; a kill brings it back",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Explosive Trap", "Right click: a trap thrown to the cursor that blows on every foe near it",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
@@ -177,7 +193,7 @@ global_variable u8 RangerTalentStats[CLASS_TALENTS] =
     RoleStat_Damage, RoleStat_Vitality, RoleStat_None, RoleStat_Haste, RoleStat_Swiftness, RoleStat_None,
 };
 
-// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click
+// NOTE(zoubir): in RoleKeys order: A, R, C, V, W, X, right click, G, T
 global_variable role_spell RangerSpells[ROLE_KEYS] =
 {
     {"Volley", VOLLEY_COOLDOWN, "Volley: arrows rain on the circle at the cursor for 2 s and slow",
@@ -195,5 +211,7 @@ global_variable role_spell RangerSpells[ROLE_KEYS] =
     {"Quick Shot", QUICK_SHOT_COOLDOWN,
      "Quick Shot: a fast arrow that marks a foe: you deal 25% more to it, and hits on it build Focus",
      RoleAim_Foe, QUICK_SHOT_RANGE, 0},
-    {},
+    {"Explosive Trap", EXPLOSIVE_TRAP_COOLDOWN,
+     "Explosive Trap: a trap thrown to the cursor; it blows on every foe near it when one steps on it",
+     RoleAim_Ground, EXPLOSIVE_TRAP_RADIUS, RangerTalent_ExplosiveTrap + 1},
 };

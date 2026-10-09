@@ -53,18 +53,18 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
       {RM(WarSong), RM(Receptive), RM(MendingTouch), RM(KeenEdge), RM(SecondBreath),
        RM(Serenity)}}},
 
-    // NOTE(zoubir): the Ranger. Fleet Hunter holds Survival's second spell
-    // slot until Explosive Trap is in
+    // NOTE(zoubir): the Ranger
     {{"Marksmanship", "Survival"},
      {CLASS_BRANCH(CT(RangerTalent_Marksman), CT(RangerTalent_RapidFire), CT(RangerTalent_KillShot),
                    CT(RangerTalent_Deadeye), RM(BigGame), RM(Patience),
                    RM(ApexPredator)),
-      CLASS_BRANCH(CT(RangerTalent_Barrage), CT(RangerTalent_Disengage), CT(RangerTalent_FleetHunter),
+      CLASS_BRANCH(CT(RangerTalent_Barrage), CT(RangerTalent_Disengage), CT(RangerTalent_ExplosiveTrap),
                    CT(RangerTalent_PinningVolley), CT(RangerTalent_HuntersNet), RM(Trailwise),
                    RM(Trophy))},
      {{CT(RangerTalent_KeenEye), CT(RangerTalent_SteadyHands), RM(KillingRhythm), RM(Finisher),
        RM(Leeching), CT(RangerTalent_Survivalist), CT(RangerTalent_LethalMark)},
-      {RM(Cleaver), RM(Bloodrush), RM(Feast), RM(Toughened), RM(Vigor)}}},
+      {RM(Cleaver), RM(Bloodrush), RM(Feast), RM(Toughened), RM(Vigor),
+       CT(RangerTalent_FleetHunter)}}},
 
     // NOTE(zoubir): the Berserker. Bladestorm holds Carnage's second spell
     // slot until Rampage is in

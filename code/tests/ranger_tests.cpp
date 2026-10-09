@@ -511,6 +511,34 @@ TestSurvivalTalentsFitBothSpells()
     }
 }
 
+// NOTE(zoubir): Explosive Trap lands at the cursor and, when a foe steps
+// on it, blows on every foe near it, rooting them with Hunter's Net; one
+// far off is untouched
+internal void
+TestExplosiveTrap()
+{
+    crypt_world Crypt = CreateRangerWorld();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    SetClassTalentRank(Slot, RangerTalent_HuntersNet, 1);
+    GrantClassSpells(Slot);
+    v2 Point = AimPoint(Slot->Entity);
+    v3 Spot = V3(Point.X, Point.Y, 0.f) - Slot->Entity->Position;
+    Spot.Z = 0.f;
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    Check(Slot->RoleCooldowns[6] > 0.f);
+    Check(RangerTrapDown(&AppState->Dungeon->Ranger, 0));
+    ranger_dummies Dummies = {};
+    world_entity *On = RangerDummy(&Crypt, &Dummies, Spot);
+    world_entity *Near = RangerDummy(&Crypt, &Dummies, Spot + V3(60.f, 30.f, 0.f));
+    world_entity *Far = RangerDummy(&Crypt, &Dummies, Spot + V3(0.f, 3.f * EXPLOSIVE_TRAP_RADIUS, 0.f));
+    RangerTick(&Crypt, &Dummies, 2);
+    Check(!RangerTrapDown(&AppState->Dungeon->Ranger, 0));
+    Check(On->Hp < 2000.f && Near->Hp < 2000.f && Far->Hp == 2000.f);
+    Check(HasStatus(Near, StatusEffect_Rooted) && !HasStatus(Far, StatusEffect_Rooted));
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunRangerTests()
 {
@@ -518,6 +546,7 @@ RunRangerTests()
     TestQuickShotLandsOnArrival();
     TestQuickShotMarks();
     TestKillShot();
+    TestExplosiveTrap();
     TestPiercingShotThroughALine();
     TestVolleyRainsOnTheCircle();
     TestDisengageLeavesASnare();
