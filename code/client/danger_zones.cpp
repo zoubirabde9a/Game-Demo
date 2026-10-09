@@ -6,6 +6,8 @@
    as the windup runs; the hit lands when the fill reaches the rim. Then
    the area flashes full and fades, and a solid disc leaves broken
    ground behind.
+   A burrower's spot is painted while it is underground instead, filling
+   until it comes up.
 
    Read only from AbilityPhase, AbilityIndex, AbilityTimer, AbilityAim and
    AbilityPoints, which snapshots carry, so it looks the same online.
@@ -226,6 +228,17 @@ DrawDangerCast(render_context *RenderContext, world *World, v3 CameraOffset,
             }
         } break;
 
+        case MonsterAbility_Burrow:
+        {
+            // NOTE(zoubir): where it comes up, painted while it is
+            // underground: the spot follows its target until the lock
+            if (Cast->PointCount)
+            {
+                DrawDangerDisc(RenderContext, World, CameraOffset, Cast->Points[0],
+                               Ability->Radius, Progress, DANGER_PALETTE_HARM, 0, Strength);
+            }
+        } break;
+
         case MonsterAbility_Summon:
         {
             // NOTE(zoubir): graves that open when the windup ends; a
@@ -265,6 +278,9 @@ struct danger_zones
     // frame (Ability 0 when none) and which entity was in the slot
     danger_cast Winding[DANGER_TRACKED];
     u32 WindingId[DANGER_TRACKED];
+    // NOTE(zoubir): the cast in Winding is a burrower underground, which
+    // lands when it comes up, not when its windup ends
+    bool32 WindingUnder[DANGER_TRACKED];
     danger_impact Impacts[DANGER_IMPACT_MAX];
     u32 ImpactCount;
     // NOTE(zoubir): when the shown boss clock ran out, for the Doom waves
@@ -332,6 +348,11 @@ AddDangerImpact(app_state *AppState, danger_zones *Zones, danger_cast *Cast, flo
     monster_ability *Ability = Cast->Ability;
     bool32 Solid = Ability->InnerRadius <= 0.f &&
         Ability->Radius <= DANGER_CRACK_MOST_RADIUS;
+    if (Solid && Ability->Kind == MonsterAbility_Burrow && Cast->PointCount)
+    {
+        AddGroundCrack(AppState, V3(Cast->Points[0].X, Cast->Points[0].Y, 0.f),
+                       Ability->Radius, Now);
+    }
     if (Solid && Ability->Kind == MonsterAbility_Slam)
     {
         AddGroundCrack(AppState, V3(Cast->Self.X, Cast->Self.Y, 0.f), Ability->Radius, Now);
@@ -368,29 +389,42 @@ DrawDangerZones(render_context *RenderContext, app_state *AppState, v3 CameraOff
         bool32 Live = EntityIndex < World->EntityCount && Entity->IsPresent &&
             Entity->Type == EntityType_Monster;
         monster_def *Def = Live ? GetMonsterDef(Entity->MonsterKind) : 0;
-        bool32 WindingUp = Def && Entity->AbilityPhase == AbilityPhase_Windup &&
-            Entity->AbilityIndex < Def->AbilityCount;
+        bool32 Known = Def && Entity->AbilityIndex < Def->AbilityCount;
+        bool32 WindingUp = Known && Entity->AbilityPhase == AbilityPhase_Windup;
+        bool32 Under = Known && Entity->AbilityPhase == AbilityPhase_Active &&
+            Def->Abilities[Entity->AbilityIndex].Kind == MonsterAbility_Burrow;
         danger_cast *Last = &Zones->Winding[EntityIndex];
-        if (!WindingUp)
+        if (!WindingUp && !Under)
         {
             // NOTE(zoubir): only a windup that went on to its hit, not one
             // cut short by the monster dying or leaving the slot; online a
-            // short Active can fall between two snapshots, so Recover counts
-            if (Last->Ability && Live && Zones->WindingId[EntityIndex] == Entity->ID &&
+            // short Active can fall between two snapshots, so Recover counts.
+            // A burrower lands when it leaves Active, which online shows as
+            // Ready since Recover is not sent
+            bool32 Landed = Zones->WindingUnder[EntityIndex] ?
+                Entity->Hp > 0.f && Entity->AbilityPhase != AbilityPhase_Windup :
                 (Entity->AbilityPhase == AbilityPhase_Active ||
-                 Entity->AbilityPhase == AbilityPhase_Recover))
+                 Entity->AbilityPhase == AbilityPhase_Recover);
+            if (Last->Ability && Live && Zones->WindingId[EntityIndex] == Entity->ID && Landed)
             {
                 AddDangerImpact(AppState, Zones, Last, Now);
             }
             Last->Ability = 0;
+            Zones->WindingUnder[EntityIndex] = false;
             continue;
         }
         monster_ability *Ability = &Def->Abilities[Entity->AbilityIndex];
-        float Progress = Ability->Windup > 0.f ?
-            Clamp01(1.f - Entity->AbilityTimer / Ability->Windup) : 1.f;
+        float Length = Under ? Ability->Active : Ability->Windup;
+        float Progress = Length > 0.f ? Clamp01(1.f - Entity->AbilityTimer / Length) : 1.f;
         *Last = GetDangerCast(Entity, Ability);
         Zones->WindingId[EntityIndex] = Entity->ID;
-        DrawDangerCast(RenderContext, World, CameraOffset, Last, Progress, 1.f);
+        Zones->WindingUnder[EntityIndex] = Under;
+        // NOTE(zoubir): a burrower's spot shows once it is under, not
+        // while it digs in
+        if (Ability->Kind != MonsterAbility_Burrow || Under)
+        {
+            DrawDangerCast(RenderContext, World, CameraOffset, Last, Progress, 1.f);
+        }
     }
 
     for(u32 Index = 0; Index < Zones->ImpactCount;)

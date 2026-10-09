@@ -143,6 +143,15 @@ AddBossImpact(app_state *AppState, danger_cast *Cast, float Now)
             }
         } break;
 
+        case MonsterAbility_Burrow:
+        {
+            // NOTE(zoubir): coming up through the floor where it was marked
+            if (Cast->PointCount)
+            {
+                PushBossImpact(AppState, Cast->Points[0], Ability->Radius * 1.3f, Color, -1.f, Now);
+            }
+        } break;
+
         case MonsterAbility_Blink:
         {
             if (Cast->PointCount)
