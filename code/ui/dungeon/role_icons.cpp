@@ -415,6 +415,7 @@ typedef void talent_icon_painter(icon_canvas *Canvas);
 global_variable role_icon_painter *StrikerIconPainters[ROLE_KEYS] =
 {
     PaintRoleInfernoIcon, PaintRoleGiantFireballIcon, PaintRoleFireguardIcon, PaintRoleCombustionIcon,
+    PaintRoleDetonateIcon,
 };
 global_variable role_icon_painter *TankIconPainters[ROLE_KEYS] =
 {

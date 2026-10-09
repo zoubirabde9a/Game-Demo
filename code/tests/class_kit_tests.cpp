@@ -226,7 +226,8 @@ TestAttackSpells()
     player_slot *Tank = &AppState->Players[0];
     player_slot *Healer = &AppState->Players[1];
     SetPlayerRole(AppState, Tank, PlayerRole_Damage);
-    GrantClassSpells(Tank);
+    // NOTE(zoubir): the striker's W is Detonate, from its tree
+    ResetRoleTalents(Tank);
     Check(!(RunAllowedButtons(AppState, Tank, 0) & PlayerButton_Shockwave));
     SetPlayerRole(AppState, Tank, PlayerRole_Tank);
     GrantClassSpells(Tank);

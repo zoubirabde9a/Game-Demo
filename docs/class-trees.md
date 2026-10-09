@@ -89,7 +89,7 @@ Every class has its two branches, its spell pairs and its pools in the game (`cl
 
 | Class | Still to do |
 |---|---|
-| Fire Mage | Detonate (W) is not built; Cataclysm holds its place in Pyre's pair |
+| Fire Mage | its bot always takes Combustion, never Detonate |
 | Bulwark | Shield Slam does not taunt yet; Vanguard's capstone is Retaliation until the ally guard is built; the bot does not pick Taunt |
 | Mender | the atonement talent is not built |
 | Ranger | Kill Shot (W) is not built; Lethal Mark holds its place; Barrage and Hunter's Net only help Volley and Disengage |

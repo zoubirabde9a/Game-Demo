@@ -130,6 +130,45 @@ TestSearingBurnsAndExplodes()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Detonate (W) blows the marks the striker laid near it at
+// once and harder, leaves a mark out of reach and another striker's, and
+// with no mark near costs nothing
+internal void
+TestDetonateSpell()
+{
+    crypt_world Crypt = CreateCryptWorld(2);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Crypt, 1);
+    player_slot *Slot = &AppState->Players[0];
+    SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    ResetRoleTalents(Slot);
+    Check(!RoleSpellLearned(Slot, 4));
+    GrantClassSpells(Slot);
+    Check(RoleSpellLearned(Slot, 4));
+    PressOnce(&Crypt, 0, PlayerButton_Shockwave);
+    Check(Slot->RoleCooldowns[4] == 0.f);
+    world_entity *Near = StrikerDummy(&Crypt, V3(160.f, 0.f, 0.f));
+    world_entity *Other = StrikerDummy(&Crypt, V3(-160.f, 0.f, 0.f));
+    world_entity *Out = StrikerDummy(&Crypt, V3(DETONATE_SPELL_REACH + 120.f, 0.f, 0.f));
+    AddSearing(Run, World, Near, SEARING_MOST, 0);
+    AddSearing(Run, World, Other, SEARING_MOST, 1);
+    AddSearing(Run, World, Out, SEARING_MOST, 0);
+    float Before = Near->Hp;
+    float OtherBefore = Other->Hp;
+    float OutBefore = Out->Hp;
+    PressOnce(&Crypt, 0, PlayerButton_Shockwave);
+    Check(Slot->RoleCooldowns[4] > 0.f);
+    float Blast = (DETONATE_DAMAGE + DETONATE_PER_STACK * SEARING_MOST) * (1.f + DETONATE_SPELL_SHARE) *
+        GetRoleDef(PlayerRole_Damage)->DamageDealt;
+    Check(Before - Near->Hp > 0.95f * Blast);
+    Check(FindFoeMark(Run, World, Near) == 0);
+    Check(FindFoeMark(Run, World, Other) && FindFoeMark(Run, World, Out));
+    Check(Other->Hp > OtherBefore - 5.f && Out->Hp > OutBefore - 5.f);
+    DestroyCryptWorld(&Crypt);
+}
+
 // NOTE(zoubir): Fireguard takes FIREGUARD_ABSORB, then lets the rest
 // through; it shows in the ClassMeter, and goes out with its time
 internal void
@@ -407,6 +446,7 @@ RunStrikerTests()
     TestSunderAndWardRaiseDamage();
     TestMarkBitsFromFireball();
     TestSearingBurnsAndExplodes();
+    TestDetonateSpell();
     TestFireguardAbsorbs();
     TestClassKeyWaitsForTheCast();
 }

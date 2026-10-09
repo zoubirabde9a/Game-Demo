@@ -96,7 +96,9 @@ global_variable role_spell StrikerSpells[ROLE_KEYS] =
       RoleAim_None, 0.f, StrikerTalent_Fireguard + 1},
      {"Combustion", COMBUSTION_COOLDOWN, "Combustion: 6 s of 40% more damage",
       RoleAim_None, 0.f, StrikerTalent_Combustion + 1},
-     {}};
+     {"Detonate", DETONATE_SPELL_COOLDOWN,
+      "Detonate: every Searing mark you laid near you blows at once, 30% harder",
+      RoleAim_None, DETONATE_SPELL_REACH, StrikerTalent_Detonate + 1}};
 
 global_variable role_spell TankSpells[ROLE_KEYS] =
 {

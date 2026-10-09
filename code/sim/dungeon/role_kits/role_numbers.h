@@ -165,6 +165,12 @@
 #define DETONATE_PER_STACK 10.f
 #define DETONATE_SPLASH_RADIUS 70.f
 #define DETONATE_SPLASH_SHARE 0.5f
+// NOTE(zoubir): Detonate, the spell (W, from Pyre's pair): every mark the
+// striker laid within DETONATE_SPELL_REACH of it blows at once, each
+// DETONATE_SPELL_SHARE harder than running out would make it
+#define DETONATE_SPELL_REACH 320.f
+#define DETONATE_SPELL_SHARE 0.3f
+#define DETONATE_SPELL_COOLDOWN 10.f
 // NOTE(zoubir): Fireguard (C): a shield of fire on the striker that takes
 // the next FIREGUARD_ABSORB damage, gone after FIREGUARD_SECONDS
 #define FIREGUARD_ABSORB 50.f

@@ -8,19 +8,18 @@
 // NOTE(zoubir): by player_role
 global_variable class_tree_def ClassTrees[PlayerRole_Count] =
 {
-    // NOTE(zoubir): the Fire Mage. Cataclysm holds Pyre's second spell
-    // slot until Detonate is in
+    // NOTE(zoubir): the Fire Mage
     {{"Wildfire", "Pyre"},
      {CLASS_BRANCH(CT(StrikerTalent_SearingHeat), CT(StrikerTalent_Meteor), CT(StrikerTalent_Fireguard),
                    CT(StrikerTalent_Wildfire), CT(StrikerTalent_MoltenGround), RM(Smoulder),
                    CT(StrikerTalent_Overload)),
-      CLASS_BRANCH(CT(StrikerTalent_Pyromancer), CT(StrikerTalent_Combustion), CT(StrikerTalent_Cataclysm),
+      CLASS_BRANCH(CT(StrikerTalent_Pyromancer), CT(StrikerTalent_Combustion), CT(StrikerTalent_Detonate),
                    CT(StrikerTalent_Executioner), RM(KindledWrath), RM(FireWithin),
                    RM(PhoenixHeart))},
      {{CT(StrikerTalent_Kindling), RM(Pyroclasm), RM(RisingGlory), RM(Reprisal), RM(Feast),
        CT(StrikerTalent_HeatShield)},
       {CT(StrikerTalent_QuickenedFlame), RM(Cadence), RM(OpeningSalvo), RM(Leeching),
-       CT(StrikerTalent_EmberMantle), RM(CinderSkin)}}},
+       CT(StrikerTalent_EmberMantle), RM(CinderSkin), CT(StrikerTalent_Cataclysm)}}},
 
     // NOTE(zoubir): the Bulwark
     {{"Bastion", "Vanguard"},

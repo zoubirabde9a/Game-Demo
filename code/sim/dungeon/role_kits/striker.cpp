@@ -1,6 +1,9 @@
 /* The damage role's kit (role_abilities.cpp): Meteor on A, Giant
-   Fireball on R, both with a cast, and Fireguard on C; from its tree
-   Combustion on V. X is the game's fireball, as for everyone.
+   Fireball on R, both with a cast, Fireguard on C, Combustion on V and
+   Detonate on W. X is the game's fireball, which only the striker keeps.
+   Giant Fireball and the fireball are its base kit; the tree's two
+   branches give one of Meteor and Fireguard and one of Combustion and
+   Detonate (class_tree_defs.cpp).
 
    Searing is the fire every spell leaves behind. A fireball the striker
    lands puts one stack on the monster, a Meteor blast
@@ -35,6 +38,9 @@
    What is left of it goes to clients as the slot's ClassMeter, so the
    ring round the striker empties the same online. Combustion makes every
    hit the striker lands COMBUSTION_SHARE harder for COMBUSTION_SECONDS.
+   Detonate blows every mark the striker laid within DETONATE_SPELL_REACH
+   at once, DETONATE_SPELL_SHARE harder than when it runs out: the payoff
+   of stacking marks on a pack, or of a full mark on a boss.
 
    The damage counts as the caster's, so their class and talents scale it
    and it makes threat for them. */
@@ -49,7 +55,7 @@ OnStrikerShot(app_state *AppState, u32 By, world_entity *Target)
 // NOTE(zoubir): Stacks of Searing on Marked ran out: it explodes, the
 // marked monster taking the whole blast and those round it a share
 internal void
-ExplodeSearing(app_state *AppState, world_entity *Marked, u32 Stacks, u32 By)
+ExplodeSearing(app_state *AppState, world_entity *Marked, u32 Stacks, u32 By, float Scale = 1.f)
 {
     world *World = &AppState->World;
     player_slot *Slot = &AppState->Players[By < MAX_PLAYERS ? By : 0];
@@ -57,7 +63,7 @@ ExplodeSearing(app_state *AppState, world_entity *Marked, u32 Stacks, u32 By)
     u32 BySlot = Caster ? By : SIM_NOBODY;
     float PerStack = DETONATE_PER_STACK + SEARING_HEAT_PER_STACK *
         (float)RoleRank(Slot, PlayerRole_Damage, StrikerTalent_SearingHeat);
-    float Damage = DETONATE_DAMAGE + PerStack * (float)Stacks;
+    float Damage = Scale * (DETONATE_DAMAGE + PerStack * (float)Stacks);
     if (Stacks >= SEARING_MOST && RoleRank(Slot, PlayerRole_Damage, StrikerTalent_Overload))
     {
         Damage *= 1.f + OVERLOAD_SHARE;
@@ -118,6 +124,36 @@ UpdateSearing(app_state *AppState, dungeon_run *Run, float DeltaTime)
     }
 }
 
+// NOTE(zoubir): Detonate (W): every mark Player laid within
+// DETONATE_SPELL_REACH blows now; false, so no cooldown, when none is
+// there
+internal bool32
+DetonateMarks(app_state *AppState, world_entity *Player)
+{
+    dungeon_run *Run = AppState->Dungeon;
+    world *World = &AppState->World;
+    u32 By = Player->PlayerIndex;
+    bool32 Result = false;
+    for(u32 Index = 0; Index < MAX_FOE_MARKS; Index++)
+    {
+        foe_mark *Mark = &Run->Marks[Index];
+        world_entity *Monster = (Mark->Stacks && Mark->SearBy == By) ?
+            FindMonsterBySerial(World, Mark->Slot, Mark->Serial) : 0;
+        if (!Monster || Monster->Hp <= 0.f ||
+            Length(Monster->Position.XY - Player->Position.XY) > DETONATE_SPELL_REACH)
+        {
+            continue;
+        }
+        u32 Stacks = Mark->Stacks;
+        Mark->Stacks = 0;
+        Mark->Seconds = 0.f;
+        Mark->BurnTimer = 0.f;
+        ExplodeSearing(AppState, Monster, Stacks, By, 1.f + DETONATE_SPELL_SHARE);
+        Result = true;
+    }
+    return Result;
+}
+
 // NOTE(zoubir): once a tick: a Fireguard runs out with its time, and what
 // is left of it goes out as a striker's ClassMeter
 internal void
@@ -165,6 +201,7 @@ internal bool32
 CastStrikerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 Key)
 {
     u8 SlotIndex = (u8)Player->PlayerIndex;
+    bool32 Result = true;
     switch(Key)
     {
         case 0:
@@ -189,6 +226,11 @@ CastStrikerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32
                       ATan2(Player->Aim.Y, Player->Aim.X));
         } break;
 
+        case 4:
+        {
+            Result = DetonateMarks(AppState, Player);
+        } break;
+
         case 3:
         {
             Slot->CombustSeconds = COMBUSTION_SECONDS;
@@ -197,7 +239,7 @@ CastStrikerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32
                       ATan2(Player->Aim.Y, Player->Aim.X));
         } break;
     }
-    return true;
+    return Result;
 }
 
 // NOTE(zoubir): the meteor called down at Slot's cast point; nothing when

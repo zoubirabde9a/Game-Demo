@@ -17,6 +17,7 @@ enum striker_talent
     StrikerTalent_Cataclysm,
     StrikerTalent_Meteor,
     StrikerTalent_Fireguard,
+    StrikerTalent_Detonate,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -68,6 +69,8 @@ global_variable talent_def StrikerTalentDefs[CLASS_TALENTS] =
     {"Meteor", "A: a 1 s cast, then a meteor at the cursor that marks and leaves burning ground",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Fireguard", "C: a shield of fire that takes the next 50 damage",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Detonate", "W: every Searing mark you laid near you blows at once, 30% harder",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
