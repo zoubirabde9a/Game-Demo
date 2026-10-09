@@ -160,17 +160,11 @@ FindDruidMoonfire(app_state *AppState, u32 By, world_entity *Foe)
     return 0;
 }
 
-// NOTE(zoubir): Moonfire: a hit at once and a burn left on the foe (a
-// fresh one where it already burns); false with no foe in reach
-internal bool32
-CastMoonfire(app_state *AppState, player_slot *Slot, world_entity *Player)
+// NOTE(zoubir): the burn of the Druid in slot By left on Foe, fresh
+// where it already burns; nothing when every burn is in use
+internal void
+LeaveDruidMoonfire(app_state *AppState, u8 By, world_entity *Foe)
 {
-    world_entity *Foe = DruidTarget(AppState, Slot, Player, MOONFIRE_RANGE);
-    if (!Foe)
-    {
-        return false;
-    }
-    u8 By = (u8)Player->PlayerIndex;
     druid_run *Run = &AppState->Dungeon->Druid;
     druid_moonfire *Burn = FindDruidMoonfire(AppState, By, Foe);
     for(u32 Index = 0; Index < DRUID_MAX_MOONFIRES && !Burn; Index++)
@@ -189,6 +183,20 @@ CastMoonfire(app_state *AppState, player_slot *Slot, world_entity *Player)
         Burn->Keep = DRUID_KEEP_SECONDS;
         Burn->By = By;
     }
+}
+
+// NOTE(zoubir): Moonfire: a hit at once and a burn left on the foe (a
+// fresh one where it already burns); false with no foe in reach
+internal bool32
+CastMoonfire(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
+    world_entity *Foe = DruidTarget(AppState, Slot, Player, MOONFIRE_RANGE);
+    if (!Foe)
+    {
+        return false;
+    }
+    u8 By = (u8)Player->PlayerIndex;
+    LeaveDruidMoonfire(AppState, By, Foe);
     v2 Away = NormalizeOr(Foe->Position.XY - Player->Position.XY, GetPlayerAim(Player));
     DruidHit(AppState, By, Foe, DruidShot_Moonfire, MOONFIRE_DAMAGE, 0.f, Away);
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_DruidFirst, DruidBurst_Moonfire), By,
@@ -227,11 +235,19 @@ UpdateDruidBolts(app_state *AppState, druid_run *Run, float DeltaTime)
         if (Foe && Foe->Hp > 0.f)
         {
             float Shove = Shot == DruidShot_Starfire ? 90.f : 30.f;
-            // NOTE(zoubir): Eclipse: a star on a foe its Druid's Moonfire burns
-            bool32 Eclipse = Shot == DruidShot_Starfire && IsDruidMoonfired(AppState, Bolt->By, Foe) &&
-                RoleRank(&AppState->Players[Bolt->By], PlayerRole_Druid, DruidTalent_Eclipse);
+            // NOTE(zoubir): Eclipse: a bolt or a star on a foe its Druid's
+            // Moonfire burns hits harder, and a star leaves the burn
+            bool32 Talent = RoleRank(&AppState->Players[Bolt->By], PlayerRole_Druid,
+                                     DruidTalent_Eclipse) > 0;
+            bool32 Eclipse = Talent && IsDruidMoonfired(AppState, Bolt->By, Foe);
             DruidHit(AppState, Bolt->By, Foe, Shot, Bolt->Damage * (Eclipse ? 1.f + ECLIPSE_SHARE : 1.f),
                      Shove, Bolt->Away);
+            if (Talent && Shot == DruidShot_Starfire && Foe->IsPresent && Foe->Hp > 0.f)
+            {
+                LeaveDruidMoonfire(AppState, Bolt->By, Foe);
+                EmitBurst(&AppState->Events, ClassBurst(SimBurst_DruidFirst, DruidBurst_Moonfire),
+                          Bolt->By, ChestOf(Foe));
+            }
             EmitSound(&AppState->Events, Shot == DruidShot_Starfire ? AssetType_SfxGiantFireball :
                       AssetType_SfxHit, Foe->Position);
         }

@@ -358,6 +358,33 @@ TestDruidRevives()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Eclipse: with Starfire alone, the star leaves a Moonfire on
+// its foe; then Wrath on that foe lands 25% harder
+internal void
+TestEclipse()
+{
+    crypt_world Crypt = CreateDruidWorld();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    ResetRoleTalents(Slot);
+    SetClassTalentRank(Slot, DruidTalent_Starfire, 1);
+    SetClassTalentRank(Slot, DruidTalent_Eclipse, 1);
+    Check(!RoleSpellLearned(Slot, 5));
+    world_entity *Foe = DruidDummy(&Crypt, V3(250.f, 0.f, 0.f));
+    PressOnce(&Crypt, 0, PlayerButton_Push);
+    DruidTick(&Crypt, (u32)(60.f * (1.5f + STARFIRE_FALL)) + 4);
+    Check(IsDruidMoonfired(AppState, 0, Foe));
+    // NOTE(zoubir): the burn holds its bite, so only the bolt counts
+    FindDruidMoonfire(AppState, 0, Foe)->TickTimer = 100.f;
+    float Before = Foe->Hp;
+    Slot->RoleCooldowns[6] = 0.f;
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    DruidTick(&Crypt, (u32)(60.f * 250.f / DRUID_BOLT_SPEED) + 2);
+    float Expected = WRATH_DAMAGE * GetRoleDef(PlayerRole_Druid)->DamageDealt * (1.f + ECLIPSE_SHARE);
+    Check(DruidNear(Before - Foe->Hp, Expected));
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDruidTests()
 {
@@ -365,6 +392,7 @@ RunDruidTests()
     TestWrathGrowsBloom();
     TestMoonfireBurns();
     TestStarfire();
+    TestEclipse();
     TestRejuvenation();
     TestRegrowthAndSymbiosis();
     TestTranquility();

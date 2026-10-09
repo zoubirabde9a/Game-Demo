@@ -77,7 +77,7 @@ Base kit first, then each branch: its spell pair, its fixed talents, and what it
 ### Druid
 - **Base:** Wrath (right click), which grows Bloom; Regrowth (W), which spends it on a heal.
 - **Grove** (healing over time). Spells: Rejuvenation (A) or Tranquility (V). Fixed: Verdancy, Wild Growth, Overgrowth; capstone Heart of the Wild. Wild: overflow, aura, heal taken, Wild Bloom.
-- **Moon** (damage that heals). Spells: Starfire (R) or Moonfire (X). Fixed: Eclipse, Symbiosis, Nature's Wrath; capstone Entangling Moon (Starfire on a foe under your Moonfire, or a Moonfire crit, roots it 2 s; Entangling Roots leaves the kit). Wild: damage, anthem, Moonlit.
+- **Moon** (damage that heals). Spells: Starfire (R) or Moonfire (X). Fixed: Nature's Wrath, Symbiosis, Eclipse (Wrath and Starfire hit a foe under your Moonfire 25% harder, and Starfire leaves a Moonfire, so it pays off either spell); capstone Entangling Moon (Starfire on a foe under your Moonfire, or a Moonfire crit, roots it 2 s; Entangling Roots leaves the kit). Wild: damage, anthem, Moonlit.
 
 ## Bots
 
@@ -98,5 +98,5 @@ Every class has its two branches, its spell pairs and its pools in the game (`cl
 | Stormcaller | nothing beyond tuning |
 | Duelist | its bot always takes Riposte, never Feint |
 | Frost Mage | nothing beyond tuning |
-| Druid | Eclipse needs Moonfire and Starfire, which are a pair now, so it is out of the tree until it is reworked; Entangling Moon is not built |
+| Druid | the Moon branch's capstone is Shared Spoils until a capstone of its own is built |
 | Every class | the bots take the left spell of each pair; the balance probe has not been rerun |

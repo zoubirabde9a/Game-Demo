@@ -131,10 +131,10 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    CT(DruidTalent_WildGrowth), CT(DruidTalent_Overgrowth), RM(Verdant),
                    RM(HeartOfTheWild)),
       CLASS_BRANCH(CT(DruidTalent_NaturesWrath), CT(DruidTalent_Starfire), CT(DruidTalent_Moonfire),
-                   CT(DruidTalent_Symbiosis), RM(Moonlit), CT(DruidTalent_StarlitFury),
+                   CT(DruidTalent_Symbiosis), CT(DruidTalent_Eclipse), CT(DruidTalent_StarlitFury),
                    RM(SharedSpoils))},
      {{CT(DruidTalent_GiftOfTheWild), CT(DruidTalent_Swiftmend), RM(Overflowing), RM(Receptive),
        RM(Hymn), CT(DruidTalent_Barkskin)},
       {RM(Giantslayer), RM(KeenEdge), RM(WarSong), RM(Bloodrush), RM(Quickened),
-       RM(Cadence)}}},
+       RM(Cadence), RM(Moonlit)}}},
 };

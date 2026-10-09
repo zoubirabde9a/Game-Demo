@@ -99,9 +99,11 @@ enum druid_talent
 // NOTE(zoubir): Verdancy: Rejuvenation heals this much more and longer
 #define VERDANCY_SHARE 0.3f
 #define VERDANCY_SECONDS 3.f
-// NOTE(zoubir): Eclipse: Starfire on a foe under the Druid's Moonfire
-// hits this much harder
-#define ECLIPSE_SHARE 0.35f
+// NOTE(zoubir): Eclipse: Wrath and Starfire on a foe under the Druid's
+// Moonfire hit this share harder, and Starfire leaves the Druid's
+// Moonfire on what it strikes, so the talent pays off either spell of
+// the Moon branch's pair
+#define ECLIPSE_SHARE 0.25f
 // NOTE(zoubir): Symbiosis: Wrath and Starfire heal the most hurt ally
 // within this for this share of what they deal
 #define SYMBIOSIS_REACH 400.f
@@ -123,7 +125,8 @@ global_variable talent_def DruidTalentDefs[CLASS_TALENTS] =
      "a new spell", TalentBranch_Role, 0, 1, 2, 0},
     {"Verdancy", "Rejuvenation heals 30% more and lasts 3 s longer", "+30%, +3 s",
      TalentBranch_Role, 1, 0, 1, 0},
-    {"Eclipse", "Starfire hits a foe under your Moonfire 35% harder", "+35% on Moonfire",
+    {"Eclipse", "Wrath and Starfire hit a foe under your Moonfire 25% harder; Starfire leaves a Moonfire",
+     "+25% on Moonfire",
      TalentBranch_Role, 1, 1, 1, 0},
     {"Tranquility", "V: a 3 s channel that heals every ally around you", "a new spell",
      TalentBranch_Role, 2, 0, 1, 0},
