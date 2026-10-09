@@ -42,7 +42,7 @@ Base kit first, then each branch: its spell pair, its fixed talents, and what it
 ### Mender
 - **Base:** Mending Bolt (A); Ward (R).
 - **Sanctum** (the whole party). Spells: Sanctuary (C) or Radiance (V). Fixed: Deep Ward, Steadfast Ward, Blessed Hands; capstone Guardian Angel. Wild: overflow, aura, shared feast, Miracle.
-- **Dawn** (heal by hurting). Spells: Holy Fire (W) or Smite Bolt (right click). Fixed: Swift Mending, Renewal, an atonement talent (light that hurts a foe heals the most hurt ally more); capstone Miracle. Wild: anthem, damage, haste, heal taken.
+- **Dawn** (heal by hurting). Spells: Holy Fire (W) or Smite Bolt (right click). Fixed: Swift Mending, Renewal, Atonement (the most hurt ally heals 20% more a rank from the light that strikes a foe, Holy Fire's or Smite Bolt's); capstone Miracle. Wild: anthem, damage, haste, heal taken.
 
 ### Ranger
 - **Base:** Quick Shot (X), which marks and builds Focus; Piercing Shot (R), which spends it.
@@ -91,7 +91,7 @@ Every class has its two branches, its spell pairs and its pools in the game (`cl
 |---|---|
 | Fire Mage | nothing beyond tuning |
 | Bulwark | Shield Slam does not taunt yet; Vanguard's capstone is Retaliation until the ally guard is built; the bot does not pick Taunt |
-| Mender | the atonement talent is not built |
+| Mender | nothing beyond tuning |
 | Ranger | nothing beyond tuning |
 | Berserker | nothing beyond tuning |
 | Shadowblade | nothing beyond tuning |

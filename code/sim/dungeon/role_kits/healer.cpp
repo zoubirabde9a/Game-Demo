@@ -19,11 +19,11 @@
    race: on the tank before a big hit, on the striker the rest of the
    time to beat the boss's clock.
 
-   Smite: with nothing to heal the healer still has a use for its
-   fireball, as each one that lands heals the most hurt ally in reach for
-   SMITE_SHARE of the damage it dealt. Holy Fire is the healer's attack:
-   HOLY_FIRE_DAMAGE on the foe it aims at, healing through Smite like a
-   fireball, so a healer with little to heal still adds to the race. */
+   Smite: light that strikes a foe heals the most hurt ally in reach for
+   SMITE_SHARE of the damage it dealt, more with Atonement. The Dawn
+   branch offers Holy Fire (HOLY_FIRE_DAMAGE on the foe it aims at) or
+   Smite Bolt (a quick small bolt), so a healer with little to heal
+   still adds to the race. */
 
 // NOTE(zoubir): from OnRoleHit: the healer's fireball dealt
 // Damage; Smite heals the most hurt ally in reach SMITE_SHARE of it
@@ -34,7 +34,9 @@ OnHealerShot(app_state *AppState, world_entity *Healer, float Damage)
     if (Ally)
     {
         u8 SlotIndex = (u8)Healer->PlayerIndex;
-        HealPlayer(AppState, SlotIndex, Ally, SMITE_SHARE * Damage);
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        float Atone = 1.f + ATONEMENT_SHARE * (float)RoleRank(Slot, PlayerRole_Healer, HealerTalent_Atonement);
+        HealPlayer(AppState, SlotIndex, Ally, Atone * SMITE_SHARE * Damage);
         EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Ally));
     }
 }

@@ -40,12 +40,12 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    CT(HealerTalent_SteadfastWard), CT(HealerTalent_BlessedHands), RM(SpiritWard),
                    CT(HealerTalent_GuardianAngel)),
       CLASS_BRANCH(CT(HealerTalent_SwiftMending), CT(HealerTalent_HolyFire), CT(HealerTalent_SmiteBolt),
-                   CT(HealerTalent_Renewal), RM(Serenity), RM(Sanctified),
+                   CT(HealerTalent_Renewal), CT(HealerTalent_Atonement), RM(Sanctified),
                    CT(HealerTalent_Miracle))},
      {{CT(HealerTalent_Quickening), RM(Bountiful), RM(Hymn), RM(SharedSpoils), RM(Rallying),
        CT(HealerTalent_InnerLight)},
       {CT(HealerTalent_LightFeet), RM(WarSong), RM(Receptive), RM(MendingTouch), RM(KeenEdge),
-       RM(SecondBreath)}}},
+       RM(SecondBreath), RM(Serenity)}}},
 
     // NOTE(zoubir): the Ranger
     {{"Marksmanship", "Survival"},

@@ -395,6 +395,31 @@ TestMenderLaterTalents()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Atonement: the heal the healer's light gives the most hurt
+// ally grows 20% a rank
+internal void
+TestAtonement()
+{
+    crypt_world Crypt = CreateCryptWorld(2);
+    app_state *AppState = Crypt.AppState;
+    TickCrypt(&Crypt, 1);
+    player_slot *Healer = &AppState->Players[0];
+    SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+    world_entity *Ally = AppState->Players[1].Entity;
+    float Healed[2];
+    for(u32 Ranks = 0; Ranks < 2; Ranks++)
+    {
+        SetClassTalentRank(Healer, HealerTalent_Atonement, 2 * Ranks);
+        Ally->Hp = 10.f;
+        OnHealerShot(AppState, Healer->Entity, 10.f);
+        Healed[Ranks] = Ally->Hp - 10.f;
+    }
+    Check(Healed[0] > 0.f);
+    Check(Healed[1] > 0.99f * (1.f + 2.f * ATONEMENT_SHARE) * Healed[0] &&
+          Healed[1] < 1.01f * (1.f + 2.f * ATONEMENT_SHARE) * Healed[0]);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunClassKitTests()
 {
@@ -406,4 +431,5 @@ RunClassKitTests()
     TestAttackSpells();
     TestBasicAttacks();
     TestMenderLaterTalents();
+    TestAtonement();
 }

@@ -17,6 +17,7 @@ enum healer_talent
     HealerTalent_GuardianAngel,
     HealerTalent_HolyFire,
     HealerTalent_SmiteBolt,
+    HealerTalent_Atonement,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -39,6 +40,9 @@ enum healer_talent
 #define GUARDIAN_ANGEL_HP_SHARE 0.3f
 #define GUARDIAN_ANGEL_HEAL_SHARE 0.4f
 #define GUARDIAN_ANGEL_WARD 40.f
+// NOTE(zoubir): Atonement, per rank: the heal Holy Fire and Smite Bolt give
+// the most hurt ally (OnHealerShot) is this share more
+#define ATONEMENT_SHARE 0.2f
 
 global_variable talent_def HealerTalentDefs[CLASS_TALENTS] =
 {
@@ -70,6 +74,8 @@ global_variable talent_def HealerTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Smite Bolt", "Right click: a quick bolt of light at a foe; the most hurt ally heals a little",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Atonement", "The light you strike foes with heals the most hurt ally more",
+     "+20% of Holy Fire's and Smite Bolt's heal", TalentBranch_Role, 0, 0, 3, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
