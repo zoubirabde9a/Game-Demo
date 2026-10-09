@@ -284,19 +284,28 @@ DrawShadowbladeLook(render_context *RenderContext, app_state *AppState, player_s
     }
 }
 
+// NOTE(zoubir): whether a Shadowblade is in the party, so its own poison
+// look stands on the poisoned monsters and the shared green bubbles
+// (player_fx/status_fx.cpp) leave them be, rather than both at once
+internal bool32
+ShadowbladeDrawsPoison(app_state *AppState)
+{
+    bool32 Result = false;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        Result |= AppState->Players[SlotIndex].Active &&
+            AppState->Players[SlotIndex].Role == PlayerRole_Shadowblade;
+    }
+    return Result;
+}
+
 // NOTE(zoubir): every frame in a run, over the world: poison dripping off
 // the monsters its daggers cut. Poisoned shows in every client's copy of
 // the monster, so the drips do too
 internal void
 DrawShadowbladeFx(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
 {
-    bool32 Party = false;
-    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
-    {
-        Party |= AppState->Players[SlotIndex].Active &&
-            AppState->Players[SlotIndex].Role == PlayerRole_Shadowblade;
-    }
-    if (!Party)
+    if (!ShadowbladeDrawsPoison(AppState))
     {
         return;
     }

@@ -7,7 +7,11 @@
    Slowed and stunned have looks of their own (talent_fx.cpp, the stars
    in fx_bursts.cpp). One row per effect below; colours come from the
    effect's pip colour. Replicas carry statuses as bits, so it looks the
-   same online. */
+   same online. A poisoned monster gets no bubbles while a Shadowblade is
+   in the party, which draws its own poison on it instead. */
+
+// NOTE(zoubir): in client/dungeon/classes/shadowblade.cpp
+internal bool32 ShadowbladeDrawsPoison(app_state *AppState);
 
 enum status_motion
 {
@@ -51,6 +55,7 @@ DrawStatusMotes(render_context *RenderContext, app_state *AppState, v3 CameraOff
 {
     world *World = &AppState->World;
     float Clock = GetFxClock(AppState);
+    bool32 ClassPoison = ShadowbladeDrawsPoison(AppState);
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Entity = &World->Entities[EntityIndex];
@@ -67,7 +72,8 @@ DrawStatusMotes(render_context *RenderContext, app_state *AppState, v3 CameraOff
         for(u32 Effect = 1; Effect < StatusEffect_Count; Effect++)
         {
             status_fx_look *Look = &StatusFxLooks[Effect];
-            if (Look->Motion == StatusMotion_None || Entity->StatusTimers[Effect] <= 0.f)
+            if (Look->Motion == StatusMotion_None || Entity->StatusTimers[Effect] <= 0.f ||
+                (Effect == StatusEffect_Poisoned && ClassPoison && Entity->Type == EntityType_Monster))
             {
                 continue;
             }
