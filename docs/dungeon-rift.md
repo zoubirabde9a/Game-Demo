@@ -87,6 +87,7 @@ Health below is before the dungeon's 0.6, the level's 2.05 and party scaling.
 - Everwinter Kiss: a blow nobody dodges, every 12 s (34, slows).
 - Frozen Tempest (below 30%): seven shards out all the way round her.
 - At 70% and 35% two Aurora Pylons; at 85%, 55% and 20% Frostmaw Yetis, one, two, then two frenzied, which walk back into her if left alone.
+- Ice tombs (`sim/dungeon/frost_tombs.cpp`), only while two or more of the party stand in her hall: 20 s in and then every 30 s she marks a player she is not after. A frost sigil hangs over them and its ring (70) closes over 3.5 s; everyone inside it when it closes freezes, so the marked player runs from the party. Each frozen player stands stunned in an Ice Tomb, out of reach of every other blow, until the party breaks it (12 health before the level and party scaling, about 4 s for the bots). Left for 10 s (the cast bar over the block) it shatters: the player loses 40% of their health and she heals 4%. When she dies the tombs go with her.
 
 ## Tuning
 
@@ -113,12 +114,14 @@ What moved the numbers:
 - The beam first hit whoever stood in it every quarter second. A fast sweep stepped over a player between two checks, so it now hits on the edge crossing, worked out every frame.
 - The Gallery's three small packs cost the bots nothing pulled one at a time; it is two big packs now.
 
+The ice tombs, Vaelith alone over the same 24 seeds (`set PROBE_MAP=rift& miscalance.bat 20 3 7 24`): without them 0.62 wipes and 2.71 deaths per kill in 122 s; with them 1.33 wipes and 4.96 deaths in 128 s, every seed still a kill. The bots broke about four tombs in five, in 4.2 s on average; the rest shattered. Tombs with 24 health that shattered for 55% after 9 s, every 24 s, came to 2.5 wipes per kill, nobody but the healer left to break the Fire Mage's tomb while the tank held her; every bot now turns to a tomb (`BotFindTarget`).
+
 Known problem: in about one seed in eight the bots wipe in a pack room and then stand at the room's corridor for good, so the probe ends that seed as stuck. It is the same bot pathing fault as `.agents/issues/vault-bots-stall-before-calving-hall.md` and does not touch people.
 
 ## Online
 
-Nothing new on the wire. The new ability kinds, the shatter and the ward are drawn from what snapshots already carry (see "What is new"). The map and the seven monster kinds were added at the end of their lists, so client and server must be built from the same commit, as for any new map or monster.
+Nothing new on the wire. The new ability kinds, the shatter and the ward are drawn from what snapshots already carry (see "What is new"). The Frost Mark and the Ice Tomb are monsters, so their rings, cast bars and health, and the frozen player's shield, come in the snapshot as they are. The map and the seven monster kinds were added at the end of their lists, so client and server must be built from the same commit, as for any new map or monster.
 
 ## Tests
 
-`tests/rift_tests.cpp` (the rooms match the map, the level is the hardest, the bosses stand on their clocks with their adds, the pylons ward the boss until broken, a beam stops at a pillar) and `tests/rift_ability_tests.cpp` (a wave passes under a jump, each ring hits once, running into a ring is a hit, a beam sweeps across its target and spares one beside it, a sentinel shatters only when it dies). `TestClearedCryptGoesDown` follows a party from the crypt through all five levels and back.
+`tests/rift_tests.cpp` (the rooms match the map, the level is the hardest, the bosses stand on their clocks with their adds, the pylons ward the boss until broken, a beam stops at a pillar) and `tests/rift_ability_tests.cpp` (a wave passes under a jump, each ring hits once, running into a ring is a hit, a beam sweeps across its target and spares one beside it, a sentinel shatters only when it dies). `tests/frost_tomb_tests.cpp` covers the ice tombs: the mark skips the player she is after and a lone player, the ring freezes everyone in it, a broken tomb frees its player, an unbroken one shatters and heals her, and her death frees everyone and clears the hall. `TestClearedCryptGoesDown` follows a party from the crypt through all five levels and back.
