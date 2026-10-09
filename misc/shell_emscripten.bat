@@ -13,6 +13,9 @@ if defined EMSDK if exist "%EMSDK%\emsdk_env.bat" set "EmsdkDir=%EMSDK%"
 if not defined EmsdkDir if exist "%USERPROFILE%\tools\emsdk\emsdk_env.bat" set "EmsdkDir=%USERPROFILE%\tools\emsdk"
 if not defined EmsdkDir if exist "w:\emscripten\emsdk\emsdk_env.bat" set "EmsdkDir=w:\emscripten\emsdk"
 if not defined EmsdkDir goto no_emsdk
+REM Started from Git Bash (deploy/package_client.sh), emsdk_env sees MSYSTEM
+REM and prints bash exports instead of setting this console up
+set MSYSTEM=
 call "%EmsdkDir%\emsdk_env.bat" >nul 2>nul
 cd /d "%ShellDir%"
 where em++ >nul 2>nul
