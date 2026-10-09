@@ -81,6 +81,9 @@ BotFindTarget(app_state *AppState, world_entity *Self)
         // NOTE(zoubir): a dungeon party fights the monsters together
         if (Other->Type == EntityType_Player && IsDungeon(AppState)) continue;
         if (IsDeadPlayer(Other)) continue;
+        // NOTE(zoubir): nor at a boss away from its fight, nor what falls
+        // while it is gone (sim/dungeon/boss_departures.cpp)
+        if (Other->Type == EntityType_Monster && IsOutOfReach(AppState, Other)) continue;
         if (Other->Type == EntityType_Monster && IsWardedBoss(AppState, Other) &&
             AppState->Players[Self->PlayerIndex].Role != PlayerRole_Tank) continue;
         // NOTE(zoubir): nobody hits a mirror, or one about to rise

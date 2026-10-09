@@ -87,6 +87,7 @@ struct giant_fireball
 };
 
 #include "boss_clock.h"
+#include "boss_departure.h"
 #include "role_kits/foe_marks.h"
 #include "frost_tombs.h"
 
@@ -119,6 +120,9 @@ struct dungeon_run
     boss_clock Clock;
     // NOTE(zoubir): Vaelith's ice tombs (frost_tombs.cpp)
     frost_tombs FrostTombs;
+    // NOTE(zoubir): a Starless Deep boss away from its fight
+    // (boss_departures.cpp)
+    boss_departure Departure;
     // NOTE(zoubir): the wall entities closing each gate, as slot + 1
     // (0 for none). Built on the first tick, so only a world that
     // simulates has them
@@ -364,6 +368,12 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         return 0.f;
     }
     player_slot *Attacker = DungeonAttackerSlot(AppState, Source);
+    // NOTE(zoubir): a boss away from its fight, and what falls while it
+    // is gone, take nothing (boss_wards.cpp)
+    if (IsOutOfReach(AppState, Target))
+    {
+        return 0.f;
+    }
     // NOTE(zoubir): a boss behind its pylons takes nothing, burns
     // included (boss_wards.cpp); a blow shows Blocked
     if (IsWardedBoss(AppState, Target))

@@ -82,6 +82,12 @@ Health below is before the dungeon's 0.6, the level's 2.4 and party scaling.
 - Sunset: a blow nobody dodges, every 12 s (46).
 - At 80% and 20% Collapsars (the second pair frenzied), at 60% two Obsidian Knights, at 40% three Void Seers. At 50% she binds a Star Shard, an armoured Collapsar: 22 s to break it or it erupts for 35% of everyone's health and heals her 10%.
 
+### Leaving the fight
+
+Ommoroth and Nyxara each leave their fight twice for 9 s (`sim/dungeon/boss_departures.cpp`): Ommoroth sinks into the dark under the Maw at 62% and 38%, Nyxara rises into the sky at 70% and 30%, both between their add waves. While a boss is gone it takes nothing, casts nothing, and its enrage clock stops. Its adds stay. Every 1.6 s, starting 0.8 s in, something comes down over each living player in the room: a Void Maw for Ommoroth, a Falling Star for Nyxara (`sim/monsters/starless_departure_hazards.cpp`). Each is a slam of 56 with a 1.3 s windup on the spot under it, 10 before scaling (about 42 on a 110-health damage player alone), and the star also burns for 2 s. A player who keeps walking is never hit; one who stands still is hit every wave. Then the boss drops back where it left. Varn stays: his mirrors already ask the party to stop and think.
+
+The boss and the hazards are held high over the floor (past `OUT_OF_SIGHT_HEIGHT`), so nothing bumps into them, no blow reaches them, spells and bots never pick them, and clients do not draw them. `client/dungeon/boss_departure_fx.cpp` draws instead a dark pool where Ommoroth sank, Nyxara's shadow and a shaft of light where she rose, jaws closing round each maw's ring, and each star falling onto its ring. Height travels in every snapshot, so none of this needed anything new on the wire (`TestDepartedBossesShowOnline`).
+
 ## Tuning
 
 Measured with the bots (a tank, a healer and the Fire Mage) given the experience of the four levels before, `set PROBE_MAP=starless& misc\balance.bat 120 3 2 64`. The bots walk into the light during an eclipse, carry a brand away from the party or walk away from whoever carries one, walk out of a well's core, and never hit a monster raising a mirror (`server/bots/bot_starless_dangers.cpp`, `BotFindTarget`).
@@ -116,4 +122,4 @@ Nothing new on the wire. The new ability kinds and the mirror are drawn from wha
 
 ## Tests
 
-`tests/starless_tests.cpp` (the rooms match the map, the level is the hardest, the bosses stand on their clocks with their adds, a raised mirror takes no blow and turns it back no harder than its cap) and `tests/starless_ability_tests.cpp` (a well drags who stands in reach toward it and collapses only on its core, a brand follows the farthest player and bursts on those near them, an eclipse spares only who stands in a light, jumping or not). `TestClearedCryptGoesDown` follows a party from the crypt through all five levels and back.
+`tests/starless_tests.cpp` (the rooms match the map, the level is the hardest, the bosses stand on their clocks with their adds, a raised mirror takes no blow and turns it back no harder than its cap) and `tests/starless_ability_tests.cpp` (a well drags who stands in reach toward it and collapses only on its core, a brand follows the farthest player and bursts on those near them, an eclipse spares only who stands in a light, jumping or not). `TestClearedCryptGoesDown` follows a party from the crypt through all five levels and back. `tests/boss_departure_tests.cpp` checks the departures: Ommoroth leaves at his threshold, out of reach and on a stopped clock, a maw bites whoever stands still, he comes back and the maws go, he leaves twice and no more; Nyxara rises with stars falling; Varn never leaves; a wipe while a boss is gone leaves no hazard behind.

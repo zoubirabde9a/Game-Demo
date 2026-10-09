@@ -14,8 +14,10 @@ NearestFoe(world *World, v2 Point, float Range, u32 Room, world_entity **Skip, u
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Monster = &World->Entities[EntityIndex];
+        // NOTE(zoubir): nor one held out of the fight (boss_departure.h)
         if (!Monster->IsPresent || Monster->Type != EntityType_Monster || Monster->Hp <= 0.f ||
-            IsFrostMark(Monster) || RoomAtPosition(World, Monster->Position.XY) != Room)
+            IsFrostMark(Monster) || Monster->Position.Z > OUT_OF_SIGHT_HEIGHT ||
+            RoomAtPosition(World, Monster->Position.XY) != Room)
         {
             continue;
         }
@@ -48,7 +50,8 @@ AttackTarget(app_state *AppState, player_slot *Slot, world_entity *Player, float
     {
         world_entity *Unit = &World->Entities[Index - 1];
         if (Unit->IsPresent && Unit->Type == EntityType_Monster && Unit->Hp > 0.f &&
-            !IsFrostMark(Unit) && RoomAtPosition(World, Unit->Position.XY) == Room &&
+            !IsFrostMark(Unit) && !IsOutOfReach(AppState, Unit) &&
+            RoomAtPosition(World, Unit->Position.XY) == Room &&
             Length(Unit->Position.XY - Player->Position.XY) <= Range)
         {
             return Unit;

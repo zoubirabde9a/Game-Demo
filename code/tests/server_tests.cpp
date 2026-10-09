@@ -600,6 +600,7 @@ main(int ArgCount, char **Args)
     GROUP(TestRoundMovesToNextMap());
     GROUP(TestStandardCastOnline());
     GROUP(RunDungeonOnlineTests());
+    GROUP(TestDepartedBossesShowOnline());
     GROUP(RunBotClassTests());
     GROUP(RunServerGameTests());
     GROUP(RunRewindTests());

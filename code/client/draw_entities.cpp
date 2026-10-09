@@ -380,6 +380,14 @@ DrawWorldEntities(render_context *RenderContext, app_state *AppState,
         {
             continue;
         }
+        // NOTE(zoubir): a monster held out of the fight, high over the
+        // floor (sim/dungeon/boss_departure.h), is not drawn at all, not
+        // even its shadow; client/dungeon/boss_departure_fx.cpp shows
+        // where it went
+        if (Entity->Type == EntityType_Monster && Entity->Position.Z > OUT_OF_SIGHT_HEIGHT)
+        {
+            continue;
+        }
         if (Entity->Type == EntityType_Tiled)
         {
             DrawTileEntity(RenderContext, AppState, TextureProgram,

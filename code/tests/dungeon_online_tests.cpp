@@ -156,6 +156,65 @@ TestDungeonBotsTakeRoles()
     GameShutdown(&Game);
 }
 
+// NOTE(zoubir): what a departed boss leaves to be seen comes over the
+// wire (sim/dungeon/boss_departures.cpp): a monster held high over the
+// floor is high on the client too, so neither draws it, and a hazard
+// hanging over the player winds up its slam on the client as well, so
+// its ring and its fall are drawn
+internal void
+TestDepartedBossesShowOnline()
+{
+    static round_map_test Test;
+    StartDungeonOnlineTest(&Test, "Delver");
+    RunDungeonOnlineTest(&Test, 2 * SERVER_TICK_RATE);
+    app_state *Game = Test.Server.Game.AppState;
+    app_state *Client = Test.Client;
+    world *World = &Game->World;
+    world_entity *Player = Game->Players[Test.Online->Client.PlayerIndex].Entity;
+    Check(Player != 0);
+    if (!Player)
+    {
+        StopRoundMapTest(&Test);
+        return;
+    }
+    v3 Near = Player->Position + V3(80.f, 0.f, 0.f);
+    world_entity *Away = SpawnMonster(Game, World, Test.Server.Game.Arena,
+                                      V3(Near.X, Near.Y, BOSS_AWAY_HEIGHT), MonsterKind_Brute);
+    world_entity *Star = SpawnMonster(Game, World, Test.Server.Game.Arena,
+                                      V3(Player->Position.X, Player->Position.Y,
+                                         GetMonsterDef(MonsterKind_FallingStar)->FlyHeight),
+                                      MonsterKind_FallingStar);
+    Star->AbilityCooldowns[0] = 0.f;
+    u32 AwayId = (u32)(Away - World->Entities);
+    u32 StarId = (u32)(Star - World->Entities);
+    bool32 AwaySeen = false;
+    bool32 StarSeen = false;
+    for(u32 Frame = 0; Frame < 30; Frame++)
+    {
+        // NOTE(zoubir): held up there, as the departure holds a boss
+        Away->Position.Z = BOSS_AWAY_HEIGHT;
+        Away->Velocity = {};
+        RunDungeonOnlineTest(&Test, 1);
+        u32 OurAway = Test.Online->Replicas.LocalIndexPlusOne[AwayId];
+        u32 OurStar = Test.Online->Replicas.LocalIndexPlusOne[StarId];
+        if (OurAway)
+        {
+            world_entity *Ours = &Client->World.Entities[OurAway - 1];
+            AwaySeen |= Ours->Position.Z > OUT_OF_SIGHT_HEIGHT;
+        }
+        if (OurStar)
+        {
+            world_entity *Ours = &Client->World.Entities[OurStar - 1];
+            StarSeen |= Ours->MonsterKind == MonsterKind_FallingStar &&
+                Ours->Position.Z > OUT_OF_SIGHT_HEIGHT &&
+                Ours->AbilityPhase == AbilityPhase_Windup;
+        }
+    }
+    Check(AwaySeen && StarSeen);
+    StopRoundMapTest(&Test);
+    free(DungeonSessionArena.Base);
+}
+
 internal void
 RunDungeonOnlineTests()
 {

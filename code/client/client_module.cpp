@@ -76,6 +76,7 @@
 #include "dungeon/boss_tethers.cpp"
 #include "dungeon/rift_fx.cpp"
 #include "dungeon/starless_fx.cpp"
+#include "dungeon/boss_departure_fx.cpp"
 #include "dungeon/role_looks.cpp"
 #include "dungeon/role_fx.cpp"
 #include "screen_edge.cpp"

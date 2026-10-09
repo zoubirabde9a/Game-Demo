@@ -4,7 +4,11 @@
    with beams of their own, while the boss keeps fighting. A hit on the
    warded boss shows Blocked; clients draw the ward as a shell of light
    with a beam from each pylon (client/dungeon/rift_fx.cpp), worked out
-   from the pylons in the snapshot, so nothing new goes on the wire. */
+   from the pylons in the snapshot, so nothing new goes on the wire.
+
+   A boss away from its fight (boss_departures.cpp), and the hazards
+   that fall while it is gone, are out of reach: they take nothing, and
+   neither spells nor bots go for them (IsOutOfReach). */
 
 // NOTE(zoubir): whether any Aurora Pylon stands in the world; only boss
 // scripts raise them, so on a dungeon map they belong to the fight
@@ -44,4 +48,19 @@ WardDeflects(app_state *AppState, world_entity *Target)
     v3 Chest = Target->Position;
     Chest.Z += 16.f;
     EmitBurst(&AppState->Events, SimBurst_Blocked, SIM_NOBODY, Chest);
+}
+
+// NOTE(zoubir): Target is a monster out of the fight: the fight's boss
+// while it is away, or a hazard falling meanwhile. Only a dungeon run
+// makes either
+internal bool32
+IsOutOfReach(app_state *AppState, world_entity *Target)
+{
+    dungeon_run *Run = AppState->Dungeon;
+    bool32 Result = Run && Target->Type == EntityType_Monster &&
+        ((Run->Departure.BackAt > 0.f && Run->BossSerial &&
+          Target->MonsterSerial == Run->BossSerial) ||
+         Target->MonsterKind == MonsterKind_VoidMaw ||
+         Target->MonsterKind == MonsterKind_FallingStar);
+    return Result;
 }

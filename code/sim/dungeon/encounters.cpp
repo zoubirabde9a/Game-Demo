@@ -269,6 +269,7 @@ CanStartRoom(dungeon_run *Run, u32 Room)
 #include "role_abilities.cpp"
 #include "revive.cpp"
 #include "boss_scripts.cpp"
+#include "boss_departures.cpp"
 
 // NOTE(zoubir): a player thrown over a wall (a launch, a blast) lands on
 // it or behind it, out of every room: back to the party's spot, so walls
@@ -398,6 +399,7 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
             }
         }
     }
+    UpdateBossDepartures(AppState, World, Arena, Run);
     UpdateGates(AppState, World, Arena, Run);
     UpdateShownFight(World, Run);
     UpdateRunEnd(AppState, Run, DeltaTime);
