@@ -82,7 +82,7 @@ CastDawnbreak(app_state *AppState, player_slot *Slot, world_entity *Player)
         hit Hit = {DAWNBREAK_DAMAGE, 40.f, 0.f, 0.f, 0.f, SimBurst_Impact};
         ApplyHit(AppState, World, Monster, &Hit, Dir, Player, SlotIndex);
         EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Monster));
-        OnHealerShot(AppState, Player, Before - Maximum(0.f, Monster->Hp));
+        OnHealerShot(AppState, Player, Monster, Before - Maximum(0.f, Monster->Hp));
     }
     EmitSound(&AppState->Events, AssetType_SfxFireCast, Player->Position);
 }

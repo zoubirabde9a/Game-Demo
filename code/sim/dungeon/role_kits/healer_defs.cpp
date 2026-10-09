@@ -21,6 +21,8 @@ enum healer_talent
     HealerTalent_PrayerOfHealing,
     HealerTalent_Dawnbreak,
     HealerTalent_Purify,
+    HealerTalent_BlindingLight,
+    HealerTalent_Zeal,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -46,6 +48,13 @@ enum healer_talent
 // NOTE(zoubir): Atonement, per rank: the heal Holy Fire and Smite Bolt give
 // the most hurt ally (OnHealerShot) is this share more
 #define ATONEMENT_SHARE 0.2f
+// NOTE(zoubir): Blinding Light: a foe the Mender's light strikes (Holy
+// Fire, Smite Bolt, Dawnbreak) deals this share less for this long
+#define BLINDING_LIGHT_SHARE 0.1f
+#define BLINDING_LIGHT_SECONDS 4.f
+// NOTE(zoubir): Zeal, per rank: a Smite Bolt that strikes takes this off
+// Holy Fire's and Dawnbreak's cooldowns
+#define ZEAL_SECONDS 0.3f
 
 global_variable talent_def HealerTalentDefs[CLASS_TALENTS] =
 {
@@ -85,6 +94,10 @@ global_variable talent_def HealerTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Purify", "T: an ally is rid of burns, poison, slows, roots and stuns, and holds a ward of 30",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Blinding Light", "A foe your light strikes deals 10% less for 4 s",
+     "-10% damage dealt", TalentBranch_Role, 0, 0, 1, 0},
+    {"Zeal", "A Smite Bolt that strikes brings Holy Fire and Dawnbreak back sooner",
+     "-0.3 s a bolt", TalentBranch_Role, 0, 0, 2, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None

@@ -426,7 +426,7 @@ OnRoleHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
         {
             if (Attacker->Entity)
             {
-                OnHealerShot(AppState, Attacker->Entity, Damage);
+                OnHealerShot(AppState, Attacker->Entity, Target, Damage);
             }
         } break;
     }

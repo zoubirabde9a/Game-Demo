@@ -47,8 +47,8 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    CT(HealerTalent_Miracle))},
      {{RM(Bountiful), RM(Hymn), RM(SharedSpoils), RM(Rallying), RM(Overflowing),
        CT(HealerTalent_Quickening), CT(HealerTalent_InnerLight)},
-      {RM(WarSong), RM(Receptive), RM(MendingTouch), RM(KeenEdge), RM(SecondBreath),
-       RM(Serenity), CT(HealerTalent_LightFeet)}}},
+      {RM(WarSong), RM(Receptive), RM(MendingTouch), RM(SecondBreath), RM(Serenity),
+       CT(HealerTalent_LightFeet), CT(HealerTalent_BlindingLight), CT(HealerTalent_Zeal)}}},
 
     // NOTE(zoubir): the Ranger
     {{"Marksmanship", "Survival"},

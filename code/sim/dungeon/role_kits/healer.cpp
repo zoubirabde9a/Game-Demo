@@ -25,11 +25,17 @@
    Smite Bolt (a quick small bolt), so a healer with little to heal
    still adds to the race. */
 
-// NOTE(zoubir): from OnRoleHit: the healer's fireball dealt
-// Damage; Smite heals the most hurt ally in reach SMITE_SHARE of it
+// NOTE(zoubir): the healer's light struck Foe for Damage; Smite heals the
+// most hurt ally in reach SMITE_SHARE of it, and Blinding Light weakens
+// the foe
 internal void
-OnHealerShot(app_state *AppState, world_entity *Healer, float Damage)
+OnHealerShot(app_state *AppState, world_entity *Healer, world_entity *Foe, float Damage)
 {
+    player_slot *Shooter = &AppState->Players[Healer->PlayerIndex];
+    if (Foe->IsPresent && Foe->Hp > 0.f && RoleRank(Shooter, PlayerRole_Healer, HealerTalent_BlindingLight))
+    {
+        WeakenFoe(AppState->Dungeon, &AppState->World, Foe, BLINDING_LIGHT_SECONDS, BLINDING_LIGHT_SHARE);
+    }
     world_entity *Ally = MostHurtAlly(AppState, Healer->Position.XY, MENDING_BOLT_RANGE);
     if (Ally)
     {
@@ -139,7 +145,7 @@ CastLightAtFoe(app_state *AppState, player_slot *Slot, world_entity *Player, flo
     EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Foe));
     ApplyHit(AppState, &AppState->World, Foe, &Hit,
              DirectionTo(Foe->Position.XY - Player->Position.XY), Player, SlotIndex);
-    OnHealerShot(AppState, Player, Before - Maximum(0.f, Foe->Hp));
+    OnHealerShot(AppState, Player, Foe, Before - Maximum(0.f, Foe->Hp));
     EmitSound(&AppState->Events, AssetType_SfxFireCast, Player->Position);
     return true;
 }
@@ -205,8 +211,13 @@ CastHealerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 
 
         case 6:
         {
-            return CastLightAtFoe(AppState, Slot, Player, SMITE_BOLT_RANGE, SMITE_BOLT_DAMAGE,
-                                  SMITE_BOLT_SHOVE);
+            bool32 Struck = CastLightAtFoe(AppState, Slot, Player, SMITE_BOLT_RANGE, SMITE_BOLT_DAMAGE,
+                                           SMITE_BOLT_SHOVE);
+            // NOTE(zoubir): Zeal: Holy Fire on W, Dawnbreak on X
+            float Off = Struck ? ZEAL_SECONDS * (float)RoleRank(Slot, PlayerRole_Healer, HealerTalent_Zeal) : 0.f;
+            Slot->RoleCooldowns[4] = Maximum(0.f, Slot->RoleCooldowns[4] - Off);
+            Slot->RoleCooldowns[5] = Maximum(0.f, Slot->RoleCooldowns[5] - Off);
+            return Struck;
         } break;
 
         case 5:
