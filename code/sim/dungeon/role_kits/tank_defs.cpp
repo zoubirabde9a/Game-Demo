@@ -18,6 +18,7 @@ enum tank_talent
     TankTalent_Taunt,
     TankTalent_ShieldCharge,
     TankTalent_ShieldThrow,
+    TankTalent_Guardian,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -75,6 +76,8 @@ global_variable talent_def TankTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Shield Throw", "W: the shield hits a foe and bounces to two more, sundering each",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Guardian", "Shield Charge or Shield Throw on a foe attacking an ally wards that ally for 30",
+     "ward 30", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None

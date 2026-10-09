@@ -171,13 +171,20 @@ FinishDruidCast(app_state *AppState, player_slot *Slot, world_entity *Player, pl
 }
 
 // NOTE(zoubir): any hit of this class's player on a monster dealt Damage:
-// Wrath and Starfire grow Bloom, and with Symbiosis heal for it
+// Wrath and Starfire grow Bloom, one more on a foe under the Druid's
+// Moonfire with Lunar Bloom (the Moon branch's capstone), and with
+// Symbiosis heal for it
 internal void
 OnDruidHit(app_state *AppState, player_slot *Attacker, world_entity *Target,
            world_entity *Source, float Damage)
 {
     u32 Shot = Attacker->Druid.Hitting;
     u32 Bloom = DruidShotBloom(Shot);
+    if (Bloom && RoleRank(Attacker, PlayerRole_Druid, DruidTalent_LunarBloom) &&
+        IsDruidMoonfired(AppState, (u32)(Attacker - AppState->Players), Target))
+    {
+        Bloom++;
+    }
     if (Bloom)
     {
         AddDruidBloom(AppState, Attacker, Bloom);

@@ -72,7 +72,7 @@ TestDruidKeys()
     // NOTE(zoubir): the two base spells only, before any point
     ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    Check(Allowed == ((DUNGEON_SHARED_BUTTONS & ~(u32)PlayerButton_Cast) | PlayerButton_Shockwave |
+    Check(Allowed == ((DUNGEON_SHARED_BUTTONS & ~(u32)PlayerButton_Cast) | PlayerButton_Launch |
                       PlayerButton_Attack));
     SetClassTalentRank(Slot, DruidTalent_Starfire, 1);
     SetClassTalentRank(Slot, DruidTalent_Tranquility, 1);
@@ -382,6 +382,13 @@ TestEclipse()
     DruidTick(&Crypt, (u32)(60.f * 250.f / DRUID_BOLT_SPEED) + 2);
     float Expected = WRATH_DAMAGE * GetRoleDef(PlayerRole_Druid)->DamageDealt * (1.f + ECLIPSE_SHARE);
     Check(DruidNear(Before - Foe->Hp, Expected));
+    // NOTE(zoubir): Lunar Bloom: that Wrath grows two Bloom, not one
+    SetClassTalentRank(Slot, DruidTalent_LunarBloom, 1);
+    u32 Bloom = Slot->Druid.Bloom;
+    Slot->RoleCooldowns[6] = 0.f;
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    DruidTick(&Crypt, (u32)(60.f * 250.f / DRUID_BOLT_SPEED) + 2);
+    Check(Slot->Druid.Bloom == Minimum(Bloom + 2, (u32)DRUID_BLOOM_MOST));
     DestroyCryptWorld(&Crypt);
 }
 

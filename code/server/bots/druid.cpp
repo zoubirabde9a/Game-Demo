@@ -109,7 +109,10 @@ BotDruidButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_e
         HurtNear += (Ally && Ally->Hp < 0.7f * Ally->MaxHp &&
                      Length(Ally->Position.XY - Self->Position.XY) < TRANQUILITY_RADIUS) ? 1 : 0;
     }
-    if (HurtNear >= 2 && Ready[3] && Run->FightingRoom && BotRandom(Bot) % 10 == 0)
+    // NOTE(zoubir): a Druid that took Tranquility over Regrowth leans on it
+    // for one hurt ally too
+    u32 Want = RoleSpellLearned(Slot, 4) ? 2 : 1;
+    if (HurtNear >= Want && Ready[3] && Run->FightingRoom && BotRandom(Bot) % 10 == 0)
     {
         return NetButton_Kunai;
     }

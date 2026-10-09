@@ -141,6 +141,26 @@ CastShieldSlam(app_state *AppState, world *World, player_slot *Slot, world_entit
     EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Player->Position);
 }
 
+// NOTE(zoubir): Guardian, Vanguard's capstone: a foe the tank's charge or
+// thrown shield strikes while it is after an ally wards that ally for
+// GUARDIAN_WARD (what Intercept's second rank gave)
+internal void
+GuardAllyFrom(app_state *AppState, world *World, player_slot *Slot, world_entity *Player,
+              world_entity *Foe)
+{
+    if (!RoleRank(Slot, PlayerRole_Tank, TankTalent_Guardian) || !Foe || Foe->Hp <= 0.f)
+    {
+        return;
+    }
+    world_entity *Ally = FindMonsterTarget(AppState, World, Foe, 0);
+    if (Ally && Ally != Player && Ally->Type == EntityType_Player && Ally->PlayerIndex < MAX_PLAYERS)
+    {
+        player_slot *AllySlot = &AppState->Players[Ally->PlayerIndex];
+        AllySlot->WardAbsorb = Maximum(AllySlot->WardAbsorb, GUARDIAN_WARD);
+        AllySlot->WardFull = Maximum(AllySlot->WardAbsorb, AllySlot->WardFull);
+    }
+}
+
 // NOTE(zoubir): returns whether the shield found a foe to hit
 internal bool32
 CastShieldThrow(app_state *AppState, world *World, player_slot *Slot, world_entity *Player)
@@ -164,6 +184,7 @@ CastShieldThrow(app_state *AppState, world *World, player_slot *Slot, world_enti
     {
         Struck[StruckCount++] = Foe;
         hit Hit = {Damage, SHIELD_THROW_SHOVE, 0.f, 0.f, 0.f, SimBurst_Impact};
+        GuardAllyFrom(AppState, World, Slot, Player, Foe);
         AddThreat(&AppState->Dungeon->Threat, World, Foe, SlotIndex, SHIELD_THROW_THREAT);
         OnTankShot(AppState, Slot, Foe);
         v2 Toward = DirectionTo(Foe->Position.XY - From);
@@ -214,6 +235,7 @@ CastShieldCharge(app_state *AppState, world *World, memory_arena *Arena,
         Landing.Z = Player->Position.Z;
         MovePlayerTo(AppState, World, Arena, Player, Landing);
     }
+    GuardAllyFrom(AppState, World, Slot, Player, Foe);
     BreakWindup(Foe);
     float Stun = SHIELD_CHARGE_STUN + JUGGERNAUT_STUN *
         (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_Juggernaut);

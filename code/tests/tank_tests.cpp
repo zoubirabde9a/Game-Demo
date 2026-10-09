@@ -136,9 +136,40 @@ TestUnbrokenCatchesTheKillingBlow()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Guardian: a Shield Charge on a foe after an ally wards
+// that ally; without the talent, no ward
+internal void
+TestGuardianWardsTheAlly()
+{
+    for(u32 Talent = 0; Talent < 2; Talent++)
+    {
+        crypt_world Crypt = CreateCryptWorld(2);
+        app_state *AppState = Crypt.AppState;
+        world *World = &AppState->World;
+        TickCrypt(&Crypt, 1);
+        player_slot *Slot = &AppState->Players[0];
+        SetPlayerRole(AppState, Slot, PlayerRole_Tank);
+        GrantClassSpells(Slot);
+        SetClassTalentRank(Slot, TankTalent_Guardian, Talent);
+        world_entity *Tank = Slot->Entity;
+        world_entity *Ally = AppState->Players[1].Entity;
+        world_entity *Brute = SpawnMonster(AppState, World, &Crypt.Arena,
+                                           Tank->Position + V3(250.f, 0.f, 0.f), MonsterKind_Brute);
+        Brute->MaxHp = Brute->Hp = 1000.f;
+        DamageEntity(AppState, World, Brute, 1.f, Ally);
+        Check(FindMonsterTarget(AppState, World, Brute, 0) == Ally);
+        AppState->Players[1].WardAbsorb = 0.f;
+        PressAt(&Crypt, 0, PlayerButton_Cast, Brute);
+        Check(Slot->RoleCooldowns[5] > 0.f);
+        Check((AppState->Players[1].WardAbsorb >= GUARDIAN_WARD - 0.01f) == (Talent != 0));
+        DestroyCryptWorld(&Crypt);
+    }
+}
+
 internal void
 RunTankTests()
 {
+    TestGuardianWardsTheAlly();
     TestShieldChargeBreaksAWindup();
     TestJuggernautSpeedsTheCharge();
     TestUnbrokenCatchesTheKillingBlow();

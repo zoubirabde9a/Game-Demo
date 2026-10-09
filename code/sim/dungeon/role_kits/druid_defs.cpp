@@ -71,9 +71,11 @@
 // (PlayerSpell_DruidB) that heals every ally within TRANQUILITY_RADIUS of
 // the Druid for TRANQUILITY_HEAL each TRANQUILITY_TICK
 #define TRANQUILITY_RADIUS 260.f
-#define TRANQUILITY_HEAL 6.f
+// NOTE(zoubir): Grove's pair sets it against Regrowth, the big single
+// heal, so it heals more and comes back sooner than it did beside it
+#define TRANQUILITY_HEAL 10.f
 #define TRANQUILITY_TICK 0.5f
-#define TRANQUILITY_COOLDOWN 45.f
+#define TRANQUILITY_COOLDOWN 20.f
 
 enum druid_talent
 {
@@ -92,6 +94,8 @@ enum druid_talent
     DruidTalent_Rejuvenation,
     DruidTalent_Starfire,
     DruidTalent_Moonfire,
+    DruidTalent_Regrowth,
+    DruidTalent_LunarBloom,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -150,6 +154,10 @@ global_variable talent_def DruidTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Moonfire", "X: moonlight burns a foe for 12 s",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Regrowth", "W: a big heal on an ally, more for each Bloom spent",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Lunar Bloom", "Wrath and Starfire on a foe under your Moonfire grow a Bloom more",
+     "+1 Bloom on Moonfire", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
@@ -165,14 +173,14 @@ global_variable role_spell DruidSpells[ROLE_KEYS] =
 {
     {"Rejuvenation", REJUVENATION_COOLDOWN,
      "Rejuvenation: an ally heals over 8 s, and at once for each Bloom spent",
-     RoleAim_Ally, REJUVENATION_RANGE, DruidTalent_Rejuvenation + 1, "All Bloom"},
+     RoleAim_Ally, REJUVENATION_RANGE, 0, "All Bloom"},
     {"Starfire", STARFIRE_COOLDOWN, "Starfire: 1.5 s cast, a falling star on a foe; grows two Bloom",
      RoleAim_Foe, STARFIRE_RANGE, DruidTalent_Starfire + 1},
     {},
     {"Tranquility", TRANQUILITY_COOLDOWN, "Tranquility: 3 s channel that heals every ally around you",
      RoleAim_None, 0.f, DruidTalent_Tranquility + 1},
     {"Regrowth", REGROWTH_COOLDOWN, "Regrowth: heal an ally at once, more for each Bloom spent",
-     RoleAim_Ally, REGROWTH_RANGE, 0, "All Bloom"},
+     RoleAim_Ally, REGROWTH_RANGE, DruidTalent_Regrowth + 1, "All Bloom"},
     {"Moonfire", MOONFIRE_COOLDOWN, "Moonfire: burn a foe with moonlight for 12 s",
      RoleAim_Foe, MOONFIRE_RANGE, DruidTalent_Moonfire + 1},
     {"Wrath", WRATH_COOLDOWN, "Wrath: a quick bolt of nature at a foe; grows a Bloom",

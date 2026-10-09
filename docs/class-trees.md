@@ -36,7 +36,7 @@ Base kit first, then each branch: its spell pair, its fixed talents, and what it
 ### Bulwark
 - **Base:** Shield Bash (right click); Shield Slam (R), which now also takes threat off everything it hits as a short taunt.
 - **Bastion** (survive anything). Spells: Last Stand (V) or Taunt (A). Fixed: Iron Skin, Bastion, Steady Heart; capstone Unbroken. Wild: armor, last breath, regen, lifeline, Living Fortress.
-- **Vanguard** (control and peel). Spells: Shield Charge (X) or Shield Throw (W). Fixed: Juggernaut, Shatter Armor, Shield Brother; capstone Intercept's guard (Shield Charge at an ally's attacker wards the ally for 30). Wild: thorns, aura, threat, Provoke.
+- **Vanguard** (control and peel). Spells: Shield Charge (X) or Shield Throw (W). Fixed: Shatter Armor, Juggernaut, Menacing, Shield Brother; capstone Guardian (Shield Charge or Shield Throw on a foe attacking an ally wards that ally for 30). Wild: thorns, aura, threat, Provoke.
 - Intercept (C) leaves the kit; its guard lives on in Vanguard's capstone.
 
 ### Mender
@@ -75,9 +75,9 @@ Base kit first, then each branch: its spell pair, its fixed talents, and what it
 - **Shatter** (Icicles and the orb). Spells: Frozen Orb (V) or Ice Barrier (C). Fixed: Frostbite, Fingers of Frost, Splitting Ice; capstone Cold Calculation. Wild: bossbane, cadence, armor, Glacial Skin.
 
 ### Druid
-- **Base:** Wrath (right click), which grows Bloom; Regrowth (W), which spends it on a heal.
-- **Grove** (healing over time). Spells: Rejuvenation (A) or Tranquility (V). Fixed: Verdancy, Wild Growth, Overgrowth; capstone Heart of the Wild. Wild: overflow, aura, heal taken, Wild Bloom.
-- **Moon** (damage that heals). Spells: Starfire (R) or Moonfire (X). Fixed: Nature's Wrath, Symbiosis, Eclipse (Wrath and Starfire hit a foe under your Moonfire 25% harder, and Starfire leaves a Moonfire, so it pays off either spell); capstone Entangling Moon (Starfire on a foe under your Moonfire, or a Moonfire crit, roots it 2 s; Entangling Roots leaves the kit). Wild: damage, anthem, Moonlit.
+- **Base:** Wrath (right click), which grows Bloom; Rejuvenation (A), a heal over time that spends it. The balance probe showed a Druid whose only base heal was Regrowth leaned on a coin toss for its steady healing.
+- **Grove** (healing). Spells: Regrowth (W, a big heal that spends Bloom) or Tranquility (V, a 3 s channel healing every ally near, 10 each half second, every 20 s). Fixed: Verdancy, Wild Growth (both about Rejuvenation, which every Druid has), Verdant, Wild Bloom; capstone Heart of the Wild. Wild: overflow, heal taken, Overgrowth.
+- **Moon** (damage that heals). Spells: Starfire (R) or Moonfire (X). Fixed: Nature's Wrath, Symbiosis, Eclipse (Wrath and Starfire hit a foe under your Moonfire 25% harder, and Starfire leaves a Moonfire, so it pays off either spell), Starlit Fury; capstone Lunar Bloom (Wrath and Starfire on a foe under your Moonfire grow a Bloom more, feeding the heals). Wild: damage, anthem, Moonlit, Shared Spoils. Entangling Roots leaves the kit.
 
 ## Bots
 
@@ -90,7 +90,7 @@ Every class has its two branches, its spell pairs and its pools in the game (`cl
 | Class | Still to do |
 |---|---|
 | Fire Mage | nothing beyond tuning |
-| Bulwark | Shield Slam does not taunt yet; Vanguard's capstone is Retaliation until the ally guard is built; the bot does not pick Taunt |
+| Bulwark | nothing beyond tuning |
 | Mender | nothing beyond tuning |
 | Ranger | nothing beyond tuning |
 | Berserker | nothing beyond tuning |
@@ -98,5 +98,5 @@ Every class has its two branches, its spell pairs and its pools in the game (`cl
 | Stormcaller | nothing beyond tuning |
 | Duelist | nothing beyond tuning |
 | Frost Mage | nothing beyond tuning |
-| Druid | the Moon branch's capstone is Shared Spoils until a capstone of its own is built |
+| Druid | nothing beyond tuning |
 | Every class | the balance probe has not been rerun on the new trees |

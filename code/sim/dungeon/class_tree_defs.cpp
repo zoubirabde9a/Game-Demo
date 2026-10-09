@@ -28,11 +28,11 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    CT(TankTalent_Unbroken)),
       CLASS_BRANCH(CT(TankTalent_ShatterArmor), CT(TankTalent_ShieldCharge), CT(TankTalent_ShieldThrow),
                    CT(TankTalent_Juggernaut), RM(Menacing), RM(ShieldBrother),
-                   RM(Retaliation))},
+                   CT(TankTalent_Guardian))},
      {{CT(TankTalent_Provoke), CT(TankTalent_Fortitude), CT(TankTalent_PlateMastery), RM(Stubborn),
        RM(Lifeline), RM(LivingFortress)},
       {CT(TankTalent_Vengeance), CT(TankTalent_BattleRhythm), RM(Spikes), RM(Rallying),
-       RM(Menace), RM(Vigor)}}},
+       RM(Menace), RM(Vigor), RM(Retaliation)}}},
 
     // NOTE(zoubir): the Mender
     {{"Sanctum", "Dawn"},
@@ -127,14 +127,14 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
 
     // NOTE(zoubir): the Druid
     {{"Grove", "Moon"},
-     {CLASS_BRANCH(CT(DruidTalent_Verdancy), CT(DruidTalent_Rejuvenation), CT(DruidTalent_Tranquility),
-                   CT(DruidTalent_WildGrowth), CT(DruidTalent_Overgrowth), RM(Verdant),
+     {CLASS_BRANCH(CT(DruidTalent_Verdancy), CT(DruidTalent_Regrowth), CT(DruidTalent_Tranquility),
+                   CT(DruidTalent_WildGrowth), RM(Verdant), RM(WildBloom),
                    RM(HeartOfTheWild)),
       CLASS_BRANCH(CT(DruidTalent_NaturesWrath), CT(DruidTalent_Starfire), CT(DruidTalent_Moonfire),
                    CT(DruidTalent_Symbiosis), CT(DruidTalent_Eclipse), CT(DruidTalent_StarlitFury),
-                   RM(SharedSpoils))},
+                   CT(DruidTalent_LunarBloom))},
      {{CT(DruidTalent_GiftOfTheWild), CT(DruidTalent_Swiftmend), RM(Overflowing), RM(Receptive),
-       RM(Hymn), CT(DruidTalent_Barkskin)},
+       RM(Hymn), CT(DruidTalent_Barkskin), CT(DruidTalent_Overgrowth)},
       {RM(Giantslayer), RM(KeenEdge), RM(WarSong), RM(Bloodrush), RM(Quickened),
-       RM(Cadence), RM(Moonlit)}}},
+       RM(Cadence), RM(Moonlit), RM(SharedSpoils)}}},
 };
