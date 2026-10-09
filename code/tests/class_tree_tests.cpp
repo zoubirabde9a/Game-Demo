@@ -259,15 +259,21 @@ TestClassTreePointRules()
     SetPlayerRole(AppState, Slot, PlayerRole_Berserker);
     Check(TalentPointsSpent(Slot, TalentBranch_Role) == 0 && TalentPointsSpent(Slot, TalentBranch_Run) == 0);
 
-    // NOTE(zoubir): a tank's lock never lifts: six spells at the top level
-    // too
-    SetPlayerRole(AppState, Slot, PlayerRole_Tank);
-    Slot->Level = PLAYER_MAX_LEVEL;
-    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 2));
-    Check(LearnTalent(AppState, 0, Talent_RunFirst + 2));
-    Check(RoleSpellsCounted(Slot) == RoleSpellCap(PlayerRole_Tank));
-    Check(CanLearnTalent(Slot, Talent_RoleFirst + 3) == TalentRefusal_OtherSpell);
-    Check(CanLearnTalent(Slot, Talent_RunFirst + 3) == TalentRefusal_OtherSpell);
+    // NOTE(zoubir): a tank's or a healer's lock never lifts: six spells at
+    // the top level too
+    u32 SixCasters[] = {PlayerRole_Tank, PlayerRole_Healer, PlayerRole_Druid};
+    for(u32 Index = 0; Index < ArrayCount(SixCasters); Index++)
+    {
+        u32 Role = SixCasters[Index];
+        SetPlayerRole(AppState, Slot, Role);
+        Slot->Level = PLAYER_MAX_LEVEL;
+        Check(RoleSpellCap(Role) == 6);
+        Check(LearnTalent(AppState, 0, Talent_RoleFirst + 2));
+        Check(LearnTalent(AppState, 0, Talent_RunFirst + 2));
+        Check(RoleSpellsCounted(Slot) == RoleSpellCap(Role));
+        Check(CanLearnTalent(Slot, Talent_RoleFirst + 3) == TalentRefusal_OtherSpell);
+        Check(CanLearnTalent(Slot, Talent_RunFirst + 3) == TalentRefusal_OtherSpell);
+    }
     DestroyCryptWorld(&Crypt);
 }
 
