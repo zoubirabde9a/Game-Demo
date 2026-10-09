@@ -6,7 +6,7 @@
     {BurstShape_Role, 0.4f, 80.f, 0x00AA6EF0, false, 0.12f, BurstPose_Release},          // Lunge
     {BurstShape_Role, 0.3f, 40.f, 0x00E6D2FF, false, 0.f, BurstPose_None},               // Guard
     {BurstShape_Role, 0.45f, 60.f, 0x0060D2FF, false, 0.25f, BurstPose_None},            // Parry
-    {BurstShape_Role, 0.4f, 40.f, 0x00AA6EF0, false, 0.18f, BurstPose_Release},          // Counter
+    {BurstShape_Role, 0.7f, 40.f, 0x00AA6EF0, false, 0.18f, BurstPose_Release},          // Counter, Disarm's weapon flying
     {BurstShape_Role, 0.6f, 60.f, 0x00AA6EF0, false, 0.3f, BurstPose_Release},           // Heartseeker
     {BurstShape_Role, 0.8f, 80.f, 0x00AA6EF0, false, 0.2f, BurstPose_Release},           // Perfect Form
     {BurstShape_Role, 0.7f, 30.f, 0x00AA6EF0, false, 0.f, BurstPose_None},               // Tempo broken

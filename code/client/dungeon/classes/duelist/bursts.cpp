@@ -12,7 +12,9 @@
    - Parry: a gold and white clang at the chest toward the blow, sparks
      flying off it and a ring; Feint's dodge is a pale blur instead, the
      body smeared sideways and an afterimage left behind.
-   - Counter: a quick rose cross on the foe it struck.
+   - Counter: a quick rose cross on the foe it struck; Disarm's is a
+     short cut and a small flash at the foe's hand, its weapon knocked
+     spinning away to land at its feet.
    - Heartseeker: a piercing line through the foe and a rose heart
      flashing on it, bigger with more Tempo; a sweeping crescent with
      Crescendo; a smaller second heart for Masterstroke; a faint line in
@@ -178,6 +180,59 @@ DrawDodgeBurst(render_context *RenderContext, v2 Feet, float Angle, float Age, f
     }
 }
 
+// NOTE(zoubir): Disarm: a short rose cut across the foe's hand and a
+// small white flash, and the foe's weapon (a plain blade, whatever it
+// held) knocked away along the flick, turning up and over to land at
+// its feet
+internal void
+DrawDisarmBurst(render_context *RenderContext, v2 Foe, float Angle, float Age)
+{
+    v2 Aim = V2(Cos(Angle), Sin(Angle));
+    v2 Side = V2(-Aim.Y, Aim.X);
+    float Fade = 1.f - DuelistEase((Age - 0.08f) / 0.2f);
+    v2 Cut = DuelistNormal(Aim - 0.6f * Side);
+    DrawDuelistLine(RenderContext, Foe - 18.f * Cut, Foe + 18.f * Cut, DuelistEase(Age / 0.05f),
+                    2.5f * Fade + 0.5f, Fade, DUELIST_RGB);
+    float Flash = 1.f - Clamp01(Age / 0.15f);
+    DrawShaderQuad(RenderContext, Shader_Glow, Foe.X - 18.f, Foe.Y - 18.f, 36.f, 36.f,
+                   FxColor(0.9f * Flash, 0x00FFFFFF), RenderBlend_Additive);
+    for(u32 Spark = 0; Spark < 4; Spark++)
+    {
+        float A = Angle + 2.f * (BurstJitter(Spark, 771) - 0.5f);
+        v2 Dir = V2(Cos(A), Sin(A));
+        v2 S = Foe + (4.f + 90.f * Age) * Dir;
+        DrawFxStroke(RenderContext, S - 5.f * Dir, S, 0.f, 1.6f, FxColor(0.f, 0x00FFFFFF),
+                     FxColor(Flash, DUELIST_STEEL_RGB));
+    }
+    // NOTE(zoubir): the weapon: out along the flick, up and over, end
+    // over end, gone once it has landed
+    float Spin = (Aim.X < 0.f ? -1.f : 1.f) * 16.f * Age;
+    v2 Blade = V2(Cos(Spin), Sin(Spin));
+    v2 Cross = V2(-Blade.Y, Blade.X);
+    v2 Way = V2(110.f * Aim.X, 50.f * Aim.Y);
+    v2 P = Foe + Age * Way + V2(0.f, -150.f * Age + 230.f * Age * Age);
+    float Alpha = 1.f - Clamp01((Age - 0.55f) / 0.15f);
+    float L = 24.f;
+    v2 Grip = P - (0.3f * L) * Blade;
+    v2 Tip = P + (0.7f * L) * Blade;
+    v2 Pommel = Grip - (0.25f * L) * Blade;
+    u32 Dark = FxColor(0.9f * Alpha, 0x00141418);
+    // NOTE(zoubir): a pale trail behind it while it flies
+    if (Age < 0.5f)
+    {
+        v2 Was = Foe + (Age - 0.06f) * Way + V2(0.f, -150.f * (Age - 0.06f) + 230.f * (Age - 0.06f) * (Age - 0.06f));
+        DrawFxStroke(RenderContext, Was, P, 0.f, 3.f, FxColor(0.f, 0x00FFFFFF), FxColor(0.4f * Alpha, DUELIST_PALE_RGB));
+    }
+    DrawFxStroke(RenderContext, Grip, Tip + 1.5f * Blade, 4.5f, 2.f, Dark, Dark, RenderBlend_Alpha);
+    DrawFxStroke(RenderContext, Grip, Tip, 2.6f, 0.8f, FxColor(Alpha, 0x00C0B8B8), FxColor(Alpha, 0x00F0ECEC),
+                 RenderBlend_Alpha);
+    DrawFxStroke(RenderContext, Pommel, Grip, 2.8f, 2.8f, FxColor(Alpha, 0x00305070), FxColor(Alpha, 0x00406888),
+                 RenderBlend_Alpha);
+    DrawFxStroke(RenderContext, Grip - 6.f * Cross, Grip + 6.f * Cross, 3.f, 3.f, Dark, Dark, RenderBlend_Alpha);
+    DrawFxStroke(RenderContext, Grip - 5.f * Cross, Grip + 5.f * Cross, 1.6f, 1.6f, FxColor(Alpha, 0x0080A0B0),
+                 FxColor(Alpha, 0x0080A0B0), RenderBlend_Alpha);
+}
+
 internal void
 DrawCounterBurst(render_context *RenderContext, v2 Foe, float Angle, float Age)
 {
@@ -334,7 +389,14 @@ DrawDuelistBurst(render_context *RenderContext, app_state *AppState, role_burst 
 
         case DuelistBurst_Counter:
         {
-            DrawCounterBurst(RenderContext, Centre, Burst->Angle, Age);
+            if (Variant == DUELIST_COUNTER_DISARM)
+            {
+                DrawDisarmBurst(RenderContext, Centre, Burst->Angle, Age);
+            }
+            else
+            {
+                DrawCounterBurst(RenderContext, Centre, Burst->Angle, Age);
+            }
         } break;
 
         case DuelistBurst_Heartseeker:

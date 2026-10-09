@@ -32,9 +32,11 @@
 
 // NOTE(zoubir): burst variants that tell a key's look from another's on
 // the same burst (the rest are in duelist_defs.cpp): a Guard burst that
-// is Feint's step, a Parry burst that is Feint's dodge
+// is Feint's step, a Parry burst that is Feint's dodge, a Counter burst
+// that is Disarm's flick
 #define DUELIST_GUARD_FEINT 2
 #define DUELIST_PARRY_DODGE 1
+#define DUELIST_COUNTER_DISARM 1
 
 struct duelist_slot
 {

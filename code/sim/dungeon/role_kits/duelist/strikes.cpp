@@ -138,7 +138,8 @@ CastDisarm(app_state *AppState, player_slot *Slot, world_entity *Player)
         AddTempo(Slot, 1);
     }
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_DuelistFirst, DuelistBurst_Counter),
-              (u8)Player->PlayerIndex, ChestOf(Foe), ATan2(Toward.Y, Toward.X));
+              (u8)Player->PlayerIndex, DuelistBurstSpot(ChestOf(Foe), DUELIST_COUNTER_DISARM),
+              ATan2(Toward.Y, Toward.X));
     EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);
     return true;
 }
