@@ -79,6 +79,21 @@ Before it, the four classes that lagged on a single foe went up (`RoleTable`, ro
 
 Then the melee classes, measured over 48 full runs of all three levels (`set PROBE_LEVELS=3& misc\balance.bat 400 3 2 48`, twelve seeds being too few for changes this size): a Berserker or a Duelist party wiped 6.7 and 7.0 times a kill over the run against 2.5 for a Fire Mage's. Taking less damage did not help (the whole party falls, the tank first); packs did. Every Duelist's Heartseeker now cuts the foes in the arc in front for 30% from 3 Tempo, with Crescendo still the bigger sweep at 5 that readies Lunge: a Duelist party's wipes over the run fell from 7.0 to 5.6 a kill, the Slag Pits from 0.89 to 0.29. The Berserker had its tools for a pack (Cleave's wide arc, Whirlwind) but the longest fights of any class (64 s at the Anvil Hall against 32 for a Fire Mage), so it went from 1.5 to 1.65 times its damage: 6.7 wipes a kill over the run to 4.8, the Rimeheart Throne from 1.5 to 0.8. Then the Stormcaller went from 1.5 to 1.6 (5.0 to 3.9 a kill, the Rimeheart Throne 1.8 to 0.8) and the Duelist from 1.35 to 1.45 (5.6 to 5.2). Over the run a Fire Mage party now wipes 2.5 times a kill and the furthest behind, the Duelist's, 5.2: about two to one, from three to one before the melee work.
 
+Where every party stands, 48 full runs of all three levels each (a tank, a healer and one damage bot), wipes a kill summed over every room:
+
+| Damage bot (healer) | Wipes a kill over the run |
+|---|---|
+| Fire Mage (Mender) | 2.5 |
+| Frost Mage (Mender) | 3.2 |
+| Ranger (Mender) | 3.3 |
+| Fire Mage (Druid) | 3.4 |
+| Stormcaller (Mender) | 3.9 |
+| Shadowblade (Mender) | 4.6 |
+| Berserker (Mender) | 4.8 |
+| Duelist (Mender) | 5.2 |
+
+The Duelist is the one left behind, by design a class for one foe: more damage would make it the best against a lone boss, and a bigger pack tool would change what it is. That call is left open.
+
 The training dummy (another agent's probe) gives each class's damage on one foe that never moves. It is refilled to full health, so talents that add damage to foes above 80% health count on every hit there; read it per spell build, not by its best seed. Sixteen seeds is noisy: a worst room of 1.0 a kill is three or four wipes over the sixteen.
 
 With every class's full kit (all fourteen spells new to the reshape built), every party clears both levels within about one wipe a kill at its worst room.
