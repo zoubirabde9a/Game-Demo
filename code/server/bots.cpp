@@ -61,6 +61,9 @@ BotRandom(bot_brain *Bot)
     return X;
 }
 
+// NOTE(zoubir): how much nearer an Ice Tomb looks to a bot than it is
+#define BOT_TOMB_PULL 0.05f
+
 // NOTE(zoubir): the nearest living player (not itself) or monster within
 // BOT_SIGHT, or 0; a boss behind its pylons is left to the tank, and a
 // monster behind a mirror to nobody
@@ -82,7 +85,14 @@ BotFindTarget(app_state *AppState, world_entity *Self)
             AppState->Players[Self->PlayerIndex].Role != PlayerRole_Tank) continue;
         // NOTE(zoubir): nobody hits a mirror, or one about to rise
         if (Other->Type == EntityType_Monster && IsRaisingMirror(Other)) continue;
+        // NOTE(zoubir): a Frost Mark cannot be hurt; an Ice Tomb holds a
+        // friend, so it counts as near as can be (sim/dungeon/frost_tombs.cpp)
+        if (IsFrostMark(Other)) continue;
         float DistanceSq = LengthSq(Other->Position.XY - Self->Position.XY);
+        if (Other->Type == EntityType_Monster && Other->MonsterKind == MonsterKind_IceTomb)
+        {
+            DistanceSq *= BOT_TOMB_PULL;
+        }
         if (DistanceSq < BestSq)
         {
             BestSq = DistanceSq;
