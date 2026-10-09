@@ -148,6 +148,9 @@ HEAD_ROW_PIXELS = 5
 # NOTE: marker colours for the slash streak between bald_head and the
 # palette; nothing in the original uses them
 STREAK = [(1, 2, 3), (4, 5, 6), (7, 8, 9)]
+# NOTE: marker for the bald head's shine, turned into SHINE_RGB
+SHINE = (10, 11, 12)
+SHINE_RGB = (252, 222, 196)
 
 
 def components(mask):
@@ -335,11 +338,14 @@ def bald_head(cell):
     nx = (xx + 0.5 - bx) / BALD_RX
     ny = (yy + 0.5 - by) / BALD_RY
     dome = (nx ** 2 + ny ** 2 <= 1.0) & ~streak
-    light = 0.62 - 0.35 * nx - 0.55 * ny
-    shade = np.where(light > 0.95, 2, np.where(light > 0.55, 1, 0))
-    for k in range(3):
-        m = dome & (shade == k)
-        cell[m] = SKIN[k] + (255,)
+    # NOTE: shaded so it reads the same from every side: the face's own
+    # light tone all over, a thin shadow crescent on the lower right rim
+    # and a small shine up on the left, never a dark half across the face
+    r2 = nx ** 2 + ny ** 2
+    cell[dome] = SKIN[2] + (255,)
+    cell[dome & (r2 > 0.55) & (nx + ny > 0.45)] = SKIN[1] + (255,)
+    shine = ((nx + 0.38) ** 2 + (ny + 0.5) ** 2) <= 0.06
+    cell[dome & shine] = SHINE + (255,)
     # NOTE: the face goes back where it was, over the dome; no hair is left
     # anywhere (the long hair down the back, the ponytail)
     cell[face] = keep[face]
@@ -431,6 +437,7 @@ def class_cell(cell, pal):
         put(ACCENT[0], pal['cloth'][1], neck)
         put(ACCENT[1], pal['cloth'][2], neck)
     slash = is_col(cell, STREAK)
+    put(SHINE, SHINE_RGB)
     for s, d in zip(SKIN, MALE_SKIN):
         put(s, d, ~slash)
     put(STREAK[0], pal['accent'][0])
