@@ -287,6 +287,9 @@ BALD_RX = 7.0
 BALD_RY = 7.2
 BALD_DROP = 1.0
 BALD_FACE_LIFT = 2.5
+# NOTE: the face's middle row when standing facing the camera, plus a pixel
+# of bob; lower than this the head is lifted
+FACE_Y_MAX = 13.0
 
 
 def bald_head(cell):
@@ -320,11 +323,16 @@ def bald_head(cell):
         fx = np.array([x for y, x in face_patch])
         cy = fy.mean() + 0.5 - BALD_FACE_LIFT - BALD_DROP
         neck = fy.max() + 1.5
+        # NOTE: the original ducks its head when it runs toward the camera
+        # (its hair bun hid it); a bald head is lifted back to its standing
+        # height, give or take a pixel, and a neck fills in under it
+        lift = max(0, int(round(fy.mean() - FACE_Y_MAX)))
         box = (yy >= fy.min() - 2) & (yy <= fy.max()) & (xx >= fx.min() - 2) & (xx <= fx.max() + 2)
         face = box & (skin | is_col(cell, ACCENT + [WHITE])) & ~streak
     else:
         neck = cy + NECK_BELOW_HEAD + 1
         face = np.zeros((32, 32), bool)
+        lift = 0
     old = ((xx + 0.5 - cx) / 10.5) ** 2 + ((yy + 0.5 - cy) / 9.5) ** 2 <= 1.0
     old &= yy + 0.5 < neck
     face &= yy + 0.5 < neck
@@ -333,7 +341,7 @@ def bald_head(cell):
     cell[gone] = 0
     # NOTE: the head sits where the face says, the face on its lower half;
     # seen from behind (no face) a little under the hair's centre
-    by = cy + BALD_DROP
+    by = cy + BALD_DROP - lift
     bx = cx
     nx = (xx + 0.5 - bx) / BALD_RX
     ny = (yy + 0.5 - by) / BALD_RY
@@ -348,7 +356,14 @@ def bald_head(cell):
     cell[dome & shine] = SHINE + (255,)
     # NOTE: the face goes back where it was, over the dome; no hair is left
     # anywhere (the long hair down the back, the ponytail)
-    cell[face] = keep[face]
+    moved = np.roll(face, -lift, 0)
+    cell[moved] = np.roll(keep, -lift, 0)[moved]
+    if lift and face_patch:
+        mx = fx.mean()
+        for y in range(int(fy.max()) - lift + 1, int(fy.max()) + 1):
+            for x in range(int(mx - 1.5), int(mx + 2.5)):
+                if 0 <= y < 32 and 0 <= x < 32 and (cell[y, x, 3] == 0 or tuple(cell[y, x, :3]) == OUTLINE):
+                    cell[y, x] = SKIN[1] + (255,)
     hair = is_col(cell, HAIR) | (is_col(cell, METAL) & old)
     cell[hair] = 0
     cell = reoutline(cell, hair | gone)
@@ -358,7 +373,7 @@ def bald_head(cell):
     cell[edge] = OUTLINE + (255,)
     # NOTE: the dome's own rim inside the old outline: darken its edge
     rim = dome & ~(np.roll(dome, 1, 0) & np.roll(dome, -1, 0) & np.roll(dome, 1, 1) & np.roll(dome, -1, 1))
-    rim &= ~face
+    rim &= ~moved
     cell[rim & (cell[..., 3] > 0)] = OUTLINE + (255,)
     # NOTE: the streak keeps marker colours from here on, so the new head
     # it may touch is never taken for it

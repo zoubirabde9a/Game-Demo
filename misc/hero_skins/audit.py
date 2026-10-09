@@ -27,6 +27,9 @@ from PIL import Image
 from make_skins import original_sheet, P
 
 MIN_SCORE = 85
+# NOTE: the game draws a class's sheet this much larger than the original
+# (HERO_SKIN_DRAW_SCALE, client/heroes/hero_skins.cpp)
+CLASS_DRAW_SCALE = 1.15
 FACINGS = ['down', 'up', 'right']
 # NOTE: first frame and count per animation and facing (sim/animations.cpp)
 TABLE = {
@@ -39,15 +42,16 @@ TABLE = {
 }
 
 
-def sheet_frames(sheet):
+def sheet_frames(sheet, draw_scale=1.0):
     """the played frames of a 16x16 sheet of 32-pixel cells, drawn at 48
-    world units; the game counts the sheet's rows from the bottom"""
+    world units times draw_scale; the game counts the sheet's rows from
+    the bottom"""
     def cell(i):
         c, r = i % 16, 15 - i // 16
         return sheet[r * 32:(r + 1) * 32, c * 32:(c + 1) * 32]
     frames = {(a, f): [cell(s + k) for k in range(n)]
               for a, (starts, n) in TABLE.items() for f, s in starts.items()}
-    return {'frames': frames, 'scale': 48 / 32}
+    return {'frames': frames, 'scale': draw_scale * 48 / 32}
 
 
 # ---------------------------------------------------------------- metrics
@@ -230,7 +234,7 @@ if __name__ == '__main__':
     failed = []
     for name in P:
         sheet = np.asarray(Image.open(os.path.join(folder, name + '.png')).convert('RGBA'))
-        m = measure(sheet_frames(sheet))
+        m = measure(sheet_frames(sheet, CLASS_DRAW_SCALE))
         total, parts, gates = score(m, ref)
         ok = all(gates.values()) and total >= MIN_SCORE
         if not ok:
