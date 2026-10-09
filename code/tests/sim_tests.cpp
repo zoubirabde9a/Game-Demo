@@ -776,6 +776,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "starless_ability_tests.cpp"
 #include "deep_ability_tests.cpp"
 #include "sprite_sheet_tests.cpp"
+#include "hero_look_tests.cpp"
 #include "terrain_tests.cpp"
 #include "hazard_tests.cpp"
 #include "collision_tests.cpp"
@@ -839,6 +840,7 @@ main(int ArgCount, char **Args)
     GROUP(RunStarlessAbilityTests());
     GROUP(RunDeepAbilityTests());
     GROUP(RunSpriteSheetTests());
+    GROUP(RunHeroLookTests());
     RunTerrainTests();
     GROUP(RunHazardTests());
     RunCollisionTests();

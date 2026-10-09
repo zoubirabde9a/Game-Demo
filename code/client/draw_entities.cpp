@@ -353,6 +353,21 @@ UpdateEntityUvs(world_entity *Entity, assets *Assets, app_state *AppState)
         animation_state Shown = Entity->AnimationState;
         bool32 Dashing = Entity->Type == EntityType_Player &&
             (Entity->DashFlash > 0.f || (Entity->AbilityIndex & PLAYER_FLASH_DASH));
+        // NOTE(zoubir): the new hero look picks its own frames for the
+        // same animation (heroes/hero_looks.cpp)
+        if (IsHeroLookTexture(Entity->Texture))
+        {
+            hero_look_input Look = {};
+            Look.Type = Shown.CurrentType;
+            Look.Facing = Shown.LastAnimationDirection;
+            Look.SlotIndex = Shown.SlotIndex;
+            Look.Swing = Entity->SwingLook;
+            Look.Spell = Entity->CastSpell;
+            Look.Dashing = Dashing;
+            Look.Hurt = HeroLookHurt(AppState, Entity);
+            Entity->Uvs = HeroLookCellUvs(HeroLookCell(&Look), Texture->Width, Texture->Height);
+            return;
+        }
         if (Dashing && (Shown.CurrentType == AnimationType_Move ||
                         Shown.CurrentType == AnimationType_Stand ||
                         Shown.CurrentType == AnimationType_Stop))

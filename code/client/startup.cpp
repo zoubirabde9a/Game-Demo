@@ -147,6 +147,8 @@ StartClient(app_state *AppState, transient_state *TransientState,
     AppState->ControlScheme = ReadSavedControlScheme();
     GlobalControlScheme = (control_scheme)AppState->ControlScheme;
     GlobalQuickCast = ReadSavedQuickCast();
+    AppState->HeroLook = ReadSavedHeroLook();
+    GlobalHeroLook = (hero_look)AppState->HeroLook;
     GetCastTargeting(AppState)->Mode = GlobalQuickCast ? CastMode_Quick : CastMode_Standard;
     AppState->KeyBindings = AllocateStruct(MemoryArena, key_bindings);
     LoadKeyBindings(AppState->KeyBindings);

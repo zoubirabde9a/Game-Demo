@@ -40,6 +40,7 @@
     struct world_grade *WorldGrade; // the world pass's render target for the glow and colour grade, client/world_grade.cpp
     u32 KeyboardLayout; // keyboard_layout, AZERTY or QWERTY, client/keyboard_layout.cpp
     u32 ControlScheme; // control_scheme, keys move or mouse moves, client/control_scheme.cpp
+    u32 HeroLook; // hero_look, classic or newly drawn heroes, client/heroes/hero_looks.cpp
     struct click_move *ClickMove; // the walk to a clicked spot, client/click_move.cpp
     struct window_mode *WindowMode; // full screen or a window, saved for the next launch, client/window_mode.cpp
     bool32 OptionsOpen; // the Esc options menu is showing, ui/options_menu.cpp

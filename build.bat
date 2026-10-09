@@ -23,6 +23,8 @@ REM The game runs from build\ and loads its fonts from build\fonts; web\fonts is
 xcopy /y /q /i ..\web\fonts fonts > NUL
 REM The class skins (client\heroes\hero_skins.cpp, made by misc\hero_skins\make_skins.py) load from build\heroes; web\heroes is the copy in git
 xcopy /y /q /i ..\web\heroes heroes > NUL
+REM The newly drawn class heroes (client\heroes\hero_looks.cpp, made by misc\hero_looks) load from build\heroes_v2
+if exist ..\web\heroes_v2 xcopy /y /q /i ..\web\heroes_v2 heroes_v2 > NUL
 
 REM Packs art and sound into asset_1.zas
 cl %CommonCompilerFlags% ..\code\tools\test_asset_builder.cpp /link %CommonLinkerFlags%

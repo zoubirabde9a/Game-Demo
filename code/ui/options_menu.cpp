@@ -5,7 +5,9 @@
 
    It picks the keyboard layout, AZERTY (ZQSD moves) or QWERTY (WASD
    moves), and the control scheme, keys move or mouse moves
-   (client/control_scheme.cpp), both saved for the next launch; switches
+   (client/control_scheme.cpp), and how the heroes are drawn, the classic
+   look or the newly drawn one (client/heroes/hero_looks.cpp), all saved
+   for the next launch; switches
    between full screen and a window (client/window_mode.cpp); holds the
    vote for another game mode or map (ui/map_vote_view.cpp); and opens the
    key bindings screen (ui/key_bindings_menu.cpp), which takes the menu's
@@ -132,6 +134,7 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     // code being reloaded in development; the globals do not
     GlobalKeyboardLayout = (keyboard_layout)AppState->KeyboardLayout;
     GlobalControlScheme = (control_scheme)AppState->ControlScheme;
+    GlobalHeroLook = (hero_look)AppState->HeroLook;
     GlobalQuickCast = GetCastTargeting(AppState)->Mode == CastMode_Quick;
     SyncKeyBindings(AppState);
     if (Input->EscapeButton.Pressed)
@@ -169,7 +172,7 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     float Pad = UI_GAP_LARGE;
     float Width = Minimum(OPTIONS_WIDTH, (float)WindowWidth - 2.f * UI_GAP);
     float ChoiceRow = UILineHeight(Body) + UI_GAP_SMALL + OPTIONS_CHOICE_HEIGHT + UI_GAP_LARGE;
-    float Height = Pad + UILineHeight(Title) + UI_GAP + 3.f * ChoiceRow +
+    float Height = Pad + UILineHeight(Title) + UI_GAP + 4.f * ChoiceRow +
         UILineHeight(Body) + UI_GAP_SMALL + MapVoteSectionHeight(AppState) + UI_GAP_LARGE +
         2.f * OPTIONS_BUTTON_HEIGHT + UI_GAP + Pad;
     float X = 0.5f * ((float)WindowWidth - Width);
@@ -214,6 +217,18 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
     {
         AppState->ControlScheme = Scheme ? ControlScheme_Mouse : ControlScheme_Keys;
         GlobalControlScheme = (control_scheme)AppState->ControlScheme;
+        SaveLocalSettings();
+    }
+
+    char *LookNames[] = {"Classic", "New"};
+    char *LookHints[] = {"The first heroes", "Redrawn, more moves"};
+    i32 LookPick = OptionsChoicePair(RenderContext, AppState, Input, Left, &Top, Inner,
+                                     "Hero look", LookNames, LookHints,
+                                     AppState->HeroLook == HeroLook_Classic ? 0 : 1);
+    if (LookPick >= 0)
+    {
+        AppState->HeroLook = LookPick ? HeroLook_New : HeroLook_Classic;
+        GlobalHeroLook = (hero_look)AppState->HeroLook;
         SaveLocalSettings();
     }
 

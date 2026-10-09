@@ -7,7 +7,13 @@
    loaded from heroes/<class>.png. So only the texture changes: the frames
    are picked by the original's animation table (sim/animations.cpp),
    with its timing and facings, drawn HERO_SKIN_DRAW_SCALE larger. A sheet that fails to load leaves
-   that class in the original hero. */
+   that class in the original hero.
+
+   Each class also has a newly drawn sheet, heroes_v2/<class>.png, with
+   frames of its own (hero_looks.cpp); the player picks which look every
+   hero is drawn in. A class whose new sheet fails to load keeps the
+   classic one. Slot Role of AssetType_HeroSkin is the classic sheet,
+   slot PlayerRole_Count + Role the new one. */
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -32,17 +38,18 @@ global_variable char *HeroSkinFileNames[PlayerRole_Count] =
     "duelist", "frostmage", "druid",
 };
 global_variable bool32 HeroSkinLoaded[PlayerRole_Count];
+global_variable bool32 HeroLookLoaded[PlayerRole_Count];
 
 // NOTE(zoubir): heroes/<Name>, decoded and uploaded as ID; false when the
 // file is missing or is not a 512-pixel sheet. The upload frees the
 // pixels it is given (startup.cpp's white texture tells that story), so
 // it gets a copy in TempArena and stb_image's own buffer is freed here
 internal bool32
-LoadHeroSheet(assets *Assets, open_gl *OpenGL, memory_arena *TempArena, char *Name, asset_id ID,
-              v2 Origin)
+LoadHeroSheet(assets *Assets, open_gl *OpenGL, memory_arena *TempArena, char *Folder,
+              char *Name, asset_id ID, v2 Origin)
 {
     char Path[96];
-    snprintf(Path, sizeof(Path), "heroes/%s.png", Name);
+    snprintf(Path, sizeof(Path), "%s/%s.png", Folder, Name);
     debug_read_file_result File = Platform.ReadEntireFile(Path);
     bool32 Result = false;
     if (File.Memory)
@@ -73,13 +80,18 @@ LoadHeroSheet(assets *Assets, open_gl *OpenGL, memory_arena *TempArena, char *Na
 internal void
 AddHeroTextures(assets *Assets, open_gl *OpenGL, memory_arena *TempArena)
 {
-    ReserveGeneratedAssets(Assets, AssetType_HeroSkin, PlayerRole_Count);
+    ReserveGeneratedAssets(Assets, AssetType_HeroSkin, 2 * PlayerRole_Count);
     // NOTE(zoubir): placed like the original, on its texture's origin
     v2 Origin = GetAssetInfo(Assets, {AssetType_Zoubir})->Texture.Origin;
     for(u32 Role = 0; Role < PlayerRole_Count; Role++)
     {
-        HeroSkinLoaded[Role] = LoadHeroSheet(Assets, OpenGL, TempArena, HeroSkinFileNames[Role],
+        HeroSkinLoaded[Role] = LoadHeroSheet(Assets, OpenGL, TempArena, (char *)"heroes",
+                                             HeroSkinFileNames[Role],
                                              {AssetType_HeroSkin, Role}, Origin);
+        HeroLookLoaded[Role] = LoadHeroSheet(Assets, OpenGL, TempArena, (char *)"heroes_v2",
+                                             HeroSkinFileNames[Role],
+                                             {AssetType_HeroSkin, PlayerRole_Count + Role},
+                                             Origin);
     }
 }
 
@@ -95,9 +107,19 @@ SpriteDrawDimensions(world_entity *Entity)
     return Result;
 }
 
+// NOTE(zoubir): the texture is a class's newly drawn sheet, whose frames
+// hero_looks.cpp picks
+inline bool32
+IsHeroLookTexture(asset_id Texture)
+{
+    bool32 Result = Texture.Type == AssetType_HeroSkin && Texture.Index >= PlayerRole_Count;
+    return Result;
+}
+
 // NOTE(zoubir): from UpdateEntityUvs: a player in a run takes its class's
-// sheet, a player in a duel the base class's, the original hero's when
-// that sheet failed to load
+// sheet, a player in a duel the base class's, in the look picked
+// (GlobalHeroLook); the classic one when the new one failed to load, the
+// original hero's when that one did too
 internal void
 PickHeroSkin(app_state *AppState, world_entity *Entity)
 {
@@ -110,7 +132,11 @@ PickHeroSkin(app_state *AppState, world_entity *Entity)
     {
         u32 Role = IsDungeon(AppState) ? AppState->Players[Entity->PlayerIndex].Role :
             (u32)PlayerRole_Damage;
-        if (Role < PlayerRole_Count && HeroSkinLoaded[Role])
+        if (Role < PlayerRole_Count && GlobalHeroLook == HeroLook_New && HeroLookLoaded[Role])
+        {
+            Texture = {AssetType_HeroSkin, PlayerRole_Count + Role};
+        }
+        else if (Role < PlayerRole_Count && HeroSkinLoaded[Role])
         {
             Texture = {AssetType_HeroSkin, Role};
         }

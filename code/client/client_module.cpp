@@ -16,6 +16,7 @@
 
 #include "../art/art_module.cpp"
 #include "body_pose.cpp"
+#include "heroes/hero_looks.cpp"
 #include "heroes/hero_skins.cpp"
 #include "cast_fx.cpp"
 #include "teams/team_net.cpp"
