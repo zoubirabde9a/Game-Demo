@@ -132,6 +132,9 @@ struct danger_cast
     monster_ability *Ability;
     u32 CasterKind;
     v2 Self;
+    // NOTE(zoubir): where the caster stood when it landed, which a Smite's
+    // blink step moves away from Self
+    v2 Landed;
     v2 Aim;
     v2 Points[MAX_ABILITY_POINTS];
     u32 PointCount;
@@ -144,6 +147,7 @@ GetDangerCast(world_entity *Entity, monster_ability *Ability)
     Result.Ability = Ability;
     Result.CasterKind = Entity->MonsterKind;
     Result.Self = Entity->Position.XY;
+    Result.Landed = Result.Self;
     Result.Aim = Entity->AbilityAim;
     Result.PointCount = Minimum(Entity->AbilityPointCount, (u32)MAX_ABILITY_POINTS);
     for(u32 Point = 0; Point < Result.PointCount; Point++)
@@ -434,8 +438,12 @@ DrawDangerZones(render_context *RenderContext, app_state *AppState, v3 CameraOff
                 Entity->Hp > 0.f && Entity->AbilityPhase != AbilityPhase_Windup :
                 (Entity->AbilityPhase == AbilityPhase_Active ||
                  Entity->AbilityPhase == AbilityPhase_Recover);
-            if ((Last->Ability && Live && Zones->WindingId[EntityIndex] == Entity->ID && Landed) ||
-                DangerWindupClosed(Zones, EntityIndex, Live, Entity->ID))
+            if (Last->Ability && Live && Zones->WindingId[EntityIndex] == Entity->ID && Landed)
+            {
+                Last->Landed = Entity->Position.XY;
+                AddDangerImpact(AppState, Zones, Last, Now);
+            }
+            else if (DangerWindupClosed(Zones, EntityIndex, Live, Entity->ID))
             {
                 AddDangerImpact(AppState, Zones, Last, Now);
             }

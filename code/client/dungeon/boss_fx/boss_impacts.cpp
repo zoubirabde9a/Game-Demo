@@ -23,6 +23,10 @@
 // player standing on it (fx_bursts.cpp fades it with distance)
 #define BOSS_IMPACT_SHAKE 0.32f
 #define BOSS_SMITE_SHOCK_RADIUS 70.f
+// NOTE(zoubir): a Smite's caster that moved this far as it struck blinked
+// to its victim (trigger.cpp); a puff marks where it left and arrived
+#define BOSS_BLINK_STEP_MIN 40.f
+#define BOSS_BLINK_PUFF_RADIUS 46.f
 // NOTE(zoubir): an add's eruption hits everyone in the room, so its shock
 // rolls out this far from the boss, and shakes every camera this much more
 #define BOSS_ERUPTION_RADIUS 520.f
@@ -183,6 +187,11 @@ AddBossImpact(app_state *AppState, danger_cast *Cast, float Now)
             {
                 PushBossImpact(AppState, Cast->Points[0], BOSS_SMITE_SHOCK_RADIUS,
                                BOSS_SHOCK_CRIMSON, BOSS_BEAM_CRIMSON, Now);
+            }
+            if (Length(Cast->Landed - Cast->Self) > BOSS_BLINK_STEP_MIN)
+            {
+                PushBossImpact(AppState, Cast->Self, BOSS_BLINK_PUFF_RADIUS, BOSS_SHOCK_SPIRIT, -1.f, Now);
+                PushBossImpact(AppState, Cast->Landed, BOSS_BLINK_PUFF_RADIUS, BOSS_SHOCK_SPIRIT, -1.f, Now);
             }
         } break;
 
