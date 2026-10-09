@@ -30,6 +30,8 @@ enum online_phase
     OnlinePhase_Ended,    // the connection failed or dropped; can retry
 };
 
+#define ONLINE_RECENT_KILLS 8
+
 struct online_session
 {
     bool32 Enabled;
@@ -65,6 +67,11 @@ struct online_session
     u32 NewTicks;
 #if !COMPILER_EMSCRIPTEN
     net_client Client;
+    // NOTE(zoubir): the last deaths read and the snapshot tick of each;
+    // the server sends each twice (server/event_relay.cpp)
+    net_kill RecentKills[ONLINE_RECENT_KILLS];
+    u32 RecentKillTicks[ONLINE_RECENT_KILLS];
+    u32 RecentKillCursor;
 #endif
 };
 

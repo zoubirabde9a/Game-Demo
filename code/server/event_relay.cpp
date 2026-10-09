@@ -4,8 +4,11 @@
    screen, so after each tick RelayKeep copies the tick's events into a
    ring; each snapshot then carries, for its player, the events it has not
    been sent yet: every death, and the sounds and bursts within
-   RELAY_HEARING_DISTANCE of it. A lost snapshot loses its events; they are
-   cosmetic and not resent. Bursts past the NET_MAX_SNAPSHOT_BURSTS a
+   RELAY_HEARING_DISTANCE of it. A lost snapshot loses its sounds and
+   bursts; they are cosmetic and not resent. A death goes out in two
+   snapshots in a row, so one lost snapshot does not take it out of the
+   kill feed; the client drops the second copy (IsRepeatedKill,
+   client/online/world_tick.cpp). Bursts past the NET_MAX_SNAPSHOT_BURSTS a
    snapshot holds wait for the next one, up to RELAY_BURST_WAIT ticks old,
    so a Chain Lightning through a pack or a Starfall shows every strike. */
 
@@ -25,6 +28,9 @@ struct relay_entry
     // NOTE(zoubir): bit N set once slot N has been sent it, or passed it
     // by; what SentTick leaves open is sent unless this says otherwise
     u8 SentTo;
+    // NOTE(zoubir): bit N set for a death sent to slot N once, to go again
+    // in its next snapshot
+    u8 RepeatTo;
     sim_event Event;
 };
 
@@ -49,6 +55,7 @@ RelayKeep(event_relay *Relay, sim_events *Events)
         relay_entry *Entry = &Relay->Entries[Relay->Cursor++ % RELAY_SIZE];
         Entry->Tick = Relay->Tick;
         Entry->SentTo = 0;
+        Entry->RepeatTo = 0;
         Entry->Event = *Event;
     }
 }
@@ -58,6 +65,10 @@ internal void
 RelayJoined(event_relay *Relay, u32 Slot)
 {
     Relay->SentTick[Slot] = Relay->Tick;
+    for (u32 Index = 0; Index < RELAY_SIZE; ++Index)
+    {
+        Relay->Entries[Index].RepeatTo &= (u8)~(1u << Slot);
+    }
 }
 
 // Fills Out's sounds and kills for the player in Slot, standing at Center
@@ -73,6 +84,20 @@ RelayWrite(event_relay *Relay, u32 Slot, bool32 HasCenter, v2 Center,
     // NOTE(zoubir): the tick of the first burst held for the next
     // snapshot, 0 for none
     u32 Held = 0;
+    // NOTE(zoubir): deaths sent last time go again first
+    for (u32 Age = RELAY_SIZE; Age > 0; --Age)
+    {
+        relay_entry *Entry = &Relay->Entries[(Relay->Cursor + RELAY_SIZE - Age) % RELAY_SIZE];
+        if (Entry->Tick == 0 || !(Entry->RepeatTo & Bit)) continue;
+        Entry->RepeatTo &= (u8)~Bit;
+        if (Out->KillCount < NET_MAX_SNAPSHOT_KILLS)
+        {
+            net_kill *Kill = &Out->Kills[Out->KillCount++];
+            Kill->Killer = Entry->Event.Killer;
+            Kill->Victim = Entry->Event.Victim;
+            Kill->KillerMonster = Entry->Event.KillerMonster;
+        }
+    }
     for (u32 Age = RELAY_SIZE; Age > 0; --Age)
     {
         relay_entry *Entry = &Relay->Entries[(Relay->Cursor + RELAY_SIZE - Age) % RELAY_SIZE];
@@ -97,6 +122,7 @@ RelayWrite(event_relay *Relay, u32 Slot, bool32 HasCenter, v2 Center,
                 Kill->Killer = Event->Killer;
                 Kill->Victim = Event->Victim;
                 Kill->KillerMonster = Event->KillerMonster;
+                Entry->RepeatTo |= Bit;
             }
         }
         else if (Event->Type == SimEvent_Burst)

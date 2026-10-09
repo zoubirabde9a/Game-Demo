@@ -8,6 +8,32 @@
 internal void ReadRewindsFromSnapshot(app_state *AppState, replica_table *Replicas,
                                       net_snapshot *Snapshot);
 
+// NOTE(zoubir): the server sends every death in two snapshots in a row,
+// so one lost on a bad link does not take it out of the kill feed
+// (server/event_relay.cpp). The same death read again within half a
+// second is that second copy; a player cannot die twice that fast
+#define ONLINE_KILL_REPEAT_TICKS 30
+
+internal bool32
+IsRepeatedKill(online_session *Online, net_kill *Kill, u32 Tick)
+{
+    for(u32 Index = 0; Index < ONLINE_RECENT_KILLS; Index++)
+    {
+        net_kill *Seen = &Online->RecentKills[Index];
+        u32 SeenTick = Online->RecentKillTicks[Index];
+        if (SeenTick && Tick >= SeenTick && Tick - SeenTick <= ONLINE_KILL_REPEAT_TICKS &&
+            Seen->Killer == Kill->Killer && Seen->Victim == Kill->Victim &&
+            Seen->KillerMonster == Kill->KillerMonster)
+        {
+            return true;
+        }
+    }
+    u32 Slot = Online->RecentKillCursor++ % ONLINE_RECENT_KILLS;
+    Online->RecentKills[Slot] = *Kill;
+    Online->RecentKillTicks[Slot] = Tick;
+    return false;
+}
+
 // NOTE(zoubir): the frame's one world update. Online the server's
 // snapshot drives the world; offline the local simulation does. Switches
 // between the two when the connection comes up or ends.
@@ -55,6 +81,7 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
         for(u32 Index = 0; NewSnapshot && Index < Snapshot->KillCount; Index++)
         {
             net_kill *Kill = &Snapshot->Kills[Index];
+            if (IsRepeatedKill(Online, Kill, Snapshot->Tick)) continue;
             EmitKill(&AppState->Events, Kill->Killer, Kill->Victim,
                      Kill->KillerMonster);
         }

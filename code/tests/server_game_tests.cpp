@@ -209,7 +209,8 @@ TestBurstsPastTheCapWait()
     Check(Out.BurstCount == 0);
 }
 
-// A player's death reaches every player's snapshot once, near or far.
+// A player's death reaches every player's snapshot, near or far, and goes
+// once more in the next one in case the first is lost on the way.
 internal void
 TestKillsReachEveryone()
 {
@@ -233,6 +234,11 @@ TestKillsReachEveryone()
         Check(Out[Slot].KillCount == 1);
         Check(Out[Slot].Kills[0].Killer == 0 && Out[Slot].Kills[0].Victim == 2);
     }
+    GameTick(&Game, 1.f / 60.f);
+    Out[0] = {};
+    GameWriteSnapshot(&Game, 0, &Out[0]);
+    Check(Out[0].KillCount == 1);
+    Check(Out[0].Kills[0].Killer == 0 && Out[0].Kills[0].Victim == 2);
     GameTick(&Game, 1.f / 60.f);
     Out[0] = {};
     GameWriteSnapshot(&Game, 0, &Out[0]);
