@@ -20,8 +20,11 @@
 
 #define SERVER_INPUT_QUEUE_SIZE 32
 // NOTE(zoubir): more waiting than this and the extra ones are applied at
-// once, down to SERVER_INPUT_KEEP_WAITING
-#define SERVER_INPUT_MAX_WAITING 6
+// once, down to SERVER_INPUT_KEEP_WAITING. Each one waiting is a tick of
+// delay, but each one skipped is a step the client walked and the server
+// did not, a correction. At 6, a run of lost packets on a 200 ms link
+// that let a few pile up made a correction nearly every second
+#define SERVER_INPUT_MAX_WAITING 12
 #define SERVER_INPUT_KEEP_WAITING 2
 
 struct server_input_queue

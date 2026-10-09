@@ -17,9 +17,13 @@
 // are skipped rather than sent in a burst
 #define ONLINE_PACING_MAX_STEPS 4
 // NOTE(zoubir): the tick rate moves by this share per input of difference
-// from the target, at most ONLINE_PACING_MAX_ADJUST either way
+// from the target, at most ONLINE_PACING_MAX_ADJUST faster and
+// ONLINE_PACING_MAX_SLOW slower. Slowing down may go further: after a run
+// of lost packets on a bad link the server can hold a dozen inputs, each
+// a tick of delay, and at 5% they took four seconds to drain
 #define ONLINE_PACING_GAIN 0.02f
 #define ONLINE_PACING_MAX_ADJUST 0.05f
+#define ONLINE_PACING_MAX_SLOW 0.08f
 // NOTE(zoubir): the fewest inputs the server should have waiting, the
 // lowest seen over a window of this many snapshots (about a second)
 #define ONLINE_PACING_TARGET 1
@@ -91,6 +95,6 @@ NotePacingSnapshot(online_pacing *Pacing, u32 InputBuffered)
     u32 Lowest = Minimum(Pacing->WindowLowest, Pacing->LastWindowLowest);
     float Error = (float)ONLINE_PACING_TARGET - (float)Lowest;
     float Adjust = ONLINE_PACING_GAIN * Error;
-    Adjust = Maximum(-ONLINE_PACING_MAX_ADJUST, Minimum(ONLINE_PACING_MAX_ADJUST, Adjust));
+    Adjust = Maximum(-ONLINE_PACING_MAX_SLOW, Minimum(ONLINE_PACING_MAX_ADJUST, Adjust));
     Pacing->Rate = 1.f + Adjust;
 }
