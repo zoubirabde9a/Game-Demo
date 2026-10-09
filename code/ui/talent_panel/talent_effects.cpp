@@ -38,18 +38,20 @@ FireballScaleAt(u32 Level, u32 SwiftRank)
 // passive's rank) into Out; false when there is nothing beyond its
 // summary and cooldown to say
 // NOTE(zoubir): a run talent of the class tree at Level ranks: each effect's
-// amount a rank times the ranks (sim/dungeon/run_tree/run_mods.cpp)
+// amount a rank times the ranks, grown by its tier (ClassSlotDepthScale,
+// sim/dungeon/class_tree.cpp)
 internal void
 RunTalentEffectText(player_slot *Slot, u32 Talent, u32 Level, char *Out, u32 OutSize)
 {
     run_mod_def *Mod = &RunModDefs[ClassRunModAt(Slot, Talent)];
+    float Depth = ClassSlotDepthScale(ClassTreeSlot(Talent));
     u32 Used = 0;
     for(u32 Part = 0; Part < 2 && Mod->Effect[Part] && Used + 1 < OutSize; Part++)
     {
         int Wrote = snprintf(Out + Used, OutSize - Used, "%s", Part ? ", " : "");
         Used += Wrote > 0 ? (u32)Wrote : 0;
         Wrote = snprintf(Out + Used, OutSize - Used, RunEffectFormats[Mod->Effect[Part]],
-                         RunEffectShown(Mod->Effect[Part], Mod->PerRank[Part] * (float)Level));
+                         RunEffectShown(Mod->Effect[Part], Mod->PerRank[Part] * (float)Level * Depth));
         Used = Minimum(Used + (Wrote > 0 ? (u32)Wrote : 0), OutSize - 1);
     }
 }

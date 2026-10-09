@@ -9,7 +9,8 @@ How each dungeon class's talents and spells are laid out: one tree of two branch
 3. **One more at the top level, for damage.** At level 30 a damage class's lock on one pair lifts: it may take the other spell of that pair too, a fifth spell. A tank's or a healer's lock never lifts, so six stays its most.
 4. **Two branches.** Each is named for a way to play the class. Filling one takes about 23 of the run's 29 points, so a top-level build is one full branch and the other's first tiers.
 5. **Synergy.** Every fixed talent in a branch pays off both spells of its pair or the base kit.
-6. **Randomness.** Five slots of each branch roll as each run starts, from that branch's own pool: the class's themed talents that have no fixed slot and the run talents (`run_tree/run_mods.cpp`) that suit the branch. One of them is a keystone, a big effect with a cost.
+6. **Randomness.** Five slots of each branch roll as each run starts, from that branch's own pool: the class's themed talents that have no fixed slot and the run talents (`run_tree/run_mods.cpp`) that suit the branch. One of them is a keystone, a big effect with a cost. The roll is fixed for the whole run, every class's tree at once (switching class mid-run shows that class's roll for the same run), and rolls again only when a vote starts a new run.
+7. **Deeper is better.** The wild slots of tiers 2 and 3 roll only run talents, so a class's own talents in a pool land in tiers 4 and 5. A run talent's numbers, fixed or rolled, grow 10% for each tier below tier 2, the first talent tier: 1.1 times in tier 3, 1.2 in tier 4, 1.3 in tier 5. The bottom row holds the capstone and the keystone.
 
 ## The shape of a branch
 

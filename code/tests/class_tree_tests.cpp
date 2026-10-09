@@ -115,7 +115,9 @@ TestClassTreesMatchTheShape()
 // NOTE(zoubir): for many seeds and every class: fixed slots hold the
 // class's content, a wild slot something of its branch's pool, the
 // keystone a keystone the class's role kind may roll, nothing twice, and
-// the same seed and class roll the same tree
+// the same seed and class roll the same tree. Deeper is better: the
+// shallow wild slots hold run talents, the class's own talents roll
+// deeper, and a run talent's amounts grow with its tier
 internal void
 TestClassTreesRollFromTheirPools()
 {
@@ -124,6 +126,8 @@ TestClassTreesRollFromTheirPools()
         class_tree_def *Def = &ClassTrees[Role];
         u32 Kind = 1u << RoleKindOf(Role);
         u32 Different = 0;
+        u32 Shallow = 0;
+        u32 ShallowRun = 0;
         u8 First[CLASS_TREE_SLOTS];
         RollClassTree(0, Role, First);
         for(u32 Seed = 0; Seed < 300; Seed++)
@@ -150,6 +154,11 @@ TestClassTreesRollFromTheirPools()
                         InPool = InPool || Pool[Entry] == Tree[Index];
                     }
                     Check(InPool);
+                    if (ClassSlotShape(Index)->Tier <= CLASS_SHALLOW_TIER)
+                    {
+                        Shallow++;
+                        ShallowRun += IsClassRunContent(Tree[Index]) ? 1 : 0;
+                    }
                 }
                 else
                 {
@@ -164,6 +173,23 @@ TestClassTreesRollFromTheirPools()
         }
         // NOTE(zoubir): the seed matters
         Check(Different > 250);
+        // NOTE(zoubir): a pool short of run talents may lend a class talent
+        // up, rarely
+        Check(ShallowRun * 10 >= Shallow * 9);
+    }
+    // NOTE(zoubir): among tiers 1 to 4, a deeper slot grows a run talent
+    // more
+    for(u32 Index = 0; Index < ROLE_TALENTS; Index++)
+    {
+        for(u32 Other = 0; Other < ROLE_TALENTS; Other++)
+        {
+            u32 Tier = ClassSlotShape(Index)->Tier;
+            u32 OtherTier = ClassSlotShape(Other)->Tier;
+            if (Tier >= 1 && OtherTier > Tier && OtherTier <= 4)
+            {
+                Check(ClassSlotDepthScale(Other) > ClassSlotDepthScale(Index));
+            }
+        }
     }
 }
 

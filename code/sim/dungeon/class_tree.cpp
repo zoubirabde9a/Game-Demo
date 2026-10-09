@@ -24,7 +24,11 @@
    (run_tree/run_mods.cpp, CLASS_CONTENT_RUN on). Fixed slots are the
    class's (ClassTrees, class_tree_defs.cpp); a wild slot rolls from its
    branch's pool, and the keystone from the run keystones that fit the
-   class's role kind. The roll is a hash of the player's TreeSeed, the
+   class's role kind. Deeper is better: the two wild slots of tiers 1
+   and 2 roll only run talents, so the class's own talents in a pool turn
+   up in tiers 3 and 4, and a run talent's amounts grow by
+   CLASS_DEPTH_STEP for each tier below the first (ClassSlotDepthScale),
+   fixed or wild. The roll is a hash of the player's TreeSeed, the
    class and the slot, so a different class rolls a different tree and a
    new run (RerollRunTree) rolls again; points stay in their slot and buy
    whatever it rolled. Nothing appears twice in a tree, and no two run
@@ -39,6 +43,11 @@
 #define CLASS_POOL_MOST 8
 #define CLASS_KEYSTONE_SLOT 11
 #define CLASS_CAPSTONE_SLOT 10
+// NOTE(zoubir): what a run talent's amounts grow by for each tier below
+// the first
+#define CLASS_DEPTH_STEP 0.1f
+// NOTE(zoubir): the deepest tier whose wild slot rolls only run talents
+#define CLASS_SHALLOW_TIER 2
 
 enum class_slot_kind
 {
@@ -119,6 +128,17 @@ inline class_slot_shape *
 ClassSlotShape(u32 TreeSlot)
 {
     class_slot_shape *Result = &ClassSlotShapes[TreeSlot % ROLE_TALENTS];
+    return Result;
+}
+
+// NOTE(zoubir): what a run talent's amounts are multiplied by in TreeSlot:
+// 1 in the first tier, CLASS_DEPTH_STEP more for each tier below it, 1 in
+// the capstone row, whose talents are made for it
+inline float
+ClassSlotDepthScale(u32 TreeSlot)
+{
+    u32 Tier = ClassSlotShape(TreeSlot)->Tier;
+    float Result = (Tier >= 1 && Tier <= 4) ? 1.f + CLASS_DEPTH_STEP * (float)(Tier - 1) : 1.f;
     return Result;
 }
 
@@ -213,9 +233,16 @@ RollClassTree(u32 Seed, u32 Role, u8 *Out)
             }
             else
             {
+                // NOTE(zoubir): a shallow slot leaves the class's own
+                // talents to the deep ones, unless the pool runs dry
+                bool32 Shallow = Pass == 0 && ClassSlotShape(Index)->Tier <= CLASS_SHALLOW_TIER;
                 u8 *Candidates = Def->Pools[Index / ROLE_TALENTS];
                 for(u32 Candidate = 0; Candidate < CLASS_POOL_MOST && Candidates[Candidate]; Candidate++)
                 {
+                    if (Shallow && !IsClassRunContent(Candidates[Candidate]))
+                    {
+                        continue;
+                    }
                     if (!ClassContentTaken(Placed, PlacedCount, Candidates[Candidate], Pass == 0))
                     {
                         Pool[PoolCount++] = Candidates[Candidate];
@@ -279,7 +306,8 @@ ClassTalentRank(player_slot *Slot, u32 Talent)
 }
 
 // NOTE(zoubir): what Slot's tree adds to run effect Effect: every rank of
-// every run talent with it, times its amount a rank
+// every run talent with it, times its amount a rank, grown by its tier
+// (ClassSlotDepthScale)
 internal float
 RunEffectShare(player_slot *Slot, u32 Effect)
 {
@@ -307,7 +335,7 @@ RunEffectShare(player_slot *Slot, u32 Effect)
         {
             if (Def->Effect[Part] == Effect)
             {
-                Result += Def->PerRank[Part] * (float)Rank;
+                Result += Def->PerRank[Part] * (float)Rank * ClassSlotDepthScale(Index);
             }
         }
     }
