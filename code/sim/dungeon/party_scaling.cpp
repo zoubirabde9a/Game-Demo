@@ -13,9 +13,9 @@
 // adds only PARTY_DAMAGE_GROWTH_PAST of damage: a bigger party still has
 // one healer to cover everyone, and at the full growth four bots wiped
 // on the Ashen Causeway six times in a row in under half a minute each.
-// Four players face 3.05 times the health and 1.33 times the damage,
-// eight 13.5 times and 1.68 times
-#define PARTY_HEALTH_GROWTH 1.45f
+// Two players face 1.6 times the health, four 4.1 times the health and
+// 1.33 times the damage, eight 26.8 times and 1.68 times
+#define PARTY_HEALTH_GROWTH 1.6f
 #define PARTY_DAMAGE_GROWTH 1.12f
 #define PARTY_DAMAGE_GROWTH_PAST 1.06f
 #define PARTY_TUNED_SIZE 3

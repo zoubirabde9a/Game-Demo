@@ -143,11 +143,11 @@ internal void
 TestBossClockPartySizes()
 {
     Check(BossClockPartyScale(3) > 0.999f && BossClockPartyScale(3) < 1.001f);
-    Check(BossClockPartyScale(1) > 1.4f && BossClockPartyScale(1) < 1.45f);
+    Check(BossClockPartyScale(1) > 1.17f && BossClockPartyScale(1) < 1.175f);
     float Four = BossClockPartyScale(4);
     float Eight = BossClockPartyScale(8);
-    Check(Four > 1.f && Four < 1.05f);
-    Check(Eight > Four && Eight < 1.75f);
+    Check(Four > 1.09f && Four < 1.11f);
+    Check(Eight > Four && Eight < 2.5f);
     // NOTE(zoubir): the boss's health grows faster than the time does
     Check(PartyHealthScale(4) / PartyHealthScale(3) > Four * 4.f / 3.f);
 }

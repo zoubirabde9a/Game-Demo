@@ -311,7 +311,7 @@ TestPartyScalesExponentially()
         Check(Next > Step);
         Check(PartyDamageScale(Players + 1) > PartyDamageScale(Players));
     }
-    Check(PartyHealthScale(8) > 13.f && PartyHealthScale(8) < 14.f);
+    Check(PartyHealthScale(8) > 26.f && PartyHealthScale(8) < 27.f);
     // NOTE(zoubir): the full growth up to three, a gentler one past it
     Check(PartyDamageScale(3) > 1.254f && PartyDamageScale(3) < 1.255f);
     Check(PartyDamageScale(8) > 1.67f && PartyDamageScale(8) < 1.69f);
