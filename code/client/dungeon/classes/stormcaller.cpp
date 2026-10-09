@@ -17,7 +17,8 @@
    every client, so it looks the same online. A Ball Lightning is an orb
    rolling along the ground from its keep bursts, zapping foes with short
    bolts. The bolts and the bursts are stormcaller/bolt_fx.cpp; the keeps
-   (a field or a ball still there) stormcaller/keep_fx.cpp. */
+   (a field or a ball still there, Capacitor's flash)
+   stormcaller/keep_fx.cpp. */
 
 #include "stormcaller/bolt_fx.cpp"
 
@@ -315,6 +316,11 @@ DrawStormcallerBurst(render_context *RenderContext, app_state *AppState, role_bu
                 case StormcallerKeep_Ball:
                 {
                     NoteStormcallerBall(AppState, Burst, Variant);
+                } break;
+
+                case StormcallerKeep_Capacitor:
+                {
+                    DrawStormcallerCapacitor(RenderContext, AppState, Burst, T, CameraOffset);
                 } break;
             }
         } break;

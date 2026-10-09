@@ -5,6 +5,7 @@
    keep says where the ball is, its way, its radius and the seconds it has
    left, and each client rolls it on from there at BALL_LIGHTNING_SPEED
    until the next one, as the sim does (the ball never stops on a wall).
+   Capacitor's is a flash of Charge flowing back into the caster.
 
    The ball: a blue-white orb floating at chest height, a white core that
    throbs, arcs crackling out from it to the edge of its zap radius and a
@@ -114,6 +115,37 @@ NoteStormcallerField(app_state *AppState, role_burst *Burst, u32 Variant)
         Look->SeenOn = Burst->Start;
         Look->Known = true;
     }
+}
+
+// NOTE(zoubir): Capacitor handing Charge back: sparks rushing into the
+// chest from round it, then a yellow flash there
+internal void
+DrawStormcallerCapacitor(render_context *RenderContext, app_state *AppState, role_burst *Burst, float T,
+                         v3 CameraOffset)
+{
+    v2 Chest = BurstToScreen(StormcallerBurstPlace(Burst->Position), CameraOffset);
+    world_entity *Caster = Burst->Slot < MAX_PLAYERS ? AppState->Players[Burst->Slot].Entity : 0;
+    if (Caster)
+    {
+        Chest = RoleLookPoint(Caster, 0.5f, CameraOffset);
+    }
+    u32 Seed = StormFlickerSeed((u32)(Burst->Start * 1000.f), GetFxClock(AppState));
+    float In = Clamp01(T / 0.45f);
+    float Ease = In * In;
+    if (In < 1.f)
+    {
+        for(u32 Arc = 0; Arc < 6; Arc++)
+        {
+            float A = 2.f * Pi32 * ((float)Arc + BurstJitter(Arc, 613)) / 6.f;
+            v2 Out = Chest + (60.f * (1.f - Ease) + 6.f) * V2(Cos(A), 0.8f * Sin(A));
+            DrawStormBolt(RenderContext, Out, Out + 0.5f * (Chest - Out), Seed + Arc * 7, 1.5f, 0.9f,
+                          STORM_FX_YELLOW_RGB, 0);
+            DrawStormFlash(RenderContext, Out, 7.f, 0.8f, STORM_FX_WHITE_RGB);
+        }
+    }
+    float Flash = T < 0.45f ? Ease : 1.f - Clamp01((T - 0.45f) / 0.55f);
+    DrawStormFlash(RenderContext, Chest, 26.f + 20.f * Flash, 0.7f * Flash, STORM_FX_YELLOW_RGB);
+    DrawStormFlash(RenderContext, Chest, 10.f + 6.f * Flash, Flash, STORM_FX_WHITE_RGB);
 }
 
 // NOTE(zoubir): one Ball Lightning, every frame while it rolls and pops

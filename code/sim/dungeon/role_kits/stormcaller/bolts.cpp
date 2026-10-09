@@ -303,6 +303,7 @@ FinishThunderclap(app_state *AppState, player_slot *Slot, world_entity *Player)
         {
             Slot->RoleCooldowns[0] = 0.f;
             AddStormCharge(AppState, Slot, CAPACITOR_CHARGE);
+            EmitStormcallerKeep(AppState, By, ChestOf(Player), StormcallerKeep_Capacitor, 0.f, 0.f);
         }
     }
 }
