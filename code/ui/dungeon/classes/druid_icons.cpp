@@ -89,6 +89,35 @@ PaintDruidStaff(icon_canvas *Canvas, v2 Foot, v2 Head, v4 SeedColor)
 }
 
 // NOTE(zoubir): Rejuvenation: leaves spiralling round a soft green heart
+// NOTE(zoubir): Lifebloom: a closed bud on a stem, a ring of light round
+// it where it will open
+internal void
+PaintDruidLifebloomIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.5f, 0.45f), 0.5f, IconColor(170, 230, 90, 140));
+    IconArc(Canvas, V2(0.5f, 0.4f), 0.26f, 0.025f, Solid(IconColor(240, 255, 190, 200)), 0.f, 2.f * Pi32);
+    IconCapsule(Canvas, V2(0.5f, 0.9f), V2(0.5f, 0.5f), 0.025f, Solid(IconColor(80, 140, 50)));
+    PaintDruidOliveLeaf(Canvas, V2(0.5f, 0.72f), V2(0.74f, 0.6f), 0.1f);
+    PaintDruidLeaf(Canvas, V2(0.5f, 0.5f), V2(0.5f, 0.22f), 0.16f, IconColor(255, 200, 230), IconColor(200, 90, 150));
+}
+
+// NOTE(zoubir): Starfall: stars streaking down onto the ground round a
+// pale moon
+internal void
+PaintDruidStarfallIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.5f, 0.5f), 0.5f, IconColor(150, 160, 255, 140));
+    PaintDruidMoon(Canvas, V2(0.72f, 0.24f), 0.14f);
+    for(u32 Star = 0; Star < 4; Star++)
+    {
+        v2 End = V2(0.2f + 0.2f * (float)Star, 0.82f - 0.06f * (float)(Star % 2));
+        v2 Start = End + V2(-0.16f, -0.34f);
+        IconCapsule(Canvas, Start, End, 0.016f,
+                    Gradient(IconColor(200, 210, 255, 0), IconColor(230, 235, 255, 230), Start, End));
+        IconSparkle(Canvas, End, 0.05f, Solid(IconColor(250, 250, 255)));
+    }
+}
+
 internal void
 PaintDruidRejuvenationIcon(icon_canvas *Canvas)
 {
@@ -283,6 +312,7 @@ global_variable role_icon_painter *DruidIconPainters[ROLE_KEYS] =
 {
     PaintDruidRejuvenationIcon, PaintDruidStarfireIcon, PaintDruidRootsIcon, PaintDruidTranquilityIcon,
     PaintDruidRegrowthIcon, PaintDruidMoonfireIcon, PaintDruidWrathIcon,
+    PaintDruidLifebloomIcon, PaintDruidStarfallIcon,
 };
 global_variable talent_icon_painter *DruidTalentIconPainters[ROLE_TALENTS] =
 {

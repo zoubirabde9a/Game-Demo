@@ -52,6 +52,7 @@ DruidShotBloom(u32 Shot)
     {
         case DruidShot_Wrath: Result = 1; break;
         case DruidShot_Starfire: Result = STARFIRE_BLOOM; break;
+        case DruidShot_Starfall: Result = 1; break;
     }
     return Result;
 }

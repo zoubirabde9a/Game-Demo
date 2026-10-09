@@ -51,6 +51,7 @@ enum druid_shot
     DruidShot_Starfire,
     DruidShot_Moonfire,
     DruidShot_Roots,
+    DruidShot_Starfall,
 };
 
 // NOTE(zoubir): a Regrowth burst's variant that is Symbiosis's touch, not
@@ -89,6 +90,7 @@ DruidBurstPlace(v3 Position)
 
 #include "druid/bolts.cpp"
 #include "druid/growth.cpp"
+#include "druid/bloom_spells.cpp"
 
 // NOTE(zoubir): whether Key only starts a wind-up when pressed (the cast
 // runs through sim/player_casts.cpp, then FinishDruidCast fires it)
@@ -146,6 +148,16 @@ CastDruidKey(app_state *AppState, world *World, memory_arena *Arena, player_slot
         case 6:
         {
             return CastWrath(AppState, Slot, Player);
+        } break;
+
+        case 7:
+        {
+            CastLifebloom(AppState, Slot, Player);
+        } break;
+
+        case 8:
+        {
+            return CastStarfall(AppState, Slot, Player);
         } break;
 
         default:
@@ -306,4 +318,5 @@ UpdateDruidEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
     UpdateDruidMoonfires(AppState, &Run->Druid, DeltaTime);
     UpdateDruidRejuvenations(AppState, &Run->Druid, DeltaTime);
     UpdateDruidRoots(AppState, &Run->Druid, DeltaTime);
+    UpdateDruidLifeblooms(AppState, &Run->Druid, DeltaTime);
 }

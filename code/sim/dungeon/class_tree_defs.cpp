@@ -129,16 +129,16 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
       {CT(FrostMageTalent_IceShards), CT(FrostMageTalent_WintersGrace), RM(Cadence), RM(Giantslayer),
        RM(Leeching), RM(OpeningSalvo)}}},
 
-    // NOTE(zoubir): the Druid. Swiftmend and Gift of the Wild hold the
-    // second spell slots until Lifebloom and Starfall are in
+    // NOTE(zoubir): the Druid
     {{"Grove", "Moon"},
-     {CLASS_BRANCH(CT(DruidTalent_Verdancy), CT(DruidTalent_Tranquility), CT(DruidTalent_Swiftmend),
+     {CLASS_BRANCH(CT(DruidTalent_Verdancy), CT(DruidTalent_Tranquility), CT(DruidTalent_Lifebloom),
                    CT(DruidTalent_WildGrowth), RM(Verdant), RM(WildBloom),
                    RM(HeartOfTheWild)),
-      CLASS_BRANCH(CT(DruidTalent_NaturesWrath), CT(DruidTalent_EntanglingRoots), CT(DruidTalent_GiftOfTheWild),
+      CLASS_BRANCH(CT(DruidTalent_NaturesWrath), CT(DruidTalent_EntanglingRoots), CT(DruidTalent_Starfall),
                    CT(DruidTalent_Symbiosis), CT(DruidTalent_Eclipse), CT(DruidTalent_StarlitFury),
                    CT(DruidTalent_LunarBloom))},
-     {{RM(Overflowing), RM(Receptive), RM(Hymn), CT(DruidTalent_Barkskin), CT(DruidTalent_Overgrowth)},
+     {{RM(Overflowing), RM(Receptive), RM(Hymn), CT(DruidTalent_Barkskin), CT(DruidTalent_Overgrowth),
+       CT(DruidTalent_Swiftmend), CT(DruidTalent_GiftOfTheWild)},
       {RM(Giantslayer), RM(KeenEdge), RM(WarSong), RM(Bloodrush), RM(Quickened),
        RM(Cadence), RM(Moonlit), RM(SharedSpoils)}}},
 };

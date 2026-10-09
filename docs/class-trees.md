@@ -39,7 +39,7 @@ Attack, base spells, then each branch's pair. A spell marked *new* is designed a
 | Frost Mage | Frostbolt | Glacial Spike, Frost Nova | Winter: Blizzard or Cone of Cold (right click: a cone that chills and grows an Icicle a foe) | Shatter: Frozen Orb or Ice Barrier |
 | Bulwark | Shield Bash | Shield Slam, Taunt, Shield Charge, Shield Throw | Bastion: Last Stand or Rallying Cry (G: the tank and allies near heal 15% and hold a ward of 25) | Vanguard: Intercept or Demoralizing Roar (T: foes near deal 20% less for 8 s and turn on the tank) |
 | Mender | Smite Bolt | Mending Bolt, Ward, Holy Fire, Radiance | Sanctum: Sanctuary or *Prayer of Healing* (heals the most hurt allies at once) | Dawn: *Dawnbreak* or *Purify* (light that heals through damage, or a cleanse and a shield) |
-| Druid | Wrath | Rejuvenation, Regrowth, Moonfire, Starfire | Grove: Tranquility or *Lifebloom* (a heal that blooms when it runs out) | Moon: Entangling Roots or *Starfall* (stars on every foe near) |
+| Druid | Wrath | Rejuvenation, Regrowth, Moonfire, Starfire | Grove: Tranquility or Lifebloom (G: an ally heals over 6 s, then blooms for a big heal, more for each Bloom spent) | Moon: Entangling Roots or Starfall (T: a star on every foe near, a Bloom for each) |
 
 The fixed talents and the pools are in `class_tree_defs.cpp`; each class's talents and their numbers in `role_kits/<class>_defs.cpp`.
 
@@ -49,7 +49,7 @@ A bot takes a spell of each pair first, which of the two by a coin toss, so a pa
 
 ## Status
 
-Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above not marked *new*. To build: the five spells still marked *new*, the healers'. Class keys run A, R, C, V, W, X, the right click, G and T; a new spell takes a key its class leaves free.
+Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above not marked *new*. To build: the three spells still marked *new*, the Mender's. Class keys run A, R, C, V, W, X, the right click, G and T; a new spell takes a key its class leaves free.
 
 ## Balance
 

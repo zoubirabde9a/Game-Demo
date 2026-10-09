@@ -391,6 +391,37 @@ TestEclipse()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Lifebloom heals an ally over its time and blooms as it
+// runs out, more for the Bloom spent; Starfall strikes every foe near and
+// grows a Bloom for each
+internal void
+TestLifebloomAndStarfall()
+{
+    crypt_world Crypt = CreateDruidWorld(2);
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *Ally = AppState->Players[1].Entity;
+    Ally->Hp = 10.f;
+    Slot->Druid.Bloom = 2;
+    Slot->Input.Target = (u32)(Ally - AppState->World.Entities) + 1;
+    PressOnce(&Crypt, 0, PlayerButton_FrostNova);
+    Check(Slot->RoleCooldowns[7] > 0.f && Slot->Druid.Bloom == 0);
+    TickCrypt(&Crypt, (u32)(60.f * LIFEBLOOM_SECONDS) - 10);
+    float Before = Ally->Hp;
+    Check(Before > 10.f);
+    TickCrypt(&Crypt, 20);
+    Check(Ally->Hp - Before > LIFEBLOOM_BLOOM);
+    world_entity *A = DruidDummy(&Crypt, V3(100.f, 0.f, 0.f));
+    world_entity *B = DruidDummy(&Crypt, V3(-100.f, 60.f, 0.f));
+    world_entity *Far = DruidDummy(&Crypt, V3(0.f, STARFALL_REACH + 150.f, 0.f));
+    Slot->Druid.Bloom = 0;
+    PressOnce(&Crypt, 0, PlayerButton_GravityWell);
+    Check(Slot->RoleCooldowns[8] > 0.f);
+    Check(A->Hp < 2000.f && B->Hp < 2000.f && Far->Hp == 2000.f);
+    Check(Slot->Druid.Bloom == 2);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDruidTests()
 {
@@ -399,6 +430,7 @@ RunDruidTests()
     TestMoonfireBurns();
     TestStarfire();
     TestEclipse();
+    TestLifebloomAndStarfall();
     TestRejuvenation();
     TestRegrowthAndSymbiosis();
     TestTranquility();

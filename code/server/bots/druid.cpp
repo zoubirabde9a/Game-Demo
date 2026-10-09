@@ -102,6 +102,22 @@ BotDruidButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_e
             return NetButton_Launch;
         }
     }
+    // NOTE(zoubir): Lifebloom on the tank through a fight; Starfall on a
+    // pack round the Druid
+    for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS && Ready[7] && Run->FightingRoom; ++SlotIndex)
+    {
+        world_entity *Tank = LivingPlayerInSlot(AppState, SlotIndex);
+        if (Tank && RoleKindOf(AppState->Players[SlotIndex].Role) == RoleKind_Tank &&
+            Length(Tank->Position.XY - Self->Position.XY) < LIFEBLOOM_RANGE)
+        {
+            *Pick = (u16)(Tank->ID + 1);
+            return NetButton_FrostNova;
+        }
+    }
+    if (Ready[8] && Run->FightingRoom && BotDruidFoesNear(AppState, Self->Position.XY, STARFALL_REACH) >= 2)
+    {
+        return NetButton_GravityWell;
+    }
     u32 HurtNear = 0;
     for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; ++SlotIndex)
     {
@@ -109,10 +125,7 @@ BotDruidButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_e
         HurtNear += (Ally && Ally->Hp < 0.7f * Ally->MaxHp &&
                      Length(Ally->Position.XY - Self->Position.XY) < TRANQUILITY_RADIUS) ? 1 : 0;
     }
-    // NOTE(zoubir): a Druid that took Tranquility over Regrowth leans on it
-    // for one hurt ally too
-    u32 Want = RoleSpellLearned(Slot, 4) ? 2 : 1;
-    if (HurtNear >= Want && Ready[3] && Run->FightingRoom && BotRandom(Bot) % 10 == 0)
+    if (HurtNear >= 2 && Ready[3] && Run->FightingRoom && BotRandom(Bot) % 10 == 0)
     {
         return NetButton_Kunai;
     }

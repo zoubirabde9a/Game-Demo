@@ -90,10 +90,22 @@ struct druid_roots
 #define DRUID_MAX_REJUVENATIONS 16
 #define DRUID_MAX_ROOTS 8
 
+// NOTE(zoubir): a Lifebloom on an ally, and the heal it blooms for
+struct druid_lifebloom
+{
+    float Seconds;
+    float Burst;
+    u8 Ally;
+    u8 By;
+};
+
+#define DRUID_MAX_LIFEBLOOMS 8
+
 struct druid_run
 {
     druid_bolt Bolts[DRUID_MAX_BOLTS];
     druid_moonfire Moonfires[DRUID_MAX_MOONFIRES];
     druid_rejuvenation Rejuvenations[DRUID_MAX_REJUVENATIONS];
     druid_roots Roots[DRUID_MAX_ROOTS];
+    druid_lifebloom Lifeblooms[DRUID_MAX_LIFEBLOOMS];
 };

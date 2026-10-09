@@ -42,6 +42,20 @@
 #define REJUVENATION_PER_BLOOM 6.f
 #define REJUVENATION_COOLDOWN 4.f
 
+// NOTE(zoubir): Lifebloom (G, from Grove's pair against Tranquility,
+// druid/bloom_spells.cpp)
+#define LIFEBLOOM_RANGE 500.f
+#define LIFEBLOOM_PER_SECOND 3.f
+#define LIFEBLOOM_SECONDS 6.f
+#define LIFEBLOOM_BLOOM 30.f
+#define LIFEBLOOM_PER_BLOOM 9.f
+#define LIFEBLOOM_COOLDOWN 10.f
+// NOTE(zoubir): Starfall (T, from Moon's pair against Entangling Roots,
+// druid/bloom_spells.cpp)
+#define STARFALL_REACH 260.f
+#define STARFALL_DAMAGE 12.f
+#define STARFALL_COOLDOWN 15.f
+
 // NOTE(zoubir): Starfire (R): after its cast (PlayerSpell_DruidA) a heavy
 // star at the foe aimed at; grows STARFIRE_BLOOM Blooms
 #define STARFIRE_RANGE 560.f
@@ -96,6 +110,8 @@ enum druid_talent
     DruidTalent_Moonfire,
     DruidTalent_Regrowth,
     DruidTalent_LunarBloom,
+    DruidTalent_Lifebloom,
+    DruidTalent_Starfall,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -158,6 +174,10 @@ global_variable talent_def DruidTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Lunar Bloom", "Wrath and Starfire on a foe under your Moonfire grow a Bloom more",
      "+1 Bloom on Moonfire", TalentBranch_Role, 0, 0, 1, 0},
+    {"Lifebloom", "G: an ally heals over 6 s, then blooms for a big heal, more for each Bloom spent",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Starfall", "T: a star on every foe near you, a Bloom for each",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
@@ -186,4 +206,8 @@ global_variable role_spell DruidSpells[ROLE_KEYS] =
      RoleAim_Foe, MOONFIRE_RANGE, 0},
     {"Wrath", WRATH_COOLDOWN, "Wrath: a quick bolt of nature at a foe; grows a Bloom",
      RoleAim_None, WRATH_RANGE, 0},
+    {"Lifebloom", LIFEBLOOM_COOLDOWN, "Lifebloom: an ally heals over 6 s, then blooms for a big heal; spends Bloom",
+     RoleAim_Ally, LIFEBLOOM_RANGE, DruidTalent_Lifebloom + 1, "All Bloom"},
+    {"Starfall", STARFALL_COOLDOWN, "Starfall: a star on every foe near you, a Bloom for each",
+     RoleAim_None, STARFALL_REACH, DruidTalent_Starfall + 1},
 };
