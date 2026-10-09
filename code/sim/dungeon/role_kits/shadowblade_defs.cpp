@@ -93,6 +93,14 @@
 // NOTE(zoubir): Kidney Shot: an Eviscerate that spends all
 // SHADOWBLADE_MOST_POINTS stuns the foe it leaves alive this long
 #define KIDNEY_SHOT_SECONDS 2.5f
+// NOTE(zoubir): Find Weakness: a critical strike (Shadowstep's) leaves its
+// foe taking this share more from the whole party for this long (a
+// sunder, foe_marks.cpp)
+#define FIND_WEAKNESS_SHARE 0.1f
+#define FIND_WEAKNESS_SECONDS 5.f
+// NOTE(zoubir): Deepening Shadows, per rank: each combo point a finisher
+// spends takes this off Shadowstep's and Shadow Dance's cooldowns
+#define DEEPENING_SHADOWS_SECONDS 0.5f
 
 // NOTE(zoubir): the class's bursts, as SimBurst_ShadowbladeFirst + n
 // (client/dungeon/classes/shadowblade.cpp draws them)
@@ -156,6 +164,8 @@ enum shadowblade_talent
     ShadowbladeTalent_DeadlyThrow,
     ShadowbladeTalent_Shadowstep,
     ShadowbladeTalent_Garrote,
+    ShadowbladeTalent_FindWeakness,
+    ShadowbladeTalent_DeepeningShadows,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
@@ -195,6 +205,10 @@ global_variable talent_def ShadowbladeTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Garrote", "C: a wire round the foe in reach: its wind-up broken, held, poisoned; two combo points",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Find Weakness", "A critical strike leaves its foe taking 10% more from the party for 5 s",
+     "+10% damage taken", TalentBranch_Role, 0, 0, 1, 0},
+    {"Deepening Shadows", "Each combo point you spend brings Shadowstep and Shadow Dance back sooner",
+     "-0.5 s a point", TalentBranch_Role, 0, 0, 2, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None

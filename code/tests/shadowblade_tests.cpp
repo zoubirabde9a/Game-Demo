@@ -507,6 +507,46 @@ TestGarrote()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the Subtlety pool's talents: Find Weakness leaves a
+// critically struck foe taking more from the party; Deepening Shadows
+// takes time off Shadowstep and Shadow Dance for each point spent
+internal void
+TestSubtletyPoolTalents()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    player_slot *Slot = ReadyShadowblade(&Crypt);
+    world_entity *Player = Slot->Entity;
+    world_entity *Foe = StrikerDummy(&Crypt, V3(50.f, 0.f, 0.f));
+    Check(SetClassTalentRank(Slot, ShadowbladeTalent_FindWeakness, 1) < Talent_Count);
+    ShadowbladeStrike(AppState, Slot, Player, Foe, 1.f, 0.f, V2(1.f, 0.f));
+    Check(FoeMarkDamageScale(AppState->Dungeon, World, Foe) == 1.f);
+    Slot->Shadowblade.CritSeconds = SHADOWBLADE_CRIT_SECONDS;
+    ShadowbladeStrike(AppState, Slot, Player, Foe, 1.f, 0.f, V2(1.f, 0.f));
+    float Scale = FoeMarkDamageScale(AppState->Dungeon, World, Foe);
+    Check(Scale > 1.f + FIND_WEAKNESS_SHARE - 0.001f && Scale < 1.f + FIND_WEAKNESS_SHARE + 0.001f);
+
+    ResetTalents(AppState, 0);
+    GrantClassSpells(Slot);
+    Check(SetClassTalentRank(Slot, ShadowbladeTalent_DeepeningShadows, 2) < Talent_Count);
+    u32 WindUp = (u32)(60.f * PlayerSpells[PlayerSpell_ShadowbladeB].CastTime) + 2;
+    Slot->ClassMeter = (u8)SHADOWBLADE_MOST_POINTS;
+    Slot->RoleCooldowns[0] = 10.f;
+    Slot->RoleCooldowns[3] = 10.f;
+    Slot->RoleCooldowns[4] = 0.f;
+    PressAt(&Crypt, 0, PlayerButton_Shockwave, Foe);
+    TickHolding(&Crypt, Foe, WindUp);
+    Check(Slot->ClassMeter == 0);
+    float Off = 2.f * DEEPENING_SHADOWS_SECONDS * (float)SHADOWBLADE_MOST_POINTS;
+    for(u32 Key = 0; Key < 4; Key += 3)
+    {
+        Check(Slot->RoleCooldowns[Key] < 10.f - Off + 0.01f &&
+              Slot->RoleCooldowns[Key] > 10.f - Off - (float)WindUp / 60.f - 0.1f);
+    }
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunShadowbladeTests()
 {
@@ -524,5 +564,6 @@ RunShadowbladeTests()
     TestShadowbladeTalents();
     TestKnifeStorm();
     TestKidneyShot();
+    TestSubtletyPoolTalents();
     TestComboPointsFade();
 }

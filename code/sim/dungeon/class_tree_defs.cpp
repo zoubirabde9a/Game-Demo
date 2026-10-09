@@ -87,7 +87,7 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
      {{CT(ShadowbladeTalent_Lethality), CT(ShadowbladeTalent_Siphon), RM(Cadence), RM(Giantslayer),
        RM(Unseen), CT(ShadowbladeTalent_Cutthroat)},
       {CT(ShadowbladeTalent_Evasion), RM(Bloodrush), RM(Slip), RM(Shroud), RM(Stubborn),
-       RM(KeenEdge)}}},
+       RM(KeenEdge), CT(ShadowbladeTalent_FindWeakness), CT(ShadowbladeTalent_DeepeningShadows)}}},
 
     // NOTE(zoubir): the Stormcaller
     {{"Conduction", "Tempest"},

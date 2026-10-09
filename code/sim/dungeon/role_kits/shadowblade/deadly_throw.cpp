@@ -33,6 +33,7 @@ CastDeadlyThrow(app_state *AppState, world *World, player_slot *Slot, world_enti
               SlotIndex, ShadowbladeBurstSpot(ChestOf(Foe), Points), ATan2(Away.Y, Away.X));
     EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
     Slot->ClassMeter = 0;
+    OnComboPointsSpent(Slot, Points);
     bool32 Killed = ShadowbladeStrike(AppState, Slot, Player, Foe,
                                       DEADLY_THROW_DAMAGE + DEADLY_THROW_PER_POINT * (float)Points,
                                       DEADLY_THROW_SHOVE, Away);

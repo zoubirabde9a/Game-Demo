@@ -73,6 +73,17 @@ AddComboPoints(player_slot *Slot, u32 Points)
     Slot->Shadowblade.IdleSeconds = 0.f;
 }
 
+// NOTE(zoubir): a finisher spent Points: Deepening Shadows takes time off
+// Shadowstep (A) and Shadow Dance (V)
+inline void
+OnComboPointsSpent(player_slot *Slot, u32 Points)
+{
+    float Off = DEEPENING_SHADOWS_SECONDS * (float)Points *
+        (float)RoleRank(Slot, PlayerRole_Shadowblade, ShadowbladeTalent_DeepeningShadows);
+    Slot->RoleCooldowns[0] = Maximum(0.f, Slot->RoleCooldowns[0] - Off);
+    Slot->RoleCooldowns[3] = Maximum(0.f, Slot->RoleCooldowns[3] - Off);
+}
+
 // NOTE(zoubir): one of the Shadowblade's strikes on Foe for Damage: the
 // critical strike Shadowstep left goes on it (and is spent), and under
 // Shadow Dance a shadow echoes it. True when Foe died of it
@@ -89,6 +100,10 @@ ShadowbladeStrike(app_state *AppState, player_slot *Slot, world_entity *Player, 
         Damage *= SHADOWBLADE_CRIT_SCALE;
         EmitBurst(&AppState->Events, SimBurst_Finisher, SlotIndex, ChestOf(Foe),
                   ATan2(Away.Y, Away.X));
+        if (RoleRank(Slot, PlayerRole_Shadowblade, ShadowbladeTalent_FindWeakness))
+        {
+            AddSunder(AppState->Dungeon, World, Foe, FIND_WEAKNESS_SECONDS, FIND_WEAKNESS_SHARE);
+        }
     }
     hit Hit = {Damage, Shove, 0.f, 0.f, 0.f, SimBurst_Count};
     ApplyHit(AppState, World, Foe, &Hit, Away, Player, SlotIndex);
@@ -379,6 +394,7 @@ FinishEviscerate(app_state *AppState, player_slot *Slot, world_entity *Player)
               (u8)Player->PlayerIndex, ShadowbladeBurstSpot(ChestOf(Foe), Points), ATan2(Away.Y, Away.X));
     EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);
     Slot->ClassMeter = 0;
+    OnComboPointsSpent(Slot, Points);
     bool32 Killed = ShadowbladeStrike(AppState, Slot, Player, Foe,
                                       EVISCERATE_DAMAGE + EVISCERATE_PER_POINT * (float)Points,
                                       EVISCERATE_SHOVE, Away);
