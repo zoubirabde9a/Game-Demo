@@ -312,16 +312,9 @@ TakeRoleRequests(app_state *AppState, dungeon_run *Run)
         player_slot *Slot = &AppState->Players[SlotIndex];
         u32 Request = Slot->Input.Role;
         Slot->Input.Role = 0;
-        // NOTE(zoubir): the class + 1 in the low four bits, the look
-        // picked for it in the next (net_input.Role)
-        u32 Role = (Request & 15) - 1;
-        if ((Request & 15) && Slot->Active && !Run->FightingRoom)
+        if (Request && Slot->Active && !Run->FightingRoom)
         {
-            SetPlayerSkin(Slot, (Request >> 4) & 1);
-            if (Role != Slot->Role)
-            {
-                SetPlayerRole(AppState, Slot, Role);
-            }
+            SetPlayerRole(AppState, Slot, Request - 1);
         }
     }
 }

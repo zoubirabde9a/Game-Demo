@@ -38,7 +38,7 @@ cmd.exe //c "$(cygpath -w "$SRC/build.bat")" release > "$SRC/build.log" 2>&1 || 
 }
 
 # What the game needs at run time: it loads asset_1.zas, shaders/, fonts/,
-# the painted player skins in heroes/ and the recorded sound effects in
+# the class skins in heroes/ and the recorded sound effects in
 # sfx/ from the folder it runs in.
 GAME="$SRC/build"
 FILES=(win32_app.exe app.dll asset_1.zas)

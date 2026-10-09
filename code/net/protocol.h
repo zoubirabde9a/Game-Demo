@@ -155,7 +155,7 @@ struct net_input
     float AimY;
     u16 Target;    // the unit the cursor is on: its entity Id + 1, 0 for none
     u8 Role;       // a dungeon role request (sim/dungeon/roles.cpp): the player_role
-                   // picked + 1 in bits 0-3, or 0, the hero_skin for it in bit 4, and a team
+                   // picked + 1 in bits 0-3, or 0 (bit 4 free), and a team
                    // asked for in bits 5-6 (protocol/teams.h); held and let go like the talent field
 };
 
@@ -280,7 +280,7 @@ struct net_score
     u8 Dungeon;
     // A rally bit 0, Renewal bit 1, monsters after them (0..7) bits 2-4,
     // player_role's third bit in bit 5, its fourth in bit 6
-    // (sim/dungeon/role_abilities.cpp), the hero_skin worn in bit 7.
+    // (sim/dungeon/role_abilities.cpp).
     u8 DungeonMore;
     u8 ClassMeter; // player_slot's (sim/dungeon/dungeon_slot_fields.inc)
     u8 ClassFlags;

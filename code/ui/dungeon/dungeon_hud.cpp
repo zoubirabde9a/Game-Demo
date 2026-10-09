@@ -20,8 +20,7 @@
      it, the picked one outlined in its colour, and a line on how it
      plays. Offline the pick takes at once; online it goes to the server
      as a request (client/dungeon/role_requests.cpp) and shows once a
-     snapshot says so. A class with no kit yet is left out. Under it, the
-     look to wear for the class (skin_picker.cpp).
+     snapshot says so. A class with no kit yet is left out. 
 
    The fight is read from dungeon_run's Shown fields, which the run sets
    offline and the snapshot sets online. */
@@ -37,7 +36,6 @@
 
 #include "party_frames.cpp"
 #include "damage_meter.cpp"
-#include "skin_picker.cpp"
 #include "classes/class_hud.cpp"
 
 // NOTE(zoubir): one centred line at Y; returns the line's height
@@ -246,9 +244,8 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
     float PlateWidth = Maximum(Width, UITextWidth(Small, Line)) + 2.f * UI_GAP;
     float ColumnsHeight = UILineHeight(Small) + UI_GAP_SMALL +
         Rows * DUNGEON_ROLE_BUTTON_HEIGHT + (Rows - 1) * UI_GAP_SMALL;
-    float SkinHeight = SkinPickerHeight(AppState, Slot->Role);
     float PlateHeight = UILineHeight(Body) + ColumnsHeight + 2.f * UILineHeight(Small) +
-        2.f * UI_GAP + 2.f * UI_GAP_SMALL + SkinHeight;
+        2.f * UI_GAP + 2.f * UI_GAP_SMALL;
     DrawUIPanel(RenderContext, CenterX - 0.5f * PlateWidth, Y, PlateWidth, PlateHeight);
     float LineY = Y + UI_GAP;
     LineY += DungeonHudLine(RenderContext, Body, CenterX, LineY, "Pick your class",
@@ -275,7 +272,7 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
             {
                 if (IsOnline(AppState->Online))
                 {
-                    RequestDungeonRole(AppState, Role, Slot->Skin);
+                    RequestDungeonRole(AppState, Role);
                 }
                 else
                 {
@@ -288,9 +285,8 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
     }
     LineY += ColumnsHeight + UI_GAP_SMALL;
     LineY += DungeonHudLine(RenderContext, Small, CenterX, LineY, Line, UI_COLOR_TEXT_MUTED);
-    LineY += DungeonHudLine(RenderContext, Small, CenterX, LineY,
-                            "Each class has its own talents: press N", UI_COLOR_TEXT_MUTED);
-    DoSkinPicker(RenderContext, AppState, Input, Slot, CenterX, LineY + UI_GAP);
+    DungeonHudLine(RenderContext, Small, CenterX, LineY,
+                   "Each class has its own talents: press N", UI_COLOR_TEXT_MUTED);
 }
 
 // NOTE(zoubir): from the screen pass, every frame
