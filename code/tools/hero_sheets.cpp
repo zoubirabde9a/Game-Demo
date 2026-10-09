@@ -19,12 +19,17 @@ int main(int ArgCount, char **Args)
 {
     char *OutDir = ArgCount > 1 ? Args[1] : "hero_art";
     _mkdir(OutDir);
-    hero_class_out Classes[] =
+    char *Names[PlayerRole_Count] =
     {
-        {"firemage", FireMageLook()},
-        {"bulwark", BulwarkLook()},
-        {"mender", MenderLook()},
+        "firemage", "bulwark", "mender", "ranger", "berserker", "shadowblade",
+        "stormcaller", "duelist", "frostmage", "druid",
     };
+    hero_class_out Classes[PlayerRole_Count];
+    for(u32 Role = 0; Role < PlayerRole_Count; Role++)
+    {
+        Classes[Role].Name = Names[Role];
+        Classes[Role].Look = HeroLookFor(Role);
+    }
     u32 Size = HERO_FRAME_SIZE;
     char Path[512];
     snprintf(Path, sizeof(Path), "%s/manifest.json", OutDir);

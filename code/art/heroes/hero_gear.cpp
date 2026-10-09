@@ -47,6 +47,10 @@ HeroWeaponTip(hero_pose *Pose, hero_look *Look, hero_joints *J)
 internal void
 DrawHeroWeapon(sprite_canvas *Canvas, hero_pose *Pose, hero_look *Look, hero_joints *J)
 {
+    if (Look->Weapon == HeroWeapon_None)
+    {
+        return;
+    }
     if (Pose->WeaponDropped)
     {
         // NOTE(zoubir): lying on the ground beside the body, not turned

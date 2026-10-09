@@ -1,5 +1,6 @@
 /* Hero heads (hero_rig.cpp): the face, the hair round it and what is worn
-   on it (a wizard's hat, a plumed helmet, a circlet), for each facing. */
+   on it (a wizard's hat, a plumed helmet, a circlet; the later classes'
+   hats are hero_headgear.cpp), for each facing. */
 
 #define HERO_EYE_RGB ART_RGB(28, 20, 34)
 #define HERO_EYE_LIGHT_RGB ART_RGB(250, 250, 255)
@@ -194,12 +195,14 @@ DrawHeroCirclet(sprite_canvas *Canvas, hero_pose *Pose, hero_look *Look, v2 H)
     }
 }
 
+#include "hero_headgear.cpp"
+
 internal void
 DrawHeroHead(sprite_canvas *Canvas, hero_pose *Pose, hero_look *Look, hero_joints *J)
 {
     v2 H = J->Head;
-    bool32 Helmet = Look->Headgear == HeroHeadgear_Helmet;
-    if (!Helmet)
+    bool32 Covered = Look->Headgear == HeroHeadgear_Helmet || Look->Headgear == HeroHeadgear_Hood;
+    if (!Covered)
     {
         DrawHeroBackHair(Canvas, Pose, Look, H);
     }
@@ -220,11 +223,30 @@ DrawHeroHead(sprite_canvas *Canvas, hero_pose *Pose, hero_look *Look, hero_joint
             DrawHeroHairCap(Canvas, Pose, Look, H);
             DrawHeroCirclet(Canvas, Pose, Look, H);
         } break;
+        case HeroHeadgear_Hood:
+        {
+            DrawHeroHood(Canvas, Pose, Look, H);
+        } break;
+        case HeroHeadgear_Horns:
+        {
+            DrawHeroHairCap(Canvas, Pose, Look, H);
+            DrawHeroHorns(Canvas, Pose, Look, H);
+        } break;
+        case HeroHeadgear_Cavalier:
+        {
+            DrawHeroHairCap(Canvas, Pose, Look, H);
+            DrawHeroCavalier(Canvas, Pose, Look, H);
+        } break;
         case HeroHeadgear_None:
         {
+            if (Look->SpikyHair)
+            {
+                DrawHeroSpikes(Canvas, Pose, Look, H);
+            }
             DrawHeroHairCap(Canvas, Pose, Look, H);
         } break;
     }
     DrawHeroFace(Canvas, Pose, Look, H);
     DrawHeroBeard(Canvas, Pose, Look, H);
+    DrawHeroFaceCover(Canvas, Pose, Look, H);
 }

@@ -24,12 +24,18 @@ enum hero_headgear
     HeroHeadgear_WizardHat,
     HeroHeadgear_Helmet,
     HeroHeadgear_Circlet,
+    HeroHeadgear_Hood,
+    HeroHeadgear_Horns,
+    HeroHeadgear_Cavalier,
 };
 
 enum hero_weapon
 {
     HeroWeapon_Staff,
     HeroWeapon_Sword,
+    // NOTE(zoubir): empty hands, for a class whose own look draws its
+    // weapon over the sprite (client/dungeon/classes/)
+    HeroWeapon_None,
 };
 
 enum hero_offhand
@@ -48,6 +54,9 @@ struct hero_look
     color_ramp Belt;
     // NOTE(zoubir): sleeves and leggings; plate for armoured classes
     color_ramp Limb;
+    // NOTE(zoubir): trousers when they differ from the sleeves; left zero
+    // they are the sleeves' colour
+    color_ramp Legs;
     color_ramp Boots;
     color_ramp Hat;
     color_ramp HatBand;
@@ -63,6 +72,10 @@ struct hero_look
     bool32 Robe;
     bool32 LongHair;
     bool32 Beard;
+    bool32 Mustache;
+    bool32 SpikyHair;
+    // NOTE(zoubir): a cloth over the mouth and nose, in the hat's colour
+    bool32 Mask;
     bool32 Pauldrons;
     hero_headgear Headgear;
     hero_weapon Weapon;
@@ -229,7 +242,8 @@ DrawHeroLeg(sprite_canvas *Canvas, hero_pose *Pose, hero_look *Look, v2 Hip, v2 
     v2 Ankle = Foot + V2(0.f, -1.5f);
     if (!Look->Robe)
     {
-        HeroLimb(Canvas, Pose, Hip, Ankle, 2.2f, 1.8f, Look->Limb, Bias);
+        color_ramp Legs = Look->Legs.C[3] ? Look->Legs : Look->Limb;
+        HeroLimb(Canvas, Pose, Hip, Ankle, 2.2f, 1.8f, Legs, Bias);
     }
     float Forward = Pose->Facing == HeroFacing_Right ? 1.f : 0.f;
     HeroBlob(Canvas, Pose, Foot + V2(Forward, -0.5f), 2.4f + Forward, 1.8f, Look->Boots, Bias);
@@ -297,12 +311,12 @@ DrawHeroTorso(sprite_canvas *Canvas, hero_pose *Pose, hero_look *Look, hero_join
         float Off = Side ? 0.f : 5.f;
         if (Side)
         {
-            HeroBlob(Canvas, Pose, J->Neck + V2(0.f, 2.f), 3.5f, 2.6f, Look->Limb, 0.1f);
+            HeroBlob(Canvas, Pose, J->Neck + V2(0.f, 2.f), 3.5f, 2.6f, Look->Cloth, 0.1f);
         }
         else
         {
-            HeroBlob(Canvas, Pose, J->Neck + V2(-Off, 2.f), 3.f, 2.6f, Look->Limb, 0.1f);
-            HeroBlob(Canvas, Pose, J->Neck + V2(Off, 2.f), 3.f, 2.6f, Look->Limb, 0.1f);
+            HeroBlob(Canvas, Pose, J->Neck + V2(-Off, 2.f), 3.f, 2.6f, Look->Cloth, 0.1f);
+            HeroBlob(Canvas, Pose, J->Neck + V2(Off, 2.f), 3.f, 2.6f, Look->Cloth, 0.1f);
         }
     }
 }

@@ -1,5 +1,5 @@
-/* Skin picker (dungeon_hud.cpp): under the class picker, for a class
-   that has skins (client/heroes/hero_skins.cpp), a card per skin with the
+/* Skin picker (dungeon_hud.cpp): under the class picker, a card per
+   skin of the picked class (client/heroes/hero_skins.cpp) with the
    hero walking toward the camera in it and its name; the worn one is
    outlined in the class's colour. Offline the pick takes at once; online
    it rides with the class in the role request (role_requests.cpp). */
@@ -16,7 +16,7 @@ internal float
 SkinPickerHeight(app_state *AppState, u32 Role)
 {
     float Result = 0.f;
-    if (RoleHasSkins(Role) && Role < HERO_SKIN_CLASSES)
+    if (Role < HERO_SKIN_CLASSES)
     {
         Result = UILineHeight(AppState->Fonts.Body) + UI_GAP_SMALL + SKIN_CARD_HEIGHT + UI_GAP;
     }

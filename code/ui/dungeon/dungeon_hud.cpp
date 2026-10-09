@@ -20,8 +20,8 @@
      it, the picked one outlined in its colour, and a line on how it
      plays. Offline the pick takes at once; online it goes to the server
      as a request (client/dungeon/role_requests.cpp) and shows once a
-     snapshot says so. A class with no kit yet is left out. Under it, for
-     a class with skins, the look to wear (skin_picker.cpp).
+     snapshot says so. A class with no kit yet is left out. Under it, the
+     look to wear for the class (skin_picker.cpp).
 
    The fight is read from dungeon_run's Shown fields, which the run sets
    offline and the snapshot sets online. */

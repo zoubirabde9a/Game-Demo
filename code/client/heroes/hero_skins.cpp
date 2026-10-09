@@ -1,6 +1,6 @@
 /* Hero skins (sim/dungeon/roles.cpp, hero_skin): in a dungeon run, a
-   player whose class has skins is drawn from that skin's sheet instead of
-   the original hero. Two skins a class: the chibi one drawn in code
+   player is drawn from their class's skin's sheet instead of the
+   original hero. Two skins a class: the chibi one drawn in code
    (art/heroes/), and the taller one painted from the LPC pack, loaded from
    heroes/<class>_lpc.png (misc/lpc_heroes/pack.py says how it is laid
    out; heroes/CREDITS.txt names its artists). An LPC sheet that fails to
@@ -22,7 +22,7 @@
 #include "../../third_party/stb_image/stb_image.h"
 #pragma warning(pop)
 
-#define HERO_SKIN_CLASSES 3
+#define HERO_SKIN_CLASSES PlayerRole_Count
 // NOTE(zoubir): asset slots: a sheet per class and skin, then the wide
 // attack sheets per class
 #define HERO_SKIN_ASSETS (HERO_SKIN_CLASSES * HeroSkin_Count + HERO_SKIN_CLASSES)
@@ -49,7 +49,11 @@ global_variable u8 HeroLpcFrames[HERO_SKIN_CLASSES][HeroAnim_Count] =
     {2, 8, 6, 7, 3, 5, 3, 6},
     {2, 8, 8, 7, 3, 2, 3, 6},
 };
-global_variable char *HeroSkinFileNames[HERO_SKIN_CLASSES] = {"firemage", "bulwark", "mender"};
+global_variable char *HeroSkinFileNames[HERO_SKIN_CLASSES] =
+{
+    "firemage", "bulwark", "mender", "ranger", "berserker", "shadowblade", "stormcaller",
+    "duelist", "frostmage", "druid",
+};
 
 global_variable hero_skin_sheet HeroSkinSheets[HERO_SKIN_CLASSES][HeroSkin_Count];
 // NOTE(zoubir): world units each skin asset's cell is drawn at
@@ -165,7 +169,7 @@ HeroSkinSheetOf(app_state *AppState, world_entity *Entity, u32 *RoleOut, u32 *Sk
         player_slot *Slot = &AppState->Players[Entity->PlayerIndex];
         u32 Role = Slot->Role;
         u32 Skin = Slot->Skin < HeroSkin_Count ? Slot->Skin : HeroSkin_Chibi;
-        if (RoleHasSkins(Role) && Role < HERO_SKIN_CLASSES)
+        if (Role < HERO_SKIN_CLASSES)
         {
             if (!HeroSkinSheets[Role][Skin].Loaded)
             {

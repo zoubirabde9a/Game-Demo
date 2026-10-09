@@ -186,24 +186,16 @@ ApplyRoleToPlayer(app_state *AppState, player_slot *Slot)
     }
 }
 
-// NOTE(zoubir): the classes that have looks of their own
-// (client/heroes/), picked after the class: the chibi one drawn in code,
-// or the taller one painted from the LPC pack. Every other class, and
-// every player outside a run, wears the original hero
+// NOTE(zoubir): every class has two looks of its own (client/heroes/),
+// picked after the class: the chibi one drawn in code, or the taller one
+// painted from the LPC pack. A player outside a run wears the original
+// hero
 enum hero_skin
 {
     HeroSkin_Chibi,
     HeroSkin_Heroic,
     HeroSkin_Count
 };
-
-inline bool32
-RoleHasSkins(u32 Role)
-{
-    bool32 Result = Role == PlayerRole_Damage || Role == PlayerRole_Tank ||
-        Role == PlayerRole_Healer;
-    return Result;
-}
 
 inline void
 SetPlayerSkin(player_slot *Slot, u32 Skin)

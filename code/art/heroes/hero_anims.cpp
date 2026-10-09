@@ -127,7 +127,9 @@ HeroAttackPose(hero_pose *Pose, hero_look *Look, u32 Frame)
     Pose->HandMain = Swing->Hand[Frame];
     Pose->Lean = Lean[Frame];
     Pose->Body.Y = Drop[Frame];
-    Pose->Impact = Hit[Frame];
+    // NOTE(zoubir): empty hands land no flash; the class's own weapon
+    // draws its blow
+    Pose->Impact = Look->Weapon == HeroWeapon_None ? 0.f : Hit[Frame];
     // NOTE(zoubir): the off hand braces back as the main hand swings
     if (Side)
     {

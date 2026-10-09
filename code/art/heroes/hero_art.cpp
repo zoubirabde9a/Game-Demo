@@ -1,5 +1,4 @@
-/* Hero art: the player skins drawn in code, one sheet per class that has
-   skins (sim/dungeon/roles.cpp, RoleHasSkins). A sheet is
+/* Hero art: the player skins drawn in code, one sheet per class. A sheet is
    HERO_SHEET_COLUMNS frames wide and has one row per animation and facing
    (hero_anims.cpp), HERO_FRAME_SIZE pixels a cell. The client turns them
    into textures and picks the frame (client/heroes/hero_skins.cpp). */
@@ -7,6 +6,7 @@
 #include "hero_rig.cpp"
 #include "hero_anims.cpp"
 #include "hero_looks.cpp"
+#include "hero_looks_classes.cpp"
 
 #define HERO_SHEET_ROWS (HeroAnim_Count * HeroFacing_Count)
 
@@ -17,19 +17,23 @@ HeroSheetRow(hero_anim Anim, hero_facing Facing)
     return Result;
 }
 
-// NOTE(zoubir): the look of a class with skins; the Fire Mage's for any
-// other
+// NOTE(zoubir): a class's look; the Fire Mage's for an unknown one
 internal hero_look
 HeroLookFor(u32 Role)
 {
     hero_look Result = FireMageLook();
-    if (Role == PlayerRole_Tank)
+    switch(Role)
     {
-        Result = BulwarkLook();
-    }
-    else if (Role == PlayerRole_Healer)
-    {
-        Result = MenderLook();
+        case PlayerRole_Tank:        { Result = BulwarkLook(); } break;
+        case PlayerRole_Healer:      { Result = MenderLook(); } break;
+        case PlayerRole_Ranger:      { Result = RangerLook(); } break;
+        case PlayerRole_Berserker:   { Result = BerserkerLook(); } break;
+        case PlayerRole_Shadowblade: { Result = ShadowbladeLook(); } break;
+        case PlayerRole_Stormcaller: { Result = StormcallerLook(); } break;
+        case PlayerRole_Duelist:     { Result = DuelistLook(); } break;
+        case PlayerRole_FrostMage:   { Result = FrostMageLook(); } break;
+        case PlayerRole_Druid:       { Result = DruidLook(); } break;
+        default: break;
     }
     return Result;
 }
