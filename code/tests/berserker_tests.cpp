@@ -61,7 +61,7 @@ TestBerserkerKeys()
     Check(BerserkerKeyWindsUp(1) && BerserkerKeyWindsUp(4) && !BerserkerKeyWindsUp(6));
     // NOTE(zoubir): the right click is Cleave, not the sword
     Check(RoleSpellOnButton(AppState, Slot->Entity, PlayerButton_Attack) == &BerserkerSpells[6]);
-    Check(RoleSpellOnButton(AppState, Slot->Entity, PlayerButton_Cast) == 0);
+    Check(RoleSpellOnButton(AppState, Slot->Entity, PlayerButton_Cast) == &BerserkerSpells[5]);
     DestroyCryptWorld(&Crypt);
 }
 
@@ -482,11 +482,34 @@ TestBattleShout()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Rampage charges along the aim through the foes on the way,
+// each struck and giving Rage, and leaves one off the path alone
+internal void
+TestRampage()
+{
+    crypt_world Crypt = BerserkerCrypt();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *Player = Slot->Entity;
+    world_entity *A = BerserkerDummy(&Crypt, V3(80.f, 0.f, 0.f));
+    world_entity *B = BerserkerDummy(&Crypt, V3(170.f, 10.f, 0.f));
+    world_entity *Off = BerserkerDummy(&Crypt, V3(120.f, 200.f, 0.f));
+    v3 Start = Player->Position;
+    Slot->ClassMeter = 0;
+    PressOnce(&Crypt, 0, PlayerButton_Cast);
+    Check(Slot->RoleCooldowns[5] > 0.f);
+    Check(A->Hp < 2000.f && B->Hp < 2000.f && Off->Hp == 2000.f);
+    Check(BerserkerRage(Slot) >= (u32)(2.f * RAMPAGE_RAGE));
+    Check(Length(Player->Position.XY - Start.XY) > 100.f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunBerserkerTests()
 {
     TestBerserkerKeys();
     TestBattleShout();
+    TestRampage();
     TestCleaveHitsTheArc();
     TestCleaveFollowsThePick();
     TestRageBuildsAndDrains();

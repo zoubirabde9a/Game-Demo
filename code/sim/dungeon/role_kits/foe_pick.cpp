@@ -64,3 +64,30 @@ AttackTarget(app_state *AppState, player_slot *Slot, world_entity *Player, float
     }
     return Result;
 }
+
+// NOTE(zoubir): sim/player_abilities/blink_landing.cpp, included after
+internal bool32 IsBlinkSpotBlocked(app_state *AppState, world *World, v2 Position, float Z);
+
+// NOTE(zoubir): where a dash from Player along Dir, Most long, stops:
+// its full length, or the last clear Step before a wall, a pit, lava or a
+// closed gate (Lightning Dash, Rampage)
+internal v2
+ClearDashEnd(app_state *AppState, world_entity *Player, v2 Dir, float Most, float Step)
+{
+    world *World = &AppState->World;
+    v2 From = Player->Position.XY;
+    v2 Target = DungeonClampBlinkTarget(AppState, From, From + Most * Dir);
+    float Reach = Length(Target - From);
+    v2 Result = From;
+    for(float Along = Step; Along <= Reach + 0.01f; Along += Step)
+    {
+        v2 Spot = From + Minimum(Along, Reach) * Dir;
+        if (IsBlinkSpotBlocked(AppState, World, Spot, Player->Position.Z) ||
+            IsHazardAt(World, V3(Spot.X, Spot.Y, Player->GroundZ)))
+        {
+            break;
+        }
+        Result = Spot;
+    }
+    return Result;
+}

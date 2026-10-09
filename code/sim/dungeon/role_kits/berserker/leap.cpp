@@ -68,6 +68,60 @@ LeapSlam(app_state *AppState, player_slot *Slot, world_entity *Player)
     EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Player->Position);
 }
 
+// NOTE(zoubir): Rampage (X): the Berserker charges along its aim to the
+// last clear spot, striking and throwing aside every foe by the path,
+// each giving Rage; with Shattering Leap each is sundered too
+internal void
+CastRampage(app_state *AppState, world *World, memory_arena *Arena, player_slot *Slot,
+            world_entity *Player)
+{
+    if (Slot->Predicted)
+    {
+        return;
+    }
+    v2 Dir = NormalizeOr(GetPlayerAim(Player), V2(1.f, 0.f));
+    v2 From = Player->Position.XY;
+    v2 To = ClearDashEnd(AppState, Player, Dir, RAMPAGE_LENGTH, RAMPAGE_STEP);
+    float Run = Length(To - From);
+    bool32 Shatter = AppState->Dungeon &&
+        RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_ShatteringLeap) > 0;
+    u32 Room = RoomAtPosition(World, Player->Position.XY);
+    v2 Normal = V2(-Dir.Y, Dir.X);
+    u32 Struck = 0;
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Monster = &World->Entities[EntityIndex];
+        if (!IsBerserkerFoe(World, Monster, Room))
+        {
+            continue;
+        }
+        v2 Offset = Monster->Position.XY - From;
+        float Along = DotProduct(Offset, Dir);
+        float Across = DotProduct(Offset, Normal);
+        if (Along < -RAMPAGE_WIDTH || Along > Run + RAMPAGE_WIDTH ||
+            Absolute(Across) > RAMPAGE_WIDTH + 0.5f * Monster->Dimensions.X)
+        {
+            continue;
+        }
+        hit Hit = {RAMPAGE_DAMAGE, RAMPAGE_SHOVE, 120.f, 120.f, 0.f, SimBurst_Count};
+        ApplyHit(AppState, World, Monster, &Hit, Across >= 0.f ? Normal : -1.f * Normal, Player,
+                 Player->PlayerIndex);
+        if (Shatter && Monster->Hp > 0.f)
+        {
+            AddSunder(AppState->Dungeon, World, Monster, SHATTERING_LEAP_SECONDS, SHATTERING_LEAP_SHARE);
+        }
+        Struck++;
+    }
+    AddRage(Slot, RAMPAGE_RAGE * (float)Struck);
+    EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, BerserkerBurst_Leap),
+              (u8)Player->PlayerIndex, V3(To.X, To.Y, Player->GroundZ));
+    EmitSound(&AppState->Events, AssetType_SfxDash, Player->Position);
+    if (Run > 1.f)
+    {
+        MovePlayerTo(AppState, World, Arena, Player, V3(To.X, To.Y, Player->Position.Z));
+    }
+}
+
 // NOTE(zoubir): once a tick for each Berserker: a leap in flight steers
 // for its spot, then slams where it lands
 internal void

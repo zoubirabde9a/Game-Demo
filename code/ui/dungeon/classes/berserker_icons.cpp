@@ -141,6 +141,25 @@ PaintBerserkerBloodthirstIcon(icon_canvas *Canvas)
 
 // NOTE(zoubir): Berserk: a dark helm with burning red eyes, rage flaring
 // off it
+// NOTE(zoubir): Rampage: the axe swept forward, red speed lines behind it
+// and two foes flung aside
+internal void
+PaintBerserkerRampageIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.6f, 0.5f), 0.5f, IconColor(255, 70, 50, 140));
+    for(u32 Line = 0; Line < 4; Line++)
+    {
+        float Y = 0.36f + 0.09f * (float)Line;
+        IconCapsule(Canvas, V2(0.04f, Y), V2(0.48f, Y), 0.018f,
+                    Gradient(IconColor(255, 80, 60, 0), IconColor(255, 120, 90, 220), V2(0.04f, 0.f), V2(0.48f, 0.f)));
+    }
+    IconCircle(Canvas, V2(0.62f, 0.5f), 0.14f, Gradient(IconColor(255, 160, 140), IconColor(150, 20, 20),
+                                                       V2(0.56f, 0.44f), V2(0.7f, 0.6f)));
+    IconCircle(Canvas, V2(0.86f, 0.22f), 0.07f, Solid(IconColor(70, 40, 40)));
+    IconCircle(Canvas, V2(0.86f, 0.8f), 0.07f, Solid(IconColor(70, 40, 40)));
+    IconSparkle(Canvas, V2(0.8f, 0.5f), 0.08f, Solid(IconColor(255, 230, 210)));
+}
+
 // NOTE(zoubir): Battle Shout: a roar going out in three red rings from an
 // open mouth on the left
 internal void
@@ -256,7 +275,7 @@ internal void PaintShatteringLeapIcon(icon_canvas *C) { PaintBerserkerLeapIcon(C
 global_variable role_icon_painter *BerserkerIconPainters[ROLE_KEYS] =
 {
     PaintBerserkerLeapIcon, PaintBerserkerWhirlwindIcon, PaintBerserkerBattleShoutIcon,
-    PaintBerserkerBerserkIcon, PaintBerserkerExecuteIcon, 0,
+    PaintBerserkerBerserkIcon, PaintBerserkerExecuteIcon, PaintBerserkerRampageIcon,
     PaintBerserkerCleaveIcon,
 };
 global_variable talent_icon_painter *BerserkerTalentIconPainters[ROLE_TALENTS] =

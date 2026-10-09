@@ -170,6 +170,13 @@ BotBerserkerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, wor
     {
         Result |= NetButton_Sword;
     }
+    else if (Ready[5] && Foe == Target && Distance > 90.f && Distance < 0.9f * RAMPAGE_LENGTH &&
+             !BotDangerAt(Dangers, DangerCount, Foe->Position.XY))
+    {
+        // NOTE(zoubir): Rampage into what it fights, the aim on it, so the
+        // charge runs through it
+        Result |= NetButton_Fireball;
+    }
     else if (Ready[0] && Foe == Target && Distance > 150.f && Distance < 0.95f * PLAYER_AIM_REACH &&
              !BotDangerAt(Dangers, DangerCount, Foe->Position.XY) && BotRandom(Bot) % 8 == 0)
     {

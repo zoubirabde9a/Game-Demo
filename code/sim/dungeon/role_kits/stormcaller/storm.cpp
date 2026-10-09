@@ -114,30 +114,13 @@ UpdateStaticFields(app_state *AppState, stormcaller_run *Run, float DeltaTime)
     }
 }
 
-// NOTE(zoubir): sim/player_abilities/blink_landing.cpp, included after this
-internal bool32 IsBlinkSpotBlocked(app_state *AppState, world *World, v2 Position, float Z);
-
 // NOTE(zoubir): where a Lightning Dash from Player along Dir stops: its
 // full length, or the last clear step before a wall, a pit, lava or a
 // closed gate
 internal v2
 LightningDashEnd(app_state *AppState, world_entity *Player, v2 Dir)
 {
-    world *World = &AppState->World;
-    v2 From = Player->Position.XY;
-    v2 Target = DungeonClampBlinkTarget(AppState, From, From + LIGHTNING_DASH_LENGTH * Dir);
-    float Reach = Length(Target - From);
-    v2 Result = From;
-    for(float Along = LIGHTNING_DASH_STEP; Along <= Reach + 0.01f; Along += LIGHTNING_DASH_STEP)
-    {
-        v2 Spot = From + Minimum(Along, Reach) * Dir;
-        if (IsBlinkSpotBlocked(AppState, World, Spot, Player->Position.Z) ||
-            IsHazardAt(World, V3(Spot.X, Spot.Y, Player->GroundZ)))
-        {
-            break;
-        }
-        Result = Spot;
-    }
+    v2 Result = ClearDashEnd(AppState, Player, Dir, LIGHTNING_DASH_LENGTH, LIGHTNING_DASH_STEP);
     return Result;
 }
 

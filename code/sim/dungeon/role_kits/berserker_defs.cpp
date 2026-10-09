@@ -71,6 +71,18 @@
 #define BATTLE_SHOUT_REACH 320.f
 #define BATTLE_SHOUT_COOLDOWN 30.f
 
+// NOTE(zoubir): Rampage (X, from Carnage's pair against Leap,
+// berserker/leap.cpp): a charge RAMPAGE_LENGTH along the aim, stopping
+// short of walls and hazards; every foe within RAMPAGE_WIDTH of the path
+// takes RAMPAGE_DAMAGE, is thrown aside, and gives RAMPAGE_RAGE more
+#define RAMPAGE_LENGTH 260.f
+#define RAMPAGE_STEP 8.f
+#define RAMPAGE_WIDTH 45.f
+#define RAMPAGE_DAMAGE 14.f
+#define RAMPAGE_SHOVE 140.f
+#define RAMPAGE_RAGE 8.f
+#define RAMPAGE_COOLDOWN 10.f
+
 // NOTE(zoubir): the talents, per rank or once taken
 #define BRUTALITY_SHARE 0.06f
 // NOTE(zoubir): Bloodthirst: Execute heals the Berserker this share of
@@ -116,6 +128,7 @@ enum berserker_talent
     BerserkerTalent_Leap,
     BerserkerTalent_BattleShout,
     BerserkerTalent_Whirlwind,
+    BerserkerTalent_Rampage,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
@@ -144,7 +157,7 @@ global_variable talent_def BerserkerTalentDefs[CLASS_TALENTS] =
      TalentBranch_Role, 4, 1, 4, 0},
     {"Unyielding", "You take less damage", "-4% damage taken",
      TalentBranch_Role, 5, 0, 4, 0},
-    {"Shattering Leap", "Foes Leap lands on or Whirlwind cuts take 25% more from everyone for 6 s",
+    {"Shattering Leap", "Foes Leap lands on, Rampage runs through or Whirlwind cuts take 25% more from all for 6 s",
      "Leap breaks armor", TalentBranch_Role, 5, 1, 1, 0},
     {"Execute", "W: one chop that spends all your Rage, far harder under 25% health",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
@@ -153,6 +166,8 @@ global_variable talent_def BerserkerTalentDefs[CLASS_TALENTS] =
     {"Battle Shout", "C: Rage to full, and you and the allies near deal 12% more for 8 s",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Whirlwind", "R: 30 Rage, spin for 1.5 s hitting everything around you five times",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Rampage", "X: a charge through a line of foes, each struck, thrown aside and giving Rage",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
@@ -180,7 +195,8 @@ global_variable role_spell BerserkerSpells[ROLE_KEYS] =
     {"Execute", EXECUTE_COOLDOWN,
      "Execute: spend all Rage on one chop, twice as hard under 25% health",
      RoleAim_None, EXECUTE_REACH, 0, "All Rage, 20 at least"},
-    {},
+    {"Rampage", RAMPAGE_COOLDOWN, "Rampage: charge along your aim through every foe in the way, building Rage",
+     RoleAim_Line, RAMPAGE_LENGTH, BerserkerTalent_Rampage + 1},
     {"Cleave", CLEAVE_COOLDOWN, "Cleave: a wide swing of the axe through everything in front",
      RoleAim_None, CLEAVE_REACH, 0},
 };

@@ -132,6 +132,11 @@ CastBerserkerKey(app_state *AppState, world *World, memory_arena *Arena, player_
         {
             Cleave(AppState, World, Slot, Player);
         } break;
+
+        case 5:
+        {
+            CastRampage(AppState, World, Arena, Slot, Player);
+        } break;
     }
     return true;
 }
