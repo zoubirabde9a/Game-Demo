@@ -25,8 +25,8 @@
    - Giant Fireball: a big ball of fire flying from the striker's hand,
      each client flying its own copy (giant_fireball_fx.cpp), and the
      Meteor's blast, wider, where it bursts.
-   - Last Stand plays Shield Slam's flare; Radiance, Sanctuary's pillar
-     at the healer and a Mending Bolt's crosses on every ally it heals.
+   - Radiance: Sanctuary's pillar at the healer and a Mending Bolt's
+     crosses on every ally it heals.
 
    The later classes' bursts and lasting effects are their own files
    (classes/<class>.cpp, through classes/class_fx.cpp), and so are the

@@ -12,3 +12,4 @@
     {BurstShape_Role, 0.6f, DEMORALIZING_ROAR_REACH, 0x00A04070, false, 0.4f, BurstPose_Release}, // DemoralizingRoar
     {BurstShape_Role, 0.7f, 90.f, 0x0090F0B0, false, 0.f, BurstPose_Release},             // Prayer
     {BurstShape_Role, 0.6f, 40.f, 0x00FFF0E0, false, 0.f, BurstPose_Release},             // Purify
+    {BurstShape_Role, 0.7f, 40.f, 0x00D0E0F0, false, 0.25f, BurstPose_Release},           // ShieldFlare

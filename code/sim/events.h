@@ -111,6 +111,7 @@ enum sim_burst
     SimBurst_DemoralizingRoar, // a dark violet roar out to its number's reach
     SimBurst_Prayer,       // a soft ring of light round the healer at Position praying
     SimBurst_Purify,       // dark motes torn off the ally at Position, then a flash of light
+    SimBurst_ShieldFlare,  // a shield of light over the tank at Position; number 1: it heals too
     SimBurst_Count
 };
 static_assert(SimBurst_Count <= 128, "a burst kind and its number flag share a byte");

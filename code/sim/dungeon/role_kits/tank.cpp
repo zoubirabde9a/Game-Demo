@@ -315,8 +315,7 @@ TankRefusesToFall(app_state *AppState, player_slot *Slot, world_entity *Player, 
     }
     Slot->ClassFlags |= TANK_FLAG_UNBROKEN_SPENT;
     Slot->ShieldWallSeconds = Maximum(Slot->ShieldWallSeconds, UNBROKEN_WALL_SECONDS);
-    EmitBurst(&AppState->Events, SimBurst_ShieldSlam, (u8)Player->PlayerIndex, Player->Position,
-              ATan2(Player->Aim.Y, Player->Aim.X));
+    EmitBurst(&AppState->Events, SimBurst_ShieldFlare, (u8)Player->PlayerIndex, Player->Position);
     EmitSound(&AppState->Events, AssetType_SfxShield, Player->Position);
     float Result = Maximum(0.f, Player->Hp - UNBROKEN_HEALTH_SHARE * Player->MaxHp);
     return Result;
@@ -416,8 +415,7 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
             HealPlayer(AppState, SlotIndex, Player, LAST_STAND_HEAL_SHARE * Player->MaxHp);
             Slot->ShieldWallSeconds = Maximum(Slot->ShieldWallSeconds, LAST_STAND_SECONDS);
             EmitSound(&AppState->Events, AssetType_SfxShield, Player->Position);
-            EmitBurst(&AppState->Events, SimBurst_ShieldSlam, SlotIndex, Player->Position,
-                      ATan2(Player->Aim.Y, Player->Aim.X));
+            EmitBurst(&AppState->Events, SimBurst_ShieldFlare, SlotIndex, NumberedBurstSpot(Player->Position, 1));
         } break;
 
         case 4:

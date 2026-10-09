@@ -10,7 +10,10 @@
      tank, a call to stand up.
    - Demoralizing Roar: a dark violet roar, a heavy ring rolling out to
      its reach with a smoky wake, and chevrons sinking at its edge, the
-     foes' hearts going out of them. */
+     foes' hearts going out of them.
+   - Last Stand and Unbroken: the shield of light rising and flaring over
+     the tank, nothing struck round it; Last Stand (number 1) also lifts
+     a green column of healing. */
 
 #define BULWARK_FX_CRY_RGB 0x0060E0FF
 #define BULWARK_FX_ROAR_RGB 0x00A04070
@@ -112,6 +115,40 @@ DrawDemoralizingRoar(render_context *RenderContext, role_burst *Burst, float T, 
     }
 }
 
+internal void
+DrawShieldFlare(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
+{
+    v2 Centre = BurstToScreen(Burst->Position, CameraOffset);
+    float Ease = 1.f - (1.f - T) * (1.f - T);
+    float Fade = 1.f - T * T;
+    if (Burst->Number == 1)
+    {
+        float Height = 120.f * (0.3f + 0.7f * Ease);
+        DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 22.f, Centre.Y - Height, 44.f,
+                       Height + 10.f, FxColor(0.7f * Fade, ROLE_FX_HEAL_RGB), RenderBlend_Additive);
+        for(u32 Cross = 0; Cross < 6; Cross++)
+        {
+            float X = (BurstJitter(Cross, 191) - 0.5f) * 34.f;
+            float Rise = (10.f + 70.f * BurstJitter(Cross, 192)) * Ease;
+            DrawLightCross(RenderContext, Centre + V2(X, -Rise), 7.f, FxColor(Fade, ROLE_FX_HEAL_RGB));
+        }
+    }
+    v2 Over = Centre - V2(0.f, 46.f + 24.f * Ease);
+    float Flare = 90.f * (0.5f + 0.5f * Clamp01(1.f - 3.f * T)) * Fade;
+    DrawShaderQuad(RenderContext, Shader_Glow, Over.X - 0.5f * Flare, Over.Y - 0.5f * Flare, Flare,
+                   Flare, FxColor(0.8f * Fade, ROLE_FX_SLAM_RGB), RenderBlend_Additive);
+    DrawKiteShield(RenderContext, Over, 36.f + 8.f * Ease, 0.f, Fade);
+    // NOTE(zoubir): rays off the shield's rim
+    for(u32 Ray = 0; Ray < 8; Ray++)
+    {
+        float A = 2.f * Pi32 * (float)Ray / 8.f + 0.3f;
+        v2 Dir = V2(Cos(A), Sin(A));
+        v2 In = Over + (26.f + 10.f * Ease) * Dir;
+        DrawFxStroke(RenderContext, In, In + 16.f * Ease * Dir, 3.f, 0.f,
+                     FxColor(Fade, 0x00FFFFFF), FxColor(0.f, ROLE_FX_SLAM_RGB));
+    }
+}
+
 // NOTE(zoubir): a burst of the Bulwark's later spells; false for any other
 internal bool32
 DrawBulwarkBurst(render_context *RenderContext, app_state *AppState, role_burst *Burst,
@@ -122,6 +159,7 @@ DrawBulwarkBurst(render_context *RenderContext, app_state *AppState, role_burst 
         case SimBurst_ShieldThrow: DrawShieldThrow(RenderContext, Burst, T, CameraOffset); break;
         case SimBurst_RallyingCry: DrawRallyingCry(RenderContext, Burst, T, CameraOffset); break;
         case SimBurst_DemoralizingRoar: DrawDemoralizingRoar(RenderContext, Burst, T, CameraOffset); break;
+        case SimBurst_ShieldFlare: DrawShieldFlare(RenderContext, Burst, T, CameraOffset); break;
         default: return false;
     }
     return true;
