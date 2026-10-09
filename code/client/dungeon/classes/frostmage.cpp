@@ -7,7 +7,8 @@
    frost mist curling at the feet, and the Icicles (ClassMeter) as shards
    circling the mage's head, one per Icicle, bright and quick at five.
    While Glacial Spike casts, a spike grows over the crystal and a lane
-   on the floor shows its foe; Ice Barrier is a pale shell of ice round
+   on the floor shows its foe; while Fingers of Frost has a bolt ready
+   the crystal burns white; Ice Barrier is a pale shell of ice round
    the body while ClassFlags says it holds. All of it reads the cast, the
    aim, ClassMeter, ClassFlags and the bursts, which every client has, so
    it looks the same online. The shapes are frostmage/shapes.cpp, the
@@ -195,7 +196,25 @@ DrawFrostMageLook(render_context *RenderContext, app_state *AppState, player_slo
         Charge = 1.f - SinceCast / 0.25f;
     }
     v2 Head = FrostStaffHead(Player, CameraOffset) + V2(0.f, 1.5f * Sin(2.f * Clock + (float)SlotIndex));
-    DrawFrostStaff(RenderContext, Head, 0.95f * Height, Facing * (0.15f + 0.1f * Moving), Charge, Clock);
+    float Lean = Facing * (0.15f + 0.1f * Moving);
+    DrawFrostStaff(RenderContext, Head, 0.95f * Height, Lean, Charge, Clock);
+    // NOTE(zoubir): Fingers of Frost ready (ClassFlags): the crystal burns
+    // white and beats, motes circling it, until the bolt that shatters
+    // leaves it
+    if ((Slot->ClassFlags & FROSTMAGE_FLAG_FINGERS) && Player->CastSpell != PlayerSpell_FrostMageA)
+    {
+        v2 Up = NormalizeOr(V2(Lean, -1.f), V2(0.f, -1.f));
+        v2 Crystal = Head + 8.f * Up;
+        float Beat = 0.5f + 0.5f * Sin(6.f * Clock);
+        FrostGlow(RenderContext, Crystal, 18.f + 8.f * Beat, 0.5f + 0.35f * Beat, 0x00FFFFFF);
+        DrawIceShard(RenderContext, Head + 17.f * Up, Up, 20.f, 10.f, 1.f);
+        for(u32 Mote = 0; Mote < 3; Mote++)
+        {
+            float A = 3.f * Clock + 2.f * Pi32 * (float)Mote / 3.f;
+            DrawFxDot(RenderContext, Crystal + V2(15.f * Cos(A), 6.f * Sin(A)), 2.5f,
+                      FxColor(0.6f + 0.4f * Sin(A), FROST_FX_PALE_RGB));
+        }
+    }
     if (Player->CastSpell == PlayerSpell_FrostMageA)
     {
         float Grow = Charge * Charge * (3.f - 2.f * Charge);
