@@ -38,10 +38,11 @@ CastBlizzard(app_state *AppState, player_slot *Slot, world_entity *Player)
 }
 
 // NOTE(zoubir): every live foe within Radius of Point (and a bit of its
-// body), struck by Shot for Damage and given Status
+// body), struck by Shot for Damage and given Status; with ShowIce, clients
+// are shown the ice on each foe it roots, as Frost Nova shows them
 internal u32
 StrikeFrostCircle(app_state *AppState, u32 By, v2 Point, float Radius, u32 Shot, float Damage,
-                  status_effect Status, float StatusSeconds)
+                  status_effect Status, float StatusSeconds, bool32 ShowIce = false)
 {
     world *World = &AppState->World;
     u32 Struck = 0;
@@ -56,6 +57,10 @@ StrikeFrostCircle(app_state *AppState, u32 By, v2 Point, float Radius, u32 Shot,
         }
         FrostMageHit(AppState, By, Monster, Shot, Damage, 0.f, NormalizeOr(Offset, V2(1.f, 0.f)),
                      Status, StatusSeconds);
+        if (ShowIce && Status == StatusEffect_Rooted && HasStatus(Monster, StatusEffect_Rooted))
+        {
+            ShowFrozenFoe(AppState, By, Monster, Monster->StatusTimers[StatusEffect_Rooted]);
+        }
         Struck++;
     }
     return Struck;
@@ -88,7 +93,7 @@ UpdateBlizzards(app_state *AppState, frostmage_run *Run, float DeltaTime)
         {
             StrikeFrostCircle(AppState, Blizzard->By, Blizzard->Position.XY, Blizzard->Radius,
                               FrostShot_Blizzard, BLIZZARD_TICK_DAMAGE, StatusEffect_Rooted,
-                              DEEP_FREEZE_BLIZZARD_SECONDS * (float)Ranks);
+                              DEEP_FREEZE_BLIZZARD_SECONDS * (float)Ranks, true);
         }
     }
 }

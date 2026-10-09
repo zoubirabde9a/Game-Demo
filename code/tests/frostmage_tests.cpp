@@ -365,7 +365,7 @@ TestIciclesMelt()
 }
 
 // NOTE(zoubir): with Deep Freeze a Blizzard's end freezes what is still in
-// it, 0.4 s a rank
+// it, 0.4 s a rank, and clients are shown the ice for that long
 internal void
 TestDeepFreezeBlizzard()
 {
@@ -380,7 +380,14 @@ TestDeepFreezeBlizzard()
     PressOnce(&Crypt, 0, PlayerButton_Launch);
     RangerTick(&Crypt, &Dummies, 20);
     Check(!HasStatus(Inside, StatusEffect_Rooted));
-    RangerTick(&Crypt, &Dummies, (u32)(60.f * BLIZZARD_SECONDS) - 18);
+    u32 Ice = 0;
+    for(u32 Tick = 0; Tick < (u32)(60.f * BLIZZARD_SECONDS) - 18; Tick++)
+    {
+        RangerTick(&Crypt, &Dummies, 1);
+        // NOTE(zoubir): the ice's seconds go in halves, 0.8 s as 2
+        Ice += CountFrostBursts(AppState, FrostBurst_Freeze, 2, 2);
+    }
+    Check(Ice == 1);
     Check(HasStatus(Inside, StatusEffect_Rooted));
     Check(Inside->StatusTimers[StatusEffect_Rooted] <= 2.f * DEEP_FREEZE_BLIZZARD_SECONDS);
     DestroyCryptWorld(&Crypt);
