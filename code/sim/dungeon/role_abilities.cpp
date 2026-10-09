@@ -127,7 +127,12 @@ global_variable role_spell TankSpells[ROLE_KEYS] =
       "Shield Charge: rush a foe and stun it 2 s; an attack it is winding up is cancelled",
       RoleAim_Foe, SHIELD_CHARGE_RANGE, 0},
      {"Shield Bash", SHIELD_BASH_COOLDOWN, "Shield Bash: strike what is in front with your shield",
-      RoleAim_None, 0.f, 0}};
+      RoleAim_None, 0.f, 0},
+     {"Rallying Cry", RALLYING_CRY_COOLDOWN, "Rallying Cry: you and the allies near heal 15% and hold a ward of 25",
+      RoleAim_None, RALLYING_CRY_REACH, TankTalent_RallyingCry + 1},
+     {"Demoralizing Roar", DEMORALIZING_ROAR_COOLDOWN,
+      "Demoralizing Roar: the foes near deal 20% less for 8 s and turn on you",
+      RoleAim_None, DEMORALIZING_ROAR_REACH, TankTalent_DemoralizingRoar + 1}};
 
 global_variable role_spell HealerSpells[ROLE_KEYS] =
 {

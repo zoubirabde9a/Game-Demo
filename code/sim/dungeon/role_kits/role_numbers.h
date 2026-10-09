@@ -50,6 +50,16 @@
 #define LAST_STAND_HEAL_SHARE 0.3f
 #define LAST_STAND_SECONDS 6.f
 #define LAST_STAND_COOLDOWN 40.f
+// NOTE(zoubir): Rallying Cry (G, from Bastion's pair, tank/shouts.cpp)
+#define RALLYING_CRY_REACH 320.f
+#define RALLYING_CRY_HEAL_SHARE 0.15f
+#define RALLYING_CRY_WARD 25.f
+#define RALLYING_CRY_COOLDOWN 30.f
+// NOTE(zoubir): Demoralizing Roar (T, from Vanguard's pair, tank/shouts.cpp)
+#define DEMORALIZING_ROAR_REACH 220.f
+#define DEMORALIZING_ROAR_SHARE 0.2f
+#define DEMORALIZING_ROAR_SECONDS 8.f
+#define DEMORALIZING_ROAR_COOLDOWN 20.f
 // NOTE(zoubir): Shield Throw (W): the shield hits the foe the tank aims
 // at, then bounces to the nearest foe within SHIELD_THROW_BOUNCE_RADIUS
 // of the last one, up to SHIELD_THROW_BOUNCES times, each bounce

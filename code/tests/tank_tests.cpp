@@ -166,10 +166,44 @@ TestGuardianWardsTheAlly()
     }
 }
 
+// NOTE(zoubir): Rallying Cry heals and wards the tank and the ally near;
+// Demoralizing Roar leaves the foes near weaker
+internal void
+TestTankShouts()
+{
+    crypt_world Crypt = CreateCryptWorld(2);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    TickCrypt(&Crypt, 1);
+    player_slot *Slot = &AppState->Players[0];
+    SetPlayerRole(AppState, Slot, PlayerRole_Tank);
+    GrantClassSpells(Slot);
+    world_entity *Tank = Slot->Entity;
+    world_entity *Ally = AppState->Players[1].Entity;
+    v3 Old = Ally->Position;
+    Ally->Position = Tank->Position + V3(80.f, 0.f, 0.f);
+    CheckAndChangeEntityChunk(AppState, World, &Crypt.Arena, Old, Ally);
+    Ally->Hp = 0.5f * Ally->MaxHp;
+    AppState->Players[1].WardAbsorb = 0.f;
+    PressOnce(&Crypt, 0, PlayerButton_FrostNova);
+    Check(Slot->RoleCooldowns[7] > 0.f);
+    Check(Ally->Hp > 0.6f * Ally->MaxHp);
+    Check(AppState->Players[1].WardAbsorb >= RALLYING_CRY_WARD - 0.01f);
+    world_entity *Brute = SpawnMonster(AppState, World, &Crypt.Arena,
+                                       Tank->Position + V3(120.f, 40.f, 0.f), MonsterKind_Brute);
+    Brute->MaxHp = Brute->Hp = 1000.f;
+    PressOnce(&Crypt, 0, PlayerButton_GravityWell);
+    Check(Slot->RoleCooldowns[8] > 0.f);
+    float Scale = FoeWeakenScale(AppState->Dungeon, World, Brute);
+    Check(Scale > 1.f - DEMORALIZING_ROAR_SHARE - 0.001f && Scale < 1.f - DEMORALIZING_ROAR_SHARE + 0.001f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunTankTests()
 {
     TestGuardianWardsTheAlly();
+    TestTankShouts();
     TestShieldChargeBreaksAWindup();
     TestJuggernautSpeedsTheCharge();
     TestUnbrokenCatchesTheKillingBlow();

@@ -437,6 +437,7 @@ global_variable role_icon_painter *TankIconPainters[ROLE_KEYS] =
 {
     PaintRoleTauntIcon, PaintRoleShieldSlamIcon, PaintRoleInterceptIcon, PaintRoleLastStandIcon,
     PaintRoleShieldThrowIcon, PaintRoleShieldChargeIcon, PaintRoleShieldBashIcon,
+    PaintRallyingCryIcon, PaintDemoralizingRoarIcon,
 };
 global_variable role_icon_painter *HealerIconPainters[ROLE_KEYS] =
 {

@@ -337,6 +337,8 @@ UpdateTankEffects(app_state *AppState, dungeon_run *Run)
 // NOTE(zoubir): returns whether the key cast (an intercept with nobody
 // to leap to, or a shield throw or charge with no foe in reach, does not,
 // and keeps its cooldown)
+#include "tank/shouts.cpp"
+
 internal bool32
 CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
             player_slot *Slot, world_entity *Player, u32 Key)
@@ -412,6 +414,16 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
         case 6:
         {
             CastShieldBash(AppState, World, Slot, Player);
+        } break;
+
+        case 7:
+        {
+            CastRallyingCry(AppState, Slot, Player);
+        } break;
+
+        case 8:
+        {
+            CastDemoralizingRoar(AppState, World, Slot, Player);
         } break;
     }
     return true;

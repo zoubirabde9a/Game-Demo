@@ -24,19 +24,18 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
       {CT(StrikerTalent_QuickenedFlame), RM(Cadence), RM(OpeningSalvo), RM(Leeching),
        CT(StrikerTalent_EmberMantle), RM(CinderSkin), CT(StrikerTalent_Cataclysm)}}},
 
-    // NOTE(zoubir): the Bulwark. Provoke and Vengeance hold the second spell
-    // slots until Rallying Cry and Demoralizing Roar are in
+    // NOTE(zoubir): the Bulwark
     {{"Bastion", "Vanguard"},
-     {CLASS_BRANCH(CT(TankTalent_IronSkin), CT(TankTalent_LastStand), CT(TankTalent_Provoke),
+     {CLASS_BRANCH(CT(TankTalent_IronSkin), CT(TankTalent_LastStand), CT(TankTalent_RallyingCry),
                    CT(TankTalent_Bastion), RM(SteadyHeart), RM(Stoneform),
                    CT(TankTalent_Unbroken)),
-      CLASS_BRANCH(CT(TankTalent_ShatterArmor), CT(TankTalent_Intercept), CT(TankTalent_Vengeance),
+      CLASS_BRANCH(CT(TankTalent_ShatterArmor), CT(TankTalent_Intercept), CT(TankTalent_DemoralizingRoar),
                    CT(TankTalent_Juggernaut), RM(Menacing), RM(ShieldBrother),
                    CT(TankTalent_Guardian))},
      {{CT(TankTalent_Fortitude), CT(TankTalent_PlateMastery), RM(Stubborn), RM(Lifeline),
-       RM(LivingFortress)},
+       RM(LivingFortress), CT(TankTalent_Provoke)},
       {CT(TankTalent_BattleRhythm), RM(Spikes), RM(Rallying), RM(Menace), RM(Vigor),
-       RM(Retaliation)}}},
+       RM(Retaliation), CT(TankTalent_Vengeance)}}},
 
     // NOTE(zoubir): the Mender. Quickening, Light Feet and Inner Light hold
     // the second spell slots until Prayer of Healing, Dawnbreak and Purify

@@ -67,6 +67,24 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
         {
             Result |= NetButton_Kunai;
         }
+        // NOTE(zoubir): Rallying Cry when two of the party near are hurt,
+        // Demoralizing Roar with two foes on the tank
+        u32 Hurt = 0;
+        for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; ++SlotIndex)
+        {
+            world_entity *Ally = LivingPlayerInSlot(AppState, SlotIndex);
+            Hurt += (Ally && Ally->Hp < 0.6f * Ally->MaxHp &&
+                     Length(Ally->Position.XY - Self->Position.XY) < RALLYING_CRY_REACH) ? 1 : 0;
+        }
+        if (Ready[7] && Hurt >= 2 && AppState->Dungeon->FightingRoom)
+        {
+            Result |= NetButton_FrostNova;
+        }
+        if (Ready[8] && AppState->Dungeon->FightingRoom && Target && Distance < DEMORALIZING_ROAR_REACH &&
+            BotRandom(Bot) % 20 == 0)
+        {
+            Result |= NetButton_GravityWell;
+        }
         // NOTE(zoubir): an ally with monsters on them, too far to taunt off
         for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS && Ready[2]; ++SlotIndex)
         {

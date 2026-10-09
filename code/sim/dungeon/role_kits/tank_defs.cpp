@@ -19,6 +19,8 @@ enum tank_talent
     TankTalent_ShieldCharge,
     TankTalent_ShieldThrow,
     TankTalent_Guardian,
+    TankTalent_RallyingCry,
+    TankTalent_DemoralizingRoar,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -78,6 +80,10 @@ global_variable talent_def TankTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Guardian", "Shield Charge or Shield Throw on a foe attacking an ally wards that ally for 30",
      "ward 30", TalentBranch_Role, 0, 0, 1, 0},
+    {"Rallying Cry", "G: you and the allies near heal 15% and hold a ward of 25",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Demoralizing Roar", "T: the foes near deal 20% less for 8 s and turn on you",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
