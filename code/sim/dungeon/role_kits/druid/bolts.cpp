@@ -173,6 +173,7 @@ LeaveDruidMoonfire(app_state *AppState, u8 By, world_entity *Foe)
         if (Run->Moonfires[Index].Seconds <= 0.f)
         {
             Burn = &Run->Moonfires[Index];
+            Burn->Bites = 0;
         }
     }
     if (Burn)
@@ -255,6 +256,27 @@ UpdateDruidBolts(app_state *AppState, druid_run *Run, float DeltaTime)
     }
 }
 
+// NOTE(zoubir): a bite of Burn landed: Shooting Stars takes time off the
+// Druid's stars, Waxing Moon grows a Bloom every WAXING_MOON_BITES
+internal void
+OnDruidMoonfireBite(app_state *AppState, druid_moonfire *Burn)
+{
+    player_slot *Slot = &AppState->Players[Burn->By];
+    u32 Stars = RoleRank(Slot, PlayerRole_Druid, DruidTalent_ShootingStars);
+    if (Stars)
+    {
+        float Off = SHOOTING_STARS_SECONDS * (float)Stars;
+        // NOTE(zoubir): Starfire on R, Starfall on T (RoleKeys)
+        Slot->RoleCooldowns[1] = Maximum(0.f, Slot->RoleCooldowns[1] - Off);
+        Slot->RoleCooldowns[8] = Maximum(0.f, Slot->RoleCooldowns[8] - Off);
+    }
+    Burn->Bites++;
+    if (RoleRank(Slot, PlayerRole_Druid, DruidTalent_WaxingMoon) && Burn->Bites % WAXING_MOON_BITES == 0)
+    {
+        AddDruidBloom(AppState, Slot, 1);
+    }
+}
+
 // NOTE(zoubir): once a tick: each Moonfire bites every second, is sent
 // again to clients where its foe is now, and goes out with its foe
 internal void
@@ -280,6 +302,7 @@ UpdateDruidMoonfires(app_state *AppState, druid_run *Run, float DeltaTime)
             Burn->TickTimer += 1.f;
             DruidHit(AppState, Burn->By, Foe, DruidShot_Moonfire, MOONFIRE_TICK_DAMAGE, 0.f,
                      V2(1.f, 0.f));
+            OnDruidMoonfireBite(AppState, Burn);
         }
         Burn->Keep -= DeltaTime;
         if (Burn->Keep <= 0.f && Burn->Seconds > 0.f)

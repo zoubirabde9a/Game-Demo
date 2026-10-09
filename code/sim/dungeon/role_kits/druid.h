@@ -62,6 +62,8 @@ struct druid_moonfire
     float TickTimer;
     float Keep;
     u8 By;
+    // NOTE(zoubir): bites so far, for Waxing Moon
+    u8 Bites;
 };
 
 // NOTE(zoubir): a Rejuvenation healing the player in slot Ally

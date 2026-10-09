@@ -42,6 +42,8 @@ Attack, base spells, then each branch's pair, with the key a spell new to the re
 | Mender | Smite Bolt | Mending Bolt, Ward, Holy Fire, Radiance | Sanctum: Sanctuary or Prayer of Healing (G: the three most hurt allies near heal 28 at once) | Dawn: Dawnbreak (X: a beam of light through every foe on the aim, each hit healing the most hurt ally) or Purify (T: an ally rid of burns, poison, slows, roots and stuns, with a ward of 30) |
 | Druid | Wrath | Rejuvenation, Regrowth, Moonfire, Starfire | Grove: Tranquility or Lifebloom (G: an ally heals over 6 s, then blooms for a big heal, more for each Bloom spent) | Moon: Entangling Roots or Starfall (T: a star on every foe near, a Bloom for each) |
 
+A branch's pool holds class talents for its deep wild slots where the class has them. The Druid's Moon pool has two made for it: Shooting Stars (each Moonfire bite takes 0.35 s a rank off Starfire and Starfall) and Waxing Moon (every third bite of a Moonfire grows a Bloom), so a burn feeds both the stars and the heals.
+
 The fixed talents and the pools are in `class_tree_defs.cpp`; each class's talents and their numbers in `role_kits/<class>_defs.cpp`.
 
 ## Bots
@@ -58,15 +60,17 @@ Measured with the balance probe (`miscalance.bat 200 3 2 16`, `PROBE_LEVELS=2`)
 
 | Damage or healer bot | Bone Halls | Throne of Dust | Anvil Hall | Throne of Embers | Worst wipes a kill |
 |---|---|---|---|---|---|
-| Fire Mage | 15 | 48 | 32 | 48 | 0.5 |
-| Ranger | 12 | 58 | 29 | 57 | 0.7 |
-| Berserker | 10 | 60 | 61 | 68 | 0.7 |
-| Shadowblade | 13 | 50 | 47 | 61 | 0.8 |
-| Stormcaller | 10 | 69 | 31 | 66 | 0.8 |
-| Duelist | 14 | 43 | 45 | 46 | 0.9 |
-| Frost Mage | 13 | 58 | 30 | 57 | 0.9 |
-| Druid as the healer | 16 | 57 | 29 | 48 | 0.9 |
+| Fire Mage (with the Mender) | 15 | 50 | 28 | 50 | 0.3 |
+| Ranger | 12 | 62 | 29 | 54 | 1.0 |
+| Berserker | 13 | 60 | 62 | 67 | 0.5 |
+| Shadowblade | 13 | 49 | 52 | 60 | 0.4 |
+| Stormcaller | 10 | 61 | 31 | 68 | 1.1 |
+| Duelist | 14 | 44 | 51 | 47 | 1.0 |
+| Frost Mage | 13 | 59 | 32 | 56 | 0.4 |
+| Druid as the healer | 16 | 57 | 32 | 50 | 0.9 |
 | Fire Mage before the reshape | 17 | 57 | 32 | 52 | 0.4 |
+
+Measured after deeper tiers began to grow run talents (rule 7), before the Druid's Moon pool talents. Sixteen seeds is noisy: a worst room of 1.0 a kill is three or four wipes over the sixteen.
 
 With every class's full kit (all fourteen spells new to the reshape built), every party clears both levels within about one wipe a kill at its worst room.
 

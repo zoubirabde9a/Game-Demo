@@ -13,7 +13,7 @@
    class gives its points back (SetPlayerRole, roles.cpp). */
 
 // NOTE(zoubir): the most talents a class's catalog holds
-#define CLASS_TALENTS 20
+#define CLASS_TALENTS 24
 
 // NOTE(zoubir): the stat a stat talent raises (role_stats.cpp)
 enum role_stat

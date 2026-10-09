@@ -112,6 +112,8 @@ enum druid_talent
     DruidTalent_LunarBloom,
     DruidTalent_Lifebloom,
     DruidTalent_Starfall,
+    DruidTalent_ShootingStars,
+    DruidTalent_WaxingMoon,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -134,6 +136,13 @@ enum druid_talent
 // WILD_GROWTH_ALLIES most hurt other allies within this of its target
 #define WILD_GROWTH_REACH 260.f
 #define WILD_GROWTH_ALLIES 2
+// NOTE(zoubir): Shooting Stars, per rank: each bite of the Druid's
+// Moonfire takes this off Starfire's and Starfall's cooldowns, so a
+// Druid with burns up casts its stars, and grows Bloom, more often
+#define SHOOTING_STARS_SECONDS 0.35f
+// NOTE(zoubir): Waxing Moon: every this many bites of one Moonfire grow a
+// Bloom, so the burn feeds the heals while the Druid heals
+#define WAXING_MOON_BITES 3
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 1 unlocks the C spell, slot 4 the V spell
@@ -178,6 +187,10 @@ global_variable talent_def DruidTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Starfall", "T: a star on every foe near you, a Bloom for each",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Shooting Stars", "Each bite of your Moonfire brings Starfire and Starfall back sooner",
+     "-0.35 s a bite", TalentBranch_Role, 0, 0, 2, 0},
+    {"Waxing Moon", "Every third bite of a Moonfire grows a Bloom",
+     "a Bloom every 3 bites", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None

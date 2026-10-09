@@ -422,6 +422,39 @@ TestLifebloomAndStarfall()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the Moon branch's pool: Shooting Stars takes time off
+// Starfire and Starfall with each bite of a Moonfire, Waxing Moon grows a
+// Bloom every third bite
+internal void
+TestMoonfireTalents()
+{
+    crypt_world Crypt = CreateDruidWorld();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *Foe = DruidDummy(&Crypt, V3(250.f, 0.f, 0.f));
+    Check(SetClassTalentRank(Slot, DruidTalent_ShootingStars, 2) < Talent_Count);
+    PressOnce(&Crypt, 0, PlayerButton_Cast);
+    Check(IsDruidMoonfired(AppState, 0, Foe));
+    // NOTE(zoubir): Rejuvenation's cooldown runs down alone, the stars'
+    // faster by two bites of two ranks
+    Slot->RoleCooldowns[0] = 5.f;
+    Slot->RoleCooldowns[1] = 5.f;
+    Slot->RoleCooldowns[8] = 5.f;
+    DruidTick(&Crypt, 2 * 60 + 2);
+    float Left = Slot->RoleCooldowns[0] - 2.f * 2.f * SHOOTING_STARS_SECONDS;
+    Check(Slot->RoleCooldowns[0] > 2.f);
+    Check(DruidNear(Slot->RoleCooldowns[1], Left) && DruidNear(Slot->RoleCooldowns[8], Left));
+    Check(Slot->Druid.Bloom == 0);
+
+    ResetTalents(AppState, 0);
+    Check(SetClassTalentRank(Slot, DruidTalent_WaxingMoon, 1) < Talent_Count);
+    Slot->Druid.Bloom = 0;
+    FindDruidMoonfire(AppState, 0, Foe)->Bites = 0;
+    DruidTick(&Crypt, 3 * 60 + 2);
+    Check(Slot->Druid.Bloom == 1);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDruidTests()
 {
@@ -430,6 +463,7 @@ RunDruidTests()
     TestMoonfireBurns();
     TestStarfire();
     TestEclipse();
+    TestMoonfireTalents();
     TestLifebloomAndStarfall();
     TestRejuvenation();
     TestRegrowthAndSymbiosis();

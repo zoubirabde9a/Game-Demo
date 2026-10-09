@@ -138,6 +138,6 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    CT(DruidTalent_LunarBloom))},
      {{RM(Overflowing), RM(Receptive), RM(Hymn), CT(DruidTalent_Barkskin), CT(DruidTalent_Overgrowth),
        CT(DruidTalent_Swiftmend), CT(DruidTalent_GiftOfTheWild)},
-      {RM(Giantslayer), RM(KeenEdge), RM(WarSong), RM(Bloodrush), RM(Quickened),
-       RM(Cadence), RM(Moonlit), RM(SharedSpoils)}}},
+      {RM(Giantslayer), RM(KeenEdge), RM(WarSong), RM(Quickened), RM(Moonlit),
+       RM(SharedSpoils), CT(DruidTalent_ShootingStars), CT(DruidTalent_WaxingMoon)}}},
 };
