@@ -3,7 +3,9 @@
    a film, the edges of the world darken, a red flash marks the blow, and
    a title lands in the lower bar: "Defeated" for the player who fell,
    "Victory" for the one left standing, "Round over" for anyone watching,
-   with who won the round under it. The bars slide away as the slow motion
+   with who won the round under it. In a team duel the whole winning team
+   reads "Victory" and the losing one "Defeated", and the line names the
+   team. The bars slide away as the slow motion
    eases out, and the round break's own screens take over. */
 
 // NOTE(zoubir): each bar's height, as a share of the window's
@@ -68,9 +70,17 @@ DrawFinalBlow(render_context *RenderContext, app_state *AppState,
     }
     u32 Local = AppState->LocalPlayerIndex;
     u32 Winner = FinalBlowWinner(AppState);
+    u32 WinnerTeam = Winner < MAX_PLAYERS ? PlayerTeam(AppState, Winner) : (u32)Team_None;
+    u32 Mine = PlayerTeam(AppState, Local);
     char *Heading = (char *)"Round over";
     u32 HeadingColor = UI_COLOR_TEXT;
-    if (Kill->Victim == Local)
+    if (Mine != Team_None && WinnerTeam != Team_None)
+    {
+        bool32 Won = WinnerTeam == Mine;
+        Heading = Won ? (char *)"Victory" : (char *)"Defeated";
+        HeadingColor = Won ? UI_COLOR_ACCENT : UI_COLOR_HEALTH;
+    }
+    else if (Kill->Victim == Local)
     {
         Heading = (char *)"Defeated";
         HeadingColor = UI_COLOR_HEALTH;
@@ -81,7 +91,11 @@ DrawFinalBlow(render_context *RenderContext, app_state *AppState,
         HeadingColor = UI_COLOR_ACCENT;
     }
     char Line[96];
-    if (Winner < MAX_PLAYERS)
+    if (WinnerTeam != Team_None)
+    {
+        snprintf(Line, sizeof(Line), "%s wins the round", TeamName(WinnerTeam));
+    }
+    else if (Winner < MAX_PLAYERS)
     {
         char Name[48];
         GetPlayerName(AppState, Winner, Name, sizeof(Name));

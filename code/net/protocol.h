@@ -20,12 +20,12 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d73u // "GDMs", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d74u // "GDMt", change it whenever the layout changes
+// (GDMt: team duels, net_snapshot.Teams and a team request in net_input.Role bits 5-6)
 // (GDMs: 42 talent ranks, the second tree's seed and a 6-bit talent field, for each class's second tree;
 //  GDMr: player_role's fourth bit in net_score.DungeonMore bit 6, for the ninth and tenth classes)
 // (GDMq: the dungeon role request is a byte of its own, net_input.Role, as eight classes
 // and "none" do not fit the three spare bits of the held buttons)
-// (GDMo: 30 talent ranks, the class talents in 3 bits, for the deeper class trees)
 // (older ids and why: git log -S NET_PROTOCOL_ID -- code/net/protocol.h)
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
@@ -47,8 +47,7 @@
 #define NET_MAX_SNAPSHOT_REWINDS 4  // time rewinds under way the viewer can see
 #define NET_MAX_SNAPSHOT_CASTS 8    // players winding up a spell (MAX_PLAYERS)
 #define NET_COOLDOWN_COUNT 16       // the viewer's own ability cooldowns
-// NOTE(zoubir): ranks travel in 2 bits, but the class tree's, from
-// NET_TALENT_WIDE_FIRST to NET_TALENT_WIDE_END, in 3 (at most 4)
+// NOTE(zoubir): ranks travel in 2 bits, from NET_TALENT_WIDE_FIRST to NET_TALENT_WIDE_END in 3
 #define NET_TALENT_WIDE_FIRST 18
 #define NET_TALENT_WIDE_END 30
 #define NET_TALENT_BYTES 12
@@ -69,9 +68,8 @@ enum net_packet_type
     NetPacket_Disconnect,
     NetPacket_Input,
     NetPacket_Snapshot,
-    // Server to a would-be client: send your request again with this
-    // cookie. Proves the sender receives at its address before it gets a
-    // slot (see connections.h).
+    // Server to a would-be client: send your request again with this cookie. Proves
+    // the sender receives at its address before it gets a slot (see connections.h).
     NetPacket_ConnectChallenge,
     // Anyone to the server, without joining: who is playing, on which map
     // and build. The request is padded to at least the reply's size, so
@@ -158,8 +156,8 @@ struct net_input
     float AimY;
     u16 Target;    // the unit the cursor is on: its entity Id + 1, 0 for none
     u8 Role;       // a dungeon role request (sim/dungeon/roles.cpp): the player_role
-                   // picked + 1 in bits 0-3, or 0, and the hero_skin picked
-                   // for it in bit 4; held and let go like the talent field
+                   // picked + 1 in bits 0-3, or 0, the hero_skin for it in bit 4, and a team
+                   // asked for in bits 5-6 (protocol/teams.h); held and let go like the talent field
 };
 
 struct net_entity_state
@@ -321,6 +319,7 @@ struct net_rewind
     u8 Frozen[(NET_MAX_SNAPSHOT_ENTITIES + 7) / 8];
 };
 
+#include "protocol/teams.h"
 struct net_snapshot
 {
     u32 Tick;
@@ -375,6 +374,7 @@ struct net_snapshot
     // The map being played (sim/maps/); it changes between rounds, and the
     // client builds the new one's ground when it does (client/online.cpp).
     u8 MapId;
+    net_teams Teams; // a team duel (protocol/teams.h)
     // The map vote (sim/map_vote.cpp): the map asked for, NET_NO_VOTE
     // while none is open; who asked; whole seconds left; the yes and no
     // answers so far; the viewer's own answer (map_vote_request); and

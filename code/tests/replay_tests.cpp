@@ -219,6 +219,74 @@ TestReplayPlaysBackTheSameMatch()
     Check(Result.Mismatches == 0);
 }
 
+// A team duel with bots replays the same: slot 0 asks for it through the
+// vote bits (the bots say yes), then crosses to the other team, a bot
+// making way, which only works when the replay knows the bots
+// (NET_ROLE_BOT).
+internal void
+StepTeamReplayGame(server_game *Game, u32 Tick, u32 Asked)
+{
+    if (Tick == 0)
+    {
+        Game->BotTarget = 6;
+        for (u32 Slot = 0; Slot < 2; ++Slot)
+        {
+            GamePlayerJoined(Game, Slot);
+        }
+    }
+    GameKeepBots(Game, 3u, REPLAY_TEST_DT);
+    for (u32 Slot = 0; Slot < 2; ++Slot)
+    {
+        net_input Input = ScriptedReplayInput(Slot, Tick);
+        Input.Buttons &= ~(u32)(NetButton_RewindSelf | NetButton_RewindBubble | NetButton_RewindWorld);
+        if (Slot == 0 && Tick >= 10 && Tick < 20)
+        {
+            Input.Buttons |= (u32)MapVote_Teams << NET_VOTE_SHIFT;
+        }
+        if (Slot == 0 && Tick >= 600 && Tick < 610)
+        {
+            Input.Role = (u8)(Asked << NET_ROLE_TEAM_SHIFT);
+        }
+        GameApplyInput(Game, Slot, &Input);
+    }
+    GameTick(Game, REPLAY_TEST_DT);
+}
+
+internal void
+TestTeamDuelReplaysTheSame()
+{
+    static replay_writer Writer;
+    static u8 Memory[4 * 1024 * 1024];
+    ClearReplayWriter(&Writer);
+    Writer.Memory = Memory;
+    Writer.Capacity = sizeof(Memory);
+    static server_game Recorded;
+    GameInit(&Recorded, MapId_Arena);
+    GameStartReplay(&Recorded, &Writer);
+    // NOTE: two loops, not one with "if (Tick == 600)" in it: MSVC 2022's
+    // optimizer started that loop at 600 and skipped the rest
+    for (u32 Tick = 0; Tick < 600; ++Tick)
+    {
+        StepTeamReplayGame(&Recorded, Tick, Team_None);
+    }
+    Check(IsTeamDuel(Recorded.AppState));
+    u32 TeamBefore = PlayerTeam(Recorded.AppState, 0);
+    for (u32 Tick = 600; Tick < 900; ++Tick)
+    {
+        StepTeamReplayGame(&Recorded, Tick, OtherTeam(TeamBefore));
+    }
+    Check(IsTeamDuel(Recorded.AppState));
+    Check(TeamBefore != Team_None && PlayerTeam(Recorded.AppState, 0) == OtherTeam(TeamBefore));
+    Check(CountTeam(Recorded.AppState, Team_Red) == CountTeam(Recorded.AppState, Team_Blue));
+    u32 FinalHash = HashWorldState(Recorded.AppState);
+    GameShutdown(&Recorded);
+    ReplayFlush(&Writer);
+    static server_game Played;
+    replay_result Result = PlayReplay(&Played, Memory, Writer.Used);
+    Check(Result.Readable && Result.Mismatches == 0);
+    Check(Result.FinalHash == FinalHash);
+}
+
 // The same through a file, as server --record writes it: a block at a
 // time, then read back whole and played.
 internal void
@@ -322,6 +390,7 @@ RunReplayTests()
 {
     GROUP(TestSameInputsGiveTheSameWorld());
     GROUP(TestReplayPlaysBackTheSameMatch());
+    GROUP(TestTeamDuelReplaysTheSame());
     GROUP(TestReplayFileRoundTrip());
     GROUP(TestReplayStopsAtItsCap());
 }

@@ -16,7 +16,7 @@ How it was built, step by step, is in [multiplayer-history.md](multiplayer-histo
 
 ## How full snapshots get
 
-Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot carries about 20 entities (median), the 48-entity cap was never reached, nothing needed trimming, and the largest was 514 bytes of the 1200 allowed. So there is room for more fields; size work is not needed until the server's stats line shows `capped` or `trimmed` snapshots. The cap is 45 since the dungeon block (2026-10-07, GDMe), and 43 since the role overhaul added infernos, a second dungeon byte per score and the role talents (2026-10-07, GDMf): the fullest possible snapshot has to fit in one packet.
+Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot carries about 20 entities (median), the 48-entity cap was never reached, nothing needed trimming, and the largest was 514 bytes of the 1200 allowed. So there is room for more fields; size work is not needed until the server's stats line shows `capped` or `trimmed` snapshots. The cap is 45 since the dungeon block (2026-10-07, GDMe), and 43 since the role overhaul added infernos, a second dungeon byte per score and the role talents (2026-10-07, GDMf): the fullest possible snapshot has to fit in one packet. With the team duel block (2026-10-09, GDMt) the fullest snapshot is exactly 1200 bytes, so the next field needs room made for it first.
 
 ## Where things live
 
@@ -33,6 +33,7 @@ Measured with 8 bots for a minute on each map (2026-10-03, GDMG): a snapshot car
 | Chat (Enter while joined) | packets in `net/protocol/chat.h`; the relay, resends and flood limit in `server/chat_relay.cpp`; the client's side of the connection in `net/client_chat.*`; the typing line and the log in `ui/chat.cpp` and `ui/chat_view.cpp`; tests in `tests/chat_online_tests.cpp` |
 | Connect screen (server list), kill feed data | `ui/connect_screen.cpp`, `client/kill_feed.cpp` |
 | Bot players (`server --bots N`) | `server/bots.cpp`, kept topped up by `GameKeepBots` in `server/sim_game.cpp` |
+| Team duels (Red against Blue) | the rules in `sim/teams/teams.cpp`; on the wire `net/protocol/teams.h` (the flag in the map byte's top bit, then each slot's team and the bots) and a team request in bits 5-6 of `net_input.Role`; the client's side in `client/teams/`; the team panel (M), the team plate and the announcer's team cards in `ui/teams/`; tests in `tests/team_tests.cpp` and `tests/team_online_tests.cpp` |
 | Time rewinds (T, G, V): history, restore, what the snapshot says is frozen | `sim/time_rewind/`, `server/sim_game/rewinds.cpp`, `net_rewind` in `net/protocol.h`; the client's side in `client/rewind_fx/`; design in [time-rewind.md](time-rewind.md) |
 | Replays and determinism | `server --record <file>` (`server/replay.cpp`), `build\replay.exe <file>` (`tools/replay_main.cpp`), the world hash in `sim/world_hash.cpp`, `tests/replay_tests.cpp` |
 | Launcher and automatic game updates | `platform/launcher_app.cpp` (parts in `platform/launcher/`), `deploy/package_client.sh`, `deploy/publish_client.sh`, `deploy/setup_downloads.sh`; how it works in `deploy/README.md` |

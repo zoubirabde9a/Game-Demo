@@ -101,6 +101,7 @@ HashWorldState(app_state *AppState)
         Hash = HashWorldValue(Hash, Slot->DelayedInputCount);
         Hash = HashWorldValue(Hash, Slot->Xp);
         Hash = HashWorldValue(Hash, Slot->WardReady);
+        Hash = HashWorldValue(Hash, Slot->Team);
         for(u32 Talent = 0; Talent < TALENT_SLOTS; Talent++)
         {
             Hash = HashWorldValue(Hash, Slot->Ranks[Talent]);

@@ -314,7 +314,8 @@ DrawEntity(render_context *RenderContext,
     if (Entity->Type == EntityType_Player)
     {
         u32 MarkerColor = Entity == GetLocalPlayer(AppState) ?
-            SELF_MARKER_COLOR : RoleMarkerColor(AppState, Entity, FOE_MARKER_COLOR);
+            SELF_MARKER_COLOR : RoleMarkerColor(AppState, Entity,
+                                                TeamMarkerColor(AppState, Entity, FOE_MARKER_COLOR));
         DrawSelfMarker(RenderContext,
                        V2(EntityCameraPosition.X, EntityCameraPosition.Y - GroundZ),
                        SortingValue, MarkerColor);

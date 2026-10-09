@@ -1,7 +1,10 @@
 /* Map vote: any player can ask for another map (the Escape menu,
    ui/options_menu.cpp), of either game mode: a duel map, or a dungeon
    (sim/dungeon/), the co-op mode. Asking for a map of the other mode is
-   how the players change mode. The vote stays open MAP_VOTE_SECONDS; the one who
+   how the players change mode. A duel is played free for all or in two
+   teams (sim/teams/); MapVote_Teams asks for the other kind, on the same
+   map, or on the first duel map from a dungeon, and a vote for another
+   duel map keeps the kind. The vote stays open MAP_VOTE_SECONDS; the one who
    asked counts as a yes, and every other player can answer yes or no.
    When more than half of the players say yes, the world moves to that map
    on the next tick (StartNextRoundMap, setup.cpp). From one dungeon map
@@ -60,7 +63,12 @@ enum map_vote_request
     MapVote_Yes,
     MapVote_No,
     MapVote_Ask,
+    // NOTE(zoubir): the other kind of duel: teams from a free-for-all or
+    // a dungeon, a free-for-all from teams. The top of the four bits,
+    // above every MapVote_Ask + map_id
+    MapVote_Teams = 15,
 };
+static_assert(MapVote_Ask + MapId_Count <= MapVote_Teams, "a map asked for fits under MapVote_Teams");
 
 inline u32
 MapVoteAsk(u32 MapId)
@@ -88,11 +96,20 @@ UpdateMapVote(app_state *AppState, float DeltaTime)
         if (Request >= MapVote_Ask)
         {
             u32 MapId = Request - MapVote_Ask;
-            if (!AppState->VoteOpen && !AppState->NextMapVoted &&
-                IsVotableMap(AppState, MapId))
+            bool32 Votable = IsVotableMap(AppState, MapId);
+            bool32 Teams = AppState->TeamDuel && !IsDungeonMap(MapId);
+            if (Request == MapVote_Teams)
+            {
+                bool32 InDungeon = IsDungeonMap(AppState->World.MapId);
+                MapId = InDungeon ? FirstMapOfMode(false) : AppState->World.MapId;
+                Votable = MapId < MapId_Count;
+                Teams = InDungeon || !AppState->TeamDuel;
+            }
+            if (!AppState->VoteOpen && !AppState->NextMapVoted && Votable)
             {
                 AppState->VoteOpen = true;
                 AppState->VoteMap = MapId;
+                AppState->VoteTeams = Teams;
                 AppState->VoteBy = SlotIndex;
                 AppState->VoteSeconds = MAP_VOTE_SECONDS;
                 ZeroArray(AppState->Votes, MAX_PLAYERS, u8);
@@ -121,6 +138,7 @@ UpdateMapVote(app_state *AppState, float DeltaTime)
         AppState->VoteOpen = false;
         AppState->NextMapVoted = true;
         AppState->NextMap = AppState->VoteMap;
+        AppState->NextTeamDuel = AppState->VoteTeams;
         AppState->RoundBreak = 0.f;
         AppState->RoundMapDue = true;
     }

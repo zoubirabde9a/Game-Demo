@@ -212,6 +212,9 @@ ServerReceiveAll(server *Server)
             {
                 for (u32 Index = 0; Index < Result.NewInputCount; ++Index)
                 {
+                    // NOTE(zoubir): only the server's own bots say they
+                    // are one (net/protocol/teams.h)
+                    Result.NewInputs[Index].Role = (u8)(Result.NewInputs[Index].Role & (NET_ROLE_BOT - 1));
                     PushInput(&Server->InputQueues[Result.SlotIndex], &Result.NewInputs[Index]);
                 }
             } break;

@@ -291,15 +291,18 @@ DungeonAttackerSlot(app_state *AppState, world_entity *Source)
 #include "mirror_guard.cpp"
 
 // NOTE(zoubir): from DamageEntity and ApplyHit: in a dungeon run a player
-// never hurts, shoves or stuns another; outside one this is never true
+// never hurts, shoves or stuns another, nor in a team duel a teammate
+// (sim/teams/); in a free-for-all duel this is never true
 internal bool32
 IsFriendlyFire(app_state *AppState, world_entity *Target, world_entity *Source)
 {
     bool32 Result = false;
-    if (IsDungeon(AppState) && Target->Type == EntityType_Player)
+    if ((IsDungeon(AppState) || IsTeamDuel(AppState)) && Target->Type == EntityType_Player)
     {
         player_slot *Attacker = DungeonAttackerSlot(AppState, Source);
-        Result = Attacker && Attacker->Entity != Target;
+        Result = Attacker && Attacker->Entity != Target &&
+            (IsDungeon(AppState) ||
+             AreTeammates(AppState, (u32)(Attacker - AppState->Players), Target->PlayerIndex));
     }
     return Result;
 }

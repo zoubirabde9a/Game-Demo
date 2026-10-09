@@ -47,6 +47,9 @@ SimulateTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
     // NOTE(zoubir): a map vote passing moves everyone on the next tick
     // (sim/map_vote.cpp)
     UpdateMapVote(AppState, DeltaTime);
+    // NOTE(zoubir): who is on which team, and the changes asked for
+    // (sim/teams/)
+    UpdateTeams(AppState, Arena);
     // NOTE(zoubir): a dungeon run's rooms, gates and wipes (sim/dungeon/)
     UpdateDungeon(AppState, Arena, DeltaTime);
 

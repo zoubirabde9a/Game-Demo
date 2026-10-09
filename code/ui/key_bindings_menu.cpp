@@ -167,7 +167,8 @@ TakeKeyForBinding(app_state *AppState, app_input *Input, key_bindings_menu *Menu
         if (KeyCodeReserved(Code))
         {
             char *What = (Code == LetterKeyCode('H')) ? (char *)"the controls panel" :
-                (Code == LetterKeyCode('N')) ? (char *)"the talents" : (char *)"the battle theme";
+                (Code == LetterKeyCode('N')) ? (char *)"the talents" :
+                (Code == LetterKeyCode('M')) ? (char *)"the teams" : (char *)"the battle theme";
             KeyBindingsNotice(Menu, "%s is kept for %s; pick another key", KeyCodeName(Code), What);
             return;
         }

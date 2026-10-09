@@ -1,8 +1,10 @@
 /* Map vote on screen (sim/map_vote.cpp). In the Escape menu
-   (options_menu.cpp), a Mode and map section: a row with the two game
-   modes, Duel and Dungeon, where the other one asks everyone to move to
-   its first map, then a button per other map of the mode being played,
-   which asks everyone to move there. While a vote is open: who asked for
+   (options_menu.cpp), a Mode and map section: a row with the game
+   modes, Duel, Team duel and Dungeon, where another one asks everyone to
+   move to it (a team duel stays on the duel map being played), in a
+   team duel a button that opens the team panel (ui/teams/), then a
+   button per other map of the mode being played, which asks everyone to
+   move there. While a vote is open: who asked for
    which map (and mode, when it changes), the answers so far and Yes / No
    buttons. Over the game, while a vote is open, a plate at the top says
    so, with its own Yes / No buttons (and keys 1 and 2), so nobody has to
@@ -26,17 +28,57 @@ CountActivePlayers(app_state *AppState)
     return Result;
 }
 
-struct game_mode_choice
+enum game_mode
 {
-    bool32 Dungeon;
-    char *Name;
+    GameMode_Duel,
+    GameMode_TeamDuel,
+    GameMode_Dungeon,
+    GameMode_Count
 };
 
-global_variable game_mode_choice GameModeChoices[] =
+global_variable char *GameModeNames[GameMode_Count] = {"Duel", "Team duel", "Dungeon"};
+
+inline u32
+GameModeOf(u32 MapId, bool32 Teams)
 {
-    {false, "Duel"},
-    {true, "Dungeon"},
-};
+    u32 Result = IsDungeonMap(MapId) ? GameMode_Dungeon :
+        Teams ? GameMode_TeamDuel : GameMode_Duel;
+    return Result;
+}
+
+inline u32
+CurrentGameMode(app_state *AppState)
+{
+    u32 Result = GameModeOf(AppState->World.MapId, IsTeamDuel(AppState));
+    return Result;
+}
+
+// NOTE(zoubir): the vote request that asks for Mode: a team duel, or
+// back to a free-for-all, through MapVote_Teams, else the mode's first
+// map; 0 for the mode being played
+internal u32
+GameModeRequest(app_state *AppState, u32 Mode)
+{
+    u32 Current = CurrentGameMode(AppState);
+    u32 Result = 0;
+    if (Mode == Current)
+    {
+    }
+    else if (Mode == GameMode_TeamDuel ||
+             (Mode == GameMode_Duel && Current == GameMode_TeamDuel))
+    {
+        Result = MapVote_Teams;
+    }
+    else
+    {
+        u32 First = FirstMapOfMode(Mode == GameMode_Dungeon);
+        Result = IsVotableMap(AppState, First) ? MapVoteAsk(First) : 0;
+    }
+    return Result;
+}
+
+// NOTE(zoubir): ui/teams/team_panel.cpp, included after this
+internal void OpenTeamPanel(app_state *AppState);
 
 // NOTE(zoubir): the maps a button is drawn for: the other maps of the mode
 // being played (a mode change goes through its own row)
@@ -48,17 +90,17 @@ IsMapButtonShown(app_state *AppState, u32 MapId)
     return Result;
 }
 
-// NOTE(zoubir): "Sunken Crypt", or "Dungeon: Sunken Crypt" when the map
-// is of the other mode, so the vote says the mode changes
+// NOTE(zoubir): "Sunken Crypt", or "Dungeon: Sunken Crypt" when the vote
+// is for another mode ("Team duel: Old Arena"), so it says the mode changes
 internal void
 VoteMapText(app_state *AppState, char *Out, u32 OutSize)
 {
     u32 MapId = AppState->VoteMap;
-    char *Name = GetMapDef((map_id)MapId)->Name;
-    if (IsDungeonMap(MapId) != IsDungeonMap(AppState->World.MapId))
+    char *Name = MapId < MapId_Count ? GetMapDef((map_id)MapId)->Name : (char *)"";
+    u32 Mode = GameModeOf(MapId, AppState->VoteTeams);
+    if (Mode != CurrentGameMode(AppState))
     {
-        snprintf(Out, OutSize, "%s: %s", GameModeChoices[IsDungeonMap(MapId) ? 1 : 0].Name,
-                 Name);
+        snprintf(Out, OutSize, "%s: %s", GameModeNames[Mode], Name);
     }
     else
     {
@@ -134,7 +176,8 @@ MapVoteSectionHeight(app_state *AppState)
             Others += IsMapButtonShown(AppState, MapId) ? 1 : 0;
         }
         u32 Rows = (Others + MAP_VOTE_COLUMNS - 1) / MAP_VOTE_COLUMNS;
-        Result = (MAP_VOTE_BUTTON_HEIGHT + UI_GAP) +
+        Result = (IsTeamDuel(AppState) ? MAP_VOTE_BUTTON_HEIGHT + UI_GAP_SMALL : 0.f) +
+            (MAP_VOTE_BUTTON_HEIGHT + UI_GAP) +
             (float)Rows * (MAP_VOTE_BUTTON_HEIGHT + UI_GAP_SMALL) +
             (Rows ? 0.f : UILineHeight(Small) + UI_GAP_SMALL) +
             UILineHeight(Small);
@@ -192,27 +235,40 @@ DoMapVoteSection(render_context *RenderContext, app_state *AppState, app_input *
         return;
     }
 
-    // NOTE(zoubir): the modes; the one being played is lit, the other
-    // asks for its first map
-    bool32 InDungeon = IsDungeonMap(AppState->World.MapId);
-    float ModeWidth = 0.5f * (Width - UI_GAP);
-    for(u32 Index = 0; Index < ArrayCount(GameModeChoices); Index++)
+    // NOTE(zoubir): the modes; the one being played is lit, another asks
+    // everyone to move to it
+    u32 Current = CurrentGameMode(AppState);
+    float ModeWidth = (Width - (GameMode_Count - 1) * UI_GAP_SMALL) / GameMode_Count;
+    for(u32 Mode = 0; Mode < GameMode_Count; Mode++)
     {
-        game_mode_choice *Mode = GameModeChoices + Index;
-        float X = Left + Index * (ModeWidth + UI_GAP);
-        bool32 Selected = (Mode->Dungeon != 0) == (InDungeon != 0);
-        u32 First = FirstMapOfMode(Mode->Dungeon);
+        float X = Left + Mode * (ModeWidth + UI_GAP_SMALL);
+        bool32 Selected = Mode == Current;
+        u32 Request = GameModeRequest(AppState, Mode);
         if (OptionsButton(RenderContext, Input, X, Top, ModeWidth,
-                          MAP_VOTE_BUTTON_HEIGHT, Selected) &&
-            !Selected && IsVotableMap(AppState, First))
+                          MAP_VOTE_BUTTON_HEIGHT, Selected) && Request)
         {
-            RequestVote(AppState, MapVoteAsk(First));
+            RequestVote(AppState, Request);
         }
         UIText(RenderContext, Body, X + 0.5f * ModeWidth,
                Top + 0.5f * (MAP_VOTE_BUTTON_HEIGHT - UILineHeight(Body)),
-               Mode->Name, Selected ? UI_COLOR_ACCENT : UI_COLOR_TEXT, UIAlign_Center);
+               GameModeNames[Mode], Selected ? UI_COLOR_ACCENT : UI_COLOR_TEXT, UIAlign_Center);
     }
     Top += MAP_VOTE_BUTTON_HEIGHT + UI_GAP;
+    // NOTE(zoubir): in a team duel, the way to the team panel
+    u32 Mine = PlayerTeam(AppState, AppState->LocalPlayerIndex);
+    if (Mine != Team_None)
+    {
+        if (OptionsButton(RenderContext, Input, Left, Top, Width, MAP_VOTE_BUTTON_HEIGHT, false))
+        {
+            AppState->OptionsOpen = false;
+            OpenTeamPanel(AppState);
+        }
+        snprintf(Text, sizeof(Text), "You're on %s.  Teams (M)", TeamName(Mine));
+        UIText(RenderContext, Body, Left + 0.5f * Width,
+               Top + 0.5f * (MAP_VOTE_BUTTON_HEIGHT - UILineHeight(Body)), Text,
+               TeamStrongColor(Mine), UIAlign_Center);
+        Top += MAP_VOTE_BUTTON_HEIGHT + UI_GAP_SMALL;
+    }
 
     float ButtonWidth = (Width - (MAP_VOTE_COLUMNS - 1) * UI_GAP_SMALL) / MAP_VOTE_COLUMNS;
     u32 Column = 0;

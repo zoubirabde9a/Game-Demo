@@ -1,6 +1,6 @@
 /* Options menu: Esc opens it over the game and Esc or "Back to game"
    closes it. Esc closes whatever else is open first (CloseTopScreen): the
-   Play screen, a spell being aimed, the talent panel, the tile editor;
+   Play screen, a spell being aimed, the talent panel, the team panel, the tile editor;
    only when nothing is open does it open this menu.
 
    It picks the keyboard layout, AZERTY (ZQSD moves) or QWERTY (WASD
@@ -22,6 +22,9 @@
 internal float MapVoteSectionHeight(app_state *AppState);
 internal void DoMapVoteSection(render_context *RenderContext, app_state *AppState,
                                app_input *Input, float Left, float Top, float Width);
+// NOTE(zoubir): the team panel (ui/teams/team_panel.cpp, included after
+// this file)
+internal bool32 CloseTeamPanel(app_state *AppState);
 // NOTE(zoubir): the key bindings screen (ui/key_bindings_menu.cpp,
 // included after this file)
 internal bool32 KeyBindingsMenuOpen(app_state *AppState);
@@ -106,6 +109,9 @@ CloseTopScreen(app_state *AppState)
     else if (Talents->Open)
     {
         Talents->Open = false;
+    }
+    else if (CloseTeamPanel(AppState))
+    {
     }
     else if (AppState->TileEditing)
     {

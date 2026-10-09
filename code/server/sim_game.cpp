@@ -162,9 +162,14 @@ GameApplyInput(server_game *Game, u32 Slot, net_input *Input)
     {
         Out->Vote = Vote;
     }
+    // NOTE(zoubir): the role byte's top bits ask for a team (sim/teams/)
+    Player->Bot = (Role & NET_ROLE_BOT) != 0;
     if (Role && Role != RoleBefore)
     {
-        Out->Role = Role;
+        u32 Picked = Role & ((1u << NET_ROLE_TEAM_SHIFT) - 1);
+        u32 Team = (Role >> NET_ROLE_TEAM_SHIFT) & NET_ROLE_TEAM_MASK;
+        if (Picked) Out->Role = Picked;
+        if (Team) Out->Team = Team;
     }
 }
 
@@ -253,6 +258,7 @@ GameTick(server_game *Game, float Dt)
 #include "sim_game/rewinds.cpp"
 // NOTE(zoubir): a dungeon run's roles and rooms (sim/dungeon/)
 #include "sim_game/dungeon.cpp"
+#include "sim_game/teams.cpp"
 
 internal void
 GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
@@ -286,6 +292,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     {
         Out->VoteAnswers |= (u16)((AppState->Votes[SlotIndex] & 3) << (2 * SlotIndex));
     }
+    SimGameWriteTeams(AppState, Out);
     // The viewer's own body unrounded, for its prediction (net/protocol.h),
     // and the point the other positions are sent from
     Out->HasOwnBody = (Own && Own->IsPresent) ? 1 : 0;

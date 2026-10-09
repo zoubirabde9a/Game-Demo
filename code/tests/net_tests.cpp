@@ -144,6 +144,9 @@ FullSnapshot()
     P.Snapshot.OwnVote = 2;
     P.Snapshot.VoteAnswers = 0x9046;
     P.Snapshot.MapId = 2;
+    P.Snapshot.Teams.On = 1;
+    P.Snapshot.Teams.Slots = 0x9966;
+    P.Snapshot.Teams.Bots = 0xa5;
     P.Snapshot.HasDungeon = 1;
     P.Snapshot.FightingRoom = 5;
     P.Snapshot.RoomsCleared = 0x0f;
@@ -444,6 +447,8 @@ TestFullSnapshotFits()
           Out.Snapshot.VoteNo == 1 && Out.Snapshot.OwnVote == 2 &&
           Out.Snapshot.VoteAnswers == 0x9046);
     Check(Out.Snapshot.MapId == 2);
+    Check(Out.Snapshot.Teams.On == 1 && Out.Snapshot.Teams.Slots == 0x9966 &&
+          Out.Snapshot.Teams.Bots == 0xa5);
     Check(Out.Snapshot.RewindCount == 1);
     net_rewind *Rewind = &Out.Snapshot.Rewinds[0];
     Check(Rewind->Slot == 6 && Rewind->Kind == 1 && Rewind->Phase == 2);
@@ -1105,8 +1110,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d73u
-#define NET_GOLDEN_LAYOUT 0xb25e466bu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d74u
+#define NET_GOLDEN_LAYOUT 0x94b33fa5u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

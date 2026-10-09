@@ -83,7 +83,8 @@ RebuildWorldForMap(app_state *AppState, memory_arena *Arena, u32 MapId)
 // dungeon map to another starts a new run with the levels and talents
 // the party has, and a dungeon character set aside for a duel comes back
 // with the next dungeon. A player that had a familiar and kept its talents gets
-// it back. Arena must hold the world and nothing else
+// it back. In a team duel each keeps its team and starts on its side;
+// going into or out of teams clears the scores. Arena must hold the world and nothing else
 // (RebuildWorldForMap)
 internal void
 StartNextRoundMap(app_state *AppState, memory_arena *Arena)
@@ -116,6 +117,12 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
     bool32 FromDungeon = GetMapDef((map_id)World->MapId)->Dungeon;
     bool32 ToDungeon = MapId < MapId_Count && GetMapDef((map_id)MapId)->Dungeon;
     bool32 StartOver = NewRun && !(FromDungeon && ToDungeon);
+    // NOTE(zoubir): a vote also says whether the duel is played in teams;
+    // going into or out of teams is a new match, scores and all
+    // (sim/teams/)
+    bool32 TeamDuel = NewRun ? (AppState->NextTeamDuel && !ToDungeon) : AppState->TeamDuel;
+    bool32 NewTeams = TeamDuel != AppState->TeamDuel;
+    AppState->TeamDuel = TeamDuel;
     AppState->NextMapVoted = false;
     if (NewRun)
     {
@@ -139,6 +146,11 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
         Slot->SpawnPosition = SpawnPosition;
         Slot->RespawnTimer = 0.f;
         Slot->DelayedInputCount = 0;
+        if (NewTeams)
+        {
+            Slot->Kills = Slot->Deaths = Slot->MonsterKills = 0;
+            Slot->Team = Team_None;
+        }
         if (StartOver)
         {
             if (FromDungeon)
@@ -174,4 +186,5 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
             AddFamiliar(AppState, World, Arena, Player);
         }
     }
+    StartTeamRound(AppState, Arena);
 }

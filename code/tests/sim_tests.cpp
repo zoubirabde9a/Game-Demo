@@ -791,6 +791,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "player_feel_tests.cpp"
 #include "duel_tests.cpp"
 #include "round_rules_tests.cpp"
+#include "team_tests.cpp"
 #include "progression_tests.cpp"
 #include "kunai_tests.cpp"
 #include "dungeon_tests.cpp"
@@ -852,6 +853,7 @@ main(int ArgCount, char **Args)
     GROUP(RunPlayerFeelTests());
     GROUP(RunDuelTests());
     GROUP(RunRoundRulesTests());
+    GROUP(RunTeamTests());
     GROUP(RunProgressionTests());
     GROUP(RunKunaiTests());
     RunDungeonTests();

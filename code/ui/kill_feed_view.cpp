@@ -56,6 +56,25 @@ DrawKillFeed(render_context *RenderContext, app_state *AppState, u32 WindowWidth
         bool32 Mine = Entry->Killer == AppState->LocalPlayerIndex ||
             Entry->Victim == AppState->LocalPlayerIndex;
         u32 Color = Mine ? UI_COLOR_ACCENT : UI_COLOR_TEXT;
+        if (IsTeamDuel(AppState))
+        {
+            // NOTE(zoubir): each name in its team's colour, the arrow
+            // gold when the local player is in it
+            char *Arrow = (char *)"  >  ";
+            u32 KillerColor = Entry->Killer < MAX_PLAYERS ?
+                PlayerNameColor(AppState, Entry->Killer, UI_COLOR_TEXT) : UI_COLOR_TEXT_MUTED;
+            float X = Right;
+            UIText(RenderContext, Font, X, Y, Victim,
+                   WithAlpha(PlayerNameColor(AppState, Entry->Victim, UI_COLOR_TEXT), Fade),
+                   UIAlign_Right);
+            X -= UITextWidth(Font, Victim);
+            UIText(RenderContext, Font, X, Y, Arrow,
+                   WithAlpha(Mine ? UI_COLOR_ACCENT : UI_COLOR_TEXT_MUTED, Fade), UIAlign_Right);
+            X -= UITextWidth(Font, Arrow);
+            UIText(RenderContext, Font, X, Y, Killer, WithAlpha(KillerColor, Fade), UIAlign_Right);
+            Y += UILineHeight(Font) + 2.f;
+            continue;
+        }
         UIText(RenderContext, Font, Right, Y, Line,
                WithAlpha(Color, Fade), UIAlign_Right);
         Y += UILineHeight(Font) + 2.f;

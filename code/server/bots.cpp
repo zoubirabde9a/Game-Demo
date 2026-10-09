@@ -6,7 +6,7 @@
    is the simulation's own. A human joining takes the slot over.
 
    The brain is small on purpose: chase the nearest living player or
-   monster in sight, swing the sword up close, throw fireballs from range,
+   monster in sight (in a team duel, never a teammate, sim/teams/), swing the sword up close, throw fireballs from range,
    dash now and then, and wander when nothing is near. It earns experience
    like anyone and spends each point on a random talent it may take, then
    uses Frost Nova, Shockwave and Gravity Well once it has them. In a
@@ -78,8 +78,11 @@ BotFindTarget(app_state *AppState, world_entity *Self)
         world_entity *Other = &World->Entities[Index];
         if (!Other->IsPresent || Other == Self) continue;
         if (Other->Type != EntityType_Player && Other->Type != EntityType_Monster) continue;
-        // NOTE(zoubir): a dungeon party fights the monsters together
+        // NOTE(zoubir): a dungeon party fights the monsters together, and
+        // a team its foes (sim/teams/)
         if (Other->Type == EntityType_Player && IsDungeon(AppState)) continue;
+        if (Other->Type == EntityType_Player &&
+            AreTeammates(AppState, Self->PlayerIndex, Other->PlayerIndex)) continue;
         if (IsDeadPlayer(Other)) continue;
         // NOTE(zoubir): nor at a boss away from its fight, nor what falls
         // while it is gone (sim/dungeon/boss_departures.cpp)
@@ -344,7 +347,8 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     Bot->Held = Held;
     Bot->HeldRole = RoleAsked;
     Input.Buttons = Held;
-    Input.Role = RoleAsked;
+    // NOTE(zoubir): marked as a bot's, for team duels (sim/teams/)
+    Input.Role = (u8)(RoleAsked | NET_ROLE_BOT);
     Input.AimX = AimReach * Direction.X;
     Input.AimY = AimReach * Direction.Y;
     Input.Target = Pick;

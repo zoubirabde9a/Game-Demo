@@ -101,6 +101,8 @@ struct announcer
     bool32 SlotDown[MAX_PLAYERS];
     bool32 VoteWasOpen;
     u32 VoteMapSeen;
+    bool32 VoteTeamsSeen;
+    char VoteWhat[64];
     u32 VoteYesSeen;
     u32 VotePlayersSeen;
     float VoteResultDue;

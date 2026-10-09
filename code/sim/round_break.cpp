@@ -1,7 +1,7 @@
 /* Round break, under the duel rules (GameRules.RoundBreaks), on a round
    map: one with no monsters (map_def.MonsterPopulation 0). There a dead
-   player stays out until one player or nobody is left standing; that
-   ends the round. Every player gains a level, and everyone gets
+   player stays out until one player or nobody is left standing (in a team
+   duel, one team or none, sim/teams/); that ends the round. Every player gains a level, and everyone gets
    ROUND_BREAK_SECONDS to spend the point in the talent tree, which opens
    on its own (ui/round_break_view.cpp). While it lasts nobody can be hurt
    (every living player holds the respawn shield, IsDodging in entity.cpp)
@@ -74,11 +74,14 @@ RoundTimeScale(app_state *AppState)
     return Result;
 }
 
-// NOTE(zoubir): the players still standing, and whether anyone is out
+// NOTE(zoubir): the sides still standing, and whether anyone is out: the
+// players, or in a team duel the teams with anyone standing
+// (sim/teams/teams.cpp, which reads Team only while one is on)
 internal u32
 CountStandingPlayers(app_state *AppState, bool32 *AnyoneOut)
 {
     u32 Result = 0;
+    u32 TeamsStanding = 0;
     *AnyoneOut = false;
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
@@ -89,12 +92,17 @@ CountStandingPlayers(app_state *AppState, bool32 *AnyoneOut)
             {
                 *AnyoneOut = true;
             }
+            else if (AppState->TeamDuel && Slot->Team)
+            {
+                TeamsStanding |= 1u << Slot->Team;
+            }
             else
             {
                 Result++;
             }
         }
     }
+    Result += ((TeamsStanding >> 1) & 1) + ((TeamsStanding >> 2) & 1);
     return Result;
 }
 

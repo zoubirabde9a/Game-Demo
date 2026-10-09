@@ -180,8 +180,10 @@ DrawMinimap(render_context *RenderContext, app_state *AppState,
         float DotY = (Other->Position.Y / TileSize - (float)OriginY) * Scale;
         if (DotX >= 0.f && DotY >= 0.f && DotX < Size && DotY < Size)
         {
+            // NOTE(zoubir): in a team duel, in the player's team colour
             DrawFilledRectangle(RenderContext, Left + DotX - 2.f,
-                                Top + DotY - 2.f, 4.f, 4.f, UI_COLOR_TEXT, 0.f);
+                                Top + DotY - 2.f, 4.f, 4.f,
+                                PlayerNameColor(AppState, SlotIndex, UI_COLOR_TEXT), 0.f);
         }
     }
     // NOTE(zoubir): landmarks on infinite maps, as rings: the pointer's

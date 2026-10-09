@@ -2,9 +2,10 @@
 
 An online 2D action game written from scratch in C++ on the Win32 API and OpenGL. No engine, no standard library containers, and all of the game's memory is reserved once at startup. The same game code also builds for the browser (Emscripten) and as a headless Linux server.
 
-There are two ways to play, and players switch between them with the Mode row of the vote in the Esc menu:
+There are three ways to play, and players switch between them with the Mode row of the vote in the Esc menu:
 
 - **Duels.** Up to eight players fight each other on a rotating map (Old Arena, Frostbite Keep, and the endless Verdant Wilds and Ashen Wastes) while monsters roam it as hazards. Players level up from kills and from time in the match, and every level is a talent point.
+- **Team duels.** The same duel, Red against Blue. New players join the smaller team, teammates cannot hurt each other, and on the Old Arena the last team standing wins the round. M opens the team panel, which shows both teams and switches sides.
 - **Dungeon runs.** Up to eight players clear a dungeon together, room by room, through packs, elites and bosses. Each player picks one of ten classes in the lobby room (Bulwark, Mender, Fire Mage, Ranger, Berserker, Shadowblade, Frost Mage, Druid, Stormcaller, Duelist), which sets their role: tank, healer, ranged or melee damage. There are five levels, each harder than the last: Sunken Crypt, Ember Depths, Rimeheart Vault, Aurora Rift and Starless Deep.
 
 To play, download `GameDemo.exe` from https://game.sindansolutions.com. It installs the game, keeps it up to date, and the game joins the live server on its own.
@@ -32,6 +33,7 @@ The game lists every key in a panel on the left for the first 10 seconds, and ag
 | C, V | Talent abilities (V starts as the kunai) | Class spells the talent tree unlocks |
 | W, G, T | Talent abilities | W: class spell, for classes that have one |
 | N | Talents | Talents |
+| M | Teams: both sides, switch team | |
 | Tab (hold) | Scoreboard | Scoreboard |
 | Enter | Chat, on a server | Chat |
 | Esc | Close what is open, else the options menu | Same |

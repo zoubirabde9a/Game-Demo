@@ -6,7 +6,8 @@
 
 // NOTE(zoubir): a gold ring on the ground under the local player, so it
 // finds itself at a glance in a crowd of look-alike players, and a fainter
-// red one under every other player: in the duel rules each is a foe. Drawn
+// red one under every other player: in the duel rules each is a foe. In a
+// team duel the ring is the player's team colour (TeamMarkerColor). Drawn
 // with the ring shader on a flat quad (an ellipse), sorted just under the
 // shadow, so every sprite covers it
 #define SELF_MARKER_WIDTH 44.f

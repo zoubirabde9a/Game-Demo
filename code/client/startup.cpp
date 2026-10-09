@@ -140,6 +140,7 @@ StartClient(app_state *AppState, transient_state *TransientState,
 #endif
     InitSimulation(AppState, &AppState->WorldArena, ConstantsArena);
     AddLocalPlayer(AppState, &AppState->WorldArena);
+    ApplyDeveloperTeams(AppState); // GAME_TEAMS, client/teams/team_dev.cpp
     AppState->Online = StartOnlineSession(MemoryArena, ONLINE_DEFAULT_SERVER, true);
     AppState->KeyboardLayout = ReadSavedKeyboardLayout();
     GlobalKeyboardLayout = (keyboard_layout)AppState->KeyboardLayout;

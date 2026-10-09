@@ -1,6 +1,12 @@
 /* Heads-up display: always-on screen-space widgets drawn on top of the
-   world each frame: other players' names, the score and the connection.
-   Health and cooldowns are the ability bar (ability_bar.cpp). */
+   world each frame: other players' names (in their team's colour in a
+   team duel), the score, the teams' kills (ui/teams/team_hud.cpp) and
+   the connection. Health and cooldowns are the ability bar
+   (ability_bar.cpp). */
+
+// NOTE(zoubir): ui/teams/team_hud.cpp, included later
+internal float DrawTeamPlate(render_context *RenderContext, app_state *AppState, float X,
+                             float Y);
 
 // NOTE(zoubir): the name the player chose, or "Player N" without one
 internal void
@@ -57,7 +63,8 @@ DrawPlayerLabels(render_context *RenderContext, app_state *AppState,
         DrawRoundOutline(RenderContext, Left, Top, ChipWidth, Height,
                          UI_RGBA(255, 196, 70, 220));
         UIText(RenderContext, Font, Left + 4.f, Top, Level, UI_RGBA(255, 226, 150, 255));
-        UIText(RenderContext, Font, Left + ChipWidth + 4.f, Top, Name, UI_COLOR_TEXT);
+        UIText(RenderContext, Font, Left + ChipWidth + 4.f, Top, Name,
+               PlayerNameColor(AppState, SlotIndex, UI_COLOR_TEXT));
     }
 }
 
@@ -129,6 +136,11 @@ DrawHud(render_context *RenderContext, app_state *AppState,
     // (ability_bar.cpp); the top left has the score and the connection
     float X = UI_GAP;
     float Y = DrawScorePlate(RenderContext, AppState, X, UI_GAP) + UI_GAP_SMALL;
+    float TeamBottom = DrawTeamPlate(RenderContext, AppState, X, Y);
+    if (TeamBottom > Y)
+    {
+        Y = TeamBottom + UI_GAP_SMALL;
+    }
 
     DrawConnectionIndicator(RenderContext, AppState, X, Y);
 }

@@ -18,6 +18,7 @@
 #include "body_pose.cpp"
 #include "heroes/hero_skins.cpp"
 #include "cast_fx.cpp"
+#include "teams/team_net.cpp"
 #include "draw_entities.cpp"
 #include "kill_feed.cpp"
 #include "ground_cracks.cpp"
@@ -90,4 +91,5 @@
 #include "world_bloom.cpp"
 #include "world_grade.cpp"
 #include "monster_cast_tells.cpp"
+#include "teams/team_dev.cpp"
 #include "startup.cpp"

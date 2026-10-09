@@ -17,6 +17,8 @@
 
 internal void
 ForceAnnouncement(app_state *AppState, char *Which);
+// NOTE(zoubir): ui/teams/team_hud.cpp, included after the announcer
+internal void TeamRoundWinsLine(app_state *AppState, char *Out, u32 Size);
 
 // NOTE(zoubir): the title card for the map being played
 internal void
@@ -35,6 +37,21 @@ AnnounceMapStart(app_state *AppState)
                  Number > 1 ? "Deeper and deadlier. Clear every room and beat its bosses" :
                  "Pick your class, clear every room and beat the bosses");
     }
+    else if (IsTeamDuel(AppState))
+    {
+        u32 Mine = LocalTeam(AppState);
+        char *Goal = IsRoundMap(AppState) ? (char *)"Last team standing wins the round" :
+            (char *)"Fight the other team and the monsters";
+        snprintf(Kicker, sizeof(Kicker), "TEAM DUEL");
+        if (Mine != Team_None)
+        {
+            snprintf(Detail, sizeof(Detail), "You're on %s. %s", TeamName(Mine), Goal);
+        }
+        else
+        {
+            snprintf(Detail, sizeof(Detail), "%s", Goal);
+        }
+    }
     else if (IsRoundMap(AppState))
     {
         snprintf(Kicker, sizeof(Kicker), "DUEL");
@@ -48,7 +65,9 @@ AnnounceMapStart(app_state *AppState)
     // NOTE(zoubir): the lowest rank, so anything that happens cuts it short
     announce_card Card = MakeCard(AnnounceStyle_Title, AnnouncePriority_Intro,
                                   (u32)(Map->Dungeon ? AnnounceIcon_Gate : AnnounceIcon_Swords),
-                                  Map->Dungeon ? ANNOUNCE_COLOR_VIOLET : ANNOUNCE_COLOR_GOLD,
+                                  Map->Dungeon ? ANNOUNCE_COLOR_VIOLET :
+                                  LocalTeam(AppState) != Team_None ?
+                                  TeamStrongColor(LocalTeam(AppState)) : ANNOUNCE_COLOR_GOLD,
                                   Kicker, Map->Name, Detail);
     Card.Seconds = 3.f;
     Card.Sound = AssetType_SfxAnnounce;
@@ -61,6 +80,11 @@ internal void
 RoundWinsLine(app_state *AppState, announcer *Announcer, char *Out, u32 Size)
 {
     Out[0] = 0;
+    if (IsTeamDuel(AppState))
+    {
+        TeamRoundWinsLine(AppState, Out, Size);
+        return;
+    }
     u32 Order[MAX_PLAYERS];
     u32 Count = 0;
     bool32 AnyWins = false;
@@ -186,8 +210,9 @@ WatchRounds(app_state *AppState, announcer *Announcer)
 
     bool32 AnyoneOut;
     u32 Standing = CountStandingPlayers(AppState, &AnyoneOut);
+    // NOTE(zoubir): in a team duel Standing counts teams, never players
     if (Break <= 0.f && Standing == 2 && Announcer->RoundPlayers >= 3 &&
-        !Announcer->FinalTwoShown)
+        !Announcer->FinalTwoShown && !IsTeamDuel(AppState))
     {
         Announcer->FinalTwoShown = true;
         char Names[2][24] = {};

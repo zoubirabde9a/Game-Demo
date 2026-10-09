@@ -86,6 +86,9 @@ struct player_input
     // NOTE(zoubir): a dungeon role asked for this tick, its player_role + 1,
     // 0 for none (sim/dungeon/roles.cpp, net_input.Role)
     u32 Role;
+    // NOTE(zoubir): a team asked for this tick, Team_Red or Team_Blue, 0
+    // for none (sim/teams/teams.cpp); online bits 5-6 of net_input.Role
+    u32 Team;
 };
 
 // NOTE(zoubir): the moves the combo trail records (player_fields.inc) and
@@ -148,6 +151,7 @@ struct player_slot
 #include "progression/progression_fields.inc"
 #include "dungeon/dungeon_slot_fields.inc"
 #include "dungeon/run_tree/run_tree_fields.inc"
+#include "teams/team_slot_fields.inc"
 };
 
 inline bool32

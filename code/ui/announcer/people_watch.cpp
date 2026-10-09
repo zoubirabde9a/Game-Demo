@@ -147,6 +147,8 @@ WatchVote(app_state *AppState, announcer *Announcer, float DeltaTime)
             PlayGameSound(AppState, AssetType_SfxCountdown);
         }
         Announcer->VoteMapSeen = AppState->VoteMap;
+        Announcer->VoteTeamsSeen = AppState->VoteTeams;
+        VoteMapText(AppState, Announcer->VoteWhat, sizeof(Announcer->VoteWhat));
         Announcer->VoteYesSeen = AppState->VoteYes;
         Announcer->VotePlayersSeen = CountActivePlayers(AppState);
     }
@@ -161,15 +163,17 @@ WatchVote(app_state *AppState, announcer *Announcer, float DeltaTime)
     {
         Announcer->VoteResultDue -= DeltaTime;
         u32 MapId = Announcer->VoteMapSeen;
-        bool32 Passed = AppState->World.MapId == MapId ||
+        // NOTE(zoubir): a team duel vote stays on the map; it passed when
+        // the duel's kind changed
+        bool32 Passed = (AppState->World.MapId == MapId &&
+                         (AppState->TeamDuel != 0) == (Announcer->VoteTeamsSeen != 0)) ||
             2 * Announcer->VoteYesSeen > Announcer->VotePlayersSeen;
         if (Passed || Announcer->VoteResultDue <= 0.f)
         {
             Announcer->VoteResultDue = 0.f;
-            char *Name = MapId < MapId_Count ? GetMapDef((map_id)MapId)->Name : (char *)"";
             if (Passed)
             {
-                snprintf(Text, sizeof(Text), "Vote passed: on to %s", Name);
+                snprintf(Text, sizeof(Text), "Vote passed: on to %s", Announcer->VoteWhat);
                 PushToast(AppState, AnnounceIcon_Check, UI_COLOR_GOOD, Text);
             }
             else

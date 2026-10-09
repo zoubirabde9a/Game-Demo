@@ -70,9 +70,11 @@ extern "C" APP_UPDATE_AND_RENDER(AppUpdateAndRender)
     *LocalInput = KeysToUi ? player_input{} : ReadKeyboardPlayerInput(Input, AppState);
     // NOTE(zoubir): a map vote comes from the menu, so even while it is
     // open; online it goes in the held buttons (client/vote_requests.cpp)
+    u32 TeamAsked = TakeTeamRequest(AppState); // client/teams/team_net.cpp
     if (!IsOnline(AppState->Online))
     {
         LocalInput->Vote = TakeOfflineVoteRequest(AppState);
+        LocalInput->Team = TeamAsked;
     }
     if (!KeysToUi && Input->ButtonJ.Pressed)
     {

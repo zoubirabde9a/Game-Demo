@@ -126,13 +126,13 @@ KeyCodeFromName(char *Name)
 }
 
 // NOTE(zoubir): the keys the game reads for itself, which an action
-// cannot take: H holds the controls panel, N opens the talents, J plays
-// the battle theme
+// cannot take: H holds the controls panel, N opens the talents, M the
+// teams (ui/teams/team_panel.cpp), J plays the battle theme
 inline bool32
 KeyCodeReserved(u32 Code)
 {
     bool32 Result = Code == (u32)LetterKeyCode('H') || Code == (u32)LetterKeyCode('N') ||
-        Code == (u32)LetterKeyCode('J');
+        Code == (u32)LetterKeyCode('M') || Code == (u32)LetterKeyCode('J');
     return Result;
 }
 

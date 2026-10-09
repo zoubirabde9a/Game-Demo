@@ -573,6 +573,7 @@ TestStatsCountTrafficAndTicks()
 #include "server_game_tests.cpp"
 #include "server_client_tests.cpp"
 #include "round_map_tests.cpp"
+#include "team_online_tests.cpp"
 #include "cast_online_tests.cpp"
 #include "dungeon_online_tests.cpp"
 #include "bot_class_tests.cpp"
@@ -598,6 +599,7 @@ main(int ArgCount, char **Args)
     GROUP(TestQuietClientTimesOut());
     GROUP(RunServerClientTests());
     GROUP(TestRoundMovesToNextMap());
+    GROUP(RUN(TestTeamDuelOnline));
     GROUP(TestStandardCastOnline());
     GROUP(RunDungeonOnlineTests());
     GROUP(TestDepartedBossesShowOnline());

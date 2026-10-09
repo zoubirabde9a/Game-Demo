@@ -59,6 +59,7 @@ NetSequenceNewer(u16 A, u16 B)
 #include "protocol/entities.cpp"
 #include "protocol/chat.cpp"
 #include "protocol/talent_ranks.cpp"
+#include "protocol/teams.cpp"
 
 // Slot, kind and phase share a byte. Frozen bits past the snapshot's
 // entities (left out to make it fit) read as clear.
@@ -285,7 +286,7 @@ NetSerializePacket(net_stream *S, net_packet *P)
             NetU16(S, &P->Snapshot.TreeSeed);
             NetU8(S, &P->Snapshot.Stagger);
             NetU8(S, &P->Snapshot.RoundBreak);
-            NetU8(S, &P->Snapshot.MapId);
+            if (!NetSerializeMapAndTeams(S, &P->Snapshot.MapId, &P->Snapshot.Teams)) return false;
             // NOTE(zoubir): the map vote: one byte while none is open,
             // six while one is (who and the own answer share one, and so
             // do the yes and no counts; every answer takes two)

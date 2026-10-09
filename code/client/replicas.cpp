@@ -188,6 +188,9 @@ ApplySnapshot(app_state *AppState, memory_arena *Arena, replica_table *Table,
     {
         AppState->Votes[LocalSlot] = Snapshot->OwnVote;
     }
+    // NOTE(zoubir): after the vote, whose map carries the team duel bit
+    // (client/teams/team_net.cpp)
+    ApplySnapshotTeams(AppState, Snapshot);
     // NOTE(zoubir): a dungeon run's rooms, gates and fight (sim/dungeon/)
     ApplyDungeonSnapshot(AppState, Arena, Snapshot, Table->LocalIndexPlusOne, MAX_REPLICAS);
     player_slot *Own = &AppState->Players[LocalSlot];
