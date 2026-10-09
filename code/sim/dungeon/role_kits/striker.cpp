@@ -1,9 +1,9 @@
 /* The damage role's kit (role_abilities.cpp): Meteor on A, Giant
    Fireball on R, both with a cast, Fireguard on C, Combustion on V and
-   Detonate on W. X is the game's fireball, which only the striker keeps.
-   Giant Fireball and the fireball are its base kit; the tree's two
-   branches give one of Meteor and Fireguard and one of Combustion and
-   Detonate (class_tree_defs.cpp).
+   Detonate on W, Flame Wave on the right click. X is the game's fireball,
+   which only the striker keeps: its attack. Giant Fireball and Meteor are
+   its base spells; the tree's two branches give one of Fireguard and
+   Flame Wave and one of Combustion and Detonate (class_tree_defs.cpp).
 
    Searing is the fire every spell leaves behind. A fireball the striker
    lands puts one stack on the monster, a Meteor blast
@@ -124,6 +124,8 @@ UpdateSearing(app_state *AppState, dungeon_run *Run, float DeltaTime)
     }
 }
 
+#include "striker/flame_wave.cpp"
+
 // NOTE(zoubir): Detonate (W): every mark Player laid within
 // DETONATE_SPELL_REACH blows now; false, so no cooldown, when none is
 // there
@@ -229,6 +231,11 @@ CastStrikerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32
         case 4:
         {
             Result = DetonateMarks(AppState, Player);
+        } break;
+
+        case 6:
+        {
+            CastFlameWave(AppState, Slot, Player);
         } break;
 
         case 3:

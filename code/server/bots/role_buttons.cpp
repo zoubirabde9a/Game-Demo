@@ -173,6 +173,11 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
         {
             Result |= NetButton_Kunai;
         }
+        // NOTE(zoubir): Flame Wave on what is in front, the aim on it
+        if (Ready[6] && Distance < 0.9f * FLAME_WAVE_REACH && BotRandom(Bot) % 4 == 0)
+        {
+            Result |= NetButton_Sword;
+        }
         // NOTE(zoubir): Detonate once its marks near hold enough stacks: a
         // full one, or a pack's worth
         if (Ready[4] && AppState->Dungeon->FightingRoom &&

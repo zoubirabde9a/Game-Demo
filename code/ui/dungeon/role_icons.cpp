@@ -225,6 +225,22 @@ PaintRoleGiantFireballIcon(icon_canvas *Canvas)
     IconSparkle(Canvas, V2(0.82f, 0.18f), 0.07f, Solid(IconColor(255, 255, 230)));
 }
 
+// NOTE(zoubir): Flame Wave: a fan of fire rolling out from the lower left
+internal void
+PaintRoleFlameWaveIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.6f, 0.42f), 0.5f, IconColor(255, 120, 40, 150));
+    v2 From = V2(0.12f, 0.88f);
+    for(u32 Tongue = 0; Tongue < 5; Tongue++)
+    {
+        float A = -0.25f * Pi32 + 0.17f * ((float)Tongue - 2.f);
+        v2 Tip = From + (0.7f + 0.08f * (float)(Tongue % 2)) * V2(Cos(A), Sin(A));
+        IconCapsule(Canvas, From, Tip, 0.05f,
+                    Gradient(IconColor(255, 245, 190), IconColor(220, 50, 20, 40), From, Tip));
+    }
+    IconSparkle(Canvas, V2(0.8f, 0.2f), 0.08f, Solid(IconColor(255, 250, 220)));
+}
+
 // NOTE(zoubir): Combustion: a flame rising out of a burning heart
 internal void
 PaintRoleCombustionIcon(icon_canvas *Canvas)
@@ -415,7 +431,7 @@ typedef void talent_icon_painter(icon_canvas *Canvas);
 global_variable role_icon_painter *StrikerIconPainters[ROLE_KEYS] =
 {
     PaintRoleInfernoIcon, PaintRoleGiantFireballIcon, PaintRoleFireguardIcon, PaintRoleCombustionIcon,
-    PaintRoleDetonateIcon,
+    PaintRoleDetonateIcon, 0, PaintRoleFlameWaveIcon,
 };
 global_variable role_icon_painter *TankIconPainters[ROLE_KEYS] =
 {

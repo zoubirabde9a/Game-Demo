@@ -437,6 +437,30 @@ TestStrikerCrowdControl()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Flame Wave burns the foes in front, two Searing each, and
+// leaves the one behind alone
+internal void
+TestFlameWave()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    TickCrypt(&Crypt, 1);
+    player_slot *Slot = &AppState->Players[0];
+    SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    GrantClassSpells(Slot);
+    Slot->Entity->Aim = V2(1.f, 0.f);
+    world_entity *Front = StrikerDummy(&Crypt, V3(120.f, 0.f, 0.f));
+    world_entity *Behind = StrikerDummy(&Crypt, V3(-120.f, 0.f, 0.f));
+    PressOnce(&Crypt, 0, PlayerButton_Attack);
+    Check(Slot->RoleCooldowns[6] > 0.f);
+    Check(Front->Hp < 2000.f && Behind->Hp == 2000.f);
+    Check(FindFoeMark(Run, World, Front) && FindFoeMark(Run, World, Front)->Stacks == FLAME_WAVE_STACKS);
+    Check(FindFoeMark(Run, World, Behind) == 0);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunStrikerTests()
 {
@@ -447,6 +471,7 @@ RunStrikerTests()
     TestMarkBitsFromFireball();
     TestSearingBurnsAndExplodes();
     TestDetonateSpell();
+    TestFlameWave();
     TestFireguardAbsorbs();
     TestClassKeyWaitsForTheCast();
 }

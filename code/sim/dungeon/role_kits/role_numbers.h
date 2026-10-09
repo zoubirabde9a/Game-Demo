@@ -171,6 +171,14 @@
 #define DETONATE_SPELL_REACH 320.f
 #define DETONATE_SPELL_SHARE 0.3f
 #define DETONATE_SPELL_COOLDOWN 10.f
+// NOTE(zoubir): Flame Wave (right click, from Wildfire's pair,
+// role_kits/striker/flame_wave.cpp): a cone of fire in front
+#define FLAME_WAVE_REACH 200.f
+#define FLAME_WAVE_HALF_ANGLE 0.75f
+#define FLAME_WAVE_DAMAGE 18.f
+#define FLAME_WAVE_SHOVE 120.f
+#define FLAME_WAVE_STACKS 2
+#define FLAME_WAVE_COOLDOWN 8.f
 // NOTE(zoubir): Fireguard (C): a shield of fire on the striker that takes
 // the next FIREGUARD_ABSORB damage, gone after FIREGUARD_SECONDS
 #define FIREGUARD_ABSORB 50.f

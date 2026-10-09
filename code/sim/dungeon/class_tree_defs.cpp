@@ -11,10 +11,9 @@
 // NOTE(zoubir): by player_role
 global_variable class_tree_def ClassTrees[PlayerRole_Count] =
 {
-    // NOTE(zoubir): the Fire Mage. Cataclysm holds Wildfire's second spell
-    // slot until Flame Wave is in
+    // NOTE(zoubir): the Fire Mage
     {{"Wildfire", "Pyre"},
-     {CLASS_BRANCH(CT(StrikerTalent_SearingHeat), CT(StrikerTalent_Fireguard), CT(StrikerTalent_Cataclysm),
+     {CLASS_BRANCH(CT(StrikerTalent_SearingHeat), CT(StrikerTalent_Fireguard), CT(StrikerTalent_FlameWave),
                    CT(StrikerTalent_Wildfire), CT(StrikerTalent_MoltenGround), RM(Smoulder),
                    CT(StrikerTalent_Overload)),
       CLASS_BRANCH(CT(StrikerTalent_Pyromancer), CT(StrikerTalent_Combustion), CT(StrikerTalent_Detonate),
@@ -23,7 +22,7 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
      {{CT(StrikerTalent_Kindling), RM(Pyroclasm), RM(RisingGlory), RM(Reprisal), RM(Feast),
        CT(StrikerTalent_HeatShield)},
       {CT(StrikerTalent_QuickenedFlame), RM(Cadence), RM(OpeningSalvo), RM(Leeching),
-       CT(StrikerTalent_EmberMantle), RM(CinderSkin)}}},
+       CT(StrikerTalent_EmberMantle), RM(CinderSkin), CT(StrikerTalent_Cataclysm)}}},
 
     // NOTE(zoubir): the Bulwark. Provoke and Vengeance hold the second spell
     // slots until Rallying Cry and Demoralizing Roar are in
