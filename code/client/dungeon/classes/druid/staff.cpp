@@ -14,7 +14,19 @@
 #define DRUID_FX_STAR_RGB 0x008CE1FF
 #define DRUID_FX_PETAL_RGB 0x00BE96FF
 
-// NOTE(zoubir): the youngest burst Index of the Druid in SlotIndex, how
+// NOTE(zoubir): whether a burst of Index with Variant is the server
+// sending a lasting spell again (a burn, leaves, a bud) or a Lifebloom
+// blooming on its own, not a cast
+inline bool32
+DruidBurstSentAgain(u32 Index, u32 Variant)
+{
+    bool32 Result = (Index == DruidBurst_Moonfire && Variant == 1) ||
+        (Index == DruidBurst_Rejuvenation && (Variant == 1 || Variant > DRUID_LIFEBLOOM_BUD)) ||
+        (Index == DruidBurst_Regrowth && Variant == DRUID_REGROWTH_LIFEBLOOM);
+    return Result;
+}
+
+// NOTE(zoubir): the youngest burst Index the Druid in SlotIndex cast, how
 // long ago it started; a big number for none
 internal float
 DruidBurstAge(app_state *AppState, u32 SlotIndex, u32 Index)
@@ -25,7 +37,8 @@ DruidBurstAge(app_state *AppState, u32 SlotIndex, u32 Index)
     for(u32 Row = 0; Row < Fx->Count; Row++)
     {
         role_burst *Burst = &Fx->Bursts[Row];
-        if (Burst->Kind == ClassBurst(SimBurst_DruidFirst, Index) && Burst->Slot == SlotIndex)
+        if (Burst->Kind == ClassBurst(SimBurst_DruidFirst, Index) && Burst->Slot == SlotIndex &&
+            !DruidBurstSentAgain(Index, DruidBurstVariant(Burst->Position)))
         {
             Result = Minimum(Result, Clock - Burst->Start);
         }

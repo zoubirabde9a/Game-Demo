@@ -6,14 +6,15 @@
    The look: a gnarled staff on the aim side with a seed glowing in its
    head, antlers with a leaf caught in them, and leaves drifting off it
    while it walks. The seed follows the casts: it gathers gold light and
-   the staff lifts through Starfire's cast, flares green as a heal or
-   Wrath leaves it, and through Tranquility the staff is raised high, the
-   ground round the Druid alight. Its Bloom shows at its feet as five
-   flowers for the whole party to read, opening one by one, all of them
-   swaying when full. All of it reads the cast, ClassMeter, ClassFlags and
-   the bursts, which every client has, so it looks the same online. The
-   shapes are druid/staff.cpp, the bursts druid/bursts.cpp, and those of
-   the bloom spells (Starfall, Lifebloom) druid/bloom_bursts.cpp. */
+   the staff lifts through Starfire's cast, flares as a spell leaves it
+   (silver for Moonfire), and through Tranquility the staff is raised
+   high, the ground round the Druid alight to the heal's reach. Its Bloom
+   shows at its feet as five flowers for the whole party to read, opening
+   one by one, all of them swaying when full. All of it reads the cast,
+   ClassMeter, ClassFlags and the bursts, which every client has, so it
+   looks the same online. The shapes are druid/staff.cpp, the bursts
+   druid/bursts.cpp, and those of the bloom spells (Starfall, Lifebloom)
+   druid/bloom_bursts.cpp. */
 
 #include "druid/staff.cpp"
 #include "druid/bloom_bursts.cpp"
@@ -72,13 +73,16 @@ DrawDruidLook(render_context *RenderContext, app_state *AppState, player_slot *S
                       0.8f * Minimum(1.f, 4.f * Phase) * (1.f - Phase), DRUID_FX_LEAF_RGB);
     }
 
-    // NOTE(zoubir): Tranquility: the ground round it alight, motes rising
+    // NOTE(zoubir): Tranquility: the ground round it alight out to the
+    // heal's reach, a faint rim where it stops, motes rising
     if (Channel)
     {
         v2 Ground = RoleLookPoint(Player, 0.f, CameraOffset);
         float Breath = 0.6f + 0.4f * Sin(5.f * Clock);
-        DrawArcBand(RenderContext, Ground, 0.f, 2.f * Pi32, 0.f, 0.45f * TRANQUILITY_RADIUS,
-                    FxColor(0.25f * Breath, DRUID_FX_LEAF_RGB), FxColor(0.f, DRUID_FX_LEAF_RGB));
+        DrawArcBand(RenderContext, Ground, 0.f, 2.f * Pi32, 0.f, TRANQUILITY_RADIUS,
+                    FxColor(0.25f * Breath, DRUID_FX_LEAF_RGB), FxColor(0.06f, DRUID_FX_LEAF_RGB));
+        DrawArcBand(RenderContext, Ground, 0.f, 2.f * Pi32, TRANQUILITY_RADIUS - 14.f, TRANQUILITY_RADIUS,
+                    FxColor(0.f, DRUID_FX_LEAF_RGB), FxColor(0.3f + 0.15f * Breath, DRUID_FX_LEAF_RGB));
         for(u32 Mote = 0; Mote < 8; Mote++)
         {
             float Rise = DungeonFxFraction(0.8f * Clock + 0.125f * (float)Mote);
@@ -92,14 +96,17 @@ DrawDruidLook(render_context *RenderContext, app_state *AppState, player_slot *S
     v2 Crown = RoleLookPoint(Player, 0.86f, CameraOffset) + V2(0.f, 1.f * Sin(2.f * Clock) * (1.f - Moving));
     DrawDruidAntlers(RenderContext, Crown, 0.6f * W, Facing);
 
-    // NOTE(zoubir): the staff and what its seed is doing
+    // NOTE(zoubir): the staff and what its seed is doing; it flares as a
+    // spell leaves it, silver for Moonfire
+    float SinceMoon = DruidBurstAge(AppState, SlotIndex, DruidBurst_Moonfire);
     float SinceCast = Minimum(Minimum(DruidBurstAge(AppState, SlotIndex, DruidBurst_Wrath),
                                       DruidBurstAge(AppState, SlotIndex, DruidBurst_Regrowth)),
                               Minimum(DruidBurstAge(AppState, SlotIndex, DruidBurst_Rejuvenation),
                                       DruidBurstAge(AppState, SlotIndex, DruidBurst_Starfire)));
+    SinceCast = Minimum(SinceCast, DruidBurstAge(AppState, SlotIndex, DruidBurst_Roots));
     float Lift = 0.f;
-    float Glow = SinceCast < 0.3f ? 1.f - SinceCast / 0.3f : 0.f;
-    u32 GlowRGB = DRUID_FX_LEAF_RGB;
+    float Glow = Minimum(SinceCast, SinceMoon) < 0.3f ? 1.f - Minimum(SinceCast, SinceMoon) / 0.3f : 0.f;
+    u32 GlowRGB = SinceMoon < SinceCast ? DRUID_FX_MOON_RGB : DRUID_FX_LEAF_RGB;
     if (Starfire)
     {
         float Progress = PlayerCastProgress(Player);
