@@ -205,6 +205,10 @@ CastShieldThrow(app_state *AppState, world *World, player_slot *Slot, world_enti
         Damage *= SHIELD_THROW_BOUNCE_SHARE;
         Foe = NearestFoe(World, From, SHIELD_THROW_BOUNCE_RADIUS, Room, Struck, StruckCount);
     }
+    // NOTE(zoubir): Battle Momentum: Shield Charge is key 5
+    float Off = BATTLE_MOMENTUM_SECONDS * (float)StruckCount *
+        (float)RoleRank(Slot, PlayerRole_Tank, TankTalent_BattleMomentum);
+    Slot->RoleCooldowns[5] = Maximum(0.f, Slot->RoleCooldowns[5] - Off);
     EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Player->Position);
     return true;
 }
@@ -335,16 +339,27 @@ TankSpellCooldown(player_slot *Slot, u32 Key, float Base)
 }
 
 // NOTE(zoubir): from UpdateClassEffects once a tick: between fights
-// every tank's Unbroken is ready again
+// every tank's Unbroken is ready again; behind Shield Wall, Stalwart heals
 internal void
-UpdateTankEffects(app_state *AppState, dungeon_run *Run)
+UpdateTankEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
 {
-    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS && !Run->FightingRoom; SlotIndex++)
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];
-        if (Slot->Role == PlayerRole_Tank)
+        if (Slot->Role != PlayerRole_Tank)
+        {
+            continue;
+        }
+        if (!Run->FightingRoom)
         {
             Slot->ClassFlags &= (u8)~TANK_FLAG_UNBROKEN_SPENT;
+        }
+        world_entity *Player = Slot->Entity;
+        u32 Stalwart = RoleRank(Slot, PlayerRole_Tank, TankTalent_Stalwart);
+        if (Stalwart && Slot->ShieldWallSeconds > 0.f && Player && Player->Hp > 0.f)
+        {
+            HealPlayer(AppState, SlotIndex, Player,
+                       STALWART_SHARE * (float)Stalwart * Player->MaxHp * DeltaTime);
         }
     }
 }

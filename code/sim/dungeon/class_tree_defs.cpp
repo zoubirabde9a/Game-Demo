@@ -33,9 +33,9 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
                    CT(TankTalent_Juggernaut), RM(Menacing), RM(ShieldBrother),
                    CT(TankTalent_Guardian))},
      {{CT(TankTalent_Fortitude), CT(TankTalent_PlateMastery), RM(Stubborn), RM(Lifeline),
-       RM(LivingFortress), CT(TankTalent_Provoke)},
-      {CT(TankTalent_BattleRhythm), RM(Spikes), RM(Rallying), RM(Menace), RM(Vigor),
-       RM(Retaliation), CT(TankTalent_Vengeance)}}},
+       RM(LivingFortress), CT(TankTalent_Provoke), CT(TankTalent_Stalwart)},
+      {CT(TankTalent_BattleRhythm), RM(Spikes), RM(Rallying), RM(Cornered), RM(Vigor),
+       RM(Retaliation), CT(TankTalent_Vengeance), CT(TankTalent_BattleMomentum)}}},
 
     // NOTE(zoubir): the Mender
     {{"Sanctum", "Dawn"},

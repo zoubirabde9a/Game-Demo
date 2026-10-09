@@ -142,7 +142,7 @@ ClassSpellRadius(player_slot *Slot, u32 Key, float Base)
 internal void
 UpdateClassEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
 {
-    UpdateTankEffects(AppState, Run);
+    UpdateTankEffects(AppState, Run, DeltaTime);
     UpdateRangerEffects(AppState, Run, DeltaTime);
     UpdateBerserkerEffects(AppState, Run, DeltaTime);
     UpdateShadowbladeEffects(AppState, Run, DeltaTime);

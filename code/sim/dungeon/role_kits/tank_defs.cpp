@@ -21,6 +21,8 @@ enum tank_talent
     TankTalent_Guardian,
     TankTalent_RallyingCry,
     TankTalent_DemoralizingRoar,
+    TankTalent_Stalwart,
+    TankTalent_BattleMomentum,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -45,6 +47,12 @@ enum tank_talent
 #define UNBROKEN_HEALTH_SHARE 0.1f
 #define UNBROKEN_WALL_SECONDS 5.f
 #define TANK_FLAG_UNBROKEN_SPENT 0x4
+// NOTE(zoubir): Stalwart, per rank: behind Shield Wall (Shield Slam, Taunt,
+// Last Stand) the tank heals this share of its health a second
+#define STALWART_SHARE 0.015f
+// NOTE(zoubir): Battle Momentum, per rank: each foe Shield Throw strikes
+// takes this off Shield Charge's cooldown
+#define BATTLE_MOMENTUM_SECONDS 0.5f
 
 global_variable talent_def TankTalentDefs[CLASS_TALENTS] =
 {
@@ -84,6 +92,10 @@ global_variable talent_def TankTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Demoralizing Roar", "T: the foes near deal 20% less for 8 s and turn on you",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Stalwart", "Behind Shield Wall you heal each second", "+1.5% health a second",
+     TalentBranch_Role, 0, 0, 2, 0},
+    {"Battle Momentum", "Each foe your Shield Throw strikes brings Shield Charge back sooner",
+     "-0.5 s a foe", TalentBranch_Role, 0, 0, 2, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None

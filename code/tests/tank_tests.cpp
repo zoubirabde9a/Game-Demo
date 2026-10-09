@@ -199,6 +199,48 @@ TestTankShouts()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the pools' Bulwark talents: Stalwart heals the tank behind
+// Shield Wall and only there; Battle Momentum takes time off Shield Charge
+// for each foe Shield Throw strikes
+internal void
+TestStalwartAndBattleMomentum()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    TickCrypt(&Crypt, 1);
+    player_slot *Slot = &AppState->Players[0];
+    SetPlayerRole(AppState, Slot, PlayerRole_Tank);
+    GrantClassSpells(Slot);
+    world_entity *Tank = Slot->Entity;
+    Check(SetClassTalentRank(Slot, TankTalent_Stalwart, 2) < Talent_Count);
+    Tank->Hp = 0.5f * Tank->MaxHp;
+    Slot->ShieldWallSeconds = 0.f;
+    UpdateTankEffects(AppState, AppState->Dungeon, 1.f);
+    Check(Tank->Hp == 0.5f * Tank->MaxHp);
+    Slot->ShieldWallSeconds = 3.f;
+    UpdateTankEffects(AppState, AppState->Dungeon, 1.f);
+    float Healed = Tank->Hp - 0.5f * Tank->MaxHp;
+    float Expected = 2.f * STALWART_SHARE * Tank->MaxHp;
+    Check(Healed > 0.5f * Expected && Healed < 1.5f * Expected);
+
+    ResetTalents(AppState, 0);
+    GrantClassSpells(Slot);
+    Check(SetClassTalentRank(Slot, TankTalent_BattleMomentum, 2) < Talent_Count);
+    for(u32 Index = 0; Index < 3; Index++)
+    {
+        world_entity *Brute = SpawnMonster(AppState, World, &Crypt.Arena,
+                                           Tank->Position + V3(200.f, 40.f * (float)Index, 0.f),
+                                           MonsterKind_Brute);
+        Brute->MaxHp = Brute->Hp = 1000.f;
+    }
+    Slot->RoleCooldowns[5] = 10.f;
+    Check(CastShieldThrow(AppState, World, Slot, Tank));
+    float Off = 3.f * 2.f * BATTLE_MOMENTUM_SECONDS;
+    Check(Slot->RoleCooldowns[5] > 10.f - Off - 0.01f && Slot->RoleCooldowns[5] < 10.f - Off + 0.01f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunTankTests()
 {
@@ -207,4 +249,5 @@ RunTankTests()
     TestShieldChargeBreaksAWindup();
     TestJuggernautSpeedsTheCharge();
     TestUnbrokenCatchesTheKillingBlow();
+    TestStalwartAndBattleMomentum();
 }
