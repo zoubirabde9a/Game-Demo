@@ -14,6 +14,10 @@
                   faster for a moment after it.
      R            Riposte: on guard for a moment; the first hit in it is
                   parried and the attacker countered (duelist/riposte.cpp).
+     C            Feint, Riposte's pair: a quick step, and the next blow in
+                  FEINT_SECONDS misses whole (duelist/riposte.cpp).
+     X            Disarm: a flick at the foe in reach, which deals less for
+                  a while after (duelist/strikes.cpp).
      W            Heartseeker: picks the foe in front when pressed (no foe
                   in reach, no cast), draws the point back
                   (PlayerSpell_DuelistB), then strikes it, harder by
@@ -23,8 +27,8 @@
      V (tree)     Perfect Form: for FORM_SECONDS Tempo holds, every key
                   builds it, and every Thrust strikes twice.
 
-   C and X do nothing for it (RoleDropsFireball), so it has five damage
-   keys with its whole tree.
+   It has no fireball (RoleDropsFireball): X is Disarm when its tree gives
+   it.
 
    Online the clients see Tempo and the flags (ClassFlags), Heartseeker's
    cast and the bursts, SimBurst_DuelistFirst + duelist_burst; how they
