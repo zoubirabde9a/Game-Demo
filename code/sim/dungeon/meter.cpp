@@ -6,7 +6,8 @@
    next fight starts (StartEncounter, a retry after a wipe included), so
    between fights it still shows the one just over. Only health that moved
    counts: the overkill past a monster's last point and the healing past
-   a full bar are left out.
+   a full bar are left out. In a boss fight only damage on the boss
+   counts, not on its adds.
 
    DamageEntity (entity.cpp) and HealPlayer (role_kits/allies.cpp) report
    here. Online the server sends one player's numbers a snapshot, in turn
@@ -55,7 +56,8 @@ CountMeterDamage(app_state *AppState, world_entity *Target, world_entity *Source
         AppState->Players[Target->PlayerIndex].MeterTaken += Lost;
     }
     player_slot *Attacker = DungeonAttackerSlot(AppState, Source);
-    if (Attacker && Target->Type == EntityType_Monster)
+    bool32 OnTheBoss = !Run->BossSerial || Target->MonsterSerial == Run->BossSerial;
+    if (Attacker && Target->Type == EntityType_Monster && OnTheBoss)
     {
         Attacker->MeterDamage += Lost;
     }

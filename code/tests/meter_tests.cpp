@@ -79,6 +79,32 @@ TestMeterCountsOneFight()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): in a boss fight a hit on an add takes its health but
+// leaves the meter alone; a hit on the boss counts
+internal void
+TestBossFightMetersOnlyTheBoss()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *A = Slot->Entity;
+    Run->RoomStates[1] = Run->RoomStates[2] = RoomState_Cleared;
+    MovePlayerTo(AppState, World, &Crypt.Arena, A, Run->RoomEntry[3]);
+    TickCrypt(&Crypt, 1);
+    Check(Run->FightingRoom == 3 && Run->BossSerial);
+    world_entity *Add = StrikerDummy(&Crypt, V3(60.f, 0.f, 0.f));
+    float Before = Add->Hp;
+    DamageEntity(AppState, World, Add, 10.f, A);
+    Check(Add->Hp < Before && Slot->MeterDamage == 0.f);
+    world_entity *Boss = &World->Entities[Run->BossSlot];
+    Before = Boss->Hp;
+    DamageEntity(AppState, World, Boss, 10.f, A);
+    Check(MeterNear(Slot->MeterDamage, Before - Boss->Hp));
+    DestroyCryptWorld(&Crypt);
+}
+
 // NOTE(zoubir): the duel has no run, so nothing is counted there
 internal void
 TestNoMeterOutsideADungeon()
@@ -96,5 +122,6 @@ internal void
 RunMeterTests()
 {
     TestMeterCountsOneFight();
+    TestBossFightMetersOnlyTheBoss();
     TestNoMeterOutsideADungeon();
 }
