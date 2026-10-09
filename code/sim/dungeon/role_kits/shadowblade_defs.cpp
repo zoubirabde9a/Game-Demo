@@ -187,7 +187,7 @@ global_variable u8 ShadowbladeTalentStats[ROLE_TALENTS] =
 global_variable role_spell ShadowbladeSpells[ROLE_KEYS] =
 {
     {"Shadowstep", SHADOWSTEP_COOLDOWN,
-     "Shadowstep: appear behind the foe under the cursor; your next strike is critical",
+     "Shadowstep: appear behind a foe, drop all threat, take 90% less for 1 s; next strike crits",
      RoleAim_Foe, SHADOWSTEP_RANGE, 0},
     {"Fan of Knives", FAN_OF_KNIVES_COOLDOWN,
      "Fan of Knives: knives burst round you, a combo point for each foe cut",
