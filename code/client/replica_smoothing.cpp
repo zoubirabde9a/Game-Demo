@@ -11,10 +11,15 @@
    The render clock runs at the server's tick rate, a few percent faster
    or slower to follow the server as the snapshots arrive. The delay is
    one snapshot interval plus a margin that grows with how unevenly they
-   arrive (REPLICA_DELAY_*): about 60 ms on a steady link. When the render
-   tick passes the newest snapshot (one lost, or very late), a replica
-   carries on at its last velocity for at most
-   REPLICA_MAX_EXTRAPOLATE ticks, then waits.
+   arrive (REPLICA_DELAY_*): about 60 ms on a steady link. On a link that
+   loses snapshots in runs, the delay also covers the longest run lately
+   (GapSpare), so the next snapshot is usually there before it is needed.
+   When the render tick passes the newest snapshot anyway, a replica
+   carries on at its last velocity for at most REPLICA_MAX_EXTRAPOLATE
+   ticks, then waits. When the next snapshot puts it somewhere else than
+   that guess, the difference is kept as DrawError and shrinks each frame,
+   as prediction does for the local player, so it slides back into place
+   over ~100 ms instead of jumping.
 
    New replicas and jumps longer than REPLICA_SNAP_DISTANCE (respawns)
    start over from the new position. The local player is never smoothed;
@@ -40,7 +45,15 @@
 #define REPLICA_CLOCK_GAIN 0.08f
 #define REPLICA_CLOCK_MAX_ADJUST 0.1f
 #define REPLICA_CLOCK_RESYNC 30.f
-#define REPLICA_MAX_EXTRAPOLATE 3.f
+#define REPLICA_MAX_EXTRAPOLATE 5.f
+// NOTE(zoubir): ticks of snapshots missing in a row the delay makes room
+// for, at most REPLICA_GAP_SPARE_MAX; the room shrinks by this share a
+// snapshot once the losses stop (half of it gone in about 3 seconds)
+#define REPLICA_GAP_SPARE_MAX 6.f
+#define REPLICA_GAP_FORGET 0.99f
+// NOTE(zoubir): DrawError shrinks by e to this power a second, as
+// PREDICTION_BLEND_RATE does for the local player
+#define REPLICA_BLEND_RATE 20.f
 #define REPLICA_DEFAULT_STEP 3
 
 struct replica_smoothing
@@ -53,6 +66,11 @@ struct replica_smoothing
     float Delay;
     // NOTE(zoubir): ticks a snapshot arrives early or late, on average
     float Jitter;
+    // NOTE(zoubir): ticks of snapshots lately lost in a row, which the
+    // delay makes room for
+    float GapSpare;
+    // NOTE(zoubir): what is left of each DrawError after this frame
+    float ErrorKeep;
     // NOTE(zoubir): server ticks between snapshots, the smallest gap seen
     // (a lost snapshot only makes a gap bigger)
     u32 SnapshotStep;
@@ -66,6 +84,9 @@ struct replica_smoothing
     v3 SamplePosition[MAX_REPLICAS][REPLICA_HISTORY];
     // NOTE(zoubir): units a second, as the snapshot sent it
     v3 SampleVelocity[MAX_REPLICAS][REPLICA_HISTORY];
+    // NOTE(zoubir): how far a replica is drawn from its curve, after a
+    // snapshot moved it from where it was guessed to be
+    v3 DrawError[MAX_REPLICAS];
 };
 
 internal void
@@ -89,6 +110,9 @@ BeginSmoothedSnapshot(replica_smoothing *Smoothing, u32 Tick)
             Smoothing->SnapshotStep = Gap;
         }
         Smoothing->NewestTick = Tick;
+        float Missing = Minimum(REPLICA_GAP_SPARE_MAX,
+                                (float)(Gap - Smoothing->SnapshotStep));
+        Smoothing->GapSpare = Maximum(REPLICA_GAP_FORGET * Smoothing->GapSpare, Missing);
     }
     float Error = (float)Tick - Smoothing->ServerTick;
     if (Error > REPLICA_CLOCK_RESYNC || Error < -REPLICA_CLOCK_RESYNC)
@@ -102,7 +126,8 @@ BeginSmoothedSnapshot(replica_smoothing *Smoothing, u32 Tick)
     float Off = Error < 0.f ? -Error : Error;
     Smoothing->Jitter += 0.1f * (Off - Smoothing->Jitter);
     float Wanted = (float)Smoothing->SnapshotStep +
-        REPLICA_DELAY_JITTER * Smoothing->Jitter + REPLICA_DELAY_SPARE;
+        REPLICA_DELAY_JITTER * Smoothing->Jitter + REPLICA_DELAY_SPARE +
+        Smoothing->GapSpare;
     Wanted = Maximum(REPLICA_DELAY_MIN, Minimum(REPLICA_DELAY_MAX, Wanted));
     Smoothing->Delay += 0.05f * (Wanted - Smoothing->Delay);
 }
@@ -118,6 +143,7 @@ AdvanceSmoothing(replica_smoothing *Smoothing, float DeltaTime, float TickRate)
     // NOTE(zoubir): how far off the render tick is before this frame moves
     // both clocks on
     float Ticks = DeltaTime * TickRate;
+    Smoothing->ErrorKeep = expf(-REPLICA_BLEND_RATE * DeltaTime);
     float Off = (Smoothing->ServerTick - Smoothing->Delay) - Smoothing->RenderTick;
     Smoothing->ServerTick += Ticks;
     if (Off > REPLICA_CLOCK_RESYNC || Off < -REPLICA_CLOCK_RESYNC)
@@ -147,6 +173,9 @@ ReplicaSampleIndex(replica_smoothing *Smoothing, u32 Id, u32 Back)
     u32 Result = (Smoothing->Head[Id] + REPLICA_HISTORY - Back) % REPLICA_HISTORY;
     return Result;
 }
+
+// NOTE(zoubir): below; where the replica was at the render tick
+internal v3 ReplicaPositionAt(replica_smoothing *Smoothing, u32 Id, float RenderTick);
 
 // NOTE(zoubir): call after the snapshot's state was applied, so Replica
 // sits at the snapshot position; Drawn is where it was drawn before.
@@ -178,6 +207,7 @@ SetSmoothingTarget(app_state *AppState, memory_arena *Arena,
     }
     if (Restart)
     {
+        Smoothing->DrawError[Id] = {};
         Smoothing->Count[Id] = 1;
         Smoothing->Head[Id] = 0;
         Smoothing->SampleTick[Id][0] = Tick;
@@ -185,6 +215,9 @@ SetSmoothingTarget(app_state *AppState, memory_arena *Arena,
         Smoothing->SampleVelocity[Id][0] = Velocity;
         return;
     }
+    // NOTE(zoubir): where the curve had it before this sample and where
+    // it has it now differ only when it was guessed past the newest one
+    v3 Guessed = ReplicaPositionAt(Smoothing, Id, Smoothing->RenderTick);
     u32 Head = (Smoothing->Head[Id] + 1) % REPLICA_HISTORY;
     Smoothing->Head[Id] = (u8)Head;
     Smoothing->SampleTick[Id][Head] = Tick;
@@ -194,6 +227,13 @@ SetSmoothingTarget(app_state *AppState, memory_arena *Arena,
     {
         Smoothing->Count[Id] = (u8)(Count + 1);
     }
+    v3 Error = Smoothing->DrawError[Id] + Guessed -
+        ReplicaPositionAt(Smoothing, Id, Smoothing->RenderTick);
+    if (LengthSq(Error) > Square(REPLICA_SNAP_DISTANCE))
+    {
+        Error = {};
+    }
+    Smoothing->DrawError[Id] = Error;
     // NOTE(zoubir): drawn where it was until SmoothReplica places it
     MoveReplicaTo(AppState, Arena, Replica, Drawn);
 }
@@ -263,6 +303,8 @@ SmoothReplica(app_state *AppState, memory_arena *Arena,
     {
         return;
     }
+    Smoothing->DrawError[Id] *= Smoothing->ErrorKeep;
     MoveReplicaTo(AppState, Arena, Replica,
-                  ReplicaPositionAt(Smoothing, Id, Smoothing->RenderTick));
+                  ReplicaPositionAt(Smoothing, Id, Smoothing->RenderTick) +
+                  Smoothing->DrawError[Id]);
 }
