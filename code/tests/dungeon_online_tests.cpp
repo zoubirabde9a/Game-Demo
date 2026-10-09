@@ -1,7 +1,8 @@
 /* The dungeon online (sim/dungeon/, client/dungeon/dungeon_net.cpp), with
    a real server playing the Sunken Crypt and a real client: the client
    builds the crypt and its run, picks a role through the held buttons
-   and sees it come back, sees a healer's sanctuary, sees the empty Antechamber cleared, and builds
+   and sees it come back, sees a healer's sanctuary and a monster's
+   Sunder and weaken, sees the empty Antechamber cleared, and builds
    the gate walls the server has, so its prediction stops where the
    server's player does. Included by server_tests.cpp after
    round_map_tests.cpp, whose test harness it borrows. */
@@ -222,6 +223,53 @@ TestDepartedBossesShowOnline()
         }
     }
     Check(AwaySeen && StarSeen);
+    StopRoundMapTest(&Test);
+    free(DungeonSessionArena.Base);
+}
+
+// NOTE(zoubir): a monster's Sunder and its weaken (Demoralizing Roar,
+// Disarm) reach the client's foe marks, on its replica of the monster
+internal void
+TestFoeMarksShowOnline()
+{
+    static round_map_test Test;
+    StartDungeonOnlineTest(&Test, "Delver");
+    RunDungeonOnlineTest(&Test, 2 * SERVER_TICK_RATE);
+    app_state *Game = Test.Server.Game.AppState;
+    app_state *Client = Test.Client;
+    world *World = &Game->World;
+    world_entity *Player = Game->Players[Test.Online->Client.PlayerIndex].Entity;
+    Check(Player && Game->Dungeon && Client->Dungeon);
+    if (!Player || !Game->Dungeon || !Client->Dungeon)
+    {
+        StopRoundMapTest(&Test);
+        return;
+    }
+    world_entity *Weak = SpawnMonster(Game, World, Test.Server.Game.Arena,
+                                      Player->Position + V3(90.f, 0.f, 0.f), MonsterKind_Brute);
+    world_entity *Both = SpawnMonster(Game, World, Test.Server.Game.Arena,
+                                      Player->Position + V3(0.f, 90.f, 0.f), MonsterKind_Brute);
+    WeakenFoe(Game->Dungeon, World, Weak, 30.f, DEMORALIZING_ROAR_SHARE);
+    WeakenFoe(Game->Dungeon, World, Both, 30.f, DEMORALIZING_ROAR_SHARE);
+    AddSunder(Game->Dungeon, World, Both, 30.f, SUNDER_SHARE);
+    RunDungeonOnlineTest(&Test, 6);
+    u32 OurWeak = Test.Online->Replicas.LocalIndexPlusOne[Weak - World->Entities];
+    u32 OurBoth = Test.Online->Replicas.LocalIndexPlusOne[Both - World->Entities];
+    Check(OurWeak && OurBoth);
+    u32 Seen = 0;
+    for(u32 Index = 0; Index < MAX_FOE_MARKS; Index++)
+    {
+        foe_mark *Mark = &Client->Dungeon->Marks[Index];
+        if (OurWeak && Mark->Slot == OurWeak - 1 && Mark->WeakenSeconds > 0.f && Mark->SunderSeconds == 0.f)
+        {
+            Seen |= 1;
+        }
+        if (OurBoth && Mark->Slot == OurBoth - 1 && Mark->WeakenSeconds > 0.f && Mark->SunderSeconds > 0.f)
+        {
+            Seen |= 2;
+        }
+    }
+    Check(Seen == 3);
     StopRoundMapTest(&Test);
     free(DungeonSessionArena.Base);
 }

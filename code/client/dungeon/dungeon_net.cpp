@@ -6,7 +6,7 @@
    Wall, a ward and revive progress; DungeonMore a rally, a renewal and
    how many monsters are after them, and the look the player wears. The snapshot's dungeon block gives
    the rooms, the fight, the healers' sanctuaries, the infernos and the
-   foe marks, Searing and Sunder (on the replicas they were sent for), and
+   foe marks, Searing, Sunder and a weaken (on the replicas they were sent for), and
    one player's meter, kept until that player comes round again; the
    gate walls are then built or taken down
    locally from the room states (UpdateGates), so the local player's
@@ -138,6 +138,9 @@ ApplyDungeonSnapshot(app_state *AppState, memory_arena *Arena, net_snapshot *Sna
             Mark->Seconds = Mark->Stacks ? SEARING_SECONDS : 0.f;
             Mark->SunderSeconds = (Bits & NET_MARK_SUNDER) ? SUNDER_SECONDS : 0.f;
             Mark->SunderShare = (Bits & NET_MARK_SUNDER) ? SUNDER_SHARE : 0.f;
+            // NOTE(zoubir): the weaken is only drawn here, so any time will do
+            Mark->WeakenSeconds = (Bits & NET_MARK_WEAKEN) ? DEMORALIZING_ROAR_SECONDS : 0.f;
+            Mark->WeakenShare = (Bits & NET_MARK_WEAKEN) ? DEMORALIZING_ROAR_SHARE : 0.f;
         }
     }
     ApplyMeterSnapshot(AppState, Run, Snapshot);

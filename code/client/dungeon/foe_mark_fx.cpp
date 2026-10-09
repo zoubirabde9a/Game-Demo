@@ -5,11 +5,14 @@
      burning hotter at a full mark, and embers rising off the monster
      while the mark burns, more of them the more stacks it has.
    - Sunder: a cracked steel ring at the monster's feet while it takes
-     more from everyone, so the tank sees when to slam again. */
+     more from everyone, so the tank sees when to slam again.
+   - Weaken (Demoralizing Roar, Disarm): two dim violet chevrons hanging
+     over the head, pointing down and sagging, while it deals less. */
 
 #define SEARING_PIP_GAP 15.f
 // NOTE(zoubir): over the head and clear of the health bar above it
 #define SEARING_PIP_LIFT 24.f
+#define WEAKEN_RGB 0x00B07088
 
 internal void
 DrawFoeMarks(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
@@ -42,6 +45,23 @@ DrawFoeMarks(render_context *RenderContext, app_state *AppState, v3 CameraOffset
                 v2 Dir = GroundCircle(A, 1.f);
                 DrawFxStreak(RenderContext, Feet + (0.6f * Radius) * Dir, Feet + (1.1f * Radius) * Dir,
                              2.f, FxColor(0.f, ROLE_FX_SLAM_RGB), FxColor(0.8f, ROLE_FX_SLAM_RGB));
+            }
+        }
+        if (Mark->WeakenSeconds > 0.f)
+        {
+            // NOTE(zoubir): above the Searing pips when there are any
+            float Over = Maximum(24.f, Monster->Dimensions.Y) + SEARING_PIP_LIFT +
+                (Mark->Stacks ? 17.f : 0.f);
+            v2 Top = BurstToScreen(V3(Monster->Position.X, Monster->Position.Y,
+                                      Monster->Position.Z + Over), CameraOffset);
+            float Sag = 2.5f * (0.5f + 0.5f * Sin(2.2f * Clock + (float)Index));
+            DrawFxDot(RenderContext, Top + V2(0.f, 2.f), 20.f, FxColor(0.55f, 0x00101418));
+            for(u32 Chevron = 0; Chevron < 2; Chevron++)
+            {
+                v2 Tip = Top + V2(0.f, -2.f + 7.f * (float)Chevron + Sag);
+                u32 Color = FxColor(Chevron ? 0.55f : 0.9f, WEAKEN_RGB);
+                DrawFxStreak(RenderContext, Tip + V2(-7.f, -5.f), Tip, 3.f, Color, Color);
+                DrawFxStreak(RenderContext, Tip + V2(7.f, -5.f), Tip, 3.f, Color, Color);
             }
         }
         if (!Mark->Stacks)

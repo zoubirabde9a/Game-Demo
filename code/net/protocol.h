@@ -20,11 +20,10 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d75u // "GDMu", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d76u // "GDMv", change it whenever the layout changes
+// (GDMv: a foe mark's Id in 12 bits, Sunder beside its stacks, a weaken bit each in MarkCount)
 // (GDMu: a burst's height carries its class number apart, NetBurstHeight in protocol.cpp)
 // (GDMt: team duels, net_snapshot.Teams and a team request in net_input.Role bits 5-6)
-// (GDMs: 42 talent ranks, the second tree's seed and a 6-bit talent field, for each class's second tree;
-//  GDMr: player_role's fourth bit in net_score.DungeonMore bit 6, for the ninth and tenth classes)
 // (older ids and why: git log -S NET_PROTOCOL_ID -- code/net/protocol.h)
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
@@ -127,6 +126,7 @@ enum net_button
 #define NET_ADD_BURSTS 0x80u
 #define NET_MARK_STACKS 7
 #define NET_MARK_SUNDER 8
+#define NET_MARK_WEAKEN 16
 #define NET_ZONE_WIDE 0x80u
 #define NET_INFERNO_FALLING 0x40u
 
@@ -423,9 +423,9 @@ struct net_snapshot
     u8 InfernoTenths[NET_MAX_INFERNOS];
     // The foe marks (sim/dungeon/role_kits/foe_marks.cpp) on the monsters
     // nearest the viewer (four, all a full packet has room for): the
-    // entity Id (13 bits) and the mark bits, the
-    // striker's Searing stacks (NET_MARK_STACKS) and the tank's Sunder
-    // (NET_MARK_SUNDER), two bytes each.
+    // entity Id (12 bits) and the mark bits, the striker's Searing stacks
+    // (NET_MARK_STACKS), the tank's Sunder (NET_MARK_SUNDER), two bytes
+    // each, and a weaken (NET_MARK_WEAKEN, Roar or Disarm) in MarkCount.
     u8 MarkCount;
     u16 MarkId[NET_MAX_FOE_MARKS];
     u8 MarkBits[NET_MAX_FOE_MARKS];

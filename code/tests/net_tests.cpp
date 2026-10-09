@@ -1132,8 +1132,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d75u
-#define NET_GOLDEN_LAYOUT 0x08655a5eu
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d76u
+#define NET_GOLDEN_LAYOUT 0x8336ad43u
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -1169,7 +1169,9 @@ TestDungeonBlockRoundTrip()
     for (u32 Index = 0; Index < NET_MAX_FOE_MARKS; ++Index)
     {
         P.Snapshot.MarkId[Index] = (u16)(700 + 13 * Index);
-        P.Snapshot.MarkBits[Index] = (u8)(1 + Index % 3);
+        // NOTE(zoubir): Sunder on odd marks, a weaken on the last two
+        P.Snapshot.MarkBits[Index] = (u8)((1 + Index % 3) | ((Index & 1) ? NET_MARK_SUNDER : 0) |
+                                          ((Index & 2) ? NET_MARK_WEAKEN : 0));
     }
     P.Snapshot.SanctuaryCount = NET_MAX_SANCTUARIES;
     for (u32 Index = 0; Index < NET_MAX_SANCTUARIES; ++Index)

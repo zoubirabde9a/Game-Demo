@@ -337,16 +337,23 @@ NetSerializePacket(net_stream *S, net_packet *P)
                     NetI16(S, &P->Snapshot.InfernoY[Index]);
                     NetU8(S, &P->Snapshot.InfernoTenths[Index]);
                 }
-                NetU8(S, &P->Snapshot.MarkCount);
-                if (P->Snapshot.MarkCount > NET_MAX_FOE_MARKS) return false;
+                // NOTE(zoubir): the count in 3 bits, then each mark's weaken
+                u8 MarkCount = (u8)(P->Snapshot.MarkCount & 7);
+                for (u32 Index = 0; Index < P->Snapshot.MarkCount && Index < NET_MAX_FOE_MARKS; ++Index)
+                {
+                    MarkCount |= (u8)((P->Snapshot.MarkBits[Index] & NET_MARK_WEAKEN) ? 8 << Index : 0);
+                }
+                NetU8(S, &MarkCount);
+                P->Snapshot.MarkCount = MarkCount & 7;
+                if (P->Snapshot.MarkCount > NET_MAX_FOE_MARKS || (MarkCount >> (3 + P->Snapshot.MarkCount))) return false;
                 for (u32 Index = 0; Index < P->Snapshot.MarkCount; ++Index)
                 {
-                    // NOTE(zoubir): the Id in 13 bits, the mark bits in 3
-                    u16 Mark = (u16)((P->Snapshot.MarkId[Index] & 0x1fff) |
-                                     ((P->Snapshot.MarkBits[Index] & 7) << 13));
+                    // NOTE(zoubir): the Id in 12 bits (an entity slot), Searing and Sunder in 4
+                    u16 Mark = (u16)((P->Snapshot.MarkId[Index] & 0xfff) |
+                                     ((P->Snapshot.MarkBits[Index] & 15) << 12));
                     NetU16(S, &Mark);
-                    P->Snapshot.MarkId[Index] = Mark & 0x1fff;
-                    P->Snapshot.MarkBits[Index] = (u8)(Mark >> 13);
+                    P->Snapshot.MarkId[Index] = Mark & 0xfff;
+                    P->Snapshot.MarkBits[Index] = (u8)((Mark >> 12) | ((MarkCount >> (3 + Index)) & 1 ? NET_MARK_WEAKEN : 0));
                 }
                 if (P->Snapshot.HasMeter)
                 {

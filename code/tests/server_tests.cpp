@@ -603,6 +603,7 @@ main(int ArgCount, char **Args)
     GROUP(TestStandardCastOnline());
     GROUP(RunDungeonOnlineTests());
     GROUP(TestDepartedBossesShowOnline());
+    GROUP(TestFoeMarksShowOnline());
     GROUP(RunBotClassTests());
     GROUP(RunServerGameTests());
     GROUP(RunRewindTests());

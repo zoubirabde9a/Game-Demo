@@ -108,7 +108,8 @@ WriteFoeMarks(app_state *AppState, dungeon_run *Run, v2 Center, net_snapshot *Ou
         }
         Distances[At] = Distance;
         Out->MarkId[At] = (u16)Mark->Slot;
-        Out->MarkBits[At] = (u8)(Mark->Stacks | (Mark->SunderSeconds > 0.f ? NET_MARK_SUNDER : 0));
+        Out->MarkBits[At] = (u8)(Mark->Stacks | (Mark->SunderSeconds > 0.f ? NET_MARK_SUNDER : 0) |
+                                 (Mark->WeakenSeconds > 0.f ? NET_MARK_WEAKEN : 0));
     }
 }
 
