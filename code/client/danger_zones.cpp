@@ -7,7 +7,8 @@
    the area flashes full and fades, and a solid disc leaves broken
    ground behind.
    A burrower's spot is painted while it is underground instead, filling
-   until it comes up.
+   until it comes up. What a blow leaves burning on the ground has its
+   true circle painted too (danger_zones/hazard_zones.cpp).
 
    Read only from AbilityPhase, AbilityIndex, AbilityTimer, AbilityAim and
    AbilityPoints, which snapshots carry, so it looks the same online.
@@ -281,6 +282,10 @@ struct danger_zones
     // NOTE(zoubir): the cast in Winding is a burrower underground, which
     // lands when it comes up, not when its windup ends
     bool32 WindingUnder[DANGER_TRACKED];
+    // NOTE(zoubir): per entity slot, the hazard in it and when this
+    // client first saw it (danger_zones/hazard_zones.cpp)
+    u32 HazardId[DANGER_TRACKED];
+    float HazardBorn[DANGER_TRACKED];
     danger_impact Impacts[DANGER_IMPACT_MAX];
     u32 ImpactCount;
     // NOTE(zoubir): when the shown boss clock ran out, for the Doom waves
@@ -327,6 +332,8 @@ DrawDoomWaves(render_context *RenderContext, app_state *AppState, danger_zones *
         }
     }
 }
+
+#include "danger_zones/hazard_zones.cpp"
 
 internal void
 AddDangerImpact(app_state *AppState, danger_zones *Zones, danger_cast *Cast, float Now)
@@ -441,6 +448,7 @@ DrawDangerZones(render_context *RenderContext, app_state *AppState, v3 CameraOff
         DrawDangerCast(RenderContext, World, CameraOffset, &Impact->Cast, 1.f,
                        Strength * Strength);
     }
+    DrawHazardZones(RenderContext, World, Zones, CameraOffset, Now);
     DrawDoomWaves(RenderContext, AppState, Zones, CameraOffset, Now);
     DrawBossGroundFx(RenderContext, AppState, CameraOffset);
 }
