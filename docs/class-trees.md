@@ -64,16 +64,16 @@ Measured with the balance probe (`misc\balance.bat 200 3 2 16`, `PROBE_LEVELS=2`
 
 | Damage or healer bot | Throne of Dust | Anvil Hall | Throne of Embers | Worst wipes a kill |
 |---|---|---|---|---|
-| Fire Mage (with the Mender) | 50 | 28 | 49 | 0.5 |
-| Ranger (with the Mender) | 64 | 28 | 52 | 0.6 |
-| Berserker | 47 | 62 | 69 | 0.9 |
-| Shadowblade | 50 | 46 | 59 | 0.6 |
-| Stormcaller | 59 | 29 | 69 | 1.1 |
-| Duelist | 43 | 48 | 47 | 0.9 |
-| Frost Mage | 52 | 34 | 53 | 0.5 |
-| Druid as the healer (with the Fire Mage) | 57 | 29 | 48 | 0.7 |
+| Fire Mage (with the Mender) | 55 | 30 | 63 | 0.3 |
+| Ranger (with the Mender) | 67 | 29 | 66 | 0.7 |
+| Berserker | 58 | 64 | 75 | 0.5 |
+| Shadowblade | 57 | 44 | 70 | 0.4 |
+| Stormcaller | 70 | 28 | 72 | 0.6 |
+| Duelist | 54 | 43 | 58 | 1.5 (Slag Pits) |
+| Frost Mage | 63 | 29 | 59 | 0.25 |
+| Druid as the healer (with the Fire Mage) | 56 | 29 | 62 | 1.0 |
 
-Measured with every change of this pass in: the depth rule, the new capstones, the pools' class talents and the damage retune. Bots in a two-level probe seldom reach the deep tiers, so the pools' new talents barely show here.
+Measured with every change of this pass in, after bots learned to turn on a boss add that erupts if it lives (server/bots.cpp, BotMustKillAdd). Both thrones raise such adds, so their fights run 8 to 14 s longer than before it while most parties wipe about half as often; that is how a party of people plays them. Bots in a two-level probe seldom reach the deep tiers, so the pools' class talents barely show here.
 
 Before it, the four classes that lagged on a single foe went up (`RoleTable`, roles.cpp): the Berserker, the Shadowblade and the Stormcaller from 1.35 to 1.5 times their damage, the Frost Mage to 1.45. That cut the Berserker's and the Frost Mage's Throne of Dust by seven to thirteen seconds. Lowering the Fire Mage was tried and undone: a Druid party leans on its damage, and its wipes at the Throne of Embers doubled.
 
