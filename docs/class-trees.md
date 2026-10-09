@@ -58,21 +58,22 @@ Built: the rules, the cap and the damage classes' top-level exception, every cla
 
 ## Balance
 
-Measured with the balance probe (`miscalance.bat 200 3 2 16`, `PROBE_LEVELS=2`): a tank, a healer and one damage bot, 16 seeds, crypt into depths, each bot taking a coin toss of every pair. Average fight in seconds at four rooms, and the worst wipes a kill:
+Measured with the balance probe (`misc\balance.bat 200 3 2 16`, `PROBE_LEVELS=2`): a tank, a healer and one damage bot, 16 seeds, crypt into depths, each bot taking a coin toss of every pair. Average fight in seconds at four rooms, and the worst wipes a kill:
 
-| Damage or healer bot | Bone Halls | Throne of Dust | Anvil Hall | Throne of Embers | Worst wipes a kill |
-|---|---|---|---|---|---|
-| Fire Mage (with the Mender) | 15 | 50 | 28 | 50 | 0.3 |
-| Ranger | 12 | 62 | 29 | 54 | 1.0 |
-| Berserker | 13 | 60 | 62 | 67 | 0.5 |
-| Shadowblade | 13 | 49 | 52 | 60 | 0.4 |
-| Stormcaller | 10 | 61 | 31 | 68 | 1.1 |
-| Duelist | 14 | 44 | 51 | 47 | 1.0 |
-| Frost Mage | 13 | 59 | 32 | 56 | 0.4 |
-| Druid as the healer | 16 | 57 | 32 | 50 | 0.9 |
-| Fire Mage before the reshape | 17 | 57 | 32 | 52 | 0.4 |
+| Damage or healer bot | Throne of Dust | Anvil Hall | Throne of Embers | Worst wipes a kill |
+|---|---|---|---|---|
+| Fire Mage (with the Mender) | 50 | 28 | 49 | 0.5 |
+| Ranger (with the Mender) | 64 | 28 | 52 | 0.6 |
+| Berserker | 47 | 62 | 69 | 0.9 |
+| Shadowblade | 50 | 46 | 59 | 0.6 |
+| Stormcaller | 59 | 29 | 69 | 1.1 |
+| Duelist | 43 | 48 | 47 | 0.9 |
+| Frost Mage | 52 | 34 | 53 | 0.5 |
+| Druid as the healer (with the Fire Mage) | 57 | 29 | 48 | 0.7 |
 
-Measured after deeper tiers began to grow run talents (rule 7), before the Druid's Moon pool talents. Then the four classes that lagged on a single foe went up (`RoleTable`, roles.cpp): the Berserker, the Shadowblade and the Stormcaller from 1.35 to 1.5 times their damage, the Frost Mage to 1.45. That cut the Berserker's and the Frost Mage's Throne of Dust by seven to thirteen seconds. Lowering the Fire Mage was tried and undone: a Druid party leans on its damage, and its wipes at the Throne of Embers doubled.
+Measured with every change of this pass in: the depth rule, the new capstones, the pools' class talents and the damage retune. Bots in a two-level probe seldom reach the deep tiers, so the pools' new talents barely show here.
+
+Before it, the four classes that lagged on a single foe went up (`RoleTable`, roles.cpp): the Berserker, the Shadowblade and the Stormcaller from 1.35 to 1.5 times their damage, the Frost Mage to 1.45. That cut the Berserker's and the Frost Mage's Throne of Dust by seven to thirteen seconds. Lowering the Fire Mage was tried and undone: a Druid party leans on its damage, and its wipes at the Throne of Embers doubled.
 
 The training dummy (another agent's probe) gives each class's damage on one foe that never moves. It is refilled to full health, so talents that add damage to foes above 80% health count on every hit there; read it per spell build, not by its best seed. Sixteen seeds is noisy: a worst room of 1.0 a kill is three or four wipes over the sixteen.
 
