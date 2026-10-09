@@ -29,6 +29,12 @@ CastTellColor(monster_ability_kind Kind, u32 Alpha)
         case MonsterAbility_Mend:   Result = UI_RGBA(140, 255, 210, Alpha); break;
         case MonsterAbility_Burrow: Result = UI_RGBA(220, 170, 110, Alpha); break;
         case MonsterAbility_Smite:  Result = UI_RGBA(255,  40, 120, Alpha); break;
+        case MonsterAbility_Wave:   Result = UI_RGBA(150, 220, 255, Alpha); break;
+        case MonsterAbility_Beam:   Result = UI_RGBA( 90, 255, 180, Alpha); break;
+        case MonsterAbility_Pull:   Result = UI_RGBA(160,  90, 255, Alpha); break;
+        case MonsterAbility_Brand:  Result = UI_RGBA(200,  80, 255, Alpha); break;
+        case MonsterAbility_Reflect: Result = UI_RGBA(220, 230, 255, Alpha); break;
+        case MonsterAbility_Eclipse: Result = UI_RGBA(255, 210, 110, Alpha); break;
         default:                    Result = UI_RGBA(255, 255, 255, Alpha); break;
     }
     return Result;

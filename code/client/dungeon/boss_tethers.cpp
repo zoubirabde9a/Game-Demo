@@ -9,7 +9,9 @@
    Which adds return is read from BossEvents for the shown boss's kind and
    the time left from the run's shown add seconds, both of which a client
    has online, so it needs nothing new in the snapshots. Every living
-   monster of a returning kind in the fight's room is tethered.
+   monster of a returning kind in the fight's room is tethered. Each mote
+   sits in a soft glow (fx/glow.frag, all of them in one batch) when the
+   shader built.
 
    Entry point: DrawBossTethers, once a frame from screen_pass.inc. */
 
@@ -86,15 +88,36 @@ DrawBossTethers(render_context *RenderContext, app_state *AppState, v3 CameraOff
         // NOTE(zoubir): motes run from the add into the boss, faster as
         // the return gets close
         float Speed = Alarm ? 1.4f : 0.6f;
+        v2 Motes[BOSS_TETHER_MOTES];
+        float Sizes[BOSS_TETHER_MOTES];
         for(u32 Mote = 0; Mote < BOSS_TETHER_MOTES; Mote++)
         {
             float T = fmodf((float)Mote / (float)BOSS_TETHER_MOTES + Speed * Clock, 1.f);
             v2 P = Lerp2(AddAt, T, BossAt);
             // NOTE(zoubir): a little arc, so the stream reads as drawn in
             P.Y -= 18.f * Sin(Pi32 * T);
-            float Size = 3.f + 3.f * Sin(Pi32 * T);
-            DrawFilledRectangle(RenderContext, P.X - 0.5f * Size, P.Y - 0.5f * Size,
-                                Size, Size, WithAlpha(Color, Beat), 0.f);
+            Motes[Mote] = P;
+            Sizes[Mote] = 3.f + 3.f * Sin(Pi32 * T);
+        }
+        if (RenderContext->Programs[Shader_Glow].ID != RenderContext->TextureProgram.ID)
+        {
+            BeginBatch(RenderContext, 0, 0.f, RenderContext->Programs[Shader_Glow]);
+            RenderContext->AllocatedBatches[RenderContext->BatchCount].Blend = RenderBlend_Additive;
+            for(u32 Mote = 0; Mote < BOSS_TETHER_MOTES; Mote++)
+            {
+                float Glow = 4.f * Sizes[Mote];
+                RenderQuadTexture(RenderContext, Motes[Mote].X - 0.5f * Glow,
+                                  Motes[Mote].Y - 0.5f * Glow, Glow, Glow,
+                                  V4(0.f, 1.f, 1.f, 0.f), WithAlpha(Color, 0.55f * Beat), 0.f);
+            }
+            EndBatch(RenderContext);
+        }
+        for(u32 Mote = 0; Mote < BOSS_TETHER_MOTES; Mote++)
+        {
+            float Size = Sizes[Mote];
+            DrawFilledRectangle(RenderContext, Motes[Mote].X - 0.5f * Size,
+                                Motes[Mote].Y - 0.5f * Size, Size, Size,
+                                WithAlpha(Color, Beat), 0.f);
         }
     }
 }

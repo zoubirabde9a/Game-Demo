@@ -13,6 +13,12 @@
    Falling Star      a star comes down out of the sky onto the ring, its
                      shadow on the floor growing under it; then it bursts.
 
+   With the boss ground shader the pools, the pit and the star's mark are
+   painted on the floor under the bodies instead
+   (dungeon/boss_fx/boss_ground_fx.cpp) and the landings get a shockwave
+   (boss_impacts.cpp); this keeps Nyxara's shaft of light and the star
+   coming down, now in a glow.
+
    Everything is worked out from the monsters' heights, kinds and ability
    phases, which snapshots carry, so it looks the same online. Entry
    point: DrawBossDepartureFx, once a frame from screen_pass.inc. */
@@ -113,6 +119,47 @@ DrawFallingStarFx(render_context *RenderContext, world_entity *Star, monster_abi
     DrawDepartureDisc(RenderContext, Ground, Ability->Radius * 0.5f, WithAlpha(STARLESS_GOLD_PALE, 0.7f), Clock);
 }
 
+// NOTE(zoubir): what stands over the floor once the shaders paint it: a
+// shaft of light up to where Nyxara went, and the star coming down in a
+// glow with a streak of light behind it
+internal void
+DrawShadedDeparture(render_context *RenderContext, world_entity *Monster, monster_def *Def,
+                    bool32 Striking, v2 Ground, float Clock)
+{
+    if (Monster->MonsterKind == MonsterKind_Nyxara)
+    {
+        float Pulse = 0.5f + 0.5f * Sin(3.f * Clock);
+        DrawBossShaft(RenderContext, Ground, 300.f, 60.f, BOSS_BEAM_GOLD, 0.6f + 0.2f * Pulse, true);
+        return;
+    }
+    if (Monster->MonsterKind != MonsterKind_FallingStar || !Striking ||
+        Monster->AbilityPhase != AbilityPhase_Windup)
+    {
+        return;
+    }
+    monster_ability *Ability = &Def->Abilities[Monster->AbilityIndex];
+    float Progress = WindupProgress(Monster, Ability);
+    float Height = DEPARTURE_STAR_FALL_HEIGHT * Square(1.f - Progress);
+    v2 Head = Ground - V2(0.f, Height);
+    // NOTE(zoubir): the streak up the way it came (the beam shader with
+    // its caster end at the star), then the glow, then the hot middle
+    v2 Tail = Head - V2(-14.f, 90.f);
+    float Long = Length(Tail - Head);
+    v2 Way = (1.f / Long) * (Tail - Head);
+    v2 Middle = 0.5f * (Head + Tail);
+    BeginBatch(RenderContext, 0, 0.f, RenderContext->Programs[Shader_BossBeam]);
+    RenderContext->AllocatedBatches[RenderContext->BatchCount].Blend = RenderBlend_Additive;
+    RenderQuadTexture(RenderContext, Middle.X - 0.5f * Long, Middle.Y - 9.f, Long, 18.f,
+                      V4(0.f, 1.f, 1.f, 0.f), BossFxColor(0.9f, 1.f, BOSS_BEAM_GOLD, 1.f), 0.f,
+                      ATan2(Way.Y, Way.X));
+    EndBatch(RenderContext);
+    float Glow = 36.f + 20.f * Progress;
+    DrawShaderQuad(RenderContext, Shader_Glow, Head.X - Glow, Head.Y - Glow, 2.f * Glow, 2.f * Glow,
+                   WithAlpha(STARLESS_GOLD, 0.9f), RenderBlend_Additive);
+    DrawShaderQuad(RenderContext, Shader_Glow, Head.X - 10.f, Head.Y - 10.f, 20.f, 20.f,
+                   STARLESS_GOLD_PALE, RenderBlend_Additive);
+}
+
 internal void
 DrawBossDepartureFx(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
 {
@@ -133,6 +180,11 @@ DrawBossDepartureFx(render_context *RenderContext, app_state *AppState, v3 Camer
         bool32 Striking = (Monster->AbilityPhase == AbilityPhase_Windup ||
                            Monster->AbilityPhase == AbilityPhase_Active) &&
             Monster->AbilityIndex < Def->AbilityCount;
+        if (BossFxReady(RenderContext, Shader_BossGround))
+        {
+            DrawShadedDeparture(RenderContext, Monster, Def, Striking, Ground, Clock);
+            continue;
+        }
         switch(Monster->MonsterKind)
         {
             case MonsterKind_Ommoroth: DrawSunkenOmmoroth(RenderContext, Ground, Clock); break;

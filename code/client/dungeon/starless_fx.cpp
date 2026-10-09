@@ -15,6 +15,12 @@
                   marked and a countdown closing round it; when the dark
                   falls the lights flash.
 
+   With the boss ground shader the well's reach and core, the brand's ring
+   and the eclipse's floor are painted under the bodies instead
+   (dungeon/boss_fx/boss_ground_fx.cpp), and the mirror is a shell of
+   glass from the same shader; this keeps what stands over them: the
+   chevrons, the motes, the brand's sigil and the shafts of light.
+
    Everything is worked out from what snapshots carry (ability phase,
    index, timer, aim and points), so it looks the same online. Entry
    point: DrawStarlessFx, once a frame from screen_pass.inc. */
@@ -69,13 +75,17 @@ DrawWellFx(render_context *RenderContext, world_entity *Monster, monster_ability
         return;
     }
     v2 Well = Monster->AbilityPoints[0] - CameraOffset.XY;
+    bool32 Shaded = BossFxReady(RenderContext, Shader_BossGround);
     if (Monster->AbilityPhase == AbilityPhase_Windup)
     {
         float Progress = WindupProgress(Monster, Ability);
-        DrawStarlessRing(RenderContext, Well, Ability->Radius, 2.f,
-                         WithAlpha(STARLESS_VOID, 0.3f + 0.5f * Progress), 0.1f * Clock, 1.f);
-        DrawStarlessRing(RenderContext, Well, Ability->InnerRadius, 3.f,
-                         WithAlpha(STARLESS_CORE, 0.4f + 0.5f * Progress), -0.4f * Clock, 1.f);
+        if (!Shaded)
+        {
+            DrawStarlessRing(RenderContext, Well, Ability->Radius, 2.f,
+                             WithAlpha(STARLESS_VOID, 0.3f + 0.5f * Progress), 0.1f * Clock, 1.f);
+            DrawStarlessRing(RenderContext, Well, Ability->InnerRadius, 3.f,
+                             WithAlpha(STARLESS_CORE, 0.4f + 0.5f * Progress), -0.4f * Clock, 1.f);
+        }
         // NOTE(zoubir): chevrons round the edge pointing in
         u32 Chevrons = 10;
         for(u32 Chevron = 0; Chevron < Chevrons; Chevron++)
@@ -105,6 +115,10 @@ DrawWellFx(render_context *RenderContext, world_entity *Monster, monster_ability
         u32 Color = (Mote % 3) ? STARLESS_VOID : STARLESS_GOLD;
         DrawStarlessDot(RenderContext, Well + Distance * V2(Cos(Angle), Sin(Angle)),
                         2.f + 2.f * Phase, WithAlpha(Color, 0.4f + 0.5f * Phase));
+    }
+    if (Shaded)
+    {
+        return;
     }
     DrawStarlessRing(RenderContext, Well, Ability->Radius, 2.f,
                      WithAlpha(STARLESS_VOID_DEEP, 0.5f), 0.f, 1.f);
@@ -146,13 +160,16 @@ DrawBrandFx(render_context *RenderContext, world_entity *Monster, monster_abilit
     v2 At = Mark - CameraOffset.XY;
     float Progress = WindupProgress(Monster, Ability);
     float Pulse = 0.6f + 0.4f * Absolute(Sin((4.f + 10.f * Progress) * Clock));
-    DrawStarlessRing(RenderContext, At, Ability->Radius, 3.f,
-                     WithAlpha(STARLESS_VOID, Pulse), 0.3f * Clock, 1.f);
-    // NOTE(zoubir): the countdown closes round the burst's edge
-    DrawStarlessRing(RenderContext, At, Ability->Radius - 6.f, 2.f,
-                     WithAlpha(STARLESS_GOLD, 0.9f), 0.f, 1.f - Progress);
-    DrawStarlessRing(RenderContext, At, 18.f + 6.f * Progress, 3.f,
-                     WithAlpha(STARLESS_GOLD, Pulse), -Clock, 1.f);
+    if (!BossFxReady(RenderContext, Shader_BossGround))
+    {
+        DrawStarlessRing(RenderContext, At, Ability->Radius, 3.f,
+                         WithAlpha(STARLESS_VOID, Pulse), 0.3f * Clock, 1.f);
+        // NOTE(zoubir): the countdown closes round the burst's edge
+        DrawStarlessRing(RenderContext, At, Ability->Radius - 6.f, 2.f,
+                         WithAlpha(STARLESS_GOLD, 0.9f), 0.f, 1.f - Progress);
+        DrawStarlessRing(RenderContext, At, 18.f + 6.f * Progress, 3.f,
+                         WithAlpha(STARLESS_GOLD, Pulse), -Clock, 1.f);
+    }
     bool32 Carried = Local && LengthSq(Local->Position.XY - Mark) <= Square(STARLESS_BRAND_NEAR);
     v2 Head = (Carried ? Local->Position.XY : Mark) - CameraOffset.XY;
     Head.Y -= (Carried ? Local->Dimensions.Y : 40.f) + 16.f;
@@ -168,6 +185,15 @@ DrawMirrorFx(render_context *RenderContext, world_entity *Monster, monster_abili
     float Shell = Ability->Radius;
     bool32 Raised = Monster->AbilityPhase == AbilityPhase_Active;
     float Progress = Raised ? 1.f : WindupProgress(Monster, Ability);
+    if (BossFxReady(RenderContext, Shader_BossGround))
+    {
+        // NOTE(zoubir): the glass swings in from far out as it rises
+        float Left = Raised && Ability->Active > 0.f ?
+            Clamp01(Monster->AbilityTimer / Ability->Active) : 0.f;
+        DrawBossShell(RenderContext, Centre, (Shell + 8.f) * (1.f + 1.5f * (1.f - Progress)),
+                      BossGround_Mirror, Raised ? 1.f : 0.6f * Progress, Left, 1.f);
+        return;
+    }
     u32 Facets = 6;
     for(u32 Facet = 0; Facet < Facets; Facet++)
     {
@@ -204,6 +230,19 @@ DrawEclipseFx(render_context *RenderContext, world_entity *Monster, monster_abil
 {
     bool32 Falling = Monster->AbilityPhase == AbilityPhase_Active;
     float Progress = Falling ? 1.f : WindupProgress(Monster, Ability);
+    if (BossFxReady(RenderContext, Shader_BossGround))
+    {
+        // NOTE(zoubir): the floor is painted under the bodies; a shaft of
+        // light stands up out of each light, brighter as the dark comes
+        for(u32 Light = 0; Light < Monster->AbilityPointCount; Light++)
+        {
+            v2 At = Monster->AbilityPoints[Light] - CameraOffset.XY;
+            float Breathe = 0.85f + 0.15f * Sin(2.f * Clock + (float)Light);
+            DrawBossShaft(RenderContext, At, 150.f + 60.f * Progress, 1.6f * Ability->Radius,
+                          BOSS_BEAM_GOLD, (0.4f + 0.5f * Progress) * Breathe, true);
+        }
+        return;
+    }
     // NOTE(zoubir): a dark ring spreads from her as the light goes out
     v2 From = Monster->Position.XY - CameraOffset.XY;
     DrawStarlessRing(RenderContext, From, 40.f + Progress * Ability->Spread, 4.f,

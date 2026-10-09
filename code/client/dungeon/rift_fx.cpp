@@ -3,13 +3,18 @@
 
    Frost waves  while the monster winds up, frost gathers in a ring at its
                 feet and the reach of the wave is traced faintly round
-                it; then each ring rolls out as a band of ice spikes. When
+                it; then each ring rolls out as a band of ice spikes
+                (of flames for Nyxara's Corona Flare), over a band of
+                light on the floor (dungeon/boss_fx/boss_ground_fx.cpp). When
                 a ring is about to reach the local player standing on the
                 ground, a chevron over their head says to jump.
    Beams        through the windup a thin line shows where the beam
                 starts and a dotted arc the way it will sweep; then the
                 beam burns along the floor out to the first pillar, a
-                fading trail behind it.
+                fading trail behind it. With the boss beam shader the
+                line and the beam are drawn on the floor instead
+                (dungeon/boss_fx/boss_ground_fx.cpp) and only the arc is
+                drawn here.
    Pylon wards  a boss with an Aurora Pylon standing wears a shell of
                 light, and a stream of light runs from each pylon into it
                 (sim/dungeon/boss_wards.cpp).
@@ -25,6 +30,9 @@
 #define RIFT_BEAM_VIOLET UI_RGBA(180, 130, 250, 170)
 #define RIFT_WARD_COLOR UI_RGBA(190, 150, 255, 220)
 #define RIFT_JUMP_COLOR UI_RGBA(255, 250, 200, 250)
+// NOTE(zoubir): Nyxara's Corona Flare is a wave of fire, not of ice
+#define RIFT_FIRE_COLOR UI_RGBA(255, 220, 140, 235)
+#define RIFT_FIRE_DEEP UI_RGBA(255, 110, 40, 200)
 // NOTE(zoubir): how soon before a ring reaches the local player the jump
 // chevron shows: about how long a jump takes to clear the ground
 #define RIFT_JUMP_WARNING 0.35f
@@ -36,12 +44,15 @@ DrawRiftDot(render_context *RenderContext, v2 P, float Size, u32 Color)
                         Size, Size, Color, 0.f);
 }
 
-// NOTE(zoubir): a band of ice spikes round Centre at Radius; Seed keeps
-// each spike's height steady from frame to frame
+// NOTE(zoubir): a band of ice spikes round Centre at Radius, or of
+// flames when Fire; Seed keeps each spike's height steady from frame to
+// frame
 internal void
 DrawFrostRing(render_context *RenderContext, v2 Centre, float Radius, float Alpha,
-              u32 Seed)
+              u32 Seed, bool32 Fire = false)
 {
+    u32 Bright = Fire ? RIFT_FIRE_COLOR : RIFT_FROST_COLOR;
+    u32 Deep = Fire ? RIFT_FIRE_DEEP : RIFT_FROST_DEEP;
     u32 Count = (u32)Minimum(180.f, Maximum(16.f, 2.f * Pi32 * Radius / 9.f));
     for(u32 Spike = 0; Spike < Count; Spike++)
     {
@@ -50,11 +61,11 @@ DrawFrostRing(render_context *RenderContext, v2 Centre, float Radius, float Alph
         u32 Hash = (Spike * 2654435761u) ^ Seed;
         float Tall = 4.f + (float)((Hash >> 7) % 5);
         v2 Foot = Centre + Radius * Out;
-        DrawRiftDot(RenderContext, Foot - 5.f * Out, 3.f, WithAlpha(RIFT_FROST_DEEP, 0.6f * Alpha));
-        DrawRiftDot(RenderContext, Foot, 3.f, WithAlpha(RIFT_FROST_COLOR, Alpha));
+        DrawRiftDot(RenderContext, Foot - 5.f * Out, 3.f, WithAlpha(Deep, 0.6f * Alpha));
+        DrawRiftDot(RenderContext, Foot, 3.f, WithAlpha(Bright, Alpha));
         // NOTE(zoubir): the spike stands up out of the ice, up the screen
         DrawFilledRectangle(RenderContext, Foot.X - 1.f, Foot.Y - Tall, 2.f, Tall,
-                            WithAlpha(RIFT_FROST_COLOR, 0.8f * Alpha), 0.f);
+                            WithAlpha(Bright, 0.8f * Alpha), 0.f);
     }
 }
 
@@ -80,13 +91,14 @@ DrawWaveFx(render_context *RenderContext, world_entity *Monster, monster_ability
            world_entity *Local, v3 CameraOffset, float Clock, bool32 *WarnJump)
 {
     v2 Centre = Monster->Position.XY - CameraOffset.XY;
+    bool32 Fire = Monster->MonsterKind == MonsterKind_Nyxara;
     if (Monster->AbilityPhase == AbilityPhase_Windup)
     {
         float Progress = Ability->Windup > 0.f ?
             1.f - Monster->AbilityTimer / Ability->Windup : 1.f;
         Progress = Minimum(1.f, Maximum(0.f, Progress));
         DrawFrostRing(RenderContext, Centre, 20.f + 25.f * Progress, 0.4f + 0.6f * Progress,
-                      Monster->ID);
+                      Monster->ID, Fire);
         // NOTE(zoubir): the reach, faint, so the party sees how far to run
         // or that running will not do
         u32 Dots = 64;
@@ -107,7 +119,7 @@ DrawWaveFx(render_context *RenderContext, world_entity *Monster, monster_ability
         if (Front > 0.f && Front < Ability->Radius)
         {
             float Fade = 1.f - 0.5f * Front / Ability->Radius;
-            DrawFrostRing(RenderContext, Centre, Front, Fade, Monster->ID + Ring * 977u);
+            DrawFrostRing(RenderContext, Centre, Front, Fade, Monster->ID + Ring * 977u, Fire);
         }
         // NOTE(zoubir): a ring the local player will meet in the next
         // moment, while it is still in reach
@@ -143,13 +155,17 @@ DrawBeamFx(render_context *RenderContext, world *World, world_entity *Monster,
     v2 From = Monster->Position.XY;
     float Turn = BeamTurn(Monster);
     float Sweep = Ability->Spread * (Pi32 / 180.f);
+    bool32 Shaded = BossFxReady(RenderContext, Shader_BossBeam);
     if (Monster->AbilityPhase == AbilityPhase_Windup)
     {
         float Progress = Ability->Windup > 0.f ?
             1.f - Monster->AbilityTimer / Ability->Windup : 1.f;
         bool32 Flash = Progress > 0.7f && ((u32)(Progress * 20.f) % 2) == 0;
-        DrawBeamLine(RenderContext, World, From, Monster->AbilityAim, Ability, CameraOffset,
-                     2.f, Flash ? RIFT_BEAM_CORE : WithAlpha(RIFT_BEAM_GREEN, 0.4f + 0.5f * Progress), 7.f);
+        if (!Shaded)
+        {
+            DrawBeamLine(RenderContext, World, From, Monster->AbilityAim, Ability, CameraOffset,
+                         2.f, Flash ? RIFT_BEAM_CORE : WithAlpha(RIFT_BEAM_GREEN, 0.4f + 0.5f * Progress), 7.f);
+        }
         // NOTE(zoubir): the arc it will sweep, filling the way it turns
         u32 Dots = 24;
         for(u32 Dot = 0; Dot <= Dots; Dot++)
@@ -160,6 +176,10 @@ DrawBeamFx(render_context *RenderContext, world *World, world_entity *Monster,
             DrawRiftDot(RenderContext, From + 70.f * Way - CameraOffset.XY, Share <= Progress ? 3.f : 2.f,
                         WithAlpha(Color, 0.7f));
         }
+        return;
+    }
+    if (Shaded)
+    {
         return;
     }
     // NOTE(zoubir): the trail first, then the beam itself on top
