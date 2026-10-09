@@ -8,8 +8,9 @@
                    of light along the floor out to the first pillar, a
                    fading violet trail behind the way it sweeps.
    Eclipses        the dark rolls out from the caster as a front of
-                   smoke; each light is a pool of gold with its countdown
-                   round the rim.
+                   smoke over the whole room; each light is a pool of
+                   gold, its rim on the edge of the safe ground and its
+                   countdown just outside.
    Waves           each ring rolls out as a band of light over the floor,
                    frost or, for Nyxara's Corona Flare, fire, under the
                    ice spikes rift_fx.cpp stands on it.
@@ -30,6 +31,12 @@
 #define BOSS_SUNKEN_RADIUS 72.f
 #define BOSS_BLACK_SUN_RADIUS 64.f
 #define BOSS_SMITE_MARK_MIN 44.f
+// NOTE(zoubir): the dark of an eclipse hits the whole room, so its front
+// rolls out this far, past the walls of any boss room
+#define BOSS_ECLIPSE_DARK_REACH 900.f
+// NOTE(zoubir): where boss_ground.frag draws an eclipse light's rim, as
+// a share of the quad's radius; the rim is the edge of the safe ground
+#define BOSS_ECLIPSE_RIM 0.92f
 
 internal void
 DrawBossBeamGround(render_context *RenderContext, world *World, world_entity *Monster,
@@ -96,14 +103,16 @@ DrawBossEclipseGround(render_context *RenderContext, world *World, world_entity 
 {
     bool32 Falling = Monster->AbilityPhase == AbilityPhase_Active;
     float Progress = Falling ? 1.f : BossWindup(Monster, Ability);
-    float Spread = 40.f + Ability->Spread;
-    DrawBossMark(RenderContext, World, CameraOffset, Monster->Position.XY, Spread,
-                 BossGround_EclipseDark, (40.f + Progress * Ability->Spread) / Spread, 0.f,
+    float Reach = BOSS_ECLIPSE_DARK_REACH;
+    DrawBossMark(RenderContext, World, CameraOffset, Monster->Position.XY, Reach,
+                 BossGround_EclipseDark, (40.f + Progress * (Reach - 40.f)) / Reach, 0.f,
                  Falling ? 0.8f : 1.f);
+    // NOTE(zoubir): the rim on the safe ground's edge (IsInEclipseLight);
+    // the countdown runs just outside it
     for(u32 Light = 0; Light < Monster->AbilityPointCount; Light++)
     {
         DrawBossMark(RenderContext, World, CameraOffset, Monster->AbilityPoints[Light],
-                     Ability->Radius + 10.f, BossGround_EclipseLight, Progress,
+                     Ability->Radius / BOSS_ECLIPSE_RIM, BossGround_EclipseLight, Progress,
                      Falling ? 0.f : 1.f - Progress, 1.f);
     }
 }
