@@ -86,6 +86,7 @@ DrawAbilityTooltip(render_context *RenderContext, app_state *AppState, world_ent
     char *Name = Def->Name;
     char Kind[64] = "";
     char *Description = 0;
+    char DescriptionCopy[160];
     char Numbers[112] = "";
     char *Cost = 0;
 
@@ -116,6 +117,13 @@ DrawAbilityTooltip(render_context *RenderContext, app_state *AppState, world_ent
         {
             Description += CostLength + 1;
             while (*Description == ' ') ++Description;
+        }
+        // NOTE(zoubir): it read on from "Name: ", so it starts a sentence now
+        if (Description && Description[0])
+        {
+            snprintf(DescriptionCopy, sizeof(DescriptionCopy), "%s", Description);
+            DescriptionCopy[0] = (char)toupper((unsigned char)DescriptionCopy[0]);
+            Description = DescriptionCopy;
         }
         float Reach = RoleSpell->Reach;
         switch (RoleSpell->Aim)
