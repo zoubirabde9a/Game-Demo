@@ -86,6 +86,9 @@ LoadTexture(assets *Assets,
     int ImageFormat = (TextureInfo->Channels == 4) ? GL_RGBA : GL_RGB;
     
     u32 TextureSize = TextureInfo->Channels * TextureInfo->Width * TextureInfo->Height;
+    // NOTE(zoubir): the pixels come from the assets' arena, so they are
+    // uploaded and kept, never handed to Platform.DeallocateMemory (the
+    // browser's free stops the game on a pointer it did not hand out)
     //IMPORTANT memory leak
     void *Data = AllocateSize(&Assets->Arena, TextureSize);
     
@@ -93,10 +96,10 @@ LoadTexture(assets *Assets,
                               AssetInfo->DataOffset,
                               TextureSize, Data);
    loaded_texture Texture =
-       LoadOpenglTexture(Assets, OpenGL, TextureInfo->Width,
-                          TextureInfo->Height,
-                         ImageFormat, TextureSize, Data,
-                          TextureInfo->Tags);
+       UploadOpenglTexture(OpenGL, TextureInfo->Width,
+                           TextureInfo->Height,
+                           ImageFormat, Data,
+                           TextureInfo->Tags);
     
     UploadTexture(Assets, Texture, ID);
     #endif

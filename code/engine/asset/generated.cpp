@@ -46,9 +46,9 @@ AddGeneratedTexture(assets *Assets, open_gl *OpenGL, asset_id ID,
     Info->Texture.NumTilesX = NumTilesX;
     Info->Texture.NumTilesY = NumTilesY;
 
+    // NOTE(zoubir): Pixels belong to the caller; upload only
     loaded_texture Texture =
-        LoadOpenglTexture(Assets, OpenGL, Width, Height, GL_RGBA,
-                          Width * Height * 4, Pixels, Filter);
+        UploadOpenglTexture(OpenGL, Width, Height, GL_RGBA, Pixels, Filter);
     UploadTexture(Assets, Texture, ID);
 }
 
