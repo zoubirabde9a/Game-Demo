@@ -4,6 +4,7 @@
 #   build/probe [address:port]    exits 0 if a server there lets a player in
 #   build/bots address:port id [n] [s]  load test: n bot players for s seconds
 #   build/replay file             plays a replay (server --record file) back and checks it
+#   build/web_gateway [--allow host:port]  lets the browser game reach the server
 set -e
 cd "$(dirname "$0")"
 mkdir -p build
@@ -25,4 +26,7 @@ g++ -std=c++11 -O2 -Wall -Wno-unused-function \
 g++ -std=c++11 -O2 -w -ffp-contract=off \
     -DAPP_SLOW=0 -DAPP_DEV=0 \
     code/tools/replay_main.cpp -o build/replay
-echo "built build/server, build/probe, build/bots and build/replay"
+g++ -std=c++11 -O2 -Wall -Wno-unused-function \
+    -DAPP_SLOW=0 -DAPP_DEV=0 \
+    code/server/web_gateway_main.cpp -o build/web_gateway
+echo "built build/server, build/probe, build/bots, build/replay and build/web_gateway"

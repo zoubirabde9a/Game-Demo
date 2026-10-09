@@ -1,6 +1,7 @@
 /* Packet format tests: every packet type survives a write and read, and
    malformed datagrams are rejected. Builds on its own, without the game,
    which also proves code/net has no dependency on rendering or assets.
+   The web gateway's tests run here too (web_gateway_tests.cpp).
    Run test.bat from the repo root; exit code 0 means every check passed. */
 
 #include <stdio.h>
@@ -25,6 +26,8 @@ CheckImpl(bool Passed, const char *Expression, int Line)
         printf("  FAILED net_tests.cpp(%d): %s\n", Line, Expression);
     }
 }
+
+#include "web_gateway_tests.cpp"
 
 internal net_packet
 RoundTrip(net_packet *In, u32 *SizeOut)
@@ -1366,6 +1369,7 @@ main()
     TestFuzzedPacketsAreSafe();
     TestDungeonBlockRoundTrip();
     TestWireLayoutIsPinned();
+    TestWebGateway();
 
     printf("net tests: %d checks, %d failed\n", TestChecks, TestFailures);
     return TestFailures ? 1 : 0;
