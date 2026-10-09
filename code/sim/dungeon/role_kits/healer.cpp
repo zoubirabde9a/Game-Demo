@@ -120,6 +120,7 @@ CastRadiance(app_state *AppState, world_entity *Player)
         {
             NearSlot->WardAbsorb = Ward;
             NearSlot->WardFull = Ward;
+            EmitBurst(&AppState->Events, SimBurst_WardCast, SlotIndex, ChestOf(Near));
         }
         EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Near));
     }

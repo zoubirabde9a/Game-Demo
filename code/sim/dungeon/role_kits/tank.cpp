@@ -158,6 +158,7 @@ GuardAllyFrom(app_state *AppState, world *World, player_slot *Slot, world_entity
         player_slot *AllySlot = &AppState->Players[Ally->PlayerIndex];
         AllySlot->WardAbsorb = Maximum(AllySlot->WardAbsorb, GUARDIAN_WARD);
         AllySlot->WardFull = Maximum(AllySlot->WardAbsorb, AllySlot->WardFull);
+        EmitBurst(&AppState->Events, SimBurst_WardCast, (u8)Player->PlayerIndex, ChestOf(Ally));
     }
 }
 
@@ -403,6 +404,7 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
                 player_slot *AllySlot = &AppState->Players[Ally->PlayerIndex];
                 AllySlot->WardAbsorb = Maximum(AllySlot->WardAbsorb, GUARDIAN_WARD);
                 AllySlot->WardFull = Maximum(AllySlot->WardAbsorb, AllySlot->WardFull);
+                EmitBurst(&AppState->Events, SimBurst_WardCast, SlotIndex, ChestOf(Ally));
             }
             EmitBurst(&AppState->Events, SimBurst_InterceptLand, SlotIndex,
                       NumberedBurstSpot(Player->Position, (u32)Length(Player->Position.XY - Start)), Angle);

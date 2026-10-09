@@ -363,6 +363,12 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         float Absorbed = Minimum(Result, Slot->WardAbsorb);
         Slot->WardAbsorb -= Absorbed;
         Result -= Absorbed;
+        if (Absorbed > 0.f && Slot->WardAbsorb <= 0.f)
+        {
+            // NOTE(zoubir): at the chest, as ChestOf (role_abilities.cpp) puts it
+            EmitBurst(&AppState->Events, SimBurst_WardBreak, (u8)Target->PlayerIndex,
+                      Target->Position + V3(0.f, 0.f, 16.f));
+        }
         // NOTE(zoubir): a healer's Guardian Angel catches a falling ally
         Result = GuardianAngelSave(AppState, Target, Slot, Result);
         // NOTE(zoubir): and a tank's Unbroken the blow that still downs it

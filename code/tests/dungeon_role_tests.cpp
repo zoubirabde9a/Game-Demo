@@ -89,6 +89,18 @@ TestRoleKeys()
     DamageEntity(AppState, World, Striker, 20.f, Monster);
     Check(NearHp(Striker->Hp, Before));
     Check(AppState->Players[2].WardAbsorb == WARD_ABSORB - 20.f);
+    // NOTE(zoubir): the hit that empties the ward shatters it for all to see
+    AppState->Events.Count = 0;
+    DamageEntity(AppState, World, Striker, WARD_ABSORB, Monster);
+    Check(AppState->Players[2].WardAbsorb == 0.f);
+    bool32 Shattered = false;
+    for(u32 Index = 0; Index < AppState->Events.Count; Index++)
+    {
+        sim_event *Event = &AppState->Events.Events[Index];
+        Shattered |= Event->Type == SimEvent_Burst && Event->Burst == SimBurst_WardBreak &&
+            Event->Slot == 2;
+    }
+    Check(Shattered);
     RemoveEntity(World, Monster);
 
     // NOTE(zoubir): a sanctuary at the healer's own feet, once its tree
