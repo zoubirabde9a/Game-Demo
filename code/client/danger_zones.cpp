@@ -78,11 +78,12 @@ DrawDangerDisc(render_context *RenderContext, world *World, v3 CameraOffset,
     EndBatch(RenderContext);
 }
 
-// NOTE(zoubir): a strip from From along Direction, Length long
+// NOTE(zoubir): a strip from From along Direction, Length long; Shape 255
+// is square ended, DangerSweepShape rounds the ends
 internal void
 DrawDangerLane(render_context *RenderContext, world *World, v3 CameraOffset,
                v2 From, v2 Direction, float Length, float Width,
-               float Progress, u32 Palette, float Strength)
+               float Progress, u32 Palette, float Strength, u32 Shape = 255)
 {
     float GroundZ = TerrainHeightAt(World, From.X, From.Y);
     v2 Middle = From + 0.5f * Length * Direction;
@@ -92,8 +93,32 @@ DrawDangerLane(render_context *RenderContext, world *World, v3 CameraOffset,
     RenderQuadTexture(RenderContext, Middle.X - 0.5f * Length - CameraOffset.X,
                       Middle.Y - GroundZ - 0.5f * Width - CameraOffset.Y,
                       Length, Width, V4(0.f, 1.f, 1.f, 0.f),
-                      DangerZoneColor(Progress, Palette, 255, Strength), 0.f, Angle);
+                      DangerZoneColor(Progress, Palette, Shape, Strength), 0.f, Angle);
     EndBatch(RenderContext);
+}
+
+// NOTE(zoubir): a lane with round ends Cap of its length across, as the
+// shader reads it back: 254 for the thinnest down to 219
+inline u32
+DangerSweepShape(float Cap)
+{
+    u32 Steps = (u32)Maximum(1.f, Minimum(36.f, Cap * 144.f + 0.5f));
+    u32 Result = 255 - Steps;
+    return Result;
+}
+
+// NOTE(zoubir): where a circle of Radius hits as its centre runs from
+// From along Direction for Length: 2 * Radius wide, round ends Radius
+// past each end of the run
+internal void
+DrawDangerSweep(render_context *RenderContext, world *World, v3 CameraOffset,
+                v2 From, v2 Direction, float Length, float Radius,
+                float Progress, u32 Palette, float Strength)
+{
+    float Total = Length + 2.f * Radius;
+    DrawDangerLane(RenderContext, World, CameraOffset, From - Radius * Direction, Direction,
+                   Total, 2.f * Radius, Progress, Palette, Strength,
+                   DangerSweepShape(Radius / Total));
 }
 
 // NOTE(zoubir): where one cast of an ability lands, as it was locked in
@@ -160,9 +185,11 @@ DrawDangerCast(render_context *RenderContext, world *World, v3 CameraOffset,
 
         case MonsterAbility_Charge:
         {
-            DrawDangerLane(RenderContext, World, CameraOffset, Cast->Self, Cast->Aim,
-                           Ability->Speed * Ability->Active, Ability->Radius,
-                           Progress, DANGER_PALETTE_HARM, Strength);
+            // NOTE(zoubir): the charger hits whoever comes within Radius
+            // of it as it runs (UpdateCharge)
+            DrawDangerSweep(RenderContext, World, CameraOffset, Cast->Self, Cast->Aim,
+                            Ability->Speed * Ability->Active, Ability->Radius,
+                            Progress, DANGER_PALETTE_HARM, Strength);
         } break;
 
         case MonsterAbility_Mortar:

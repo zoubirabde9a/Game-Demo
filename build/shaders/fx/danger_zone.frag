@@ -13,7 +13,10 @@
 //   from the rim toward the hole.
 //   colour b: shape, 0 a disc, 1 a lane, between 0.25 and 0.75 a ring
 //             whose hole is (b - 0.25) * 2 of its radius; past 0.8
-//             it is a wave and its middle is left clear
+//             it is a wave and its middle is left clear. Just under 1
+//             a lane with round ends, the path of a circle swept along
+//             it: (1 - b) * 255 / 144 of its length is the circle's
+//             radius, which is also half its width
 //   colour a: strength
 
 VARYING vec4 fragmentColor;
@@ -40,6 +43,8 @@ void main()
     float Progress = fragmentColor.r;
     vec3 Hue = Palette(fragmentColor.g);
     bool Lane = fragmentColor.b > 0.85;
+    // a round-ended lane's circle, as a share of the lane's length
+    float Cap = Lane ? (1.0 - fragmentColor.b) * 255.0 / 144.0 : 0.0;
     bool Ring = fragmentColor.b > 0.15 && !Lane;
     float Hole = Ring ? (fragmentColor.b - 0.25) * 2.0 : 0.0;
 
@@ -52,6 +57,13 @@ void main()
     {
         float Across = abs(fragmentUV.y * 2.0 - 1.0);
         Edge = max(Across, smoothstep(0.96, 1.0, fragmentUV.x));
+        if (Cap > 0.001)
+        {
+            // how far from the swept circle's path, in its radius
+            vec2 Off = vec2(fragmentUV.x - clamp(fragmentUV.x, Cap, 1.0 - Cap),
+                            (fragmentUV.y * 2.0 - 1.0) * Cap);
+            Edge = length(Off) / Cap;
+        }
         Along = fragmentUV.x;
         // chevrons pointing down the lane, running toward its end
         Stripes = fract(fragmentUV.x * 7.0 - Across * 0.6 - Time * 1.6);
