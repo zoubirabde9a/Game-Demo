@@ -230,3 +230,15 @@ SaveLocalSettings()
 internal void SaveOnlineConfig(char *Address, char *Name) {}
 internal void SaveLocalSettings() {}
 #endif
+
+// NOTE(zoubir): the hero look picked, from the Esc options
+// (ui/options_menu.cpp) or the dungeon's class panel
+// (ui/dungeon/dungeon_hud.cpp): drawn at once, saved, and sent to the
+// server in the next input (OnlineRoleRequest)
+internal void
+SetHeroLook(app_state *AppState, hero_look Look)
+{
+    AppState->HeroLook = Look;
+    GlobalHeroLook = Look;
+    SaveLocalSettings();
+}

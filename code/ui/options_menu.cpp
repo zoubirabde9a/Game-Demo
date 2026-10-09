@@ -227,9 +227,7 @@ DoOptionsMenu(render_context *RenderContext, app_state *AppState, app_input *Inp
                                      AppState->HeroLook == HeroLook_Classic ? 0 : 1);
     if (LookPick >= 0)
     {
-        AppState->HeroLook = LookPick ? HeroLook_New : HeroLook_Classic;
-        GlobalHeroLook = (hero_look)AppState->HeroLook;
-        SaveLocalSettings();
+        SetHeroLook(AppState, LookPick ? HeroLook_New : HeroLook_Classic);
     }
 
     char *WindowNames[] = {"Full screen", "Window"};

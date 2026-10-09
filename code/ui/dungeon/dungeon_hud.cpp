@@ -208,6 +208,48 @@ DoClassButton(render_context *RenderContext, app_state *AppState, app_input *Inp
     return Result;
 }
 
+// NOTE(zoubir): under the classes, "Look" and a button for each hero look,
+// the one picked outlined; the same setting as the Esc options' "Hero
+// look", which everyone in the run sees the player in. Returns its height
+internal float
+DoHeroLookRow(render_context *RenderContext, app_state *AppState, app_input *Input,
+              float CenterX, float Y)
+{
+    font *Body = AppState->Fonts.Body;
+    font *Small = AppState->Fonts.Small;
+    char *Names[HeroLook_Count] = {};
+    Names[HeroLook_Classic] = (char *)"Classic";
+    Names[HeroLook_New] = (char *)"New";
+    hero_look Order[] = {HeroLook_Classic, HeroLook_New};
+    float Label = UITextWidth(Small, "Look") + UI_GAP;
+    float Width = Label + 2.f * DUNGEON_ROLE_BUTTON_WIDTH + UI_GAP_SMALL;
+    float X = CenterX - 0.5f * Width;
+    UIText(RenderContext, Small, X, Y + 0.5f * (DUNGEON_ROLE_BUTTON_HEIGHT - UILineHeight(Small)),
+           "Look", UI_COLOR_TEXT_MUTED);
+    X += Label;
+    for(u32 Index = 0; Index < ArrayCount(Order); Index++)
+    {
+        hero_look Look = Order[Index];
+        bool32 Picked = GlobalHeroLook == Look;
+        if (OptionsButton(RenderContext, Input, X, Y, DUNGEON_ROLE_BUTTON_WIDTH,
+                          DUNGEON_ROLE_BUTTON_HEIGHT, Picked) && !Picked)
+        {
+            SetHeroLook(AppState, Look);
+        }
+        if (Picked)
+        {
+            DrawRoundOutline(RenderContext, X, Y, DUNGEON_ROLE_BUTTON_WIDTH, DUNGEON_ROLE_BUTTON_HEIGHT,
+                             UI_COLOR_TEXT);
+        }
+        UIText(RenderContext, Body, X + 0.5f * DUNGEON_ROLE_BUTTON_WIDTH,
+               Y + 0.5f * (DUNGEON_ROLE_BUTTON_HEIGHT - UILineHeight(Body)), Names[Look],
+               Picked ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED, UIAlign_Center);
+        X += DUNGEON_ROLE_BUTTON_WIDTH + UI_GAP_SMALL;
+    }
+    float Result = DUNGEON_ROLE_BUTTON_HEIGHT + UI_GAP_SMALL;
+    return Result;
+}
+
 // NOTE(zoubir): a column of class buttons under each role, and the
 // picked class's line
 internal void
@@ -244,7 +286,8 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
     float PlateWidth = Maximum(Width, UITextWidth(Small, Line)) + 2.f * UI_GAP;
     float ColumnsHeight = UILineHeight(Small) + UI_GAP_SMALL +
         Rows * DUNGEON_ROLE_BUTTON_HEIGHT + (Rows - 1) * UI_GAP_SMALL;
-    float PlateHeight = UILineHeight(Body) + ColumnsHeight + 2.f * UILineHeight(Small) +
+    float LookHeight = DUNGEON_ROLE_BUTTON_HEIGHT + UI_GAP_SMALL;
+    float PlateHeight = UILineHeight(Body) + ColumnsHeight + LookHeight + 2.f * UILineHeight(Small) +
         2.f * UI_GAP + 2.f * UI_GAP_SMALL;
     DrawUIPanel(RenderContext, CenterX - 0.5f * PlateWidth, Y, PlateWidth, PlateHeight);
     float LineY = Y + UI_GAP;
@@ -284,6 +327,7 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
         X += DUNGEON_ROLE_BUTTON_WIDTH + UI_GAP;
     }
     LineY += ColumnsHeight + UI_GAP_SMALL;
+    LineY += DoHeroLookRow(RenderContext, AppState, Input, CenterX, LineY);
     LineY += DungeonHudLine(RenderContext, Small, CenterX, LineY, Line, UI_COLOR_TEXT_MUTED);
     DungeonHudLine(RenderContext, Small, CenterX, LineY,
                    "Each class has its own talents: press N", UI_COLOR_TEXT_MUTED);
