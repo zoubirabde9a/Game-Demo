@@ -40,7 +40,7 @@ global_variable char *GameModeNames[GameMode_Count] = {"Duel", "Team duel", "Dun
 
 // NOTE(zoubir): dungeons are closed for now: their mode button is drawn
 // greyed out and asks for nothing. Set to 1 to open them again
-#define DUNGEONS_OPEN 0
+#define DUNGEONS_OPEN 1
 
 inline u32
 GameModeOf(u32 MapId, bool32 Teams)
