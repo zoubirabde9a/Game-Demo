@@ -15,6 +15,10 @@
 #define STORM_FX_SMOKE_RGB 0x00A0A4A8
 // NOTE(zoubir): how often a bolt picks new bends
 #define STORM_FX_FLICKER 0.05f
+// NOTE(zoubir): how far a Ball Lightning floats over its burst's spot
+// (its caster's chest), and how long it takes to pop (stormcaller/keep_fx.cpp)
+#define STORM_BALL_LIFT 14.f
+#define STORM_BALL_POP 0.25f
 
 // NOTE(zoubir): a seed that changes every STORM_FX_FLICKER from Clock
 inline u32
@@ -113,7 +117,8 @@ DrawStormcallerBoltBurst(render_context *RenderContext, app_state *AppState, rol
     v2 To = BurstToScreen(To3, CameraOffset);
     // NOTE(zoubir): the first bolt of a spell leaves from its caster's hand
     world_entity *Caster = Burst->Slot < MAX_PLAYERS ? AppState->Players[Burst->Slot].Entity : 0;
-    if (Caster && Kind != StormcallerBolt_Arc && Length(From3.XY - Caster->Position.XY) < 30.f)
+    if (Caster && Kind != StormcallerBolt_Arc && Kind != StormcallerBolt_Ball &&
+        Length(From3.XY - Caster->Position.XY) < 30.f)
     {
         From = RoleLookPoint(Caster, 0.5f, CameraOffset) + 10.f * NormalizeOr(To - From, V2(1.f, 0.f));
     }
@@ -128,6 +133,12 @@ DrawStormcallerBoltBurst(render_context *RenderContext, app_state *AppState, rol
         case StormcallerBolt_Chain: Width = 4.f; Glow = STORM_FX_BLUE_RGB; Forks = 3; break;
         case StormcallerBolt_Arc: Width = 2.f; Glow = STORM_FX_VIOLET_RGB; Forks = 1; break;
         case StormcallerBolt_Fizzle: Width = 2.f; Forks = 1; break;
+        case StormcallerBolt_Ball: Width = 2.f; Glow = STORM_FX_BLUE_RGB; Forks = 1; break;
+    }
+    if (Kind == StormcallerBolt_Ball)
+    {
+        // NOTE(zoubir): from the orb, which floats over the ball's spot
+        From += V2(0.f, -STORM_BALL_LIFT);
     }
     // NOTE(zoubir): bright at once, then flickering out
     float Flick = T < 0.3f ? 1.f : (BurstJitter(Seed, 5) < 0.6f ? Fade : 0.3f * Fade);

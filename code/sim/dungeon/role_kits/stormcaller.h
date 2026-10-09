@@ -76,6 +76,9 @@ struct stormcaller_ball
     float TickTimer;
     float Radius;
     float TickDamage;
+    // NOTE(zoubir): seconds until it is sent to clients again
+    // (STORMCALLER_KEEP_SECONDS)
+    float Keep;
     u8 By;
 };
 

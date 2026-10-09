@@ -14,8 +14,10 @@
    Field is a dome of arcs on the ground for as long as its ClassFlags bit
    is up, where its burst came down. Everything is read from the slot's
    ClassMeter and ClassFlags, its cast and its bursts, all of which reach
-   every client, so it looks the same online. The bolts and the bursts are
-   stormcaller/bolt_fx.cpp. */
+   every client, so it looks the same online. A Ball Lightning is an orb
+   rolling along the ground from its keep bursts, zapping foes with short
+   bolts. The bolts and the bursts are stormcaller/bolt_fx.cpp; the keeps
+   (a ball still there) stormcaller/keep_fx.cpp. */
 
 #include "stormcaller/bolt_fx.cpp"
 
@@ -32,6 +34,8 @@ struct stormcaller_field_look
 };
 
 global_variable stormcaller_field_look StormcallerFieldLooks[MAX_PLAYERS];
+
+#include "stormcaller/keep_fx.cpp"
 
 // NOTE(zoubir): seconds since the newest burst Index of the Stormcaller in
 // slot SlotIndex, 100 for none
@@ -295,7 +299,19 @@ DrawStormcallerBurst(render_context *RenderContext, app_state *AppState, role_bu
 
         case StormcallerBurst_Supercharged:
         {
-            DrawStormcallerSupercharged(RenderContext, Burst, T, CameraOffset);
+            u32 Variant = StormcallerBurstVariant(Burst->Position);
+            switch(StormcallerKeepKind(Variant))
+            {
+                case StormcallerKeep_Supercharged:
+                {
+                    DrawStormcallerSupercharged(RenderContext, Burst, T, CameraOffset);
+                } break;
+
+                case StormcallerKeep_Ball:
+                {
+                    NoteStormcallerBall(AppState, Burst, Variant);
+                } break;
+            }
         } break;
 
         case StormcallerBurst_Empty:
@@ -344,11 +360,12 @@ DrawStormcallerDome(render_context *RenderContext, v2 Centre, float Radius, floa
 }
 
 // NOTE(zoubir): every frame in a run, over the world: each Stormcaller's
-// Static Field, for as long as its flag is up
+// Static Field, for as long as its flag is up, and each Ball Lightning
 internal void
 DrawStormcallerFx(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
 {
     float Clock = GetFxClock(AppState);
+    DrawStormcallerBalls(RenderContext, AppState, Clock, CameraOffset);
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];

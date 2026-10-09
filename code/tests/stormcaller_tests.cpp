@@ -373,6 +373,7 @@ TestThunderclap()
 }
 
 #include "stormcaller/storm_tests.cpp"
+#include "stormcaller/keep_tests.cpp"
 
 // NOTE(zoubir): Ball Lightning rolls along the aim, zaps the foe it
 // passes and gives Charge for it, and leaves one off its way alone
@@ -413,4 +414,5 @@ RunStormcallerTests()
     TestTempestPoolTalents();
     TestChargeDrains();
     TestPredictedStormcaller();
+    TestStormcallerKeeps();
 }

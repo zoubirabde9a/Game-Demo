@@ -30,8 +30,9 @@
    takes the cost away and makes the nova bigger. The skill is to ride
    the top band and vent with Thunderclap before it caps.
 
-   The right click does nothing for it (the game's default), so with the
-   tree it has five damage keys and a dash, as the striker does.
+   The right click is Ball Lightning when the Conduction branch gives it
+   (stormcaller/ball.cpp): a slow ball rolling along the aim that zaps
+   what it passes.
 
    Lightning lands at once, so the hits are dealt as the spell goes off;
    clients draw each bolt from a burst (StormcallerBurst_Bolt) that
@@ -49,18 +50,35 @@ enum stormcaller_burst
     StormcallerBurst_SkyBolt,      // a small bolt from the sky (Eye of the Storm, Stormbringer)
     StormcallerBurst_Overload,     // the nova round Position; variant its radius
     StormcallerBurst_Dash,         // Lightning Dash from Position along Angle; variant its length
-    StormcallerBurst_Supercharged, // Charge reaching STORM_SUPERCHARGED on the Stormcaller at Position
+    StormcallerBurst_Supercharged, // Charge reaching STORM_SUPERCHARGED on the Stormcaller at Position;
+                                   // another variant is a keep (StormcallerKeepVariant)
     StormcallerBurst_Empty,        // Thunderclap pressed short of Charge, on the Stormcaller at Position
 };
 
-// NOTE(zoubir): a bolt burst's look, the low two bits of its variant
+// NOTE(zoubir): a bolt burst's look, the low three bits of its variant
 enum stormcaller_bolt_kind
 {
     StormcallerBolt_Spark,
     StormcallerBolt_Chain,
     StormcallerBolt_Arc,
     StormcallerBolt_Fizzle,
+    StormcallerBolt_Ball,   // a Ball Lightning's zap, from the ball to the foe
 };
+
+// NOTE(zoubir): what a Supercharged burst with a variant other than 0
+// says, the low two bits of it: a Static Field or a Ball Lightning still
+// there (sent again every STORMCALLER_KEEP_SECONDS while it lasts, so a
+// client that came near after it went down draws it too), or Capacitor
+// handing Charge back
+enum stormcaller_keep_kind
+{
+    StormcallerKeep_Supercharged,
+    StormcallerKeep_Field,
+    StormcallerKeep_Ball,
+    StormcallerKeep_Capacitor,
+};
+
+#define STORMCALLER_KEEP_SECONDS 1.f
 
 // NOTE(zoubir): a burst carries a small number too (a bolt's kind and
 // length, a circle's radius, a dash's length), as whole steps of
@@ -101,22 +119,64 @@ StormcallerBurstPlace(v3 Position)
 inline u32
 StormcallerBoltVariant(u32 Kind, float Length)
 {
-    u32 Result = (Kind & 3) | ((u32)(Length / STORMCALLER_BOLT_UNIT + 0.5f) << 2);
+    u32 Result = (Kind & 7) | ((u32)(Length / STORMCALLER_BOLT_UNIT + 0.5f) << 3);
     return Result;
 }
 
 inline u32
 StormcallerBoltKind(u32 Variant)
 {
-    u32 Result = Variant & 3;
+    u32 Result = Variant & 7;
     return Result;
 }
 
 inline float
 StormcallerBoltLength(u32 Variant)
 {
-    float Result = STORMCALLER_BOLT_UNIT * (float)(Variant >> 2);
+    float Result = STORMCALLER_BOLT_UNIT * (float)(Variant >> 3);
     return Result;
+}
+
+// NOTE(zoubir): a keep's variant: its kind, the seconds it has left in
+// tenths (up to 6.3) and its radius in steps of 4
+inline u32
+StormcallerKeepVariant(u32 Kind, float Seconds, float Radius)
+{
+    u32 Tenths = (u32)Minimum(63.f, Maximum(0.f, 10.f * Seconds + 0.5f));
+    u32 Steps = (u32)Minimum(127.f, Maximum(0.f, 0.25f * Radius + 0.5f));
+    u32 Result = (Kind & 3) | (Tenths << 2) | (Steps << 8);
+    return Result;
+}
+
+inline u32
+StormcallerKeepKind(u32 Variant)
+{
+    u32 Result = Variant & 3;
+    return Result;
+}
+
+inline float
+StormcallerKeepSeconds(u32 Variant)
+{
+    float Result = 0.1f * (float)((Variant >> 2) & 63);
+    return Result;
+}
+
+inline float
+StormcallerKeepRadius(u32 Variant)
+{
+    float Result = 4.f * (float)(Variant >> 8);
+    return Result;
+}
+
+// NOTE(zoubir): a keep burst of Kind at Position for the Stormcaller in
+// slot By
+inline void
+EmitStormcallerKeep(app_state *AppState, u32 By, v3 Position, u32 Kind, float Seconds, float Radius,
+                    float Angle = 0.f)
+{
+    EmitBurst(&AppState->Events, ClassBurst(SimBurst_StormcallerFirst, StormcallerBurst_Supercharged),
+              (u8)By, StormcallerBurstSpot(Position, StormcallerKeepVariant(Kind, Seconds, Radius)), Angle);
 }
 
 #include "stormcaller/charge.cpp"
