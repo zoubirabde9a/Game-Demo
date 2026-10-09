@@ -94,42 +94,41 @@ struct role_spell
     char *Cost;
 };
 
-// NOTE(zoubir): a class casts four spells at most (docs/class-trees.md),
-// where it once cast six or seven, so each hits harder than it did: the
-// balance probe found the party a crypt room took twice as long with
-// four, and the same with every spell back; Dealt rose by about what
-// each class lost
+// NOTE(zoubir): Dealt was raised while a class cast four spells and its
+// attack counted among them, then brought back near where it started
+// once attacks were free and the caps rose (docs/class-trees.md): the
+// balance probe found parties a quarter faster than before the reshape
 global_variable role_def RoleTable[PlayerRole_Count] =
 {
     // Name          MaxHp  Taken  Dealt  Threat
-    {"Fire Mage",    110.f, 1.0f,  1.7f,  1.f, "Ranged",
+    {"Fire Mage",    110.f, 1.0f,  1.4f,  1.f, "Ranged",
      "Fireballs and the Giant Fireball leave a burn that explodes when it runs out",
      RoleKind_Ranged, {240, 120, 60}},
-    {"Bulwark",      240.f, 0.7f,  1.1f,  4.f, "Tank",
+    {"Bulwark",      240.f, 0.7f,  0.8f,  4.f, "Tank",
      "Shield Bash and Shield Slam hold foes on you; Shield Slam sunders them",
      RoleKind_Tank, {96, 160, 245}},
-    {"Mender",       100.f, 1.0f,  0.7f,  1.f, "Healer",
+    {"Mender",       100.f, 1.0f,  0.55f, 1.f, "Healer",
      "Mending Bolt heals, Ward shields and adds 12% damage",
      RoleKind_Healer, {120, 220, 140}},
-    {"Ranger",       110.f, 1.0f,  1.55f, 0.7f, "Ranged",
+    {"Ranger",       110.f, 1.0f,  1.35f, 0.7f, "Ranged",
      "A bow: Quick Shot marks a foe and builds Focus, Piercing Shot spends it",
      RoleKind_Ranged, {90, 210, 170}},
-    {"Berserker",    140.f, 0.85f, 1.55f, 0.7f, "Melee",
+    {"Berserker",    140.f, 0.85f, 1.35f, 0.7f, "Melee",
      "A great axe: hits build Rage, Rage feeds the big swings",
      RoleKind_Melee, {225, 50, 50}},
-    {"Shadowblade",  130.f, 0.85f, 1.55f, 1.f, "Melee",
+    {"Shadowblade",  130.f, 0.85f, 1.35f, 1.f, "Melee",
      "Twin daggers: quick cuts build combo points, finishers spend them",
      RoleKind_Melee, {170, 110, 255}},
-    {"Stormcaller",  105.f, 1.0f,  1.55f, 0.85f, "Ranged",
+    {"Stormcaller",  105.f, 1.0f,  1.35f, 0.85f, "Ranged",
      "Lightning that leaps foe to foe; Charge makes it stronger until it overloads",
      RoleKind_Ranged, {250, 220, 80}},
-    {"Duelist",      125.f, 0.85f, 1.55f, 1.f, "Melee",
+    {"Duelist",      125.f, 0.85f, 1.35f, 1.f, "Melee",
      "A rapier: weave your strikes to build Tempo, parry to keep it",
      RoleKind_Melee, {240, 110, 170}},
-    {"Frost Mage",   110.f, 1.0f,  1.55f, 0.7f, "Ranged",
+    {"Frost Mage",   110.f, 1.0f,  1.35f, 0.7f, "Ranged",
      "Ice that slows and freezes; frozen foes shatter under your spells",
      RoleKind_Ranged, {150, 215, 255}},
-    {"Druid",        115.f, 1.0f,  1.1f,  0.7f, "Healer",
+    {"Druid",        115.f, 1.0f,  1.0f,  0.7f, "Healer",
      "Half healer, half caster: Wrath grows Bloom, and Bloom makes Regrowth bigger",
      RoleKind_Healer, {165, 200, 60}},
 };
