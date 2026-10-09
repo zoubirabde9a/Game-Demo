@@ -298,7 +298,7 @@ TestRoleTalents()
 }
 
 // NOTE(zoubir): each player past the first makes the fight harder, the
-// health growing 1.6 times a player until it equals the head count; the
+// health growing 1.6 times a player up to four, then 1.75 a player; the
 // tank takes only the root of the extra damage,
 // heals grow by that root
 internal void
@@ -308,12 +308,12 @@ TestPartyScalesExponentially()
     for(u32 Players = 2; Players < MAX_PLAYERS; Players++)
     {
         Check(PartyHealthScale(Players + 1) > PartyHealthScale(Players));
-        Check(PartyHealthScale(Players) <= (float)Players);
         Check(PartyDamageScale(Players + 1) > PartyDamageScale(Players));
     }
     Check(PartyHealthScale(2) > 1.59f && PartyHealthScale(2) < 1.61f);
     Check(PartyHealthScale(3) > 2.55f && PartyHealthScale(3) < 2.57f);
-    Check(PartyHealthScale(6) == 6.f && PartyHealthScale(8) == 8.f);
+    Check(PartyHealthScale(4) == 4.f && PartyHealthScale(6) == 7.5f &&
+          PartyHealthScale(8) == 11.f);
     // NOTE(zoubir): the full growth up to three, a gentler one past it
     Check(PartyDamageScale(3) > 1.254f && PartyDamageScale(3) < 1.255f);
     Check(PartyDamageScale(8) > 1.67f && PartyDamageScale(8) < 1.69f);
