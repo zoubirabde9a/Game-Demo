@@ -55,5 +55,25 @@ enum monster_ability_kind
     // time, hitting each player for Damage as its edge crosses them. A
     // jump does not clear it; a pillar between it and you does
     MonsterAbility_Beam,
+    // NOTE(zoubir): a gravity well opens Spread toward the target (0: at
+    // the monster's feet) and drags every player within Radius toward it
+    // at Speed (an acceleration) through the Active time, then collapses,
+    // hitting everyone within InnerRadius of it. A jump does not help;
+    // running against it, a dash or a blink does
+    // (monster_abilities/wells_brands_mirrors.cpp)
+    MonsterAbility_Pull,
+    // NOTE(zoubir): brands the player within MaxRange farthest from the
+    // monster; the brand follows them through the windup, then bursts on
+    // them and every other player within Radius of them
+    MonsterAbility_Brand,
+    // NOTE(zoubir): a mirror held up through the Active time: hits on the
+    // monster do nothing, and Spread of each one, at most Damage, is
+    // turned back on whoever struck. Radius is the size drawn. Only in a
+    // dungeon run (DungeonScaleDamage)
+    MonsterAbility_Reflect,
+    // NOTE(zoubir): Count circles of light of Radius, up to Spread from the
+    // monster; when the windup ends every player outside all of them is
+    // hit, past any dodge or jump
+    MonsterAbility_Eclipse,
     MonsterAbility_Count
 };

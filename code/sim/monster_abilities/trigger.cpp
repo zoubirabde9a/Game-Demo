@@ -172,6 +172,16 @@ TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
             SmitePlayer(AppState, World, Entity, Victim, Ability);
         } break;
 
+        case MonsterAbility_Brand:
+        {
+            BurstBrand(AppState, World, Entity, Ability);
+        } break;
+
+        case MonsterAbility_Eclipse:
+        {
+            FallDark(AppState, World, Entity, Ability);
+        } break;
+
         case MonsterAbility_Mend:
         {
             world_entity *Ally = FindMonsterBySerial(World, Entity->AbilityTargetSlot,

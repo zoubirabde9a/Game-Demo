@@ -62,7 +62,8 @@ BotRandom(bot_brain *Bot)
 }
 
 // NOTE(zoubir): the nearest living player (not itself) or monster within
-// BOT_SIGHT, or 0; a boss behind its pylons is left to the tank
+// BOT_SIGHT, or 0; a boss behind its pylons is left to the tank, and a
+// monster behind a mirror to nobody
 internal world_entity *
 BotFindTarget(app_state *AppState, world_entity *Self)
 {
@@ -79,6 +80,8 @@ BotFindTarget(app_state *AppState, world_entity *Self)
         if (IsDeadPlayer(Other)) continue;
         if (Other->Type == EntityType_Monster && IsWardedBoss(AppState, Other) &&
             AppState->Players[Self->PlayerIndex].Role != PlayerRole_Tank) continue;
+        // NOTE(zoubir): nobody hits a mirror, or one about to rise
+        if (Other->Type == EntityType_Monster && IsRaisingMirror(Other)) continue;
         float DistanceSq = LengthSq(Other->Position.XY - Self->Position.XY);
         if (DistanceSq < BestSq)
         {
@@ -451,6 +454,7 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     {
         Held = DodgeDangers(AppState, Self, Held);
         Held = DodgeRiftDangers(AppState, Self, Held);
+        Held = DodgeStarlessDangers(AppState, Self, Held);
         Held = SteerAroundHazards(AppState, Self, Held, Target);
     }
     // A press needs the button up the tick before; drop repeats.

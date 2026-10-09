@@ -17,6 +17,7 @@ DrawTalentFx(RenderContext, AppState, CameraOffset); // frost on slowed and froz
 DrawDungeonFx(RenderContext, AppState, CameraOffset); // dungeon gates, sanctuaries, shield wall, wards and revives, client/dungeon/dungeon_fx.cpp
 DrawBossTethers(RenderContext, AppState, CameraOffset); // motes from each add a boss calls back to the boss, client/dungeon/boss_tethers.cpp
 DrawRiftFx(RenderContext, AppState, CameraOffset); // the Aurora Rift's frost waves, beams and pylon wards, client/dungeon/rift_fx.cpp
+DrawStarlessFx(RenderContext, AppState, CameraOffset); // the Starless Deep's gravity wells, void brands, mirrors and eclipse lights, client/dungeon/starless_fx.cpp
 DrawRewindFx(RenderContext, AppState, CameraOffset); // time rewinds' sigils, ghosts and flashes, client/rewind_fx/
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);
 DrawCursorTarget(RenderContext, AppState, CameraOffset); // brackets on the unit the cursor is on, client/targeting.cpp

@@ -191,6 +191,27 @@ StartMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
             StartBeam(AppState, Entity, Ability);
         } break;
 
+        case MonsterAbility_Pull:
+        {
+            StartPull(Entity, Ability, Target);
+        } break;
+
+        case MonsterAbility_Brand:
+        {
+            if (!StartBrand(World, Entity, Ability))
+            {
+                return false;
+            }
+        } break;
+
+        case MonsterAbility_Eclipse:
+        {
+            if (!StartEclipse(AppState, World, Entity, Ability))
+            {
+                return false;
+            }
+        } break;
+
         case MonsterAbility_Mend:
         {
             world_entity *Ally = FindMendTarget(World, Entity, Ability->Radius);

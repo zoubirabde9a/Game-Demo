@@ -278,6 +278,7 @@ DungeonAttackerSlot(app_state *AppState, world_entity *Source)
 
 #include "meter.cpp"
 #include "boss_wards.cpp"
+#include "mirror_guard.cpp"
 
 // NOTE(zoubir): from DamageEntity and ApplyHit: in a dungeon run a player
 // never hurts, shoves or stuns another; outside one this is never true
@@ -354,6 +355,12 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         {
             WardDeflects(AppState, Target);
         }
+        return 0.f;
+    }
+    // NOTE(zoubir): a raised mirror takes nothing and turns the blow back
+    // on its striker (mirror_guard.cpp)
+    if (Attacker && MirrorTurnsBack(AppState, Target, Attacker->Entity, Result))
+    {
         return 0.f;
     }
     if (Attacker && Target->Type == EntityType_Monster)

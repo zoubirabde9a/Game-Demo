@@ -4,6 +4,7 @@
 
 #include "bot_dangers.cpp"
 #include "bot_rift_dangers.cpp"
+#include "bot_starless_dangers.cpp"
 #include "ranger.cpp"
 #include "berserker.cpp"
 #include "shadowblade.cpp"

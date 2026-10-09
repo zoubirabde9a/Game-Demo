@@ -19,6 +19,7 @@
      shots_and_hazards.cpp  shots, volleys and ground hazards
      trigger.cpp            what each kind does when the windup ends
      waves_beams_shards.cpp frost waves to jump, sweeping beams, shatter
+     wells_brands_mirrors.cpp gravity wells, void brands, mirrors, eclipses
      movement.cpp           burrow, charge, slow turning
      armor.cpp              front shells
      phases.cpp             enrage phases */
@@ -35,6 +36,7 @@
 #include "monster_abilities/hits.cpp"
 #include "monster_abilities/helpers.cpp"
 #include "monster_abilities/waves_beams_shards.cpp"
+#include "monster_abilities/wells_brands_mirrors.cpp"
 #include "monster_abilities/start.cpp"
 #include "monster_abilities/shots_and_hazards.cpp"
 #include "monster_abilities/trigger.cpp"
@@ -143,6 +145,10 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
             {
                 TrackSmiteVictim(AppState, World, Entity, Ability);
             }
+            if (Ability->Kind == MonsterAbility_Brand)
+            {
+                TrackBrandVictim(World, Entity);
+            }
             if (Entity->AbilityTimer <= 0.f)
             {
                 TriggerMonsterAbility(AppState, World, Arena, Entity, Ability);
@@ -173,6 +179,10 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
             {
                 UpdateBeam(AppState, World, Entity, Ability, DeltaTime);
             }
+            if (Ability->Kind == MonsterAbility_Pull)
+            {
+                UpdatePull(World, Entity, Ability, DeltaTime);
+            }
             if (Ability->Kind == MonsterAbility_Burrow)
             {
                 *AnimationType = AnimationType_JumpDown;
@@ -184,6 +194,10 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
                 if (Ability->Kind == MonsterAbility_Burrow)
                 {
                     EruptFromBurrow(AppState, World, Arena, Entity, Ability);
+                }
+                if (Ability->Kind == MonsterAbility_Pull)
+                {
+                    CollapseWell(AppState, World, Entity, Ability);
                 }
                 SetMonsterPhase(Entity, AbilityPhase_Recover, Ability->Recover);
                 Charging = false;
