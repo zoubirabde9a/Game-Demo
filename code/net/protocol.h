@@ -171,7 +171,7 @@ struct net_entity_state
     u8 Flash;      // 1 bit: a monster's enrage burst is playing
     u8 Variant;    // which look within the type: monster kind (also for
                    // hazards), shot style, player slot
-    u8 Affix;      // 3 bits: elite affix of a monster, shot or hazard
+    u8 Affix;      // 3 bits: elite affix of a monster, shot or hazard; a player's last swing kind
     u16 Status;    // 11 bits: bit N set while status effect N + 1 is active
     u8 Ability;    // 2 bits: AbilityIndex of a monster shot or hazard;
                    // for a player, PLAYER_FLASH_* bits (sim/player.h)

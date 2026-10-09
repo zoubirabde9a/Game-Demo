@@ -35,7 +35,16 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
     {
         Replica->AnimationType = (animation_type)State->Animation;
     }
-    Replica->EliteAffix = State->Affix;
+    // NOTE(zoubir): a player's Affix is the kind of its last swing
+    // (pack.cpp), drawn by the new hero look; players have no affix
+    if (Replica->Type == EntityType_Player)
+    {
+        Replica->SwingLook = State->Affix;
+    }
+    else
+    {
+        Replica->EliteAffix = State->Affix;
+    }
     Replica->AbilityIndex = State->Ability;
     // NOTE(zoubir): status pips blink under 1 s left; the client does not
     // know the real time left, so active effects read as 1.5 s

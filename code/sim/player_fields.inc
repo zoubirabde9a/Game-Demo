@@ -52,6 +52,10 @@
     // entity carries the step it was swung with in ComboStep too
     u32 ComboStep;
     float ComboTimer;
+    // NOTE(zoubir): the player_swing of the last cut swung (sword.cpp
+    // SwingSwordCut), for drawing only; ComboStep is not it, a thrust
+    // counts as the chain's first cut
+    u32 SwingLook;
     // NOTE(zoubir): an area ability's row + 1 that fires when the player
     // lands (a slam), 0 for none
     u32 PendingLandArea;

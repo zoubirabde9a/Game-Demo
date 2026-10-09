@@ -100,6 +100,17 @@ SwordHit(app_state *AppState, world *World, world_entity *Sword,
     ApplyHit(AppState, World, Target, &Hit, Away, Sword, Sword->OwnerSlot);
 }
 
+// NOTE(zoubir): how the new hero look draws a cut (player_swing)
+inline u32
+SwordCutSwing(u32 Cut)
+{
+    u32 Result = Cut == SwordCut_Second ? PlayerSwing_Backhand :
+        Cut == SwordCut_Finisher ? PlayerSwing_Heavy :
+        (Cut == SwordCut_Lunge || Cut == SwordCut_Skewer) ? PlayerSwing_Thrust :
+        PlayerSwing_Cut;
+    return Result;
+}
+
 // NOTE(zoubir): a sword of cut Cut toward Dir, without touching the chain
 internal world_entity *
 SwingSwordCut(app_state *AppState, world *World, memory_arena *Arena,
@@ -111,6 +122,7 @@ SwingSwordCut(app_state *AppState, world *World, memory_arena *Arena,
                                    Player, DominantFacing(Dir));
     Sword->CastingDirection = Dir;
     Sword->ComboStep = Cut;
+    Player->SwingLook = SwordCutSwing(Cut);
     Sword->SwordReach = SwordCuts[Cut].Reach;
     Sword->SwordHalfAngle = SwordCuts[Cut].HalfAngle;
     // NOTE(zoubir): a combo's cut has none; the combo draws its own

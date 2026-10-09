@@ -13,6 +13,17 @@
 // NOTE(zoubir): the same, while a respawned player is shielded
 #define PLAYER_FLASH_SHIELD 2
 #define PLAYER_SPAWN_SHIELD_SECONDS 1.5f
+// NOTE(zoubir): the kind of a player's last sword swing, which the new
+// hero look draws with its own frames (client/heroes/hero_looks.cpp). It
+// goes to clients in a player's snapshot Affix, which players do not use
+enum player_swing
+{
+    PlayerSwing_Cut,
+    PlayerSwing_Backhand,
+    PlayerSwing_Heavy,
+    PlayerSwing_Thrust,
+    PlayerSwing_Count
+};
 // NOTE(zoubir): how fast and far the player moves against the numbers the
 // moves were first tuned at: run speed, dash, blink, long jump and the
 // speed checks that follow them are written as old number times this. At
