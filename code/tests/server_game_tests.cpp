@@ -167,6 +167,48 @@ TestSoundsReachPlayersNearby()
     GameShutdown(&Game);
 }
 
+// More bursts in one tick than a snapshot holds: the rest go in the next
+// snapshots, once each, unless they wait past RELAY_BURST_WAIT ticks.
+internal void
+TestBurstsPastTheCapWait()
+{
+    // NOTE(zoubir): the kind byte's top bit says a number follows
+    // (net/protocol/bursts.cpp), so the kinds must stay under it
+    Check(SimBurst_Count <= NET_BURST_NUMBER);
+    static event_relay Relay;
+    Relay = {};
+    static sim_events Events;
+    Events = {};
+    u32 Many = NET_MAX_SNAPSHOT_BURSTS + 4;
+    for (u32 Index = 0; Index < Many; ++Index)
+    {
+        EmitBurst(&Events, SimBurst_Impact, 0, V3((float)Index, 0.f, 0.f));
+    }
+    RelayKeep(&Relay, &Events);
+    static net_snapshot Out;
+    Out = {};
+    RelayWrite(&Relay, 0, true, V2(0.f, 0.f), &Out);
+    Check(Out.BurstCount == NET_MAX_SNAPSHOT_BURSTS);
+    Check(Out.Bursts[0].X == 0.f);
+    Out = {};
+    RelayWrite(&Relay, 0, true, V2(0.f, 0.f), &Out);
+    Check(Out.BurstCount == 4 && Out.Bursts[0].X == (float)NET_MAX_SNAPSHOT_BURSTS);
+    Out = {};
+    RelayWrite(&Relay, 0, true, V2(0.f, 0.f), &Out);
+    Check(Out.BurstCount == 0);
+
+    // Too old to be worth drawing: dropped, not held for ever.
+    RelayKeep(&Relay, &Events);
+    Events.Count = 0;
+    for (u32 Tick = 0; Tick < RELAY_BURST_WAIT; ++Tick) RelayKeep(&Relay, &Events);
+    Out = {};
+    RelayWrite(&Relay, 0, true, V2(0.f, 0.f), &Out);
+    Check(Out.BurstCount == NET_MAX_SNAPSHOT_BURSTS);
+    Out = {};
+    RelayWrite(&Relay, 0, true, V2(0.f, 0.f), &Out);
+    Check(Out.BurstCount == 0);
+}
+
 // A player's death reaches every player's snapshot once, near or far.
 internal void
 TestKillsReachEveryone()
@@ -402,6 +444,7 @@ RunServerGameTests()
     TestSnapshotPrefersWhatIsNear();
     TestSoundsReachPlayersNearby();
     TestKillsReachEveryone();
+    TestBurstsPastTheCapWait();
     TestArmoredMonstersSendFacing();
     TestSameNamesAreToldApart();
     TestSnapshotCarriesMonsterWindup();

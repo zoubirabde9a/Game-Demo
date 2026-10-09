@@ -5,7 +5,9 @@
    ring; each snapshot then carries, for its player, the events it has not
    been sent yet: every death, and the sounds and bursts within
    RELAY_HEARING_DISTANCE of it. A lost snapshot loses its events; they are
-   cosmetic and not resent. */
+   cosmetic and not resent. Bursts past the NET_MAX_SNAPSHOT_BURSTS a
+   snapshot holds wait for the next one, up to RELAY_BURST_WAIT ticks old,
+   so a Chain Lightning through a pack or a Starfall shows every strike. */
 
 // Sounds farther than this from a player are not sent to it (about a
 // screen and a half).
@@ -13,10 +15,16 @@
 // Events kept for the snapshots; at 20 snapshots a second this is several
 // snapshots' worth even in a busy fight.
 #define RELAY_SIZE 64
+// A burst that did not fit its snapshot goes in a later one while it is
+// at most this many ticks old (0.2 s), then is dropped.
+#define RELAY_BURST_WAIT 12
 
 struct relay_entry
 {
     u32 Tick; // RelayKeep call that kept it; 0 = empty
+    // NOTE(zoubir): bit N set once slot N has been sent it, or passed it
+    // by; what SentTick leaves open is sent unless this says otherwise
+    u8 SentTo;
     sim_event Event;
 };
 
@@ -40,6 +48,7 @@ RelayKeep(event_relay *Relay, sim_events *Events)
         if (Event->Type == SimEvent_Sound && (u32)Event->Sound > 255) continue;
         relay_entry *Entry = &Relay->Entries[Relay->Cursor++ % RELAY_SIZE];
         Entry->Tick = Relay->Tick;
+        Entry->SentTo = 0;
         Entry->Event = *Event;
     }
 }
@@ -60,10 +69,15 @@ RelayWrite(event_relay *Relay, u32 Slot, bool32 HasCenter, v2 Center,
     Out->SoundCount = 0;
     Out->KillCount = 0;
     Out->BurstCount = 0;
+    u8 Bit = (u8)(1u << Slot);
+    // NOTE(zoubir): the tick of the first burst held for the next
+    // snapshot, 0 for none
+    u32 Held = 0;
     for (u32 Age = RELAY_SIZE; Age > 0; --Age)
     {
         relay_entry *Entry = &Relay->Entries[(Relay->Cursor + RELAY_SIZE - Age) % RELAY_SIZE];
-        if (Entry->Tick == 0 || Entry->Tick <= Relay->SentTick[Slot]) continue;
+        if (Entry->Tick == 0 || Entry->Tick <= Relay->SentTick[Slot] || (Entry->SentTo & Bit)) continue;
+        Entry->SentTo |= Bit;
         sim_event *Event = &Entry->Event;
         bool32 Heard = !HasCenter || LengthSq(Event->Position.XY - Center) <=
             Square(RELAY_HEARING_DISTANCE);
@@ -87,6 +101,13 @@ RelayWrite(event_relay *Relay, u32 Slot, bool32 HasCenter, v2 Center,
         }
         else if (Event->Type == SimEvent_Burst)
         {
+            if (Heard && Out->BurstCount == NET_MAX_SNAPSHOT_BURSTS &&
+                Relay->Tick - Entry->Tick < RELAY_BURST_WAIT)
+            {
+                if (!Held) Held = Entry->Tick;
+                Entry->SentTo &= (u8)~Bit;
+                continue;
+            }
             if (Heard && Out->BurstCount < NET_MAX_SNAPSHOT_BURSTS)
             {
                 net_burst *Burst = &Out->Bursts[Out->BurstCount++];
@@ -99,5 +120,5 @@ RelayWrite(event_relay *Relay, u32 Slot, bool32 HasCenter, v2 Center,
             }
         }
     }
-    Relay->SentTick[Slot] = Relay->Tick;
+    Relay->SentTick[Slot] = Held ? Held - 1 : Relay->Tick;
 }
