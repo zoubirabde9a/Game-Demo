@@ -11,10 +11,9 @@
    Beams        through the windup a thin line shows where the beam
                 starts and a dotted arc the way it will sweep; then the
                 beam burns along the floor out to the first pillar, a
-                fading trail behind it. With the boss beam shader the
-                line and the beam are drawn on the floor instead
-                (dungeon/boss_fx/boss_ground_fx.cpp) and only the arc is
-                drawn here.
+                fading trail behind it. With the boss beam shader all of
+                it is drawn on the floor instead, the arc as a fan over
+                the whole sweep (dungeon/boss_fx/boss_ground_fx.cpp).
    Pylon wards  a boss with an Aurora Pylon standing wears a shell of
                 light, and a stream of light runs from each pylon into it
                 (sim/dungeon/boss_wards.cpp).
@@ -165,6 +164,11 @@ DrawBeamFx(render_context *RenderContext, world *World, world_entity *Monster,
         {
             DrawBeamLine(RenderContext, World, From, Monster->AbilityAim, Ability, CameraOffset,
                          2.f, Flash ? RIFT_BEAM_CORE : WithAlpha(RIFT_BEAM_GREEN, 0.4f + 0.5f * Progress), 7.f);
+        }
+        // NOTE(zoubir): with the shader the fan on the floor shows the arc
+        if (Shaded)
+        {
+            return;
         }
         // NOTE(zoubir): the arc it will sweep, filling the way it turns
         u32 Dots = 24;

@@ -6,6 +6,7 @@
                     in one of the BossGround_* looks
    DrawBossBeam     a beam of light along the floor, or up into the sky
                     (boss_beam.frag)
+   DrawBossFanRay   one soft ray of the fan a beam will sweep
    DrawBossShock    the shockwave of a blow landing (boss_shock.frag)
 
    Every one is skipped when its shader did not build, so the dotted
@@ -107,22 +108,39 @@ DrawBossShell(render_context *RenderContext, v2 Centre, float Radius, boss_groun
 }
 
 // NOTE(zoubir): a beam from From, Length along Direction, Width across;
-// Live false draws the thin warning line
+// Live false draws the thin warning line. Edge above 0 draws hard lines
+// that far out from the middle, as a share of half of Width
 internal void
 DrawBossBeam(render_context *RenderContext, world *World, v3 CameraOffset, v2 From,
              v2 Direction, float Length, float Width, bool32 Live, float Palette,
-             float Strength)
+             float Strength, float Edge = 0.f)
 {
     if (!BossFxReady(RenderContext, Shader_BossBeam) || Length <= 0.f)
     {
         return;
     }
     v2 Middle = From + 0.5f * Length * Direction;
-    u32 Color = BossFxColor(Strength, Live ? 1.f : 0.f, Palette, 1.f);
+    float Look = !Live ? 0.f : Edge > 0.f ? 0.8f + 0.19f * Clamp01(Edge) : 1.f;
+    u32 Color = BossFxColor(Strength, Look, Palette, 1.f);
     // NOTE(zoubir): two whole steps over the cracks and the danger zones,
     // over the boss marks too, so the light is on top of them
     DrawBossQuad(RenderContext, World, CameraOffset, Shader_BossBeam, RenderBlend_Additive,
                  Middle, Length, Width, ATan2(Direction.Y, Direction.X), Color, 2.f);
+}
+
+// NOTE(zoubir): one soft ray of a fan of them, From along Direction
+internal void
+DrawBossFanRay(render_context *RenderContext, world *World, v3 CameraOffset, v2 From,
+               v2 Direction, float Length, float Width, float Palette, float Strength)
+{
+    if (!BossFxReady(RenderContext, Shader_BossBeam) || Length <= 0.f)
+    {
+        return;
+    }
+    v2 Middle = From + 0.5f * Length * Direction;
+    DrawBossQuad(RenderContext, World, CameraOffset, Shader_BossBeam, RenderBlend_Additive,
+                 Middle, Length, Width, ATan2(Direction.Y, Direction.X),
+                 BossFxColor(Strength, 0.15f, Palette, 1.f), 2.f);
 }
 
 // NOTE(zoubir): a shaft of light standing up from Foot, Height tall, drawn

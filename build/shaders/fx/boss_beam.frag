@@ -2,12 +2,16 @@
 // where it stops (U = 1), V across it (client/dungeon/boss_fx/). Drawn
 // additive. A live beam has a white-hot core, a coloured glow round it
 // that wavers, light streaming along it, a flare where it leaves the
-// caster and a splash where it hits. A warning is a thin line with dashes
-// running along it, so the party sees where the beam will start. A
+// caster and a splash where it hits; it can have hard lines at the edges
+// of what it hits. A warning is a thin line with dashes running along it,
+// so the party sees where the beam will start. A fan ray is a soft even
+// band, one of many side by side over the ground a sweep will cross. A
 // pillar is a steady column of light standing up from the floor (U = 0),
 // motes of light rising through it, fading toward its top.
 //   colour r: strength
-//   colour g: 0 a warning, a half a pillar, 1 a live beam
+//   colour g: 0 a warning, 0.15 a fan ray, a half a pillar, 1 a live
+//             beam; from 0.8 to 0.99 a live beam with its edges at
+//             (g - 0.8) / 0.19 of the way out from its middle
 //   colour b: palette, 0 aurora green, a third aurora violet, two thirds
 //             smite crimson, 1 star gold
 //   colour a: overall alpha
@@ -54,6 +58,13 @@ void main()
         Light *= Strength;
         Colour = mix(Hue, vec3(1.0, 0.98, 0.9), clamp(Core * 1.2 + Motes * 0.5, 0.0, 1.0));
     }
+    else if (fragmentColor.g > 0.05 && fragmentColor.g < 0.25)
+    {
+        float Band = exp(-Across * Across * 3.0);
+        float Fade = smoothstep(0.0, 0.05, U) * smoothstep(1.0, 0.96, U);
+        Light = Band * Fade * Strength;
+        Colour = Hue;
+    }
     else if (fragmentColor.g < 0.5)
     {
         float Dash = step(0.45, fract(U * 18.0 - Time * 2.5));
@@ -74,8 +85,13 @@ void main()
         float Ends = exp(-U * 30.0) + exp(-(1.0 - U) * 22.0) * (0.8 + 0.4 * sin(Time * 30.0));
         float Fade = smoothstep(0.0, 0.02, U) * smoothstep(1.0, 0.985, U);
         Light = (Core + Glow) * Fade + Ends * exp(-X * X * 3.0) * 0.6;
+        // the edges of what it hits, steady while the glow wavers
+        float EdgeAt = fragmentColor.g < 0.99 ? (fragmentColor.g - 0.8) / 0.19 : 0.0;
+        float Edge = EdgeAt > 0.0 ?
+            (1.0 - smoothstep(0.0, 0.04, abs(abs(Across) - EdgeAt))) * Fade * 0.7 : 0.0;
+        Light += Edge;
         Light *= Strength;
-        Colour = mix(Hue, vec3(1.0, 1.0, 0.96), clamp(Core * 0.9 + Ends * 0.5, 0.0, 1.0));
+        Colour = mix(Hue, vec3(1.0, 1.0, 0.96), clamp(Core * 0.9 + Ends * 0.5 + Edge, 0.0, 1.0));
     }
     FragColor = vec4(Colour, clamp(Light, 0.0, 1.0) * fragmentColor.a);
 }

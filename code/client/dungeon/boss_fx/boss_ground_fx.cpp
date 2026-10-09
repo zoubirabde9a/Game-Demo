@@ -4,8 +4,11 @@
    Gravity wells   a violet whirlpool over the well's reach, its arms
                    winding in faster as the collapse nears, the core dark
                    and fringed in red.
-   Beams           a dashed warning line through the windup; then a beam
-                   of light along the floor out to the first pillar, a
+   Beams           through the windup a faint fan over the ground the
+                   sweep will cross, each ray stopped by the first
+                   pillar, and a dashed line where it starts; then a
+                   beam of light along the floor out to the first
+                   pillar, hard lines on the edges of what it hits, a
                    fading violet trail behind the way it sweeps.
    Eclipses        the dark rolls out from the caster as a front of
                    smoke over the whole room; each light is a pool of
@@ -28,6 +31,8 @@
    index, timer, aim and points; monster kinds and heights). */
 
 #define BOSS_BEAM_GLOW_WIDTH 3.2f
+// NOTE(zoubir): a beam's windup fan has a ray every this many degrees
+#define BOSS_BEAM_FAN_STEP 3.f
 #define BOSS_SUNKEN_RADIUS 72.f
 #define BOSS_BLACK_SUN_RADIUS 64.f
 #define BOSS_SMITE_MARK_MIN 44.f
@@ -46,6 +51,21 @@ DrawBossBeamGround(render_context *RenderContext, world *World, world_entity *Mo
     if (Monster->AbilityPhase == AbilityPhase_Windup)
     {
         float Progress = BossWindup(Monster, Ability);
+        // NOTE(zoubir): the ground the sweep will cross, each ray out to
+        // what stops the beam, so the shade behind a pillar shows; it
+        // fills the way the beam will turn as the windup runs
+        float Turn = BeamTurn(Monster);
+        u32 Rays = (u32)(Ability->Spread / BOSS_BEAM_FAN_STEP) + 1;
+        for(u32 Ray = 0; Ray <= Rays; Ray++)
+        {
+            float Share = (float)Ray / (float)Rays;
+            v2 Way = RotateBy(Monster->AbilityAim, Turn * Share * Ability->Spread * (Pi32 / 180.f));
+            bool32 Filled = Share <= Progress;
+            DrawBossFanRay(RenderContext, World, CameraOffset, From, Way,
+                           BeamReach(World, From, Way, Ability), 2.f * Ability->Radius,
+                           Filled ? BOSS_BEAM_GREEN : BOSS_BEAM_VIOLET,
+                           Filled ? 0.1f : 0.06f);
+        }
         float Reach = BeamReach(World, From, Monster->AbilityAim, Ability);
         DrawBossBeam(RenderContext, World, CameraOffset, From, Monster->AbilityAim, Reach,
                      22.f, false, BOSS_BEAM_GREEN, 0.6f + 0.4f * Progress);
@@ -65,9 +85,12 @@ DrawBossBeamGround(render_context *RenderContext, world *World, world_entity *Mo
                      BOSS_BEAM_VIOLET, 0.3f / (float)Ghost);
     }
     v2 Direction = BeamDirection(Monster, Ability);
+    // NOTE(zoubir): the glow reaches past what the beam hits, so hard lines
+    // mark Radius each side of its middle, its true edge
     DrawBossBeam(RenderContext, World, CameraOffset, From, Direction,
                  BeamReach(World, From, Direction, Ability),
-                 BOSS_BEAM_GLOW_WIDTH * Ability->Radius, true, BOSS_BEAM_GREEN, 1.f);
+                 BOSS_BEAM_GLOW_WIDTH * Ability->Radius, true, BOSS_BEAM_GREEN, 1.f,
+                 2.f / BOSS_BEAM_GLOW_WIDTH);
 }
 
 internal void
