@@ -43,14 +43,31 @@ def is_col(cell, cols):
     return m
 
 
+def sprite_top(cell):
+    """the first row at least HEAD_ROW_PIXELS wide: the top of the head,
+    under a hair bun or a tuft sticking up"""
+    rows = np.nonzero((cell[..., 3] > 0).sum(1) >= HEAD_ROW_PIXELS)[0]
+    return rows[0] if len(rows) else None
+
+
+def is_streak(patch, top, head):
+    """a skin-coloured patch that is the sword's slash streak: big and wide,
+    mostly off the head and not reaching its crown (a face, a bald head,
+    a hand are none of these)"""
+    xs = [x for y, x in patch]
+    ys = [y for y, x in patch]
+    in_head = sum(1 for y, x in patch if head[y, x])
+    return (len(patch) > SLASH_PIXELS and max(xs) - min(xs) + 1 >= SLASH_WIDTH and
+            in_head < len(patch) // 2 and min(ys) > top + 2)
+
+
 def head_of(cell):
     """(centre x, centre y) of the head, from the headphones and the top of
     the sprite; None for an empty cell"""
-    op = cell[..., 3] > 0
-    ys = np.nonzero(op.any(1))[0]
-    if len(ys) == 0:
+    top = sprite_top(cell)
+    if top is None:
         return None
-    top = ys[0]
+    op = cell[..., 3] > 0
     phones = is_col(cell, METAL)
     phones[top + 15:] = False
     if phones.sum() >= 3:
@@ -127,6 +144,10 @@ WHITE = (255, 255, 255)
 # streak, not a hand or a face
 SLASH_PIXELS = 20
 SLASH_WIDTH = 10
+HEAD_ROW_PIXELS = 5
+# NOTE: marker colours for the slash streak between bald_head and the
+# palette; nothing in the original uses them
+STREAK = [(1, 2, 3), (4, 5, 6), (7, 8, 9)]
 
 
 def components(mask):
@@ -183,8 +204,155 @@ def widen(cell):
     return out
 
 
+# NOTE: a bald head's skin, dark to light, for the hair's four shades:
+# the darkest stays on the head's rim, the lightest is the shine on top
+BALD = [(96, 52, 32), (176, 116, 80), (204, 144, 104), (244, 204, 168)]
+EYE_WHITE = (244, 240, 232)
+
+
+def reoutline(cell, removed):
+    """after pixels were taken away: drop outline left touching nothing,
+    then outline the new edge next to what was removed"""
+    body = (cell[..., 3] > 0) & ~is_col(cell, [OUTLINE])
+    line = is_col(cell, [OUTLINE])
+    cell[line & ~neighbours8(body)] = 0
+    op = cell[..., 3] > 0
+    edge = ~op & (np.roll(op, 1, 0) | np.roll(op, -1, 0) | np.roll(op, 1, 1) | np.roll(op, -1, 1))
+    edge &= neighbours8(removed)
+    cell[edge] = OUTLINE + (255,)
+    return cell
+
+
+def trim_hips(cell):
+    """no flared hips: in the band between the waist and the legs, cloth
+    wider than the legs below it is taken off"""
+    h = head_of(cell)
+    if h is None:
+        return cell
+    cx, cy = h
+    cell = cell.copy()
+    op = cell[..., 3] > 0
+    lo_y, hi_y = int(cy + WAIST_BELOW_HEAD), int(cy + WAIST_BELOW_HEAD + 4)
+    legs = op[hi_y:min(32, hi_y + 3)]
+    xs = np.nonzero(legs.any(0))[0]
+    if len(xs) == 0:
+        return cell
+    left, right = xs.min() - 1, xs.max() + 1
+    cloth = is_col(cell, CLOTH + ACCENT)
+    removed = np.zeros((32, 32), bool)
+    for y in range(max(0, lo_y), min(32, hi_y)):
+        for x in range(32):
+            if cloth[y, x] and (x < left or x > right):
+                removed[y, x] = True
+    cell[removed] = 0
+    return reoutline(cell, removed)
+
+
+def thicken_legs(cell):
+    """sturdier legs: below the waist, every run of the body in a row grows
+    a pixel on each side, its outline moving out with it"""
+    h = head_of(cell)
+    if h is None:
+        return cell
+    cx, cy = h
+    out = cell.copy()
+    for y in range(int(cy + WAIST_BELOW_HEAD + 2), 32):
+        row = cell[y]
+        op = row[:, 3] > 0
+        x = 0
+        while x < 32:
+            if not op[x]:
+                x += 1
+                continue
+            a = x
+            while x < 32 and op[x]:
+                x += 1
+            b = x - 1
+            if b - a >= 2:
+                if a > 0 and not op[a - 1]:
+                    out[y, a - 1] = row[a]
+                    out[y, a] = row[a + 1]
+                if b < 31 and not op[b + 1]:
+                    out[y, b + 1] = row[b]
+                    out[y, b] = row[b - 1]
+    return out
+
+
+# NOTE: the bald head, drawn in place of the hair: radii and how far
+# below the hair's centre it sits
+BALD_RX = 7.0
+BALD_RY = 7.2
+BALD_DROP = 1.0
+BALD_FACE_LIFT = 2.5
+
+
+def bald_head(cell):
+    """takes the hair (and the headphones) away and draws a round bald head
+    a size smaller in their place, shaded from the upper left, then puts
+    the original face (skin, eyes, mouth) back on it"""
+    h = head_of(cell)
+    if h is None:
+        return cell
+    cx, cy = h
+    cell = cell.copy()
+    yy, xx = np.mgrid[0:32, 0:32]
+    above_neck = yy + 0.5 < cy + NECK_BELOW_HEAD + 1
+    old = ((xx + 0.5 - cx) / 10.5) ** 2 + ((yy + 0.5 - cy) / 9.5) ** 2 <= 1.0
+    old &= above_neck
+    skin = is_col(cell, SKIN)
+    # NOTE: the sword's streak can cross the head; it stays
+    streak = np.zeros((32, 32), bool)
+    top = sprite_top(cell)
+    for patch in components(skin):
+        if is_streak(patch, -99, old):
+            for y, x in patch:
+                streak[y, x] = True
+    face = (skin | is_col(cell, ACCENT + [WHITE])) & old & ~streak
+    keep = cell.copy()
+    gone = old & ~streak & (cell[..., 3] > 0)
+    cell[gone] = 0
+    # NOTE: the head goes where the face is, the face on its lower half; a
+    # hair bun sticking up would put it too high. With no face (seen from
+    # behind) it sits a little under the hair's centre
+    by = cy + BALD_DROP
+    faces = [p for p in components(skin & ~streak & old)
+             if sum(1 for y, x in p if old[y, x]) * 2 > len(p)]
+    if faces:
+        f = max(faces, key=len)
+        if len(f) >= 4:
+            by = sum(y for y, x in f) / len(f) + 0.5 - BALD_FACE_LIFT
+    bx = cx
+    nx = (xx + 0.5 - bx) / BALD_RX
+    ny = (yy + 0.5 - by) / BALD_RY
+    dome = (nx ** 2 + ny ** 2 <= 1.0) & ~streak
+    light = 0.62 - 0.35 * nx - 0.55 * ny
+    shade = np.where(light > 0.95, 2, np.where(light > 0.55, 1, 0))
+    for k in range(3):
+        m = dome & (shade == k)
+        cell[m] = SKIN[k] + (255,)
+    # NOTE: the face goes back where it was, over the dome; no hair is left
+    # anywhere (the long hair down the back, the ponytail)
+    cell[face] = keep[face]
+    hair = is_col(cell, HAIR) | (is_col(cell, METAL) & old)
+    cell[hair] = 0
+    cell = reoutline(cell, hair | gone)
+    op = cell[..., 3] > 0
+    edge = ~op & (np.roll(op, 1, 0) | np.roll(op, -1, 0) | np.roll(op, 1, 1) | np.roll(op, -1, 1))
+    edge &= neighbours8(dome)
+    cell[edge] = OUTLINE + (255,)
+    # NOTE: the dome's own rim inside the old outline: darken its edge
+    rim = dome & ~(np.roll(dome, 1, 0) & np.roll(dome, -1, 0) & np.roll(dome, 1, 1) & np.roll(dome, -1, 1))
+    rim &= ~face
+    cell[rim & (cell[..., 3] > 0)] = OUTLINE + (255,)
+    # NOTE: the streak keeps marker colours from here on, so the new head
+    # it may touch is never taken for it
+    for src, mark in zip(SKIN, STREAK):
+        cell[streak & is_col(keep, [src])] = mark + (255,)
+    return cell
+
+
 def class_cell(cell, pal):
-    cell = widen(haircut(cell))
+    cell = thicken_legs(trim_hips(widen(bald_head(cell))))
     h = head_of(cell)
     out = cell.copy()
     yy, xx = np.mgrid[0:32, 0:32]
@@ -197,13 +365,15 @@ def class_cell(cell, pal):
         if mask is not None:
             m &= mask
         out[m, :3] = dst
-    for s, d in zip(HAIR, pal['hair']):
+    # NOTE: bald: the hair is skin, shaded like it
+    for s, d in zip(HAIR, BALD):
         put(s, d)
     for s, d in zip(CLOTH, pal['cloth']):
         put(s, d)
-    # NOTE: the headphones become hair; elsewhere grey is the class metal
-    put(METAL[0], pal['hair'][2], head)
-    put(METAL[1], pal['hair'][3], head)
+    # NOTE: the headphones' cups become ears; elsewhere grey is the class
+    # metal
+    put(METAL[0], BALD[1], head)
+    put(METAL[1], BALD[2], head)
     put(METAL[0], pal['metal'][0], ~head)
     put(METAL[1], pal['metal'][1], ~head)
     # NOTE: red in the face is the eyes
@@ -211,28 +381,30 @@ def class_cell(cell, pal):
     put(ACCENT[1], EYE[1], head)
     put(ACCENT[0], pal['accent'][0], ~head)
     put(ACCENT[1], pal['accent'][1], ~head)
-    # NOTE: a man's face: no sparkle in the eyes (they shrink to the dark
-    # pupil), tan skin, and the girl's ribbon tie under the chin becomes
-    # part of the collar
-    put(WHITE, MALE_SKIN[2], head)
+    # NOTE: a man's face: big plain eyes (the sparkle is an eye white), tan
+    # skin, and the girl's ribbon tie under the chin becomes collar
+    put(WHITE, EYE_WHITE, head)
+    # NOTE: bigger eyes: each eye grows a row down, dark under its white
+    # and under the pupil beside it (toward the face's middle)
+    if h:
+        whites = np.argwhere(is_col(out, [EYE_WHITE]) & head)
+        skin_now = is_col(out, MALE_SKIN)
+        for y, x in whites:
+            inward = 1 if x < cx else -1
+            for dx in (0, inward):
+                yb, xb = y + 1, x + dx
+                if 0 <= yb < 32 and 0 <= xb < 32 and skin_now[yb, xb]:
+                    out[yb, xb, :3] = EYE[0]
     if h:
         neck = ~head & (np.abs(xx + 0.5 - cx) <= 2.5) & (yy + 0.5 >= cy + 7.5) & (yy + 0.5 <= cy + 14.)
         put(ACCENT[0], pal['cloth'][1], neck)
         put(ACCENT[1], pal['cloth'][2], neck)
-    skin = is_col(cell, SKIN)
-    slash = np.zeros((32, 32), bool)
-    for patch in components(skin):
-        # NOTE: a face with its neck can be as big, but it is narrow; the
-        # streak is wide
-        xs = [x for y, x in patch]
-        if len(patch) > SLASH_PIXELS and max(xs) - min(xs) + 1 >= SLASH_WIDTH:
-            for y, x in patch:
-                slash[y, x] = True
+    slash = is_col(cell, STREAK)
     for s, d in zip(SKIN, MALE_SKIN):
         put(s, d, ~slash)
-    put(SKIN[0], pal['accent'][0], slash)
-    put(SKIN[1], pal['accent'][0], slash)
-    put(SKIN[2], pal['accent'][1], slash)
+    put(STREAK[0], pal['accent'][0])
+    put(STREAK[1], pal['accent'][0])
+    put(STREAK[2], pal['accent'][1])
     # NOTE: trousers, not a skirt over red stockings: below the waist the
     # red stripes, the hem and the bare thigh all become plain trousers
     if h:
