@@ -35,18 +35,21 @@
    PROBE_MAP=vault in the Rimeheart Vault, with the crypt's and the
    depths'; PROBE_MAP=rift in the Aurora Rift, with all three before it;
    PROBE_MAP=starless in the Starless Deep, with all four.
-   PROBE_TREE=class has the bots spend their points in the class tree
-   only, PROBE_TREE=run in the second tree first (sim/dungeon/run_tree/);
-   unset, they pick from both at random as a server's bots do.
-   PROBE_TREE=core-class and core-run unlock the class's C and V spells
-   first, then spend the rest in that one tree; PROBE_TREE_ONLY=tank
-   (healer, ranged, melee) keeps core-run to that role's bot.
+   PROBE_TREE=class has the bots spend their points in the class tree's
+   first branch only, PROBE_TREE=run in its second branch first
+   (sim/dungeon/class_tree.cpp); unset, they pick from both at random as
+   a server's bots do. PROBE_TREE=core-class and core-run take a spell of
+   each branch's pair first, then spend the rest in that one branch;
+   PROBE_TREE_ONLY=tank (healer, ranged, melee) keeps core-run to that
+   role's bot.
    Build and run: misc\balance.bat [same arguments], which rebuilds the
    probe only when the code changed. */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "../server/server.cpp"
+// NOTE(zoubir): getenv everywhere here, read once
+#pragma warning(disable: 4996)
 
 #define PROBE_RETRY_SECONDS 12.f
 #define PROBE_STALL_SECONDS 120.f
@@ -107,10 +110,7 @@ SpendBotTalents(server_game *Game)
         // NOTE(zoubir): PROBE_TREE=class spends only in the class tree's
         // first branch, =run in its second first; unset, the bot picks from
         // both (sim/dungeon/class_tree.cpp)
-#pragma warning(push)
-#pragma warning(disable: 4996)
         char *Tree = getenv("PROBE_TREE");
-#pragma warning(pop)
         u32 Wanted = (Tree && strcmp(Tree, "class") == 0) ? TalentBranch_Role :
             (Tree && strcmp(Tree, "run") == 0) ? TalentBranch_Run : TalentBranch_Count;
         // NOTE(zoubir): =core-class and =core-run take a spell of each
@@ -119,10 +119,7 @@ SpendBotTalents(server_game *Game)
         bool32 Core = Tree && strncmp(Tree, "core-", 5) == 0;
         // NOTE(zoubir): PROBE_TREE_ONLY=tank (healer, ranged, melee) keeps
         // the second tree to that role's bot; the others go core-class
-#pragma warning(push)
-#pragma warning(disable: 4996)
         char *Only = getenv("PROBE_TREE_ONLY");
-#pragma warning(pop)
         bool32 RunTree = Core && strcmp(Tree + 5, "run") == 0;
         if (RunTree && Only && Only[0] &&
             strcmp(Only, RoleKindNames[RoleKindOf(Player->Role)]) != 0 &&
@@ -134,7 +131,7 @@ SpendBotTalents(server_game *Game)
         {
             Wanted = RunTree ? TalentBranch_Run : TalentBranch_Role;
         }
-        while (TalentPointsLeft(Player) > 0)
+        while (TalentPointsToSpend(Player, true) > 0)
         {
             if (Core)
             {
@@ -153,6 +150,16 @@ SpendBotTalents(server_game *Game)
                 break;
             }
         }
+        // NOTE(zoubir): PROBE_ALL_SPELLS=1 (or =tank, healer, ranged, melee
+        // for one bot) gives both spells of every pair, past the four-spell
+        // rule, to measure what the pairs cost a party
+        char *AllSpells = getenv("PROBE_ALL_SPELLS");
+        if (AllSpells && (AllSpells[0] == '1' ||
+                          strcmp(AllSpells, RoleKindNames[RoleKindOf(Player->Role)]) == 0 ||
+                          AllSpells[0] == RoleKindNames[RoleKindOf(Player->Role)][0] + 32))
+        {
+            GrantClassSpells(Player);
+        }
     }
 }
 
@@ -161,20 +168,14 @@ SpendBotTalents(server_game *Game)
 internal void
 ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
 {
-#pragma warning(push)
-#pragma warning(disable: 4996)
     char *LevelsText = getenv("PROBE_LEVELS");
-#pragma warning(pop)
     u32 Levels = LevelsText ? (u32)atoi(LevelsText) : 1;
     bool32 Done = false;
     u32 Stalls = 0;
     bool32 Placed = false;
     static server_game Game;
     Game = {};
-#pragma warning(push)
-#pragma warning(disable: 4996)
     char *MapName = getenv("PROBE_MAP");
-#pragma warning(pop)
     u32 StartMap = (MapName && strcmp(MapName, "depths") == 0) ? MapId_Depths :
         (MapName && strcmp(MapName, "vault") == 0) ? MapId_Vault :
         (MapName && strcmp(MapName, "rift") == 0) ? MapId_Rift :
@@ -193,10 +194,7 @@ ProbeOneSeed(u32 Minutes, u32 Players, u32 FirstRoom, u32 SeedNumber)
     dungeon_run *SeededRun = 0;
     u32 SeededBots = 0;
     u32 SlotDeaths[MAX_PLAYERS] = {};
-#pragma warning(push)
-#pragma warning(disable: 4996)
     bool32 ShowDeaths = getenv("PROBE_DEATHS") != 0;
-#pragma warning(pop)
     Game.BotTarget = Players;
     float Dt = 1.0f / SERVER_TICK_RATE;
     u32 Ticks = Minutes * 60 * SERVER_TICK_RATE;

@@ -245,6 +245,8 @@ TestRoleTalents()
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Tank);
     Slot->Level = 6;
+    Check(!LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_IronSkin)));
+    Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_LastStand)));
     Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_IronSkin)));
     Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_IronSkin)));
     Check(!LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_IronSkin)));
@@ -261,7 +263,9 @@ TestRoleTalents()
     u32 Left = TalentPointsLeft(Slot);
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
     Check(ClassTalentRank(Slot, TankTalent_IronSkin) == 0);
+    // NOTE(zoubir): three ranks, the first spell of them free
     Check(TalentPointsLeft(Slot) == Left + 2);
+    Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], StrikerTalent_Meteor)));
     Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], StrikerTalent_SearingHeat)));
     Check(ClassTalentRank(Slot, StrikerTalent_SearingHeat) == 1);
 

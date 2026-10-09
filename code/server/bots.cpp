@@ -251,7 +251,7 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
     // is empty the next, so the server sees each as new.
     player_slot *Slot = Self ? &AppState->Players[Self->PlayerIndex] : 0;
     Bot->LearnWait -= Dt;
-    if (Slot && TalentPointsLeft(Slot) > 0 && Bot->LearnWait <= 0.f &&
+    if (Slot && TalentPointsToSpend(Slot, IsDungeon(AppState)) > 0 && Bot->LearnWait <= 0.f &&
         !(Bot->Held >> NET_LEARN_SHIFT) && !Bot->HeldRole)
     {
         Held |= BotPickTalent(Bot, AppState, Slot);

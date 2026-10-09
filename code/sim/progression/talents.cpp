@@ -180,34 +180,7 @@ global_variable talent_def TalentDefs[Talent_Count] =
     {"Second Wind", "Back from death in half the time, shielded longer", "faster respawn",
      TalentBranch_Guard, 2, 0, 1, 0},
 
-    // NOTE(zoubir): the class tree's two branches, the same shape for
-    // every class (sim/dungeon/class_tree.cpp, ClassSlotShapes); names,
-    // effects and the ranks a slot really takes are the class's
-    {"", "", "", TalentBranch_Role, 0, 0, 2, 0},
-    {"", "", "", TalentBranch_Role, 0, 1, 2, 0},
-    {"", "", "", TalentBranch_Role, 1, 0, 2, 0},
-    {"", "", "", TalentBranch_Role, 1, 1, 2, 0},
-    {"", "", "", TalentBranch_Role, 2, 0, 3, 0},
-    {"", "", "", TalentBranch_Role, 2, 1, 2, 0},
-    {"", "", "", TalentBranch_Role, 3, 0, 2, 0},
-    {"", "", "", TalentBranch_Role, 3, 1, 3, 0},
-    {"", "", "", TalentBranch_Role, 4, 0, 3, 0},
-    {"", "", "", TalentBranch_Role, 4, 1, 2, 0},
-    {"", "", "", TalentBranch_Role, 5, 0, 1, 0},
-    {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
-
-    {"", "", "", TalentBranch_Run, 0, 0, 2, 0},
-    {"", "", "", TalentBranch_Run, 0, 1, 2, 0},
-    {"", "", "", TalentBranch_Run, 1, 0, 2, 0},
-    {"", "", "", TalentBranch_Run, 1, 1, 2, 0},
-    {"", "", "", TalentBranch_Run, 2, 0, 3, 0},
-    {"", "", "", TalentBranch_Run, 2, 1, 2, 0},
-    {"", "", "", TalentBranch_Run, 3, 0, 2, 0},
-    {"", "", "", TalentBranch_Run, 3, 1, 3, 0},
-    {"", "", "", TalentBranch_Run, 4, 0, 3, 0},
-    {"", "", "", TalentBranch_Run, 4, 1, 2, 0},
-    {"", "", "", TalentBranch_Run, 5, 0, 1, 0},
-    {"", "", "", TalentBranch_Run, 5, 1, 1, 0},
+#include "talents/class_shape_rows.inc"
 };
 static_assert(ArrayCount(TalentDefs) == Talent_Count, "one row per talent");
 
@@ -308,27 +281,51 @@ TalentPointsSpent(player_slot *Slot, u32 Branch = TalentBranch_Count)
     return Result;
 }
 
-// NOTE(zoubir): one point per level after the first
+// NOTE(zoubir): in sim/dungeon/class_tree.cpp: whether Slot took a spell
+// of a class tree's pair, and whether Talent is one of those spells
+internal bool32 ClassSpellTaken(player_slot *Slot);
+inline bool32 IsClassSpellTalent(u32 Talent);
+
+// NOTE(zoubir): one point per level after the first. In a run the first
+// spell of a class tree's pair is free, so a class casts three spells
+// from the first room and four from level 2
 inline u32
 TalentPointsLeft(player_slot *Slot)
 {
     u32 Earned = Slot->Level > 1 ? Slot->Level - 1 : 0;
     u32 Spent = TalentPointsSpent(Slot);
+    Spent -= (Spent && ClassSpellTaken(Slot)) ? 1 : 0;
     u32 Result = Earned > Spent ? Earned - Spent : 0;
     return Result;
 }
 
+// NOTE(zoubir): the points Slot may spend now: TalentPointsLeft, and in a
+// run (InRun) the free first spell until it is taken
 inline u32
-TalentTierCost(u32 Tier)
+TalentPointsToSpend(player_slot *Slot, bool32 InRun)
+{
+    u32 Result = TalentPointsLeft(Slot) + ((InRun && !ClassSpellTaken(Slot)) ? 1 : 0);
+    return Result;
+}
+
+// NOTE(zoubir): the points in Branch that open Tier. A class tree's
+// branch opens its second tier on the one point its first tier's spell
+// takes, then every two more (sim/dungeon/class_tree.cpp)
+inline u32
+TalentTierCost(u32 Tier, u32 Branch)
 {
     u32 Result = TALENT_POINTS_PER_TIER * Tier;
+    if (Branch >= TalentBranch_Role && Tier > 0)
+    {
+        Result = TALENT_POINTS_PER_TIER * Tier - 1;
+    }
     return Result;
 }
 
 inline bool32
 IsTalentTierOpen(player_slot *Slot, u32 Branch, u32 Tier)
 {
-    bool32 Result = TalentPointsSpent(Slot, Branch) >= TalentTierCost(Tier);
+    bool32 Result = TalentPointsSpent(Slot, Branch) >= TalentTierCost(Tier, Branch);
     return Result;
 }
 
@@ -356,7 +353,8 @@ CanLearnTalent(player_slot *Slot, u32 Talent)
     {
         Result = TalentRefusal_TierLocked;
     }
-    else if (TalentPointsLeft(Slot) == 0)
+    else if (TalentPointsLeft(Slot) == 0 &&
+             !(IsClassSpellTalent(Talent) && !ClassSpellTaken(Slot)))
     {
         Result = TalentRefusal_NoPoints;
     }

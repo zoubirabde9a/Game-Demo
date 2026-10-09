@@ -149,6 +149,24 @@ WhirlHit(app_state *AppState, player_slot *Slot, world_entity *Player)
         (float)RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_Bladestorm));
     StrikeAround(AppState, Slot, Player, GetPlayerAim(Player), WHIRLWIND_RADIUS, Pi32,
                  Damage, 40.f);
+    // NOTE(zoubir): Shattering Leap sunders what the spin cuts, as it does
+    // what a Leap lands on, so Carnage's fixed talent pays off either spell
+    world *World = &AppState->World;
+    if (AppState->Dungeon && RoleRank(Slot, PlayerRole_Berserker, BerserkerTalent_ShatteringLeap))
+    {
+        u32 Room = RoomAtPosition(World, Player->Position.XY);
+        for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+        {
+            world_entity *Monster = &World->Entities[EntityIndex];
+            if (IsBerserkerFoe(World, Monster, Room) &&
+                Length(Monster->Position.XY - Player->Position.XY) <=
+                WHIRLWIND_RADIUS + 0.5f * Monster->Dimensions.X)
+            {
+                AddSunder(AppState->Dungeon, World, Monster, SHATTERING_LEAP_SECONDS,
+                          SHATTERING_LEAP_SHARE);
+            }
+        }
+    }
 }
 
 // NOTE(zoubir): the end of Execute's wind-up: the chop lands on the foe it

@@ -62,10 +62,10 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
 
     // NOTE(zoubir): the Berserker
     {{"Fury", "Carnage"},
-     {CLASS_BRANCH(CT(BerserkerTalent_Brutality), CT(BerserkerTalent_Execute), CT(BerserkerTalent_Berserk),
+     {CLASS_BRANCH(CT(BerserkerTalent_Brutality), CT(BerserkerTalent_Berserk), CT(BerserkerTalent_BattleShout),
                    CT(BerserkerTalent_Bloodthirst), CT(BerserkerTalent_Massacre), RM(CorneredBeast),
                    RM(UndyingFury)),
-      CLASS_BRANCH(CT(BerserkerTalent_UnbridledWrath), CT(BerserkerTalent_Leap), CT(BerserkerTalent_BattleShout),
+      CLASS_BRANCH(CT(BerserkerTalent_UnbridledWrath), CT(BerserkerTalent_Whirlwind), CT(BerserkerTalent_Leap),
                    CT(BerserkerTalent_SweepingStrikes), CT(BerserkerTalent_ShatteringLeap), RM(Savagery),
                    RM(RedMist))},
      {{CT(BerserkerTalent_BruteForce), CT(BerserkerTalent_Bloodlust), RM(Finisher), RM(Gorge),

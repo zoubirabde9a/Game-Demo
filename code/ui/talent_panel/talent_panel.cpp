@@ -327,7 +327,7 @@ TalentRefusalText(player_slot *Slot, u32 Talent, talent_refusal Refusal, char *O
         case TalentRefusal_TierLocked:
         {
             u32 Spent = TalentPointsSpent(Slot, Def->Branch);
-            u32 Need = TalentTierCost(Def->Tier);
+            u32 Need = TalentTierCost(Def->Tier, Def->Branch);
             snprintf(Out, OutSize, "Spend %u more in %s to open this tier",
                      Need - Spent, TalentBranchName(Slot, Def->Branch));
         } break;

@@ -41,9 +41,11 @@ TestRolesScaleHealthAndDamage()
                                           {500, 300, 0}, Test.UnitVolume);
     Monster->MaxHp = Monster->Hp = 100.f;
     DamageEntity(AppState, Test.World, Monster, 20.f, Healer);
-    Check(Monster->Hp == 90.f);
+    float Left = 100.f - 20.f * GetRoleDef(PlayerRole_Healer)->DamageDealt;
+    Check(Monster->Hp > Left - 0.01f && Monster->Hp < Left + 0.01f);
     DamageEntity(AppState, Test.World, Monster, 20.f, Tank);
-    Check(Monster->Hp == 76.f);
+    Left -= 20.f * GetRoleDef(PlayerRole_Tank)->DamageDealt;
+    Check(Monster->Hp > Left - 0.01f && Monster->Hp < Left + 0.01f);
 
     AppState->Dungeon = 0;
     DestroyTestWorld(&Test);

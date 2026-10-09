@@ -35,7 +35,7 @@ DrawTalentColumn(render_context *RenderContext, app_state *AppState, talent_pane
     UIText(RenderContext, Small, X + L->ColumnWidth - 16.f, L->ColumnTop + 15.f, Text,
            UI_COLOR_TEXT_MUTED, UIAlign_Right);
     // NOTE(zoubir): how far toward the last tier, as a thin bar under the name
-    float Toward = Minimum(1.f, (float)Spent / (float)TalentTierCost(TalentBranchTiers(Branch) - 1));
+    float Toward = Minimum(1.f, (float)Spent / (float)TalentTierCost(TalentBranchTiers(Branch) - 1, Branch));
     float BarX = X + 16.f;
     float BarWidth = L->ColumnWidth - 32.f;
     DrawFilledRectangle(RenderContext, BarX, L->ColumnTop + 38.f, BarWidth, 2.f,
@@ -53,7 +53,7 @@ DrawTalentColumn(render_context *RenderContext, app_state *AppState, talent_pane
         DrawFilledRectangle(RenderContext, X + 12.f, Y, L->ColumnWidth - 24.f, 1.f, Line, 0.f);
         if (!Open)
         {
-            snprintf(Text, sizeof(Text), "%u", TalentTierCost(Tier));
+            snprintf(Text, sizeof(Text), "%u", TalentTierCost(Tier, Branch));
             float ChipX = X + 12.f;
             float ChipY = Y - 0.5f * UILineHeight(Small) - 2.f;
             float ChipWidth = UITextWidth(Small, Text) + 26.f;

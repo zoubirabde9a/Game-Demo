@@ -4,8 +4,8 @@
    on, twelve slots each, so ranks travel as they always did. Every branch
    has the same shape (ClassSlotShapes):
 
-   tier 0   slot 0 core (fixed)        slot 1 wild (2)
-   tier 1   slot 2 spell               slot 3 the other spell
+   tier 0   slot 2 spell               slot 3 the other spell
+   tier 1   slot 0 core (fixed)        slot 1 wild (2)
    tier 2   slot 4 fixed (3)           slot 5 wild (2)
    tier 3   slot 6 wild (2)            slot 7 fixed (3)
    tier 4   slot 8 fixed (3)           slot 9 wild (2)
@@ -13,7 +13,10 @@
 
    A class casts two base spells from the start (role_spell.Unlock 0) and
    one spell of each branch's pair: a point in one spell of the pair locks
-   the other (ClassTalentRefusal), so no build casts more than four.
+   the other (ClassSpellTakenBeside), so no build casts more than four.
+   The pairs sit in the first tier, so the first two points can buy both
+   spells: a class has its four by level 3, and the deeper tiers are where
+   a build grows.
 
    What sits in a slot is a content code: a talent of the class's catalog
    (<class>_defs.cpp, CLASS_CONTENT_TALENT on) or a run talent
@@ -57,8 +60,8 @@ struct class_slot_shape
 // NOTE(zoubir): by slot of a branch
 global_variable class_slot_shape ClassSlotShapes[ROLE_TALENTS] =
 {
-    {ClassSlot_Fixed, 0, 0, 2}, {ClassSlot_Wild, 0, 1, 2},
-    {ClassSlot_Spell, 1, 0, 2}, {ClassSlot_Spell, 1, 1, 2},
+    {ClassSlot_Fixed, 1, 0, 2}, {ClassSlot_Wild, 1, 1, 2},
+    {ClassSlot_Spell, 0, 0, 2}, {ClassSlot_Spell, 0, 1, 2},
     {ClassSlot_Fixed, 2, 0, 3}, {ClassSlot_Wild, 2, 1, 2},
     {ClassSlot_Wild, 3, 0, 2}, {ClassSlot_Fixed, 3, 1, 3},
     {ClassSlot_Fixed, 4, 0, 3}, {ClassSlot_Wild, 4, 1, 2},
@@ -355,6 +358,27 @@ ClassSpellTakenBeside(player_slot *Slot, u32 Talent)
 }
 
 inline bool32
+IsClassSpellTalent(u32 Talent)
+{
+    u32 TreeSlot = ClassTreeSlot(Talent);
+    bool32 Result = TreeSlot < CLASS_TREE_SLOTS && ClassSlotShape(TreeSlot)->Kind == ClassSlot_Spell;
+    return Result;
+}
+
+// NOTE(zoubir): whether Slot holds a point in any spell of its tree's
+// pairs; the first such point is free (TalentPointsLeft)
+internal bool32
+ClassSpellTaken(player_slot *Slot)
+{
+    bool32 Result = false;
+    for(u32 Index = 0; Index < CLASS_TREE_SLOTS && !Result; Index++)
+    {
+        Result = ClassSlotShape(Index)->Kind == ClassSlot_Spell && ClassTreeRank(Slot, Index) > 0;
+    }
+    return Result;
+}
+
+inline bool32
 ClassSlotIsWild(u32 Talent)
 {
     u32 TreeSlot = ClassTreeSlot(Talent);
@@ -421,72 +445,4 @@ ClassRunModAt(player_slot *Slot, u32 Talent)
     return Result;
 }
 
-// NOTE(zoubir): every slot full, for the developer switches that give a
-// local player its whole tree in a screenshot. Each pair's first spell
-internal void
-GrantWholeClassTree(player_slot *Slot)
-{
-    for(u32 Index = 0; Index < CLASS_TREE_SLOTS; Index++)
-    {
-        u32 Talent = ClassTreeTalent(Index);
-        bool32 Second = ClassSlotShape(Index)->Kind == ClassSlot_Spell && (Index & 1);
-        Slot->Ranks[Talent] = Second ? 0 : (u8)ClassTalentMaxRanks(Slot, Talent);
-    }
-}
-
-// NOTE(zoubir): the talent id of the slot of Slot's tree that holds
-// Content, Talent_Count when none does this run
-internal u32
-ClassContentTalentId(player_slot *Slot, u32 Content)
-{
-    u32 Result = Talent_Count;
-    for(u32 Index = 0; Index < CLASS_TREE_SLOTS && Result == Talent_Count; Index++)
-    {
-        if (ClassContentAt(Slot, Index) == Content)
-        {
-            Result = ClassTreeTalent(Index);
-        }
-    }
-    return Result;
-}
-
-inline u32
-ClassTalentId(player_slot *Slot, u32 Catalog)
-{
-    u32 Result = ClassContentTalentId(Slot, CLASS_CONTENT_TALENT + Catalog);
-    return Result;
-}
-
-// NOTE(zoubir): Rank points straight into the slot holding Content, past
-// the point rules, for the tests and the developer switches. Content only
-// a wild slot can hold makes the tree roll seeds until one holds it;
-// returns the talent id it went into, Talent_Count if none
-internal u32
-SetClassContentRank(player_slot *Slot, u32 Content, u32 Rank)
-{
-    u32 Talent = ClassContentTalentId(Slot, Content);
-    for(u32 Seed = 1; Seed <= RUN_SEED_MASK && Talent == Talent_Count; Seed++)
-    {
-        Slot->TreeSeed = Seed;
-        Talent = ClassContentTalentId(Slot, Content);
-    }
-    if (Talent < Talent_Count)
-    {
-        Slot->Ranks[Talent] = (u8)Rank;
-    }
-    return Talent;
-}
-
-inline u32
-SetClassTalentRank(player_slot *Slot, u32 Catalog, u32 Rank)
-{
-    u32 Result = SetClassContentRank(Slot, CLASS_CONTENT_TALENT + Catalog, Rank);
-    return Result;
-}
-
-inline u32
-SetClassRunModRank(player_slot *Slot, u32 Mod, u32 Rank)
-{
-    u32 Result = SetClassContentRank(Slot, CLASS_CONTENT_RUN + Mod, Rank);
-    return Result;
-}
+#include "class_tree/rank_setters.cpp"

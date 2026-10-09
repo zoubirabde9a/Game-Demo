@@ -13,14 +13,14 @@ The plan for the dungeon classes' talent trees, replacing the class tree and the
 
 | Tier | Left | Right |
 |---|---|---|
-| 1 | the branch's core talent, fixed, 2 ranks | wild, 2 ranks |
-| 2 | spell, 2 ranks | the other spell, 2 ranks; taking one locks the other |
+| 1 | spell, 2 ranks | the other spell, 2 ranks; taking one locks the other |
+| 2 | the branch's core talent, fixed, 2 ranks | wild, 2 ranks |
 | 3 | fixed, 3 ranks | wild, 2 ranks |
 | 4 | wild, 2 ranks | fixed, 3 ranks |
 | 5 | fixed, 3 ranks | wild, 2 ranks |
 | 6 | the branch's capstone, 1 rank | wild keystone, 1 rank, a big effect with a cost |
 
-A tier opens at 2 points a tier in the same branch. The first spell can come at level 4 (two points in tier 1, then one in the spell), the second a few levels later. A spell's second rank strengthens it.
+The pairs are the first tier, open from the start; the second tier opens on the spell's point, and each tier after it on two more points in the same branch (1, 3, 5, 7, 9). So the first point buys a spell and the second the other branch's: a class casts its four by level 3. The balance probe showed why: with the pairs in the second tier, parties fought the first rooms on their two base spells alone and took twice as long, and a Berserker that went without a Rage spender for levels walled at the crypt's second boss. A spell's second rank strengthens it.
 
 A talent's ranks come from the talent itself, so a one-rank talent in a three-rank slot is full at one point.
 
@@ -50,9 +50,9 @@ Base kit first, then each branch: its spell pair, its fixed talents, and what it
 - **Survival** (traps and the circle, packs). Spells: Volley (A) or Disengage (C). Fixed: Barrage (Volley wider and longer, the snare holds 1 s longer), Pinning Volley (what Volley struck or the snare held stays slow after), Hunter's Net (the snare roots every foe near it; Volley's first arrows root for 1 s); capstone Trophy. Wild: packbane, run speed, frenzy, feast.
 
 ### Berserker
-- **Base:** Cleave (right click), which builds Rage; Whirlwind (R), which spends it.
-- **Fury** (one big foe). Spells: Execute (W) or Berserk (V). Fixed: Brutality, Bloodthirst, Massacre; capstone Undying Fury. Wild: execute, desperate, leech, Cornered Beast.
-- **Carnage** (packs and charges). Spells: Leap (A) or Battle Shout (C, new: Rage to full and every ally near deals more for 8 s). Fixed: Unbridled Wrath, Sweeping Strikes, Shattering Leap (for Battle Shout: foes near take 25% more from everyone); capstone Bladestorm. Wild: packbane, frenzy, feast, Red Mist.
+- **Base:** Cleave (right click), which builds Rage; Execute (W), which spends it, far harder on a foe near death. A Berserker always has its finisher: the balance probe showed a Berserker that took Berserk over Execute had nothing to spend Rage on against a boss and walled at the crypt's second boss.
+- **Fury** (one big foe). Spells: Berserk (V) or Battle Shout (C: Rage to full, and the party near deals 12% more for 8 s). Fixed: Brutality, then Bloodthirst and Massacre, both about Execute, which every Berserker has; capstone Undying Fury. Wild: execute, desperate, leech, Cornered Beast.
+- **Carnage** (packs and charges). Spells: Whirlwind (R) or Leap (A). Fixed: Unbridled Wrath, Sweeping Strikes, Shattering Leap (what Leap lands on or Whirlwind cuts takes 25% more from everyone); capstone Red Mist. Wild: packbane, frenzy, feast, Bladestorm.
 
 ### Shadowblade
 - **Base:** Twin Strike (right click), poison and a combo point; Eviscerate (W), the finisher.

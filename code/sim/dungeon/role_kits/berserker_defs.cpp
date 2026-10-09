@@ -62,16 +62,13 @@
 #define BERSERK_TAKEN_SHARE 0.15f
 #define BERSERK_COOLDOWN 45.f
 
-// NOTE(zoubir): Battle Shout (C, from Carnage's pair against Leap): Rage
+// NOTE(zoubir): Battle Shout (C, from Fury's pair against Berserk): Rage
 // to full at once, and for BATTLE_SHOUT_SECONDS every ally within
 // BATTLE_SHOUT_REACH of the Berserker, and the Berserker, deals
-// BATTLE_SHOUT_SHARE more (UpdateRunTrees); with Shattering Leap the foes
-// within BATTLE_SHOUT_SUNDER_REACH are sundered as a Leap's landing
-// sunders
+// BATTLE_SHOUT_SHARE more (UpdateRunTrees)
 #define BATTLE_SHOUT_SECONDS 8.f
 #define BATTLE_SHOUT_SHARE 0.12f
 #define BATTLE_SHOUT_REACH 320.f
-#define BATTLE_SHOUT_SUNDER_REACH 160.f
 #define BATTLE_SHOUT_COOLDOWN 30.f
 
 // NOTE(zoubir): the talents, per rank or once taken
@@ -118,6 +115,7 @@ enum berserker_talent
     BerserkerTalent_Execute,
     BerserkerTalent_Leap,
     BerserkerTalent_BattleShout,
+    BerserkerTalent_Whirlwind,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
@@ -146,13 +144,15 @@ global_variable talent_def BerserkerTalentDefs[CLASS_TALENTS] =
      TalentBranch_Role, 4, 1, 4, 0},
     {"Unyielding", "You take less damage", "-4% damage taken",
      TalentBranch_Role, 5, 0, 4, 0},
-    {"Shattering Leap", "Foes Leap lands on, or near your Battle Shout, take 25% more from everyone for 6 s",
+    {"Shattering Leap", "Foes Leap lands on or Whirlwind cuts take 25% more from everyone for 6 s",
      "Leap breaks armor", TalentBranch_Role, 5, 1, 1, 0},
     {"Execute", "W: one chop that spends all your Rage, far harder under 25% health",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Leap", "A: a high jump to the cursor that slams, stuns and shoves where you land",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Battle Shout", "C: Rage to full, and you and the allies near deal 12% more for 8 s",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Whirlwind", "R: 30 Rage, spin for 1.5 s hitting everything around you five times",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
@@ -171,7 +171,7 @@ global_variable role_spell BerserkerSpells[ROLE_KEYS] =
      RoleAim_Ground, LEAP_RADIUS, BerserkerTalent_Leap + 1},
     {"Whirlwind", WHIRLWIND_COOLDOWN,
      "Whirlwind: 30 Rage, spin for 1.5 s hitting everything around you five times",
-     RoleAim_None, WHIRLWIND_RADIUS, 0, "30 Rage"},
+     RoleAim_None, WHIRLWIND_RADIUS, BerserkerTalent_Whirlwind + 1, "30 Rage"},
     {"Battle Shout", BATTLE_SHOUT_COOLDOWN,
      "Battle Shout: Rage to full; you and the allies near deal 12% more for 8 s",
      RoleAim_None, BATTLE_SHOUT_REACH, BerserkerTalent_BattleShout + 1},
@@ -179,7 +179,7 @@ global_variable role_spell BerserkerSpells[ROLE_KEYS] =
      RoleAim_None, 0.f, BerserkerTalent_Berserk + 1},
     {"Execute", EXECUTE_COOLDOWN,
      "Execute: spend all Rage on one chop, twice as hard under 25% health",
-     RoleAim_None, EXECUTE_REACH, BerserkerTalent_Execute + 1, "All Rage, 20 at least"},
+     RoleAim_None, EXECUTE_REACH, 0, "All Rage, 20 at least"},
     {},
     {"Cleave", CLEAVE_COOLDOWN, "Cleave: a wide swing of the axe through everything in front",
      RoleAim_None, CLEAVE_REACH, 0},

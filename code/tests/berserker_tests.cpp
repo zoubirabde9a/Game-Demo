@@ -49,9 +49,9 @@ TestBerserkerKeys()
     // NOTE(zoubir): the two base spells only, before any point
     ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    u32 Main = PlayerButton_Push | PlayerButton_Attack;
+    u32 Main = PlayerButton_Shockwave | PlayerButton_Attack;
     Check((Allowed & Main) == Main);
-    Check(!(Allowed & (PlayerButton_Launch | PlayerButton_Shockwave | PlayerButton_Slam |
+    Check(!(Allowed & (PlayerButton_Launch | PlayerButton_Push | PlayerButton_Slam |
                        PlayerButton_Kunai | PlayerButton_Cast)));
     SetClassTalentRank(Slot, BerserkerTalent_Bloodthirst, 2);
     SetClassTalentRank(Slot, BerserkerTalent_Berserk, 1);
@@ -449,8 +449,7 @@ TestShatteringLeapSunders()
 }
 
 // NOTE(zoubir): Battle Shout fills the Rage, raises the damage of the
-// Berserker and an ally near, not one far off, runs out with its time,
-// and with Shattering Leap sunders the foes round it
+// Berserker and an ally near, not one far off, and runs out with its time
 internal void
 TestBattleShout()
 {
@@ -469,9 +468,6 @@ TestBattleShout()
     // NOTE(zoubir): the far ally is checked by distance, wherever the walls
     // put it
     float FarOff = Length(Far->Entity->Position.XY - Player->Position.XY);
-    world_entity *Foe = BerserkerDummy(&Crypt, V3(80.f, 40.f, 0.f));
-    SetClassTalentRank(Slot, BerserkerTalent_ShatteringLeap, 1);
-    GrantClassSpells(Slot);
     Check(BerserkerRage(Slot) == 0);
     PressOnce(&Crypt, 0, PlayerButton_Slam);
     TickCrypt(&Crypt, 1);
@@ -481,7 +477,6 @@ TestBattleShout()
     Check(Near->RunAuraDamage >= BATTLE_SHOUT_SHARE - 0.001f);
     FarOff = Length(Far->Entity->Position.XY - Player->Position.XY);
     Check(FarOff <= BATTLE_SHOUT_REACH || Far->RunAuraDamage < 0.001f);
-    Check(FindFoeMark(AppState->Dungeon, &AppState->World, Foe) != 0);
     TickCrypt(&Crypt, (u32)(60.f * BATTLE_SHOUT_SECONDS) + 2);
     Check(!(Slot->ClassFlags & BERSERKER_FLAG_SHOUT) && Near->RunAuraDamage < 0.001f);
     DestroyCryptWorld(&Crypt);

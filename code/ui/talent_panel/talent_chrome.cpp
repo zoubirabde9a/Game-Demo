@@ -54,7 +54,7 @@ DrawTalentPanelHeader(render_context *RenderContext, app_state *AppState,
         Panel->Open = false;
     }
 
-    u32 Points = TalentPointsLeft(Slot);
+    u32 Points = TalentPointsToSpend(Slot, IsDungeon(AppState));
     if (Points)
     {
         snprintf(Text, sizeof(Text), "%u point%s to spend", Points, Points == 1 ? "" : "s");

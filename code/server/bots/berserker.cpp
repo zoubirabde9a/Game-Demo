@@ -159,8 +159,11 @@ BotBerserkerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, wor
     {
         Result |= NetButton_Shockwave;
     }
-    else if (Ready[1] && Near >= 2 && Rage >= WHIRLWIND_RAGE)
+    else if (Ready[1] && Rage >= WHIRLWIND_RAGE && Distance < Reach &&
+             (Near >= 2 || Rage >= 70 || !RoleSpellLearned(Slot, 4)))
     {
+        // NOTE(zoubir): Whirlwind on a pack, or on one foe when the Rage
+        // would go to waste: full, or no Execute taken to spend it
         Result |= NetButton_Push;
     }
     else if (Ready[6] && Distance < Reach)

@@ -39,7 +39,7 @@ DrawTalentStats(render_context *RenderContext, app_state *AppState, talent_panel
 
     char Value[48];
     u32 Spent = TalentPointsSpent(Slot);
-    snprintf(Value, sizeof(Value), "%u spent, %u left", Spent, TalentPointsLeft(Slot));
+    snprintf(Value, sizeof(Value), "%u spent, %u left", Spent, TalentPointsToSpend(Slot, IsDungeon(AppState)));
     DrawStatRow(RenderContext, Small, Left, Inner, Y, "Points", Value, UI_COLOR_TEXT);
     Y += TALENT_STATS_ROW;
     float Run = PlayerStats.RunSpeed * RunSpeedScale(AppState, Player);

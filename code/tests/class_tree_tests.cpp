@@ -183,12 +183,16 @@ TestClassTreePointRules()
     // NOTE(zoubir): the base spells cast from the start, a pair's not yet
     Check(RoleSpellLearned(Slot, 5) && RoleSpellLearned(Slot, 1));
     Check(!RoleSpellLearned(Slot, 4) && !RoleSpellLearned(Slot, 0));
-    Check(!LearnTalent(AppState, 0, NovaTalent));
-    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 0));
-    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 1));
-    // NOTE(zoubir): the other branch's tiers stay shut
-    Check(!LearnTalent(AppState, 0, Talent_RunFirst + 2));
+    // NOTE(zoubir): the pair opens with the first point, the tier below it
+    // with the spell, the one below that with two more in the branch
+    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + 0));
     Check(LearnTalent(AppState, 0, NovaTalent));
+    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 0));
+    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + 4));
+    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 1));
+    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 4));
+    // NOTE(zoubir): the other branch's points do not open this one
+    Check(!LearnTalent(AppState, 0, Talent_RunFirst + 0));
     Check(RoleSpellLearned(Slot, 4) && !RoleSpellLearned(Slot, 0));
     Check(CanLearnTalent(Slot, BlizzardTalent) == TalentRefusal_OtherSpell);
     Check(!LearnTalent(AppState, 0, BlizzardTalent));
@@ -203,7 +207,7 @@ TestClassTreePointRules()
     AppState->NextMap = MapId_Depths;
     StartNextRoundMap(AppState, &Crypt.Arena);
     Check(Slot->TreeSeed != Seed && Slot->TreeSeed <= RUN_SEED_MASK);
-    Check(Slot->Ranks[Talent_RoleFirst + 1] == 1 && Slot->Ranks[NovaTalent] == 1);
+    Check(Slot->Ranks[Talent_RoleFirst + 4] == 1 && Slot->Ranks[NovaTalent] == 1);
     u32 Same = 0;
     for(u32 Index = 0; Index < CLASS_TREE_SLOTS; Index++)
     {

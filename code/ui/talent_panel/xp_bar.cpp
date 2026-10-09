@@ -201,7 +201,7 @@ DrawTalentPointsButton(render_context *RenderContext, app_state *AppState,
                        app_input *Input, float X, float CentreY, bool32 PanelOpen)
 {
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
-    u32 Points = TalentPointsLeft(Slot);
+    u32 Points = TalentPointsToSpend(Slot, IsDungeon(AppState));
     font *Strong = AppState->Fonts.Strong ? AppState->Fonts.Strong : AppState->Fonts.Body;
     font *Small = AppState->Fonts.Small;
     char Text[32];
@@ -358,7 +358,7 @@ DrawXpOverlays(render_context *RenderContext, app_state *AppState,
         snprintf(Text, sizeof(Text), "LEVEL %u", Bar->BannerLevel);
         UIText(RenderContext, Title, 0.5f * (float)WindowWidth, Y + 12.f, Text,
                WithAlpha(UI_RGBA(255, 232, 160, 255), Alpha), UIAlign_Center);
-        u32 Points = TalentPointsLeft(Slot);
+        u32 Points = TalentPointsToSpend(Slot, IsDungeon(AppState));
         Text[0] = 0;
         if (Points)
         {
