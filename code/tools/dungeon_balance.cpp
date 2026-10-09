@@ -38,6 +38,8 @@
    PROBE_TREE=class has the bots spend their points in the class tree
    only, PROBE_TREE=run in the second tree first (sim/dungeon/run_tree/);
    unset, they pick from both at random as a server's bots do.
+   PROBE_TREE=core-class and core-run unlock the class's C and V spells
+   first, then spend the rest in that one tree.
    Build and run: misc\balance.bat [same arguments], which rebuilds the
    probe only when the code changed. */
 
@@ -110,8 +112,23 @@ SpendBotTalents(server_game *Game)
 #pragma warning(pop)
         u32 Wanted = (Tree && strcmp(Tree, "class") == 0) ? TalentBranch_Role :
             (Tree && strcmp(Tree, "run") == 0) ? TalentBranch_Run : TalentBranch_Count;
+        // NOTE(zoubir): =core-class and =core-run unlock the class's C and
+        // V spells first, as a player would, then spend the rest in one
+        // tree, so the two trees' points compare
+        bool32 Core = Tree && strncmp(Tree, "core-", 5) == 0;
+        if (Core)
+        {
+            Wanted = strcmp(Tree + 5, "run") == 0 ? TalentBranch_Run : TalentBranch_Role;
+        }
         while (TalentPointsLeft(Player) > 0)
         {
+            if (Core)
+            {
+                bool32 Spells = Player->Ranks[Talent_RoleFirst + ROLE_TALENT_C_SPELL] &&
+                    Player->Ranks[Talent_RoleFirst + ROLE_TALENT_V_SPELL];
+                Wanted = Spells ? (strcmp(Tree + 5, "run") == 0 ? TalentBranch_Run : TalentBranch_Role) :
+                    TalentBranch_Role;
+            }
             u32 Pick = BotPickTalent(&Game->Bots[Slot], Game->AppState, Player) >> NET_LEARN_SHIFT;
             for (u32 Try = 0; Try < 64 && Pick && Wanted != TalentBranch_Count &&
                  TalentDefs[Pick - 1].Branch != Wanted; ++Try)
