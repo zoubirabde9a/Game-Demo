@@ -1,4 +1,0 @@
-who: agent/abilityfx, agent/abilityfx-roles, agent/abilityfx-hunters, agent/abilityfx-storm, agent/abilityfx-frost, agent/abilityfx-bosses
-task: audit every class spell and boss ability for missing visuals (cast, flight, hit, ground, lasting) and fill the gaps; one branch per group of classes, one for bosses
-files: code/client/dungeon/classes/*, code/client/dungeon/role_fx.cpp, code/client/dungeon/foe_mark_fx.cpp, code/client/dungeon/dungeon_fx.cpp, code/client/fx_bursts.cpp, code/client/fx_bursts/*, code/client/player_fx/*, code/client/danger_zones.cpp, code/client/dungeon/boss_fx/*, code/client/dungeon/deep_fx.cpp, code/client/dungeon/rift_fx.cpp, code/client/dungeon/starless_fx.cpp, code/sim/events.h, code/sim/dungeon/role_kits/<class>.cpp and <class>/ (bursts only, not *_defs.cpp), code/server/sim_game/dungeon.cpp (foe mark bits)
-since: 2026-10-09
