@@ -99,4 +99,21 @@ Every class has its two branches, its spell pairs and its pools in the game (`cl
 | Duelist | nothing beyond tuning |
 | Frost Mage | nothing beyond tuning |
 | Druid | nothing beyond tuning |
-| Every class | the balance probe has not been rerun on the new trees |
+| Every class | the Intercept and Entangling Roots code is still in the kits, unreachable |
+
+## Balance
+
+Measured with the balance probe (`miscalance.bat 200 3 2 16`, `PROBE_LEVELS=2`): a tank, a healer and one damage bot, 16 seeds, crypt into depths, each bot taking a coin toss of every pair. Wipes a kill at the worst room, and the last boss's average fight:
+
+| Damage or healer bot | Worst wipes a kill | Throne of Embers | Before the reshape (Throne of Embers) |
+|---|---|---|---|
+| Fire Mage | 1.1 | 59 s | 52 s |
+| Berserker | 2.8 (Anvil Hall) | 91 s | 85 s |
+| Duelist | 2.8 (Slag Pits) | 54 s | 55 s |
+| Ranger | 1.5 | 57 s | |
+| Shadowblade | 1.75 | 62 s | |
+| Stormcaller | 1.7 | 75 s | |
+| Frost Mage | 1.0 | 56 s | |
+| Druid as the healer | 1.9 | 64 s | |
+
+How it got there: on the first trees every party took about twice as long, and given every spell back the same party was as fast as before, so four spells had to hit as hard as six. The pairs moved to the first tier with the first one free, every class's damage rose by about what it lost (`RoleTable`, roles.cpp), and the Berserker and the Druid got their spender and their steady heal back in the base kit. The crypt's first room is still slower than it was (24 to 28 s against 17): a level-1 party casts three spells.
