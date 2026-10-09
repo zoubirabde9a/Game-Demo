@@ -4,8 +4,8 @@
 // there (SetBodySwing), so its rows have no pose.
     {BurstShape_Role, 0.42f, CLEAVE_REACH, 0x003232E1, false, 0.12f, BurstPose_None},    // Cleave
     {BurstShape_Role, 0.42f, CLEAVE_REACH, 0x003232E1, false, 0.12f, BurstPose_None},    // CleaveBack
-    {BurstShape_Role, 0.1f, 1.f, 0, false, 0.f, BurstPose_None},                         // Spare1
-    {BurstShape_Role, 0.1f, 1.f, 0, false, 0.f, BurstPose_None},                         // Spare2
+    {BurstShape_Role, 0.6f, RAMPAGE_LENGTH, 0x003232E1, false, 0.3f, BurstPose_None},    // Rampage
+    {BurstShape_Role, 1.f, BATTLE_SHOUT_REACH, 0x0040B0FF, false, 0.4f, BurstPose_Release}, // Shout
     {BurstShape_Role, LEAP_SECONDS + 0.05f, LEAP_RADIUS, 0x003232E1, false, 0.1f, BurstPose_Release}, // Leap
     {BurstShape_Role, 0.75f, LEAP_RADIUS, 0x003232E1, false, 0.75f, BurstPose_None},      // Slam
     {BurstShape_Role, 0.7f, 60.f, 0x003232E1, false, 0.8f, BurstPose_None},               // Execute

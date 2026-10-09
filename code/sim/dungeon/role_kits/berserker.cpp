@@ -93,7 +93,7 @@ CastBerserkerKey(app_state *AppState, world *World, memory_arena *Arena, player_
         case 2:
         {
             BattleShout(AppState, Slot, Player);
-            EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, BerserkerBurst_Berserk),
+            EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, BerserkerBurst_Shout),
                       SlotIndex, Player->Position, ATan2(Aim.Y, Aim.X));
             EmitSound(&AppState->Events, AssetType_SfxTaunt, Player->Position);
         } break;

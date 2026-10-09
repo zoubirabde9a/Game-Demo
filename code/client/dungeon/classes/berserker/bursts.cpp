@@ -10,7 +10,11 @@
    - Execute: a column of light chopping down on the spot, a flash, a
      spray of blood along the blow and a small shock ring;
    - Berserk: a war cry, two red rings out from the Berserker, steam
-     bursting off it. */
+     bursting off it;
+   - Rampage: the charge's path from where it started, its length the
+     burst's number: a red smear RAMPAGE_WIDTH wide racing to the end,
+     dust thrown off both sides and the Berserker's afterimages fading
+     along it. */
 
 // NOTE(zoubir): a red ring's front racing out, Front from Centre, glowing
 // in to Thickness under a hot rim; the class's waves are red to the edge,
@@ -206,5 +210,70 @@ DrawLeapMark(render_context *RenderContext, role_burst *Burst, float T, float Cl
         v2 Way = V2(Cos(A), Sin(A));
         DrawFxStroke(RenderContext, Spot + 6.f * Way, Spot + (16.f + 4.f * Beat) * Way, 5.f, 2.f,
                      FxColor(In, BERSERKER_CRIMSON_RGB), FxColor(0.6f * In, BERSERKER_HOT_RGB));
+    }
+}
+
+// NOTE(zoubir): Rampage's path, the run's length the burst's number
+// (RangerBurstSpot); the Berserker is already at its end, so the smear's
+// front races there in the first share of the burst, then fades from the
+// start. Afterimages of the body stand along it, the oldest faintest
+internal void
+DrawRampageBurst(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
+{
+    float Run = (float)RangerBurstVariant(Burst->Position);
+    v3 Place = RangerBurstPlace(Burst->Position);
+    v2 Dir = V2(Cos(Burst->Angle), Sin(Burst->Angle));
+    v2 Across = V2(-Dir.Y, Dir.X);
+    v2 Start = BurstToScreen(Place, CameraOffset);
+    v2 End = Start + Run * Dir;
+    float Front = 1.f - Square(1.f - Clamp01(T / 0.18f));
+    float Back = Square(Clamp01((T - 0.15f) / 0.85f));
+    float Fade = 1.f - T;
+    v2 Head = Start + Front * Run * Dir;
+    v2 Tail = Start + Back * Run * Dir;
+    DrawFxStroke(RenderContext, Tail, Head, 0.4f * RAMPAGE_WIDTH, RAMPAGE_WIDTH,
+                 FxColor(0.f, BERSERKER_BLOOD_RGB), FxColor(0.55f * Fade, BERSERKER_CRIMSON_RGB));
+    DrawFxStroke(RenderContext, Tail, Head, 0.f, 0.3f * RAMPAGE_WIDTH,
+                 FxColor(0.f, BERSERKER_HOT_RGB), FxColor(0.7f * Fade, BERSERKER_HOT_RGB));
+    // NOTE(zoubir): the ground torn along both edges
+    for(u32 Side = 0; Side < 2; Side++)
+    {
+        float Way = Side ? 1.f : -1.f;
+        v2 Edge = 0.5f * RAMPAGE_WIDTH * Way * Across;
+        DrawFxStroke(RenderContext, Tail + Edge, Head + Edge, 0.f, 3.f,
+                     FxColor(0.f, BERSERKER_DARK_RGB), FxColor(0.6f * Fade, BERSERKER_DARK_RGB),
+                     RenderBlend_Alpha);
+    }
+    // NOTE(zoubir): dust kicked off both sides where the front has passed
+    for(u32 Puff = 0; Puff < 12; Puff++)
+    {
+        float Along = ((float)(Puff / 2) + 0.5f * BurstJitter(Puff, 641)) / 6.f;
+        float Since = Clamp01((T - 0.18f * Along) / 0.7f);
+        if (Along > Front || Since >= 1.f)
+        {
+            continue;
+        }
+        float Way = (Puff & 1) ? 1.f : -1.f;
+        float Out = 0.5f * RAMPAGE_WIDTH + 34.f * (1.f - Square(1.f - Since));
+        v2 P = Start + Along * Run * Dir + Way * Out * Across - V2(0.f, 10.f * Since);
+        float Size = 8.f + 14.f * Since;
+        DrawShaderQuad(RenderContext, Shader_Glow, P.X - Size, P.Y - Size, 2.f * Size, 2.f * Size,
+                       FxColor(0.5f * (1.f - Since), 0x0090A0B0), RenderBlend_Alpha);
+    }
+    // NOTE(zoubir): afterimages, a red shape of the body at three points
+    // on the way, each fainter the further back
+    for(u32 Ghost = 0; Ghost < 3; Ghost++)
+    {
+        float Along = 0.25f + 0.25f * (float)Ghost;
+        if (Along > Front)
+        {
+            continue;
+        }
+        float Alpha = (0.25f + 0.2f * (float)Ghost) * Square(1.f - Clamp01(T / (0.5f + 0.15f * (float)Ghost)));
+        v2 Feet = Start + Along * Run * Dir;
+        DrawShaderQuad(RenderContext, Shader_Glow, Feet.X - 14.f, Feet.Y - 50.f, 28.f, 52.f,
+                       FxColor(Alpha, BERSERKER_CRIMSON_RGB), RenderBlend_Additive);
+        DrawShaderQuad(RenderContext, Shader_Glow, Feet.X - 9.f, Feet.Y - 58.f, 18.f, 18.f,
+                       FxColor(Alpha, BERSERKER_HOT_RGB), RenderBlend_Additive);
     }
 }

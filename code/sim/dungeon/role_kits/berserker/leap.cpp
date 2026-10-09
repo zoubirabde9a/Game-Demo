@@ -113,8 +113,12 @@ CastRampage(app_state *AppState, world *World, memory_arena *Arena, player_slot 
         Struck++;
     }
     AddRage(Slot, RAMPAGE_RAGE * (float)Struck);
-    EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, BerserkerBurst_Leap),
-              (u8)Player->PlayerIndex, V3(To.X, To.Y, Player->GroundZ));
+    // NOTE(zoubir): the charge's path for clients to draw: from the start
+    // along the aim, the run's length as the burst's number
+    EmitBurst(&AppState->Events, ClassBurst(SimBurst_BerserkerFirst, BerserkerBurst_Rampage),
+              (u8)Player->PlayerIndex,
+              RangerBurstSpot(V3(From.X, From.Y, Player->GroundZ), (u32)(Run + 0.5f)),
+              ATan2(Dir.Y, Dir.X));
     EmitSound(&AppState->Events, AssetType_SfxDash, Player->Position);
     if (Run > 1.f)
     {

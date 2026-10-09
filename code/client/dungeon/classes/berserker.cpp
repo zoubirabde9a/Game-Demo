@@ -7,7 +7,8 @@
 
    berserker/axe_art.cpp draws the great axe, the hand axe and a swing's
    crescent; berserker/look.cpp where the axe is in the hands and the
-   glow round the body; berserker/bursts.cpp each burst. */
+   glow round the body; berserker/bursts.cpp each burst;
+   berserker/shout_fx.cpp Battle Shout's cry and the mark it leaves. */
 
 // NOTE(zoubir): a swing's timing as shares of its burst: the axe pulled
 // back past the start, then whipped across; the height of its centre over
@@ -22,6 +23,7 @@
 #include "berserker/axe_art.cpp"
 #include "berserker/look.cpp"
 #include "berserker/bursts.cpp"
+#include "berserker/shout_fx.cpp"
 
 // NOTE(zoubir): a living Berserker's look, over its sprite, every frame
 internal void
@@ -114,6 +116,14 @@ DrawBerserkerBurst(render_context *RenderContext, app_state *AppState, role_burs
         {
             DrawBerserkBurst(RenderContext, AppState, Burst, T, CameraOffset);
         } break;
+        case BerserkerBurst_Shout:
+        {
+            DrawShoutBurst(RenderContext, AppState, Burst, T, CameraOffset);
+        } break;
+        case BerserkerBurst_Rampage:
+        {
+            DrawRampageBurst(RenderContext, Burst, T, CameraOffset);
+        } break;
     }
 }
 
@@ -169,6 +179,7 @@ internal void
 DrawBerserkerFx(render_context *RenderContext, app_state *AppState, v3 CameraOffset)
 {
     StartBerserkerBursts(AppState);
+    DrawBattleShoutMarks(RenderContext, AppState, CameraOffset);
     world *World = &AppState->World;
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {

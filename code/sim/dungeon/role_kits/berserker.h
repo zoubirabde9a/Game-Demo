@@ -26,7 +26,9 @@
 // - Cleave, CleaveBack: the axe's swing round Position (the feet), across
 //   Angle, one way round or the other; BERSERKER_WIDE_CLEAVE higher when
 //   Sweeping Strikes widens it;
-// - Spare1, Spare2: unused, so the class keeps its CLASS_BURSTS rows;
+// - Rampage: the charge from Position along Angle, its length the burst's
+//   number (RangerBurstSpot), as the Berserker is moved to its end;
+// - Shout: Battle Shout's cry at Position, out to BATTLE_SHOUT_REACH;
 // - Leap: the jump starting, Position where it lands;
 // - Slam: the Leap landing at Position;
 // - Execute: the chop landing at Position, along Angle;
@@ -37,8 +39,8 @@ enum berserker_burst
 {
     BerserkerBurst_Cleave,
     BerserkerBurst_CleaveBack,
-    BerserkerBurst_Spare1,
-    BerserkerBurst_Spare2,
+    BerserkerBurst_Rampage,
+    BerserkerBurst_Shout,
     BerserkerBurst_Leap,
     BerserkerBurst_Slam,
     BerserkerBurst_Execute,
