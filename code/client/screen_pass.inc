@@ -30,6 +30,7 @@ DrawAbilityBar(RenderContext, AppState, Input, Window->Width, Window->Height);
 DrawStatusStrip(RenderContext, AppState, Window->Width, Window->Height); // the local player's running status effects, ui/status_strip.cpp
 DoCastModeToggle(RenderContext, AppState, Input, Window->Width); // quick cast checkbox at the top, ui/cast_mode_toggle.cpp
 DrawXpOverlays(RenderContext, AppState, Window->Width, Window->Height); // XP gains and the level-up banner, ui/talent_panel/xp_bar.cpp
+DrawWildRollCard(RenderContext, AppState, Window->Width, Window->Height); // what the second tree's wild slots rolled, as a run starts, ui/dungeon/wild_roll_banner.cpp
 DrawMinimap(RenderContext, AppState, Window->Width);
 DrawKillFeed(RenderContext, AppState, Window->Width); // recent kills under the minimap, ui/kill_feed_view.cpp
 DrawChat(RenderContext, AppState, Window->Width, Window->Height); // chat lines and the line being typed, bottom left, ui/chat_view.cpp
