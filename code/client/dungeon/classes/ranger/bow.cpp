@@ -14,6 +14,8 @@
 #define RANGER_FX_STRING_RGB 0x00D2E6EB
 #define RANGER_FX_STEEL_RGB 0x00E0DCD2
 #define RANGER_FX_GOLD_RGB 0x0096E6FF
+// NOTE(zoubir): Kill Shot's arrow and its hit
+#define RANGER_FX_CRIMSON_RGB 0x003C28DC
 
 // NOTE(zoubir): the youngest burst Index of the Ranger in SlotIndex, how
 // long ago it started; a big number for none

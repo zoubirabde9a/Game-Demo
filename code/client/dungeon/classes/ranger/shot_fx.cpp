@@ -2,7 +2,10 @@
    arrow leaves the bow of the Ranger in the burst's slot and flies at
    RANGER_ARROW_SPEED to the burst's spot, where the server lands its hit
    as it arrives: sparks, splinters and a puff of teal wind; a miss
-   sticks quivering in the floor. A Piercing Shot is a heavy arrow that
+   sticks quivering in the floor. Kill Shot's arrow is heavier and
+   crimson with a long trail, and lands in a crimson flash and ring,
+   bigger with a cross of light at a foe under a quarter of its health.
+   A Piercing Shot is a heavy arrow that
    flies its whole line with a long trail, bigger and brighter the more
    Focus it spent (gold on a Deadeye crit), splintering on every foe it
    passes. Disengage kicks dust and wind back along the leap; Focus
@@ -55,14 +58,17 @@ DrawRangerArrowBurst(render_context *RenderContext, app_state *AppState, role_bu
     v2 Line = To - From;
     v2 ScreenDir = NormalizeOr(Line, Dir);
     bool32 Rapid = Variant == RangerArrow_Rapid;
-    float Size = Rapid ? 0.85f : 1.f;
+    bool32 Kill = Variant == RangerArrow_Kill || Variant == RangerArrow_KillLow;
+    bool32 Low = Variant == RangerArrow_KillLow;
+    float Size = Rapid ? 0.85f : (Kill ? 1.3f : 1.f);
+    u32 TrailRGB = Kill ? RANGER_FX_CRIMSON_RGB : RANGER_FX_TEAL_RGB;
     if (Elapsed < Flight)
     {
         float Fly = Elapsed / Flight;
         v2 Head = From + Fly * Line;
-        float Trail = Minimum(90.f, Fly * Length(Line));
-        DrawRangerArrow(RenderContext, Head, ScreenDir, 24.f * Size, 1.f, Trail, 0.5f, Size,
-                        RANGER_FX_TEAL_RGB);
+        float Trail = Minimum(Kill ? 200.f : 90.f, Fly * Length(Line));
+        DrawRangerArrow(RenderContext, Head, ScreenDir, 24.f * Size, 1.f, Trail, Kill ? 1.f : 0.5f, Size,
+                        TrailRGB);
         return;
     }
     float After = Clamp01((Elapsed - Flight) / Maximum(0.05f, RoleBurstLife(Burst->Kind) - Flight));
@@ -81,6 +87,23 @@ DrawRangerArrowBurst(render_context *RenderContext, app_state *AppState, role_bu
             DrawFxDot(RenderContext, Stuck + GroundCircle(A, 4.f + 12.f * After), 3.f,
                       FxColor(0.5f * (1.f - After), 0x0090A8B8));
         }
+        return;
+    }
+    if (Kill)
+    {
+        // NOTE(zoubir): Kill Shot lands heavy: a crimson flash and ring,
+        // bigger and with a cross of light on a foe near death
+        float Big = Low ? 1.8f : 1.2f;
+        float Fade = 1.f - After;
+        DrawShaderQuad(RenderContext, Shader_Glow, To.X - 34.f * Big, To.Y - 34.f * Big, 68.f * Big,
+                       68.f * Big, FxColor(0.8f * Fade, RANGER_FX_CRIMSON_RGB), RenderBlend_Additive);
+        RangerRing(RenderContext, To, (12.f + 36.f * (1.f - Fade * Fade)) * Big, 6.f * Fade, Fade,
+                   RANGER_FX_CRIMSON_RGB);
+        if (Low)
+        {
+            DrawLightCross(RenderContext, To, 50.f * Fade, FxColor(Fade, 0x00FFFFFF));
+        }
+        DrawRangerImpact(RenderContext, To, ScreenDir, After, Big, RANGER_FX_CRIMSON_RGB);
         return;
     }
     DrawRangerImpact(RenderContext, To, ScreenDir, After, Rapid ? 0.75f : 1.f, RANGER_FX_TEAL_RGB);

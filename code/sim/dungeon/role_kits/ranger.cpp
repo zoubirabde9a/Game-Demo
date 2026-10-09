@@ -64,6 +64,10 @@ enum ranger_arrow_variant
     RangerArrow_Quick,
     RangerArrow_Miss,
     RangerArrow_Rapid,
+    // NOTE(zoubir): Kill Shot's heavy arrow, and one at a foe under
+    // KILL_SHOT_LOW of its health when loosed, which hits twice as hard
+    RangerArrow_Kill,
+    RangerArrow_KillLow,
 };
 
 // NOTE(zoubir): a burst carries a small number too (an arrow's variant,
@@ -157,8 +161,9 @@ CastRangerKey(app_state *AppState, world *World, memory_arena *Arena, player_slo
             {
                 return false;
             }
+            bool32 Low = Foe->MaxHp > 0.f && Foe->Hp < KILL_SHOT_LOW * Foe->MaxHp;
             ShootRangerArrow(AppState, Player, Foe, RangerShot_Kill, KILL_SHOT_DAMAGE,
-                             RangerArrow_Quick);
+                             Low ? RangerArrow_KillLow : RangerArrow_Kill);
             EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
         } break;
 
