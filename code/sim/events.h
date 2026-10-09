@@ -97,14 +97,51 @@ enum sim_burst
     SimBurst_DuelistFirst = SimBurst_StormcallerFirst + CLASS_BURSTS,
     SimBurst_FrostMageFirst = SimBurst_DuelistFirst + CLASS_BURSTS,
     SimBurst_DruidFirst = SimBurst_FrostMageFirst + CLASS_BURSTS,
-    SimBurst_Count = SimBurst_DruidFirst + CLASS_BURSTS
+    // NOTE(zoubir): the first three roles' later spells (sim/dungeon/
+    // role_kits/tank.cpp, healer.cpp, striker.cpp and their folders),
+    // drawn by client/dungeon/role_fx/. Kinds stay under 128: the wire
+    // flags a burst's number on the kind byte's top bit
+    SimBurst_Dawnbreak = SimBurst_DruidFirst + CLASS_BURSTS, // a beam of light from Position along Angle
+    SimBurst_Count
 };
+static_assert(SimBurst_Count <= 128, "a burst kind and its number flag share a byte");
 
 // NOTE(zoubir): burst Index of a class's range
 inline sim_burst
 ClassBurst(sim_burst First, u32 Index)
 {
     sim_burst Result = (sim_burst)(First + Index);
+    return Result;
+}
+
+// NOTE(zoubir): a burst can carry a small number (a radius, a hop's
+// length) as whole BURST_NUMBER_STEP steps added to its height, as the
+// later classes' do (RangerBurstSpot); online it arrives whole
+// (net/protocol/bursts.cpp), and no burst is drawn that high
+#define BURST_NUMBER_STEP 4096.f
+
+inline v3
+NumberedBurstSpot(v3 Position, u32 Number)
+{
+    v3 Result = Position;
+    Result.Z += BURST_NUMBER_STEP * (float)Number;
+    return Result;
+}
+
+inline u32
+BurstSpotNumber(v3 Position)
+{
+    float Steps = floorf((Position.Z + 0.5f * BURST_NUMBER_STEP) / BURST_NUMBER_STEP);
+    u32 Result = Steps > 0.f ? (u32)Steps : 0;
+    return Result;
+}
+
+// NOTE(zoubir): where a numbered burst really is
+inline v3
+BurstSpotPlace(v3 Position)
+{
+    v3 Result = Position;
+    Result.Z -= BURST_NUMBER_STEP * (float)BurstSpotNumber(Position);
     return Result;
 }
 

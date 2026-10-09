@@ -84,6 +84,8 @@ CastDawnbreak(app_state *AppState, player_slot *Slot, world_entity *Player)
         EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Monster));
         OnHealerShot(AppState, Player, Monster, Before - Maximum(0.f, Monster->Hp));
     }
+    // NOTE(zoubir): the beam shows whether or not it found a foe
+    EmitBurst(&AppState->Events, SimBurst_Dawnbreak, SlotIndex, ChestOf(Player), ATan2(Dir.Y, Dir.X));
     EmitSound(&AppState->Events, AssetType_SfxFireCast, Player->Position);
 }
 

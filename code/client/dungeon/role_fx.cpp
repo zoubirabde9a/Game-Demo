@@ -24,7 +24,10 @@
      at the healer and a Mending Bolt's crosses on every ally it heals.
 
    The later classes' bursts and lasting effects are their own files
-   (classes/<class>.cpp, through classes/class_fx.cpp).
+   (classes/<class>.cpp, through classes/class_fx.cpp), and so are the
+   first three roles' later spells (role_fx/). A burst's number, when it
+   carries one (BurstSpotNumber, sim/events.h), is taken off its height
+   here and kept beside it.
 
    Lasting things are drawn from the run instead, the same offline and
    online: a Meteor falling onto its marked circle, then the ground
@@ -49,6 +52,7 @@ struct role_burst
     v3 Position;
     float Angle;
     float Start;
+    u32 Number;
 };
 
 struct role_fx
@@ -114,7 +118,10 @@ AddRoleBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position, float A
     role_burst *Burst = &Fx->Bursts[Fx->Count++];
     Burst->Kind = Kind;
     Burst->Slot = Slot;
-    Burst->Position = Position;
+    // NOTE(zoubir): the later classes read their own numbers
+    bool32 Numbered = Kind < SimBurst_RangerFirst || Kind >= SimBurst_Dawnbreak;
+    Burst->Number = Numbered ? BurstSpotNumber(Position) : 0;
+    Burst->Position = Numbered ? BurstSpotPlace(Position) : Position;
     Burst->Angle = Angle;
     Burst->Start = GetFxClock(AppState);
 }
@@ -144,12 +151,14 @@ DrawLightCross(render_context *RenderContext, v2 P, float Size, u32 Color)
 }
 
 #include "classes/class_fx.cpp"
+#include "role_fx/mender_fx.cpp"
 
 internal void
 DrawRoleBurst(render_context *RenderContext, app_state *AppState, role_burst *Burst,
               float T, v3 CameraOffset)
 {
-    if (DrawClassBurst(RenderContext, AppState, Burst, T, CameraOffset))
+    if (DrawClassBurst(RenderContext, AppState, Burst, T, CameraOffset) ||
+        DrawMenderBurst(RenderContext, AppState, Burst, T, CameraOffset))
     {
         return;
     }
