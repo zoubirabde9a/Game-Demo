@@ -186,8 +186,10 @@ BotRangerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world_
     {
         return NetButton_Slam;
     }
-    world_entity *MarkOn = (Boss && Length(Boss->Position.XY - Self->Position.XY) < QUICK_SHOT_RANGE) ?
-        Boss : Target;
+    // NOTE(zoubir): the mark stays on the boss, but for an add about to
+    // erupt, which every shot goes to
+    world_entity *MarkOn = (Boss && !BotMustKillAdd(AppState, Target) &&
+                            Length(Boss->Position.XY - Self->Position.XY) < QUICK_SHOT_RANGE) ? Boss : Target;
     // NOTE(zoubir): close in: leap away, leaving the snare in its path
     if (CanLeap && Distance < 90.f && BotRandom(Bot) % 6 == 0)
     {

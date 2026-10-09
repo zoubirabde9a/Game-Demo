@@ -1,6 +1,6 @@
-found-by: agent/wildtrees
-files: code/sim/dungeon/role_kits/stormcaller*, code/sim/dungeon/role_kits/duelist*, code/sim/dungeon/role_kits/ranger*, code/server/bots/stormcaller.cpp, code/server/bots/duelist.cpp, code/server/bots/ranger.cpp
+found-by: agent/wildtrees (narrowed by agent/classtrees)
+files: code/server/bots/duelist.cpp, code/server/bots/berserker.cpp, code/server/bots/bot_dangers.cpp, code/sim/dungeon/vault_encounters.cpp
 since: 2026-10-09
-what: in the balance probe a party whose damage bot is a Stormcaller or a Duelist almost never kills the Rimeheart Throne (the vault's boss): over 24 seeds the Stormcaller party wiped 2624 times for 2 kills, the Duelist party never got there (stuck at Shiver Hall in 8 seeds, 11-16 wipes a kill at the Throne of Embers). A Ranger party kills it but wipes 47-75 times a kill. Fire Mage, Frost Mage and Shadowblade parties wipe 1-8 times a kill there. Measured before 1b45f9f (Duelist tuning), with class talents only.
-reproduce: set PROBE_TREE=class& set PROBE_LEVELS=4& set GAME_BOT_DAMAGE=stormcaller& misc\balance.bat 400 3 2 24 (likewise duelist, ranger)
-fix: unknown; boss times for these three are also 1.5-2x the Fire Mage's at the first two bosses, so it may be kit damage on single targets or the bots standing in the boss's attacks
+what: the Rimeheart Throne part is fixed (22d0ebf and after): bots now focus the Rime Champion, which erupted on the party while they stayed on the boss. With PROBE_MAP=vault, 12 seeds, the vault boss now costs 0.2 to 1.2 wipes a kill for every damage class probed (Fire Mage, Stormcaller, Berserker, Duelist, Ranger). Still open: the Shiver Hall walls the melee parties. Duelist party 6.7 wipes a kill there, Berserker 3.1, against 0.25 to 0.75 for Fire Mage, Stormcaller and Ranger. The melee bot dies in the middle of the big elite pack (elite brutes and bats, toads, an elite warden).
+reproduce: set PROBE_MAP=vault& set GAME_BOT_DAMAGE=duelist& misc\balance.bat 300 3 2 12 (likewise berserker); PROBE_DEATHS=1 PROBE_VERBOSE=1 with 1 seed lists who killed them
+fix: unknown; melee bots may need to wait for the tank to gather the pack, or keep to its edge
