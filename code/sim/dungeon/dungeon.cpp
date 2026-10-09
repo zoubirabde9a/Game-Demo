@@ -332,6 +332,11 @@ DungeonScaleDamage(app_state *AppState, world_entity *Target,
         {
             Result *= SHIELD_WALL_SCALE;
         }
+        // NOTE(zoubir): a Shadowblade just out of Shadowstep
+        if (Slot->Role == PlayerRole_Shadowblade && Slot->Shadowblade.GuardSeconds > 0.f)
+        {
+            Result *= SHADOWSTEP_GUARD_SCALE;
+        }
         // NOTE(zoubir): a tank's Shield Slam rallied them
         if (Slot->RallySeconds > 0.f)
         {

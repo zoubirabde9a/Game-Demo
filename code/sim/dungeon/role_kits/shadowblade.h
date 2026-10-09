@@ -20,12 +20,19 @@
 
 #define SHADOWBLADE_MOST_POINTS 5
 
+// NOTE(zoubir): for this long after Shadowstep the Shadowblade takes
+// this share of a hit (DungeonScaleDamage, dungeon.cpp)
+#define SHADOWSTEP_GUARD_SECONDS 1.f
+#define SHADOWSTEP_GUARD_SCALE 0.1f
+
 struct shadowblade_slot
 {
     // NOTE(zoubir): seconds left of the critical strike Shadowstep gives
     // and of Shadow Dance
     float CritSeconds;
     float DanceSeconds;
+    // NOTE(zoubir): seconds left of Shadowstep's guard
+    float GuardSeconds;
     // NOTE(zoubir): Twin Strike's second cut, landing CutDelay after the
     // first along CutDirection
     float CutDelay;

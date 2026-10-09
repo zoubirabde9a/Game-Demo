@@ -52,6 +52,7 @@ UpdateShadowbladeSlot(app_state *AppState, dungeon_run *Run, player_slot *Slot, 
     }
     Blade->CritSeconds = Maximum(0.f, Blade->CritSeconds - DeltaTime);
     Blade->DanceSeconds = Maximum(0.f, Blade->DanceSeconds - DeltaTime);
+    Blade->GuardSeconds = Maximum(0.f, Blade->GuardSeconds - DeltaTime);
     Blade->IdleSeconds += DeltaTime;
     // NOTE(zoubir): out of a fight a moment after the last strike, or a
     // long while without one in it, the points go one by one

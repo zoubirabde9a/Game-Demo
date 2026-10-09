@@ -159,6 +159,23 @@ PoisonFoe(app_state *AppState, player_slot *Slot, world_entity *Foe)
 #include "shadowblade/twin_strike.cpp"
 #include "shadowblade/deadly_throw.cpp"
 
+// NOTE(zoubir): Shadowstep leaves the Shadowblade's threat behind: every
+// monster forgets it and turns on whoever it hated next
+internal void
+ShadowstepDropsThreat(app_state *AppState, world_entity *Player)
+{
+    dungeon_run *Run = AppState->Dungeon;
+    if (!Run || Player->PlayerIndex >= MAX_PLAYERS)
+    {
+        return;
+    }
+    for(u32 Index = 0; Index < THREAT_ROWS; Index++)
+    {
+        threat_row *Row = &Run->Threat.Rows[Index];
+        Row->Threat[Player->PlayerIndex] = 0.f;
+    }
+}
+
 internal bool32
 CastShadowstep(app_state *AppState, world *World, memory_arena *Arena, player_slot *Slot,
                world_entity *Player)
@@ -183,6 +200,8 @@ CastShadowstep(app_state *AppState, world *World, memory_arena *Arena, player_sl
               (u8)Player->PlayerIndex, ChestOf(Player), Angle);
     EmitSound(&AppState->Events, AssetType_SfxBlink, Player->Position);
     Slot->Shadowblade.CritSeconds = SHADOWBLADE_CRIT_SECONDS;
+    Slot->Shadowblade.GuardSeconds = SHADOWSTEP_GUARD_SECONDS;
+    ShadowstepDropsThreat(AppState, Player);
     AddComboPoints(Slot, 1);
     return true;
 }

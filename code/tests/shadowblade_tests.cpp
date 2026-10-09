@@ -376,6 +376,28 @@ TestShadowbladeTalents()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Shadowstep wipes the Shadowblade's threat and guards it
+// for SHADOWSTEP_GUARD_SECONDS
+internal void
+TestShadowstepGuard()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = ReadyShadowblade(&Crypt);
+    world_entity *Blade = Slot->Entity;
+    world_entity *Foe = StrikerDummy(&Crypt, V3(220.f, 0.f, 0.f));
+    AddThreat(&AppState->Dungeon->Threat, &AppState->World, Foe, Blade->PlayerIndex, 500.f);
+    float Plain = DungeonScaleDamage(AppState, Blade, Foe, 100.f);
+    PressAt(&Crypt, 0, PlayerButton_Launch, Foe);
+    threat_row *Row = FindThreatRow(&AppState->Dungeon->Threat, &AppState->World, Foe, false);
+    Check(!Row || Row->Threat[Blade->PlayerIndex] == 0.f);
+    float Guarded = DungeonScaleDamage(AppState, Blade, Foe, 100.f);
+    Check(Guarded < (SHADOWSTEP_GUARD_SCALE + 0.01f) * Plain);
+    TickCrypt(&Crypt, (u32)(60.f * SHADOWSTEP_GUARD_SECONDS) + 2);
+    Check(DungeonScaleDamage(AppState, Blade, Foe, 100.f) > 0.9f * Plain);
+    DestroyCryptWorld(&Crypt);
+}
+
 // NOTE(zoubir): Knife Storm at full rank: the fan reaches a foe past its
 // plain radius and cuts KNIFE_STORM_DAMAGE_SHARE harder a rank
 internal void
@@ -462,6 +484,7 @@ RunShadowbladeTests()
     TestTwinStrikeEarlyPress();
     TestTwinStrikePoisons();
     TestShadowstep();
+    TestShadowstepGuard();
     TestFanOfKnives();
     TestEviscerate();
     TestDeadlyThrow();
