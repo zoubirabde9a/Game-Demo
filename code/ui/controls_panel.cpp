@@ -2,7 +2,8 @@
    Shows for the first CONTROLS_INTRO_SECONDS of play, fading out over
    the last CONTROLS_FADE_SECONDS, and whenever H is held; otherwise a one-line hint in the bottom-left says how to bring it
    back. Hidden while the connect screen is open (it takes the keys and
-   sits on top), and the intro time only runs while playing.
+   sits on top), and the intro time only runs while playing. Never with
+   touch controls, which have no keys to teach.
    The panel stays above the ability bar: in a short window it switches to
    the small font, moves up toward the HUD lines, then splits into two
    columns.
@@ -205,7 +206,9 @@ internal void
 DrawControlsPanel(render_context *RenderContext, app_state *AppState,
                   app_input *Input, u32 WindowHeight)
 {
-    if (ConnectScreenTakesInput(AppState) || !GetLocalPlayer(AppState))
+    // NOTE(zoubir): a touch screen has no keys to list; its buttons say
+    // what they do
+    if (ConnectScreenTakesInput(AppState) || !GetLocalPlayer(AppState) || Input->TouchControls)
     {
         return;
     }

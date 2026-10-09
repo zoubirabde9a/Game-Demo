@@ -268,12 +268,13 @@ DrawTalentPointsButton(render_context *RenderContext, app_state *AppState,
     return Result;
 }
 
-// NOTE(zoubir): an ability just unlocked, said over the ability bar
+// NOTE(zoubir): an ability just unlocked, said over the ability bar; Key
+// is "" when there is no key to name (touch controls)
 internal void
 ShowUnlockToast(app_state *AppState, char *Name, char *Key, u32 Accent)
 {
     xp_bar *Bar = GetXpBar(AppState);
-    snprintf(Bar->Toast, sizeof(Bar->Toast), "%s unlocked  -  %s", Name, Key);
+    snprintf(Bar->Toast, sizeof(Bar->Toast), Key[0] ? "%s unlocked  -  %s" : "%s unlocked", Name, Key);
     Bar->ToastAccent = Accent;
     Bar->ToastAge = 0.f;
 }

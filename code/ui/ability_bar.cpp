@@ -18,7 +18,11 @@
    sim/player_cooldowns.cpp, which online play fills from the server, so
    the bar is the same offline and online. Looks are in the shaders the
    bar draws with (build/shaders/fx/slot_frame.frag, cooldown_sweep.frag,
-   ring.frag, glow.frag, panel.frag) and the sizes below. */
+   ring.frag, glow.frag, panel.frag) and the sizes below.
+
+   With touch controls (the browser on a phone) the page draws the
+   abilities as buttons by the player's thumb (platform/web/touch.cpp),
+   so the bar leaves its slots out and keeps health and experience. */
 
 #define ABILITY_SLOT_SIZE 48.f
 #define ABILITY_SLOT_GAP 7.f
@@ -39,6 +43,19 @@
 // short, not run down; a frame at 10 fps runs a 1 s cooldown down 0.1.
 // One cut all the way to ready gets the ready ring instead
 #define ABILITY_REFUND_DROP 0.12f
+
+// NOTE(zoubir): the bar has no slots this frame (touch controls); set
+// from the input each time the bar draws, and read by the screens that
+// sit above it (AbilityBarPlateTop) a frame later at most
+global_variable bool32 GlobalAbilityBarSlotless;
+
+// NOTE(zoubir): the slot row's height, 0 when the bar has none
+inline float
+AbilitySlotRowHeight()
+{
+    float Result = GlobalAbilityBarSlotless ? 0.f : ABILITY_SLOT_SIZE;
+    return Result;
+}
 
 struct ability_bar
 {
@@ -104,6 +121,10 @@ inline float
 AbilityBarWidth(app_state *AppState, player_slot *Slot)
 {
     float Width = 0.f;
+    if (GlobalAbilityBarSlotless)
+    {
+        return Width;
+    }
     bool32 First = true;
     bool32 Gap = false;
     for(u32 Position = 0; Position < AbilitySlotCount(AppState); Position++)
@@ -127,7 +148,7 @@ AbilityBarWidth(app_state *AppState, player_slot *Slot)
 internal float
 AbilityBarPlateTop(u32 WindowHeight)
 {
-    float SlotTop = (float)WindowHeight - ABILITY_BAR_BOTTOM - ABILITY_SLOT_SIZE;
+    float SlotTop = (float)WindowHeight - ABILITY_BAR_BOTTOM - AbilitySlotRowHeight();
     float HealthY = SlotTop - ABILITY_HEALTH_GAP - ABILITY_HEALTH_HEIGHT;
     return HealthY - ABILITY_PLATE_PAD;
 }
@@ -140,6 +161,7 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
     {
         AppState->AbilityBar->Tip.Slot = -1;
     }
+    GlobalAbilityBarSlotless = Input->TouchControls;
     world_entity *Player = GetLocalPlayer(AppState);
     // NOTE(zoubir): the connect screen covers the middle of the screen
     if (!Player || Player->MaxHp <= 0.f || ConnectScreenTakesInput(AppState))
@@ -174,7 +196,7 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
     // stay readable with few abilities
     float Width = Maximum(AbilityBarWidth(AppState, LocalSlot), 5.f * ABILITY_SLOT_SIZE);
     float Left = 0.5f * ((float)WindowWidth - Width);
-    float SlotTop = (float)WindowHeight - ABILITY_BAR_BOTTOM - ABILITY_SLOT_SIZE;
+    float SlotTop = (float)WindowHeight - ABILITY_BAR_BOTTOM - AbilitySlotRowHeight();
     float HealthY = SlotTop - ABILITY_HEALTH_GAP - ABILITY_HEALTH_HEIGHT;
 
     // NOTE(zoubir): one glass plate behind health and slots
@@ -228,11 +250,14 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
             Bar->Pulse[Index] = 1.f;
             if (Bar->ShownSeen)
             {
-                ShowUnlockToast(AppState, Def->Name, ActionKeyLabel(Def->Button), Def->Accent);
+                // NOTE(zoubir): a touch button has no key to name
+                ShowUnlockToast(AppState, Def->Name,
+                                GlobalAbilityBarSlotless ? (char *)"" : ActionKeyLabel(Def->Button),
+                                Def->Accent);
             }
         }
         Bar->WasShown[Index] = Shown;
-        if (!Shown)
+        if (!Shown || GlobalAbilityBarSlotless)
         {
             continue;
         }

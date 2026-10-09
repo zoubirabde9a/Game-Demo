@@ -173,13 +173,15 @@ WebTouchAutoAim(app_state *AppState, world_entity *Player)
 }
 
 // NOTE(zoubir): before WebReadInput, so the touch keys take part in its
-// presses and releases. Scratch is any app_input, to find key states in
+// presses and releases. Scratch is this frame's app_input; only its key
+// states' places are used, and whether touch controls are on
 internal void
 WebApplyTouch(app_memory *Memory, app_input *Scratch)
 {
     for (u32 Index = 0; Index < WEB_BUTTON_COUNT; Index++) WebInput.TouchDown[Index] = false;
     int Read[6];
     WebTouch.On = WebReadTouch(Read) != 0;
+    Scratch->TouchControls = WebTouch.On;
     app_state *AppState = (app_state *)Memory->PermanentStorage;
     if (!WebTouch.On || !AppState->IsInitialized)
     {

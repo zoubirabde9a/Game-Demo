@@ -293,6 +293,11 @@ struct app_input
     bool32 TextSubmit;
     char TextInput[64];
     u32 TextInputCount;
+
+    // NOTE(zoubir): the player plays with touch controls the page draws
+    // (the browser on a phone, platform/web/touch.cpp), not keys: screens
+    // that teach or show keys leave them out
+    bool32 TouchControls;
 };
 
 inline app_controller_input *GetController(app_input* input, int controllerIndex)
