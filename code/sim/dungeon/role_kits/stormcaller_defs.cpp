@@ -140,6 +140,8 @@ enum stormcaller_talent
     StormcallerTalent_ChainLightning,
     StormcallerTalent_StaticField,
     StormcallerTalent_BallLightning,
+    StormcallerTalent_StormRider,
+    StormcallerTalent_RideTheLightning,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -164,6 +166,13 @@ enum stormcaller_talent
 #define STORMBRINGER_BOLTS 3
 #define STORMBRINGER_RADIUS 250.f
 #define STORMBRINGER_SHARE 0.5f
+// NOTE(zoubir): Storm Rider, per rank: each Thunderclap takes this off
+// Lightning Dash's and Eye of the Storm's cooldowns
+#define STORM_RIDER_SECONDS 1.5f
+// NOTE(zoubir): Ride the Lightning: Lightning Dash leaves the Stormcaller
+// Hasted this long and gives this much more Charge for each foe it passes
+#define RIDE_THE_LIGHTNING_SECONDS 2.f
+#define RIDE_THE_LIGHTNING_CHARGE 5.f
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 1 unlocks the C spell, slot 4 the V spell
@@ -199,6 +208,10 @@ global_variable talent_def StormcallerTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Ball Lightning", "Right click: a slow ball of lightning that zaps what it rolls past, building Charge",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Storm Rider", "Each Thunderclap brings Lightning Dash and Eye of the Storm back sooner",
+     "-1.5 s a Thunderclap", TalentBranch_Role, 0, 0, 2, 0},
+    {"Ride the Lightning", "Lightning Dash speeds you up for 2 s and gives Charge for each foe it passes",
+     "+5 Charge a foe", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None

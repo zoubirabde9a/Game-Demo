@@ -140,6 +140,7 @@ CastLightningDash(app_state *AppState, world *World, memory_arena *Arena, player
     float Length2 = Length(To - From);
     u32 By = (u32)Player->PlayerIndex;
     u32 Room = StormcallerRoom(AppState, Player);
+    u32 Passed = 0;
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Monster = &World->Entities[EntityIndex];
@@ -156,6 +157,7 @@ CastLightningDash(app_state *AppState, world *World, memory_arena *Arena, player
             v2 Side = DotProduct(Offset, V2(-Dir.Y, Dir.X)) >= 0.f ? V2(-Dir.Y, Dir.X) : V2(Dir.Y, -Dir.X);
             StormcallerZap(AppState, By, Monster, LIGHTNING_DASH_DAMAGE, 0.f, Side, StatusEffect_Slowed,
                            LIGHTNING_DASH_SLOW_SECONDS);
+            Passed++;
         }
     }
     v3 Feet = V3(From.X, From.Y, Player->GroundZ);
@@ -170,6 +172,15 @@ CastLightningDash(app_state *AppState, world *World, memory_arena *Arena, player
     // NOTE(zoubir): as lightning it slips what was coming for a moment
     Player->DashFlash = Maximum(Player->DashFlash, 0.2f);
     AddStormCharge(AppState, Slot, LIGHTNING_DASH_CHARGE);
+    // NOTE(zoubir): Ride the Lightning
+    if (RoleRank(Slot, PlayerRole_Stormcaller, StormcallerTalent_RideTheLightning))
+    {
+        ApplyStatus(Player, StatusEffect_Hasted, RIDE_THE_LIGHTNING_SECONDS);
+        if (Passed)
+        {
+            AddStormCharge(AppState, Slot, RIDE_THE_LIGHTNING_CHARGE * (float)Passed);
+        }
+    }
 }
 
 // NOTE(zoubir): Eye of the Storm: the cloud gathers over the Stormcaller

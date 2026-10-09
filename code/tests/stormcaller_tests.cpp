@@ -410,6 +410,7 @@ RunStormcallerTests()
     TestOverload();
     TestEyeOfTheStorm();
     TestLightningDash();
+    TestTempestPoolTalents();
     TestChargeDrains();
     TestPredictedStormcaller();
 }

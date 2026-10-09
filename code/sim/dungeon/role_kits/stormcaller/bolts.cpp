@@ -256,6 +256,10 @@ FinishThunderclap(app_state *AppState, player_slot *Slot, world_entity *Player)
     bool32 Big = Spent >= STORM_SUPERCHARGED;
     float Damage = THUNDERCLAP_DAMAGE + THUNDERCLAP_PER_CHARGE * Spent;
     Storm->Charge = 0.f;
+    // NOTE(zoubir): Storm Rider: Lightning Dash on C, Eye of the Storm on V
+    float Off = STORM_RIDER_SECONDS * (float)RoleRank(Slot, PlayerRole_Stormcaller, StormcallerTalent_StormRider);
+    Slot->RoleCooldowns[2] = Maximum(0.f, Slot->RoleCooldowns[2] - Off);
+    Slot->RoleCooldowns[3] = Maximum(0.f, Slot->RoleCooldowns[3] - Off);
     v2 Away = NormalizeOr(Foe->Position.XY - Player->Position.XY, GetPlayerAim(Player));
     StormcallerZap(AppState, By, Foe, Damage, THUNDERCLAP_SHOVE, Away, StatusEffect_None, 0.f,
                    Big ? THUNDERCLAP_STUN : 0.f);

@@ -100,7 +100,8 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
      {{RM(StaticBuild), RM(RisingGlory), RM(Bloodrush), RM(Leeching),
        CT(StormcallerTalent_Grounding), CT(StormcallerTalent_HighVoltage)},
       {RM(Giantslayer), RM(Cornered), RM(Wayfarer), RM(Surge), RM(Toughened),
-       CT(StormcallerTalent_Quickening)}}},
+       CT(StormcallerTalent_Quickening), CT(StormcallerTalent_StormRider),
+       CT(StormcallerTalent_RideTheLightning)}}},
 
     // NOTE(zoubir): the Duelist
     {{"Bladework", "Guard"},

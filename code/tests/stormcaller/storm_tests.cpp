@@ -246,3 +246,42 @@ TestPredictedStormcaller()
     Slot->Predicted = false;
     DestroyCryptWorld(&Crypt);
 }
+
+// NOTE(zoubir): the Tempest pool's talents: Ride the Lightning hastes the
+// dash and gives Charge for each foe it passes; Storm Rider takes time
+// off Lightning Dash and Eye of the Storm with each Thunderclap
+internal void
+TestTempestPoolTalents()
+{
+    crypt_world Crypt = CreateStormWorld();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *Player = Slot->Entity;
+    Check(SetClassTalentRank(Slot, StormcallerTalent_RideTheLightning, 1) < Talent_Count);
+    GrantClassSpells(Slot);
+    storm_dummies Dummies = {};
+    StormDummy(&Crypt, &Dummies, V3(140.f, 10.f, 0.f));
+    SetStormCharge(Slot, 0.f);
+    PressOnce(&Crypt, 0, PlayerButton_Slam);
+    Check(HasStatus(Player, StatusEffect_Hasted));
+    Check(StormNear(Slot->Stormcaller.Charge, LIGHTNING_DASH_CHARGE + RIDE_THE_LIGHTNING_CHARGE));
+
+    ResetTalents(AppState, 0);
+    GrantClassSpells(Slot);
+    Check(SetClassTalentRank(Slot, StormcallerTalent_StormRider, 2) < Talent_Count);
+    world_entity *Foe = StormDummy(&Crypt, &Dummies, V3(-200.f, 0.f, 0.f));
+    SetStormCharge(Slot, 50.f);
+    Slot->RoleCooldowns[2] = 10.f;
+    Slot->RoleCooldowns[3] = 10.f;
+    Slot->RoleCooldowns[4] = 0.f;
+    PressAt(&Crypt, 0, PlayerButton_Shockwave, Foe);
+    StormTick(&Crypt, &Dummies, STORM_CLAP_TICKS);
+    Check(Foe->Hp < 2000.f && Slot->Stormcaller.Charge == 0.f);
+    float Off = 2.f * STORM_RIDER_SECONDS;
+    for(u32 Key = 2; Key <= 3; Key++)
+    {
+        Check(Slot->RoleCooldowns[Key] < 10.f - Off + 0.01f &&
+              Slot->RoleCooldowns[Key] > 10.f - Off - (float)STORM_CLAP_TICKS / 60.f - 0.1f);
+    }
+    DestroyCryptWorld(&Crypt);
+}
