@@ -3,8 +3,9 @@
    the striker, FLAME_WAVE_REACH deep: every foe in it takes
    FLAME_WAVE_DAMAGE, is thrown back, and takes FLAME_WAVE_STACKS of
    Searing, so a pack walks into the striker's Detonate or Meteor already
-   marked. Meteor's burst stands in for its look on clients. Its numbers
-   are in role_numbers.h. */
+   marked. Clients draw the fan rolling out from its burst
+   (client/dungeon/role_fx/fire_mage_fx.cpp). Its numbers are in
+   role_numbers.h. */
 
 internal void
 CastFlameWave(app_state *AppState, player_slot *Slot, world_entity *Player)
@@ -33,8 +34,8 @@ CastFlameWave(app_state *AppState, player_slot *Slot, world_entity *Player)
             AddSearing(AppState->Dungeon, World, Monster, FLAME_WAVE_STACKS, By);
         }
     }
-    v3 Front = Player->Position;
-    Front.XY += 0.5f * FLAME_WAVE_REACH * Aim;
-    EmitBurst(&AppState->Events, SimBurst_InfernoBlast, (u8)By, Front);
+    v3 Feet = V3(Player->Position.X, Player->Position.Y, Player->GroundZ);
+    EmitBurst(&AppState->Events, SimBurst_FlameWave, (u8)By, NumberedBurstSpot(Feet, (u32)FLAME_WAVE_REACH),
+              ATan2(Aim.Y, Aim.X));
     EmitSound(&AppState->Events, AssetType_SfxFireCast, Player->Position);
 }

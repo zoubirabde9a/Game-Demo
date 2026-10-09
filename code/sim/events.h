@@ -104,6 +104,7 @@ enum sim_burst
     SimBurst_Dawnbreak = SimBurst_DruidFirst + CLASS_BURSTS, // a beam of light from Position along Angle
     SimBurst_HolyStrike,   // light from the healer in Slot striking the foe at Position; number 1: no bolt
     SimBurst_ShieldThrow,  // a thrown shield's hop onto the foe at Position, along Angle (SHIELD_THROW_HOP)
+    SimBurst_FlameWave,    // Flame Wave's fire rolling out from Position along Angle, its number deep
     SimBurst_Count
 };
 static_assert(SimBurst_Count <= 128, "a burst kind and its number flag share a byte");
