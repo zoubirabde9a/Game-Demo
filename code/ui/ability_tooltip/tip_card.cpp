@@ -83,7 +83,8 @@ FindSpellNumbers(char *Spell)
 // NOTE(zoubir): a part of a spell's numbers as one line, damage and
 // healing scaled to what the player would deal now on a fresh foe
 internal void
-AddSpellNumberStat(ability_tip_card *Card, spell_number *Part, float Dealt, float Healing)
+AddSpellNumberStat(ability_tip_card *Card, spell_number *Part, float Dealt, float Healing,
+                   float MaxHp)
 {
     ability_tip_stat *Stat = 0;
     switch(Part->Kind)
@@ -159,6 +160,16 @@ AddSpellNumberStat(ability_tip_card *Card, spell_number *Part, float Dealt, floa
                 {
                     snprintf(Stat->Label, sizeof(Stat->Label), "%s while it lasts", Word);
                 }
+            }
+        } break;
+        case SpellNumber_HealShare:
+        {
+            if ((Stat = AddTipStat(Card, TIP_COLOR_HEAL)) != 0)
+            {
+                TipNumber(Stat->Value, sizeof(Stat->Value),
+                          (float)(u32)(Part->Amount * MaxHp * Healing + 0.5f));
+                snprintf(Stat->Label, sizeof(Stat->Label), "healing, %.0f%% of your health",
+                         100.f * Part->Amount);
             }
         } break;
         case SpellNumber_Lasts:
@@ -237,6 +248,82 @@ SpellMeterNeeded(char *Spell)
     return Result;
 }
 
+// NOTE(zoubir): "3 combo points", "45 Rage", "1 Icicle"
+internal void
+FormatPoints(char *Out, u32 OutSize, u32 Count, char *Point)
+{
+    bool32 Counted = strcmp(Point, "combo point") == 0 || strcmp(Point, "Icicle") == 0;
+    snprintf(Out, OutSize, "%u %s%s", Count, Point, (Counted && Count != 1) ? "s" : "");
+}
+
+// NOTE(zoubir): a spell that spends the class meter (ClassMeter, sent to
+// clients, so this holds online too): its numbers with what the player
+// holds now, or with the least it goes with when short, then what each
+// point adds
+internal void
+AddSpendingStats(ability_tip_card *Card, player_slot *Slot, role_spell *Spell,
+                 spell_numbers *Numbers, float Dealt, float Healing, float MaxHp)
+{
+    u32 Held = (u32)Slot->ClassMeter;
+    u32 Least = SpellMeterNeeded(Spell->Name);
+    u32 Spent = Maximum(Held, Least);
+    char Points[48];
+    FormatPoints(Points, sizeof(Points), Spent, Numbers->Point);
+    bool32 Heals = false;
+    for(u32 Part = 0; Part < SPELL_NUMBER_PARTS; Part++)
+    {
+        spell_number Copy = Numbers->Part[Part];
+        u32 Index = Part + 1;
+        if (Numbers->Grows == Index)
+        {
+            Copy.Amount += Numbers->PerPoint * (float)Spent;
+            Heals = Copy.Kind == SpellNumber_Heal;
+        }
+        if (Numbers->Lengthens == Index)
+        {
+            Copy.Seconds *= (float)Maximum(Spent, 1u);
+        }
+        u32 Before = Card->StatCount;
+        AddSpellNumberStat(Card, &Copy, Dealt, Healing, MaxHp);
+        if (Card->StatCount == Before)
+        {
+            continue;
+        }
+        ability_tip_stat *Stat = &Card->Stat[Card->StatCount - 1];
+        char Label[64];
+        snprintf(Label, sizeof(Label), "%s", Stat->Label);
+        if (Numbers->Grows == Index)
+        {
+            snprintf(Stat->Label, sizeof(Stat->Label), "%s %s %s", Label,
+                     Held >= Least ? "now, with" : "with", Points);
+        }
+        else if (Numbers->Gated == Index && (float)Spent < Numbers->GatedFrom)
+        {
+            // NOTE(zoubir): it comes only on a big spend; say from what
+            char From[48];
+            FormatPoints(From, sizeof(From), (u32)Numbers->GatedFrom, Numbers->Point);
+            snprintf(Stat->Label, sizeof(Stat->Label), "%s at %s", Label, From);
+            Stat->Color = UI_COLOR_TEXT_MUTED;
+        }
+    }
+    ability_tip_stat *Stat;
+    if (Numbers->Grows == 0 && (Stat = AddTipStat(Card, TIP_COLOR_HEAL)) != 0)
+    {
+        // NOTE(zoubir): a line of its own (Rejuvenation's Bloom heals at once)
+        Heals = true;
+        TipNumber(Stat->Value, sizeof(Stat->Value),
+                  (float)(u32)(Numbers->PerPoint * (float)Spent * Healing + 0.5f));
+        snprintf(Stat->Label, sizeof(Stat->Label), "healing at once, with %s", Points);
+    }
+    if ((Stat = AddTipStat(Card, TIP_COLOR_PLAIN)) != 0)
+    {
+        float Each = Numbers->PerPoint * (Heals ? Healing : Dealt);
+        snprintf(Stat->Value, sizeof(Stat->Value), "+%.2g", Each);
+        snprintf(Stat->Label, sizeof(Stat->Label), "%s for each extra %s",
+                 Heals ? "healing" : "damage", Numbers->Point);
+    }
+}
+
 internal void
 BuildRoleSpellCard(ability_tip_card *Card, player_slot *Slot, role_spell *Spell)
 {
@@ -278,10 +365,18 @@ BuildRoleSpellCard(ability_tip_card *Card, player_slot *Slot, role_spell *Spell)
     Fresh.Hp = Fresh.MaxHp = 1.f;
     float Dealt = GetRoleDef(Slot->Role)->DamageDealt * RoleTalentDealtScale(Slot, &Fresh);
     float Healing = 1.f + RoleStatShare(Slot, RoleStat_Healing);
+    float MaxHp = Slot->Entity ? Slot->Entity->MaxHp : 0.f;
     spell_numbers *Numbers = FindSpellNumbers(Spell->Name);
-    for(u32 Part = 0; Numbers && Part < SPELL_NUMBER_PARTS; Part++)
+    if (Numbers && Numbers->PerPoint > 0.f)
     {
-        AddSpellNumberStat(Card, &Numbers->Part[Part], Dealt, Healing);
+        AddSpendingStats(Card, Slot, Spell, Numbers, Dealt, Healing, MaxHp);
+    }
+    else
+    {
+        for(u32 Part = 0; Numbers && Part < SPELL_NUMBER_PARTS; Part++)
+        {
+            AddSpellNumberStat(Card, &Numbers->Part[Part], Dealt, Healing, MaxHp);
+        }
     }
     ability_tip_stat *Stat;
     if (Spell->Reach > 0.f && (Stat = AddTipStat(Card, TIP_COLOR_PLAIN)) != 0)

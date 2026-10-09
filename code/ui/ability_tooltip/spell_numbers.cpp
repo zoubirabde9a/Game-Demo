@@ -3,8 +3,9 @@
    (sim/dungeon/role_kits/), so a retuned spell shows its new numbers on
    the ability bar's card. One row per spell, found by its name. Amounts
    are before the class's damage share and its talents; the card applies
-   those. A spell that grows with a resource (Rage, combo points, Icicles,
-   Charge, Focus, Bloom) shows the hit it starts from. */
+   those. A spell that spends a resource (Rage, combo points, Icicles,
+   Charge, Focus, Bloom) says what each point adds, so the card can show
+   the hit it would land with what the player holds now. */
 
 enum spell_number_kind
 {
@@ -21,6 +22,7 @@ enum spell_number_kind
     SpellNumber_DamageUp, // Amount a share (0.4 = 40% more damage dealt) for Seconds
     SpellNumber_DamageCut,// Amount a share (0.9 = 90% less damage taken) for Seconds
     SpellNumber_Lasts,    // Seconds it lasts (a field, a channel), when no other part says it
+    SpellNumber_HealShare,// Amount a share of the caster's own health healed
 };
 
 struct spell_number
@@ -37,6 +39,19 @@ struct spell_numbers
 {
     char *Spell; // the role_spell's Name
     spell_number Part[SPELL_NUMBER_PARTS];
+    // NOTE(zoubir): what each point of the class meter spent adds, and
+    // what the point is called; Grows is the part (from 1) whose Amount
+    // it adds to, 0 for a line of its own at once (Rejuvenation's Bloom)
+    float PerPoint;
+    char *Point;
+    u8 Grows;
+    // NOTE(zoubir): the part (from 1) whose Seconds are per point spent,
+    // 0 for none
+    u8 Lengthens;
+    // NOTE(zoubir): the part (from 1) that only comes with GatedFrom
+    // points spent, 0 for none
+    u8 Gated;
+    float GatedFrom;
 };
 
 // NOTE(zoubir): Slowed scales a foe's walk by STATUS_SLOW_SCALE
@@ -64,7 +79,8 @@ global_variable spell_numbers SpellNumberTable[] =
     {"Intercept"},
     // NOTE(zoubir): Last Stand also heals LAST_STAND_HEAL_SHARE of the
     // tank's health, a share no part here can say
-    {"Last Stand", {{SpellNumber_DamageCut, 1.f - SHIELD_WALL_SCALE, LAST_STAND_SECONDS}}},
+    {"Last Stand", {{SpellNumber_HealShare, LAST_STAND_HEAL_SHARE},
+                    {SpellNumber_DamageCut, 1.f - SHIELD_WALL_SCALE, LAST_STAND_SECONDS}}},
     {"Shield Throw", {{SpellNumber_Damage, SHIELD_THROW_DAMAGE}}},
     {"Shield Charge", {{SpellNumber_Damage, SHIELD_CHARGE_DAMAGE},
                        {SpellNumber_Stun, 0.f, SHIELD_CHARGE_STUN}}},
@@ -86,20 +102,19 @@ global_variable spell_numbers SpellNumberTable[] =
     {"Whirlwind", {{SpellNumber_Damage, WHIRLWIND_DAMAGE, 0.f, WHIRLWIND_HITS}}},
     {"Berserk", {{SpellNumber_DamageUp, BERSERK_DEALT_SHARE, BERSERK_SECONDS},
                  {SpellNumber_DamageCut, BERSERK_TAKEN_SHARE, BERSERK_SECONDS}}},
-    // NOTE(zoubir): the smallest real chop, on the least Rage it goes with
-    {"Execute", {{SpellNumber_Damage, EXECUTE_DAMAGE + EXECUTE_PER_RAGE * EXECUTE_MIN_RAGE}}},
+    {"Execute", {{SpellNumber_Damage, EXECUTE_DAMAGE}}, EXECUTE_PER_RAGE, "Rage", 1},
     {"Cleave", {{SpellNumber_Damage, CLEAVE_DAMAGE}}},
 
     // NOTE(zoubir): Druid (role_kits/druid_defs.cpp)
     {"Rejuvenation", {{SpellNumber_Heal, REJUVENATION_PER_SECOND * REJUVENATION_SECONDS,
-                       REJUVENATION_SECONDS}}},
+                       REJUVENATION_SECONDS}}, REJUVENATION_PER_BLOOM, "Bloom", 0},
     {"Starfire", {{SpellNumber_Damage, STARFIRE_DAMAGE}}},
     {"Entangling Roots", {{SpellNumber_Damage, ROOTS_TICK_DAMAGE * ROOTS_SECONDS, ROOTS_SECONDS},
                           {SpellNumber_Root, 0.f, ROOTS_SECONDS}}},
     // NOTE(zoubir): no define for this, from role_kits/druid.h: the
     // channel's 3 s is in DRUID_CAST_B
     {"Tranquility", {{SpellNumber_Heal, TRANQUILITY_HEAL * (3.f / TRANQUILITY_TICK), 3.f}}},
-    {"Regrowth", {{SpellNumber_Heal, REGROWTH_HEAL}}},
+    {"Regrowth", {{SpellNumber_Heal, REGROWTH_HEAL}}, REGROWTH_PER_BLOOM, "Bloom", 1},
     {"Moonfire", {{SpellNumber_Damage, MOONFIRE_DAMAGE},
                   {SpellNumber_Damage, MOONFIRE_TICK_DAMAGE * MOONFIRE_SECONDS,
                    MOONFIRE_SECONDS}}},
@@ -119,7 +134,8 @@ global_variable spell_numbers SpellNumberTable[] =
                    BLIZZARD_SECONDS},
                   {SpellNumber_Slow, SPELL_SLOW_SHARE, BLIZZARD_CHILL_SECONDS}}},
     {"Glacial Spike", {{SpellNumber_Damage, GLACIAL_SPIKE_DAMAGE},
-                       {SpellNumber_Freeze, 0.f, GLACIAL_SPIKE_FREEZE}}},
+                       {SpellNumber_Freeze, 0.f, GLACIAL_SPIKE_FREEZE}},
+     GLACIAL_SPIKE_PER_ICICLE, "Icicle", 1, 0, 2, (float)FROSTMAGE_ICICLES_MOST},
     {"Ice Barrier", {{SpellNumber_Shield, ICE_BARRIER_ABSORB},
                      {SpellNumber_Lasts, 0.f, ICE_BARRIER_SECONDS}}},
     {"Frozen Orb", {{SpellNumber_Damage, FROZEN_ORB_DAMAGE, 0.f,
@@ -135,7 +151,7 @@ global_variable spell_numbers SpellNumberTable[] =
     {"Volley", {{SpellNumber_Damage, VOLLEY_TICK_DAMAGE * (VOLLEY_SECONDS / VOLLEY_TICK),
                  VOLLEY_SECONDS},
                 {SpellNumber_Slow, SPELL_SLOW_SHARE, VOLLEY_SLOW_SECONDS}}},
-    {"Piercing Shot", {{SpellNumber_Damage, PIERCE_DAMAGE}}},
+    {"Piercing Shot", {{SpellNumber_Damage, PIERCE_DAMAGE}}, PIERCE_PER_FOCUS, "Focus", 1},
     {"Disengage", {{SpellNumber_Damage, TRAP_DAMAGE},
                    {SpellNumber_Root, 0.f, TRAP_ROOT_SECONDS}}},
     {"Rapid Fire", {{SpellNumber_Damage, RAPID_FIRE_DAMAGE, 0.f, RAPID_FIRE_ARROWS}}},
@@ -147,14 +163,15 @@ global_variable spell_numbers SpellNumberTable[] =
                      SHADOWSTEP_GUARD_SECONDS}}},
     {"Fan of Knives", {{SpellNumber_Damage, FAN_OF_KNIVES_DAMAGE}}},
     {"Shadow Dance", {{SpellNumber_Lasts, 0.f, DANCE_SECONDS}}},
-    // NOTE(zoubir): the smallest real hit: it spends one combo point at least
-    {"Eviscerate", {{SpellNumber_Damage, EVISCERATE_DAMAGE + EVISCERATE_PER_POINT}}},
+    {"Eviscerate", {{SpellNumber_Damage, EVISCERATE_DAMAGE}}, EVISCERATE_PER_POINT,
+     "combo point", 1},
     // NOTE(zoubir): the slow is DEADLY_THROW_SLOW_PER_POINT a combo point
-    // spent; one point at least
+    // spent
     {"Deadly Throw", {{SpellNumber_Damage, DEADLY_THROW_DAMAGE},
                       {SpellNumber_Damage, BLADE_POISON_PER_SECOND * BLADE_POISON_SECONDS,
                        BLADE_POISON_SECONDS},
-                      {SpellNumber_Slow, SPELL_SLOW_SHARE, DEADLY_THROW_SLOW_PER_POINT}}},
+                      {SpellNumber_Slow, SPELL_SLOW_SHARE, DEADLY_THROW_SLOW_PER_POINT}},
+     DEADLY_THROW_PER_POINT, "combo point", 1, 3},
     // NOTE(zoubir): no define for this, from role_kits/shadowblade_defs.cpp:
     // Twin Strike's two cuts
     {"Twin Strike", {{SpellNumber_Damage, TWIN_STRIKE_DAMAGE, 0.f, 2},
@@ -172,8 +189,8 @@ global_variable spell_numbers SpellNumberTable[] =
     {"Eye of the Storm", {{SpellNumber_Damage, EYE_BOLT_DAMAGE, 0.f,
                            (u8)(EYE_SECONDS / EYE_BOLT_SECONDS)},
                           {SpellNumber_Lasts, 0.f, EYE_SECONDS}}},
-    // NOTE(zoubir): the stun comes only with STORM_SUPERCHARGED Charge spent
     {"Thunderclap", {{SpellNumber_Damage, THUNDERCLAP_DAMAGE},
-                     {SpellNumber_Stun, 0.f, THUNDERCLAP_STUN}}},
+                     {SpellNumber_Stun, 0.f, THUNDERCLAP_STUN}},
+     THUNDERCLAP_PER_CHARGE, "Charge", 1, 0, 2, (float)STORM_SUPERCHARGED},
     {"Spark", {{SpellNumber_Damage, SPARK_DAMAGE}}},
 };

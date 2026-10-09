@@ -4,7 +4,8 @@
    one to a line, the figure in a colour for what it is (damage, healing,
    shields, control); what the next level gives when a point can go in;
    then under a rule its cooldown and whether it is ready on the left and
-   what a cast costs on the right, red when the player is short. What the
+   what a cast costs on the right, red when the player is short; the rule
+   fills as the ability recharges. What the
    card says is ability_tooltip/tip_card.cpp. The card fades in after a
    moment over a slot, so sweeping the mouse across the bar does not
    flash cards, and moves straight to the next slot once it shows. */
@@ -220,6 +221,14 @@ DrawAbilityTooltip(render_context *RenderContext, app_state *AppState, world_ent
     LineY += 2.f * Gap;
     DrawFilledRectangle(RenderContext, TextX, LineY, Inner, 1.f,
                         TipFade(UI_RGBA(255, 255, 255, 34), Fade), 0.f);
+    // NOTE(zoubir): while it recharges the rule fills from the left in the
+    // slot's colour, as far as it has come back
+    if (Tip->Left > 0.f && Tip->Full > 0.f)
+    {
+        float Back = Maximum(0.f, Minimum(1.f, 1.f - Tip->Left / Tip->Full));
+        DrawFilledRectangle(RenderContext, TextX, LineY - 1.f, Inner * Back, 3.f,
+                            TipFade(WithAlpha(Accent, 0.85f), Fade), 0.f);
+    }
     LineY += 1.f + Gap;
     UIText(RenderContext, Small, TextX, LineY, Card.Cooldown, TipFade(UI_COLOR_TEXT, Fade));
     if (Status[0])
