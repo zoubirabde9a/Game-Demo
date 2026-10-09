@@ -212,6 +212,19 @@ StartMonsterAbility(app_state *AppState, world *World, world_entity *Entity,
             }
         } break;
 
+        case MonsterAbility_Lanes:
+        {
+            StartLanes(Entity, Ability);
+        } break;
+
+        case MonsterAbility_Share:
+        {
+            if (!StartShare(World, Entity, Ability))
+            {
+                return false;
+            }
+        } break;
+
         case MonsterAbility_Mend:
         {
             world_entity *Ally = FindMendTarget(World, Entity, Ability->Radius);

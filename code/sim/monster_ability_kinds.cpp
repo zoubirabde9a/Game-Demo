@@ -75,5 +75,21 @@ enum monster_ability_kind
     // monster; when the windup ends every player outside all of them is
     // hit, past any dodge or jump
     MonsterAbility_Eclipse,
+    // NOTE(zoubir): a breath Radius long and Spread degrees wide along the
+    // aim locked at windup start; hits everyone in it, jumping or not
+    // (monster_abilities/cones_lanes_gazes_shares.cpp)
+    MonsterAbility_Cone,
+    // NOTE(zoubir): Count strips Radius each side of their middle, Speed
+    // long and Spread apart along the aim, centred on the target (an odd
+    // Count puts a strip on it, an even one a gap); when the windup ends
+    // everyone on one is hit, jumping or not
+    MonsterAbility_Lanes,
+    // NOTE(zoubir): when the windup ends every player within Radius moving
+    // faster than Speed is hit, past any dodge or jump
+    MonsterAbility_Gaze,
+    // NOTE(zoubir): a circle of Radius follows the target through most of
+    // the windup; when it ends Damage is split evenly between everyone in
+    // it, past any dodge
+    MonsterAbility_Share,
     MonsterAbility_Count
 };

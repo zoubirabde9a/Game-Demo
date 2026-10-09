@@ -20,6 +20,7 @@
      trigger.cpp            what each kind does when the windup ends
      waves_beams_shards.cpp frost waves to jump, sweeping beams, shatter
      wells_brands_mirrors.cpp gravity wells, void brands, mirrors, eclipses
+     cones_lanes_gazes_shares.cpp breaths, falling lanes, gazes, shared blows
      movement.cpp           burrow, charge, slow turning
      armor.cpp              front shells
      phases.cpp             enrage phases */
@@ -37,6 +38,7 @@
 #include "monster_abilities/helpers.cpp"
 #include "monster_abilities/waves_beams_shards.cpp"
 #include "monster_abilities/wells_brands_mirrors.cpp"
+#include "monster_abilities/cones_lanes_gazes_shares.cpp"
 #include "monster_abilities/start.cpp"
 #include "monster_abilities/shots_and_hazards.cpp"
 #include "monster_abilities/trigger.cpp"
@@ -148,6 +150,10 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
             if (Ability->Kind == MonsterAbility_Brand)
             {
                 TrackBrandVictim(World, Entity);
+            }
+            if (Ability->Kind == MonsterAbility_Share)
+            {
+                TrackShareVictim(World, Entity, Ability);
             }
             if (Entity->AbilityTimer <= 0.f)
             {

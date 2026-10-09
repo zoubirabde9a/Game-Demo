@@ -326,9 +326,11 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
 
     if (Self && !IsDeadPlayer(Self))
     {
+        Held = DodgeDeepDangers(AppState, Self, Held);
         Held = DodgeDangers(AppState, Self, Held);
         Held = DodgeRiftDangers(AppState, Self, Held);
         Held = DodgeStarlessDangers(AppState, Self, Held);
+        Held = FreezeForGazes(AppState, Self, Held);
         Held = SteerAroundHazards(AppState, Self, Held, Target);
     }
     // A press needs the button up the tick before; drop repeats.

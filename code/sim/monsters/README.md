@@ -53,6 +53,10 @@ Every ability runs windup, then active, then recover (`code/sim/monster_abilitie
 | `Brand` | brands the player within `MaxRange` farthest from the monster; the brand follows them through the windup, then bursts on them (past any dodge) and every other player within `Radius` of them | `MaxRange`, `Windup`, `Radius` |
 | `Reflect` | a mirror held up through the Active time: in a dungeon run hits on the monster do nothing and `Spread` of each, at most `Damage`, lands on whoever struck (`sim/dungeon/mirror_guard.cpp`). `Radius` is the size drawn | `Active`, `Spread`, `Damage` |
 | `Eclipse` | `Count` circles of light of `Radius`, up to `Spread` from the monster and in its sight; when the windup ends every player outside all of them is hit, past any dodge or jump | `Count`, `Radius`, `Spread` |
+| `Cone` | a breath `Radius` long and `Spread` degrees wide along the aim locked at windup start; hits everyone in it when the windup ends, jumping or not | `Radius`, `Spread`, `Knockback` |
+| `Lanes` | `Count` strips `Radius` each side of their middle, `Speed` long and `Spread` apart, along the aim and centred on the target (an odd count puts a strip on it, an even one a gap); when the windup ends everyone on one is hit, jumping or not | `Count`, `Radius`, `Speed`, `Spread` |
+| `Gaze` | when the windup ends every player within `Radius` moving faster than `Speed` along the ground is hit, past any dodge or jump | `Radius`, `Speed` |
+| `Share` | a circle of `Radius` follows the player within `MaxRange` farthest from the monster through the windup and holds still for its last 35%; when it ends `Damage` is split evenly between everyone in it, past any dodge | `MaxRange`, `Radius`, `Damage` |
 
 Monsters that point at each other (summons, heal targets) store the entity slot and a `MonsterSerial`, because slots are reused. Every monster made by the game goes through `SpawnMonster`, which hands out serials.
 
@@ -127,5 +131,15 @@ A monster uses the first ability in its list that is off cooldown and whose `Min
 | Seer | Void Seer | Starless Deep only, flies. Void Brand on the farthest player. Umbral Bolts |
 | Collapsar | Collapsar | Starless Deep only. Gravity Well under its target. Crushing Mass |
 | ObsidianKnight | Obsidian Knight | Starless Deep only. Mirror Guard turns blows back. Shield Rush |
+| Stag | Rimecrown Stag | Aurora Rift only. Aurora Bellow: a cone of frost. Antler Rush |
+| Harrier | Shardwing Harrier | Aurora Rift only, flies. Icicle Rake: three lanes. Quill Flurry |
+| Mammoth | Rimetusk Mammoth | Aurora Rift only. Avalanche Stomp: a blow split between everyone in its circle. Tusk Tremor: two waves |
+| Siren | Aurora Siren | Aurora Rift only, flies. Stillsong: hits whoever is moving. Lullaby heals allies. Shimmer Note |
+| Crawler | Crevasse Crawler | Aurora Rift only. Fissure Lines: four lanes with its target in the middle gap. Crevasse Dive burrows |
+| Watcher | Lidless Watcher | Starless Deep only, flies. Unblinking Stare: hits whoever is moving. Lidless Ray: a sweeping beam |
+| Glutton | Hollow Glutton | Starless Deep only. Gorge: a shared blow that bleeds. Gulp: a well at its own mouth |
+| Acolyte | Starfall Acolyte | Starless Deep only. Starfall Rows: three burning lanes. Falling Step blinks behind |
+| Accretor | Accretor | Starless Deep only. Accretion Disc: a ring safe only at its core. Core Flare: a slam on the core |
+| Matron | Duskweb Matron | Starless Deep only. Hush of the Web: hits and roots whoever is moving. Venom Spray: a cone. Starsilk Snare: webs |
 
 The toad's shells now leave bile puddles that poison.

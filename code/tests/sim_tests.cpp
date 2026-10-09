@@ -774,6 +774,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "smite_tests.cpp"
 #include "rift_ability_tests.cpp"
 #include "starless_ability_tests.cpp"
+#include "deep_ability_tests.cpp"
 #include "sprite_sheet_tests.cpp"
 #include "terrain_tests.cpp"
 #include "hazard_tests.cpp"
@@ -834,6 +835,7 @@ main(int ArgCount, char **Args)
     GROUP(RunSmiteTests());
     GROUP(RunRiftAbilityTests());
     GROUP(RunStarlessAbilityTests());
+    GROUP(RunDeepAbilityTests());
     GROUP(RunSpriteSheetTests());
     RunTerrainTests();
     GROUP(RunHazardTests());

@@ -182,6 +182,26 @@ TriggerMonsterAbility(app_state *AppState, world *World, memory_arena *Arena,
             FallDark(AppState, World, Entity, Ability);
         } break;
 
+        case MonsterAbility_Cone:
+        {
+            BreatheCone(AppState, World, Entity, Ability);
+        } break;
+
+        case MonsterAbility_Lanes:
+        {
+            DropLanes(AppState, World, Entity, Ability);
+        } break;
+
+        case MonsterAbility_Gaze:
+        {
+            OpenGaze(AppState, World, Entity, Ability);
+        } break;
+
+        case MonsterAbility_Share:
+        {
+            LandShare(AppState, World, Entity, Ability);
+        } break;
+
         case MonsterAbility_Mend:
         {
             world_entity *Ally = FindMonsterBySerial(World, Entity->AbilityTargetSlot,
