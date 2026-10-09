@@ -8,8 +8,9 @@
    The brain is small on purpose: chase the nearest living player or
    monster in sight (in a team duel, never a teammate, sim/teams/), swing the sword up close, throw fireballs from range,
    dash now and then, and wander when nothing is near. It earns experience
-   like anyone and spends each point on a random talent it may take, then
-   uses Frost Nova, Shockwave and Gravity Well once it has them. In a
+   like anyone and spends each point on a random talent it may take;
+   against a player outside a run it plays the whole duel kit its talents
+   opened (bots/duel_kit.cpp). In a
    dungeon run (sim/dungeon/) it fights only monsters, takes a role by
    its slot, so a lone player gets a tank, a healer and damage (and a
    bigger party more damage before a second healer or tank), and plays
@@ -50,6 +51,13 @@ struct bot_brain
     float WanderLeft;  // seconds until a new wander direction
     v2 Wander;
     float LearnWait;   // seconds until it spends a talent point it has
+    // NOTE(zoubir): a duel's thinking (bots/duel_kit.cpp): seconds to the
+    // next reaction, to the next turn of the way it circles and which way,
+    // and how long it waits to be in the air for a slam
+    float DuelThink;
+    float DuelTurn;
+    float DuelSide;
+    float SlamWait;
 };
 
 inline u32
@@ -197,6 +205,7 @@ BotHurtAlly(app_state *AppState, world_entity *Self, float Range, float Below)
 #include "bots/hazard_steer.cpp"
 
 #include "bots/role_buttons.cpp"
+#include "bots/duel_kit.cpp"
 
 // NOTE(zoubir): one tick of a bot's thinking, as the input a client would send
 internal net_input
@@ -260,6 +269,16 @@ BotThink(bot_brain *Bot, app_state *AppState, world_entity *Self, u32 Tick, floa
         if (Distance > 120.f && Distance < 260.f && BotRandom(Bot) % 150 == 0)
         {
             Held |= NetButton_GravityWell;
+        }
+        // NOTE(zoubir): against a player outside a run, the whole duel
+        // kit instead of the presses above (bots/duel_kit.cpp)
+        if (Target->Type == EntityType_Player && !IsDungeon(AppState) && !IsDeadPlayer(Self))
+        {
+            Held &= ~(u32)(NetButton_Left | NetButton_Right | NetButton_Up | NetButton_Down |
+                           NetButton_FrostNova | NetButton_Shockwave | NetButton_GravityWell |
+                           NetButton_Kunai);
+            Held |= BotDuelButtons(Bot, AppState, Self, Target, Distance, Direction,
+                                   &Direction, &AimReach, Dt);
         }
     }
     else if (Self && BotWalkToNextRoom(AppState, Self, &Direction))
