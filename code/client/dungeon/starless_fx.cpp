@@ -6,8 +6,9 @@
                   then motes spiral in from the edge while the core
                   darkens, until it collapses.
    Void brands    a ring the size of the burst follows the branded,
-                  closing in as the windup runs out; whoever carries it
-                  sees a sigil over their own head, so they know to run.
+                  closing in as the windup runs out; a sigil hangs over
+                  whoever carries it, brightest for the carrier, so they
+                  know to run and the party knows to keep away.
    Mirrors        through the windup a silver shell closes round the
                   monster; while it holds, the shell shines and glints, so
                   anyone about to hit it knows to stop.
@@ -31,8 +32,8 @@
 #define STARLESS_GOLD UI_RGBA(255, 214, 110, 235)
 #define STARLESS_GOLD_PALE UI_RGBA(255, 244, 200, 245)
 #define STARLESS_MIRROR UI_RGBA(220, 228, 255, 235)
-// NOTE(zoubir): how near the brand's point the local player must be to
-// count as the one who carries it; snapshots trail the local player a
+// NOTE(zoubir): how near the brand's point a player must be to count as
+// the one who carries it (the nearest one in reach); snapshots trail the local player a
 // little
 #define STARLESS_BRAND_NEAR 48.f
 
@@ -149,8 +150,8 @@ DrawBrandSigil(render_context *RenderContext, v2 Head, float Clock, float Pulse)
 }
 
 internal void
-DrawBrandFx(render_context *RenderContext, world_entity *Monster, monster_ability *Ability,
-            world_entity *Local, v3 CameraOffset, float Clock)
+DrawBrandFx(render_context *RenderContext, world *World, world_entity *Monster,
+            monster_ability *Ability, world_entity *Local, v3 CameraOffset, float Clock)
 {
     if (!Monster->AbilityPointCount || Monster->AbilityPhase != AbilityPhase_Windup)
     {
@@ -170,10 +171,25 @@ DrawBrandFx(render_context *RenderContext, world_entity *Monster, monster_abilit
         DrawStarlessRing(RenderContext, At, 18.f + 6.f * Progress, 3.f,
                          WithAlpha(STARLESS_GOLD, Pulse), -Clock, 1.f);
     }
-    bool32 Carried = Local && LengthSq(Local->Position.XY - Mark) <= Square(STARLESS_BRAND_NEAR);
-    v2 Head = (Carried ? Local->Position.XY : Mark) - CameraOffset.XY;
-    Head.Y -= (Carried ? Local->Dimensions.Y : 40.f) + 16.f;
-    DrawBrandSigil(RenderContext, Head, Clock, Carried ? 1.f : 0.7f);
+    // NOTE(zoubir): the sigil hangs over whoever carries the brand, the
+    // living player nearest the mark, not over the local player only
+    // because they stand beside them
+    world_entity *Carrier = 0;
+    float Nearest = Square(STARLESS_BRAND_NEAR);
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        world_entity *Player = &World->Entities[Index];
+        float Distance = LengthSq(Player->Position.XY - Mark);
+        if (Player->IsPresent && Player->Type == EntityType_Player && Player->Hp > 0.f &&
+            Distance <= Nearest)
+        {
+            Carrier = Player;
+            Nearest = Distance;
+        }
+    }
+    v2 Head = (Carrier ? Carrier->Position.XY : Mark) - CameraOffset.XY;
+    Head.Y -= (Carrier ? Carrier->Dimensions.Y : 40.f) + 16.f;
+    DrawBrandSigil(RenderContext, Head, Clock, Carrier && Carrier == Local ? 1.f : 0.7f);
 }
 
 internal void
@@ -304,7 +320,7 @@ DrawStarlessFx(render_context *RenderContext, app_state *AppState, v3 CameraOffs
         switch(Ability->Kind)
         {
             case MonsterAbility_Pull: DrawWellFx(RenderContext, Monster, Ability, CameraOffset, Clock); break;
-            case MonsterAbility_Brand: DrawBrandFx(RenderContext, Monster, Ability, Local, CameraOffset, Clock); break;
+            case MonsterAbility_Brand: DrawBrandFx(RenderContext, World, Monster, Ability, Local, CameraOffset, Clock); break;
             case MonsterAbility_Reflect: DrawMirrorFx(RenderContext, Monster, Ability, CameraOffset, Clock); break;
             case MonsterAbility_Eclipse: DrawEclipseFx(RenderContext, Monster, Ability, CameraOffset, Clock); break;
             default: break;
