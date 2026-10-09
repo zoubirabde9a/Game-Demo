@@ -47,17 +47,16 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
       {CT(HealerTalent_LightFeet), RM(WarSong), RM(Receptive), RM(MendingTouch), RM(KeenEdge),
        RM(SecondBreath)}}},
 
-    // NOTE(zoubir): the Ranger. Lethal Mark holds Marksmanship's second
-    // spell slot until Kill Shot is in
+    // NOTE(zoubir): the Ranger
     {{"Marksmanship", "Survival"},
-     {CLASS_BRANCH(CT(RangerTalent_Marksman), CT(RangerTalent_RapidFire), CT(RangerTalent_LethalMark),
+     {CLASS_BRANCH(CT(RangerTalent_Marksman), CT(RangerTalent_RapidFire), CT(RangerTalent_KillShot),
                    CT(RangerTalent_Deadeye), RM(BigGame), RM(Patience),
                    RM(ApexPredator)),
       CLASS_BRANCH(CT(RangerTalent_Barrage), CT(RangerTalent_Volley), CT(RangerTalent_Disengage),
                    CT(RangerTalent_PinningVolley), CT(RangerTalent_HuntersNet), RM(Trailwise),
                    RM(Trophy))},
      {{CT(RangerTalent_KeenEye), CT(RangerTalent_SteadyHands), RM(KillingRhythm), RM(Finisher),
-       RM(Leeching), CT(RangerTalent_Survivalist)},
+       RM(Leeching), CT(RangerTalent_Survivalist), CT(RangerTalent_LethalMark)},
       {CT(RangerTalent_FleetHunter), RM(Cleaver), RM(Bloodrush), RM(Feast), RM(Toughened),
        RM(Vigor)}}},
 

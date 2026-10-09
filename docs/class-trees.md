@@ -92,11 +92,11 @@ Every class has its two branches, its spell pairs and its pools in the game (`cl
 | Fire Mage | its bot always takes Combustion, never Detonate |
 | Bulwark | Shield Slam does not taunt yet; Vanguard's capstone is Retaliation until the ally guard is built; the bot does not pick Taunt |
 | Mender | the atonement talent is not built |
-| Ranger | Kill Shot (W) is not built; Lethal Mark holds its place; Barrage and Hunter's Net only help Volley and Disengage |
+| Ranger | Barrage and Hunter's Net only help Volley and Disengage; its bot always takes Rapid Fire |
 | Berserker | Battle Shout (C) is not built; Bladestorm holds its place |
 | Shadowblade | nothing beyond tuning |
 | Stormcaller | nothing beyond tuning |
 | Duelist | Feint (C) is not built; Footwork holds its place |
 | Frost Mage | Deep Freeze only helps Frost Nova |
 | Druid | Eclipse needs Moonfire and Starfire, which are a pair now, so it is out of the tree until it is reworked; Entangling Moon is not built |
-| Every class | the spells a pair offers have no talent icon yet; the bots take the left spell of each pair; the balance probe has not been rerun |
+| Every class | the bots take the left spell of each pair; the balance probe has not been rerun |

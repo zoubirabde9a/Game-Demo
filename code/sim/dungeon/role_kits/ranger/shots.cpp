@@ -222,8 +222,19 @@ UpdateRangerArrows(app_state *AppState, ranger_run *Run, float DeltaTime)
         if (Foe && Foe->Hp > 0.f)
         {
             float Shove = Shot == RangerShot_Pierce ? PIERCE_SHOVE : QUICK_SHOT_SHOVE;
-            RangerHit(AppState, Arrow->By, Foe, Shot, Arrow->Damage, Shove, Arrow->Away);
-            if (Shot == RangerShot_Quick || Shot == RangerShot_Pierce)
+            float Damage = Arrow->Damage;
+            // NOTE(zoubir): Kill Shot, harder on a foe nearly dead, and back
+            // at once when it kills
+            if (Shot == RangerShot_Kill && Foe->MaxHp > 0.f && Foe->Hp < KILL_SHOT_LOW * Foe->MaxHp)
+            {
+                Damage *= KILL_SHOT_LOW_SCALE;
+            }
+            RangerHit(AppState, Arrow->By, Foe, Shot, Damage, Shove, Arrow->Away);
+            if (Shot == RangerShot_Kill && Foe->Hp <= 0.f && Arrow->By < MAX_PLAYERS)
+            {
+                AppState->Players[Arrow->By].RoleCooldowns[4] = 0.f;
+            }
+            if (Shot == RangerShot_Quick || Shot == RangerShot_Pierce || Shot == RangerShot_Kill)
             {
                 EmitSound(&AppState->Events, AssetType_SfxHit, Foe->Position);
             }

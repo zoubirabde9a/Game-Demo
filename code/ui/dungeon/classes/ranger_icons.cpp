@@ -64,6 +64,20 @@ PaintRangerQuickShotIcon(icon_canvas *Canvas)
     IconSparkle(Canvas, V2(0.86f, 0.17f), 0.09f, Solid(IconColor(220, 255, 240)));
 }
 
+// NOTE(zoubir): Kill Shot: an arrow driven through a red mark, a skull's
+// glow behind it
+internal void
+PaintRangerKillShotIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.6f, 0.4f), 0.5f, IconColor(255, 70, 60, 140));
+    // NOTE(zoubir): the mark, a red ring with a cross in it
+    IconArc(Canvas, V2(0.62f, 0.38f), 0.22f, 0.035f, Solid(IconColor(255, 90, 80)), 0.f, 2.f * Pi32);
+    IconCapsule(Canvas, V2(0.62f, 0.2f), V2(0.62f, 0.56f), 0.014f, Solid(IconColor(255, 140, 120)));
+    IconCapsule(Canvas, V2(0.44f, 0.38f), V2(0.8f, 0.38f), 0.014f, Solid(IconColor(255, 140, 120)));
+    PaintRangerArrow(Canvas, V2(0.14f, 0.86f), V2(0.74f, 0.26f), 0.042f);
+    IconSparkle(Canvas, V2(0.74f, 0.26f), 0.1f, Solid(IconColor(255, 230, 210)));
+}
+
 // NOTE(zoubir): Volley: arrows coming down on a teal circle on the ground
 internal void
 PaintRangerVolleyIcon(icon_canvas *Canvas)
@@ -285,7 +299,7 @@ PaintRangerHuntersNetIcon(icon_canvas *Canvas)
 global_variable role_icon_painter *RangerIconPainters[ROLE_KEYS] =
 {
     PaintRangerVolleyIcon, PaintRangerPiercingShotIcon, PaintRangerDisengageIcon, PaintRangerRapidFireIcon,
-    0, PaintRangerQuickShotIcon, 0,
+    PaintRangerKillShotIcon, PaintRangerQuickShotIcon, 0,
 };
 global_variable talent_icon_painter *RangerTalentIconPainters[ROLE_TALENTS] =
 {

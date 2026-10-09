@@ -71,6 +71,17 @@
 #define TRAP_ROOT_SECONDS 2.5f
 #define TRAP_DAMAGE 10.f
 
+// NOTE(zoubir): Kill Shot (W, from Marksmanship's pair against Rapid
+// Fire): an arrow at the foe under the Ranger's own mark, within
+// KILL_SHOT_RANGE, for KILL_SHOT_DAMAGE, KILL_SHOT_LOW_SCALE times that on
+// a foe under KILL_SHOT_LOW of its health when the arrow lands; a kill
+// brings Kill Shot back at once
+#define KILL_SHOT_RANGE 620.f
+#define KILL_SHOT_DAMAGE 26.f
+#define KILL_SHOT_LOW 0.25f
+#define KILL_SHOT_LOW_SCALE 2.f
+#define KILL_SHOT_COOLDOWN 9.f
+
 // NOTE(zoubir): Rapid Fire (V, from the tree): RAPID_FIRE_ARROWS arrows
 // over its cast at the foe aimed at
 #define RAPID_FIRE_RANGE 600.f
@@ -94,6 +105,7 @@ enum ranger_talent
     RangerTalent_FleetHunter,
     RangerTalent_HuntersNet,
     RangerTalent_Volley,
+    RangerTalent_KillShot,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -148,6 +160,8 @@ global_variable talent_def RangerTalentDefs[CLASS_TALENTS] =
      "roots all within 120", TalentBranch_Role, 5, 1, 1, 0},
     {"Volley", "A: arrows rain on the circle at the cursor for 2 s and slow",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Kill Shot", "W: an arrow at your marked foe, twice as hard under 25%; a kill brings it back",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
@@ -170,7 +184,9 @@ global_variable role_spell RangerSpells[ROLE_KEYS] =
      RoleAim_None, 0.f, RangerTalent_Disengage + 1},
     {"Rapid Fire", RAPID_FIRE_COOLDOWN, "Rapid Fire: 2 s of arrows at a foe, walking slowly",
      RoleAim_Foe, RAPID_FIRE_RANGE, RangerTalent_RapidFire + 1},
-    {},
+    {"Kill Shot", KILL_SHOT_COOLDOWN,
+     "Kill Shot: an arrow at your marked foe, twice as hard under 25% health; a kill brings it back",
+     RoleAim_Foe, KILL_SHOT_RANGE, RangerTalent_KillShot + 1},
     {"Quick Shot", QUICK_SHOT_COOLDOWN,
      "Quick Shot: a fast arrow that marks a foe: you deal 25% more to it, and hits on it build Focus",
      RoleAim_Foe, QUICK_SHOT_RANGE, 0},

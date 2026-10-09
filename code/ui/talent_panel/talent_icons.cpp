@@ -246,10 +246,17 @@ BuildTalentIconAtlas(open_gl *OpenGL, memory_arena *Scratch)
             u32 Role = (Cell - Talent_RoleFirst) / CLASS_TALENTS;
             u32 Catalog = (Cell - Talent_RoleFirst) % CLASS_TALENTS;
             // NOTE(zoubir): the painters cover the first ROLE_TALENTS of a
-            // catalog; the spells a branch offers wear their spell's icon
-            // later (docs/class-trees.md)
+            // catalog; a later talent that unlocks a spell wears the
+            // spell's icon
             talent_icon_painter *Paint =
                 Catalog < ROLE_TALENTS ? RoleTalentIconPainters[Role][Catalog] : 0;
+            for(u32 Key = 0; Key < ROLE_KEYS && !Paint; Key++)
+            {
+                if (RoleSpells[Role][Key].Name && RoleSpells[Role][Key].Unlock == Catalog + 1)
+                {
+                    Paint = RoleIconPainters[Role][Key];
+                }
+            }
             if (Paint)
             {
                 Paint(&Canvas);

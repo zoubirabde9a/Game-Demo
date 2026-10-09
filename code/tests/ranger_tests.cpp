@@ -150,9 +150,6 @@ TestQuickShotMarks()
     Slot->RoleCooldowns[5] = 0.f;
     PressOnce(&Crypt, 0, PlayerButton_Cast);
     Check(IsRangerMarked(AppState, Slot, Other) && !IsRangerMarked(AppState, Slot, Foe));
-    // NOTE(zoubir): W casts nothing
-    PressOnce(&Crypt, 0, PlayerButton_Shockwave);
-    Check(Slot->RoleCooldowns[4] == 0.f);
     DestroyCryptWorld(&Crypt);
 }
 
@@ -427,12 +424,55 @@ TestFocusDrains()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Kill Shot goes only at the Ranger's marked foe; twice as
+// hard on one under KILL_SHOT_LOW; a kill brings it back at once
+internal void
+TestKillShot()
+{
+    crypt_world Crypt = CreateRangerWorld();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    ranger_dummies Dummies = {};
+    world_entity *Foe = RangerDummy(&Crypt, &Dummies, V3(300.f, 0.f, 0.f));
+    // NOTE(zoubir): no mark, no shot and no cooldown
+    PressOnce(&Crypt, 0, PlayerButton_Shockwave);
+    Check(Slot->RoleCooldowns[4] == 0.f);
+    Slot->Input.Target = (u32)(Foe - AppState->World.Entities) + 1;
+    PressOnce(&Crypt, 0, PlayerButton_Cast);
+    RangerTick(&Crypt, &Dummies, 30);
+    float Before = Foe->Hp;
+    PressOnce(&Crypt, 0, PlayerButton_Shockwave);
+    Check(Slot->RoleCooldowns[4] > 0.f);
+    RangerTick(&Crypt, &Dummies, (u32)(60.f * 300.f / RANGER_ARROW_SPEED) + 2);
+    float Dealt = Before - Foe->Hp;
+    float Scale = RangerDealtScale(Slot, Foe) * GetRoleDef(PlayerRole_Ranger)->DamageDealt;
+    Check(Dealt > 0.99f * KILL_SHOT_DAMAGE * Scale && Dealt < 1.01f * KILL_SHOT_DAMAGE * Scale);
+    // NOTE(zoubir): nearly dead, it lands twice as hard
+    Foe->Hp = 0.2f * Foe->MaxHp;
+    Before = Foe->Hp;
+    Slot->RoleCooldowns[4] = 0.f;
+    PressOnce(&Crypt, 0, PlayerButton_Shockwave);
+    RangerTick(&Crypt, &Dummies, (u32)(60.f * 300.f / RANGER_ARROW_SPEED) + 2);
+    Dealt = Before - Foe->Hp;
+    Check(Dealt > 0.99f * KILL_SHOT_LOW_SCALE * KILL_SHOT_DAMAGE * Scale);
+    // NOTE(zoubir): a kill brings it back
+    Foe->Hp = 5.f;
+    Slot->RoleCooldowns[4] = 0.f;
+    PressOnce(&Crypt, 0, PlayerButton_Shockwave);
+    Check(Slot->RoleCooldowns[4] > 0.f);
+    RangerTick(&Crypt, &Dummies, (u32)(60.f * 300.f / RANGER_ARROW_SPEED) + 2);
+    Check(Foe->Hp <= 0.f || !Foe->IsPresent);
+    Check(Slot->RoleCooldowns[4] == 0.f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunRangerTests()
 {
     TestRangerKeys();
     TestQuickShotLandsOnArrival();
     TestQuickShotMarks();
+    TestKillShot();
     TestPiercingShotThroughALine();
     TestVolleyRainsOnTheCircle();
     TestDisengageLeavesASnare();

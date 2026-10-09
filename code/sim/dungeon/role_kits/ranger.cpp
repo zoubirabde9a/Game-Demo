@@ -16,9 +16,12 @@
    V  Rapid Fire (tree): a two-second channel (PlayerSpell_RangerB) that
       looses RAPID_FIRE_ARROWS arrows at a foe while the Ranger walks
       slowly.
+   W  Kill Shot (tree): an arrow at the foe under the Ranger's mark, far
+      harder on one nearly dead; a kill brings it back at once.
 
-   W does nothing for it, so with the tree it has five damage keys, as
-   the striker does.
+   Quick Shot and Piercing Shot are its base kit; the tree gives one of
+   Rapid Fire and Kill Shot (Marksmanship) and one of Volley and
+   Disengage (Survival), so it casts four (class_tree_defs.cpp).
 
    The rotation: Quick Shot the boss to mark it and fill Focus,
    spend Focus on a Piercing Shot lined up through the pack, Volley the
@@ -50,6 +53,7 @@ enum ranger_shot
     RangerShot_Volley,
     RangerShot_Pierce,
     RangerShot_Trap,
+    RangerShot_Kill,
 };
 
 // NOTE(zoubir): an arrow burst's look
@@ -140,6 +144,20 @@ CastRangerKey(app_state *AppState, world *World, memory_arena *Arena, player_slo
             world_entity *Foe = Slot->Predicted ? 0 : RangerTarget(AppState, Slot, Player, RAPID_FIRE_RANGE);
             Slot->Ranger.RapidSlot = Foe ? (u32)(Foe - World->Entities) : 0;
             Slot->Ranger.RapidSerial = Foe ? Foe->MonsterSerial : 0;
+        } break;
+
+        case 4:
+        {
+            // NOTE(zoubir): only at the Ranger's own marked foe; none in
+            // reach, no shot and no cooldown
+            world_entity *Foe = RangerMarkedFoe(AppState, Slot);
+            if (!Foe || Length(Foe->Position.XY - Player->Position.XY) > KILL_SHOT_RANGE)
+            {
+                return false;
+            }
+            ShootRangerArrow(AppState, Player, Foe, RangerShot_Kill, KILL_SHOT_DAMAGE,
+                             RangerArrow_Quick);
+            EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
         } break;
 
         case 5:
