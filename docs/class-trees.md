@@ -1,109 +1,59 @@
-# Class trees, reshaped
+# Class trees
 
-The plan for the dungeon classes' talent trees, replacing the class tree and the second tree described in `docs/talents.md`. Built a class at a time; the table at the bottom says which classes are done.
+How each dungeon class's talents and spells are laid out: one tree of two branches per class, a cap on the spells it casts, a choice of spell in each branch, and slots that roll again each run. The code is `code/sim/dungeon/class_tree.cpp` (the rules), `class_tree_defs.cpp` (every class's tree) and `role_abilities/spell_cap.cpp` (the cap).
 
 ## The rules
 
-1. **Two to four spells.** A class casts at most four spells of its own. Two are its base kit and are there from level 1. Each of the two branches offers a pair of spells and the player takes one of the pair, so a full build has exactly four. The game's moves every class shares in a run (shield, blink, jump) are not class spells and stay. The game's fireball is gone from every class except the Fire Mage, whose base filler it is.
-2. **Two branches.** The panel shows the class's two branches side by side, each named for a way to play the class. They share the run's 29 points. Filling one branch takes 23, so a top-level build is one full branch plus the first two tiers of the other, which is enough to reach the other branch's spell.
-3. **Synergy.** Every fixed talent in a branch pays off that branch's spell pair or the base kit's resource (Searing, Focus, Rage, combo points, Charge, Tempo, Icicles, Bloom). Nothing in a branch is a plain stat line except what the wild slots roll.
-4. **Randomness.** Five slots of each branch are wild: they roll as each run starts, from that branch's own pool. A pool holds the class's themed talents that did not get a fixed slot plus a few of the generic run talents (`run_tree/run_mods.cpp`) that suit the branch. So a wild roll changes how a build plays without ever offering something that does nothing for it.
+1. **A cap on spells.** A damage class casts at most four class spells, a tank or a healer six. Its attack does not count (the key it fills gaps with: Quick Shot, Cleave, Shield Bash, Smite Bolt, Wrath, the Fire Mage's fireball), nor the moves every class shares in a run (shield, blink, jump).
+2. **Base kit and two picks.** A class casts its attack and its base spells from the start: two for a damage class, four for a tank or a healer. Each branch offers a pair of spells and the player takes one of the pair, which brings the class to its cap.
+3. **One more at the top level.** At level 30 the lock on one pair lifts: a player there may take the other spell of that pair too, one spell over the cap.
+4. **Two branches.** Each is named for a way to play the class. Filling one takes about 23 of the run's 29 points, so a top-level build is one full branch and the other's first tiers.
+5. **Synergy.** Every fixed talent in a branch pays off both spells of its pair or the base kit.
+6. **Randomness.** Five slots of each branch roll as each run starts, from that branch's own pool: the class's themed talents that have no fixed slot and the run talents (`run_tree/run_mods.cpp`) that suit the branch. One of them is a keystone, a big effect with a cost.
 
 ## The shape of a branch
 
 | Tier | Left | Right |
 |---|---|---|
-| 1 | spell, 2 ranks | the other spell, 2 ranks; taking one locks the other |
-| 2 | the branch's core talent, fixed, 2 ranks | wild, 2 ranks |
+| 1 | spell, 1 or 2 ranks | the other spell; taking one locks the other |
+| 2 | the branch's core talent, fixed | wild, 2 ranks |
 | 3 | fixed, 3 ranks | wild, 2 ranks |
 | 4 | wild, 2 ranks | fixed, 3 ranks |
 | 5 | fixed, 3 ranks | wild, 2 ranks |
-| 6 | the branch's capstone, 1 rank | wild keystone, 1 rank, a big effect with a cost |
+| 6 | the branch's capstone, 1 rank | wild keystone, 1 rank |
 
-The pairs are the first tier, open from the start; the second tier opens on the spell's point, and each tier after it on two more points in the same branch (1, 3, 5, 7, 9). So the first point buys a spell and the second the other branch's: a class casts its four by level 3. The balance probe showed why: with the pairs in the second tier, parties fought the first rooms on their two base spells alone and took twice as long, and a Berserker that went without a Rage spender for levels walled at the crypt's second boss. A spell's second rank strengthens it.
-
-A talent's ranks come from the talent itself, so a one-rank talent in a three-rank slot is full at one point.
+The pairs are the first tier, open from the start; the second tier opens on the spell's point, each tier after it on two more points in the same branch (1, 3, 5, 7, 9). In a run the first spell taken is free, so a class casts all but one of its spells from the first room and its whole cap from level 2.
 
 ## The classes
 
-Base kit first, then each branch: its spell pair, its fixed talents, and what its wild pool leans to.
+Attack, base spells, then each branch's pair. A spell marked *new* is designed and not built yet: until it is, a passive talent holds its place in the pair (named in `class_tree_defs.cpp`).
 
-### Fire Mage
-- **Base:** Fireball (X), which leaves Searing; Giant Fireball (R).
-- **Wildfire** (marks and burning ground, packs). Spells: Meteor (A) or Fireguard (C, and a foe that strikes the shield gets Searing). Fixed: Searing Heat, Wildfire, Molten Ground; capstone Overload (a full mark spreads its stacks to foes near when it blows). Wild: packbane, frenzy, glory, Cataclysm.
-- **Pyre** (burst on one foe). Spells: Combustion (V) or Detonate (W, new: every Searing mark within 300 blows now, harder a stack). Fixed: Pyromancer, Executioner, Kindling; capstone Phoenix Heart. Wild: bossbane, opener, execute, cadence, vanguard.
+| Class | Attack | Base | Branch: pair | Branch: pair |
+|---|---|---|---|---|
+| Fire Mage | Fireball | Giant Fireball, Meteor | Wildfire: Fireguard or *Flame Wave* (a cone that leaves Searing on everything it burns) | Pyre: Combustion or Detonate |
+| Ranger | Quick Shot | Piercing Shot, Volley | Marksmanship: Rapid Fire or Kill Shot | Survival: Disengage or *Explosive Trap* (a trap thrown at the cursor that blows on the first foe) |
+| Berserker | Cleave | Execute, Whirlwind | Fury: Berserk or Battle Shout | Carnage: Leap or *Rampage* (a charge through a line of foes, Rage for each) |
+| Shadowblade | Twin Strike | Eviscerate, Fan of Knives | Assassination: Deadly Throw or *Garrote* (cancels a wind-up and poisons) | Subtlety: Shadowstep or Shadow Dance |
+| Stormcaller | Spark | Thunderclap, Chain Lightning | Conduction: Static Field or *Ball Lightning* (a slow orb that zaps what it passes) | Tempest: Lightning Dash or Eye of the Storm |
+| Duelist | Thrust | Heartseeker, Lunge | Bladework: Perfect Form or *Disarm* (a strike that halves a foe's damage for a while) | Guard: Riposte or Feint |
+| Frost Mage | Frostbolt | Glacial Spike, Frost Nova | Winter: Blizzard or *Cone of Cold* (a cone that chills and grows an Icicle a foe) | Shatter: Frozen Orb or Ice Barrier |
+| Bulwark | Shield Bash | Shield Slam, Taunt, Shield Charge, Shield Throw | Bastion: Last Stand or *Rallying Cry* (allies near gain health for a while) | Vanguard: Intercept or *Demoralizing Roar* (foes near deal less) |
+| Mender | Smite Bolt | Mending Bolt, Ward, Holy Fire, Radiance | Sanctum: Sanctuary or *Prayer of Healing* (heals the most hurt allies at once) | Dawn: *Dawnbreak* or *Purify* (light that heals through damage, or a cleanse and a shield) |
+| Druid | Wrath | Rejuvenation, Regrowth, Moonfire, Starfire | Grove: Tranquility or *Lifebloom* (a heal that blooms when it runs out) | Moon: Entangling Roots or *Starfall* (stars on every foe near) |
 
-### Bulwark
-- **Base:** Shield Bash (right click); Shield Slam (R), which now also takes threat off everything it hits as a short taunt.
-- **Bastion** (survive anything). Spells: Last Stand (V) or Taunt (A). Fixed: Iron Skin, Bastion, Steady Heart; capstone Unbroken. Wild: armor, last breath, regen, lifeline, Living Fortress.
-- **Vanguard** (control and peel). Spells: Shield Charge (X) or Shield Throw (W). Fixed: Shatter Armor, Juggernaut, Menacing, Shield Brother; capstone Guardian (Shield Charge or Shield Throw on a foe attacking an ally wards that ally for 30). Wild: thorns, aura, threat, Provoke.
-- Intercept (C) leaves the kit; its guard lives on in Vanguard's capstone.
-
-### Mender
-- **Base:** Mending Bolt (A); Ward (R).
-- **Sanctum** (the whole party). Spells: Sanctuary (C) or Radiance (V). Fixed: Deep Ward, Steadfast Ward, Blessed Hands; capstone Guardian Angel. Wild: overflow, aura, shared feast, Miracle.
-- **Dawn** (heal by hurting). Spells: Holy Fire (W) or Smite Bolt (right click). Fixed: Swift Mending, Renewal, Atonement (the most hurt ally heals 20% more a rank from the light that strikes a foe, Holy Fire's or Smite Bolt's); capstone Miracle. Wild: anthem, damage, haste, heal taken.
-
-### Ranger
-- **Base:** Quick Shot (X), which marks and builds Focus; Piercing Shot (R), which spends it.
-- **Marksmanship** (Focus and the mark, one foe). Spells: Rapid Fire (V) or Kill Shot (W, new: a shot at a marked foe under 25% health; a kill brings it back at once). Fixed: Marksman, Deadeye, Lethal Mark; capstone Apex Predator. Wild: bossbane, cadence, opener, Big Game, Patience.
-- **Survival** (traps and the circle, packs). Spells: Volley (A) or Disengage (C). Fixed: Barrage (Volley wider and longer, the snare holds 1 s longer), Pinning Volley (what Volley struck or the snare held stays slow after), Hunter's Net (the snare roots every foe near it; Volley's first arrows root for 1 s); capstone Trophy. Wild: packbane, run speed, frenzy, feast.
-
-### Berserker
-- **Base:** Cleave (right click), which builds Rage; Execute (W), which spends it, far harder on a foe near death. A Berserker always has its finisher: the balance probe showed a Berserker that took Berserk over Execute had nothing to spend Rage on against a boss and walled at the crypt's second boss.
-- **Fury** (one big foe). Spells: Berserk (V) or Battle Shout (C: Rage to full, and the party near deals 12% more for 8 s). Fixed: Brutality, then Bloodthirst and Massacre, both about Execute, which every Berserker has; capstone Undying Fury. Wild: execute, desperate, leech, Cornered Beast.
-- **Carnage** (packs and charges). Spells: Whirlwind (R) or Leap (A). Fixed: Unbridled Wrath, Sweeping Strikes, Shattering Leap (what Leap lands on or Whirlwind cuts takes 25% more from everyone); capstone Red Mist. Wild: packbane, frenzy, feast, Bladestorm.
-
-### Shadowblade
-- **Base:** Twin Strike (right click), poison and a combo point; Eviscerate (W), the finisher.
-- **Assassination** (poison). Spells: Fan of Knives (R) or Deadly Throw (X). Fixed: Venom, Envenom, Knife Storm; capstone Death Mark. Wild: bossbane, cadence, leech, Siphon.
-- **Subtlety** (shadows and the back). Spells: Shadowstep (A) or Shadow Dance (V). Fixed: Opportunist, Relentless, Ambush; capstone Kidney Shot. Wild: opener, frenzy, execute, Slip.
-
-### Stormcaller
-- **Base:** Spark (X), which builds Charge; Thunderclap (W), which spends it.
-- **Conduction** (bolts that leap, packs). Spells: Chain Lightning (A) or Static Field (R). Fixed: Voltage, Conductor, Arc Field; capstone Stormbringer. Wild: packbane, frenzy, glory, Static Build.
-- **Tempest** (riding the overload). Spells: Lightning Dash (C) or Eye of the Storm (V). Fixed: Capacitor, Live Wire, Grounded; capstone Surge. Wild: bossbane, run speed, desperate, Storm Front.
-
-### Duelist
-- **Base:** Thrust (right click), which builds Tempo; Heartseeker (W), harder for every stack.
-- **Bladework** (Tempo and the finish). Spells: Perfect Form (V) or Lunge (A). Fixed: Finesse, Precision, Crescendo; capstone Masterstroke. Wild: bossbane, cadence, execute, Coup de Grace.
-- **Guard** (parry and punish). Spells: Riposte (R) or Feint (C, new: a sidestep; the next blow on you in 1 s misses and gives a Tempo stack). Fixed: Bait, Parade, Panache; capstone Measured. Wild: armor, thorns, last breath, Footwork.
-
-### Frost Mage
-- **Base:** Frostbolt (X), which grows Icicles; Glacial Spike (R), which spends them.
-- **Winter** (hold them in place). Spells: Frost Nova (W) or Blizzard (A). Fixed: Permafrost, Deep Freeze (Frost Nova holds longer; a Blizzard's last strike freezes what is in it), Shatter Point; capstone Absolute Zero. Wild: packbane, frenzy, Deep Winter.
-- **Shatter** (Icicles and the orb). Spells: Frozen Orb (V) or Ice Barrier (C). Fixed: Frostbite, Fingers of Frost, Splitting Ice; capstone Cold Calculation. Wild: bossbane, cadence, armor, Glacial Skin.
-
-### Druid
-- **Base:** Wrath (right click), which grows Bloom; Rejuvenation (A), a heal over time that spends it. The balance probe showed a Druid whose only base heal was Regrowth leaned on a coin toss for its steady healing.
-- **Grove** (healing). Spells: Regrowth (W, a big heal that spends Bloom) or Tranquility (V, a 3 s channel healing every ally near, 10 each half second, every 20 s). Fixed: Verdancy, Wild Growth (both about Rejuvenation, which every Druid has), Verdant, Wild Bloom; capstone Heart of the Wild. Wild: overflow, heal taken, Overgrowth.
-- **Moon** (damage that heals). Spells: Starfire (R) or Moonfire (X). Fixed: Nature's Wrath, Symbiosis, Eclipse (Wrath and Starfire hit a foe under your Moonfire 25% harder, and Starfire leaves a Moonfire, so it pays off either spell), Starlit Fury; capstone Lunar Bloom (Wrath and Starfire on a foe under your Moonfire grow a Bloom more, feeding the heals). Wild: damage, anthem, Moonlit, Shared Spoils. Entangling Roots leaves the kit.
+The fixed talents and the pools are in `class_tree_defs.cpp`; each class's talents and their numbers in `role_kits/<class>_defs.cpp`.
 
 ## Bots
 
-A bot takes a spell of each pair first, which of the two by a coin toss, so a party of bots plays both builds of a class; then it spends at random. Every class bot casts whichever spells it took: the Fire Mage detonates once its marks near hold a full mark's worth of stacks, the Ranger takes its Kill Shot on a marked foe nearly dead or on the boss, the Berserker shouts in the thick of a fight with its Rage spent, the Duelist feints the blows it would parry. The balance probe's `PROBE_TREE` modes pick the branch.
+A bot takes a spell of each pair first, which of the two by a coin toss, so a party of bots plays both builds of a class; then it spends at random. Every class bot casts whichever spells it took.
 
 ## Status
 
-Every class has its two branches, its spell pairs and its pools in the game (`class_tree_defs.cpp`), and casts at most four spells: the game's fireball is gone from all but the Fire Mage, the Bulwark's Intercept and the Druid's Entangling Roots are out of the kits. What is left:
-
-| Class | Still to do |
-|---|---|
-| Fire Mage | nothing beyond tuning |
-| Bulwark | nothing beyond tuning |
-| Mender | nothing beyond tuning |
-| Ranger | nothing beyond tuning |
-| Berserker | nothing beyond tuning |
-| Shadowblade | nothing beyond tuning |
-| Stormcaller | nothing beyond tuning |
-| Duelist | nothing beyond tuning |
-| Frost Mage | nothing beyond tuning |
-| Druid | nothing beyond tuning |
-| Every class | the Intercept and Entangling Roots code is still in the kits, unreachable |
+Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above not marked *new*. To build: the fourteen *new* spells, then the balance retuned for the bigger kits (each class casts one or two spells more than when the balance below was measured).
 
 ## Balance
 
-Measured with the balance probe (`miscalance.bat 200 3 2 16`, `PROBE_LEVELS=2`): a tank, a healer and one damage bot, 16 seeds, crypt into depths, each bot taking a coin toss of every pair. Wipes a kill at the worst room, and the last boss's average fight:
+Measured with the balance probe (`misc\balance.bat 200 3 2 16`, `PROBE_LEVELS=2`): a tank, a healer and one damage bot, 16 seeds, crypt into depths, each bot taking a coin toss of every pair. Wipes a kill at the worst room, and the last boss's average fight:
 
 | Damage or healer bot | Worst wipes a kill | Throne of Embers | Before the reshape (Throne of Embers) |
 |---|---|---|---|

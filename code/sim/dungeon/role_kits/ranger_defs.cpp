@@ -181,7 +181,7 @@ global_variable u8 RangerTalentStats[CLASS_TALENTS] =
 global_variable role_spell RangerSpells[ROLE_KEYS] =
 {
     {"Volley", VOLLEY_COOLDOWN, "Volley: arrows rain on the circle at the cursor for 2 s and slow",
-     RoleAim_Ground, VOLLEY_RADIUS, RangerTalent_Volley + 1},
+     RoleAim_Ground, VOLLEY_RADIUS, 0},
     {"Piercing Shot", PIERCE_COOLDOWN,
      "Piercing Shot: 1 s draw, an arrow through every foe in a line; spends Focus for more",
      RoleAim_Line, PIERCE_RANGE, 0, "All Focus"},

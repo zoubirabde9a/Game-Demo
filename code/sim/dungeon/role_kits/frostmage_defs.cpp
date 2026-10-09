@@ -167,7 +167,7 @@ global_variable role_spell FrostMageSpells[ROLE_KEYS] =
      "Frozen Orb: an orb rolls along your aim, striking and chilling what is near it",
      RoleAim_Line, FROZEN_ORB_SPEED * FROZEN_ORB_SECONDS, FrostMageTalent_FrozenOrb + 1},
     {"Frost Nova", FROST_NOVA_COOLDOWN, "Frost Nova: freeze every foe near you in place for 3 s",
-     RoleAim_None, 0.f, FrostMageTalent_FrostNova + 1},
+     RoleAim_None, 0.f, 0},
     {"Frostbolt", FROSTBOLT_COOLDOWN,
      "Frostbolt: a bolt that chills a foe and grows an Icicle; frozen foes take 40% more",
      RoleAim_Foe, FROSTBOLT_RANGE, 0},

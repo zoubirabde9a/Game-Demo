@@ -265,7 +265,7 @@ TestRoleTalents()
     Check(ClassTalentRank(Slot, TankTalent_IronSkin) == 0);
     // NOTE(zoubir): three ranks, the first spell of them free
     Check(TalentPointsLeft(Slot) == Left + 2);
-    Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], StrikerTalent_Meteor)));
+    Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], StrikerTalent_Fireguard)));
     Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], StrikerTalent_SearingHeat)));
     Check(ClassTalentRank(Slot, StrikerTalent_SearingHeat) == 1);
 

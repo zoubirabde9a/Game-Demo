@@ -49,12 +49,14 @@ TestClassTreesMatchTheShape()
     for(u32 Role = 0; Role < PlayerRole_Count; Role++)
     {
         class_tree_def *Def = &ClassTrees[Role];
-        // NOTE(zoubir): two base spells, the Fire Mage's fireball one of them
-        u32 Base = RoleDropsFireball(Role) ? 0 : 1;
+        // NOTE(zoubir): the base spells, the attack not counted, leave room
+        // for one spell of each branch's pair under the class's cap
+        u32 Base = 0;
         for(u32 Key = 0; Key < ROLE_KEYS; Key++)
         {
             role_spell *Spell = &RoleSpells[Role][Key];
-            Base += Spell->Name && !Spell->Unlock;
+            Check(Key != RoleAttackKeys[Role] || (Spell->Name && !Spell->Unlock));
+            Base += Spell->Name && !Spell->Unlock && Key != RoleAttackKeys[Role];
             if (Spell->Name && Spell->Unlock)
             {
                 // NOTE(zoubir): every other spell sits in a pair, never in a
@@ -71,7 +73,7 @@ TestClassTreesMatchTheShape()
                 Check(Found == 1);
             }
         }
-        Check(Base == 2);
+        Check(Base == RoleSpellCap(Role) - 2);
         u32 BranchPoints[2] = {};
         for(u32 Branch = 0; Branch < 2; Branch++)
         {
@@ -177,27 +179,39 @@ TestClassTreePointRules()
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_FrostMage);
     Slot->Level = PLAYER_MAX_LEVEL;
-    u32 NovaTalent = ClassTalentId(Slot, FrostMageTalent_FrostNova);
-    u32 BlizzardTalent = ClassTalentId(Slot, FrostMageTalent_Blizzard);
-    Check(NovaTalent == Talent_RoleFirst + 2 && BlizzardTalent == Talent_RoleFirst + 3);
-    // NOTE(zoubir): the base spells cast from the start, a pair's not yet
-    Check(RoleSpellLearned(Slot, 5) && RoleSpellLearned(Slot, 1));
-    Check(!RoleSpellLearned(Slot, 4) && !RoleSpellLearned(Slot, 0));
+    u32 OrbTalent = ClassTalentId(Slot, FrostMageTalent_FrozenOrb);
+    u32 BarrierTalent = ClassTalentId(Slot, FrostMageTalent_IceBarrier);
+    Check(OrbTalent == Talent_RunFirst + 2 && BarrierTalent == Talent_RunFirst + 3);
+    Slot->Level = PLAYER_MAX_LEVEL - 1;
+    // NOTE(zoubir): the attack and the base spells cast from the start, a
+    // pair's not yet
+    Check(RoleSpellLearned(Slot, 5) && RoleSpellLearned(Slot, 1) && RoleSpellLearned(Slot, 4));
+    Check(!RoleSpellLearned(Slot, 3) && !RoleSpellLearned(Slot, 2));
+    Check(RoleSpellsCounted(Slot) == RoleSpellCap(PlayerRole_FrostMage) - 2);
     // NOTE(zoubir): the pair opens with the first point, the tier below it
     // with the spell, the one below that with two more in the branch
-    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + 0));
-    Check(LearnTalent(AppState, 0, NovaTalent));
-    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 0));
-    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + 4));
-    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 1));
-    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 4));
-    // NOTE(zoubir): the other branch's points do not open this one
     Check(!LearnTalent(AppState, 0, Talent_RunFirst + 0));
-    Check(RoleSpellLearned(Slot, 4) && !RoleSpellLearned(Slot, 0));
-    Check(CanLearnTalent(Slot, BlizzardTalent) == TalentRefusal_OtherSpell);
-    Check(!LearnTalent(AppState, 0, BlizzardTalent));
+    Check(LearnTalent(AppState, 0, OrbTalent));
+    Check(LearnTalent(AppState, 0, Talent_RunFirst + 0));
+    Check(!LearnTalent(AppState, 0, Talent_RunFirst + 4));
+    Check(LearnTalent(AppState, 0, Talent_RunFirst + 1));
+    Check(LearnTalent(AppState, 0, Talent_RunFirst + 4));
+    // NOTE(zoubir): the other branch's points do not open this one
+    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + 0));
+    Check(RoleSpellLearned(Slot, 3) && !RoleSpellLearned(Slot, 2));
+    Check(CanLearnTalent(Slot, BarrierTalent) == TalentRefusal_OtherSpell);
+    Check(!LearnTalent(AppState, 0, BarrierTalent));
     // NOTE(zoubir): a spell's second rank strengthens it, if it has one
-    Check(!LearnTalent(AppState, 0, NovaTalent));
+    Check(!LearnTalent(AppState, 0, OrbTalent));
+    // NOTE(zoubir): the other pair's spell brings the class to its cap
+    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 2));
+    Check(RoleSpellsCounted(Slot) == RoleSpellCap(PlayerRole_FrostMage));
+    // NOTE(zoubir): at the top level the lock lifts once: one spell over
+    // the cap, and the other pair stays locked
+    Slot->Level = PLAYER_MAX_LEVEL;
+    Check(LearnTalent(AppState, 0, BarrierTalent));
+    Check(RoleSpellsCounted(Slot) == RoleSpellCap(PlayerRole_FrostMage) + 1);
+    Check(CanLearnTalent(Slot, Talent_RoleFirst + 3) == TalentRefusal_OtherSpell);
 
     // NOTE(zoubir): a new run rolls the wild slots again; points stay
     u32 Seed = Slot->TreeSeed;
@@ -207,7 +221,7 @@ TestClassTreePointRules()
     AppState->NextMap = MapId_Depths;
     StartNextRoundMap(AppState, &Crypt.Arena);
     Check(Slot->TreeSeed != Seed && Slot->TreeSeed <= RUN_SEED_MASK);
-    Check(Slot->Ranks[Talent_RoleFirst + 4] == 1 && Slot->Ranks[NovaTalent] == 1);
+    Check(Slot->Ranks[Talent_RunFirst + 4] == 1 && Slot->Ranks[OrbTalent] == 1);
     u32 Same = 0;
     for(u32 Index = 0; Index < CLASS_TREE_SLOTS; Index++)
     {

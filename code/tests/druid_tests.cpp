@@ -72,8 +72,8 @@ TestDruidKeys()
     // NOTE(zoubir): the two base spells only, before any point
     ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    Check(Allowed == ((DUNGEON_SHARED_BUTTONS & ~(u32)PlayerButton_Cast) | PlayerButton_Launch |
-                      PlayerButton_Attack));
+    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Launch | PlayerButton_Push |
+                      PlayerButton_Shockwave | PlayerButton_Attack));
     SetClassTalentRank(Slot, DruidTalent_Starfire, 1);
     SetClassTalentRank(Slot, DruidTalent_Tranquility, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);
@@ -369,7 +369,6 @@ TestEclipse()
     ResetRoleTalents(Slot);
     SetClassTalentRank(Slot, DruidTalent_Starfire, 1);
     SetClassTalentRank(Slot, DruidTalent_Eclipse, 1);
-    Check(!RoleSpellLearned(Slot, 5));
     world_entity *Foe = DruidDummy(&Crypt, V3(250.f, 0.f, 0.f));
     PressOnce(&Crypt, 0, PlayerButton_Push);
     DruidTick(&Crypt, (u32)(60.f * (1.5f + STARFIRE_FALL)) + 4);

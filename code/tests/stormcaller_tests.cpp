@@ -103,7 +103,7 @@ TestStormcallerKeys()
     // NOTE(zoubir): the two base spells only, before any point
     ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Shockwave));
+    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Shockwave | PlayerButton_Launch));
     SetClassTalentRank(Slot, StormcallerTalent_LightningDash, 1);
     SetClassTalentRank(Slot, StormcallerTalent_EyeOfTheStorm, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);

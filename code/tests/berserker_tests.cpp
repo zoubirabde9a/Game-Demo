@@ -51,8 +51,8 @@ TestBerserkerKeys()
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
     u32 Main = PlayerButton_Shockwave | PlayerButton_Attack;
     Check((Allowed & Main) == Main);
-    Check(!(Allowed & (PlayerButton_Launch | PlayerButton_Push | PlayerButton_Slam |
-                       PlayerButton_Kunai | PlayerButton_Cast)));
+    Check((Allowed & PlayerButton_Push) &&
+          !(Allowed & (PlayerButton_Launch | PlayerButton_Slam | PlayerButton_Kunai | PlayerButton_Cast)));
     SetClassTalentRank(Slot, BerserkerTalent_Bloodthirst, 2);
     SetClassTalentRank(Slot, BerserkerTalent_Berserk, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);

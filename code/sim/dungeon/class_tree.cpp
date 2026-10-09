@@ -347,13 +347,29 @@ ClassSpellPartner(u32 Talent)
     return Result;
 }
 
+// NOTE(zoubir): whether Slot holds both spells of a pair, which only the
+// top level allows
+internal bool32
+ClassPairDoubled(player_slot *Slot)
+{
+    bool32 Result = false;
+    for(u32 Index = 0; Index < CLASS_TREE_SLOTS && !Result; Index += 2)
+    {
+        Result = ClassSlotShape(Index)->Kind == ClassSlot_Spell &&
+            ClassTreeRank(Slot, Index) > 0 && ClassTreeRank(Slot, Index + 1) > 0;
+    }
+    return Result;
+}
+
 // NOTE(zoubir): whether Slot took the other spell of Talent's pair, so
-// Talent takes no point
+// Talent takes no point. At the top level (PLAYER_MAX_LEVEL) the lock
+// lifts for one pair: a player there casts one spell over its class's cap
 inline bool32
 ClassSpellTakenBeside(player_slot *Slot, u32 Talent)
 {
     u32 Partner = ClassSpellPartner(Talent);
-    bool32 Result = Partner < Talent_Count && Slot->Ranks[Partner] > 0;
+    bool32 Result = Partner < Talent_Count && Slot->Ranks[Partner] > 0 &&
+        (Slot->Level < PLAYER_MAX_LEVEL || ClassPairDoubled(Slot));
     return Result;
 }
 

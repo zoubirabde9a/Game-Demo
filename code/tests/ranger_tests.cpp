@@ -77,7 +77,7 @@ TestRangerKeys()
     // NOTE(zoubir): the two base spells only, before any point
     ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Push));
+    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Push | PlayerButton_Launch));
     SetClassTalentRank(Slot, RangerTalent_Disengage, 1);
     SetClassTalentRank(Slot, RangerTalent_RapidFire, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);

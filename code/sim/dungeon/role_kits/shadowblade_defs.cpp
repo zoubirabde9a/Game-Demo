@@ -200,7 +200,7 @@ global_variable role_spell ShadowbladeSpells[ROLE_KEYS] =
      RoleAim_Foe, SHADOWSTEP_RANGE, ShadowbladeTalent_Shadowstep + 1},
     {"Fan of Knives", FAN_OF_KNIVES_COOLDOWN,
      "Fan of Knives: knives burst round you, a combo point for each foe cut",
-     RoleAim_None, FAN_OF_KNIVES_RADIUS, ShadowbladeTalent_FanOfKnives + 1},
+     RoleAim_None, FAN_OF_KNIVES_RADIUS, 0},
     {},
     {"Shadow Dance", DANCE_COOLDOWN,
      "Shadow Dance: 6 s of shadow strikes beside yours, Shadowstep back in 1 s",

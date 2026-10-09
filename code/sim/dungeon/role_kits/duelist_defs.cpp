@@ -212,7 +212,7 @@ global_variable u8 DuelistTalentStats[CLASS_TALENTS] =
 global_variable role_spell DuelistSpells[ROLE_KEYS] =
 {
     {"Lunge", LUNGE_COOLDOWN, "Lunge: dash to the foe under the cursor and strike it",
-     RoleAim_Foe, LUNGE_RANGE, DuelistTalent_Lunge + 1},
+     RoleAim_Foe, LUNGE_RANGE, 0},
     {"Riposte", RIPOSTE_COOLDOWN,
      "Riposte: 0.75 s on guard; a hit in it is parried and countered, and Riposte is back in 2 s",
      RoleAim_None, RIPOSTE_REACH, DuelistTalent_Riposte + 1},

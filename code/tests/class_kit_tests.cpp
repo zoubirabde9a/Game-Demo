@@ -21,7 +21,7 @@ TestRunKeepsTheClassKeys()
     // NOTE(zoubir): the two base spells only, before any point
     ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Push));
+    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Push | PlayerButton_Launch));
     Check(!(Allowed & (PlayerButton_Attack | PlayerButton_Dash | PlayerButton_Shockwave |
                        PlayerButton_RewindSelf | PlayerButton_Kunai)));
     SetClassTalentRank(Slot, StrikerTalent_Combustion, 1);

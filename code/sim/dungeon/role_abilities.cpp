@@ -87,7 +87,7 @@ global_variable u32 RoleKeys[ROLE_KEYS] =
 global_variable role_spell StrikerSpells[ROLE_KEYS] =
 {
     {"Meteor", INFERNO_COOLDOWN, "Meteor: 1 s cast, a meteor at the cursor that marks and burns",
-      RoleAim_Ground, INFERNO_RADIUS, StrikerTalent_Meteor + 1},
+      RoleAim_Ground, INFERNO_RADIUS, 0},
      {"Giant Fireball", GIANT_FIREBALL_COOLDOWN,
       "Giant Fireball: 1.5 s cast, a slow fireball that blows up a pack",
       RoleAim_Line, GIANT_FIREBALL_RANGE, 0},
@@ -103,19 +103,20 @@ global_variable role_spell StrikerSpells[ROLE_KEYS] =
 global_variable role_spell TankSpells[ROLE_KEYS] =
 {
     {"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you; Shield Wall 2 s",
-      RoleAim_None, 0.f, TankTalent_Taunt + 1},
+      RoleAim_None, 0.f, 0},
      {"Shield Slam", SHIELD_SLAM_COOLDOWN,
       "Shield Slam: stun and sunder what is near (+15% damage taken), heal per foe, shield allies",
       RoleAim_None, 0.f, 0},
-     {},
+     {"Intercept", INTERCEPT_COOLDOWN, "Intercept: leap to an ally and pull their foes",
+      RoleAim_Ally, INTERCEPT_RANGE, TankTalent_Intercept + 1},
      {"Last Stand", LAST_STAND_COOLDOWN, "Last Stand: heal 30%, Shield Wall for 6 s",
       RoleAim_None, 0.f, TankTalent_LastStand + 1},
      {"Shield Throw", SHIELD_THROW_COOLDOWN,
       "Shield Throw: hit a foe and bounce to two more, sundering each",
-      RoleAim_Foe, SHIELD_THROW_RANGE, TankTalent_ShieldThrow + 1},
+      RoleAim_Foe, SHIELD_THROW_RANGE, 0},
      {"Shield Charge", SHIELD_CHARGE_COOLDOWN,
       "Shield Charge: rush a foe and stun it 2 s; an attack it is winding up is cancelled",
-      RoleAim_Foe, SHIELD_CHARGE_RANGE, TankTalent_ShieldCharge + 1},
+      RoleAim_Foe, SHIELD_CHARGE_RANGE, 0},
      {"Shield Bash", SHIELD_BASH_COOLDOWN, "Shield Bash: strike what is in front with your shield",
       RoleAim_None, 0.f, 0}};
 
@@ -128,14 +129,14 @@ global_variable role_spell HealerSpells[ROLE_KEYS] =
      {"Sanctuary", SANCTUARY_COOLDOWN, "Sanctuary: a healing circle at the cursor",
       RoleAim_Ground, SANCTUARY_RADIUS, HealerTalent_Sanctuary + 1},
      {"Radiance", RADIANCE_COOLDOWN, "Radiance: heal and ward every ally around you",
-      RoleAim_None, 0.f, HealerTalent_Radiance + 1},
+      RoleAim_None, 0.f, 0},
      {"Holy Fire", HOLY_FIRE_COOLDOWN,
       "Holy Fire: strike a foe with light; the most hurt ally heals for it",
-      RoleAim_Foe, HOLY_FIRE_RANGE, HealerTalent_HolyFire + 1},
+      RoleAim_Foe, HOLY_FIRE_RANGE, 0},
      {},
      {"Smite Bolt", SMITE_BOLT_COOLDOWN,
       "Smite Bolt: a quick bolt of light at a foe; the most hurt ally heals a little",
-      RoleAim_None, SMITE_BOLT_RANGE, HealerTalent_SmiteBolt + 1}};
+      RoleAim_None, SMITE_BOLT_RANGE, 0}};
 
 // NOTE(zoubir): by player_role; the later classes' rows are their
 // role_kits/<class>_defs.cpp
@@ -228,9 +229,10 @@ RoleSpellLearned(player_slot *Slot, u32 Key)
     return Result;
 }
 
+#include "role_abilities/spell_cap.cpp"
+
 // NOTE(zoubir): the classes the shared fireball is no part of: every
-// class but the Fire Mage, whose base filler it is, so no class casts more
-// than its four spells (docs/class-trees.md)
+// class but the Fire Mage, whose attack it is (docs/class-trees.md)
 inline bool32
 RoleDropsFireball(u32 Role)
 {

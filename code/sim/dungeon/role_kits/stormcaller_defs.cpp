@@ -199,7 +199,7 @@ global_variable role_spell StormcallerSpells[ROLE_KEYS] =
 {
     {"Chain Lightning", CHAIN_COOLDOWN,
      "Chain Lightning: 0.6 s cast, a bolt that leaps foe to foe, never the same twice; Charge a foe",
-     RoleAim_Foe, CHAIN_RANGE, StormcallerTalent_ChainLightning + 1},
+     RoleAim_Foe, CHAIN_RANGE, 0},
     {"Static Field", STATIC_FIELD_COOLDOWN,
      "Static Field: a circle at the cursor for 5 s that shocks and slows; lightning arcs across it",
      RoleAim_Ground, STATIC_FIELD_RADIUS, StormcallerTalent_StaticField + 1},

@@ -171,7 +171,7 @@ global_variable role_spell BerserkerSpells[ROLE_KEYS] =
      RoleAim_Ground, LEAP_RADIUS, BerserkerTalent_Leap + 1},
     {"Whirlwind", WHIRLWIND_COOLDOWN,
      "Whirlwind: 30 Rage, spin for 1.5 s hitting everything around you five times",
-     RoleAim_None, WHIRLWIND_RADIUS, BerserkerTalent_Whirlwind + 1, "30 Rage"},
+     RoleAim_None, WHIRLWIND_RADIUS, 0, "30 Rage"},
     {"Battle Shout", BATTLE_SHOUT_COOLDOWN,
      "Battle Shout: Rage to full; you and the allies near deal 12% more for 8 s",
      RoleAim_None, BATTLE_SHOUT_REACH, BerserkerTalent_BattleShout + 1},

@@ -72,8 +72,8 @@ TestDuelistOwnsItsKeys()
     u32 Allowed = RunAllowedButtons(AppState, Slot, 0);
     u32 Main = PlayerButton_Shockwave | PlayerButton_Attack;
     Check((Allowed & Main) == Main);
-    Check(!(Allowed & (PlayerButton_Launch | PlayerButton_Push | PlayerButton_Slam |
-                       PlayerButton_Kunai | PlayerButton_Cast)));
+    Check((Allowed & PlayerButton_Launch) &&
+          !(Allowed & (PlayerButton_Push | PlayerButton_Slam | PlayerButton_Kunai | PlayerButton_Cast)));
     GrantClassSpells(Slot);
     SetClassTalentRank(Slot, DuelistTalent_Footwork, 2);
     SetClassTalentRank(Slot, DuelistTalent_PerfectForm, 1);
