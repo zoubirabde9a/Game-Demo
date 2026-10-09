@@ -258,6 +258,11 @@ FinishHeartseeker(app_state *AppState, player_slot *Slot, world_entity *Player)
         Slot->RoleCooldowns[0] = 0.f;
         Variant |= DUELIST_BURST_SWEEP;
     }
+    else if (Tempo >= HEARTSEEKER_SWEEP_TEMPO)
+    {
+        CrescendoSweep(AppState, Slot, Player, Foe, HEARTSEEKER_SWEEP_SHARE * Base);
+        Variant |= DUELIST_BURST_SWEEP;
+    }
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_DuelistFirst, DuelistBurst_Heartseeker),
               (u8)Player->PlayerIndex, DuelistBurstSpot(ChestOf(Foe), Variant), ATan2(Away.Y, Away.X));
     EmitSound(&AppState->Events, AssetType_SfxSword, Player->Position);

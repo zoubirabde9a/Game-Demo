@@ -91,6 +91,11 @@
 // its base and Tempo damage (no low-health bonus)
 #define CRESCENDO_HALF_ARC 1.f
 #define CRESCENDO_SPLASH 0.5f
+// NOTE(zoubir): without Crescendo, from this much Tempo Heartseeker still
+// cuts the foes in that arc for this share: the Duelist's one answer to a
+// pack, which walled its parties while only the talent swept
+#define HEARTSEEKER_SWEEP_TEMPO 3
+#define HEARTSEEKER_SWEEP_SHARE 0.3f
 #define FLURRY_SHARE 0.12f
 // NOTE(zoubir): Masterstroke: at full Tempo Heartseeker strikes again
 // MASTERSTROKE_DELAY later for this share of it
@@ -244,7 +249,7 @@ global_variable role_spell DuelistSpells[ROLE_KEYS] =
      "Perfect Form: 8 s where Tempo holds, every key builds it and Thrust strikes twice",
      RoleAim_None, 0.f, DuelistTalent_PerfectForm + 1},
     {"Heartseeker", HEARTSEEKER_COOLDOWN,
-     "Heartseeker: a piercing strike at the foe in front, harder with Tempo and on a hurt foe",
+     "Heartseeker: a piercing strike at the foe in front, harder with Tempo and on a hurt foe; from 3 Tempo it cuts the foes beside it too",
      RoleAim_None, HEARTSEEKER_REACH, 0},
     {"Disarm", DISARM_COOLDOWN, "Disarm: a flick at the foe in reach; it deals 30% less for 6 s",
      RoleAim_None, DISARM_REACH, DuelistTalent_Disarm + 1},

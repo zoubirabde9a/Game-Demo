@@ -100,24 +100,26 @@ TestCrescendo()
     world_entity *Behind = DuelistDummy(&Crypt, V3(-70.f, 0.f, 0.f));
     SetClassTalentRank(Slot, DuelistTalent_Crescendo, 1);
     u32 WindUp = (u32)(60.f * PlayerSpells[PlayerSpell_DuelistB].CastTime) + 2;
-    for(u32 Tempo = 4; Tempo <= 5; Tempo++)
+    // NOTE(zoubir): under HEARTSEEKER_SWEEP_TEMPO no sweep; from it every
+    // Heartseeker sweeps, weaker; at full Tempo Crescendo's sweep, which
+    // readies Lunge
+    u32 Tempos[] = {HEARTSEEKER_SWEEP_TEMPO - 1, DUELIST_MOST_TEMPO - 1, DUELIST_MOST_TEMPO};
+    float Cut[3];
+    for(u32 Index = 0; Index < ArrayCount(Tempos); Index++)
     {
-        Slot->ClassMeter = (u8)Tempo;
+        float SideBefore = Side->Hp;
+        Slot->ClassMeter = (u8)Tempos[Index];
         Slot->RoleCooldowns[0] = 5.f;
         Slot->RoleCooldowns[4] = 0.f;
         Slot->Duelist.LastKey = 4 + 1;
         PressAt(&Crypt, 0, PlayerButton_Shockwave, Foe);
         TickCrypt(&Crypt, WindUp);
         Check(Foe->Hp < 2000.f);
-        if (Tempo == 4)
-        {
-            Check(Side->Hp == 2000.f && Slot->RoleCooldowns[0] > 4.f);
-        }
-        else
-        {
-            Check(Side->Hp < 2000.f && Slot->RoleCooldowns[0] == 0.f);
-        }
+        Cut[Index] = SideBefore - Side->Hp;
+        bool32 Readied = Slot->RoleCooldowns[0] == 0.f;
+        Check(Index == 2 ? Readied : (!Readied && Slot->RoleCooldowns[0] > 4.f));
     }
+    Check(Cut[0] == 0.f && Cut[1] > 0.f && Cut[2] > Cut[1]);
     Check(Behind->Hp == 2000.f);
     DestroyCryptWorld(&Crypt);
 }

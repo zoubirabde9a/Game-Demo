@@ -333,8 +333,10 @@ TestHeartseeker()
     Check(Slot->RoleCooldowns[4] > HEARTSEEKER_COOLDOWN - 1.f);
     // NOTE(zoubir): the foe pressed on is held: it backs off past the
     // reach during the wind-up and is still struck, not the one in front
+    // (at no Tempo, so no sweep cuts the other)
     world_entity *Other = DuelistDummy(&Crypt, V3(50.f, 30.f, 0.f));
     Slot->RoleCooldowns[4] = 0.f;
+    Slot->ClassMeter = 0;
     float Before = Foe->Hp;
     PressAt(&Crypt, 0, PlayerButton_Shockwave, Foe);
     Check(Slot->Entity->CastSpell == PlayerSpell_DuelistB);
