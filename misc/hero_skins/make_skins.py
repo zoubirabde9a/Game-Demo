@@ -296,31 +296,41 @@ def bald_head(cell):
     cx, cy = h
     cell = cell.copy()
     yy, xx = np.mgrid[0:32, 0:32]
-    above_neck = yy + 0.5 < cy + NECK_BELOW_HEAD + 1
-    old = ((xx + 0.5 - cx) / 10.5) ** 2 + ((yy + 0.5 - cy) / 9.5) ** 2 <= 1.0
-    old &= above_neck
     skin = is_col(cell, SKIN)
+    top = sprite_top(cell)
     # NOTE: the sword's streak can cross the head; it stays
     streak = np.zeros((32, 32), bool)
-    top = sprite_top(cell)
+    wide = ((xx + 0.5 - cx) / 10.5) ** 2 + ((yy + 0.5 - cy) / 9.5) ** 2 <= 1.0
     for patch in components(skin):
-        if is_streak(patch, -99, old):
+        if is_streak(patch, -99, wide):
             for y, x in patch:
                 streak[y, x] = True
-    face = (skin | is_col(cell, ACCENT + [WHITE])) & old & ~streak
+    # NOTE: the face is the topmost patch of skin; the head is found from
+    # it, since a hair bun sticking up throws the sprite's top off
+    face_patch = None
+    for patch in components(skin & ~streak):
+        if len(patch) >= 4 and min(y for y, x in patch) <= top + 18:
+            if face_patch is None or min(y for y, x in patch) < min(y for y, x in face_patch):
+                face_patch = patch
+    if face_patch:
+        fy = np.array([y for y, x in face_patch])
+        fx = np.array([x for y, x in face_patch])
+        cy = fy.mean() + 0.5 - BALD_FACE_LIFT - BALD_DROP
+        neck = fy.max() + 1.5
+        box = (yy >= fy.min() - 2) & (yy <= fy.max()) & (xx >= fx.min() - 2) & (xx <= fx.max() + 2)
+        face = box & (skin | is_col(cell, ACCENT + [WHITE])) & ~streak
+    else:
+        neck = cy + NECK_BELOW_HEAD + 1
+        face = np.zeros((32, 32), bool)
+    old = ((xx + 0.5 - cx) / 10.5) ** 2 + ((yy + 0.5 - cy) / 9.5) ** 2 <= 1.0
+    old &= yy + 0.5 < neck
+    face &= yy + 0.5 < neck
     keep = cell.copy()
     gone = old & ~streak & (cell[..., 3] > 0)
     cell[gone] = 0
-    # NOTE: the head goes where the face is, the face on its lower half; a
-    # hair bun sticking up would put it too high. With no face (seen from
-    # behind) it sits a little under the hair's centre
+    # NOTE: the head sits where the face says, the face on its lower half;
+    # seen from behind (no face) a little under the hair's centre
     by = cy + BALD_DROP
-    faces = [p for p in components(skin & ~streak & old)
-             if sum(1 for y, x in p if old[y, x]) * 2 > len(p)]
-    if faces:
-        f = max(faces, key=len)
-        if len(f) >= 4:
-            by = sum(y for y, x in f) / len(f) + 0.5 - BALD_FACE_LIFT
     bx = cx
     nx = (xx + 0.5 - bx) / BALD_RX
     ny = (yy + 0.5 - by) / BALD_RY
@@ -349,6 +359,27 @@ def bald_head(cell):
     for src, mark in zip(SKIN, STREAK):
         cell[streak & is_col(keep, [src])] = mark + (255,)
     return cell
+
+
+# NOTE: a detached bit this small is a left-over speck (a headphone's
+# edge, a strand), not part of the hero
+SPECK_PIXELS = 3
+
+
+def despeck(cell):
+    """removes tiny bits that touch nothing else, with their outline"""
+    op = cell[..., 3] > 0
+    parts = components(op)
+    if len(parts) < 2:
+        return cell
+    biggest = max(len(p) for p in parts)
+    out = cell.copy()
+    for patch in parts:
+        body = [(y, x) for y, x in patch if tuple(cell[y, x, :3]) != OUTLINE]
+        if len(patch) < biggest and len(body) <= SPECK_PIXELS:
+            for y, x in patch:
+                out[y, x] = 0
+    return out
 
 
 def class_cell(cell, pal):
@@ -414,7 +445,7 @@ def class_cell(cell, pal):
         put(ACCENT[1], pants[1], legs)
         for s in SKIN:
             put(s, pants[1], legs)
-    return out
+    return despeck(out)
 
 
 def class_sheet(sheet, pal):

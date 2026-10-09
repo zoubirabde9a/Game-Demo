@@ -4,7 +4,7 @@
    the class and with the hair cut short (misc/hero_skins/make_skins.py),
    loaded from heroes/<class>.png. So only the texture changes: the frames
    are picked by the original's animation table (sim/animations.cpp),
-   with its timing, facings and size. A sheet that fails to load leaves
+   with its timing and facings, drawn HERO_SKIN_DRAW_SCALE larger. A sheet that fails to load leaves
    that class in the original hero. */
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -15,6 +15,10 @@
 #pragma warning(disable: 4244 4456 4457 4701 4702 4996)
 #include "../../third_party/stb_image/stb_image.h"
 #pragma warning(pop)
+
+// NOTE(zoubir): a class's hero is drawn this much larger than the
+// original, about the feet; only the picture grows, not the body
+#define HERO_SKIN_DRAW_SCALE 1.15f
 
 // NOTE(zoubir): the original hero's sheet layout (test_asset_builder.cpp)
 #define HERO_SHEET_PIXELS 512
@@ -75,6 +79,18 @@ AddHeroTextures(assets *Assets, open_gl *OpenGL, memory_arena *TempArena)
         HeroSkinLoaded[Role] = LoadHeroSheet(Assets, OpenGL, TempArena, HeroSkinFileNames[Role],
                                              {AssetType_HeroSkin, Role}, Origin);
     }
+}
+
+// NOTE(zoubir): the size an entity's sprite is drawn at
+inline v2
+SpriteDrawDimensions(world_entity *Entity)
+{
+    v2 Result = Entity->Dimensions;
+    if (Entity->Texture.Type == AssetType_HeroSkin)
+    {
+        Result *= HERO_SKIN_DRAW_SCALE;
+    }
+    return Result;
 }
 
 // NOTE(zoubir): from UpdateEntityUvs: a player in a run takes its class's

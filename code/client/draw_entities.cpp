@@ -204,7 +204,9 @@ DrawEntity(render_context *RenderContext,
     {
         TextureInfo = &GetAssetInfo(Assets, Entity->Texture)->Texture;
         Texture = GetTexture(Assets, OpenGL, AppState, Entity->Texture);
-        v2 Dimensions = Entity->Dimensions * Pose.Scale;
+        // NOTE(zoubir): a class's hero is drawn a little larger
+        // (heroes/hero_skins.cpp)
+        v2 Dimensions = SpriteDrawDimensions(Entity) * Pose.Scale;
         v2 EntityTexturePosition = EntityCameraPosition -
             TextureInfo->Origin * Dimensions;
         EntityTexturePosition.Y -= DrawZ;
