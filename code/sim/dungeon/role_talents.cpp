@@ -73,7 +73,8 @@ RoleRank(player_slot *Slot, u32 Role, u32 Index)
 }
 
 // NOTE(zoubir): the talent as Slot's panel shows it: a role slot is the
-// row of Slot's role, the rest are TalentDefs
+// row of Slot's role, a wild duel slot this match's perk, the rest are
+// TalentDefs
 internal talent_def *
 ShownTalentDef(player_slot *Slot, u32 Talent)
 {
@@ -81,6 +82,10 @@ ShownTalentDef(player_slot *Slot, u32 Talent)
     if (IsClassTalent(Talent))
     {
         Result = ShownClassTalentDef(Slot, Talent);
+    }
+    else if (IsDuelWildTalent(Talent))
+    {
+        Result = ShownDuelTalentDef(Slot, Talent);
     }
     return Result;
 }

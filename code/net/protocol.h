@@ -20,7 +20,7 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d76u // "GDMv", change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d77u // "GDMw" (45 talent ranks, the duel seed in TreeSeed); change it whenever the layout changes
 // (GDMv: a foe mark's Id in 12 bits, Sunder beside its stacks, a weaken bit each in MarkCount)
 // (GDMu: a burst's height carries its class number apart, NetBurstHeight in protocol.cpp)
 // (GDMt: team duels, net_snapshot.Teams and a team request in net_input.Role bits 5-6)
@@ -45,11 +45,12 @@
 #define NET_MAX_SNAPSHOT_REWINDS 4  // time rewinds under way the viewer can see
 #define NET_MAX_SNAPSHOT_CASTS 8    // players winding up a spell (MAX_PLAYERS)
 #define NET_COOLDOWN_COUNT 16       // the viewer's own ability cooldowns
-// NOTE(zoubir): ranks travel in 2 bits, from NET_TALENT_WIDE_FIRST to NET_TALENT_WIDE_END in 3
-#define NET_TALENT_WIDE_FIRST 18
-#define NET_TALENT_WIDE_END 30
+#define NET_TALENT_WIDE_FIRST 21     // ranks travel in 2 bits, from here to NET_TALENT_WIDE_END in 3
+#define NET_TALENT_WIDE_END 33
 #define NET_TALENT_BYTES 12
-#define NET_TALENT_COUNT 42         // the viewer's own talent ranks (sim/progression/talents.cpp)
+#define NET_TALENT_BRANCH 12        // slots in each class branch, the last two of one rank
+#define NET_TALENT_DUEL_KEYSTONES 6, 13, 20 // the duel tree's slots of one rank
+#define NET_TALENT_COUNT 45         // the viewer's own talent ranks (sim/progression/talents.cpp)
 #define NET_STATUS_COUNT 10        // status effects (sim/status_effects.cpp)
 #define NET_NAME_SIZE 16            // player name, 15 characters plus the terminator
 #define NET_SERVER_NAME_SIZE 24     // server name, 23 characters plus the terminator
@@ -362,7 +363,7 @@ struct net_snapshot
     // each rank 0..3 and sent in 2 bits. Everyone's level is in Scores.
     u16 Xp;
     u8 TalentRanks[NET_TALENT_COUNT];
-    u16 TreeSeed; // what its second tree rolled (sim/dungeon/run_tree/)
+    u16 TreeSeed; // in a run its second tree's roll (run_tree/), else the match's duel tree's (duel_perks.cpp)
     // The viewer's own stagger from a shove (sim/hit.cpp), 0..255 of
     // PlayerStats.StaggerSeconds; its prediction replays from it, or every
     // shove would be braked away on the client and pulled back.

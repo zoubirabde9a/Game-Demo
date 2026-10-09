@@ -140,6 +140,8 @@ struct talent_panel
     bool32 OpenedForBreak;
 };
 
+#include "talent_dev.cpp"
+
 internal talent_panel *
 GetTalentPanel(app_state *AppState)
 {
@@ -149,6 +151,7 @@ GetTalentPanel(app_state *AppState)
         *AppState->TalentPanel = {};
         AppState->TalentPanel->Focus = -1;
         AppState->TalentPanel->MessageAge = TALENT_MESSAGE_SECONDS;
+        ApplyDeveloperTalentPanel(AppState, AppState->TalentPanel);
     }
     return AppState->TalentPanel;
 }

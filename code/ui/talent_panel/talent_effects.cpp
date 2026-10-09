@@ -23,17 +23,6 @@ AreaRowForButton(u32 Button)
     return Result;
 }
 
-// NOTE(zoubir): the fireball's speed share at Level with Swift Flames at
-// SwiftRank (FireballSpeedScale)
-inline float
-FireballScaleAt(u32 Level, u32 SwiftRank)
-{
-    float Extra = Level > 1 ? (float)(Level - 1) : 0.f;
-    float Result = (1.f + TALENT_SWIFT_FLAMES_SCALE * (float)SwiftRank) *
-        (1.f + TalentDefs[Talent_Fireball].SpeedPerLevel * Extra);
-    return Result;
-}
-
 // NOTE(zoubir): what Talent does at Level (an ability's level, or a
 // passive's rank) into Out; false when there is nothing beyond its
 // summary and cooldown to say
@@ -56,6 +45,38 @@ RunTalentEffectText(player_slot *Slot, u32 Talent, u32 Level, char *Out, u32 Out
     }
 }
 
+// NOTE(zoubir): a duel perk at Rank ranks, in numbers
+// (sim/progression/talents/duel_perks.cpp)
+internal void
+DuelPerkEffectText(u32 Perk, u32 Rank, char *Out, u32 OutSize)
+{
+    float R = (float)Rank;
+    switch (Perk)
+    {
+        case DuelPerk_SwiftFlames: snprintf(Out, OutSize, "Fireballs +%.0f%% speed and range", 100.f * DUEL_SWIFT_FLAMES_SCALE * R); break;
+        case DuelPerk_Kindling: snprintf(Out, OutSize, "Fireball cooldown -%.0f%%", 100.f * DUEL_KINDLING_COOLDOWN * R); break;
+        case DuelPerk_Searing: snprintf(Out, OutSize, "Fireballs +%.0f%% damage", 100.f * DUEL_SEARING_DAMAGE * R); break;
+        case DuelPerk_Scorch: snprintf(Out, OutSize, "A fireball hit slows for %.1f s", DUEL_SCORCH_SLOW * R); break;
+        case DuelPerk_TwinFlame: snprintf(Out, OutSize, "%u fireball%s a cast", Rank ? 2 : 1, Rank ? "s" : ""); break;
+        case DuelPerk_Pyre: snprintf(Out, OutSize, "Fireballs +%.0f%% damage, cooldown +%.0f%%", 100.f * DUEL_PYRE_DAMAGE * R, 100.f * DUEL_PYRE_COOLDOWN * R); break;
+        case DuelPerk_Overcharge: snprintf(Out, OutSize, "+%.0f%% damage dealt, +%.0f%% taken", 100.f * DUEL_OVERCHARGE_DAMAGE * R, 100.f * DUEL_OVERCHARGE_TAKEN * R); break;
+        case DuelPerk_FleetFoot: snprintf(Out, OutSize, "Run speed %.0f", PlayerStats.RunSpeed * (1.f + DUEL_FLEET_FOOT_SCALE * R)); break;
+        case DuelPerk_Quickstep: snprintf(Out, OutSize, "Blink cooldown -%.0f%%", 100.f * DUEL_QUICKSTEP_COOLDOWN * R); break;
+        case DuelPerk_KeenEdge: snprintf(Out, OutSize, "Sword and kunai +%.0f%% damage", 100.f * DUEL_KEEN_EDGE_DAMAGE * R); break;
+        case DuelPerk_Hunter: snprintf(Out, OutSize, "Kunai cooldown -%.0f%%", 100.f * DUEL_HUNTER_COOLDOWN * R); break;
+        case DuelPerk_Momentum: snprintf(Out, OutSize, "%.1f s off blink, slam and kunai a hit", DUEL_MOMENTUM_REFUND * R); break;
+        case DuelPerk_Adrenaline: snprintf(Out, OutSize, "+%.0f%% run speed under half health", 100.f * DUEL_ADRENALINE_SCALE * R); break;
+        case DuelPerk_Phantom: snprintf(Out, OutSize, "%.1f s untouchable after a blink", DUEL_PHANTOM_SECONDS * R); break;
+        case DuelPerk_Ward: if (Rank) snprintf(Out, OutSize, "Back %.0f s after it breaks", DuelWardSeconds[Minimum(Rank, 2u)]); break;
+        case DuelPerk_ThickSkin: snprintf(Out, OutSize, "%.0f%% less damage taken", 100.f * DUEL_THICK_SKIN_SHARE * R); break;
+        case DuelPerk_Mending: snprintf(Out, OutSize, "%.1f health a second", DUEL_MENDING_PER_SECOND * R); break;
+        case DuelPerk_Steadfast: snprintf(Out, OutSize, "Stuns hold you %.0f%% shorter", 100.f * DUEL_STEADFAST_SHARE * R); break;
+        case DuelPerk_SecondWind: snprintf(Out, OutSize, "Once a round: 1 health and %.1f s shield", DUEL_SECOND_WIND_SHIELD); break;
+        case DuelPerk_Thorns: snprintf(Out, OutSize, "%.0f%% of a player's hit back at them", 100.f * DUEL_THORNS_SHARE * R); break;
+        case DuelPerk_Bastion: snprintf(Out, OutSize, "Shield heals %.0f, waits %.0f%% longer", DUEL_BASTION_HEAL, 100.f * DUEL_BASTION_COOLDOWN * R); break;
+    }
+}
+
 internal bool32
 TalentEffectText(player_slot *Slot, u32 Talent, u32 Level, char *Out, u32 OutSize)
 {
@@ -67,22 +88,21 @@ TalentEffectText(player_slot *Slot, u32 Talent, u32 Level, char *Out, u32 OutSiz
     {
         RunTalentEffectText(Slot, Talent, Level, Out, OutSize);
     }
-    switch (RunMod ? Talent_Count : Talent)
+    bool32 Wild = IsDuelWildTalent(Talent);
+    if (Wild)
+    {
+        DuelPerkEffectText(DuelPerkAt(Slot->DuelSeed, Talent), Level, Out, OutSize);
+    }
+    switch ((RunMod || Wild) ? Talent_Count : Talent)
     {
         case Talent_Fireball:
         {
-            float Scale = FireballScaleAt(Level, Slot->Ranks[Talent_SwiftFlames]);
-            snprintf(Out, OutSize, "Speed %.0f, range %.0f", PlayerStats.FireballSpeed * Scale,
+            float Scale = FireballScaleAt(Level, DuelPerkRank(Slot, DuelPerk_SwiftFlames));
+            float Damage = FireballDamageScaleAt(Level, DuelPerkRank(Slot, DuelPerk_Searing),
+                                                 DuelPerkRank(Slot, DuelPerk_Pyre));
+            snprintf(Out, OutSize, "%.0f damage, speed %.0f, range %.0f",
+                     PlayerStats.FireballDamage * Damage, PlayerStats.FireballSpeed * Scale,
                      PlayerStats.FireballRange * Scale);
-        } break;
-        case Talent_SwiftFlames:
-        {
-            snprintf(Out, OutSize, "Fireballs +%u%% speed and range",
-                     (u32)(100.f * TALENT_SWIFT_FLAMES_SCALE * (float)Level + 0.5f));
-        } break;
-        case Talent_TwinFlame:
-        {
-            snprintf(Out, OutSize, "%u fireball%s a cast", Level ? 2 : 1, Level ? "s" : "");
         } break;
         case Talent_Shield:
         {
@@ -94,25 +114,6 @@ TalentEffectText(player_slot *Slot, u32 Talent, u32 Level, char *Out, u32 OutSiz
             snprintf(Out, OutSize, "%.0f damage, speed %.0f",
                      PlayerStats.KunaiDamage * (1.f + Def->PowerPerLevel * Extra),
                      PlayerStats.KunaiSpeed);
-        } break;
-        case Talent_FleetFoot:
-        {
-            snprintf(Out, OutSize, "Run speed %.0f",
-                     PlayerStats.RunSpeed * (1.f + TALENT_FLEET_FOOT_SCALE * (float)Level));
-        } break;
-        case Talent_Ward:
-        {
-            if (Level)
-            {
-                snprintf(Out, OutSize, "Back %.0f s after it breaks",
-                         TalentWardSeconds[Minimum(Level, 2u)]);
-            }
-        } break;
-        case Talent_SecondWind:
-        {
-            snprintf(Out, OutSize, "Respawn in %.1f s, %.1f s shield",
-                     PLAYER_RESPAWN_SECONDS * (Level ? TALENT_SECOND_WIND_RESPAWN : 1.f),
-                     Level ? TALENT_SECOND_WIND_SHIELD : PLAYER_SPAWN_SHIELD_SECONDS);
         } break;
         default:
         {

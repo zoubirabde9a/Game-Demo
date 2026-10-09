@@ -118,6 +118,8 @@ EmitJumpedClear(app_state *AppState, world_entity *Target, u32 BySlot)
 
 // NOTE(zoubir): player_stats.cpp, included after this
 internal void StaggerPlayer(world_entity *Player);
+// NOTE(zoubir): sim/progression/talents/effects.cpp: a stun after Steadfast
+inline float DuelStunSeconds(app_state *AppState, world_entity *Target, float Seconds);
 // NOTE(zoubir): role_kits/duelist/riposte.cpp, included after this: a Duelist's guard parries the hit
 internal bool32 DuelistParriesHit(app_state *AppState, world_entity *Target, world_entity *Source, float Damage);
 
@@ -199,7 +201,8 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
     ApplyStatus(Target, Affix->OnHitStatus, Affix->OnHitStatusSeconds);
     if (Hit->StunSeconds > 0.f)
     {
-        ApplyStatus(Target, StatusEffect_Stunned, Hit->StunSeconds);
+        ApplyStatus(Target, StatusEffect_Stunned,
+                    DuelStunSeconds(AppState, Target, Hit->StunSeconds));
         if (BySlot != SIM_NOBODY)
         {
             Target->ThrownBySlot = BySlot + 1;

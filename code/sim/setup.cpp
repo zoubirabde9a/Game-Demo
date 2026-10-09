@@ -128,6 +128,12 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
     {
         AppState->DungeonRoomsCleared = 0;
     }
+    // NOTE(zoubir): a new match has a new duel tree, rolled when its
+    // first point comes (RollDuelSeed)
+    if (NewRun && !(FromDungeon && ToDungeon))
+    {
+        AppState->DuelSeed = 0;
+    }
     RebuildWorldForMap(AppState, Arena, MapId);
     FillMonsterPopulation(AppState, World, Arena, AppState->Monsters);
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
@@ -146,6 +152,7 @@ StartNextRoundMap(app_state *AppState, memory_arena *Arena)
         Slot->SpawnPosition = SpawnPosition;
         Slot->RespawnTimer = 0.f;
         Slot->DelayedInputCount = 0;
+        Slot->SecondWindSpent = false;
         if (NewTeams)
         {
             Slot->Kills = Slot->Deaths = Slot->MonsterKills = 0;

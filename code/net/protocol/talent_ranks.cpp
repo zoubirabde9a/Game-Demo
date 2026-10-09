@@ -1,13 +1,25 @@
-/* Talent ranks in a snapshot (protocol.cpp): the viewer's 42 ranks as
+/* Talent ranks in a snapshot (protocol.cpp): the viewer's 45 ranks as
    one run of bits, 2 for each duel talent (at most 3), 3 for each class
    tree talent from NET_TALENT_WIDE_FIRST on (at most 4) and 2 for each
    second tree talent from NET_TALENT_WIDE_END on (at most 3), in
-   NET_TALENT_BYTES bytes. */
+   NET_TALENT_BYTES bytes. A slot that takes one rank at most takes one
+   bit: the duel tree's keystones (NET_TALENT_DUEL_KEYSTONES) and the last
+   two slots of each class branch, its capstone and its keystone. */
 
 inline u32
 NetTalentRankBits(u32 Index)
 {
     u32 Result = (Index >= NET_TALENT_WIDE_FIRST && Index < NET_TALENT_WIDE_END) ? 3 : 2;
+    u32 DuelKeystones[] = {NET_TALENT_DUEL_KEYSTONES};
+    for (u32 Keystone = 0; Keystone < ArrayCount(DuelKeystones); ++Keystone)
+    {
+        Result = Index == DuelKeystones[Keystone] ? 1 : Result;
+    }
+    if (Index >= NET_TALENT_WIDE_FIRST &&
+        (Index - NET_TALENT_WIDE_FIRST) % NET_TALENT_BRANCH >= NET_TALENT_BRANCH - 2)
+    {
+        Result = 1;
+    }
     return Result;
 }
 

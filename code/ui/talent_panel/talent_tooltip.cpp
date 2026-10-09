@@ -62,6 +62,13 @@ DrawTalentTooltip(render_context *RenderContext, app_state *AppState,
                      ClassSlotIsKeystone(Talent) ? "wild keystone" : "wild",
                      Level, Def->MaxLevel);
         }
+        else if (IsDuelWildTalent(Talent))
+        {
+            // NOTE(zoubir): and a duel tree's wild slot each match
+            snprintf(Line, 112, "%s %s, new each match   rank %u of %u",
+                     TalentBranchName(Slot, Def->Branch),
+                     Def->MaxLevel == 1 ? "wild keystone" : "wild", Level, Def->MaxLevel);
+        }
         else
         {
             snprintf(Line, 112, "%s passive   rank %u of %u", TalentBranchName(Slot, Def->Branch),
@@ -86,7 +93,7 @@ DrawTalentTooltip(render_context *RenderContext, app_state *AppState,
         if (Cooldown > 0.f)
         {
             snprintf(Line, 112, "Now: %s%s%.1f s cooldown", HasNow ? Now : "",
-                     HasNow ? ", " : "", Cooldown * CooldownScaleForLevel(Level));
+                     HasNow ? ", " : "", Cooldown * TalentCooldownScale(Talent, Level));
         }
         else
         {
@@ -100,7 +107,7 @@ DrawTalentTooltip(render_context *RenderContext, app_state *AppState,
         if (Cooldown > 0.f)
         {
             snprintf(Line, 112, "%s: %s%s%.1f s cooldown", Label, HasNext ? Next : "",
-                     HasNext ? ", " : "", Cooldown * CooldownScaleForLevel(Level + 1));
+                     HasNext ? ", " : "", Cooldown * TalentCooldownScale(Talent, Level + 1));
         }
         else if (HasNext)
         {

@@ -525,7 +525,10 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
             Own && Own->IsPresent && !IsDeadPlayer(Own) && !Held)
         {
             ++JumpPresses;
-            JumpsSeenAtOnce += Own->Velocity.Z > 0.f ? 1 : 0;
+            // NOTE(zoubir): a jump under a duel bot hanging in the air for its
+            // slam (server/bots/duel_kit.cpp) starts and stops on its body
+            // the same tick, so a started jump counts too
+            JumpsSeenAtOnce += (Own->Velocity.Z > 0.f || Own->State == EntityState_Jumping) ? 1 : 0;
         }
         if (Frame == LastShieldFrame && IsOnline(Online) && Online->Replicas.Active &&
             Own && Own->IsPresent && !IsDeadPlayer(Own) && !Held)
@@ -610,12 +613,13 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
                     player_slot *TheirSlot = &Server.Game.AppState->Players[Theirs->PlayerIndex];
                     WrongLevel += OurSlot->Level != TheirSlot->Level ? 1 : 0;
                     ServerLevelUps += TheirSlot->Level > 1 ? 1 : 0;
-                    bool32 TheirWard = TheirSlot->WardReady && TheirSlot->Ranks[Talent_Ward];
+                    bool32 TheirWard = TheirSlot->WardReady && DuelPerkRank(TheirSlot, DuelPerk_Ward);
                     WrongWard += (OurSlot->WardReady != 0) != (TheirWard != 0) ? 1 : 0;
                     if (Ours->PlayerIndex == Client->LocalPlayerIndex)
                     {
                         ++OwnCompared;
-                        bool32 Same = OurSlot->Xp == TheirSlot->Xp;
+                        bool32 Same = OurSlot->Xp == TheirSlot->Xp &&
+                            OurSlot->DuelSeed == TheirSlot->DuelSeed;
                         for (u32 Talent = 0; Talent < Talent_Count; ++Talent)
                         {
                             Same = Same && OurSlot->Ranks[Talent] == TheirSlot->Ranks[Talent];

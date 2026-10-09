@@ -1,38 +1,34 @@
 /* Talents: what a player spends its level-up points on, as one table of
    three branches (Fire, Motion, Guard) of four tiers. A tier opens once
    TALENT_POINTS_PER_TIER points per tier above it are spent in that
-   branch: tier 1 at 2, tier 2 at 4, tier 3 at 6.
+   branch: tier 2 at 2, tier 3 at 4, tier 4 at 6.
 
-   A talent is either an ability or a passive. An ability talent has the
+   A talent is an ability or a wild slot. An ability talent has the
    ability's button and up to three levels. The abilities the rules start
-   with (GameRules.Buttons: fireball, launch, kunai, blink, shield) are level 1
-   for free, so two more levels can be bought; the others (sword,
+   with (GameRules.Buttons: fireball, launch, kunai, blink, shield) are
+   level 1 for free, so two more levels can be bought; the others (sword,
    shockwave, push, slam, and Frost Nova and Gravity Well, which only
    exist here) are locked until a point unlocks them at level 1. Dash and
    the time rewinds are out of the game: no talent, no key, and the duel
    rules leave their buttons out. Each level after the first takes
-   TALENT_COOLDOWN_PER_LEVEL off the cooldown and adds the talent's
-   per-level perks: shield time and kunai damage (PowerPerLevel), longer
-   stuns and slows and harder shoves on area spells (AbilityLevelHit),
-   faster, farther fireballs.
+   TALENT_COOLDOWN_PER_LEVEL (or the row's own share) off the cooldown and
+   adds the talent's per-level perks: kunai and fireball damage
+   (PowerPerLevel), longer stuns and slows and harder shoves on area spells
+   (AbilityLevelHit), faster, farther fireballs.
+
+   Each branch's abilities always sit where they are. Its other slots,
+   two minors of two ranks (three in Guard) and a keystone of one at the
+   top, roll as each match starts from the branch's own pool
+   (talents/duel_perks.cpp), the same tree for everyone in the match.
 
    A point spent is not for good: the talent field's TALENT_LEARN_RESET
    gives every point back (ResetTalents), so a player can try another
    build.
 
-   A passive changes one thing, by rank:
-   Swift Flames  fireballs fly faster and farther
-   Twin Flame    each cast throws two fireballs
-   Pyre          killing a player makes the fireball ready at once
-   Fleet Foot    a faster run
-   Momentum      a player kill readies slam and halves blink's wait, as
-                 a monster kill does
-   Ward          a charge that takes one hit whole, back after a while
-   Second Wind   back from death sooner, with a longer shield
-
    Points come in through player_input.Learn (LearnTalent), so offline,
    online and in replays the same tick spends them. The client draws the
-   tree (ui/talent_panel/) and the server sends each player its ranks.
+   tree (ui/talent_panel/) and the server sends each player its ranks and
+   the match's seed.
 
    In a dungeon run the class's tree takes the place of all this
    (sim/dungeon/class_tree.cpp): two branches of twelve slots, the first
@@ -82,25 +78,28 @@ enum talent_branch
 enum talent_id
 {
     Talent_Fireball,
-    Talent_SwiftFlames,
+    Talent_FireWildA,
     Talent_Launch,
     Talent_Shockwave,
     Talent_FrostNova,
-    Talent_TwinFlame,
-    Talent_Pyre,
+    Talent_FireWildB,
+    Talent_FireKeystone,
 
     Talent_Kunai,
-    Talent_FleetFoot,
+    Talent_MotionWildA,
     Talent_Blink,
     Talent_Sword,
-    Talent_Push,
     Talent_Slam,
-    Talent_Momentum,
+    Talent_MotionWildB,
+    Talent_MotionKeystone,
 
     Talent_Shield,
-    Talent_Ward,
+    Talent_GuardWildA,
     Talent_GravityWell,
-    Talent_SecondWind,
+    Talent_Push,
+    Talent_GuardWildB,
+    Talent_GuardWildC,
+    Talent_GuardKeystone,
 
     Talent_RoleFirst,
     Talent_RoleLast = Talent_RoleFirst + ROLE_TALENTS - 1,
@@ -134,51 +133,54 @@ struct talent_def
     float StatusPerLevel;
     float ShovePerLevel;
     float SpeedPerLevel;
+    // NOTE(zoubir): the share of the cooldown each level after the first
+    // takes off, 0 for TALENT_COOLDOWN_PER_LEVEL; and what the duel rules
+    // multiply the ability's own cooldown by, 0 for 1
+    float CooldownPerLevel;
+    float DuelCooldownScale;
 };
 
 global_variable talent_def TalentDefs[Talent_Count] =
 {
     // NOTE(zoubir): name, summary, what a rank adds; branch, tier, column,
     // most levels, button; then per level after the first: power, stun
-    // seconds, status seconds, shove share, fireball speed share
-    {"Fireball", "A piercing bolt along the aim", "-15% cooldown, +8% speed and range",
-     TalentBranch_Fire, 0, 0, 3, PlayerButton_Cast, 0.f, 0.f, 0.f, 0.f, 0.08f},
-    {"Swift Flames", "Fireballs fly faster and farther", "+15% fireball speed and range",
-     TalentBranch_Fire, 0, 1, 2, 0},
+    // seconds, status seconds, shove share, fireball speed share, cooldown
+    // share; then the duel's scale on the cooldown. A wild slot's words
+    // are the perk this match put there (talents/duel_perks.cpp)
+    {"Fireball", "A piercing bolt along the aim", "-15% cooldown, +12% damage, +8% speed and range",
+     TalentBranch_Fire, 0, 0, 3, PlayerButton_Cast, 0.12f, 0.f, 0.f, 0.f, 0.08f},
+    {"", "", "", TalentBranch_Fire, 0, 1, 2, 0},
     {"Launch", "Throws everything at the aim into the air", "-15% cooldown, +0.25 s stun",
      TalentBranch_Fire, 1, 0, 3, PlayerButton_Launch, 0.f, 0.25f},
     {"Shockwave", "Blasts everything around you away", "-15% cooldown, +15% shove, +0.15 s stun",
      TalentBranch_Fire, 1, 1, 3, PlayerButton_Shockwave, 0.f, 0.15f, 0.f, 0.15f},
     {"Frost Nova", "Freezes everyone near you, then slows them", "-15% cooldown, +0.2 s freeze, +0.75 s slow",
      TalentBranch_Fire, 2, 0, 3, PlayerButton_FrostNova, 0.f, 0.2f, 0.75f},
-    {"Twin Flame", "Each cast throws two fireballs", "a second fireball",
-     TalentBranch_Fire, 2, 1, 1, 0},
-    {"Pyre", "Killing a player makes the fireball ready at once", "fireball reset on a kill",
-     TalentBranch_Fire, 3, 0, 1, 0},
+    {"", "", "", TalentBranch_Fire, 2, 1, 2, 0},
+    {"", "", "", TalentBranch_Fire, 3, 0, 1, 0},
 
     {"Kunai", "Thrown at a foe, it follows them; shields send it back", "-15% cooldown, +10% damage",
      TalentBranch_Motion, 0, 0, 3, PlayerButton_Kunai, 0.1f},
-    {"Fleet Foot", "You run faster", "+6% run speed",
-     TalentBranch_Motion, 0, 1, 2, 0},
+    {"", "", "", TalentBranch_Motion, 0, 1, 2, 0},
     {"Blink", "Jumps through space to the cursor", "-15% cooldown",
      TalentBranch_Motion, 1, 0, 3, PlayerButton_Blink},
-    {"Sword", "Three-cut combo on right click", "-15% swing interval",
-     TalentBranch_Motion, 1, 1, 3, PlayerButton_Attack},
-    {"Push", "A wide cone that throws a crowd back", "-15% cooldown, +15% shove",
-     TalentBranch_Motion, 2, 0, 3, PlayerButton_Push, 0.f, 0.f, 0.f, 0.15f},
+    {"Sword", "Three-cut combo on right click", "-10% swing interval",
+     TalentBranch_Motion, 1, 1, 3, PlayerButton_Attack, 0.f, 0.f, 0.f, 0.f, 0.f, 0.1f},
     {"Slam", "Dive from the air and blast where you land", "-15% cooldown, +0.2 s stun",
-     TalentBranch_Motion, 2, 1, 3, PlayerButton_Slam, 0.f, 0.2f},
-    {"Momentum", "A player kill readies slam, halves blink", "movement reset on a kill",
-     TalentBranch_Motion, 3, 0, 1, 0},
+     TalentBranch_Motion, 2, 0, 3, PlayerButton_Slam, 0.f, 0.2f, 0.f, 0.f, 0.f, 0.f, 2.5f},
+    {"", "", "", TalentBranch_Motion, 2, 1, 2, 0},
+    {"", "", "", TalentBranch_Motion, 3, 0, 1, 0},
 
-    {"Shield", "A moment in which nothing lands", "-15% cooldown, +0.5 s shield",
-     TalentBranch_Guard, 0, 0, 3, PlayerButton_Shield, 0.25f},
-    {"Ward", "A charge that takes one hit whole", "recharges sooner",
-     TalentBranch_Guard, 0, 1, 2, 0},
+    {"Shield", "A moment in which nothing lands", "-12% cooldown",
+     TalentBranch_Guard, 0, 0, 3, PlayerButton_Shield, 0.f, 0.f, 0.f, 0.f, 0.f, 0.12f},
+    {"", "", "", TalentBranch_Guard, 0, 1, 2, 0},
     {"Gravity Well", "Pulls everyone at the aim into one spot", "-15% cooldown, +0.15 s hold",
      TalentBranch_Guard, 1, 0, 3, PlayerButton_GravityWell, 0.f, 0.15f},
-    {"Second Wind", "Back from death in half the time, shielded longer", "faster respawn",
-     TalentBranch_Guard, 2, 0, 1, 0},
+    {"Push", "A wide cone that throws a crowd back", "-15% cooldown, +15% shove",
+     TalentBranch_Guard, 1, 1, 3, PlayerButton_Push, 0.f, 0.f, 0.f, 0.15f},
+    {"", "", "", TalentBranch_Guard, 2, 0, 2, 0},
+    {"", "", "", TalentBranch_Guard, 2, 1, 2, 0},
+    {"", "", "", TalentBranch_Guard, 3, 0, 1, 0},
 
 #include "talents/class_shape_rows.inc"
 };
@@ -220,13 +222,7 @@ TalentBranchTiers(u32 Branch)
     return Result;
 }
 
-// NOTE(zoubir): the passives' numbers, per rank
-#define TALENT_SWIFT_FLAMES_SCALE 0.15f
-#define TALENT_TWIN_FLAME_SPREAD 0.12f
-#define TALENT_FLEET_FOOT_SCALE 0.06f
-global_variable float TalentWardSeconds[] = {0.f, 18.f, 11.f};
-#define TALENT_SECOND_WIND_RESPAWN 0.5f
-#define TALENT_SECOND_WIND_SHIELD 3.f
+#include "talents/duel_perks.cpp"
 
 // NOTE(zoubir): why a point cannot go into a talent, for the panel
 enum talent_refusal
@@ -465,6 +461,11 @@ internal bool32
 LearnTalent(app_state *AppState, u32 SlotIndex, u32 Talent)
 {
     player_slot *Slot = &AppState->Players[SlotIndex];
+    if (IsDuelWildTalent(Talent))
+    {
+        RollDuelTree(AppState);
+        Slot->DuelSeed = AppState->DuelSeed;
+    }
     if (Talent >= Talent_Count || !Slot->Active ||
         CanLearnTalent(Slot, Talent) != TalentRefusal_None ||
         (IsClassTalent(Talent) && !AppState->Dungeon) ||
@@ -473,7 +474,7 @@ LearnTalent(app_state *AppState, u32 SlotIndex, u32 Talent)
         return false;
     }
     Slot->Ranks[Talent]++;
-    if (Talent == Talent_Ward)
+    if (IsDuelWildTalent(Talent) && DuelPerkAt(Slot->DuelSeed, Talent) == DuelPerk_Ward)
     {
         Slot->WardReady = true;
         Slot->WardRecharge = 0.f;

@@ -78,17 +78,17 @@ global_variable player_area_ability PlayerAreaAbilities[PlayerArea_Count] =
     // within 110 units is thrown out and up and stunned
     {0, PlayerSpell_None, 0.f, 0.f, 110.f, -1.f, {25.f, 380.f, 260.f, 260.f, 0.9f, SimBurst_Count},
      SimBurst_SlamRing, SimBurst_Count},
-    // NOTE(zoubir): Frost Nova (G): everything within 130 units is frozen
-    // in place for 0.9 s, then slowed for 2.5 s. No damage, so in a duel
-    // it sets up the kill rather than making it
-    {PlayerButton_FrostNova, PlayerSpell_FrostNova, 9.f, 0.f, 130.f, -1.f,
-     {0.f, 60.f, 0.f, 0.f, 0.9f, SimBurst_Count, StatusEffect_Slowed, 2.5f},
+    // NOTE(zoubir): Frost Nova (G): everything within 130 units takes 10
+    // and is frozen in place for 0.9 s, then slowed for 2.5 s. Light
+    // damage, so in a duel it sets up the kill rather than making it
+    {PlayerButton_FrostNova, PlayerSpell_FrostNova, 8.f, 0.f, 130.f, -1.f,
+     {10.f, 60.f, 0.f, 0.f, 0.9f, SimBurst_Count, StatusEffect_Slowed, 2.5f},
      SimBurst_FrostNova, SimBurst_Count},
     // NOTE(zoubir): Gravity Well (T): a circle of 120 whose middle is 170
-    // out along the aim; everything in it is pulled to the middle and held
-    // for half a second, bunched up for a fireball
-    {PlayerButton_GravityWell, PlayerSpell_GravityWell, 10.f, 170.f, 120.f, -1.f,
-     {0.f, 1100.f, 0.f, 0.f, 0.5f, SimBurst_Count},
+    // out along the aim; everything in it takes 8, is pulled to the middle
+    // and held for half a second, bunched up for a fireball
+    {PlayerButton_GravityWell, PlayerSpell_GravityWell, 8.f, 170.f, 120.f, -1.f,
+     {8.f, 1100.f, 0.f, 0.f, 0.5f, SimBurst_Count},
      SimBurst_GravityWell, SimBurst_GravityMark, true},
 };
 #define PLAYER_AREA_ABILITY_COUNT PlayerArea_Count

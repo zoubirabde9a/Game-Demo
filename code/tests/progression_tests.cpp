@@ -6,6 +6,24 @@
    under the duel rules the game plays and put the classic ones back.
    Included by sim_tests.cpp, which calls RunProgressionTests. */
 
+// NOTE(zoubir): the match's duel tree set to one with Perk in Talent's
+// slot, for every slot (talents/duel_perks.cpp)
+internal void
+UseDuelTree(app_state *AppState, u32 Perk, u32 Talent)
+{
+    u32 Seed = 1;
+    while (Seed <= DUEL_SEED_MASK && DuelPerkAt(Seed, Talent) != Perk)
+    {
+        Seed++;
+    }
+    Check(Seed <= DUEL_SEED_MASK);
+    AppState->DuelSeed = Seed;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        AppState->Players[SlotIndex].DuelSeed = Seed;
+    }
+}
+
 // NOTE(zoubir): Xp for Slot as if earned, so its level follows
 internal void
 GiveTestXp(test_world *Test, u32 SlotIndex, u32 Xp)
@@ -79,7 +97,7 @@ TestKillsAndTimeGiveXp()
 }
 
 // NOTE(zoubir): a point per level; tier 1 opens at 2 points in its branch,
-// tier 3 at 6; a base ability takes two more levels, a passive its ranks
+// tier 3 at 6; a base ability takes two more levels, a wild slot its ranks
 internal void
 TestTalentTreeRules()
 {
@@ -100,7 +118,7 @@ TestTalentTreeRules()
     Check(CanLearnTalent(Slot, Talent_Shockwave) == TalentRefusal_TierLocked);
     Check(LearnTalent(AppState, 0, Talent_Fireball));
     Check(CanLearnTalent(Slot, Talent_Shockwave) == TalentRefusal_TierLocked);
-    Check(LearnTalent(AppState, 0, Talent_SwiftFlames));
+    Check(LearnTalent(AppState, 0, Talent_FireWildA));
     Check(CanLearnTalent(Slot, Talent_Shockwave) == TalentRefusal_None);
     // NOTE(zoubir): two points in Fire open nothing in Motion
     Check(CanLearnTalent(Slot, Talent_Sword) == TalentRefusal_TierLocked);
@@ -108,12 +126,12 @@ TestTalentTreeRules()
     Check(TalentLevel(Slot, Talent_Fireball) == 3);
     Check(CanLearnTalent(Slot, Talent_Fireball) == TalentRefusal_MaxRank);
     Check(!LearnTalent(AppState, 0, Talent_Fireball));
-    Check(LearnTalent(AppState, 0, Talent_SwiftFlames));
-    Check(!LearnTalent(AppState, 0, Talent_SwiftFlames));
+    Check(LearnTalent(AppState, 0, Talent_FireWildA));
+    Check(!LearnTalent(AppState, 0, Talent_FireWildA));
     Check(TalentPointsSpent(Slot, TalentBranch_Fire) == 4);
     Check(TalentPointsLeft(Slot) == 5);
     Check(CanLearnTalent(Slot, Talent_FrostNova) == TalentRefusal_None);
-    Check(CanLearnTalent(Slot, Talent_Pyre) == TalentRefusal_TierLocked);
+    Check(CanLearnTalent(Slot, Talent_FireKeystone) == TalentRefusal_TierLocked);
 
     // NOTE(zoubir): a request through the input is spent once, on the tick
     Slot->Input.Learn = Talent_Launch + 1;
@@ -145,7 +163,7 @@ TestTalentUnlocksAbility()
 
     GiveTestXp(&Test, 0, XpToReach(4));
     Check(LearnTalent(AppState, 0, Talent_Fireball));
-    Check(LearnTalent(AppState, 0, Talent_SwiftFlames));
+    Check(LearnTalent(AppState, 0, Talent_FireWildA));
     Check(LearnTalent(AppState, 0, Talent_Shockwave));
     Check(PlayerAllowedButtons(Slot) & PlayerButton_Shockwave);
     Slot->Input.Pressed = PlayerButton_Shockwave;
@@ -184,13 +202,13 @@ TestAbilityLevelsShortenCooldowns()
     Check(LearnTalent(AppState, 0, Talent_Shield));
     Slot->Input.Pressed = PlayerButton_Shield;
     RunPlayerFrames(&Test, 0, 1);
-    Check(Absolute(Player->MovementCooldowns[PlayerMove_Shield] - 6.f * 0.85f) < 0.05f);
+    Check(Absolute(Player->MovementCooldowns[PlayerMove_Shield] - 6.f * 0.88f) < 0.05f);
     DestroyTestWorld(&Test);
     GameRules = ClassicRules;
 }
 
-// NOTE(zoubir): Frost Nova freezes and slows who stands near; Gravity
-// Well pulls toward its centre from either side
+// NOTE(zoubir): Frost Nova freezes, slows and lightly hurts who stands
+// near; Gravity Well pulls toward its centre from either side
 internal void
 TestFrostNovaAndGravityWell()
 {
@@ -213,7 +231,8 @@ TestFrostNovaAndGravityWell()
     Check(HasStatus(Near, StatusEffect_Stunned));
     Check(HasStatus(Near, StatusEffect_Slowed));
     Check(!HasStatus(Far, StatusEffect_Stunned));
-    Check(Near->Hp == Near->MaxHp);
+    Check(Absolute(Near->Hp - (Near->MaxHp - PlayerAreaAbilities[PlayerArea_FrostNova].Hit.Damage)) < 0.001f);
+    Check(Far->Hp == Far->MaxHp);
 
     // NOTE(zoubir): a target past the well's centre is pulled back toward
     // the caster, one short of it out toward it
@@ -246,8 +265,9 @@ TestWardTakesOneHit()
                                            1, {360, 300, 0});
     Target->SpawnShield = 0.f;
     player_slot *Slot = &AppState->Players[1];
+    UseDuelTree(AppState, DuelPerk_Ward, Talent_GuardWildA);
     GiveTestXp(&Test, 1, XpToReach(2));
-    Check(LearnTalent(AppState, 1, Talent_Ward));
+    Check(LearnTalent(AppState, 1, Talent_GuardWildA));
     Check(Slot->WardReady);
     world_entity *FireBall = AddFireBall(AppState, Test.World, &Test.Arena, Caster,
                                          V3(330.f, 300.f, 30.f), V3(600.f, 0.f, 0.f));
@@ -256,7 +276,7 @@ TestWardTakesOneHit()
     Check(!Slot->WardReady);
     Check(Length(Target->Velocity.XY) == 0.f);
 
-    for(u32 Tick = 0; Tick < (u32)(17.9f / Test.Input.DeltaTime); Tick++)
+    for(u32 Tick = 0; Tick < (u32)(15.9f / Test.Input.DeltaTime); Tick++)
     {
         UpdateProgression(AppState, Test.Input.DeltaTime);
     }
@@ -270,41 +290,6 @@ TestWardTakesOneHit()
     Check(Target->Hp == Target->MaxHp);
     FireBallHit(AppState, Test.World, FireBall, Target);
     Check(Target->Hp < Target->MaxHp && Target->Hp > 0.f);
-    DestroyTestWorld(&Test);
-    GameRules = ClassicRules;
-}
-
-// NOTE(zoubir): Second Wind halves the wait and lengthens the shield;
-// Pyre makes the fireball ready on a kill
-internal void
-TestKillAndDeathTalents()
-{
-    // NOTE(zoubir): without the round break, whose wait would hide the
-    // shorter respawn (round_break.cpp)
-    GameRules = DuelRules;
-    GameRules.RoundBreaks = false;
-    test_world Test = CreateTestWorld();
-    app_state *AppState = Test.AppState;
-    world_entity *Killer = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
-                                           0, {300, 300, 0});
-    world_entity *Victim = AddPlayerToSlot(AppState, Test.World, &Test.Arena,
-                                           1, {360, 300, 0});
-    player_slot *KillerSlot = &AppState->Players[0];
-    player_slot *VictimSlot = &AppState->Players[1];
-    KillerSlot->Ranks[Talent_Pyre] = 1;
-    VictimSlot->Ranks[Talent_SecondWind] = 1;
-    Killer->ActionCooldowns[PlayerAction_FireBall] = 5.f;
-    Victim->SpawnShield = 0.f;
-    DamageEntity(AppState, Test.World, Victim, Victim->MaxHp, Killer);
-    Check(Killer->ActionCooldowns[PlayerAction_FireBall] == 0.f);
-    Check(Absolute(VictimSlot->RespawnTimer - 0.5f * PLAYER_RESPAWN_SECONDS) < 0.001f);
-    for(u32 Tick = 0; Tick < 120 && IsDeadPlayer(Victim); Tick++)
-    {
-        UpdateDeadPlayer(VictimSlot, Test.World, &Test.Arena, AppState,
-                         Test.Input.DeltaTime);
-    }
-    Check(!IsDeadPlayer(Victim));
-    Check(Absolute(Victim->SpawnShield - TALENT_SECOND_WIND_SHIELD) < 0.001f);
     DestroyTestWorld(&Test);
     GameRules = ClassicRules;
 }
@@ -334,8 +319,9 @@ TestAbilityLevelPerks()
                    1.15f * Push->Shove) < 0.01f);
 
     Check(FireballSpeedScale(AppState, Player) == 1.f);
+    UseDuelTree(AppState, DuelPerk_SwiftFlames, Talent_FireWildA);
     Slot->Ranks[Talent_Fireball] = 1;
-    Slot->Ranks[Talent_SwiftFlames] = 2;
+    Slot->Ranks[Talent_FireWildA] = 2;
     Check(Absolute(FireballSpeedScale(AppState, Player) - 1.08f * 1.3f) < 0.001f);
     DestroyTestWorld(&Test);
 }
@@ -350,11 +336,12 @@ TestTalentReset()
     app_state *AppState = Test.AppState;
     AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {300, 300, 0});
     player_slot *Slot = &AppState->Players[0];
+    UseDuelTree(AppState, DuelPerk_Ward, Talent_GuardWildA);
     GiveTestXp(&Test, 0, XpToReach(6));
     Check(LearnTalent(AppState, 0, Talent_Fireball));
-    Check(LearnTalent(AppState, 0, Talent_SwiftFlames));
+    Check(LearnTalent(AppState, 0, Talent_FireWildA));
     Check(LearnTalent(AppState, 0, Talent_Shockwave));
-    Check(LearnTalent(AppState, 0, Talent_Ward));
+    Check(LearnTalent(AppState, 0, Talent_GuardWildA));
     Check(TalentPointsLeft(Slot) == 1);
     Check(PlayerAllowedButtons(Slot) & PlayerButton_Shockwave);
     Slot->Input.Learn = TALENT_LEARN_RESET;
@@ -380,7 +367,6 @@ RunProgressionTests()
     PROGRESSION_TEST(TestAbilityLevelsShortenCooldowns);
     PROGRESSION_TEST(TestFrostNovaAndGravityWell);
     PROGRESSION_TEST(TestWardTakesOneHit);
-    PROGRESSION_TEST(TestKillAndDeathTalents);
     PROGRESSION_TEST(TestAbilityLevelPerks);
     PROGRESSION_TEST(TestTalentReset);
 }

@@ -315,8 +315,12 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     static_assert(Talent_Count == NET_TALENT_COUNT, "one rank per talent");
     static_assert(Talent_RoleFirst == NET_TALENT_WIDE_FIRST, "class ranks travel wider");
     static_assert(Talent_RunFirst == NET_TALENT_WIDE_END, "second tree ranks travel narrower");
-    static_assert(2 * NET_TALENT_WIDE_FIRST + 3 * (NET_TALENT_WIDE_END - NET_TALENT_WIDE_FIRST) +
-                  2 * (NET_TALENT_COUNT - NET_TALENT_WIDE_END) <= 8 * NET_TALENT_BYTES,
+    static_assert(NET_TALENT_BRANCH == ROLE_TALENTS && ROLE_TALENTS == RUN_TALENTS,
+                  "a class branch's capstones travel in a bit");
+    static_assert(Talent_FireKeystone == 6 && Talent_MotionKeystone == 13 &&
+                  Talent_GuardKeystone == 20, "the duel keystones travel in a bit");
+    static_assert(2 * NET_TALENT_WIDE_FIRST - 3 + 3 * (NET_TALENT_WIDE_END - NET_TALENT_WIDE_FIRST) - 4 +
+                  2 * (NET_TALENT_COUNT - NET_TALENT_WIDE_END) - 2 <= 8 * NET_TALENT_BYTES,
                   "the ranks fit their bytes");
     static_assert(TALENT_LEARN_RESET <= NET_LEARN_MASK && TALENT_LEARN_RESET > Talent_Count,
                   "the reset fits the talent field and is no talent");
@@ -326,7 +330,9 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
     {
         Out->TalentRanks[Index] = Progress->Ranks[Index];
     }
-    Out->TreeSeed = (u16)Progress->TreeSeed;
+    // NOTE(zoubir): one seed at a time matters, the run's tree in a run and
+    // the duel tree outside one, so they share the field
+    Out->TreeSeed = (u16)(Game->AppState->Dungeon ? Progress->TreeSeed : Game->AppState->DuelSeed);
     Out->AbilityCount = 0;
 
     // The viewer's own player goes first so it is never cut off by the
@@ -380,7 +386,7 @@ GameWriteSnapshot(server_game *Game, u32 ViewerSlot, net_snapshot *Out)
         Score->Deaths = (u16)Player->Deaths;
         Score->MonsterKills = (u16)Player->MonsterKills;
         Score->Level = (u8)Player->Level;
-        Score->Ward = (Player->Ranks[Talent_Ward] && Player->WardReady) ? 1 : 0;
+        Score->Ward = (DuelPerkRank(Player, DuelPerk_Ward) && Player->WardReady) ? 1 : 0;
         Score->Dungeon = PackDungeonScore(Game->AppState, Player);
         Score->DungeonMore = PackDungeonScoreMore(Game->AppState, Player);
         Score->ClassMeter = Player->ClassMeter;

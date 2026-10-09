@@ -13,12 +13,18 @@
     float XpClock;
     // NOTE(zoubir): points spent in each talent, by talent_id. A base
     // ability's first level is free and not counted here
-#define TALENT_SLOTS 42
+#define TALENT_SLOTS 45
     u8 Ranks[TALENT_SLOTS];
     // NOTE(zoubir): the Ward talent: a charge that takes the next hit
     // whole, and the seconds until a spent one comes back
     bool32 WardReady;
     float WardRecharge;
+    // NOTE(zoubir): the match's duel tree (talents/duel_perks.cpp), a copy
+    // of app_state's DuelSeed the simulation keeps here so whatever holds
+    // a slot reads the tree; a client gets it in its snapshots
+    u32 DuelSeed;
+    // NOTE(zoubir): Second Wind went off this round
+    bool32 SecondWindSpent;
     // NOTE(zoubir): the dungeon character, set aside while the party
     // plays a duel and given back when it goes into a dungeon again
     // (StartNextRoundMap, setup.cpp)

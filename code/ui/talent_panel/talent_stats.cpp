@@ -52,18 +52,22 @@ DrawTalentStats(render_context *RenderContext, app_state *AppState, talent_panel
     {
         float Fireball = FireballSpeedScale(AppState, Player);
         snprintf(Value, sizeof(Value), "%.0f fast, %.0f far%s", PlayerStats.FireballSpeed * Fireball,
-                 PlayerStats.FireballRange * Fireball, Slot->Ranks[Talent_TwinFlame] ? ", x2" : "");
+                 PlayerStats.FireballRange * Fireball,
+                 DuelPerkRank(Slot, DuelPerk_TwinFlame) ? ", x2" : "");
         DrawStatRow(RenderContext, Small, Left, Inner, Y, "Fireball", Value,
-                    Fireball > 1.f || Slot->Ranks[Talent_TwinFlame] ? UI_COLOR_GOOD : UI_COLOR_TEXT);
+                    Fireball > 1.f || DuelPerkRank(Slot, DuelPerk_TwinFlame) ?
+                    UI_COLOR_GOOD : UI_COLOR_TEXT);
+        Y += TALENT_STATS_ROW;
+        float Damage = FireballDamageScaleAt(TalentLevel(Slot, Talent_Fireball),
+                                             DuelPerkRank(Slot, DuelPerk_Searing),
+                                             DuelPerkRank(Slot, DuelPerk_Pyre));
+        snprintf(Value, sizeof(Value), "%.0f a hit", PlayerStats.FireballDamage * Damage);
+        DrawStatRow(RenderContext, Small, Left, Inner, Y, "Fireball damage", Value,
+                    Damage > 1.f ? UI_COLOR_GOOD : UI_COLOR_TEXT);
         Y += TALENT_STATS_ROW;
     }
-    snprintf(Value, sizeof(Value), "%.1f s, %.1f s shield", RespawnSeconds(Slot),
-             RespawnShieldSeconds(Slot));
-    DrawStatRow(RenderContext, Small, Left, Inner, Y, "Respawn", Value,
-                Slot->Ranks[Talent_SecondWind] ? UI_COLOR_GOOD : UI_COLOR_TEXT);
-    Y += TALENT_STATS_ROW;
     u32 WardColor = UI_COLOR_TEXT_MUTED;
-    if (!Slot->Ranks[Talent_Ward])
+    if (!DuelPerkRank(Slot, DuelPerk_Ward))
     {
         snprintf(Value, sizeof(Value), "none");
     }
@@ -118,7 +122,8 @@ DrawTalentStats(render_context *RenderContext, app_state *AppState, talent_panel
         DrawTexturedQuad(RenderContext, Panel->Atlas, Left, Y - 1.f, Icon, Icon,
                          TalentIconUvs(TalentIconCell(Slot, Talent)), 0xFFFFFFFF);
         UIText(RenderContext, Small, Left + Icon + 6.f, Y, Def->Name, UI_COLOR_TEXT);
-        float Cooldown = TalentBaseCooldown(Player, Def->Button) * CooldownScaleForLevel(Level);
+        float Cooldown = TalentBaseCooldown(Player, Def->Button) *
+            TalentCooldownScale(Talent, Level) * DuelPerkCooldownScale(Slot, Def->Button);
         snprintf(Value, sizeof(Value), "%.1f s", Cooldown);
         UIText(RenderContext, Small, Left + Inner, Y, Value,
                Level > 1 ? UI_COLOR_GOOD : UI_COLOR_TEXT, UIAlign_Right);

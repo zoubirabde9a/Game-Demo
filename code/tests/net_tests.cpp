@@ -106,7 +106,7 @@ FullSnapshot()
     P.Snapshot.Xp = 4321;
     for (u8 Index = 0; Index < NET_TALENT_COUNT; ++Index)
     {
-        P.Snapshot.TalentRanks[Index] = (u8)(Index % 4);
+        P.Snapshot.TalentRanks[Index] = (u8)(Index % (1u << NetTalentRankBits(Index)));
     }
     P.Snapshot.TreeSeed = 0xbeef;
 
@@ -507,7 +507,7 @@ TestFullSnapshotFits()
     Check(Out.Snapshot.TreeSeed == 0xbeef);
     for (u32 Index = 0; Index < NET_TALENT_COUNT; ++Index)
     {
-        Check(Out.Snapshot.TalentRanks[Index] == Index % 4);
+        Check(Out.Snapshot.TalentRanks[Index] == Index % (1u << NetTalentRankBits(Index)));
     }
     Check(Out.Snapshot.NameSlot == NET_MAX_SNAPSHOT_SCORES - 1);
     Check(Out.Snapshot.FacingCount == NET_MAX_SNAPSHOT_FACINGS);
@@ -1132,8 +1132,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d76u
-#define NET_GOLDEN_LAYOUT 0x8336ad43u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d77u
+#define NET_GOLDEN_LAYOUT 0xa3f70f6fu
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)

@@ -30,20 +30,20 @@ SpawnFireBall(app_state *AppState, world *World, memory_arena *Arena,
 }
 
 // NOTE(zoubir): the fireball key's spawn (spawn_actions.cpp): one along
-// the aim, or with Twin Flame (sim/progression/talents.cpp) two, a little
-// either side of it
+// the aim, or with Twin Flame (sim/progression/talents/duel_perks.cpp)
+// two, a little either side of it
 internal void
 CastFireBall(app_state *AppState, world *World, memory_arena *Arena,
              world_entity *Player, v2 Dir, player_tick *Tick)
 {
-    if (!PlayerTalentRank(AppState, Player, Talent_TwinFlame))
+    if (!PlayerPerkRank(AppState, Player, DuelPerk_TwinFlame))
     {
         SpawnFireBall(AppState, World, Arena, Player, Dir, Tick);
         return;
     }
     for(int Side = -1; Side <= 1; Side += 2)
     {
-        float Angle = (float)Side * TALENT_TWIN_FLAME_SPREAD;
+        float Angle = (float)Side * DUEL_TWIN_FLAME_SPREAD;
         v2 Turned = V2(Dir.X * Cos(Angle) - Dir.Y * Sin(Angle),
                        Dir.X * Sin(Angle) + Dir.Y * Cos(Angle));
         SpawnFireBall(AppState, World, Arena, Player, Turned, Tick);
@@ -71,5 +71,9 @@ FireBallHit(app_state *AppState, world *World, world_entity *FireBall,
     }
     v2 Away = NormalizeOr(FireBall->Velocity.XY,
                           Target->Position.XY - FireBall->Position.XY);
-    ApplyHit(AppState, World, Target, &FireBallHitRow, Away, FireBall, BySlot);
+    // NOTE(zoubir): its caster's fireball levels and perks (Searing, Pyre,
+    // Scorch) make it hit harder or slow
+    world_entity *Owner = BySlot < MAX_PLAYERS ? AppState->Players[BySlot].Entity : 0;
+    hit Hit = FireballHitFor(AppState, Owner, &FireBallHitRow);
+    ApplyHit(AppState, World, Target, &Hit, Away, FireBall, BySlot);
 }

@@ -312,6 +312,14 @@ internal void AwardKill(app_state *AppState, player_slot *Killer,
                         world_entity *Target);
 internal bool32 WardTakesHit(app_state *AppState, world_entity *Target,
                              float Damage);
+// NOTE(zoubir): the duel perks (sim/progression/talents/effects.cpp): the
+// damage they scale, the blow Second Wind survives, and what a landed hit
+// sets off (Momentum, Thorns)
+internal float DuelScaleDamage(app_state *AppState, world_entity *Target,
+                               world_entity *Source, float Damage);
+internal bool32 SecondWindSaves(app_state *AppState, world_entity *Target);
+internal void DuelAfterHit(app_state *AppState, world *World, world_entity *Target,
+                           world_entity *Source, float Lost);
 inline float RespawnSeconds(player_slot *Slot);
 // NOTE(zoubir): in sim/round_break.cpp, included later: a player's death
 // ends the round
@@ -364,6 +372,7 @@ DealDamage(app_state *AppState, world *World, world_entity *Target,
         EmitBurst(&AppState->Events, SimBurst_Blocked, SIM_NOBODY, Chest);
     }
     Damage = DungeonScaleDamage(AppState, Target, Source, Damage);
+    Damage = DuelScaleDamage(AppState, Target, Source, Damage);
     if (WardTakesHit(AppState, Target, Damage))
     {
         return false;
@@ -371,7 +380,8 @@ DealDamage(app_state *AppState, world *World, world_entity *Target,
     float Lost = Minimum(Damage, Maximum(0.f, Target->Hp));
     Target->Hp -= Damage;
     CountMeterDamage(AppState, Target, Source, Lost);
-    if (Target->Hp > 0.f)
+    DuelAfterHit(AppState, World, Target, Source, Lost);
+    if (Target->Hp > 0.f || SecondWindSaves(AppState, Target))
     {
         return false;
     }

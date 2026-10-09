@@ -16,12 +16,29 @@
 // NOTE(zoubir): XP_PER_SECOND paid out in whole points
 #define XP_CLOCK_STEP (1.f / (float)XP_PER_SECOND)
 
-// NOTE(zoubir): once a tick, before the players move: the trickle of
-// experience, the talent each player asked for, and spent wards coming
-// back
+// NOTE(zoubir): the match's duel tree rolls the first time anyone has a
+// point to spend, so the panel shows it while the point waits
+internal void
+RollDuelSeed(app_state *AppState)
+{
+    AppState->DuelTicks++;
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS && !AppState->DuelSeed; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        if (Slot->Active && Slot->Entity && TalentPointsLeft(Slot) > 0)
+        {
+            RollDuelTree(AppState);
+        }
+    }
+}
+
+// NOTE(zoubir): once a tick, before the players move: the duel tree's
+// roll, the trickle of experience, the talent each player asked for,
+// spent wards coming back and Mending's healing
 internal void
 UpdateProgression(app_state *AppState, float DeltaTime)
 {
+    RollDuelSeed(AppState);
     for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
     {
         player_slot *Slot = &AppState->Players[SlotIndex];
@@ -33,6 +50,7 @@ UpdateProgression(app_state *AppState, float DeltaTime)
         {
             Slot->Level = LevelForXp(Slot->Xp);
         }
+        Slot->DuelSeed = AppState->DuelSeed;
         Slot->XpClock += DeltaTime;
         while (Slot->XpClock >= XP_CLOCK_STEP)
         {
@@ -48,7 +66,8 @@ UpdateProgression(app_state *AppState, float DeltaTime)
             LearnTalent(AppState, SlotIndex, Slot->Input.Learn - 1);
         }
         Slot->Input.Learn = 0;
-        if (Slot->Ranks[Talent_Ward] && !Slot->WardReady)
+        MendingHeals(Slot, DeltaTime);
+        if (DuelPerkRank(Slot, DuelPerk_Ward) && !Slot->WardReady)
         {
             Slot->WardRecharge -= DeltaTime;
             if (Slot->WardRecharge <= 0.f)

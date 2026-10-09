@@ -136,7 +136,7 @@ AwardXp(app_state *AppState, player_slot *Slot, u32 Amount)
 }
 
 // NOTE(zoubir): DamageEntity (entity.cpp) on a kill: what the killer
-// earns, and the talents a player kill sets off (Pyre, Momentum)
+// earns
 internal void
 AwardKill(app_state *AppState, player_slot *Killer, world_entity *Target)
 {
@@ -147,16 +147,4 @@ AwardKill(app_state *AppState, player_slot *Killer, world_entity *Target)
     }
     player_slot *Victim = &AppState->Players[Target->PlayerIndex];
     AwardXp(AppState, Killer, PlayerKillXp(Killer->Level, Victim->Level));
-    world_entity *Player = Killer->Entity;
-    if (Player && Player->IsPresent)
-    {
-        if (Killer->Ranks[Talent_Pyre])
-        {
-            Player->ActionCooldowns[PlayerAction_FireBall] = 0.f;
-        }
-        if (Killer->Ranks[Talent_Momentum])
-        {
-            RefundOnKill(Player);
-        }
-    }
 }

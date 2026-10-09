@@ -429,7 +429,7 @@ BuildTalentAbilityCard(ability_tip_card *Card, player_slot *Slot, ability_slot_d
         {
             snprintf(Card->Next, sizeof(Card->Next), "Next level: %s%s%.3g s cooldown",
                      HasNext ? Next : "", HasNext ? ", " : "",
-                     Base * CooldownScaleForLevel(Level + 1));
+                     Base * TalentCooldownScale(Talent, Level + 1));
         }
         else if (HasNext)
         {

@@ -97,6 +97,7 @@ BlinkMotion(app_state *AppState, world *World, memory_arena *Arena,
     v3 OldPosition = Player->Position;
     Player->Position.XY = FindBlinkLanding(AppState, Player, Target);
     CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Player);
+    PhantomAfterBlink(AppState, Player);
     return true;
 }
 
@@ -123,6 +124,7 @@ ShieldMotion(app_state *AppState, world *World, memory_arena *Arena,
              float Power)
 {
     Player->SpawnShield = Maximum(Player->SpawnShield, Power);
+    BastionHeals(AppState, Player);
     return true;
 }
 
@@ -158,6 +160,17 @@ DashStrike(app_state *AppState, world *World, world_entity *Player,
 {
     ApplyHit(AppState, World, Target, &DashStrikeHit, Away,
              Player, Player->PlayerIndex);
+}
+
+// NOTE(zoubir): Momentum (sim/progression/talents/duel_perks.cpp): Seconds
+// off the blink's and the slam's cooldowns
+internal void
+RefundMovement(world_entity *Player, float Seconds)
+{
+    float *Blink = &Player->MovementCooldowns[PlayerMove_Blink];
+    float *Slam = &Player->MovementCooldowns[PlayerMove_Slam];
+    *Blink = Maximum(0.f, *Blink - Seconds);
+    *Slam = Maximum(0.f, *Slam - Seconds);
 }
 
 internal void

@@ -167,28 +167,37 @@ PaintSecondWindIcon(icon_canvas *Canvas)
 
 typedef void talent_icon_painter(icon_canvas *Canvas);
 
+// NOTE(zoubir): a wild slot of the duel tree wears its perk's icon
+// (DuelPerkIconPainters), so its own cell stays empty
 global_variable talent_icon_painter *TalentIconPainters[Talent_RoleFirst] =
 {
-    PaintFireballIcon,
-    PaintSwiftFlamesIcon,
-    PaintLaunchIcon,
-    PaintShockwaveIcon,
-    PaintFrostNovaIcon,
-    PaintTwinFlameIcon,
-    PaintPyreIcon,
+    PaintFireballIcon, 0,
+    PaintLaunchIcon, PaintShockwaveIcon,
+    PaintFrostNovaIcon, 0,
+    0,
 
-    PaintKunaiIcon,
-    PaintFleetFootIcon,
-    PaintBlinkIcon,
-    PaintSwordIcon,
-    PaintPushIcon,
-    PaintSlamIcon,
-    PaintMomentumIcon,
+    PaintKunaiIcon, 0,
+    PaintBlinkIcon, PaintSwordIcon,
+    PaintSlamIcon, 0,
+    0,
 
-    PaintShieldIcon,
-    PaintWardIcon,
-    PaintGravityWellIcon,
-    PaintSecondWindIcon,
+    PaintShieldIcon, 0,
+    PaintGravityWellIcon, PaintPushIcon,
+    0, 0,
+    0,
+};
+
+#include "duel_perk_icons.cpp"
+
+global_variable talent_icon_painter *DuelPerkIconPainters[DuelPerk_Count] =
+{
+    0,
+    PaintSwiftFlamesIcon, PaintDuelKindlingIcon, PaintDuelSearingIcon, PaintDuelScorchIcon,
+    PaintTwinFlameIcon, PaintPyreIcon, PaintDuelOverchargeIcon,
+    PaintFleetFootIcon, PaintDuelQuickstepIcon, PaintDuelKeenEdgeIcon, PaintDuelHunterIcon,
+    PaintMomentumIcon, PaintDuelAdrenalineIcon, PaintDuelPhantomIcon,
+    PaintWardIcon, PaintDuelThickSkinIcon, PaintDuelMendingIcon, PaintDuelSteadfastIcon,
+    PaintSecondWindIcon, PaintDuelThornsIcon, PaintDuelBastionIcon,
 };
 
 #include "../dungeon/role_talent_icons.cpp"
@@ -198,10 +207,11 @@ global_variable talent_icon_painter *TalentIconPainters[Talent_RoleFirst] =
 // NOTE(zoubir): wide enough that the atlas stays under 4096 tall, the
 // most some WebGL drivers take
 #define TALENT_ATLAS_COLUMNS 16
-// NOTE(zoubir): the game's talents, every class's role slots, then one
-// cell per run talent (ui/dungeon/run_tree_icons.cpp)
+// NOTE(zoubir): the game's talents, every class's role slots, one cell
+// per run talent (ui/dungeon/run_tree_icons.cpp), then one per duel perk
 #define TALENT_RUN_ICON_FIRST (Talent_RoleFirst + PlayerRole_Count * CLASS_TALENTS)
-#define TALENT_ICON_CELLS (TALENT_RUN_ICON_FIRST + RunMod_Count)
+#define TALENT_DUEL_ICON_FIRST (TALENT_RUN_ICON_FIRST + RunMod_Count)
+#define TALENT_ICON_CELLS (TALENT_DUEL_ICON_FIRST + DuelPerk_Count)
 #define TALENT_ATLAS_ROWS ((TALENT_ICON_CELLS + TALENT_ATLAS_COLUMNS - 1) / TALENT_ATLAS_COLUMNS)
 
 // NOTE(zoubir): the atlas cell of Talent as Slot sees it
@@ -216,6 +226,10 @@ TalentIconCell(player_slot *Slot, u32 Talent)
         u32 Catalog = ClassContentTalent(Content);
         Result = Catalog < CLASS_TALENTS ? Talent_RoleFirst + Role * CLASS_TALENTS + Catalog :
             TALENT_RUN_ICON_FIRST + ClassContentRunMod(Content);
+    }
+    else if (IsDuelWildTalent(Talent))
+    {
+        Result = TALENT_DUEL_ICON_FIRST + DuelPerkAt(Slot->DuelSeed, Talent);
     }
     return Result;
 }
@@ -237,7 +251,17 @@ BuildTalentIconAtlas(open_gl *OpenGL, memory_arena *Scratch)
         memset(Canvas.Pixels, 0, TALENT_ICON_SIZE * TALENT_ICON_SIZE * sizeof(v4));
         if (Cell < Talent_RoleFirst)
         {
-            TalentIconPainters[Cell](&Canvas);
+            if (TalentIconPainters[Cell])
+            {
+                TalentIconPainters[Cell](&Canvas);
+            }
+        }
+        else if (Cell >= TALENT_DUEL_ICON_FIRST)
+        {
+            if (DuelPerkIconPainters[Cell - TALENT_DUEL_ICON_FIRST])
+            {
+                DuelPerkIconPainters[Cell - TALENT_DUEL_ICON_FIRST](&Canvas);
+            }
         }
         else if (Cell >= TALENT_RUN_ICON_FIRST)
         {

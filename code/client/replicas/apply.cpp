@@ -213,7 +213,15 @@ ApplyOwnProgression(player_slot *Own, net_snapshot *Snapshot)
     {
         Own->Ranks[Index] = Snapshot->TalentRanks[Index];
     }
-    Own->TreeSeed = Snapshot->TreeSeed;
+    // NOTE(zoubir): the run's tree's seed in a run, the duel tree's outside
+    if (Snapshot->HasDungeon)
+    {
+        Own->TreeSeed = Snapshot->TreeSeed;
+    }
+    else
+    {
+        Own->DuelSeed = Snapshot->TreeSeed;
+    }
 }
 
 // NOTE(zoubir): the local player's own cooldowns, which only the server
