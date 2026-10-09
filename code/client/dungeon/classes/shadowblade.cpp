@@ -191,6 +191,20 @@ DrawShadowbladeLook(render_context *RenderContext, app_state *AppState, player_s
     float Step = ShadowbladeBurstAge(AppState, SlotIndex, ShadowbladeBurst_Step);
     float Alpha = Step < 0.2f ? 0.3f + 0.7f * ShadowbladeEase(Step / 0.2f) : 1.f;
 
+    // NOTE(zoubir): and for the guard after it (SHADOWSTEP_GUARD_SECONDS,
+    // hits on it cut to a tenth) a pale veil of shadow round the body,
+    // flickering and thinning as it runs out
+    if (Step < SHADOWSTEP_GUARD_SECONDS)
+    {
+        float Left = 1.f - Step / SHADOWSTEP_GUARD_SECONDS;
+        float Flicker = 0.75f + 0.25f * Sin(22.f * Clock);
+        v2 Middle = RoleLookPoint(Player, 0.5f, CameraOffset);
+        DrawShaderQuad(RenderContext, Shader_Glow, Middle.X - 0.9f * W, Middle.Y - 0.75f * H, 1.8f * W,
+                       1.5f * H, FxColor(0.35f * Left * Flicker, SHADOWBLADE_PALE_RGB), RenderBlend_Additive);
+        DrawArcBand(RenderContext, Feet, 0.f, 2.f * Pi32, 0.55f * W, 0.7f * W,
+                    FxColor(0.f, SHADOWBLADE_RGB), FxColor(0.7f * Left * Flicker, SHADOWBLADE_PALE_RGB));
+    }
+
     // NOTE(zoubir): afterimages behind it when it moves fast
     if (Speed > 260.f)
     {
