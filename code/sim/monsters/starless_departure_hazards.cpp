@@ -58,9 +58,7 @@ DefineMonster_VoidMaw(monster_def *Def)
 internal void
 DefineMonster_FallingStar(monster_def *Def)
 {
-    monster_ability *Strike = DefineDepartureHazard(Def, "Falling Star", "Starfall");
-    Strike->Status = StatusEffect_Burning;
-    Strike->StatusSeconds = 2.f;
+    DefineDepartureHazard(Def, "Falling Star", "Starfall");
 }
 
 #else
