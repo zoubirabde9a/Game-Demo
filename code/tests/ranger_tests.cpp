@@ -466,6 +466,51 @@ TestKillShot()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Survival's talents pay off either spell: with Hunter's
+// Net a Volley's first arrows root what they catch; with Barrage the snare
+// holds longer, and Pinning Volley keeps what it held slow after
+internal void
+TestSurvivalTalentsFitBothSpells()
+{
+    {
+        crypt_world Crypt = CreateRangerWorld();
+        app_state *AppState = Crypt.AppState;
+        player_slot *Slot = &AppState->Players[0];
+        SetClassTalentRank(Slot, RangerTalent_HuntersNet, 1);
+        ranger_dummies Dummies = {};
+        v2 Point = AimPoint(Slot->Entity);
+        v3 Centre = V3(Point.X, Point.Y, 0.f) - Slot->Entity->Position;
+        Centre.Z = 0.f;
+        world_entity *Inside = RangerDummy(&Crypt, &Dummies, Centre);
+        PressOnce(&Crypt, 0, PlayerButton_Launch);
+        RangerTick(&Crypt, &Dummies, (u32)(60.f * (VOLLEY_DRAW + 0.5f * VOLLEY_TICK)) + 2);
+        Check(HasStatus(Inside, StatusEffect_Rooted));
+        DestroyCryptWorld(&Crypt);
+    }
+    for(u32 Talents = 0; Talents < 2; Talents++)
+    {
+        crypt_world Crypt = CreateRangerWorld();
+        app_state *AppState = Crypt.AppState;
+        player_slot *Slot = &AppState->Players[0];
+        world_entity *Ranger = Slot->Entity;
+        SetClassTalentRank(Slot, RangerTalent_Barrage, Talents);
+        SetClassTalentRank(Slot, RangerTalent_PinningVolley, 2 * Talents);
+        GrantClassSpells(Slot);
+        Ranger->Aim = V2(-1.f, 0.f);
+        v3 Start = Ranger->Position;
+        PressOnce(&Crypt, 0, PlayerButton_Slam);
+        TickCrypt(&Crypt, 40);
+        ranger_dummies Dummies = {};
+        world_entity *Foe = RangerDummy(&Crypt, &Dummies, Start - Ranger->Position);
+        RangerTick(&Crypt, &Dummies, 2);
+        float Root = Foe->StatusTimers[StatusEffect_Rooted];
+        float Want = TRAP_ROOT_SECONDS + (Talents ? BARRAGE_ROOT_SECONDS : 0.f);
+        Check(Root > Want - 0.1f && Root <= Want);
+        Check(HasStatus(Foe, StatusEffect_Slowed) == (Talents != 0));
+        DestroyCryptWorld(&Crypt);
+    }
+}
+
 internal void
 RunRangerTests()
 {
@@ -478,6 +523,7 @@ RunRangerTests()
     TestDisengageLeavesASnare();
     TestPinningVolleyHoldsTheSlow();
     TestHuntersNetRootsThePack();
+    TestSurvivalTalentsFitBothSpells();
     TestRapidFireStreams();
     TestLethalMarkJumps();
     TestFocusDrains();

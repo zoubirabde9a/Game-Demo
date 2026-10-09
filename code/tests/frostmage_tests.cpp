@@ -347,6 +347,28 @@ TestIciclesMelt()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): with Deep Freeze a Blizzard's end freezes what is still in
+// it, 0.4 s a rank
+internal void
+TestDeepFreezeBlizzard()
+{
+    crypt_world Crypt = CreateFrostMageWorld();
+    app_state *AppState = Crypt.AppState;
+    world_entity *Mage = AppState->Players[0].Entity;
+    SetClassTalentRank(&AppState->Players[0], FrostMageTalent_DeepFreeze, 2);
+    GrantClassSpells(&AppState->Players[0]);
+    ranger_dummies Dummies = {};
+    v2 Point = AimPoint(Mage);
+    world_entity *Inside = RangerDummy(&Crypt, &Dummies, V3(Point.X - Mage->Position.X, 0.f, 0.f));
+    PressOnce(&Crypt, 0, PlayerButton_Launch);
+    RangerTick(&Crypt, &Dummies, 20);
+    Check(!HasStatus(Inside, StatusEffect_Rooted));
+    RangerTick(&Crypt, &Dummies, (u32)(60.f * BLIZZARD_SECONDS) - 18);
+    Check(HasStatus(Inside, StatusEffect_Rooted));
+    Check(Inside->StatusTimers[StatusEffect_Rooted] <= 2.f * DEEP_FREEZE_BLIZZARD_SECONDS);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunFrostMageTests()
 {
@@ -355,6 +377,7 @@ RunFrostMageTests()
     TestShatter();
     TestGlacialSpike();
     TestBlizzard();
+    TestDeepFreezeBlizzard();
     TestFrostNova();
     TestIceBarrier();
     TestFrozenOrb();

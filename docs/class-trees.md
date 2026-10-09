@@ -47,7 +47,7 @@ Base kit first, then each branch: its spell pair, its fixed talents, and what it
 ### Ranger
 - **Base:** Quick Shot (X), which marks and builds Focus; Piercing Shot (R), which spends it.
 - **Marksmanship** (Focus and the mark, one foe). Spells: Rapid Fire (V) or Kill Shot (W, new: a shot at a marked foe under 25% health; a kill brings it back at once). Fixed: Marksman, Deadeye, Lethal Mark; capstone Apex Predator. Wild: bossbane, cadence, opener, Big Game, Patience.
-- **Survival** (traps and the circle, packs). Spells: Volley (A) or Disengage (C). Fixed: Barrage, Pinning Volley, Hunter's Net (works on whichever was taken: the snare, or Volley's circle roots on its first tick); capstone Trailwise. Wild: packbane, run speed, frenzy, feast.
+- **Survival** (traps and the circle, packs). Spells: Volley (A) or Disengage (C). Fixed: Barrage (Volley wider and longer, the snare holds 1 s longer), Pinning Volley (what Volley struck or the snare held stays slow after), Hunter's Net (the snare roots every foe near it; Volley's first arrows root for 1 s); capstone Trophy. Wild: packbane, run speed, frenzy, feast.
 
 ### Berserker
 - **Base:** Cleave (right click), which builds Rage; Whirlwind (R), which spends it.
@@ -71,7 +71,7 @@ Base kit first, then each branch: its spell pair, its fixed talents, and what it
 
 ### Frost Mage
 - **Base:** Frostbolt (X), which grows Icicles; Glacial Spike (R), which spends them.
-- **Winter** (hold them in place). Spells: Frost Nova (W) or Blizzard (A). Fixed: Permafrost, Deep Freeze, Shatter Point; capstone Absolute Zero. Wild: packbane, frenzy, Deep Winter.
+- **Winter** (hold them in place). Spells: Frost Nova (W) or Blizzard (A). Fixed: Permafrost, Deep Freeze (Frost Nova holds longer; a Blizzard's last strike freezes what is in it), Shatter Point; capstone Absolute Zero. Wild: packbane, frenzy, Deep Winter.
 - **Shatter** (Icicles and the orb). Spells: Frozen Orb (V) or Ice Barrier (C). Fixed: Frostbite, Fingers of Frost, Splitting Ice; capstone Cold Calculation. Wild: bossbane, cadence, armor, Glacial Skin.
 
 ### Druid
@@ -92,11 +92,11 @@ Every class has its two branches, its spell pairs and its pools in the game (`cl
 | Fire Mage | its bot always takes Combustion, never Detonate |
 | Bulwark | Shield Slam does not taunt yet; Vanguard's capstone is Retaliation until the ally guard is built; the bot does not pick Taunt |
 | Mender | the atonement talent is not built |
-| Ranger | Barrage and Hunter's Net only help Volley and Disengage; its bot always takes Rapid Fire |
+| Ranger | its bot always takes Rapid Fire and Volley |
 | Berserker | its bot always takes Leap, never Battle Shout |
 | Shadowblade | nothing beyond tuning |
 | Stormcaller | nothing beyond tuning |
 | Duelist | its bot always takes Riposte, never Feint |
-| Frost Mage | Deep Freeze only helps Frost Nova |
+| Frost Mage | nothing beyond tuning |
 | Druid | Eclipse needs Moonfire and Starfire, which are a pair now, so it is out of the tree until it is reworked; Entangling Moon is not built |
 | Every class | the bots take the left spell of each pair; the balance probe has not been rerun |

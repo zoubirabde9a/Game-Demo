@@ -116,6 +116,8 @@ enum ranger_talent
 // NOTE(zoubir): Barrage: Volley this much wider, and this much longer
 #define BARRAGE_RADIUS 1.3f
 #define BARRAGE_SECONDS 1.2f
+// NOTE(zoubir): and Disengage's snare holds this much longer
+#define BARRAGE_ROOT_SECONDS 1.f
 // NOTE(zoubir): Deadeye: a Piercing Shot on full Focus hits this much harder
 #define DEADEYE_SCALE 1.6f
 // NOTE(zoubir): Lethal Mark: the mark bites deeper, and when its foe dies
@@ -129,6 +131,8 @@ enum ranger_talent
 // NOTE(zoubir): Hunter's Net, the capstone: when a snare springs it also
 // roots every other foe within this of it, as it roots the first
 #define HUNTERS_NET_RADIUS 120.f
+// NOTE(zoubir): and a Volley's first strike roots what it catches this long
+#define HUNTERS_NET_VOLLEY_ROOT 1.f
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 1 unlocks the C spell, slot 4 the V spell
@@ -138,7 +142,8 @@ global_variable talent_def RangerTalentDefs[CLASS_TALENTS] =
      TalentBranch_Role, 0, 0, 2, 0},
     {"Disengage", "C: leap back and leave a snare that roots; rank 2, a longer root that bites",
      "a new spell", TalentBranch_Role, 0, 1, 2, 0},
-    {"Barrage", "Volley covers a wider circle and rains longer", "+30% radius, +1.2 s",
+    {"Barrage", "Volley covers a wider circle and rains longer; the snare holds longer",
+     "+30% radius, +1.2 s; snare +1 s",
      TalentBranch_Role, 1, 0, 1, 0},
     {"Deadeye", "Piercing Shot on full Focus always crits", "x1.6 on full Focus",
      TalentBranch_Role, 1, 1, 1, 0},
@@ -150,14 +155,14 @@ global_variable talent_def RangerTalentDefs[CLASS_TALENTS] =
      TalentBranch_Role, 2, 1, 4, 0},
     {"Survivalist", "More health", "+6% health",
      TalentBranch_Role, 3, 1, 4, 0},
-    {"Pinning Volley", "Foes Volley strikes stay slowed longer after they leave it",
+    {"Pinning Volley", "Foes Volley strikes or the snare holds stay slowed longer after",
      "+0.5 s slow", TalentBranch_Role, 4, 0, 4, 0},
     {"Steady Hands", "Every spell comes back sooner", "-4% cooldowns",
      TalentBranch_Role, 4, 1, 4, 0},
     {"Fleet Hunter", "You run faster", "+3% run speed",
      TalentBranch_Role, 5, 0, 4, 0},
-    {"Hunter's Net", "Disengage's snare roots every foe near it when it springs, not just the first",
-     "roots all within 120", TalentBranch_Role, 5, 1, 1, 0},
+    {"Hunter's Net", "The snare roots every foe near it when it springs; Volley's first arrows root",
+     "roots all within 120; Volley roots 1 s", TalentBranch_Role, 5, 1, 1, 0},
     {"Volley", "A: arrows rain on the circle at the cursor for 2 s and slow",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Kill Shot", "W: an arrow at your marked foe, twice as hard under 25%; a kill brings it back",

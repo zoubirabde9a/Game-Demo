@@ -3,7 +3,11 @@
    press and strike everything inside each VOLLEY_TICK, slowing it (for
    longer with Pinning Volley); and Disengage's leap back, which leaves a
    snare trap where the Ranger stood that roots the first foe to step on
-   it (with Hunter's Net, every foe near it too). A Ranger has one trap
+   it. The Survival branch's talents pay off whichever of the two a
+   Ranger took: Barrage widens the circle and holds the snare longer,
+   Pinning Volley keeps what either held slow after, and Hunter's Net
+   makes the snare root every foe near it and a Volley's first arrows
+   root what they catch. A Ranger has one trap
    down at a time: a new one takes the old one's place. Clients draw a
    circle from one burst as long as it lasts, and a trap from a burst sent
    again every RANGER_KEEP_SECONDS (as Hunter's Mark is, ranger/shots.cpp). */
@@ -26,6 +30,7 @@ CastVolley(app_state *AppState, player_slot *Slot, world_entity *Player)
             Volley->Seconds = VOLLEY_SECONDS + (Barrage ? BARRAGE_SECONDS : 0.f);
             Volley->TickTimer = VOLLEY_TICK;
             Volley->By = (u8)Player->PlayerIndex;
+            Volley->Struck = false;
             // NOTE(zoubir): Barrage rides along (RangerBurstSpot), so
             // clients draw the circle the size it is, and as long
             EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Volley),
@@ -46,6 +51,10 @@ StrikeVolley(app_state *AppState, ranger_volley *Volley)
     float Pin = (float)RoleRank(&AppState->Players[Volley->By], PlayerRole_Ranger,
                                 RangerTalent_PinningVolley);
     float Slow = VOLLEY_SLOW_SECONDS + PINNING_VOLLEY_SECONDS * Pin;
+    // NOTE(zoubir): Hunter's Net: the first arrows pin what they catch
+    bool32 Net = !Volley->Struck &&
+        RoleRank(&AppState->Players[Volley->By], PlayerRole_Ranger, RangerTalent_HuntersNet) > 0;
+    Volley->Struck = true;
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
         world_entity *Monster = &World->Entities[EntityIndex];
@@ -57,6 +66,10 @@ StrikeVolley(app_state *AppState, ranger_volley *Volley)
         }
         RangerHit(AppState, Volley->By, Monster, RangerShot_Volley, VOLLEY_TICK_DAMAGE, 0.f,
                   NormalizeOr(Offset, V2(1.f, 0.f)), StatusEffect_Slowed, Slow);
+        if (Net && Monster->IsPresent && Monster->Hp > 0.f)
+        {
+            ApplyStatus(Monster, StatusEffect_Rooted, HUNTERS_NET_VOLLEY_ROOT);
+        }
     }
 }
 
@@ -150,11 +163,19 @@ internal void
 SnareRangerFoe(app_state *AppState, player_slot *Slot, ranger_trap *Trap, world_entity *Monster)
 {
     bool32 Snare = RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Disengage) >= 2;
-    float Root = TRAP_ROOT_SECONDS + (Snare ? SNARE_ROOT_SECONDS : 0.f);
+    bool32 Barrage = RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Barrage) > 0;
+    float Root = TRAP_ROOT_SECONDS + (Snare ? SNARE_ROOT_SECONDS : 0.f) +
+        (Barrage ? BARRAGE_ROOT_SECONDS : 0.f);
     v2 Offset = Monster->Position.XY - Trap->Position.XY;
     Monster->Velocity.XY = V2(0.f, 0.f);
     RangerHit(AppState, Trap->By, Monster, RangerShot_Trap, TRAP_DAMAGE + (Snare ? SNARE_DAMAGE : 0.f), 0.f,
               NormalizeOr(Offset, V2(1.f, 0.f)), StatusEffect_Rooted, Root);
+    // NOTE(zoubir): Pinning Volley keeps it slow after the root lets go
+    float Pin = (float)RoleRank(Slot, PlayerRole_Ranger, RangerTalent_PinningVolley);
+    if (Pin > 0.f && Monster->IsPresent && Monster->Hp > 0.f)
+    {
+        ApplyStatus(Monster, StatusEffect_Slowed, Root + PINNING_VOLLEY_SECONDS * Pin);
+    }
 }
 
 // NOTE(zoubir): the snare springs on First and is gone; with Hunter's Net

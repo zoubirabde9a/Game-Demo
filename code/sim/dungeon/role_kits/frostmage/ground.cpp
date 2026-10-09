@@ -80,6 +80,16 @@ UpdateBlizzards(app_state *AppState, frostmage_run *Run, float DeltaTime)
                               FrostShot_Blizzard, BLIZZARD_TICK_DAMAGE, StatusEffect_Slowed,
                               Blizzard->Chill);
         }
+        // NOTE(zoubir): Deep Freeze: as the storm ends, what is still in it
+        // freezes, so the Shatter bonus has something to hit
+        u32 Ranks = Blizzard->By < MAX_PLAYERS ?
+            RoleRank(&AppState->Players[Blizzard->By], PlayerRole_FrostMage, FrostMageTalent_DeepFreeze) : 0;
+        if (Blizzard->Seconds <= 0.f && Ranks)
+        {
+            StrikeFrostCircle(AppState, Blizzard->By, Blizzard->Position.XY, Blizzard->Radius,
+                              FrostShot_Blizzard, BLIZZARD_TICK_DAMAGE, StatusEffect_Rooted,
+                              DEEP_FREEZE_BLIZZARD_SECONDS * (float)Ranks);
+        }
     }
 }
 

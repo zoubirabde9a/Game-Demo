@@ -103,6 +103,9 @@ enum frostmage_talent
 #define FINGERS_OF_FROST_EVERY 4
 // NOTE(zoubir): Deep Freeze, per rank: Frost Nova holds this much longer
 #define DEEP_FREEZE_SECONDS 0.5f
+// NOTE(zoubir): and a Blizzard's last strike freezes what is still inside
+// this long a rank
+#define DEEP_FREEZE_BLIZZARD_SECONDS 0.4f
 // NOTE(zoubir): Absolute Zero, the capstone: a five-Icicle Glacial Spike
 // freezes every foe within this of its foe
 #define ABSOLUTE_ZERO_RADIUS 120.f
@@ -127,7 +130,8 @@ global_variable talent_def FrostMageTalentDefs[CLASS_TALENTS] =
      TalentBranch_Role, 2, 1, 4, 0},
     {"Glacial Armor", "You take less damage", "-4% damage taken",
      TalentBranch_Role, 3, 1, 4, 0},
-    {"Deep Freeze", "Frost Nova holds foes longer", "+0.5 s freeze",
+    {"Deep Freeze", "Frost Nova holds foes longer; a Blizzard's last strike freezes them",
+     "+0.5 s Nova, 0.4 s Blizzard freeze",
      TalentBranch_Role, 4, 0, 4, 0},
     {"Cold Snap", "Every spell comes back sooner", "-4% cooldowns",
      TalentBranch_Role, 4, 1, 4, 0},

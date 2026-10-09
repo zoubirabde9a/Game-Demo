@@ -71,6 +71,9 @@ struct ranger_volley
     float Seconds;
     float TickTimer;
     u8 By;
+    // NOTE(zoubir): the circle struck already (Hunter's Net roots on the
+    // first strike only)
+    bool32 Struck;
 };
 
 // NOTE(zoubir): a snare trap waiting on the ground
