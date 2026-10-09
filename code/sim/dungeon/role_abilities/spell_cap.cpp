@@ -1,7 +1,7 @@
 /* Spell cap (role_abilities.cpp): each class's attack, which is never
    counted, and the most class spells a class casts beside it: four for a
-   damage class, six for a tank or a healer, one more at the top level
-   (docs/class-trees.md). The tree keeps every build under it: a class's
+   damage class, five at the top level, and six for a tank or a healer at
+   any level (docs/class-trees.md). The tree keeps every build under it: a class's
    base spells and one spell of each branch's pair reach the cap
    (class_tree.cpp). */
 
@@ -15,8 +15,9 @@ global_variable u32 RoleAttackKeys[PlayerRole_Count] =
 };
 
 // NOTE(zoubir): the most class spells Role casts, its attack not counted:
-// four for a damage class, six for a tank or a healer; at the top level
-// one more (ClassSpellTakenBeside lifts one pair's lock there)
+// four for a damage class, six for a tank or a healer; at the top level a
+// damage class casts one more (ClassSpellTakenBeside lifts one pair's lock
+// there), a tank or a healer none
 inline u32
 RoleSpellCap(u32 Role)
 {

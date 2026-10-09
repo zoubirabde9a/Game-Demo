@@ -232,6 +232,16 @@ TestClassTreePointRules()
     // NOTE(zoubir): a new class gives every point back
     SetPlayerRole(AppState, Slot, PlayerRole_Berserker);
     Check(TalentPointsSpent(Slot, TalentBranch_Role) == 0 && TalentPointsSpent(Slot, TalentBranch_Run) == 0);
+
+    // NOTE(zoubir): a tank's lock never lifts: six spells at the top level
+    // too
+    SetPlayerRole(AppState, Slot, PlayerRole_Tank);
+    Slot->Level = PLAYER_MAX_LEVEL;
+    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 2));
+    Check(LearnTalent(AppState, 0, Talent_RunFirst + 2));
+    Check(RoleSpellsCounted(Slot) == RoleSpellCap(PlayerRole_Tank));
+    Check(CanLearnTalent(Slot, Talent_RoleFirst + 3) == TalentRefusal_OtherSpell);
+    Check(CanLearnTalent(Slot, Talent_RunFirst + 3) == TalentRefusal_OtherSpell);
     DestroyCryptWorld(&Crypt);
 }
 

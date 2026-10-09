@@ -4,9 +4,9 @@ How each dungeon class's talents and spells are laid out: one tree of two branch
 
 ## The rules
 
-1. **A cap on spells.** A damage class casts at most four class spells, a tank or a healer six. Its attack does not count (the key it fills gaps with: Quick Shot, Cleave, Shield Bash, Smite Bolt, Wrath, the Fire Mage's fireball), nor the moves every class shares in a run (shield, blink, jump).
+1. **A cap on spells.** A damage class casts at most four class spells (five at the top level), a tank or a healer six at any level. Its attack does not count (the key it fills gaps with: Quick Shot, Cleave, Shield Bash, Smite Bolt, Wrath, the Fire Mage's fireball), nor the moves every class shares in a run (shield, blink, jump).
 2. **Base kit and two picks.** A class casts its attack and its base spells from the start: two for a damage class, four for a tank or a healer. Each branch offers a pair of spells and the player takes one of the pair, which brings the class to its cap.
-3. **One more at the top level.** At level 30 the lock on one pair lifts: a player there may take the other spell of that pair too, one spell over the cap.
+3. **One more at the top level, for damage.** At level 30 a damage class's lock on one pair lifts: it may take the other spell of that pair too, a fifth spell. A tank's or a healer's lock never lifts, so six stays its most.
 4. **Two branches.** Each is named for a way to play the class. Filling one takes about 23 of the run's 29 points, so a top-level build is one full branch and the other's first tiers.
 5. **Synergy.** Every fixed talent in a branch pays off both spells of its pair or the base kit.
 6. **Randomness.** Five slots of each branch roll as each run starts, from that branch's own pool: the class's themed talents that have no fixed slot and the run talents (`run_tree/run_mods.cpp`) that suit the branch. One of them is a keystone, a big effect with a cost.
@@ -49,7 +49,7 @@ A bot takes a spell of each pair first, which of the two by a coin toss, so a pa
 
 ## Status
 
-Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above. Class keys run A, R, C, V, W, X, the right click, G and T. `GAME_CLASS_SPELLS=1` (developer builds, with `GAME_ROLE`) gives the local player both spells of every pair, for a screenshot of every key a class can have.
+Built: the rules, the cap and the damage classes' top-level exception, every class's tree and base kit, and every spell above. Class keys run A, R, C, V, W, X, the right click, G and T. `GAME_CLASS_SPELLS=1` (developer builds, with `GAME_ROLE`) gives the local player both spells of every pair, for a screenshot of every key a class can have.
 
 ## Balance
 

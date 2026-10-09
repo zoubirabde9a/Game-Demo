@@ -13,7 +13,8 @@
 
    A class casts two base spells from the start (role_spell.Unlock 0) and
    one spell of each branch's pair: a point in one spell of the pair locks
-   the other (ClassSpellTakenBeside), so no build casts more than four.
+   the other (ClassSpellTakenBeside), so no build casts more than four,
+   or five for a damage class at the top level.
    The pairs sit in the first tier, so the first two points can buy both
    spells: a class has its four by level 3, and the deeper tiers are where
    a build grows.
@@ -362,14 +363,18 @@ ClassPairDoubled(player_slot *Slot)
 }
 
 // NOTE(zoubir): whether Slot took the other spell of Talent's pair, so
-// Talent takes no point. At the top level (PLAYER_MAX_LEVEL) the lock
-// lifts for one pair: a player there casts one spell over its class's cap
+// Talent takes no point. At the top level (PLAYER_MAX_LEVEL) a damage
+// class's lock lifts for one pair: it casts five spells there. A tank's
+// or a healer's never does, so it stays at six (RoleSpellCap)
 inline bool32
 ClassSpellTakenBeside(player_slot *Slot, u32 Talent)
 {
     u32 Partner = ClassSpellPartner(Talent);
-    bool32 Result = Partner < Talent_Count && Slot->Ranks[Partner] > 0 &&
-        (Slot->Level < PLAYER_MAX_LEVEL || ClassPairDoubled(Slot));
+    u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
+    bool32 Lifts = Slot->Level >= PLAYER_MAX_LEVEL && RoleKindOf(Role) != RoleKind_Tank &&
+        RoleKindOf(Role) != RoleKind_Healer &&
+        !ClassPairDoubled(Slot);
+    bool32 Result = Partner < Talent_Count && Slot->Ranks[Partner] > 0 && !Lifts;
     return Result;
 }
 
