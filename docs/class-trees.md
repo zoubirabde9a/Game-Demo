@@ -96,7 +96,7 @@ Every class has its two branches, its spell pairs and its pools in the game (`cl
 | Berserker | its bot always takes Leap, never Battle Shout |
 | Shadowblade | nothing beyond tuning |
 | Stormcaller | nothing beyond tuning |
-| Duelist | Feint (C) is not built; Footwork holds its place |
+| Duelist | its bot always takes Riposte, never Feint |
 | Frost Mage | Deep Freeze only helps Frost Nova |
 | Druid | Eclipse needs Moonfire and Starfire, which are a pair now, so it is out of the tree until it is reworked; Entangling Moon is not built |
 | Every class | the bots take the left spell of each pair; the balance probe has not been rerun |

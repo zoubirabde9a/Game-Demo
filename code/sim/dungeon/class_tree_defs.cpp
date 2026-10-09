@@ -99,17 +99,16 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
       {RM(Giantslayer), RM(Cornered), RM(Wayfarer), RM(Quickened), RM(Toughened),
        CT(StormcallerTalent_Quickening)}}},
 
-    // NOTE(zoubir): the Duelist. Footwork holds Guard's second spell slot
-    // until Feint is in
+    // NOTE(zoubir): the Duelist
     {{"Bladework", "Guard"},
      {CLASS_BRANCH(CT(DuelistTalent_Finesse), CT(DuelistTalent_PerfectForm), CT(DuelistTalent_Lunge),
                    CT(DuelistTalent_Precision), CT(DuelistTalent_Crescendo), RM(CoupDeGrace),
                    CT(DuelistTalent_Masterstroke)),
-      CLASS_BRANCH(CT(DuelistTalent_Parade), CT(DuelistTalent_Riposte), CT(DuelistTalent_Footwork),
+      CLASS_BRANCH(CT(DuelistTalent_Parade), CT(DuelistTalent_Riposte), CT(DuelistTalent_Feint),
                    CT(DuelistTalent_Bait), RM(Measured), RM(PerfectForm),
                    RM(Lifeline))},
      {{CT(DuelistTalent_KeenEdge), CT(DuelistTalent_Flurry), RM(Precision), RM(Giantslayer),
-       RM(Panache), CT(DuelistTalent_QuickWrist)},
+       RM(Panache), CT(DuelistTalent_QuickWrist), CT(DuelistTalent_Footwork)},
       {CT(DuelistTalent_Stamina), RM(Spikes), RM(Stubborn), RM(SecondBreath), RM(Feast),
        RM(Vigor)}}},
 

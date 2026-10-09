@@ -25,6 +25,8 @@
 #define DUELIST_FLAG_TEMPO 0x4
 #define DUELIST_FLAG_FORM 0x8
 #define DUELIST_FLAG_FADING 0x10
+// NOTE(zoubir): a Feint's dodge is up
+#define DUELIST_FLAG_FEINT 0x20
 
 #define DUELIST_MOST_TEMPO 5
 
@@ -37,6 +39,8 @@ struct duelist_slot
     // parried a hit yet (one counter a guard)
     float GuardSeconds;
     bool32 Parried;
+    // NOTE(zoubir): seconds left of a Feint's dodge
+    float FeintSeconds;
     // NOTE(zoubir): a counter owed by a parry, struck on the next tick
     // (UpdateDuelistEffects) rather than inside the hit that set it off:
     // the foe it goes for first (the attacker, by entity slot and serial)

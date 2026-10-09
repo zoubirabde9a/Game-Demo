@@ -66,6 +66,14 @@
 #define PRECISION_LOW_HEALTH 0.45f
 #define BAIT_GUARD_SECONDS 1.2f
 #define BAIT_HEAL_SHARE 0.1f
+// NOTE(zoubir): Feint (C, from Guard's pair against Riposte): a quick
+// step, Hasted for FEINT_HASTE_SECONDS, and for FEINT_SECONDS the next
+// blow on the Duelist misses whole and gives FEINT_TEMPO; with Bait the
+// dodge heals as a counter does
+#define FEINT_SECONDS 1.f
+#define FEINT_HASTE_SECONDS 0.8f
+#define FEINT_TEMPO 1
+#define FEINT_COOLDOWN 7.f
 // NOTE(zoubir): Crescendo: at full Tempo Heartseeker also cuts every other
 // foe within its reach and this half-angle in front for CRESCENDO_SPLASH of
 // its base and Tempo damage (no low-health bonus)
@@ -152,6 +160,7 @@ enum duelist_talent
     DuelistTalent_Masterstroke,
     DuelistTalent_Lunge,
     DuelistTalent_Riposte,
+    DuelistTalent_Feint,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
@@ -165,7 +174,7 @@ global_variable talent_def DuelistTalentDefs[CLASS_TALENTS] =
      "-2 s Lunge", TalentBranch_Role, 0, 1, 2, 0},
     {"Precision", "Heartseeker's bonus on a hurt foe starts at 45% health", "below 45% health",
      TalentBranch_Role, 1, 0, 1, 0},
-    {"Bait", "Riposte's guard lasts 1.2 s, and a counter heals 10% of your health",
+    {"Bait", "Riposte's guard lasts 1.2 s; a counter or a Feint's dodge heals 10% of your health",
      "longer guard, heals", TalentBranch_Role, 1, 1, 1, 0},
     {"Perfect Form", "V: 8 s where Tempo cannot drop, every key builds it and Thrust strikes twice",
      "a new spell", TalentBranch_Role, 2, 0, 1, 0},
@@ -187,6 +196,8 @@ global_variable talent_def DuelistTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Riposte", "R: a moment on guard; the first blow is parried and countered",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Feint", "C: a quick step; the next blow on you in 1 s misses and gives a Tempo",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
@@ -205,7 +216,9 @@ global_variable role_spell DuelistSpells[ROLE_KEYS] =
     {"Riposte", RIPOSTE_COOLDOWN,
      "Riposte: 0.75 s on guard; a hit in it is parried and countered, and Riposte is back in 2 s",
      RoleAim_None, RIPOSTE_REACH, DuelistTalent_Riposte + 1},
-    {},
+    {"Feint", FEINT_COOLDOWN,
+     "Feint: a quick step; the next blow on you in 1 s misses and gives a Tempo",
+     RoleAim_None, 0.f, DuelistTalent_Feint + 1},
     {"Perfect Form", FORM_COOLDOWN,
      "Perfect Form: 8 s where Tempo holds, every key builds it and Thrust strikes twice",
      RoleAim_None, 0.f, DuelistTalent_PerfectForm + 1},

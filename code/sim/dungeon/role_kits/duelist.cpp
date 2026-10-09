@@ -43,7 +43,8 @@ SetDuelistFlags(player_slot *Slot, bool32 Fading)
                             (Guard && Duel->Parried ? DUELIST_FLAG_PARRIED : 0) |
                             (Slot->ClassMeter >= DUELIST_MOST_TEMPO ? DUELIST_FLAG_TEMPO : 0) |
                             (Duel->FormSeconds > 0.f ? DUELIST_FLAG_FORM : 0) |
-                            (Fading ? DUELIST_FLAG_FADING : 0));
+                            (Fading ? DUELIST_FLAG_FADING : 0) |
+                            (Duel->FeintSeconds > 0.f ? DUELIST_FLAG_FEINT : 0));
 }
 
 #include "duelist/tempo.cpp"
@@ -79,6 +80,11 @@ CastDuelistKey(app_state *AppState, world *World, memory_arena *Arena, player_sl
         case 1:
         {
             StartGuard(AppState, Slot, Player);
+        } break;
+
+        case 2:
+        {
+            StartFeint(AppState, Slot, Player);
         } break;
 
         case 3:

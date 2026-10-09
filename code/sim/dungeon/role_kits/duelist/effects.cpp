@@ -69,6 +69,7 @@ UpdateDuelistSlot(app_state *AppState, dungeon_run *Run, player_slot *Slot, floa
         }
         Duel->CounterDue = false;
     }
+    Duel->FeintSeconds = Alive ? Maximum(0.f, Duel->FeintSeconds - DeltaTime) : 0.f;
     Duel->GuardSeconds = Maximum(0.f, Duel->GuardSeconds - DeltaTime);
     if (Duel->GuardSeconds <= 0.f || !Alive)
     {

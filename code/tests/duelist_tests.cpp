@@ -79,7 +79,7 @@ TestDuelistOwnsItsKeys()
     SetClassTalentRank(Slot, DuelistTalent_PerfectForm, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);
     Check(Allowed & PlayerButton_Kunai);
-    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Cast)));
+    Check((Allowed & PlayerButton_Slam) && !(Allowed & PlayerButton_Cast));
     Check(DuelistKeyWindsUp(4) && !DuelistKeyWindsUp(1) && !DuelistKeyWindsUp(6));
     Check(RoleSpellOnButton(AppState, Slot->Entity, PlayerButton_Attack) == &DuelistSpells[6]);
     DestroyCryptWorld(&Crypt);
@@ -359,6 +359,42 @@ TestHeartseeker()
 
 #include "duelist/talents.cpp"
 
+// NOTE(zoubir): Feint hastes the Duelist; the next blow in its time
+// misses whole and gives a Tempo, without a counter; the one after lands;
+// a Feint left to run out dodges nothing
+internal void
+TestFeint()
+{
+    crypt_world Crypt = DuelistCrypt();
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    world_entity *Player = Slot->Entity;
+    world_entity *Foe = DuelistDummy(&Crypt, V3(80.f, 0.f, 0.f));
+    Slot->ClassMeter = 1;
+    PressOnce(&Crypt, 0, PlayerButton_Slam);
+    Check(Slot->RoleCooldowns[2] > FEINT_COOLDOWN - 0.5f);
+    Check(Slot->ClassFlags & DUELIST_FLAG_FEINT);
+    Check(HasStatus(Player, StatusEffect_Hasted));
+    u32 Tempo = Slot->ClassMeter;
+    float Hp = Player->Hp;
+    HitDuelist(&Crypt, Foe, 30.f);
+    Check(Player->Hp == Hp);
+    Check(Slot->ClassMeter == Tempo + FEINT_TEMPO);
+    Check(!Slot->Duelist.CounterDue);
+    TickCrypt(&Crypt, 1);
+    Check(!(Slot->ClassFlags & DUELIST_FLAG_FEINT));
+    HitDuelist(&Crypt, Foe, 30.f);
+    Check(Player->Hp < Hp);
+    // NOTE(zoubir): run out, it dodges nothing
+    DuelistReady(&Crypt, 2);
+    PressOnce(&Crypt, 0, PlayerButton_Slam);
+    TickCrypt(&Crypt, (u32)(60.f * FEINT_SECONDS) + 2);
+    Hp = Player->Hp;
+    HitDuelist(&Crypt, Foe, 30.f);
+    Check(Player->Hp < Hp);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunDuelistTests()
 {
@@ -368,6 +404,7 @@ RunDuelistTests()
     TestTempoFades();
     TestRiposte();
     TestRiposteWhiff();
+    TestFeint();
     TestPredictedDuelist();
     TestHeartseeker();
     TestPerfectForm();

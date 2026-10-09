@@ -1,4 +1,12 @@
-/* Duelist Riposte (role_kits/duelist.cpp, the R key): the rapier held across
+/* Duelist Riposte and Feint (role_kits/duelist.cpp, the R and C keys),
+   the Guard branch's pair; a Duelist takes one of them.
+
+   Feint is a quick step (Hasted for a moment) and a dodge: for
+   FEINT_SECONDS the next blow on the Duelist misses whole and gives
+   FEINT_TEMPO, with no counter. With Bait the dodge heals as a counter
+   does.
+
+   Riposte: the rapier held across
    for RIPOSTE_GUARD_SECONDS (BAIT_GUARD_SECONDS with Bait), a timer of the
    slot's that a ClassFlags bit shows every client.
 
@@ -21,6 +29,23 @@
    or poison ticking, a boss clock's pulse) comes through DamageEntity
    alone: DuelistTakenScale cancels it in the guard but it neither parries
    nor takes Tempo. */
+
+// NOTE(zoubir): Feint (C): a quick step and a dodge ready for the next
+// blow (DuelistParriesHit)
+internal void
+StartFeint(app_state *AppState, player_slot *Slot, world_entity *Player)
+{
+    if (DuelistUseKey(Slot, 2))
+    {
+        AddTempo(Slot, 1);
+    }
+    Slot->Duelist.FeintSeconds = FEINT_SECONDS;
+    ApplyStatus(Player, StatusEffect_Hasted, FEINT_HASTE_SECONDS);
+    v2 Aim = NormalizeOr(GetPlayerAim(Player), V2(1.f, 0.f));
+    EmitBurst(&AppState->Events, ClassBurst(SimBurst_DuelistFirst, DuelistBurst_Lunge),
+              (u8)Player->PlayerIndex, DuelistBurstSpot(ChestOf(Player), 0), ATan2(Aim.Y, Aim.X));
+    EmitSound(&AppState->Events, AssetType_SfxDash, Player->Position);
+}
 
 internal void
 StartGuard(app_state *AppState, player_slot *Slot, world_entity *Player)
@@ -57,6 +82,20 @@ DuelistParriesHit(app_state *AppState, world_entity *Target, world_entity *Sourc
         return false;
     }
     duelist_slot *Duel = &Slot->Duelist;
+    // NOTE(zoubir): a Feint's dodge takes the blow first, and is spent
+    if (Duel->FeintSeconds > 0.f && Duel->GuardSeconds <= 0.f)
+    {
+        Duel->FeintSeconds = 0.f;
+        AddTempo(Slot, FEINT_TEMPO);
+        if (RoleRank(Slot, PlayerRole_Duelist, DuelistTalent_Bait))
+        {
+            HealPlayer(AppState, Target->PlayerIndex, Target, BAIT_HEAL_SHARE * Target->MaxHp);
+        }
+        v2 Aim = NormalizeOr(GetPlayerAim(Target), V2(1.f, 0.f));
+        EmitBurst(&AppState->Events, ClassBurst(SimBurst_DuelistFirst, DuelistBurst_Parry),
+                  (u8)Target->PlayerIndex, ChestOf(Target), ATan2(Aim.Y, Aim.X));
+        return true;
+    }
     if (Duel->GuardSeconds <= 0.f)
     {
         LoseTempo(AppState, Slot, Target);

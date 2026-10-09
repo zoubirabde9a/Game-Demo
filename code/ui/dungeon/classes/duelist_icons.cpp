@@ -119,6 +119,19 @@ PaintLungeIcon(icon_canvas *Canvas)
     IconDuelistRapier(Canvas, V2(0.58f, 0.46f), DuelistNormalIcon(V2(1.f, -0.15f)), 0.42f);
 }
 
+// NOTE(zoubir): Feint: the fencer stepping aside, a pale afterimage where
+// it stood and a blow's streak passing through it
+internal void
+PaintFeintIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.55f, 0.55f), 0.48f, IconColor(240, 110, 170, 120));
+    IconDuelistFencer(Canvas, V2(0.32f, 0.9f), 0.7f, Solid(IconColor(240, 180, 210, 90)));
+    IconDuelistFencer(Canvas, V2(0.66f, 0.9f), 0.7f,
+                      Gradient(IconColor(90, 40, 70), DuelistIconDark(), V2(0.6f, 0.3f), V2(0.6f, 0.9f)));
+    IconCapsule(Canvas, V2(0.04f, 0.5f), V2(0.5f, 0.42f), 0.022f,
+                Gradient(DuelistIconRose(0), IconColor(255, 230, 240), V2(0.04f, 0.f), V2(0.5f, 0.f)));
+}
+
 // NOTE(zoubir): Riposte: the rapier held across, a gold clang where a blow
 // meets it, and the counter's point turning back
 internal void
@@ -277,7 +290,7 @@ PaintMasterstrokeIcon(icon_canvas *Canvas)
 
 global_variable role_icon_painter *DuelistIconPainters[ROLE_KEYS] =
 {
-    PaintLungeIcon, PaintRiposteIcon, 0, PaintPerfectFormIcon,
+    PaintLungeIcon, PaintRiposteIcon, PaintFeintIcon, PaintPerfectFormIcon,
     PaintHeartseekerIcon, 0, PaintThrustIcon,
 };
 global_variable talent_icon_painter *DuelistTalentIconPainters[ROLE_TALENTS] =
