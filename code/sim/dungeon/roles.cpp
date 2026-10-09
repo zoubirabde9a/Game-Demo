@@ -105,6 +105,8 @@ struct role_spell
 // The Shadowblade then still trailed every damage class on a dummy held
 // at half health (74 a second over builds, the Ranger 77), and took a
 // small step more: its party already clears mid-pack
+// The Frost Mage, third of the damage classes on that dummy (103 a
+// second over builds), gave 15% of its damage back
 global_variable role_def RoleTable[PlayerRole_Count] =
 {
     // Name          MaxHp  Taken  Dealt  Threat
@@ -132,7 +134,7 @@ global_variable role_def RoleTable[PlayerRole_Count] =
     {"Duelist",      125.f, 0.85f, 1.35f, 1.f, "Melee",
      "A rapier: weave your strikes to build Tempo, parry to keep it",
      RoleKind_Melee, {240, 110, 170}},
-    {"Frost Mage",   110.f, 1.0f,  1.45f, 0.7f, "Ranged",
+    {"Frost Mage",   110.f, 1.0f,  1.23f, 0.7f, "Ranged",
      "Ice that slows and freezes; frozen foes shatter under your spells",
      RoleKind_Ranged, {150, 215, 255}},
     {"Druid",        115.f, 1.0f,  1.0f,  0.7f, "Healer",
