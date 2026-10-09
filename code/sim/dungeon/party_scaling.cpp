@@ -1,20 +1,20 @@
 /* Party scaling (dungeon.cpp): how a dungeon fight grows with the size
-   of the party. Monster health and damage grow by a fixed factor for
-   each player past the first, so every player who joins makes the run
-   harder than the one before did. The roles keep up at the square root
+   of the party. Monster health grows by a fixed factor for each player
+   past the first until it equals the head count, then stays at the head
+   count; damage grows by a fixed factor too. The roles keep up at the square root
    of the extra damage: the tank takes only that much more, heals and
    wards grow by it. StartEncounter (encounters.cpp) applies the health
    and stores the damage on the run; DungeonScaleDamage reads it. */
 
 // NOTE(zoubir): each player past the first multiplies a dungeon
-// monster's health by PARTY_HEALTH_GROWTH and its hits by
-// PARTY_DAMAGE_GROWTH, so every player who joins makes the run harder than
-// the last one did. Past the three the dungeon is made for, each player
+// monster's health by PARTY_HEALTH_GROWTH, but never past the number of
+// players: the full growth made eight players face 26.8 times the health,
+// far too much. Hits grow by PARTY_DAMAGE_GROWTH. Past the three the dungeon is made for, each player
 // adds only PARTY_DAMAGE_GROWTH_PAST of damage: a bigger party still has
 // one healer to cover everyone, and at the full growth four bots wiped
 // on the Ashen Causeway six times in a row in under half a minute each.
-// Two players face 1.6 times the health, four 4.1 times the health and
-// 1.33 times the damage, eight 26.8 times and 1.68 times
+// Two players face 1.6 times the health, three 2.56, four 4 and 1.33
+// times the damage, six 6, eight 8 and 1.68 times the damage
 #define PARTY_HEALTH_GROWTH 1.6f
 #define PARTY_DAMAGE_GROWTH 1.12f
 #define PARTY_DAMAGE_GROWTH_PAST 1.06f
@@ -52,7 +52,8 @@ PartyGrowth(float Growth, u32 Players)
 inline float
 PartyHealthScale(u32 Players)
 {
-    float Result = PartyGrowth(PARTY_HEALTH_GROWTH, Players);
+    float Result = Minimum(PartyGrowth(PARTY_HEALTH_GROWTH, Players),
+                           (float)Maximum(Players, 1u));
     return Result;
 }
 

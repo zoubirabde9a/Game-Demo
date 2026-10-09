@@ -79,7 +79,7 @@ global_variable boss_clock_def BossClockDefs[] =
 // limit grows by the one over the other, against the tuned party. A
 // smaller party, short of a role, gets all of it (one player 1.17 times
 // the time); a bigger one only BOSS_CLOCK_BIG_PARTY_SHARE of what it
-// would gain (four players 1.1 times, eight 2.47)
+// would gain (four players and more 1.09 times)
 inline float
 BossClockPartyScale(u32 Players)
 {

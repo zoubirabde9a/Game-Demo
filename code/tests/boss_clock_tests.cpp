@@ -146,8 +146,8 @@ TestBossClockPartySizes()
     Check(BossClockPartyScale(1) > 1.17f && BossClockPartyScale(1) < 1.175f);
     float Four = BossClockPartyScale(4);
     float Eight = BossClockPartyScale(8);
-    Check(Four > 1.09f && Four < 1.11f);
-    Check(Eight > Four && Eight < 2.5f);
+    Check(Four > 1.08f && Four < 1.09f);
+    Check(Eight > 1.08f && Eight < 1.09f);
     // NOTE(zoubir): the boss's health grows faster than the time does
     Check(PartyHealthScale(4) / PartyHealthScale(3) > Four * 4.f / 3.f);
 }
