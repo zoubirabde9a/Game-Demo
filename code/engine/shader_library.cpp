@@ -60,6 +60,9 @@ global_variable shader_def ShaderDefs[Shader_Count] =
     {"cast sigil", "shaders/fx/quad.vert", "shaders/fx/cast_sigil.frag", 3, true},
     {"danger zone", "shaders/fx/quad.vert", "shaders/fx/danger_zone.frag", 3, true},
     {"silhouette", "shaders/fx/quad.vert", "shaders/fx/silhouette.frag", 3, true},
+    {"boss ground", "shaders/fx/quad.vert", "shaders/fx/boss_ground.frag", 3, true, "shaders/fx/noise.glsl"},
+    {"boss beam", "shaders/fx/quad.vert", "shaders/fx/boss_beam.frag", 3, true, "shaders/fx/noise.glsl"},
+    {"boss shock", "shaders/fx/quad.vert", "shaders/fx/boss_shock.frag", 3, true, "shaders/fx/noise.glsl"},
 };
 
 global_variable char *ShaderAttributes[] =

@@ -87,6 +87,9 @@ enum shader_id
     Shader_CastSigil,     // the circle of light under a player winding up a spell, client/cast_fx.cpp
     Shader_DangerZone,    // where a monster's attack will land, on the ground, client/danger_zones.cpp
     Shader_Silhouette,    // a sprite's shape in one flat colour, client/draw_entities/windup_glow.cpp
+    Shader_BossGround,    // what a boss's abilities paint on the floor, client/dungeon/boss_fx/
+    Shader_BossBeam,      // a boss's beam of light, client/dungeon/boss_fx/
+    Shader_BossShock,     // the shockwave of a boss's blow landing, client/dungeon/boss_fx/
     Shader_Count
 };
 

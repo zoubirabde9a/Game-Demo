@@ -18,6 +18,7 @@ DrawDungeonFx(RenderContext, AppState, CameraOffset); // dungeon gates, sanctuar
 DrawBossTethers(RenderContext, AppState, CameraOffset); // motes from each add a boss calls back to the boss, client/dungeon/boss_tethers.cpp
 DrawRiftFx(RenderContext, AppState, CameraOffset); // the Aurora Rift's frost waves, beams and pylon wards, client/dungeon/rift_fx.cpp
 DrawStarlessFx(RenderContext, AppState, CameraOffset); // the Starless Deep's gravity wells, void brands, mirrors and eclipse lights, client/dungeon/starless_fx.cpp
+DrawBossOverlayFx(RenderContext, AppState, CameraOffset); // shafts of light onto where a boss's Smite or a Falling Star lands, client/dungeon/boss_fx/
 DrawBossDepartureFx(RenderContext, AppState, CameraOffset); // a Starless boss away from its fight and what falls meanwhile, client/dungeon/boss_departure_fx.cpp
 DrawRewindFx(RenderContext, AppState, CameraOffset); // time rewinds' sigils, ghosts and flashes, client/rewind_fx/
 DrawLandmarkPointer(RenderContext, AppState, CameraOffset, &View);

@@ -101,6 +101,7 @@ DrawDangerLane(render_context *RenderContext, world *World, v3 CameraOffset,
 struct danger_cast
 {
     monster_ability *Ability;
+    u32 CasterKind;
     v2 Self;
     v2 Aim;
     v2 Points[MAX_ABILITY_POINTS];
@@ -112,6 +113,7 @@ GetDangerCast(world_entity *Entity, monster_ability *Ability)
 {
     danger_cast Result = {};
     Result.Ability = Ability;
+    Result.CasterKind = Entity->MonsterKind;
     Result.Self = Entity->Position.XY;
     Result.Aim = Entity->AbilityAim;
     Result.PointCount = Minimum(Entity->AbilityPointCount, (u32)MAX_ABILITY_POINTS);
@@ -121,6 +123,11 @@ GetDangerCast(world_entity *Entity, monster_ability *Ability)
     }
     return Result;
 }
+
+// NOTE(zoubir): boss effects drawn and fed from here
+// (client/dungeon/boss_fx/), included after fx_bursts.cpp
+internal void AddBossImpact(app_state *AppState, danger_cast *Cast, float Now);
+internal void DrawBossGroundFx(render_context *RenderContext, app_state *AppState, v3 CameraOffset);
 
 inline u32
 DangerShape(monster_ability *Ability)
@@ -141,9 +148,14 @@ DrawDangerCast(render_context *RenderContext, world *World, v3 CameraOffset,
     {
         case MonsterAbility_Slam:
         {
+            // NOTE(zoubir): what falls while a Starless boss is away has its
+            // own mark (dungeon/boss_fx/), so its zone stays faint under it
+            bool32 Marked = (Cast->CasterKind == MonsterKind_VoidMaw ||
+                             Cast->CasterKind == MonsterKind_FallingStar) &&
+                RenderContext->Programs[Shader_BossGround].ID != RenderContext->TextureProgram.ID;
             DrawDangerDisc(RenderContext, World, CameraOffset, Cast->Self,
                            Ability->Radius, Progress, DANGER_PALETTE_HARM,
-                           DangerShape(Ability), Strength);
+                           DangerShape(Ability), Marked ? 0.5f * Strength : Strength);
         } break;
 
         case MonsterAbility_Charge:
@@ -284,6 +296,7 @@ AddDangerImpact(app_state *AppState, danger_zones *Zones, danger_cast *Cast, flo
     Impact->Cast = *Cast;
     Impact->Born = Now;
     Impact->MapId = AppState->World.MapId;
+    AddBossImpact(AppState, Cast, Now);
 
     monster_ability *Ability = Cast->Ability;
     bool32 Solid = Ability->InnerRadius <= 0.f &&
@@ -364,4 +377,5 @@ DrawDangerZones(render_context *RenderContext, app_state *AppState, v3 CameraOff
                        Strength * Strength);
     }
     DrawDoomWaves(RenderContext, AppState, Zones, CameraOffset, Now);
+    DrawBossGroundFx(RenderContext, AppState, CameraOffset);
 }

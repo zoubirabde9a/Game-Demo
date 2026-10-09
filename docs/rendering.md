@@ -47,6 +47,8 @@ At 1e7 a float cannot tell `x + 0.5` from `x`. Steps off the flat ground key mus
 | Shadows, player rings, reflections, tree sway | `client/draw_entities/ground_contact.cpp` | tuning numbers at its top |
 | Ground textures | `art/terrain/*_tiles.cpp`, brushes in `ground_paint.cpp` | a painter per kind; 16 variants a kind |
 | Cloud shadows, ground patches, heat shimmer, smoke | `fx/world_grade.frag` | smoke: the map mood's `Smoke` |
+| Boss abilities on the floor (wells, beams, eclipses, waves, brands, smites, what a Starless boss leaves) and the mirror's glass | `client/dungeon/boss_fx/boss_ground_fx.cpp`, `fx/boss_ground.frag`, `fx/boss_beam.frag` | a `BossGround_*` look and its branch in `boss_ground.frag` |
+| A boss's blow landing: shockwave, flash of light, camera shake, shaft from the sky | `client/dungeon/boss_fx/boss_impacts.cpp`, `fx/boss_shock.frag` | a case in `AddBossImpact`; its light is in `boss_lights.cpp` |
 
 Shaders live in `build/shaders/fx/`, are listed in `ShaderDefs` (`engine/shader_library.cpp`), and reload while the game runs. A row can name a library of shared functions; `fx/noise.glsl` holds `Hash`, `Noise` and `Fbm`.
 

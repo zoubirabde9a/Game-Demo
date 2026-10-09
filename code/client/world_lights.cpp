@@ -130,6 +130,10 @@ AddWorldLight(world_lights *Lights, v3 CameraOffset, float Zoom,
     Lights->Color[Index + 3] = Look.Flicker;
 }
 
+// NOTE(zoubir): the light of boss abilities, client/dungeon/boss_fx/boss_lights.cpp
+internal void GatherBossLights(app_state *AppState, world_lights *Lights, v3 CameraOffset,
+                               float Zoom, float WindowHeight);
+
 // NOTE(zoubir): View is the window in world units (GetWorldView); lights
 // past its edge by more than their radius are left out
 // NOTE(zoubir): Zoom is framebuffer pixels per world unit and WindowHeight
@@ -231,6 +235,7 @@ GatherWorldLights(app_state *AppState, v3 CameraOffset, app_window *View,
         AddWorldLight(Lights, CameraOffset, Zoom, WindowHeight, P,
                       0.5f * Burst->Position.Z, Look, Left * Left);
     }
+    GatherBossLights(AppState, Lights, CameraOffset, Zoom, WindowHeight);
 
     if (World->TileWidth == 0 || World->TileMap.Texture.Type != AssetType_TerrainAtlas)
     {
