@@ -106,6 +106,23 @@ UpdateRangerVolleys(app_state *AppState, ranger_run *Run, float DeltaTime)
     }
 }
 
+// NOTE(zoubir): the number a trap's bursts carry (RangerBurstSpot): 0 a
+// snare, 2 an Explosive Trap, 4 one Barrage widens; its Trap burst adds 1
+// when sent again while it waits, its TrapSnap burst 1 for Hunter's Net
+// on a snare. Clients draw the snare's jaws or the explosive's rune and
+// blast from it (client/dungeon/classes/ranger/blast_fx.cpp)
+internal u32
+RangerTrapVariant(app_state *AppState, ranger_trap *Trap)
+{
+    u32 Result = 0;
+    if (Trap->Explosive)
+    {
+        player_slot *Slot = &AppState->Players[Trap->By];
+        Result = RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Barrage) > 0 ? 4 : 2;
+    }
+    return Result;
+}
+
 // NOTE(zoubir): a trap of the Ranger in slot By down at Feet, taking the
 // place of its last one; 0 when every trap is in use
 internal ranger_trap *
@@ -132,7 +149,8 @@ SetRangerTrap(app_state *AppState, u8 By, v3 Feet, bool32 Explosive)
         Free->Keep = RANGER_KEEP_SECONDS;
         Free->By = By;
         Free->Explosive = Explosive;
-        EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Trap), By, Feet);
+        EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Trap), By,
+                  RangerBurstSpot(Feet, RangerTrapVariant(AppState, Free)));
     }
     return Free;
 }
@@ -285,7 +303,8 @@ SpringRangerTrap(app_state *AppState, player_slot *Slot, ranger_trap *Trap, worl
         }
     }
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_TrapSnap),
-              Trap->By, RangerBurstSpot(Trap->Position, Net ? 1 : 0));
+              Trap->By, RangerBurstSpot(Trap->Position, Trap->Explosive ?
+                                        RangerTrapVariant(AppState, Trap) / 2 + 1 : (Net ? 1 : 0)));
     EmitSound(&AppState->Events, AssetType_SfxSword, Trap->Position);
     Trap->Seconds = 0.f;
 }
@@ -315,7 +334,7 @@ UpdateRangerTraps(app_state *AppState, ranger_run *Run, float DeltaTime)
         {
             Trap->Keep += RANGER_KEEP_SECONDS;
             EmitBurst(&AppState->Events, ClassBurst(SimBurst_RangerFirst, RangerBurst_Trap), Trap->By,
-                      RangerBurstSpot(Trap->Position, 1));
+                      RangerBurstSpot(Trap->Position, RangerTrapVariant(AppState, Trap) + 1));
         }
         for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
         {

@@ -13,10 +13,12 @@
    string forward and leaves it shivering. All of it reads the cast, the
    aim and the bursts, which every client has, so it looks the same
    online. The shapes are ranger/bow.cpp, the flying bursts
-   ranger/shot_fx.cpp, the lasting ones ranger/ground_fx.cpp. */
+   ranger/shot_fx.cpp, the lasting ones ranger/ground_fx.cpp and the
+   Explosive Trap's ranger/blast_fx.cpp. */
 
 #include "ranger/bow.cpp"
 #include "ranger/shot_fx.cpp"
+#include "ranger/blast_fx.cpp"
 #include "ranger/ground_fx.cpp"
 
 // NOTE(zoubir): a living Ranger's look, over its sprite, every frame

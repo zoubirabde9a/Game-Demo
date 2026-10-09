@@ -7,7 +7,8 @@
    closes in with a flash where the marking arrow lands. A snare trap:
    steel jaws round a teal rune, and when it springs the jaws bite shut
    and roots of light wrap the foe (with Hunter's Net, a net of light
-   flies out over every foe it grabbed). A mark and a trap come in again as
+   flies out over every foe it grabbed); an Explosive Trap is drawn by
+   ranger/blast_fx.cpp instead. A mark and a trap come in again as
    new bursts while they last; the newest one draws, and the Ranger's
    ClassFlags end them as soon as the server does. */
 
@@ -264,10 +265,18 @@ DrawRangerTrap(render_context *RenderContext, app_state *AppState, role_burst *B
     {
         return;
     }
+    // NOTE(zoubir): the number says snare (0) or explosive (2, 4 wider),
+    // plus 1 when sent again (RangerTrapVariant)
+    u32 Variant = RangerBurstVariant(Burst->Position);
+    bool32 Set = (Variant & 1) == 0;
+    float Elapsed = T * RoleBurstLife(Burst->Kind);
+    if (Variant >= 2)
+    {
+        DrawExplosiveTrap(RenderContext, AppState, Burst, Set, Variant >= 4, Elapsed, CameraOffset);
+        return;
+    }
     v2 Centre = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
     float Clock = GetFxClock(AppState);
-    bool32 Set = RangerBurstVariant(Burst->Position) == 0;
-    float Elapsed = T * RoleBurstLife(Burst->Kind);
     float In = Set ? Clamp01(Elapsed / 0.35f) : 1.f;
     float Beat = 0.5f + 0.5f * Sin(3.f * Clock);
     DrawArcBand(RenderContext, Centre, 0.f, 2.f * Pi32, 0.f, TRAP_RADIUS + 6.f,
@@ -294,8 +303,14 @@ DrawRangerTrap(render_context *RenderContext, app_state *AppState, role_burst *B
 internal void
 DrawRangerTrapSnap(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
 {
+    u32 Variant = RangerBurstVariant(Burst->Position);
+    if (Variant >= 2)
+    {
+        DrawExplosiveBlast(RenderContext, Burst, Variant == 3, T, CameraOffset);
+        return;
+    }
     v2 Centre = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
-    if (RangerBurstVariant(Burst->Position) == 1)
+    if (Variant == 1)
     {
         float Out = HUNTERS_NET_RADIUS * Clamp01(T / 0.25f);
         float NetFade = 1.f - T;
