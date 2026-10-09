@@ -314,12 +314,78 @@ TestThreatAndTaunt()
     Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Tank);
     for(u32 Tick = 0; Tick < (u32)(TAUNT_SECONDS * 60.f) + 5; Tick++)
     {
-        UpdateThreat(&Run->Threat, 1.f / 60.f);
+        UpdateThreat(AppState, &Run->Threat, 1.f / 60.f);
     }
     // NOTE(zoubir): the taunt ran out but left the tank ahead
     Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Tank);
     // NOTE(zoubir): a dead player is never the target
     KillEntity(AppState, Test.World, Tank, 0);
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Striker);
+
+    AppState->Dungeon = 0;
+    free(Run);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): a monster keeps the player it is after until another
+// passes them by 10% (30% from out of its reach); a burn makes threat for
+// whoever left it; a player who dies loses all their threat
+internal void
+TestThreatHoldsBurnsAndDeath()
+{
+    test_world Test = CreateTestWorld();
+    app_state *AppState = Test.AppState;
+    dungeon_run *Run = (dungeon_run *)calloc(1, sizeof(dungeon_run));
+    world_entity *Tank = AddPlayerToSlot(AppState, Test.World, &Test.Arena, 0, {480, 300, 0});
+    world_entity *Striker = AddPlayerToSlot(AppState, Test.World, &Test.Arena, 1, {200, 300, 0});
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {500, 300, 0}, Test.UnitVolume);
+    Monster->MaxHp = Monster->Hp = 100000.f;
+    Monster->MonsterSerial = 1;
+    AppState->Dungeon = Run;
+    float Tick = 1.f / 60.f;
+
+    threat_table *Table = &Run->Threat;
+    AddThreat(Table, Test.World, Monster, 0, 100.f);
+    UpdateThreat(AppState, Table, Tick);
+    threat_row *Row = FindThreatRow(Table, Test.World, Monster, false);
+    Check(Row && Row->HeldBy == 1);
+    // NOTE(zoubir): 120 from far off is not 30% over the tank's 100
+    AddThreat(Table, Test.World, Monster, 1, 120.f);
+    UpdateThreat(AppState, Table, Tick);
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Tank);
+    // NOTE(zoubir): 140 is
+    AddThreat(Table, Test.World, Monster, 1, 20.f);
+    UpdateThreat(AppState, Table, Tick);
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Striker);
+    Check(Row->HeldBy == 2);
+    // NOTE(zoubir): the tank, in its reach, needs only 10% over 140
+    AddThreat(Table, Test.World, Monster, 0, 50.f);
+    UpdateThreat(AppState, Table, Tick);
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Striker);
+    AddThreat(Table, Test.World, Monster, 0, 10.f);
+    UpdateThreat(AppState, Table, Tick);
+    Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Tank);
+    // NOTE(zoubir): a monster held by threat chases at any range
+    Check(ChasesByThreat(AppState, Monster));
+
+    // NOTE(zoubir): a burn the striker left ticks threat for them
+    float Before = Row->Threat[1];
+    hit Burn = {1.f, 0.f, 0.f, 0.f, 0.f, SimBurst_Count, StatusEffect_Burning, 3.f};
+    ApplyHit(AppState, Test.World, Monster, &Burn, V2(1.f, 0.f), Striker, 1);
+    Check(Monster->HarmedBySlot == 2);
+    float AfterHit = Row->Threat[1];
+    Check(AfterHit > Before);
+    for(u32 Step = 0; Step < 120; Step++)
+    {
+        UpdateStatusEffects(AppState, Test.World, Tick);
+    }
+    Check(Row->Threat[1] > AfterHit);
+
+    // NOTE(zoubir): death wipes a player's threat; the monster turns
+    KillEntity(AppState, Test.World, Tank, 0);
+    UpdateThreat(AppState, Table, Tick);
+    Check(Row->Threat[0] == 0.f);
     Check(FindMonsterTarget(AppState, Test.World, Monster, 0) == Striker);
 
     AppState->Dungeon = 0;
@@ -615,6 +681,7 @@ RunDungeonTests()
     GROUP(TestHealersRevive());
     GROUP(TestStrayPlayersComeBack());
     GROUP(TestThreatAndTaunt());
+    GROUP(TestThreatHoldsBurnsAndDeath());
     GROUP(TestRoomsStartClearAndOpenGates());
     GROUP(TestDownedWaitAndWipesReset());
     GROUP(TestCryptRoomsMatchTheMap());

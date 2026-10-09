@@ -199,6 +199,13 @@ ApplyHit(app_state *AppState, world *World, world_entity *Target,
     Target->HitFresh = HIT_FRESH_SECONDS;
     ApplyStatus(Target, Hit->Status, Hit->StatusSeconds);
     ApplyStatus(Target, Affix->OnHitStatus, Affix->OnHitStatusSeconds);
+    // NOTE(zoubir): a burn or bleed a player leaves on a monster makes
+    // threat for them as it ticks (status_effects.cpp)
+    if (Target->Type == EntityType_Monster && BySlot != SIM_NOBODY &&
+        Hit->StatusSeconds > 0.f && StatusTable[Hit->Status].DamagePerSecond > 0.f)
+    {
+        Target->HarmedBySlot = BySlot + 1;
+    }
     if (Hit->StunSeconds > 0.f)
     {
         ApplyStatus(Target, StatusEffect_Stunned,

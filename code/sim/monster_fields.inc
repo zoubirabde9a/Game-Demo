@@ -51,3 +51,7 @@
     bool32 Burrowed;
     // NOTE(zoubir): seconds left on the enrage burst effect
     float PhaseFlash;
+    // NOTE(zoubir): the player slot + 1 whose hit last left a status that
+    // hurts (a burn, a bleed) on this monster, 0 for none: its ticks make
+    // threat for that player (sim/dungeon/threat.cpp)
+    u32 HarmedBySlot;

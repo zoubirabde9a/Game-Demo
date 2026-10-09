@@ -4,7 +4,11 @@
    the role's ThreatScale (roles.cpp: the tank's is four times the
    others'). A taunt puts the taunter on top for TAUNT_SECONDS whatever
    the numbers say. A monster nobody has hurt yet goes for the nearest
-   player, as outside the dungeon.
+   player, as outside the dungeon. Once it has a target it keeps it until
+   someone passes their threat by THREAT_PULL_NEAR (THREAT_PULL_FAR from
+   out of its reach), and chases it however far (sim/update.cpp). A burn
+   or bleed makes threat for whoever left it (DungeonStatusThreat), and a
+   player who dies loses all theirs.
 
    The table is a fixed set of rows in the run, one per monster that has
    threat, keyed by entity slot and MonsterSerial: a row whose monster
@@ -92,20 +96,6 @@ TauntAround(app_state *AppState, threat_table *Table, world_entity *Taunter,
     return Result;
 }
 
-internal void
-UpdateThreat(threat_table *Table, float DeltaTime)
-{
-    for(u32 Index = 0; Index < THREAT_ROWS; Index++)
-    {
-        threat_row *Row = &Table->Rows[Index];
-        Row->TauntSeconds = Maximum(0.f, Row->TauntSeconds - DeltaTime);
-        if (Row->TauntSeconds <= 0.f)
-        {
-            Row->TauntedBy = 0;
-        }
-    }
-}
-
 inline world_entity *
 LivingPlayerInSlot(app_state *AppState, u32 PlayerSlot)
 {
@@ -119,9 +109,14 @@ LivingPlayerInSlot(app_state *AppState, u32 PlayerSlot)
     return Result;
 }
 
+// NOTE(zoubir): a challenger this close to the monster needs only
+// THREAT_PULL_NEAR over the one it is after, this many times its bite
+#define THREAT_NEAR_REACH 1.5f
+
 // NOTE(zoubir): the player Monster should attack by threat: its taunter,
-// else the living player with the most threat on it. 0 when it has none,
-// and the caller falls back to the nearest player
+// else the one it is after (HeldBy) unless another living player has
+// passed them by the pull margin, else the one with the most threat.
+// 0 when it has none, and the caller falls back to the nearest player
 internal world_entity *
 PickThreatTarget(app_state *AppState, threat_table *Table, world_entity *Monster)
 {
@@ -140,6 +135,7 @@ PickThreatTarget(app_state *AppState, threat_table *Table, world_entity *Monster
         }
     }
     world_entity *Result = 0;
+    u32 TopSlot = 0;
     float Best = 0.f;
     for(u32 PlayerSlot = 0; PlayerSlot < MAX_PLAYERS; PlayerSlot++)
     {
@@ -148,9 +144,68 @@ PickThreatTarget(app_state *AppState, threat_table *Table, world_entity *Monster
         {
             Best = Row->Threat[PlayerSlot];
             Result = Player;
+            TopSlot = PlayerSlot;
+        }
+    }
+    world_entity *Held = Row->HeldBy ? LivingPlayerInSlot(AppState, Row->HeldBy - 1) : 0;
+    if (Result && Held && TopSlot != Row->HeldBy - 1)
+    {
+        float Reach = THREAT_NEAR_REACH * GetMonsterStats(Monster->MonsterKind)->AttackRange;
+        float Pull = Length(Result->Position.XY - Monster->Position.XY) <= Reach ?
+            THREAT_PULL_NEAR : THREAT_PULL_FAR;
+        if (Best <= Pull * Row->Threat[Row->HeldBy - 1])
+        {
+            Result = Held;
         }
     }
     return Result;
+}
+
+// NOTE(zoubir): once a tick: taunts run down, a dead player's threat is
+// wiped everywhere, and each monster's row remembers who it is after now
+internal void
+UpdateThreat(app_state *AppState, threat_table *Table, float DeltaTime)
+{
+    world *World = &AppState->World;
+    for(u32 Index = 0; Index < THREAT_ROWS; Index++)
+    {
+        threat_row *Row = &Table->Rows[Index];
+        if (!Row->Serial)
+        {
+            continue;
+        }
+        Row->TauntSeconds = Maximum(0.f, Row->TauntSeconds - DeltaTime);
+        if (Row->TauntSeconds <= 0.f)
+        {
+            Row->TauntedBy = 0;
+        }
+        for(u32 PlayerSlot = 0; PlayerSlot < MAX_PLAYERS; PlayerSlot++)
+        {
+            player_slot *Slot = &AppState->Players[PlayerSlot];
+            if (Slot->Entity && IsDeadPlayer(Slot->Entity))
+            {
+                Row->Threat[PlayerSlot] = 0.f;
+            }
+        }
+        world_entity *Monster = FindMonsterBySerial(World, Row->Slot, Row->Serial);
+        world_entity *Target = Monster ? PickThreatTarget(AppState, Table, Monster) : 0;
+        Row->HeldBy = Target ? Target->PlayerIndex + 1 : 0;
+    }
+}
+
+// NOTE(zoubir): from UpdateStatusEffects (sim/status_effects.cpp): a burn
+// or bleed the player in PlayerSlot left on Monster took Lost health
+internal void
+DungeonStatusThreat(app_state *AppState, world_entity *Monster, u32 PlayerSlot,
+                    float Lost)
+{
+    if (!IsDungeon(AppState) || PlayerSlot >= MAX_PLAYERS || !(Lost > 0.f))
+    {
+        return;
+    }
+    player_slot *Attacker = &AppState->Players[PlayerSlot];
+    AddThreat(&AppState->Dungeon->Threat, &AppState->World, Monster, PlayerSlot,
+              Lost * GetRoleDef(Attacker->Role)->ThreatScale * RunThreatScale(Attacker));
 }
 
 // NOTE(zoubir): from FindMonsterTarget (sim/monster_abilities/hits.cpp):
@@ -169,4 +224,12 @@ DungeonPickTarget(app_state *AppState, world_entity *Monster, float *DistanceOut
         *DistanceOut = Length(Result->Position.XY - Monster->Position.XY);
     }
     return Result;
+}
+
+// NOTE(zoubir): from UpdateMonster (sim/update.cpp): true when Monster
+// attacks someone by threat, and so chases them however far they are
+internal bool32
+ChasesByThreat(app_state *AppState, world_entity *Monster)
+{
+    return DungeonPickTarget(AppState, Monster, 0) != 0;
 }

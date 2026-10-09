@@ -32,12 +32,20 @@ enum room_state
 // NOTE(zoubir): a taunt also lifts the taunter's threat to this much
 // above the top, so the monster stays on them once it runs out
 #define TAUNT_THREAT_LEAD 1.1f
+// NOTE(zoubir): a monster keeps the player it is after until another has
+// this much more threat than them (110% in reach of its bite, 130% from
+// further off), so two close players do not swap it every hit
+#define THREAT_PULL_NEAR 1.1f
+#define THREAT_PULL_FAR 1.3f
 
 struct threat_row
 {
     u32 Slot;
     u32 Serial;
     float Threat[MAX_PLAYERS];
+    // NOTE(zoubir): the player slot + 1 it is after, kept by UpdateThreat
+    // (0 for none yet)
+    u32 HeldBy;
     // NOTE(zoubir): the player slot + 1 that taunted it (0 for none), and
     // the seconds left of it
     u32 TauntedBy;

@@ -304,6 +304,11 @@ CountDownStatusTimers(world_entity *Entity, float DeltaTime)
     return Result;
 }
 
+// NOTE(zoubir): in sim/dungeon/threat.cpp, included later: a burn's tick
+// makes threat for the player who left it
+internal void DungeonStatusThreat(app_state *AppState, world_entity *Monster,
+                                  u32 PlayerSlot, float Lost);
+
 // NOTE(zoubir): once per tick, after every entity has moved
 internal void
 UpdateStatusEffects(app_state *AppState, world *World, float DeltaTime)
@@ -349,8 +354,14 @@ UpdateStatusEffects(app_state *AppState, world *World, float DeltaTime)
                 }
                 if (Damage > 0.f)
                 {
+                    float HpBefore = Entity->Hp;
                     DamageEntity(AppState, World, Entity,
                                  Damage * STATUS_TICK_SECONDS, 0);
+                    if (Entity->HarmedBySlot && Entity->IsPresent)
+                    {
+                        DungeonStatusThreat(AppState, Entity, Entity->HarmedBySlot - 1,
+                                            HpBefore - Entity->Hp);
+                    }
                 }
             }
         }

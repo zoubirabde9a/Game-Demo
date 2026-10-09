@@ -157,6 +157,9 @@ UpdateMonster(world_entity *Entity, world *World,
     if (Target)
     {
         v2 ToTarget = Target->Position.XY - Entity->Position.XY;
+        // NOTE(zoubir): in a dungeon run a monster after someone by threat
+        // chases them however far they went (sim/dungeon/threat.cpp)
+        float AggroRange = ChasesByThreat(AppState, Entity) ? 1e30f : Stats->AggroRange;
         if (DistanceToTarget < Stats->AttackRange &&
             Entity->AttackCooldown <= 0.f)
         {
@@ -168,7 +171,7 @@ UpdateMonster(world_entity *Entity, world *World,
             }
         }
 
-        if (DistanceToTarget < Stats->AggroRange &&
+        if (DistanceToTarget < AggroRange &&
             DistanceToTarget > Stats->StopRange)
         {
             ToTarget *= 1.f / DistanceToTarget;
@@ -186,7 +189,7 @@ UpdateMonster(world_entity *Entity, world *World,
                     AnimationDirection_Up : AnimationDirection_Down;
             }
         }
-        else if (DistanceToTarget >= Stats->AggroRange)
+        else if (DistanceToTarget >= AggroRange)
         {
             DDEntity.XY = MonsterWander(Entity, AppState, DeltaTime);
         }

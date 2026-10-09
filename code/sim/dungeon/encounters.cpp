@@ -362,7 +362,7 @@ UpdateDungeon(app_state *AppState, memory_arena *Arena, float DeltaTime)
     }
     world *World = &AppState->World;
     TakeRoleRequests(AppState, Run);
-    UpdateThreat(&Run->Threat, DeltaTime);
+    UpdateThreat(AppState, &Run->Threat, DeltaTime);
     UpdateMeter(Run, DeltaTime);
     UpdateRoleEffects(AppState, Run, DeltaTime);
     UpdateRunTrees(AppState, Run, DeltaTime);
