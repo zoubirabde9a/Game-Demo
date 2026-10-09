@@ -350,8 +350,11 @@ FinishFanOfKnives(app_state *AppState, player_slot *Slot, world_entity *Player)
     {
         AddComboPoints(Slot, Cut);
     }
+    // NOTE(zoubir): the fan's real radius, Knife Storm's ranks in it, as
+    // the burst's number, so clients throw the knives as far as they cut
+    v3 Feet = V3(Player->Position.X, Player->Position.Y, Player->GroundZ);
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_ShadowbladeFirst, ShadowbladeBurst_Fan),
-              (u8)Player->PlayerIndex, V3(Player->Position.X, Player->Position.Y, Player->GroundZ),
+              (u8)Player->PlayerIndex, ShadowbladeBurstSpot(Feet, (u32)(Radius + 0.5f)),
               ATan2(Player->Aim.Y, Player->Aim.X));
     EmitSound(&AppState->Events, AssetType_SfxKunai, Player->Position);
 }

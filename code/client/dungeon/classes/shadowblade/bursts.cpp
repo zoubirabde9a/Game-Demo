@@ -8,7 +8,8 @@
    - Shadowstep: shadows pulled into the spot it lands on, afterimages
      back along the way it came.
    - Shadow Dance: a column of shadow rising round the player.
-   - Fan of Knives: a ring of knives thrown out round the player.
+   - Fan of Knives: a ring of knives thrown out round the player, as far
+     as the burst's number says it cut (Knife Storm widens it).
    - Eviscerate: its wind-up (from the look, not a burst): violet light
      gathering between the raised daggers and a mark on the ground where
      they will land, sharpening as the cast fills. Then two shadow blades
@@ -152,11 +153,10 @@ DrawDanceBurst(render_context *RenderContext, v2 Feet, float Age, float Height)
 }
 
 internal void
-DrawFanBurst(render_context *RenderContext, v2 Centre, float Angle, float Age)
+DrawFanBurst(render_context *RenderContext, v2 Centre, float Angle, float Age, float Radius)
 {
     float Out = ShadowbladeEase(Age / 0.3f);
     float Fade = 1.f - Clamp01((Age - 0.2f) / 0.25f);
-    float Radius = FAN_OF_KNIVES_RADIUS;
     float Flash = 1.f - Clamp01(Age / 0.12f);
     DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 60.f, Centre.Y - 70.f, 120.f, 100.f,
                    FxColor(0.8f * Flash, SHADOWBLADE_PALE_RGB), RenderBlend_Additive);
@@ -377,7 +377,10 @@ DrawShadowbladeBurst(render_context *RenderContext, app_state *AppState, role_bu
 
         case ShadowbladeBurst_Fan:
         {
-            DrawFanBurst(RenderContext, Centre, Burst->Angle, Age);
+            // NOTE(zoubir): the number is the radius it cut, wider with
+            // Knife Storm
+            float Radius = Variant ? (float)Variant : FAN_OF_KNIVES_RADIUS;
+            DrawFanBurst(RenderContext, Centre, Burst->Angle, Age, Radius);
         } break;
 
         case ShadowbladeBurst_Eviscerate:
