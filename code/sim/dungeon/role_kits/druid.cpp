@@ -34,7 +34,7 @@ enum druid_burst
 {
     DruidBurst_Wrath,        // a Wrath bolt arriving at Position along Angle
     DruidBurst_Moonfire,     // moonlight on the foe at Position; variant 1 a burn sent again
-    DruidBurst_Starfire,     // a star falling on Position; variant 1 at nothing
+    DruidBurst_Starfire,     // a star falling on Position; variant 1 at nothing, DRUID_STARFALL_* Starfall's
     DruidBurst_Rejuvenation, // leaves round the ally at Position; variant 1 sent again
     DruidBurst_Regrowth,     // a bloom on the ally at Position; variant the Bloom spent
     DruidBurst_Roots,        // roots growing at Position; variant 1 the longer hold
@@ -57,6 +57,11 @@ enum druid_shot
 // NOTE(zoubir): a Regrowth burst's variant that is Symbiosis's touch, not
 // a Regrowth
 #define DRUID_REGROWTH_SYMBIOSIS 9
+
+// NOTE(zoubir): Starfire burst variants that are Starfall's: its ring
+// rolling out from the Druid at Position, and a star on one foe
+#define DRUID_STARFALL_RING 2
+#define DRUID_STARFALL_STAR 3
 
 // NOTE(zoubir): a burst carries a small number too (a variant), as whole
 // steps of DRUID_BURST_STEP added to its height, the way the Ranger's

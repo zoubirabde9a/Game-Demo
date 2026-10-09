@@ -9,8 +9,11 @@
 
    Starfall (T, Moon, against Entangling Roots): a star on every foe within
    STARFALL_REACH of the Druid, STARFALL_DAMAGE each, harder on a foe under
-   the Druid's Moonfire with Eclipse, and a Bloom for each struck. Roots
-   hold a pack; Starfall feeds the heals from it. */
+   the Druid's Moonfire with Eclipse, and a Bloom for each struck. Each
+   star falls for STARFIRE_FALL as Starfire's does (SendDruidBolt), so its
+   hit lands as the clients' star strikes; a ring rolls out to the reach
+   from the Druid as they fall. Roots hold a pack; Starfall feeds the
+   heals from it. */
 
 // NOTE(zoubir): Lifebloom on the ally picked, taking the place of the
 // Druid's last one on that ally
@@ -87,7 +90,6 @@ CastStarfall(app_state *AppState, player_slot *Slot, world_entity *Player)
     world *World = &AppState->World;
     u32 By = Player->PlayerIndex;
     u32 Room = RoomAtPosition(World, Player->Position.XY);
-    bool32 Eclipse = RoleRank(Slot, PlayerRole_Druid, DruidTalent_Eclipse) > 0;
     bool32 Result = false;
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
@@ -98,18 +100,19 @@ CastStarfall(app_state *AppState, player_slot *Slot, world_entity *Player)
         {
             continue;
         }
-        float Damage = STARFALL_DAMAGE;
-        if (Eclipse && IsDruidMoonfired(AppState, By, Monster))
-        {
-            Damage *= 1.f + ECLIPSE_SHARE;
-        }
-        DruidHit(AppState, By, Monster, DruidShot_Starfall, Damage, 60.f, NormalizeOr(Offset, V2(1.f, 0.f)));
+        // NOTE(zoubir): Eclipse is the star's own as it lands
+        // (UpdateDruidBolts), so a burn left while it falls counts
+        SendDruidBolt(AppState, By, Monster, DruidShot_Starfall, STARFALL_DAMAGE, STARFIRE_FALL,
+                      NormalizeOr(Offset, V2(1.f, 0.f)));
         EmitBurst(&AppState->Events, ClassBurst(SimBurst_DruidFirst, DruidBurst_Starfire), (u8)By,
-                  Monster->Position);
+                  DruidBurstSpot(ChestOf(Monster), DRUID_STARFALL_STAR));
         Result = true;
     }
     if (Result)
     {
+        v3 Feet = V3(Player->Position.X, Player->Position.Y, Player->GroundZ);
+        EmitBurst(&AppState->Events, ClassBurst(SimBurst_DruidFirst, DruidBurst_Starfire), (u8)By,
+                  DruidBurstSpot(Feet, DRUID_STARFALL_RING));
         EmitSound(&AppState->Events, AssetType_SfxGiantFireball, Player->Position);
     }
     return Result;

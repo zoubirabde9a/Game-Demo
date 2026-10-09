@@ -392,8 +392,9 @@ TestEclipse()
 }
 
 // NOTE(zoubir): Lifebloom heals an ally over its time and blooms as it
-// runs out, more for the Bloom spent; Starfall strikes every foe near and
-// grows a Bloom for each
+// runs out, more for the Bloom spent; Starfall drops a star on every foe
+// near, which strikes as it lands STARFIRE_FALL later and grows a Bloom
+// for each, and rolls its ring out from the Druid
 internal void
 TestLifebloomAndStarfall()
 {
@@ -415,8 +416,24 @@ TestLifebloomAndStarfall()
     world_entity *B = DruidDummy(&Crypt, V3(-100.f, 60.f, 0.f));
     world_entity *Far = DruidDummy(&Crypt, V3(0.f, STARFALL_REACH + 150.f, 0.f));
     Slot->Druid.Bloom = 0;
+    AppState->Events.Count = 0;
     PressOnce(&Crypt, 0, PlayerButton_GravityWell);
     Check(Slot->RoleCooldowns[8] > 0.f);
+    u32 Stars = 0;
+    u32 Rings = 0;
+    for(u32 Index = 0; Index < AppState->Events.Count; Index++)
+    {
+        sim_event *Event = &AppState->Events.Events[Index];
+        if (Event->Type == SimEvent_Burst &&
+            Event->Burst == ClassBurst(SimBurst_DruidFirst, DruidBurst_Starfire))
+        {
+            Stars += DruidBurstVariant(Event->Position) == DRUID_STARFALL_STAR;
+            Rings += DruidBurstVariant(Event->Position) == DRUID_STARFALL_RING;
+        }
+    }
+    Check(Stars == 2 && Rings == 1);
+    Check(A->Hp == 2000.f && B->Hp == 2000.f && Slot->Druid.Bloom == 0);
+    DruidTick(&Crypt, (u32)(60.f * STARFIRE_FALL) + 2);
     Check(A->Hp < 2000.f && B->Hp < 2000.f && Far->Hp == 2000.f);
     Check(Slot->Druid.Bloom == 2);
     DestroyCryptWorld(&Crypt);

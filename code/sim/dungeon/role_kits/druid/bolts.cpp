@@ -1,10 +1,10 @@
 /* Druid bolts (role_kits/druid.cpp): Bloom, and the half of the kit that
-   hurts. Wrath and Starfire are on their way a moment before they hit (a
-   bolt at DRUID_BOLT_SPEED, a star falling for STARFIRE_FALL), so the
-   damage number shows as the clients' bolt or star strikes. Moonfire
-   lands at once and leaves a burn that bites each second; it is sent to
-   clients again every DRUID_KEEP_SECONDS while it lasts. Hits grow Bloom
-   by what the shot says (OnDruidHit). */
+   hurts. Wrath, Starfire and Starfall's stars are on their way a moment
+   before they hit (a bolt at DRUID_BOLT_SPEED, a star falling for
+   STARFIRE_FALL), so the damage number shows as the clients' bolt or
+   star strikes. Moonfire lands at once and leaves a burn that bites each
+   second; it is sent to clients again every DRUID_KEEP_SECONDS while it
+   lasts. Hits grow Bloom by what the shot says (OnDruidHit). */
 
 // NOTE(zoubir): the foe a spell of the Druid's goes for, within Range: the
 // one under the cursor, else the one nearest the cursor, else the
@@ -236,7 +236,7 @@ UpdateDruidBolts(app_state *AppState, druid_run *Run, float DeltaTime)
         Bolt->Shot = DruidShot_None;
         if (Foe && Foe->Hp > 0.f)
         {
-            float Shove = Shot == DruidShot_Starfire ? 90.f : 30.f;
+            float Shove = Shot == DruidShot_Starfire ? 90.f : (Shot == DruidShot_Starfall ? 60.f : 30.f);
             // NOTE(zoubir): Eclipse: a bolt or a star on a foe its Druid's
             // Moonfire burns hits harder, and a star leaves the burn
             bool32 Talent = RoleRank(&AppState->Players[Bolt->By], PlayerRole_Druid,
@@ -250,8 +250,13 @@ UpdateDruidBolts(app_state *AppState, druid_run *Run, float DeltaTime)
                 EmitBurst(&AppState->Events, ClassBurst(SimBurst_DruidFirst, DruidBurst_Moonfire),
                           Bolt->By, ChestOf(Foe));
             }
-            EmitSound(&AppState->Events, Shot == DruidShot_Starfire ? AssetType_SfxGiantFireball :
-                      AssetType_SfxHit, Foe->Position);
+            // NOTE(zoubir): Starfall's stars land together under the one
+            // sound of its cast
+            if (Shot != DruidShot_Starfall)
+            {
+                EmitSound(&AppState->Events, Shot == DruidShot_Starfire ? AssetType_SfxGiantFireball :
+                          AssetType_SfxHit, Foe->Position);
+            }
         }
     }
 }

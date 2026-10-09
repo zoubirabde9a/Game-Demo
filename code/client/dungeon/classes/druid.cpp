@@ -12,9 +12,11 @@
    flowers for the whole party to read, opening one by one, all of them
    swaying when full. All of it reads the cast, ClassMeter, ClassFlags and
    the bursts, which every client has, so it looks the same online. The
-   shapes are druid/staff.cpp, the bursts druid/bursts.cpp. */
+   shapes are druid/staff.cpp, the bursts druid/bursts.cpp, and those of
+   the bloom spells (Starfall, Lifebloom) druid/bloom_bursts.cpp. */
 
 #include "druid/staff.cpp"
+#include "druid/bloom_bursts.cpp"
 #include "druid/bursts.cpp"
 
 // NOTE(zoubir): a living Druid's look, over its sprite, every frame

@@ -3,7 +3,8 @@
    DRUID_BOLT_SPEED to its foe, where it bursts into leaves. Moonfire
    drops a column of moonlight on its foe and leaves a silver crescent
    burning there while the server keeps sending it. Starfire is a star
-   falling for STARFIRE_FALL, then a gold blast. Rejuvenation is leaves
+   falling for STARFIRE_FALL, then a gold blast (Starfall's stars the
+   same, smaller). Rejuvenation is leaves
    circling the ally it heals; Regrowth a flower opening on the ally,
    bigger for the Bloom it spent; Entangling Roots vines rising round
    their circle for as long as they hold; Tranquility a ring of light
@@ -108,41 +109,53 @@ DrawDruidMoonfire(render_context *RenderContext, role_burst *Burst, float T, v3 
                 FxColor(0.9f * Show, 0x00FFFFFF), FxColor(0.9f * Show, DRUID_FX_MOON_RGB), RenderBlend_Alpha);
 }
 
-// NOTE(zoubir): Starfire: a star falling on the spot, then the blast
+// NOTE(zoubir): Starfire: a star falling on the spot, then the blast;
+// one of Starfall's is smaller, trailing silver, and its ring is
+// DrawDruidStarfallRing
 internal void
 DrawDruidStarfire(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
 {
+    u32 Variant = DruidBurstVariant(Burst->Position);
+    if (Variant == DRUID_STARFALL_RING)
+    {
+        DrawDruidStarfallRing(RenderContext, Burst, T, CameraOffset);
+        return;
+    }
+    bool32 Fallen = Variant == DRUID_STARFALL_STAR;
+    float S = Fallen ? 0.7f : 1.f;
+    u32 TrailRGB = Fallen ? DRUID_FX_MOON_RGB : DRUID_FX_STAR_RGB;
     v2 At = BurstToScreen(DruidBurstPlace(Burst->Position), CameraOffset);
     float Elapsed = T * RoleBurstLife(Burst->Kind);
     if (Elapsed < STARFIRE_FALL)
     {
         float Fall = Elapsed / STARFIRE_FALL;
-        v2 Sky = At + V2(-90.f, -320.f);
+        v2 Sky = At + (Fallen ? V2(-50.f, -360.f) : V2(-90.f, -320.f));
         v2 Head = Sky + (Fall * Fall) * (At - Sky);
-        DrawFxStroke(RenderContext, Sky + 0.5f * Fall * (At - Sky), Head, 1.f, 10.f,
-                     FxColor(0.f, DRUID_FX_STAR_RGB), FxColor(0.7f, DRUID_FX_STAR_RGB));
-        DrawDruidStar(RenderContext, Head, 13.f, 9.f * Elapsed, 1.f, DRUID_FX_STAR_RGB);
+        DrawFxStroke(RenderContext, Sky + 0.5f * Fall * (At - Sky), Head, 1.f, 10.f * S,
+                     FxColor(0.f, TrailRGB), FxColor(0.7f, TrailRGB));
+        DrawDruidStar(RenderContext, Head, 13.f * S, 9.f * Elapsed, 1.f, DRUID_FX_STAR_RGB);
         // NOTE(zoubir): where it will land, closing in
-        DrawArcBand(RenderContext, At + V2(0.f, 14.f), 0.f, 2.f * Pi32, 34.f - 20.f * Fall, 37.f - 20.f * Fall,
-                    FxColor(0.5f * Fall, DRUID_FX_STAR_RGB), FxColor(0.5f * Fall, DRUID_FX_STAR_RGB));
+        DrawArcBand(RenderContext, At + V2(0.f, 14.f), 0.f, 2.f * Pi32, (34.f - 20.f * Fall) * S,
+                    (37.f - 20.f * Fall) * S, FxColor(0.5f * Fall, DRUID_FX_STAR_RGB),
+                    FxColor(0.5f * Fall, DRUID_FX_STAR_RGB));
         return;
     }
     float After = Clamp01((Elapsed - STARFIRE_FALL) / Maximum(0.05f, RoleBurstLife(Burst->Kind) - STARFIRE_FALL));
     float Ease = 1.f - (1.f - After) * (1.f - After);
     float Fade = 1.f - After;
-    float G = 60.f * (1.f - 0.4f * After);
+    float G = 60.f * S * (1.f - 0.4f * After);
     DrawShaderQuad(RenderContext, Shader_Glow, At.X - G, At.Y - G, 2.f * G, 2.f * G,
                    FxColor(0.9f * Fade, DRUID_FX_STAR_RGB), RenderBlend_Additive);
-    DrawArcBand(RenderContext, At + V2(0.f, 10.f), 0.f, 2.f * Pi32, 10.f + 50.f * Ease, 16.f + 52.f * Ease,
-                FxColor(0.f, DRUID_FX_STAR_RGB), FxColor(0.8f * Fade, DRUID_FX_STAR_RGB));
+    DrawArcBand(RenderContext, At + V2(0.f, 10.f), 0.f, 2.f * Pi32, (10.f + 50.f * Ease) * S,
+                (16.f + 52.f * Ease) * S, FxColor(0.f, TrailRGB), FxColor(0.8f * Fade, TrailRGB));
     for(u32 Ray = 0; Ray < 10; Ray++)
     {
         float A = 2.f * Pi32 * ((float)Ray + BurstJitter(Ray, 411)) / 10.f;
         v2 Out = V2(Cos(A), Sin(A));
-        DrawFxStroke(RenderContext, At + (10.f + 30.f * Ease) * Out, At + (20.f + 58.f * Ease) * Out, 3.f, 0.f,
-                     FxColor(Fade, 0x00FFFFFF), FxColor(0.f, DRUID_FX_STAR_RGB));
+        DrawFxStroke(RenderContext, At + ((10.f + 30.f * Ease) * S) * Out, At + ((20.f + 58.f * Ease) * S) * Out,
+                     3.f, 0.f, FxColor(Fade, 0x00FFFFFF), FxColor(0.f, DRUID_FX_STAR_RGB));
     }
-    DrawDruidStar(RenderContext, At, 18.f * Fade, 0.5f, Fade, DRUID_FX_STAR_RGB);
+    DrawDruidStar(RenderContext, At, 18.f * S * Fade, 0.5f, Fade, DRUID_FX_STAR_RGB);
 }
 
 // NOTE(zoubir): Rejuvenation: leaves circling the ally, a green swell
