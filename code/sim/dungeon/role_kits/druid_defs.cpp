@@ -89,6 +89,9 @@ enum druid_talent
     DruidTalent_Swiftmend,
     DruidTalent_StarlitFury,
     DruidTalent_WildGrowth,
+    DruidTalent_Rejuvenation,
+    DruidTalent_Starfire,
+    DruidTalent_Moonfire,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -112,7 +115,7 @@ enum druid_talent
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 1 unlocks the C spell, slot 4 the V spell
-global_variable talent_def DruidTalentDefs[ROLE_TALENTS] =
+global_variable talent_def DruidTalentDefs[CLASS_TALENTS] =
 {
     {"Nature's Wrath", "All your damage is higher", "+6% damage",
      TalentBranch_Role, 0, 0, 2, 0},
@@ -138,11 +141,17 @@ global_variable talent_def DruidTalentDefs[ROLE_TALENTS] =
      TalentBranch_Role, 5, 0, 4, 0},
     {"Wild Growth", "Rejuvenation also lands on the two most hurt allies near its target",
      "Rejuvenation on 3", TalentBranch_Role, 5, 1, 1, 0},
+    {"Rejuvenation", "A: an ally heals over 8 s, more for each Bloom spent",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Starfire", "R: a 1.5 s cast, then a star at a foe that grows two Bloom",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Moonfire", "X: moonlight burns a foe for 12 s",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
 // for a talent with code of its own
-global_variable u8 DruidTalentStats[ROLE_TALENTS] =
+global_variable u8 DruidTalentStats[CLASS_TALENTS] =
 {
     RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
     RoleStat_Healing, RoleStat_Vitality, RoleStat_None, RoleStat_Haste, RoleStat_Damage, RoleStat_None,
@@ -153,17 +162,16 @@ global_variable role_spell DruidSpells[ROLE_KEYS] =
 {
     {"Rejuvenation", REJUVENATION_COOLDOWN,
      "Rejuvenation: an ally heals over 8 s, and at once for each Bloom spent",
-     RoleAim_Ally, REJUVENATION_RANGE, 0, "All Bloom"},
+     RoleAim_Ally, REJUVENATION_RANGE, DruidTalent_Rejuvenation + 1, "All Bloom"},
     {"Starfire", STARFIRE_COOLDOWN, "Starfire: 1.5 s cast, a falling star on a foe; grows two Bloom",
-     RoleAim_Foe, STARFIRE_RANGE, 0},
-    {"Entangling Roots", ROOTS_COOLDOWN, "Entangling Roots: hold every foe in the circle and hurt them",
-     RoleAim_Ground, ROOTS_RADIUS, DruidTalent_EntanglingRoots + 1},
+     RoleAim_Foe, STARFIRE_RANGE, DruidTalent_Starfire + 1},
+    {},
     {"Tranquility", TRANQUILITY_COOLDOWN, "Tranquility: 3 s channel that heals every ally around you",
      RoleAim_None, 0.f, DruidTalent_Tranquility + 1},
     {"Regrowth", REGROWTH_COOLDOWN, "Regrowth: heal an ally at once, more for each Bloom spent",
      RoleAim_Ally, REGROWTH_RANGE, 0, "All Bloom"},
     {"Moonfire", MOONFIRE_COOLDOWN, "Moonfire: burn a foe with moonlight for 12 s",
-     RoleAim_Foe, MOONFIRE_RANGE, 0},
+     RoleAim_Foe, MOONFIRE_RANGE, DruidTalent_Moonfire + 1},
     {"Wrath", WRATH_COOLDOWN, "Wrath: a quick bolt of nature at a foe; grows a Bloom",
      RoleAim_None, WRATH_RANGE, 0},
 };

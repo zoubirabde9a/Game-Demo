@@ -33,6 +33,7 @@ BerserkerCrypt(u32 Players = 1)
     TickCrypt(&Result, 1);
     player_slot *Slot = &Result.AppState->Players[0];
     SetPlayerRole(Result.AppState, Slot, PlayerRole_Berserker);
+    GrantClassSpells(Slot);
     Slot->Input.Aim = V2(1.f, 0.f);
     Slot->Entity->Aim = V2(1.f, 0.f);
     return Result;
@@ -45,12 +46,15 @@ TestBerserkerKeys()
     app_state *AppState = Crypt.AppState;
     player_slot *Slot = &AppState->Players[0];
     Check(RoleHasKit(PlayerRole_Berserker));
+    // NOTE(zoubir): the two base spells only, before any point
+    ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    u32 Main = PlayerButton_Launch | PlayerButton_Push | PlayerButton_Shockwave | PlayerButton_Attack;
+    u32 Main = PlayerButton_Push | PlayerButton_Attack;
     Check((Allowed & Main) == Main);
-    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Kunai | PlayerButton_Cast)));
-    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Bloodthirst] = 2;
-    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Berserk] = 1;
+    Check(!(Allowed & (PlayerButton_Launch | PlayerButton_Shockwave | PlayerButton_Slam |
+                       PlayerButton_Kunai | PlayerButton_Cast)));
+    SetClassTalentRank(Slot, BerserkerTalent_Bloodthirst, 2);
+    SetClassTalentRank(Slot, BerserkerTalent_Berserk, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);
     Check(Allowed & PlayerButton_Kunai);
     Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Cast)));
@@ -94,7 +98,7 @@ TestCleaveHitsTheArc()
     StrikeAround(AppState, Slot, Slot->Entity, V2(1.f, 0.f), CLEAVE_REACH, CLEAVE_HALF_ANGLE,
                  10.f, 0.f);
     float Plain = Before - Front->Hp;
-    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_SweepingStrikes] = 1;
+    SetClassTalentRank(Slot, BerserkerTalent_SweepingStrikes, 1);
     Before = Front->Hp;
     StrikeAround(AppState, Slot, Slot->Entity, V2(1.f, 0.f), CLEAVE_REACH, CLEAVE_HALF_ANGLE,
                  10.f, 0.f);
@@ -150,11 +154,11 @@ TestRageBuildsAndDrains()
     Slot->Berserker.RageCarry = 0.f;
     AddRage(Slot, 10.f);
     Check(BerserkerRage(Slot) == 10);
-    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_UnbridledWrath] = 1;
+    SetClassTalentRank(Slot, BerserkerTalent_UnbridledWrath, 1);
     AddRage(Slot, 10.f);
     Check(BerserkerRage(Slot) == 10 + (u32)(10.f * (1.f + UNBRIDLED_WRATH_SHARE)));
     // NOTE(zoubir): Berserk: Rage holds, more dealt, less taken
-    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Berserk] = 1;
+    SetClassTalentRank(Slot, BerserkerTalent_Berserk, 1);
     world_entity *Foe = BerserkerDummy(&Crypt, V3(300.f, 0.f, 0.f));
     float Plain = DungeonScaleDamage(AppState, Foe, Player, 10.f);
     PressOnce(&Crypt, 0, PlayerButton_Kunai);
@@ -238,7 +242,7 @@ TestExecuteSpendsRage()
     Check(Low - Foe->Hp > 0.95f * EXECUTE_LOW_SCALE * Full);
 
     // NOTE(zoubir): Massacre: a kill gives Rage back
-    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Massacre] = 1;
+    SetClassTalentRank(Slot, BerserkerTalent_Massacre, 1);
     world_entity *Weak = BerserkerDummy(&Crypt, V3(60.f, 30.f, 0.f));
     Weak->Hp = 30.f;
     Foe->Hp = 2000.f;
@@ -348,10 +352,10 @@ TestBloodthirstHeals()
     float Dealt = 0.f;
     float Rest = ExecuteHealed(&Crypt, Foe, &Dealt);
     Check(Dealt > 0.f && Rest < 0.1f * Dealt);
-    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Bloodthirst] = 1;
+    SetClassTalentRank(Slot, BerserkerTalent_Bloodthirst, 1);
     float Healed = ExecuteHealed(&Crypt, Foe, &Dealt) - Rest;
     Check(Healed > 0.99f * BLOODTHIRST_HEAL_SHARE * Dealt && Healed < 1.01f * BLOODTHIRST_HEAL_SHARE * Dealt);
-    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Bloodthirst] = 2;
+    SetClassTalentRank(Slot, BerserkerTalent_Bloodthirst, 2);
     float More = ExecuteHealed(&Crypt, Foe, &Dealt) - Rest;
     Check(More > 0.99f * BLOODTHIRST_RANK2_HEAL * Dealt && More < 1.01f * BLOODTHIRST_RANK2_HEAL * Dealt);
     DestroyCryptWorld(&Crypt);
@@ -398,7 +402,7 @@ TestBladestormWhirlsHarder()
     WhirlHit(AppState, Slot, Slot->Entity);
     float Plain = 2000.f - Foe->Hp;
     Check(Plain > 0.f);
-    Slot->Ranks[Talent_RoleFirst + BerserkerTalent_Bladestorm] = 4;
+    SetClassTalentRank(Slot, BerserkerTalent_Bladestorm, 4);
     Foe->Hp = 2000.f;
     WhirlHit(AppState, Slot, Slot->Entity);
     float Storm = 2000.f - Foe->Hp;
@@ -420,7 +424,7 @@ TestShatteringLeapSunders()
         player_slot *Slot = &AppState->Players[0];
         world_entity *Player = Slot->Entity;
         world *World = &AppState->World;
-        Slot->Ranks[Talent_RoleFirst + BerserkerTalent_ShatteringLeap] = (u8)Learned;
+        SetClassTalentRank(Slot, BerserkerTalent_ShatteringLeap, (u8)Learned);
         world_entity *Near = BerserkerDummy(&Crypt, V3(40.f, 0.f, 0.f));
         world_entity *Away = BerserkerDummy(&Crypt, V3(-250.f, 0.f, 0.f));
         LeapSlam(AppState, Slot, Player);

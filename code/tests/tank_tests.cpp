@@ -16,6 +16,7 @@ TestShieldChargeBreaksAWindup()
     world *World = &AppState->World;
     TickCrypt(&Crypt, 1);
     SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Tank);
+    GrantClassSpells(&AppState->Players[0]);
     world_entity *Tank = AppState->Players[0].Entity;
     world_entity *Striker = AppState->Players[1].Entity;
     Check(Tank->MaxHp == GetRoleDef(PlayerRole_Tank)->MaxHp);
@@ -55,9 +56,10 @@ TestJuggernautSpeedsTheCharge()
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Tank);
+    GrantClassSpells(Slot);
     world_entity *Tank = Slot->Entity;
     float Plain = RoleSpellCooldown(Slot, 5);
-    Slot->Ranks[Talent_RoleFirst + TankTalent_Juggernaut] = 4;
+    SetClassTalentRank(Slot, TankTalent_Juggernaut, 4);
     float Faster = RoleSpellCooldown(Slot, 5);
     Check(Faster > Plain - 4.f * JUGGERNAUT_COOLDOWN - 0.01f &&
           Faster < Plain - 4.f * JUGGERNAUT_COOLDOWN + 0.01f);
@@ -89,10 +91,11 @@ TestUnbrokenCatchesTheKillingBlow()
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Tank);
+    GrantClassSpells(Slot);
     world_entity *Tank = Slot->Entity;
     world_entity *Brute = SpawnMonster(AppState, World, &Crypt.Arena,
                                        Tank->Position + V3(200.f, 0.f, 0.f), MonsterKind_Brute);
-    Slot->Ranks[Talent_RoleFirst + TankTalent_Unbroken] = 1;
+    SetClassTalentRank(Slot, TankTalent_Unbroken, 1);
 
     // NOTE(zoubir): no fight on: the talent waits for one
     Tank->Hp = 20.f;
@@ -124,7 +127,7 @@ TestUnbrokenCatchesTheKillingBlow()
     Check(DungeonScaleDamage(AppState, Tank, Brute, 100000.f) < Tank->Hp);
 
     // NOTE(zoubir): without the talent the blow downs the tank
-    Slot->Ranks[Talent_RoleFirst + TankTalent_Unbroken] = 0;
+    SetClassTalentRank(Slot, TankTalent_Unbroken, 0);
     Slot->ClassFlags = 0;
     Check(DungeonScaleDamage(AppState, Tank, Brute, 100000.f) >= Tank->Hp);
     Run->FightingRoom = 0;

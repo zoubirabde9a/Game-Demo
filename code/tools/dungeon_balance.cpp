@@ -104,18 +104,18 @@ SpendBotTalents(server_game *Game)
         {
             continue;
         }
-        // NOTE(zoubir): PROBE_TREE=class spends only in the class tree,
-        // =run in the second tree first; unset, the bot picks from both
-        // (sim/dungeon/run_tree/)
+        // NOTE(zoubir): PROBE_TREE=class spends only in the class tree's
+        // first branch, =run in its second first; unset, the bot picks from
+        // both (sim/dungeon/class_tree.cpp)
 #pragma warning(push)
 #pragma warning(disable: 4996)
         char *Tree = getenv("PROBE_TREE");
 #pragma warning(pop)
         u32 Wanted = (Tree && strcmp(Tree, "class") == 0) ? TalentBranch_Role :
             (Tree && strcmp(Tree, "run") == 0) ? TalentBranch_Run : TalentBranch_Count;
-        // NOTE(zoubir): =core-class and =core-run unlock the class's C and
-        // V spells first, as a player would, then spend the rest in one
-        // tree, so the two trees' points compare
+        // NOTE(zoubir): =core-class and =core-run take a spell of each
+        // branch's pair first, as a player would, then spend the rest in one
+        // branch, so the two branches' points compare
         bool32 Core = Tree && strncmp(Tree, "core-", 5) == 0;
         // NOTE(zoubir): PROBE_TREE_ONLY=tank (healer, ranged, melee) keeps
         // the second tree to that role's bot; the others go core-class
@@ -138,8 +138,8 @@ SpendBotTalents(server_game *Game)
         {
             if (Core)
             {
-                bool32 Spells = Player->Ranks[Talent_RoleFirst + ROLE_TALENT_C_SPELL] &&
-                    Player->Ranks[Talent_RoleFirst + ROLE_TALENT_V_SPELL];
+                bool32 Spells = (Player->Ranks[Talent_RoleFirst + 2] || Player->Ranks[Talent_RoleFirst + 3]) &&
+                    (Player->Ranks[Talent_RunFirst + 2] || Player->Ranks[Talent_RunFirst + 3]);
                 Wanted = (Spells && RunTree) ? TalentBranch_Run : TalentBranch_Role;
             }
             u32 Pick = BotPickTalent(&Game->Bots[Slot], Game->AppState, Player) >> NET_LEARN_SHIFT;

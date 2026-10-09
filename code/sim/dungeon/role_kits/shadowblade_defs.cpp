@@ -142,12 +142,15 @@ enum shadowblade_talent
     ShadowbladeTalent_QuickHands,
     ShadowbladeTalent_Siphon,
     ShadowbladeTalent_KidneyShot,
+    ShadowbladeTalent_FanOfKnives,
+    ShadowbladeTalent_DeadlyThrow,
+    ShadowbladeTalent_Shadowstep,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 4 unlocks the V spell. The Shadowblade has no C spell: its six keys are A, R, V, W, X
 // and the right click
-global_variable talent_def ShadowbladeTalentDefs[ROLE_TALENTS] =
+global_variable talent_def ShadowbladeTalentDefs[CLASS_TALENTS] =
 {
     {"Lethality", "All your damage is higher", "+5% damage",
      TalentBranch_Role, 0, 0, 2, 0},
@@ -173,11 +176,17 @@ global_variable talent_def ShadowbladeTalentDefs[ROLE_TALENTS] =
      TalentBranch_Role, 5, 0, 4, 0},
     {"Kidney Shot", "An Eviscerate with all 5 combo points stuns its foe for 2.5 s",
      "a stunning finisher", TalentBranch_Role, 5, 1, 1, 0},
+    {"Fan of Knives", "R: a ring of knives, a combo point for each foe cut",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Deadly Throw", "X: a poisoned dagger at a foe far off, spending every combo point",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Shadowstep", "A: appear behind a foe; your next strike in 4 s does double",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
 // for a talent with code of its own
-global_variable u8 ShadowbladeTalentStats[ROLE_TALENTS] =
+global_variable u8 ShadowbladeTalentStats[CLASS_TALENTS] =
 {
     RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
     RoleStat_Damage, RoleStat_Armor, RoleStat_None, RoleStat_Haste, RoleStat_Lifesteal, RoleStat_None,
@@ -188,10 +197,10 @@ global_variable role_spell ShadowbladeSpells[ROLE_KEYS] =
 {
     {"Shadowstep", SHADOWSTEP_COOLDOWN,
      "Shadowstep: appear behind a foe, drop all threat, take 90% less for 1 s; next strike crits",
-     RoleAim_Foe, SHADOWSTEP_RANGE, 0},
+     RoleAim_Foe, SHADOWSTEP_RANGE, ShadowbladeTalent_Shadowstep + 1},
     {"Fan of Knives", FAN_OF_KNIVES_COOLDOWN,
      "Fan of Knives: knives burst round you, a combo point for each foe cut",
-     RoleAim_None, FAN_OF_KNIVES_RADIUS, 0},
+     RoleAim_None, FAN_OF_KNIVES_RADIUS, ShadowbladeTalent_FanOfKnives + 1},
     {},
     {"Shadow Dance", DANCE_COOLDOWN,
      "Shadow Dance: 6 s of shadow strikes beside yours, Shadowstep back in 1 s",
@@ -201,7 +210,7 @@ global_variable role_spell ShadowbladeSpells[ROLE_KEYS] =
      RoleAim_None, EVISCERATE_REACH, 0, "All combo points, 1 at least"},
     {"Deadly Throw", DEADLY_THROW_COOLDOWN,
      "Deadly Throw: spend every combo point on a poisoned dagger thrown at a foe; it slows",
-     RoleAim_Foe, DEADLY_THROW_RANGE, 0, "All combo points, 1 at least"},
+     RoleAim_Foe, DEADLY_THROW_RANGE, ShadowbladeTalent_DeadlyThrow + 1, "All combo points, 1 at least"},
     {"Twin Strike", TWIN_STRIKE_COOLDOWN,
      "Twin Strike: two quick cuts in front that poison, a combo point",
      RoleAim_None, TWIN_STRIKE_REACH, 0},

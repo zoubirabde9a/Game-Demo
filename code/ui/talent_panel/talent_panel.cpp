@@ -111,7 +111,7 @@ TalentBranchName(player_slot *Slot, u32 Branch)
 {
     u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
     char *Result = Branch < TALENT_GAME_BRANCHES ? TalentBranchNames[Branch] :
-        Branch == TalentBranch_Run ? RunTrees[Role].Name : GetRoleDef(Role)->Name;
+        ClassBranchName(Role, Branch == TalentBranch_Run);
     return Result;
 }
 
@@ -334,6 +334,11 @@ TalentRefusalText(player_slot *Slot, u32 Talent, talent_refusal Refusal, char *O
         case TalentRefusal_NoPoints:
         {
             snprintf(Out, OutSize, "No points left: kills, monsters and time earn the next");
+        } break;
+        case TalentRefusal_OtherSpell:
+        {
+            snprintf(Out, OutSize, "You took %s; a branch gives one spell of its two",
+                     ShownTalentDef(Slot, ClassSpellPartner(Talent))->Name);
         } break;
     }
 }

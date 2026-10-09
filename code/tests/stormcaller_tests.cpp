@@ -63,6 +63,7 @@ CreateStormWorld()
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &Crypt.AppState->Players[0];
     SetPlayerRole(Crypt.AppState, Slot, PlayerRole_Stormcaller);
+    GrantClassSpells(Slot);
     Slot->Entity->Aim = V2(1.f, 0.f);
     Slot->Entity->AimReach = 0.6f;
     return Crypt;
@@ -98,12 +99,13 @@ TestStormcallerKeys()
     app_state *AppState = Crypt.AppState;
     player_slot *Slot = &AppState->Players[0];
     Check(RoleHasKit(PlayerRole_Stormcaller));
-    Check(!RoleDropsFireball(PlayerRole_Stormcaller));
+    Check(RoleDropsFireball(PlayerRole_Stormcaller));
+    // NOTE(zoubir): the two base spells only, before any point
+    ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Launch | PlayerButton_Push |
-                      PlayerButton_Shockwave | PlayerButton_Cast));
-    Slot->Ranks[Talent_RoleFirst + StormcallerTalent_LightningDash] = 1;
-    Slot->Ranks[Talent_RoleFirst + StormcallerTalent_EyeOfTheStorm] = 1;
+    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Shockwave));
+    SetClassTalentRank(Slot, StormcallerTalent_LightningDash, 1);
+    SetClassTalentRank(Slot, StormcallerTalent_EyeOfTheStorm, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);
     Check((Allowed & PlayerButton_Slam) && (Allowed & PlayerButton_Kunai));
     Check(!(Allowed & PlayerButton_Attack));
@@ -125,7 +127,7 @@ TestStormcallerKeys()
     Check(Absolute(StormcallerBoltLength(Bolt) - 333.f) <= 0.5f * STORMCALLER_BOLT_UNIT);
     // NOTE(zoubir): Voltage
     Check(StormcallerDealtScale(Slot, 0) == 1.f);
-    Slot->Ranks[Talent_RoleFirst + StormcallerTalent_Voltage] = 2;
+    SetClassTalentRank(Slot, StormcallerTalent_Voltage, 2);
     Check(Absolute(StormcallerDealtScale(Slot, 0) - (1.f + 2.f * VOLTAGE_SHARE)) < 0.001f);
     DestroyCryptWorld(&Crypt);
 }
@@ -224,7 +226,7 @@ TestConductorChainsFarther()
         crypt_world Crypt = CreateStormWorld();
         app_state *AppState = Crypt.AppState;
         player_slot *Slot = &AppState->Players[0];
-        Slot->Ranks[Talent_RoleFirst + StormcallerTalent_Conductor] = (u8)Conductor;
+        SetClassTalentRank(Slot, StormcallerTalent_Conductor, (u8)Conductor);
         storm_dummies Dummies = {};
         for(u32 Index = 0; Index < 7; Index++)
         {
@@ -256,7 +258,7 @@ TestStaticFieldShocks()
         crypt_world Crypt = CreateStormWorld();
         app_state *AppState = Crypt.AppState;
         player_slot *Slot = &AppState->Players[0];
-        Slot->Ranks[Talent_RoleFirst + StormcallerTalent_ArcField] = (u8)Arc;
+        SetClassTalentRank(Slot, StormcallerTalent_ArcField, (u8)Arc);
         storm_dummies Dummies = {};
         v2 Point = AimPoint(Slot->Entity);
         v3 Centre = V3(Point.X, Point.Y, 0.f) - Slot->Entity->Position;

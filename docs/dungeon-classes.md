@@ -21,6 +21,8 @@ The tank and the healer also have a weak right-click attack, Shield Bash and Smi
 
 ## Keys
 
+The trees were reshaped (`docs/class-trees.md`): a class now casts two base spells and one spell from a pair in each of its two branches, four at most, and only the Fire Mage keeps the fireball. The key and talent tables below list every spell a class can have and the talents of its catalog; which two are base and which branch offers the rest is in `docs/class-trees.md`.
+
 A class casts on seven keys: A, R, C, V, W, X (the fireball's key) and the right click (the sword's). A class that owns X or the right click replaces the game's fireball or sword there; one that does not keeps the fireball and has no sword, except the Berserker, the Shadowblade and the Duelist, for whom the fireball is gone (`RoleDropsFireball`); the Shadowblade casts Deadly Throw on X instead, and for the other two X does nothing. C and V come from the class's talent tree, A, R and W from the start. The ability bar and the controls panel (hold H) show each key's spell from the class's table.
 
 A class key pressed up to 0.25 s before its cooldown ends still casts, and the time it was early is added to the next cooldown, so it never casts more often (`ROLE_EARLY_PRESS_SECONDS`, `role_abilities.cpp`). The game's sword and fireball keep a press for the same 0.25 s. Before this, a press on cooldown was dropped, and a player clicking the Shadowblade's half-second Twin Strike lost most of their clicks. Bots only press ready keys, so it changes nothing for them except the tank bot's right click: over 16 seeds fight times stayed the same and deaths fell by about a sixth.

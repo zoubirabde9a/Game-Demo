@@ -190,10 +190,7 @@ ApplyDeveloperBerserker(player_slot *Slot)
 #pragma warning(pop)
     if (Value && Value[0] == 'f')
     {
-        for(u32 Talent = 0; Talent < ROLE_TALENTS; Talent++)
-        {
-            Slot->Ranks[Talent_RoleFirst + Talent] = (u8)BerserkerTalentDefs[Talent].MaxLevel;
-        }
+        GrantWholeClassTree(Slot);
         Slot->ClassMeter = BERSERKER_RAGE_MAX;
     }
 #endif

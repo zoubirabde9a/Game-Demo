@@ -233,12 +233,12 @@ DrawTalentNode(render_context *RenderContext, app_state *AppState, app_input *In
         UIText(RenderContext, Small, KeyX + 4.f, KeyY, Key,
                Level ? UI_COLOR_TEXT : UI_COLOR_TEXT_MUTED);
     }
-    // NOTE(zoubir): a wild slot of the second tree (sim/dungeon/run_tree/)
+    // NOTE(zoubir): a wild slot of the class tree (sim/dungeon/class_tree.cpp)
     // wears a die on its top-right, gold for the keystone: it rolls again
     // each run
-    if (IsRunTalent(Talent) && RunSlotWild[Talent - Talent_RunFirst])
+    if (ClassSlotIsWild(Talent))
     {
-        bool32 Keystone = Talent - Talent_RunFirst == RUN_KEYSTONE_SLOT;
+        bool32 Keystone = ClassSlotIsKeystone(Talent);
         u32 DieColor = Keystone ? UI_RGBA(255, 205, 80, 255) : UI_RGBA(235, 238, 248, 255);
         float Die = 15.f;
         float DieX = Centre.X + 0.5f * Arc - Die + 2.f;

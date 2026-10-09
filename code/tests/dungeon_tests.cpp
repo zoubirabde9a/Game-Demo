@@ -155,6 +155,9 @@ CreateDungeonWorld(u32 MapId, u32 Players)
             AddPlayerToSlot(Result.AppState, &Result.AppState->World, &Result.Arena,
                             SlotIndex, PlayerSpawnPosition(&Result.AppState->World, SlotIndex));
         Player->SpawnShield = 0.f;
+        // NOTE(zoubir): every spell of the class, so a test casts any
+        // (class_tree_tests.cpp checks the pairs)
+        GrantClassSpells(&Result.AppState->Players[SlotIndex]);
     }
     return Result;
 }

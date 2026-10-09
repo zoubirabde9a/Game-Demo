@@ -86,6 +86,8 @@ enum frostmage_talent
     FrostMageTalent_ColdSnap,
     FrostMageTalent_WintersGrace,
     FrostMageTalent_AbsoluteZero,
+    FrostMageTalent_FrostNova,
+    FrostMageTalent_Blizzard,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -107,7 +109,7 @@ enum frostmage_talent
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 1 unlocks the C spell, slot 4 the V spell
-global_variable talent_def FrostMageTalentDefs[ROLE_TALENTS] =
+global_variable talent_def FrostMageTalentDefs[CLASS_TALENTS] =
 {
     {"Frostbite", "All your damage is higher", "+6% damage",
      TalentBranch_Role, 0, 0, 2, 0},
@@ -133,11 +135,15 @@ global_variable talent_def FrostMageTalentDefs[ROLE_TALENTS] =
      TalentBranch_Role, 5, 0, 4, 0},
     {"Absolute Zero", "A five-Icicle Glacial Spike freezes every foe near its target",
      "freezes all within 120", TalentBranch_Role, 5, 1, 1, 0},
+    {"Frost Nova", "W: freeze every foe near you in place for 3 s",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Blizzard", "A: ice falls on the circle at the cursor for 3 s, chilling",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
 // for a talent with code of its own
-global_variable u8 FrostMageTalentStats[ROLE_TALENTS] =
+global_variable u8 FrostMageTalentStats[CLASS_TALENTS] =
 {
     RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
     RoleStat_Damage, RoleStat_Armor, RoleStat_None, RoleStat_Haste, RoleStat_Vitality, RoleStat_None,
@@ -147,7 +153,7 @@ global_variable u8 FrostMageTalentStats[ROLE_TALENTS] =
 global_variable role_spell FrostMageSpells[ROLE_KEYS] =
 {
     {"Blizzard", BLIZZARD_COOLDOWN, "Blizzard: ice falls on the circle at the cursor for 3 s, chilling",
-     RoleAim_Ground, BLIZZARD_RADIUS, 0},
+     RoleAim_Ground, BLIZZARD_RADIUS, FrostMageTalent_Blizzard + 1},
     {"Glacial Spike", GLACIAL_SPIKE_COOLDOWN,
      "Glacial Spike: 1.25 s cast, a spike at a foe that spends your Icicles; five freeze it",
      RoleAim_Foe, GLACIAL_SPIKE_RANGE, 0, "All Icicles"},
@@ -157,7 +163,7 @@ global_variable role_spell FrostMageSpells[ROLE_KEYS] =
      "Frozen Orb: an orb rolls along your aim, striking and chilling what is near it",
      RoleAim_Line, FROZEN_ORB_SPEED * FROZEN_ORB_SECONDS, FrostMageTalent_FrozenOrb + 1},
     {"Frost Nova", FROST_NOVA_COOLDOWN, "Frost Nova: freeze every foe near you in place for 3 s",
-     RoleAim_None, 0.f, 0},
+     RoleAim_None, 0.f, FrostMageTalent_FrostNova + 1},
     {"Frostbolt", FROSTBOLT_COOLDOWN,
      "Frostbolt: a bolt that chills a foe and grows an Icicle; frozen foes take 40% more",
      RoleAim_Foe, FROSTBOLT_RANGE, 0},

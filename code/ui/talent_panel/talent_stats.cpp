@@ -47,12 +47,16 @@ DrawTalentStats(render_context *RenderContext, app_state *AppState, talent_panel
     DrawStatRow(RenderContext, Small, Left, Inner, Y, "Run speed", Value,
                 Run > PlayerStats.RunSpeed ? UI_COLOR_GOOD : UI_COLOR_TEXT);
     Y += TALENT_STATS_ROW;
-    float Fireball = FireballSpeedScale(AppState, Player);
-    snprintf(Value, sizeof(Value), "%.0f fast, %.0f far%s", PlayerStats.FireballSpeed * Fireball,
-             PlayerStats.FireballRange * Fireball, Slot->Ranks[Talent_TwinFlame] ? ", x2" : "");
-    DrawStatRow(RenderContext, Small, Left, Inner, Y, "Fireball", Value,
-                Fireball > 1.f || Slot->Ranks[Talent_TwinFlame] ? UI_COLOR_GOOD : UI_COLOR_TEXT);
-    Y += TALENT_STATS_ROW;
+    // NOTE(zoubir): in a run only the Fire Mage throws the fireball
+    if (!IsDungeon(AppState) || !RoleDropsFireball(Slot->Role))
+    {
+        float Fireball = FireballSpeedScale(AppState, Player);
+        snprintf(Value, sizeof(Value), "%.0f fast, %.0f far%s", PlayerStats.FireballSpeed * Fireball,
+                 PlayerStats.FireballRange * Fireball, Slot->Ranks[Talent_TwinFlame] ? ", x2" : "");
+        DrawStatRow(RenderContext, Small, Left, Inner, Y, "Fireball", Value,
+                    Fireball > 1.f || Slot->Ranks[Talent_TwinFlame] ? UI_COLOR_GOOD : UI_COLOR_TEXT);
+        Y += TALENT_STATS_ROW;
+    }
     snprintf(Value, sizeof(Value), "%.1f s, %.1f s shield", RespawnSeconds(Slot),
              RespawnShieldSeconds(Slot));
     DrawStatRow(RenderContext, Small, Left, Inner, Y, "Respawn", Value,
@@ -85,24 +89,30 @@ DrawTalentStats(render_context *RenderContext, app_state *AppState, talent_panel
     // as there is room
     float Bottom = L->ColumnTop + L->ColumnHeight - 8.f;
     float Icon = 18.f;
+    // NOTE(zoubir): in a run, the class's spells it casts first, the two
+    // to four of them (docs/class-trees.md)
+    u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
+    for(u32 Key = 0; Key < ROLE_KEYS && IsDungeon(AppState) && Y + TALENT_STATS_ROW < Bottom; Key++)
+    {
+        role_spell *Spell = &RoleSpells[Slot->Role < PlayerRole_Count ? Slot->Role : 0][Key];
+        if (!RoleOwnsKey(AppState, Slot, Key) || !RoleSpellLearned(Slot, Key))
+        {
+            continue;
+        }
+        UIText(RenderContext, Small, Left + Icon + 6.f, Y, Spell->Name,
+               TalentBranchAccent(Slot, TalentBranch_Role));
+        snprintf(Value, sizeof(Value), "%s  %.1f s", ActionKeyLabel(RoleKeys[Key]),
+                 RoleSpellCooldown(Slot, Key));
+        UIText(RenderContext, Small, Left + Inner, Y, Value, UI_COLOR_TEXT, UIAlign_Right);
+        Y += TALENT_STATS_ROW;
+    }
     for(u32 Talent = 0; Talent < Talent_Count && Y + TALENT_STATS_ROW < Bottom; Talent++)
     {
         talent_def *Def = &TalentDefs[Talent];
         u32 Level = TalentLevel(Slot, Talent);
-        if (!Def->Button || Level == 0)
+        if (!Def->Button || Level == 0 || !(Allowed & Def->Button) ||
+            RoleSpellOnButton(AppState, Player, Def->Button))
         {
-            continue;
-        }
-        role_spell *Spell = RoleSpellOnButton(AppState, Player, Def->Button);
-        if (Spell)
-        {
-            u32 Key = RoleKeyForButton(Def->Button);
-            UIText(RenderContext, Small, Left + Icon + 6.f, Y, Spell->Name,
-                   TalentBranchAccent(Slot, TalentBranch_Role));
-            snprintf(Value, sizeof(Value), "%s  %.1f s", ActionKeyLabel(Def->Button),
-                     RoleSpellCooldown(Slot, Key));
-            UIText(RenderContext, Small, Left + Inner, Y, Value, UI_COLOR_TEXT, UIAlign_Right);
-            Y += TALENT_STATS_ROW;
             continue;
         }
         DrawTexturedQuad(RenderContext, Panel->Atlas, Left, Y - 1.f, Icon, Icon,

@@ -287,10 +287,7 @@ ApplyDeveloperStormcaller(app_state *AppState, player_slot *Slot, float DeltaTim
     }
     if (Value[0] == 'f')
     {
-        for(u32 Talent = 0; Talent < ROLE_TALENTS; Talent++)
-        {
-            Slot->Ranks[Talent_RoleFirst + Talent] = (u8)StormcallerTalentDefs[Talent].MaxLevel;
-        }
+        GrantWholeClassTree(Slot);
     }
     char *At = Value;
     while(*At && *At != ':' && (*At < '0' || *At > '9'))

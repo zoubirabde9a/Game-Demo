@@ -103,12 +103,14 @@ enum berserker_talent
     BerserkerTalent_BruteForce,
     BerserkerTalent_Unyielding,
     BerserkerTalent_ShatteringLeap,
+    BerserkerTalent_Execute,
+    BerserkerTalent_Leap,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 4 unlocks the V spell. The Berserker has no C spell: its five keys are A, R, V, W and
 // the right click
-global_variable talent_def BerserkerTalentDefs[ROLE_TALENTS] =
+global_variable talent_def BerserkerTalentDefs[CLASS_TALENTS] =
 {
     {"Brutality", "All your damage is higher", "+6% damage", TalentBranch_Role, 0, 0, 2, 0},
     {"Bloodthirst", "Execute heals you for 30% of the damage it deals",
@@ -133,11 +135,15 @@ global_variable talent_def BerserkerTalentDefs[ROLE_TALENTS] =
      TalentBranch_Role, 5, 0, 4, 0},
     {"Shattering Leap", "Foes Leap lands on take 25% more damage from everyone for 6 s",
      "Leap breaks armor", TalentBranch_Role, 5, 1, 1, 0},
+    {"Execute", "W: one chop that spends all your Rage, far harder under 25% health",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Leap", "A: a high jump to the cursor that slams, stuns and shoves where you land",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
 // for a talent with code of its own
-global_variable u8 BerserkerTalentStats[ROLE_TALENTS] =
+global_variable u8 BerserkerTalentStats[CLASS_TALENTS] =
 {
     RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
     RoleStat_Vitality, RoleStat_Lifesteal, RoleStat_None, RoleStat_Damage, RoleStat_Armor, RoleStat_None,
@@ -147,7 +153,7 @@ global_variable u8 BerserkerTalentStats[ROLE_TALENTS] =
 global_variable role_spell BerserkerSpells[ROLE_KEYS] =
 {
     {"Leap", LEAP_COOLDOWN, "Leap: jump to the cursor and slam down, stunning what is there",
-     RoleAim_Ground, LEAP_RADIUS, 0},
+     RoleAim_Ground, LEAP_RADIUS, BerserkerTalent_Leap + 1},
     {"Whirlwind", WHIRLWIND_COOLDOWN,
      "Whirlwind: 30 Rage, spin for 1.5 s hitting everything around you five times",
      RoleAim_None, WHIRLWIND_RADIUS, 0, "30 Rage"},
@@ -156,7 +162,7 @@ global_variable role_spell BerserkerSpells[ROLE_KEYS] =
      RoleAim_None, 0.f, BerserkerTalent_Berserk + 1},
     {"Execute", EXECUTE_COOLDOWN,
      "Execute: spend all Rage on one chop, twice as hard under 25% health",
-     RoleAim_None, EXECUTE_REACH, 0, "All Rage, 20 at least"},
+     RoleAim_None, EXECUTE_REACH, BerserkerTalent_Execute + 1, "All Rage, 20 at least"},
     {},
     {"Cleave", CLEAVE_COOLDOWN, "Cleave: a wide swing of the axe through everything in front",
      RoleAim_None, CLEAVE_REACH, 0},

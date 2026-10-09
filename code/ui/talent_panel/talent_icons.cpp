@@ -198,7 +198,7 @@ global_variable talent_icon_painter *TalentIconPainters[Talent_RoleFirst] =
 #define TALENT_ATLAS_COLUMNS 8
 // NOTE(zoubir): the game's talents, every class's role slots, then one
 // cell per run talent (ui/dungeon/run_tree_icons.cpp)
-#define TALENT_RUN_ICON_FIRST (Talent_RoleFirst + PlayerRole_Count * ROLE_TALENTS)
+#define TALENT_RUN_ICON_FIRST (Talent_RoleFirst + PlayerRole_Count * CLASS_TALENTS)
 #define TALENT_ICON_CELLS (TALENT_RUN_ICON_FIRST + RunMod_Count)
 #define TALENT_ATLAS_ROWS ((TALENT_ICON_CELLS + TALENT_ATLAS_COLUMNS - 1) / TALENT_ATLAS_COLUMNS)
 
@@ -207,14 +207,13 @@ inline u32
 TalentIconCell(player_slot *Slot, u32 Talent)
 {
     u32 Result = Talent;
-    if (IsRoleTalent(Talent))
+    if (IsClassTalent(Talent))
     {
         u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
-        Result = Talent_RoleFirst + Role * ROLE_TALENTS + (Talent - Talent_RoleFirst);
-    }
-    if (IsRunTalent(Talent))
-    {
-        Result = TALENT_RUN_ICON_FIRST + RunModAtSlot(Slot, Talent - Talent_RunFirst);
+        u32 Content = ClassContentAt(Slot, ClassTreeSlot(Talent));
+        u32 Catalog = ClassContentTalent(Content);
+        Result = Catalog < CLASS_TALENTS ? Talent_RoleFirst + Role * CLASS_TALENTS + Catalog :
+            TALENT_RUN_ICON_FIRST + ClassContentRunMod(Content);
     }
     return Result;
 }
@@ -244,9 +243,13 @@ BuildTalentIconAtlas(open_gl *OpenGL, memory_arena *Scratch)
         }
         else
         {
-            u32 Role = (Cell - Talent_RoleFirst) / ROLE_TALENTS;
+            u32 Role = (Cell - Talent_RoleFirst) / CLASS_TALENTS;
+            u32 Catalog = (Cell - Talent_RoleFirst) % CLASS_TALENTS;
+            // NOTE(zoubir): the painters cover the first ROLE_TALENTS of a
+            // catalog; the spells a branch offers wear their spell's icon
+            // later (docs/class-trees.md)
             talent_icon_painter *Paint =
-                RoleTalentIconPainters[Role][(Cell - Talent_RoleFirst) % ROLE_TALENTS];
+                Catalog < ROLE_TALENTS ? RoleTalentIconPainters[Role][Catalog] : 0;
             if (Paint)
             {
                 Paint(&Canvas);

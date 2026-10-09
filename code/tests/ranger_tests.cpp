@@ -61,6 +61,7 @@ CreateRangerWorld(u32 Players = 1)
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &Crypt.AppState->Players[0];
     SetPlayerRole(Crypt.AppState, Slot, PlayerRole_Ranger);
+    GrantClassSpells(Slot);
     Slot->Entity->Aim = V2(1.f, 0.f);
     Slot->Entity->AimReach = 0.6f;
     return Crypt;
@@ -73,11 +74,12 @@ TestRangerKeys()
     app_state *AppState = Crypt.AppState;
     player_slot *Slot = &AppState->Players[0];
     Check(RoleHasKit(PlayerRole_Ranger));
+    // NOTE(zoubir): the two base spells only, before any point
+    ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Launch | PlayerButton_Push |
-                      PlayerButton_Cast));
-    Slot->Ranks[Talent_RoleFirst + RangerTalent_Disengage] = 1;
-    Slot->Ranks[Talent_RoleFirst + RangerTalent_RapidFire] = 1;
+    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Push));
+    SetClassTalentRank(Slot, RangerTalent_Disengage, 1);
+    SetClassTalentRank(Slot, RangerTalent_RapidFire, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);
     Check((Allowed & PlayerButton_Slam) && (Allowed & PlayerButton_Kunai));
     Check(RangerKeyWindsUp(1) && RangerKeyWindsUp(3) && !RangerKeyWindsUp(5));
@@ -185,7 +187,7 @@ TestPiercingShotThroughALine()
     Check(Slot->Ranger.Focus == 0.f);
 
     // NOTE(zoubir): Deadeye: a full Focus crits
-    Slot->Ranks[Talent_RoleFirst + RangerTalent_Deadeye] = 1;
+    SetClassTalentRank(Slot, RangerTalent_Deadeye, 1);
     Slot->Ranger.Focus = RANGER_FOCUS_MOST;
     Slot->Ranger.FocusHold = 10.f;
     Slot->RoleCooldowns[1] = 0.f;
@@ -227,7 +229,7 @@ TestVolleyRainsOnTheCircle()
     Check(Outside->Hp == 2000.f);
 
     // NOTE(zoubir): Barrage: the edge one is inside now, and it rains longer
-    Slot->Ranks[Talent_RoleFirst + RangerTalent_Barrage] = 1;
+    SetClassTalentRank(Slot, RangerTalent_Barrage, 1);
     Check(RoleSpellRadius(Slot, 0) > VOLLEY_RADIUS * 1.29f);
     Slot->RoleCooldowns[0] = 0.f;
     float EdgeBefore = Edge->Hp;
@@ -250,7 +252,7 @@ TestDisengageLeavesASnare()
     player_slot *Slot = &AppState->Players[0];
     world_entity *Ranger = Slot->Entity;
     ranger_run *Run = &AppState->Dungeon->Ranger;
-    Slot->Ranks[Talent_RoleFirst + RangerTalent_Disengage] = 1;
+    SetClassTalentRank(Slot, RangerTalent_Disengage, 1);
     // NOTE(zoubir): aiming back toward the wall the run starts by, so the
     // leap goes into the room
     Ranger->Aim = V2(-1.f, 0.f);
@@ -272,7 +274,7 @@ TestDisengageLeavesASnare()
     Check(Bite > 0.f && Bite < 1.01f * TRAP_DAMAGE * GetRoleDef(PlayerRole_Ranger)->DamageDealt);
 
     // NOTE(zoubir): rank 2 bites harder; a new snare takes the old one's place
-    Slot->Ranks[Talent_RoleFirst + RangerTalent_Disengage] = 2;
+    SetClassTalentRank(Slot, RangerTalent_Disengage, 2);
     Foe->StatusTimers[StatusEffect_Rooted] = 0.f;
     Slot->RoleCooldowns[2] = 0.f;
     PressOnce(&Crypt, 0, PlayerButton_Slam);
@@ -298,7 +300,7 @@ TestPinningVolleyHoldsTheSlow()
         crypt_world Crypt = CreateRangerWorld();
         app_state *AppState = Crypt.AppState;
         player_slot *Slot = &AppState->Players[0];
-        Slot->Ranks[Talent_RoleFirst + RangerTalent_PinningVolley] = (u8)Rank;
+        SetClassTalentRank(Slot, RangerTalent_PinningVolley, (u8)Rank);
         ranger_dummies Dummies = {};
         v2 Point = AimPoint(Slot->Entity);
         v3 Centre = V3(Point.X, Point.Y, 0.f) - Slot->Entity->Position;
@@ -328,8 +330,8 @@ TestHuntersNetRootsThePack()
         app_state *AppState = Crypt.AppState;
         player_slot *Slot = &AppState->Players[0];
         world_entity *Ranger = Slot->Entity;
-        Slot->Ranks[Talent_RoleFirst + RangerTalent_Disengage] = 1;
-        Slot->Ranks[Talent_RoleFirst + RangerTalent_HuntersNet] = (u8)Net;
+        SetClassTalentRank(Slot, RangerTalent_Disengage, 1);
+        SetClassTalentRank(Slot, RangerTalent_HuntersNet, (u8)Net);
         Ranger->Aim = V2(-1.f, 0.f);
         v3 Start = Ranger->Position;
         PressOnce(&Crypt, 0, PlayerButton_Slam);
@@ -360,7 +362,7 @@ TestRapidFireStreams()
     crypt_world Crypt = CreateRangerWorld();
     app_state *AppState = Crypt.AppState;
     player_slot *Slot = &AppState->Players[0];
-    Slot->Ranks[Talent_RoleFirst + RangerTalent_RapidFire] = 1;
+    SetClassTalentRank(Slot, RangerTalent_RapidFire, 1);
     ranger_dummies Dummies = {};
     world_entity *Foe = RangerDummy(&Crypt, &Dummies, V3(250.f, 0.f, 0.f));
     Slot->Input.Target = (u32)(Foe - AppState->World.Entities) + 1;
@@ -386,7 +388,7 @@ TestLethalMarkJumps()
         crypt_world Crypt = CreateRangerWorld();
         app_state *AppState = Crypt.AppState;
         player_slot *Slot = &AppState->Players[0];
-        Slot->Ranks[Talent_RoleFirst + RangerTalent_LethalMark] = (u8)Lethal;
+        SetClassTalentRank(Slot, RangerTalent_LethalMark, (u8)Lethal);
         ranger_dummies Dummies = {};
         world_entity *First = RangerDummy(&Crypt, &Dummies, V3(200.f, 0.f, 0.f));
         world_entity *Next = RangerDummy(&Crypt, &Dummies, V3(260.f, 80.f, 0.f));
@@ -419,6 +421,7 @@ TestFocusDrains()
     Check(Slot->Ranger.Focus < 60.f - 0.9f * RANGER_FOCUS_DRAIN);
     Check(Slot->ClassMeter == (u8)(Slot->Ranger.Focus + 0.5f));
     SetPlayerRole(AppState, Slot, PlayerRole_Tank);
+    GrantClassSpells(Slot);
     TickCrypt(&Crypt, 1);
     Check(Slot->Ranger.Focus == 0.f && Slot->ClassMeter == 0);
     DestroyCryptWorld(&Crypt);

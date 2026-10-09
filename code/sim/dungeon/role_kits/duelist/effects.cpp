@@ -23,10 +23,7 @@ ApplyDeveloperDuelist(player_slot *Slot)
 #endif
     if (Value && Value[0] == 'f')
     {
-        for(u32 Talent = 0; Talent < ROLE_TALENTS; Talent++)
-        {
-            Slot->Ranks[Talent_RoleFirst + Talent] = (u8)DuelistTalentDefs[Talent].MaxLevel;
-        }
+        GrantWholeClassTree(Slot);
         Slot->ClassMeter = DUELIST_MOST_TEMPO;
         if (strstr(Value, "guard"))
         {

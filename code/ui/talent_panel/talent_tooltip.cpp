@@ -54,12 +54,12 @@ DrawTalentTooltip(render_context *RenderContext, app_state *AppState,
                      TalentBranchName(Slot, Def->Branch), ActionKeyLabel(Def->Button), Level,
                      Def->MaxLevel);
         }
-        else if (IsRunTalent(Talent) && RunSlotWild[Talent - Talent_RunFirst])
+        else if (ClassSlotIsWild(Talent))
         {
             // NOTE(zoubir): a wild slot says it rolls again each run
             snprintf(Line, 112, "%s %s, new each run   rank %u of %u",
                      TalentBranchName(Slot, Def->Branch),
-                     Talent - Talent_RunFirst == RUN_KEYSTONE_SLOT ? "wild keystone" : "wild",
+                     ClassSlotIsKeystone(Talent) ? "wild keystone" : "wild",
                      Level, Def->MaxLevel);
         }
         else

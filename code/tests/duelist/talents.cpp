@@ -13,7 +13,7 @@ TestPerfectForm()
     PressOnce(&Crypt, 0, PlayerButton_Attack);
     float Plain = 2000.f - Foe->Hp;
     Check(Plain > 0.f);
-    Slot->Ranks[Talent_RoleFirst + DuelistTalent_PerfectForm] = 1;
+    SetClassTalentRank(Slot, DuelistTalent_PerfectForm, 1);
     PressOnce(&Crypt, 0, PlayerButton_Kunai);
     Check(Slot->ClassFlags & DUELIST_FLAG_FORM);
     Check(Slot->RoleCooldowns[3] > FORM_COOLDOWN - 1.f);
@@ -55,7 +55,7 @@ TestLungeAndFootwork()
     Check(Length(Foe->Position.XY - Player->Position.XY) < LUNGE_GAP + Foe->Dimensions.X + 20.f);
     Check(Slot->RoleCooldowns[0] > LUNGE_COOLDOWN - 0.5f);
     Check(!HasStatus(Player, StatusEffect_Hasted));
-    Slot->Ranks[Talent_RoleFirst + DuelistTalent_Footwork] = 2;
+    SetClassTalentRank(Slot, DuelistTalent_Footwork, 2);
     float Short = LUNGE_COOLDOWN - 2.f * FOOTWORK_COOLDOWN;
     Check(RoleSpellCooldown(Slot, 0) > Short - 0.01f && RoleSpellCooldown(Slot, 0) < Short + 0.01f);
     MovePlayerTo(Crypt.AppState, &Crypt.AppState->World, &Crypt.Arena, Player,
@@ -74,7 +74,7 @@ TestBait()
     player_slot *Slot = &Crypt.AppState->Players[0];
     world_entity *Player = Slot->Entity;
     world_entity *Foe = DuelistDummy(&Crypt, V3(60.f, 0.f, 0.f));
-    Slot->Ranks[Talent_RoleFirst + DuelistTalent_Bait] = 1;
+    SetClassTalentRank(Slot, DuelistTalent_Bait, 1);
     PressOnce(&Crypt, 0, PlayerButton_Push);
     TickCrypt(&Crypt, (u32)(60.f * RIPOSTE_GUARD_SECONDS) + 2);
     Check(Slot->ClassFlags & DUELIST_FLAG_GUARD);
@@ -98,7 +98,7 @@ TestCrescendo()
     world_entity *Foe = DuelistDummy(&Crypt, V3(60.f, 0.f, 0.f));
     world_entity *Side = DuelistDummy(&Crypt, V3(40.f, 55.f, 0.f));
     world_entity *Behind = DuelistDummy(&Crypt, V3(-70.f, 0.f, 0.f));
-    Slot->Ranks[Talent_RoleFirst + DuelistTalent_Crescendo] = 1;
+    SetClassTalentRank(Slot, DuelistTalent_Crescendo, 1);
     u32 WindUp = (u32)(60.f * PlayerSpells[PlayerSpell_DuelistB].CastTime) + 2;
     for(u32 Tempo = 4; Tempo <= 5; Tempo++)
     {
@@ -132,7 +132,7 @@ TestFlurryAndMasterstroke()
     world_entity *Foe = DuelistDummy(&Crypt, V3(60.f, 0.f, 0.f));
     PressOnce(&Crypt, 0, PlayerButton_Attack);
     float Plain = 2000.f - Foe->Hp;
-    Slot->Ranks[Talent_RoleFirst + DuelistTalent_Flurry] = 4;
+    SetClassTalentRank(Slot, DuelistTalent_Flurry, 4);
     DuelistReady(&Crypt, 6);
     Slot->ClassMeter = 0;
     float Before = Foe->Hp;
@@ -142,7 +142,7 @@ TestFlurryAndMasterstroke()
     Check(Flurried > 0.99f * Scale * Plain && Flurried < 1.01f * Scale * Plain);
 
     float Single = HeartseekerWith(&Crypt, 5);
-    Slot->Ranks[Talent_RoleFirst + DuelistTalent_Masterstroke] = 1;
+    SetClassTalentRank(Slot, DuelistTalent_Masterstroke, 1);
     float Double = HeartseekerWith(&Crypt, 5);
     Check(Double < 1.01f * Single);
     // NOTE(zoubir): the second strike lands a moment later

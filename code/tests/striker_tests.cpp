@@ -48,6 +48,7 @@ TestMarkBitsFromFireball()
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    GrantClassSpells(Slot);
     world_entity *Monster = StrikerDummy(&Crypt, V3(120.f, 0.f, 0.f));
     world_entity Fireball = {};
     Fireball.Type = EntityType_FireBall;
@@ -66,6 +67,7 @@ TestMarkBitsFromFireball()
     Check(FindFoeMark(Run, World, Other) == 0);
     // NOTE(zoubir): nor does a tank's fireball: it sunders instead
     SetPlayerRole(AppState, Slot, PlayerRole_Tank);
+    GrantClassSpells(Slot);
     DungeonScaleDamage(AppState, Other, &Fireball, 1.f);
     Check(FindFoeMark(Run, World, Other) && FindFoeMark(Run, World, Other)->Stacks == 0);
     // NOTE(zoubir): left alone, the mark fades
@@ -87,6 +89,7 @@ TestSearingBurnsAndExplodes()
     dungeon_run *Run = AppState->Dungeon;
     TickCrypt(&Crypt, 1);
     SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Damage);
+    GrantClassSpells(&AppState->Players[0]);
     world_entity *Full = StrikerDummy(&Crypt, V3(160.f, 0.f, 0.f));
     world_entity *Near = StrikerDummy(&Crypt, V3(200.f, 0.f, 0.f));
     world_entity *One = StrikerDummy(&Crypt, V3(-200.f, 0.f, 0.f));
@@ -139,6 +142,7 @@ TestFireguardAbsorbs()
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    GrantClassSpells(Slot);
     world_entity *Striker = Slot->Entity;
     Striker->SpawnShield = 0.f;
     Check(RoleSpellLearned(Slot, 2));
@@ -171,6 +175,7 @@ TestClassKeyWaitsForTheCast()
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    GrantClassSpells(Slot);
     world_entity *Striker = Slot->Entity;
     PressOnce(&Crypt, 0, PlayerButton_Launch);
     Check(IsPlayerCasting(Striker));
@@ -209,7 +214,9 @@ TestSunderAndWardRaiseDamage()
     player_slot *Striker = &AppState->Players[0];
     player_slot *Tank = &AppState->Players[1];
     SetPlayerRole(AppState, Striker, PlayerRole_Damage);
+    GrantClassSpells(Striker);
     SetPlayerRole(AppState, Tank, PlayerRole_Tank);
+    GrantClassSpells(Tank);
     world_entity *Monster = SpawnMonster(AppState, World, &Crypt.Arena,
                                          Tank->Entity->Position + V3(40.f, 0.f, 0.f),
                                          MonsterKind_Brute);
@@ -251,13 +258,16 @@ TestRotationTalents()
     player_slot *Tank = &AppState->Players[1];
     player_slot *Healer = &AppState->Players[2];
     SetPlayerRole(AppState, Striker, PlayerRole_Damage);
+    GrantClassSpells(Striker);
     SetPlayerRole(AppState, Tank, PlayerRole_Tank);
+    GrantClassSpells(Tank);
     SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+    GrantClassSpells(Healer);
 
     // NOTE(zoubir): Searing Heat's two ranks add to every stack of the
     // blast, and Overload makes a full mark's blast harder still
-    Striker->Ranks[Talent_RoleFirst + StrikerTalent_SearingHeat] = 2;
-    Striker->Ranks[Talent_RoleFirst + StrikerTalent_Overload] = 1;
+    SetClassTalentRank(Striker, StrikerTalent_SearingHeat, 2);
+    SetClassTalentRank(Striker, StrikerTalent_Overload, 1);
     world_entity *Marked = StrikerDummy(&Crypt, V3(120.f, 0.f, 0.f));
     world_entity *Bare = StrikerDummy(&Crypt, V3(-120.f, 0.f, 0.f));
     AddSearing(Run, World, Marked, SEARING_MOST, 0);
@@ -270,7 +280,7 @@ TestRotationTalents()
     Check(Full > 0.99f * Expected * One && Full < 1.01f * Expected * One);
 
     // NOTE(zoubir): Shatter Armor: a deeper, longer sunder
-    Tank->Ranks[Talent_RoleFirst + TankTalent_ShatterArmor] = 1;
+    SetClassTalentRank(Tank, TankTalent_ShatterArmor, 1);
     world_entity *Monster = SpawnMonster(AppState, World, &Crypt.Arena,
                                          Tank->Entity->Position + V3(40.f, 0.f, 0.f),
                                          MonsterKind_Brute);
@@ -306,7 +316,9 @@ TestTankAndHealerShots()
     player_slot *Tank = &AppState->Players[1];
     player_slot *Healer = &AppState->Players[2];
     SetPlayerRole(AppState, Tank, PlayerRole_Tank);
+    GrantClassSpells(Tank);
     SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+    GrantClassSpells(Healer);
     world_entity *Monster = StrikerDummy(&Crypt, V3(150.f, 0.f, 0.f));
     world_entity Shot = {};
     Shot.Type = EntityType_FireBall;
@@ -346,6 +358,7 @@ TestStrikerCrowdControl()
     TickCrypt(&Crypt, 1);
     player_slot *Striker = &AppState->Players[0];
     SetPlayerRole(AppState, Striker, PlayerRole_Damage);
+    GrantClassSpells(Striker);
 
     world_entity *Burning = StrikerDummy(&Crypt, V3(150.f, 0.f, 0.f));
     inferno *Fire = &Run->Infernos[0];
@@ -359,7 +372,7 @@ TestStrikerCrowdControl()
     UpdateInfernos(AppState, Run, INFERNO_BURN_TICK + 0.01f);
     Check(Burning->Hp < Before);
     Check(!HasStatus(Burning, StatusEffect_Slowed));
-    Striker->Ranks[Talent_RoleFirst + StrikerTalent_MoltenGround] = 3;
+    SetClassTalentRank(Striker, StrikerTalent_MoltenGround, 3);
     UpdateInfernos(AppState, Run, INFERNO_BURN_TICK);
     float Slow = Burning->StatusTimers[StatusEffect_Slowed];
     Check(Slow > 0.99f * 3.f * MOLTEN_GROUND_SLOW_SECONDS &&
@@ -368,7 +381,7 @@ TestStrikerCrowdControl()
     world_entity *Struck = StrikerDummy(&Crypt, V3(-150.f, 0.f, 0.f));
     for(u32 Taken = 0; Taken < 2; Taken++)
     {
-        Striker->Ranks[Talent_RoleFirst + StrikerTalent_Cataclysm] = (u8)Taken;
+        SetClassTalentRank(Striker, StrikerTalent_Cataclysm, (u8)Taken);
         Struck->StatusTimers[StatusEffect_Stunned] = 0.f;
         giant_fireball *Ball = &Run->GiantFireballs[0];
         Ball->Position = Struck->Position + V3(10.f, 0.f, 0.f);

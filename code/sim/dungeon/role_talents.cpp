@@ -1,40 +1,19 @@
-/* Role talents (dungeon.cpp): each class's own tree, the only one a
-   dungeon run shows. Its twelve slots are Talent_RoleFirst on in
-   sim/progression/talents.cpp, the same shape for every class, six tiers
-   deep (ROLE_TALENT_TIERS):
+/* Role talents (dungeon.cpp): each class's tree, the only one a dungeon
+   run shows: two branches, Talent_RoleFirst on and Talent_RunFirst on,
+   laid out and rolled in class_tree.cpp (docs/class-trees.md).
 
-   tier 0   slot 0 (2 ranks)    slot 1 (2, the C spell)
-   tier 1   slot 2 (1)          slot 3 (1)
-   tier 2   slot 4 (1, V spell) slot 6 (4)
-   tier 3   slot 5 (1)          slot 7 (4)
-   tier 4   slot 8 (4)          slot 9 (4)
-   tier 5   slot 10 (4)         slot 11 (1, the capstone)
+   A class's catalog of talents is role_kits/<class>_defs.cpp: the
+   talents its tree can hold, by its own enum, with their numbers. A talent
+   with code of its own is read in the kit through RoleRank, which finds it
+   wherever the tree put it; a stat talent raises one stat a rank
+   (role_stats.cpp). Some talents unlock a spell (role_spell.Unlock), and
+   each branch offers two of those of which a player takes one.
 
-   29 points in all, one per level from 2 to 30, so a class's tree fills
-   at the dungeon's top level. What a slot is depends on the player's
-   class, so picking another class gives its points back (SetPlayerRole,
-   roles.cpp).
+   What a talent is depends on the player's class, so picking another
+   class gives its points back (SetPlayerRole, roles.cpp). */
 
-   Two slots unlock a spell (RoleSpells, role_abilities.cpp): slot 1
-   unlocks the class's C spell, and its second rank strengthens it; slot 4
-   unlocks the V spell. A and R are the class's own from the start.
-
-   Slots 6, 7, 9 and 10 are stat talents (role_stats.cpp): each rank adds
-   a share of one stat (damage, armor, health, cooldowns, healing, run
-   speed or life steal), set per class in <class>_defs.cpp. Slot 8 changes
-   one of the class's spells and slot 11 is its capstone; those two, like
-   slots 0 to 5, have code of their own in the class's kit.
-
-   Each class's talents, their numbers and what they do are in
-   role_kits/<class>_defs.cpp; the kits read the ranks through RoleRank.
-
-   Each class has a second tree beside this one, partly random:
-   run_tree/run_tree.cpp. */
-
-// NOTE(zoubir): the slots that unlock a spell, the same for every class:
-// the C spell, then the V spell
-#define ROLE_TALENT_C_SPELL 1
-#define ROLE_TALENT_V_SPELL 4
+// NOTE(zoubir): the most talents a class's catalog holds
+#define CLASS_TALENTS 20
 
 // NOTE(zoubir): the stat a stat talent raises (role_stats.cpp)
 enum role_stat
@@ -83,13 +62,13 @@ global_variable talent_def *RoleTalentDefs[PlayerRole_Count] =
 internal float ClassDealtScale(player_slot *Slot, world_entity *Target);
 internal float ClassTakenScale(player_slot *Slot, world_entity *Player);
 
-// NOTE(zoubir): Slot's rank in slot Index of Role's branch; 0 when Slot
+// NOTE(zoubir): Slot's ranks in talent Index of Role's catalog; 0 when Slot
 // plays another role
 inline u32
 RoleRank(player_slot *Slot, u32 Role, u32 Index)
 {
-    u32 Result = (Slot && Slot->Role == Role && Index < ROLE_TALENTS) ?
-        Slot->Ranks[Talent_RoleFirst + Index] : 0;
+    u32 Result = (Slot && Slot->Role == Role && Index < CLASS_TALENTS) ?
+        ClassTalentRank(Slot, Index) : 0;
     return Result;
 }
 
@@ -99,14 +78,9 @@ internal talent_def *
 ShownTalentDef(player_slot *Slot, u32 Talent)
 {
     talent_def *Result = &TalentDefs[Talent < Talent_Count ? Talent : 0];
-    if (IsRoleTalent(Talent))
+    if (IsClassTalent(Talent))
     {
-        u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
-        Result = &RoleTalentDefs[Role][Talent - Talent_RoleFirst];
-    }
-    if (IsRunTalent(Talent))
-    {
-        Result = ShownRunTalentDef(Slot, Talent);
+        Result = ShownClassTalentDef(Slot, Talent);
     }
     return Result;
 }

@@ -14,7 +14,7 @@ TestCapacitorAndStormbringer()
     crypt_world Crypt = CreateStormWorld();
     app_state *AppState = Crypt.AppState;
     player_slot *Slot = &AppState->Players[0];
-    Slot->Ranks[Talent_RoleFirst + StormcallerTalent_Capacitor] = 1;
+    SetClassTalentRank(Slot, StormcallerTalent_Capacitor, 1);
     storm_dummies Dummies = {};
     world_entity *Foe = StormDummy(&Crypt, &Dummies, V3(300.f, 0.f, 0.f));
     SetStormCharge(Slot, 50.f);
@@ -32,7 +32,7 @@ TestCapacitorAndStormbringer()
     Crypt = CreateStormWorld();
     AppState = Crypt.AppState;
     Slot = &AppState->Players[0];
-    Slot->Ranks[Talent_RoleFirst + StormcallerTalent_Stormbringer] = 1;
+    SetClassTalentRank(Slot, StormcallerTalent_Stormbringer, 1);
     Dummies = {};
     Foe = StormDummy(&Crypt, &Dummies, V3(150.f, 40.f, 0.f));
     world_entity *Others[4];
@@ -65,7 +65,7 @@ TestOverload()
         app_state *AppState = Crypt.AppState;
         player_slot *Slot = &AppState->Players[0];
         world_entity *Player = Slot->Entity;
-        Slot->Ranks[Talent_RoleFirst + StormcallerTalent_LiveWire] = (u8)LiveWire;
+        SetClassTalentRank(Slot, StormcallerTalent_LiveWire, (u8)LiveWire);
         storm_dummies Dummies = {};
         world_entity *Target = StormDummy(&Crypt, &Dummies, V3(330.f, 150.f, 0.f));
         world_entity *Close = StormDummy(&Crypt, &Dummies, V3(-60.f, 40.f, 0.f));
@@ -126,7 +126,7 @@ TestEyeOfTheStorm()
     crypt_world Crypt = CreateStormWorld();
     app_state *AppState = Crypt.AppState;
     player_slot *Slot = &AppState->Players[0];
-    Slot->Ranks[Talent_RoleFirst + StormcallerTalent_EyeOfTheStorm] = 1;
+    SetClassTalentRank(Slot, StormcallerTalent_EyeOfTheStorm, 1);
     storm_dummies Dummies = {};
     world_entity *Foe = StormDummy(&Crypt, &Dummies, V3(300.f, 0.f, 0.f));
     SetStormCharge(Slot, 20.f);
@@ -162,7 +162,7 @@ TestLightningDash()
     app_state *AppState = Crypt.AppState;
     player_slot *Slot = &AppState->Players[0];
     world_entity *Player = Slot->Entity;
-    Slot->Ranks[Talent_RoleFirst + StormcallerTalent_LightningDash] = 1;
+    SetClassTalentRank(Slot, StormcallerTalent_LightningDash, 1);
     Check(RoleSpellCooldown(Slot, 2) == LIGHTNING_DASH_COOLDOWN);
     storm_dummies Dummies = {};
     world_entity *Crossed = StormDummy(&Crypt, &Dummies, V3(140.f, 10.f, 0.f));
@@ -176,7 +176,7 @@ TestLightningDash()
     Check(HasStatus(Crossed, StatusEffect_Slowed));
     Check(Aside->Hp == 2000.f);
     Check(Slot->Stormcaller.Charge == LIGHTNING_DASH_CHARGE);
-    Slot->Ranks[Talent_RoleFirst + StormcallerTalent_LightningDash] = 2;
+    SetClassTalentRank(Slot, StormcallerTalent_LightningDash, 2);
     Check(RoleSpellCooldown(Slot, 2) == LIGHTNING_DASH_RANK2_COOLDOWN);
 
     // NOTE(zoubir): back toward the wall the run starts by, and on past
@@ -209,6 +209,7 @@ TestChargeDrains()
     Check(Slot->Stormcaller.Charge < 60.f - 0.9f * STORM_CHARGE_DRAIN);
     Check(Slot->ClassMeter == (u8)(Slot->Stormcaller.Charge + 0.5f));
     SetPlayerRole(AppState, Slot, PlayerRole_Tank);
+    GrantClassSpells(Slot);
     TickCrypt(&Crypt, 1);
     Check(Slot->Stormcaller.Charge == 0.f && Slot->ClassMeter == 0);
     DestroyCryptWorld(&Crypt);

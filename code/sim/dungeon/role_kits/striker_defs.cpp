@@ -15,6 +15,8 @@ enum striker_talent
     StrikerTalent_QuickenedFlame,
     StrikerTalent_HeatShield,
     StrikerTalent_Cataclysm,
+    StrikerTalent_Meteor,
+    StrikerTalent_Fireguard,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -37,7 +39,7 @@ enum striker_talent
 // catches this long, which also holds a monster's wind-up
 #define CATACLYSM_STUN_SECONDS 1.5f
 
-global_variable talent_def StrikerTalentDefs[ROLE_TALENTS] =
+global_variable talent_def StrikerTalentDefs[CLASS_TALENTS] =
 {
         {"Pyromancer", "All your damage is higher", "+6% damage",
          TalentBranch_Role, 0, 0, 2, 0},
@@ -63,11 +65,15 @@ global_variable talent_def StrikerTalentDefs[ROLE_TALENTS] =
          TalentBranch_Role, 5, 0, 4, 0},
         {"Cataclysm", "Giant Fireball's blast stuns every monster it catches",
          "1.5 s stun", TalentBranch_Role, 5, 1, 1, 0},
+    {"Meteor", "A: a 1 s cast, then a meteor at the cursor that marks and leaves burning ground",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Fireguard", "C: a shield of fire that takes the next 50 damage",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
 // for a talent with code of its own
-global_variable u8 StrikerTalentStats[ROLE_TALENTS] =
+global_variable u8 StrikerTalentStats[CLASS_TALENTS] =
 {
     RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
     RoleStat_Damage, RoleStat_Vitality, RoleStat_None, RoleStat_Haste, RoleStat_Armor, RoleStat_None,

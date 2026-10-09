@@ -150,12 +150,14 @@ enum duelist_talent
     DuelistTalent_QuickWrist,
     DuelistTalent_Stamina,
     DuelistTalent_Masterstroke,
+    DuelistTalent_Lunge,
+    DuelistTalent_Riposte,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 4 unlocks the V spell. The Duelist has no C spell (X and C do
 // nothing for it), so slot 1 is a passive
-global_variable talent_def DuelistTalentDefs[ROLE_TALENTS] =
+global_variable talent_def DuelistTalentDefs[CLASS_TALENTS] =
 {
     {"Finesse", "All your damage is higher", "+5% damage",
      TalentBranch_Role, 0, 0, 2, 0},
@@ -181,11 +183,15 @@ global_variable talent_def DuelistTalentDefs[ROLE_TALENTS] =
      TalentBranch_Role, 5, 0, 4, 0},
     {"Masterstroke", "At 5 Tempo, Heartseeker strikes again for 60%; a kill readies it",
      "a second strike", TalentBranch_Role, 5, 1, 1, 0},
+    {"Lunge", "A: dash to a foe and strike it",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Riposte", "R: a moment on guard; the first blow is parried and countered",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
 // for a talent with code of its own
-global_variable u8 DuelistTalentStats[ROLE_TALENTS] =
+global_variable u8 DuelistTalentStats[CLASS_TALENTS] =
 {
     RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
     RoleStat_Damage, RoleStat_Armor, RoleStat_None, RoleStat_Haste, RoleStat_Vitality, RoleStat_None,
@@ -195,10 +201,10 @@ global_variable u8 DuelistTalentStats[ROLE_TALENTS] =
 global_variable role_spell DuelistSpells[ROLE_KEYS] =
 {
     {"Lunge", LUNGE_COOLDOWN, "Lunge: dash to the foe under the cursor and strike it",
-     RoleAim_Foe, LUNGE_RANGE, 0},
+     RoleAim_Foe, LUNGE_RANGE, DuelistTalent_Lunge + 1},
     {"Riposte", RIPOSTE_COOLDOWN,
      "Riposte: 0.75 s on guard; a hit in it is parried and countered, and Riposte is back in 2 s",
-     RoleAim_None, RIPOSTE_REACH, 0},
+     RoleAim_None, RIPOSTE_REACH, DuelistTalent_Riposte + 1},
     {},
     {"Perfect Form", FORM_COOLDOWN,
      "Perfect Form: 8 s where Tempo holds, every key builds it and Thrust strikes twice",

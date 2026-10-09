@@ -54,54 +54,9 @@ Three branches of four tiers. A tier opens once you have spent 2 points per tier
 - Ward: a charge that takes one hit whole, shove and stun included. It comes back after 18 s, or 11 s at rank 2. Everyone sees a gold hexagon round a player whose ward is up.
 - Second Wind: back from death in 1.5 s instead of 3, with a 3 s shield instead of 1.5 s.
 
-In a dungeon run the panel shows the class's two trees instead, side by side. The first is the class tree (docs/dungeon-plan.md, "Role talents"): twelve talents over six tiers, two of them unlocking the class's C and V spells. The second is described below. Both take points only in a run and give them back when the class changes, and the three branches above take no point there. The two share the run's 29 points, and filling both would take 56, so every build leaves something out.
+In a dungeon run the panel shows the class's tree instead: two branches side by side, each named for a way to play the class, sharing the run's 29 points. A class casts two base spells from the start and takes one spell from a pair in each branch, so it never casts more than four. Some slots of each branch roll again as each run starts. The three branches above take no point there. The rules, every class's branches and what is left to build are in `docs/class-trees.md`; the code is `code/sim/dungeon/class_tree.cpp` and `class_tree_defs.cpp`.
 
-## The second tree in a run
-
-Each class has a second tree of twelve slots (`code/sim/dungeon/run_tree/`), named for the class: Ashbringer (Fire Mage), Iron Vanguard (Bulwark), Grace (Mender), Wildstalker (Ranger), Bloodrage (Berserker), Nightfall (Shadowblade), Tempest (Stormcaller), Flourish (Duelist), Rime (Frost Mage), Grove (Druid).
-
-| Tier | Left | Right |
-|---|---|---|
-| 1 | fixed, 3 ranks | wild, 2 ranks |
-| 2 | wild, 2 ranks | fixed, 3 ranks |
-| 3 | fixed, 3 ranks | wild, 2 ranks |
-| 4 | wild, 2 ranks | fixed, 3 ranks |
-| 5 | fixed, 3 ranks | wild, 2 ranks |
-| 6 | wild keystone, 1 rank | the class's capstone, 1 rank |
-
-A tier opens at 2 points a tier in this tree; points in the class tree do not count.
-
-**Fixed slots** hold the same talent every run, chosen for the class. The Bulwark's are Menacing (more threat), Stoneform (armor), Retaliation (thorns), Steady Heart (regeneration in a fight), Shield Brother (allies near take less) and the capstone Living Fortress (+15% health, 20% less damage taken under 40% health).
-
-**Wild slots** roll a talent from a shared pool of 28 when a new run starts, and roll again at the next one. Points already in a wild slot stay there and buy whatever it rolled. The pool only offers what fits the class's role: a healer never rolls Finisher, a damage class never rolls Menace. No minor wild slot repeats an effect another slot already gives. The panel marks a wild slot with a die and its tooltip says it changes each run.
-
-**Keystones** roll in the sixth tier's wild slot and trade a cost for a big effect: Glass Cannon (+18% damage, 15% more taken), Colossus (+25% health, 8% slower), Blood Pact (6% of damage healed back, 30% less healing received), Zealotry (spells 15% faster, 10% less health), Headsman, Martyr, Unyielding, Warlord, Bloodbath, Thornwall, Blitz (+60% damage in a fight's first 8 s, 8% less after), Legend (+1.5% damage a room cleared this run, 10% less health).
-
-A talent is one or two effects, each with an amount a rank:
-
-| Effect | What it does |
-|---|---|
-| damage, armor, health, cooldowns, healing, run speed, leech | the same seven stats as the class tree's stat talents |
-| execute / opener | more damage to foes under 35% / above 80% health |
-| bossbane / packbane | more damage to the boss / to everything else |
-| desperate | more damage while you are under 40% health |
-| cadence | every fifth hit lands harder |
-| frenzy | a kill gives more damage for 6 s |
-| last breath | less damage taken while you are under 40% health |
-| feast / refund | a kill heals you / takes time off every class spell |
-| thorns | a monster that hits you takes a share back next tick |
-| regen | heal a share of your health each second of a fight |
-| aura / anthem | allies within 320 take less / deal more (15% at most from all allies) |
-| threat | more or less threat from your damage |
-| heal taken / overflow | heals on you heal more / healing past full becomes a ward |
-| vanguard | more damage in the first 8 s of each fight |
-| glory | more damage for every room cleared this run, counted up to 10 |
-| lifeline | once a fight, dropping under 30% health heals you |
-| shared feast | a kill heals the allies within 320 |
-
-**How the two trees compare.** With the C and V spells unlocked first, bots that spend the rest in the second tree kill each boss within about 5-8% of the time bots in the class tree take (balance probe, 32-64 seeds a boss). They wipe more in the last two levels, mostly because the class tree holds the capstones that save a life (the Bulwark's Unbroken, the Mender's Guardian Angel and Miracle) and the second tree has nothing like them. That is the choice: the class tree's capstone, or the second tree's numbers and rolls.
-
-The roll is a hash of the player's 16-bit tree seed, the class and the slot. The server sends each player only its seed, and the client rolls the same tree. Every number is a row in `run_tree/run_mods.cpp`; the classes' fixed talents and tree names are `RunTrees` in `run_tree/run_tree.cpp`. `code/tests/run_tree_tests.cpp` checks the rolls and the effects. `miscalance.bat` with `PROBE_TREE=class` or `PROBE_TREE=run` has the probe's bots spend in one tree; `PROBE_TREE=core-class` or `core-run` unlocks the spells first, and `PROBE_TREE_ONLY=tank` limits `core-run` to one role's bot.
+`miscalance.bat` with `PROBE_TREE=class` or `PROBE_TREE=run` has the probe's bots spend in the first or the second branch; `PROBE_TREE=core-class` or `core-run` takes a spell of each pair first, and `PROBE_TREE_ONLY=tank` limits `core-run` to one role's bot.
 
 Experience and talents live on the player slot, not the entity, so a time rewind never takes them back. Leaving the server resets them.
 

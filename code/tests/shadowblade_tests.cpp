@@ -18,6 +18,7 @@ ReadyShadowblade(crypt_world *Crypt)
     TickCrypt(Crypt, 1);
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Shadowblade);
+    GrantClassSpells(Slot);
     Slot->Input.Aim = V2(1.f, 0.f);
     TickCrypt(Crypt, 1);
     return Slot;
@@ -43,13 +44,16 @@ TestShadowbladeOwnsItsKeys()
     app_state *AppState = Crypt.AppState;
     player_slot *Slot = ReadyShadowblade(&Crypt);
     Check(RoleHasKit(PlayerRole_Shadowblade));
+    // NOTE(zoubir): the two base spells only, before any point
+    ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, 0);
-    u32 Main = PlayerButton_Launch | PlayerButton_Push | PlayerButton_Shockwave | PlayerButton_Attack |
-        PlayerButton_Cast;
+    u32 Main = PlayerButton_Shockwave | PlayerButton_Attack;
     Check((Allowed & Main) == Main);
-    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Kunai)));
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_Envenom] = 2;
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_ShadowDance] = 1;
+    Check(!(Allowed & (PlayerButton_Launch | PlayerButton_Push | PlayerButton_Slam |
+                       PlayerButton_Kunai | PlayerButton_Cast)));
+    GrantClassSpells(Slot);
+    SetClassTalentRank(Slot, ShadowbladeTalent_Envenom, 2);
+    SetClassTalentRank(Slot, ShadowbladeTalent_ShadowDance, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);
     Check(Allowed & PlayerButton_Kunai);
     Check(!(Allowed & PlayerButton_Slam));
@@ -311,7 +315,7 @@ TestShadowDance()
     PressOnce(&Crypt, 0, PlayerButton_Attack);
     float Plain = 2000.f - Foe->Hp;
     TickHolding(&Crypt, Foe, 30);
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_ShadowDance] = 1;
+    SetClassTalentRank(Slot, ShadowbladeTalent_ShadowDance, 1);
     PressOnce(&Crypt, 0, PlayerButton_Kunai);
     Check(Slot->RoleCooldowns[3] > 0.f);
     Check(Slot->ClassFlags & SHADOWBLADE_FLAG_DANCE);
@@ -337,12 +341,12 @@ TestShadowbladeTalents()
     world_entity *Foe = StrikerDummy(&Crypt, V3(50.f, 0.f, 0.f));
     // NOTE(zoubir): Lethality, by rank
     float Plain = ShadowbladeDealtScale(Slot, Foe);
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_Lethality] = 2;
+    SetClassTalentRank(Slot, ShadowbladeTalent_Lethality, 2);
     float Lethal = ShadowbladeDealtScale(Slot, Foe);
     Check(Lethal > Plain * (1.f + 2.f * LETHALITY_SHARE) - 0.001f &&
           Lethal < Plain * (1.f + 2.f * LETHALITY_SHARE) + 0.001f);
     // NOTE(zoubir): Opportunist, only from behind
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_Opportunist] = 1;
+    SetClassTalentRank(Slot, ShadowbladeTalent_Opportunist, 1);
     Foe->Direction = V2(-1.f, 0.f);
     Check(ShadowbladeDealtScale(Slot, Foe) == Lethal);
     Foe->Direction = V2(1.f, 0.f);
@@ -351,8 +355,8 @@ TestShadowbladeTalents()
           Behind < Lethal * (1.f + OPPORTUNIST_SHARE) + 0.001f);
     // NOTE(zoubir): Venom: a stronger, longer poison; Envenom stronger
     // again by rank
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_Venom] = 1;
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_Envenom] = 2;
+    SetClassTalentRank(Slot, ShadowbladeTalent_Venom, 1);
+    SetClassTalentRank(Slot, ShadowbladeTalent_Envenom, 2);
     Check(CastShadowbladeKey(AppState, &AppState->World, &Crypt.Arena, Slot, Blade, 6));
     shadowblade_poison *Poison = &AppState->Dungeon->Shadowblade.Poisons[0];
     Check(Poison->Seconds == BLADE_POISON_SECONDS + VENOM_SECONDS);
@@ -364,7 +368,7 @@ TestShadowbladeTalents()
     Check(HasStatus(Side, StatusEffect_Poisoned));
     // NOTE(zoubir): Relentless: a killing Eviscerate gives points back and
     // Shadowstep with them
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_Relentless] = 1;
+    SetClassTalentRank(Slot, ShadowbladeTalent_Relentless, 1);
     Foe->Hp = 5.f;
     Slot->ClassMeter = 5;
     Slot->RoleCooldowns[0] = 5.f;
@@ -416,7 +420,7 @@ TestKnifeStorm()
     FinishShadowbladeCast(AppState, Slot, Blade, PlayerSpell_ShadowbladeA);
     float Plain = 2000.f - Near->Hp;
     Check(Plain > 0.f && Edge->Hp == 2000.f);
-    Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_KnifeStorm] = 4;
+    SetClassTalentRank(Slot, ShadowbladeTalent_KnifeStorm, 4);
     float Wide = FAN_OF_KNIVES_RADIUS * (1.f + 4.f * KNIFE_STORM_RADIUS_SHARE);
     Check(RoleSpellRadius(Slot, 1) > Wide - 0.01f && RoleSpellRadius(Slot, 1) < Wide + 0.01f);
     float Before = Near->Hp;
@@ -439,7 +443,7 @@ TestKidneyShot()
     for(u32 Case = 0; Case < 3; Case++)
     {
         u32 Points = Case == 1 ? 4 : SHADOWBLADE_MOST_POINTS;
-        Slot->Ranks[Talent_RoleFirst + ShadowbladeTalent_KidneyShot] = Case == 0 ? 0 : 1;
+        SetClassTalentRank(Slot, ShadowbladeTalent_KidneyShot, Case == 0 ? 0 : 1);
         world_entity *Foe = StrikerDummy(&Crypt, V3(50.f, 0.f, 0.f));
         Slot->ClassMeter = (u8)Points;
         Slot->RoleCooldowns[4] = 0.f;

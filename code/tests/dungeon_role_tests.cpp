@@ -35,7 +35,9 @@ TestRoleKeys()
     dungeon_run *Run = AppState->Dungeon;
     TickCrypt(&Crypt, 1);
     SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Tank);
+    GrantClassSpells(&AppState->Players[0]);
     SetPlayerRole(AppState, &AppState->Players[1], PlayerRole_Healer);
+    GrantClassSpells(&AppState->Players[1]);
     world_entity *Tank = AppState->Players[0].Entity;
     world_entity *Healer = AppState->Players[1].Entity;
     world_entity *Striker = AppState->Players[2].Entity;
@@ -93,7 +95,7 @@ TestRoleKeys()
     // has it
     Healer->Hp = Healer->MaxHp - 30.f;
     Healer->AimReach = 0.f;
-    AppState->Players[1].Ranks[Talent_RoleFirst + HealerTalent_Sanctuary] = 1;
+    SetClassTalentRank(&AppState->Players[1], HealerTalent_Sanctuary, 1);
     PressOnce(&Crypt, 1, PlayerButton_Slam);
     TickCrypt(&Crypt, 120);
     Check(Healer->Hp > Healer->MaxHp - 15.f);
@@ -120,6 +122,7 @@ TestAllySpellsGoWherePicked()
     app_state *AppState = Crypt.AppState;
     TickCrypt(&Crypt, 1);
     SetPlayerRole(AppState, &AppState->Players[1], PlayerRole_Healer);
+    GrantClassSpells(&AppState->Players[1]);
     world_entity *A = AppState->Players[0].Entity;
     world_entity *Healer = AppState->Players[1].Entity;
     world_entity *C = AppState->Players[2].Entity;
@@ -162,6 +165,7 @@ TestShieldSlamStunsAndRallies()
     world *World = &AppState->World;
     TickCrypt(&Crypt, 1);
     SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Tank);
+    GrantClassSpells(&AppState->Players[0]);
     world_entity *Tank = AppState->Players[0].Entity;
     world_entity *Near = AppState->Players[1].Entity;
     world_entity *Far = AppState->Players[2].Entity;
@@ -241,11 +245,11 @@ TestRoleTalents()
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Tank);
     Slot->Level = 6;
-    Check(LearnTalent(AppState, 0, Talent_RoleFirst + TankTalent_IronSkin));
-    Check(LearnTalent(AppState, 0, Talent_RoleFirst + TankTalent_IronSkin));
-    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + TankTalent_IronSkin));
-    Check(ShownTalentDef(Slot, Talent_RoleFirst + TankTalent_IronSkin) ==
-          &RoleTalentDefs[PlayerRole_Tank][TankTalent_IronSkin]);
+    Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_IronSkin)));
+    Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_IronSkin)));
+    Check(!LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_IronSkin)));
+    Check(strcmp(ShownTalentDef(Slot, ClassTalentId(Slot, TankTalent_IronSkin))->Name,
+                 RoleTalentDefs[PlayerRole_Tank][TankTalent_IronSkin].Name) == 0);
     world_entity *Tank = Slot->Entity;
     float Before = Tank->Hp;
     DamageEntity(AppState, World, Tank, 100.f, 0);
@@ -256,12 +260,10 @@ TestRoleTalents()
     // NOTE(zoubir): another role: the branch's points come back
     u32 Left = TalentPointsLeft(Slot);
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
-    Check(Slot->Ranks[Talent_RoleFirst + TankTalent_IronSkin] == 0);
+    Check(ClassTalentRank(Slot, TankTalent_IronSkin) == 0);
     Check(TalentPointsLeft(Slot) == Left + 2);
-    Check(LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_Wildfire) ||
-          LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_SearingHeat));
-    Check(Slot->Ranks[Talent_RoleFirst + StrikerTalent_SearingHeat] +
-          Slot->Ranks[Talent_RoleFirst + StrikerTalent_Wildfire] == 1);
+    Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], StrikerTalent_SearingHeat)));
+    Check(ClassTalentRank(Slot, StrikerTalent_SearingHeat) == 1);
 
     // NOTE(zoubir): in a run only the class's tree takes points
     u32 PointsBefore = TalentPointsLeft(Slot);
@@ -274,7 +276,7 @@ TestRoleTalents()
     // NOTE(zoubir): outside a run nobody can buy one
     dungeon_run *Run = AppState->Dungeon;
     AppState->Dungeon = 0;
-    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + StrikerTalent_SearingHeat));
+    Check(!LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], StrikerTalent_SearingHeat)));
     AppState->Dungeon = Run;
     DestroyCryptWorld(&Crypt);
 }
@@ -304,6 +306,7 @@ TestPartyScalesExponentially()
     dungeon_run *Run = AppState->Dungeon;
     TickCrypt(&Crypt, 1);
     SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Tank);
+    GrantClassSpells(&AppState->Players[0]);
     world_entity *Tank = AppState->Players[0].Entity;
     world_entity *Striker = AppState->Players[2].Entity;
     world_entity *Monster = SpawnMonster(AppState, World, &Crypt.Arena,
@@ -335,6 +338,7 @@ TestHealerFavoursAllies()
     world *World = &AppState->World;
     TickCrypt(&Crypt, 1);
     SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Healer);
+    GrantClassSpells(&AppState->Players[0]);
     world_entity *Healer = AppState->Players[0].Entity;
     world_entity *Ally = AppState->Players[1].Entity;
     MovePlayerTo(AppState, World, &Crypt.Arena, Ally, Healer->Position + V3(60.f, 0.f, 0.f));
@@ -346,6 +350,7 @@ TestHealerFavoursAllies()
     crypt_world Solo = CreateCryptWorld(1);
     TickCrypt(&Solo, 1);
     SetPlayerRole(Solo.AppState, &Solo.AppState->Players[0], PlayerRole_Healer);
+    GrantClassSpells(&Solo.AppState->Players[0]);
     PressAt(&Solo, 0, PlayerButton_Push, 0);
     Check(Solo.AppState->Players[0].WardAbsorb == WARD_ABSORB);
     DestroyCryptWorld(&Solo);
@@ -361,6 +366,7 @@ TestTankSustain()
     world *World = &AppState->World;
     TickCrypt(&Crypt, 1);
     SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Tank);
+    GrantClassSpells(&AppState->Players[0]);
     player_slot *Slot = &AppState->Players[0];
     world_entity *Tank = Slot->Entity;
     PressOnce(&Crypt, 0, PlayerButton_Launch);
@@ -403,6 +409,7 @@ TestStandardCastAimsFoeSpells()
     app_state *AppState = Crypt.AppState;
     TickCrypt(&Crypt, 1);
     SetPlayerRole(AppState, &AppState->Players[0], PlayerRole_Tank);
+    GrantClassSpells(&AppState->Players[0]);
     TestCastTargeting = {};
     TestCastTargeting.Mode = CastMode_Standard;
     AppState->CastTargeting = &TestCastTargeting;

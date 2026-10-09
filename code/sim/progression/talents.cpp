@@ -34,19 +34,14 @@
    online and in replays the same tick spends them. The client draws the
    tree (ui/talent_panel/) and the server sends each player its ranks.
 
-   In a dungeon run each role has a fourth branch of its own
-   (sim/dungeon/role_talents.cpp): twelve slots at the end of the table,
-   Talent_RoleFirst on, six tiers deep (ROLE_TALENT_TIERS), whose shape
-   (tier, column, ranks) is the same for every role and whose meaning is
-   the role's. Their ranks ride with the
-   others; picking another role gives their points back. They take no
-   point outside a run.
-
-   Each class has a second tree in a run too (sim/dungeon/run_tree/):
-   twelve more slots, Talent_RunFirst on, in TalentBranch_Run. Some of
-   its talents are the class's own and always there; the rest are wild
-   and roll again each run. The two trees share the player's points, so
-   a full run fills one and a half of them at most.
+   In a dungeon run the class's tree takes the place of all this
+   (sim/dungeon/class_tree.cpp): two branches of twelve slots, the first
+   Talent_RoleFirst on, in TalentBranch_Role, the second Talent_RunFirst
+   on, in TalentBranch_Run, six tiers deep (ROLE_TALENT_TIERS). Their
+   shape is the same for every class and their meaning is the class's;
+   some slots roll again each run. Their ranks ride with the others;
+   picking another class gives their points back, and they take no point
+   outside a run.
 
    This file is the table, the point rules and learning; what each level
    and rank changes in play is talents/effects.cpp. */
@@ -185,28 +180,26 @@ global_variable talent_def TalentDefs[Talent_Count] =
     {"Second Wind", "Back from death in half the time, shielded longer", "faster respawn",
      TalentBranch_Guard, 2, 0, 1, 0},
 
-    // NOTE(zoubir): the role branch's shape; names and effects are the
-    // role's (sim/dungeon/role_talents.cpp)
+    // NOTE(zoubir): the class tree's two branches, the same shape for
+    // every class (sim/dungeon/class_tree.cpp, ClassSlotShapes); names,
+    // effects and the ranks a slot really takes are the class's
     {"", "", "", TalentBranch_Role, 0, 0, 2, 0},
     {"", "", "", TalentBranch_Role, 0, 1, 2, 0},
-    {"", "", "", TalentBranch_Role, 1, 0, 1, 0},
-    {"", "", "", TalentBranch_Role, 1, 1, 1, 0},
-    {"", "", "", TalentBranch_Role, 2, 0, 1, 0},
-    {"", "", "", TalentBranch_Role, 3, 0, 1, 0},
-    {"", "", "", TalentBranch_Role, 2, 1, 4, 0},
-    {"", "", "", TalentBranch_Role, 3, 1, 4, 0},
-    {"", "", "", TalentBranch_Role, 4, 0, 4, 0},
-    {"", "", "", TalentBranch_Role, 4, 1, 4, 0},
-    {"", "", "", TalentBranch_Role, 5, 0, 4, 0},
+    {"", "", "", TalentBranch_Role, 1, 0, 2, 0},
+    {"", "", "", TalentBranch_Role, 1, 1, 2, 0},
+    {"", "", "", TalentBranch_Role, 2, 0, 3, 0},
+    {"", "", "", TalentBranch_Role, 2, 1, 2, 0},
+    {"", "", "", TalentBranch_Role, 3, 0, 2, 0},
+    {"", "", "", TalentBranch_Role, 3, 1, 3, 0},
+    {"", "", "", TalentBranch_Role, 4, 0, 3, 0},
+    {"", "", "", TalentBranch_Role, 4, 1, 2, 0},
+    {"", "", "", TalentBranch_Role, 5, 0, 1, 0},
     {"", "", "", TalentBranch_Role, 5, 1, 1, 0},
 
-    // NOTE(zoubir): the second tree's shape, the same for every class:
-    // fixed talents of 3 ranks and wild ones of 2 in turn, then a wild
-    // keystone and the class's capstone (sim/dungeon/run_tree/run_tree.cpp)
-    {"", "", "", TalentBranch_Run, 0, 0, 3, 0},
+    {"", "", "", TalentBranch_Run, 0, 0, 2, 0},
     {"", "", "", TalentBranch_Run, 0, 1, 2, 0},
     {"", "", "", TalentBranch_Run, 1, 0, 2, 0},
-    {"", "", "", TalentBranch_Run, 1, 1, 3, 0},
+    {"", "", "", TalentBranch_Run, 1, 1, 2, 0},
     {"", "", "", TalentBranch_Run, 2, 0, 3, 0},
     {"", "", "", TalentBranch_Run, 2, 1, 2, 0},
     {"", "", "", TalentBranch_Run, 3, 0, 2, 0},
@@ -269,6 +262,8 @@ enum talent_refusal
     TalentRefusal_NoPoints,
     TalentRefusal_MaxRank,
     TalentRefusal_TierLocked,
+    // NOTE(zoubir): the other spell of the pair took a point
+    TalentRefusal_OtherSpell,
 };
 
 // NOTE(zoubir): the level the rules give for free: 1 for an ability the
@@ -337,14 +332,25 @@ IsTalentTierOpen(player_slot *Slot, u32 Branch, u32 Tier)
     return Result;
 }
 
+// NOTE(zoubir): in sim/dungeon/class_tree.cpp: the most ranks a class
+// tree slot takes for Slot, and whether Slot took the other spell of its
+// pair
+internal u32 ClassTalentMaxRanks(player_slot *Slot, u32 Talent);
+inline bool32 ClassSpellTakenBeside(player_slot *Slot, u32 Talent);
+
 internal talent_refusal
 CanLearnTalent(player_slot *Slot, u32 Talent)
 {
     talent_refusal Result = TalentRefusal_None;
     talent_def *Def = &TalentDefs[Talent];
-    if (Slot->Ranks[Talent] >= TalentMaxRanks(Talent))
+    u32 MaxRanks = IsClassTalent(Talent) ? ClassTalentMaxRanks(Slot, Talent) : TalentMaxRanks(Talent);
+    if (Slot->Ranks[Talent] >= MaxRanks)
     {
         Result = TalentRefusal_MaxRank;
+    }
+    else if (IsClassTalent(Talent) && ClassSpellTakenBeside(Slot, Talent))
+    {
+        Result = TalentRefusal_OtherSpell;
     }
     else if (!IsTalentTierOpen(Slot, Def->Branch, Def->Tier))
     {

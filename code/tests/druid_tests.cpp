@@ -19,6 +19,7 @@ CreateDruidWorld(u32 Players = 1)
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &Crypt.AppState->Players[0];
     SetPlayerRole(Crypt.AppState, Slot, PlayerRole_Druid);
+    GrantClassSpells(Slot);
     Slot->Entity->Aim = V2(1.f, 0.f);
     Slot->Entity->AimReach = 0.6f;
     return Crypt;
@@ -68,13 +69,15 @@ TestDruidKeys()
     player_slot *Slot = &AppState->Players[0];
     Check(RoleHasKit(PlayerRole_Druid));
     Check(RoleKindOf(PlayerRole_Druid) == RoleKind_Healer && !IsDamageRole(PlayerRole_Druid));
+    // NOTE(zoubir): the two base spells only, before any point
+    ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Launch | PlayerButton_Push |
-                      PlayerButton_Shockwave | PlayerButton_Cast | PlayerButton_Attack));
-    Slot->Ranks[Talent_RoleFirst + DruidTalent_EntanglingRoots] = 1;
-    Slot->Ranks[Talent_RoleFirst + DruidTalent_Tranquility] = 1;
+    Check(Allowed == ((DUNGEON_SHARED_BUTTONS & ~(u32)PlayerButton_Cast) | PlayerButton_Shockwave |
+                      PlayerButton_Attack));
+    SetClassTalentRank(Slot, DruidTalent_Starfire, 1);
+    SetClassTalentRank(Slot, DruidTalent_Tranquility, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);
-    Check((Allowed & PlayerButton_Slam) && (Allowed & PlayerButton_Kunai));
+    Check((Allowed & PlayerButton_Push) && (Allowed & PlayerButton_Kunai) && !(Allowed & PlayerButton_Slam));
     Check(DruidKeyWindsUp(1) && DruidKeyWindsUp(3) && !DruidKeyWindsUp(0) && !DruidKeyWindsUp(6));
     for(u32 Variant = 0; Variant < 10; Variant++)
     {
@@ -155,16 +158,6 @@ TestStarfire()
     Check(DruidNear(2000.f - Foe->Hp, STARFIRE_DAMAGE * Dealt));
     Check(Slot->Druid.Bloom == STARFIRE_BLOOM);
 
-    // NOTE(zoubir): Eclipse, on a foe under Moonfire
-    Slot->Ranks[Talent_RoleFirst + DruidTalent_Eclipse] = 1;
-    PressOnce(&Crypt, 0, PlayerButton_Cast);
-    // NOTE(zoubir): the burn holds its bite, so only the star counts
-    FindDruidMoonfire(AppState, 0, Foe)->TickTimer = 100.f;
-    float Before = Foe->Hp;
-    Slot->RoleCooldowns[1] = 0.f;
-    PressOnce(&Crypt, 0, PlayerButton_Push);
-    DruidTick(&Crypt, (u32)(60.f * (1.5f + STARFIRE_FALL)) + 4);
-    Check(DruidNear(Before - Foe->Hp, STARFIRE_DAMAGE * Dealt * (1.f + ECLIPSE_SHARE)));
     DestroyCryptWorld(&Crypt);
 }
 
@@ -201,7 +194,7 @@ TestRejuvenation()
     Run->FightingRoom = 0;
 
     // NOTE(zoubir): Verdancy
-    Slot->Ranks[Talent_RoleFirst + DruidTalent_Verdancy] = 1;
+    SetClassTalentRank(Slot, DruidTalent_Verdancy, 1);
     Ally->Hp = 10.f;
     Check(CastDruidKey(AppState, World, &Crypt.Arena, Slot, Druid, 0));
     for(u32 Tick = 0; Tick < (u32)(60.f * (REJUVENATION_SECONDS + VERDANCY_SECONDS)) + 30; Tick++)
@@ -213,7 +206,7 @@ TestRejuvenation()
 
     // NOTE(zoubir): Wild Growth: the two most hurt near the target too,
     // not the one far off
-    Slot->Ranks[Talent_RoleFirst + DruidTalent_WildGrowth] = 1;
+    SetClassTalentRank(Slot, DruidTalent_WildGrowth, 1);
     world_entity *Near = AppState->Players[2].Entity;
     world_entity *Far = AppState->Players[3].Entity;
     MovePlayerTo(AppState, World, &Crypt.Arena, Near, Ally->Position + V3(0.f, 60.f, 0.f));
@@ -251,14 +244,14 @@ TestRegrowthAndSymbiosis()
     Ally->MaxHp = 500.f;
     Ally->Hp = 10.f;
     Slot->Druid.Bloom = 5;
-    Slot->Ranks[Talent_RoleFirst + DruidTalent_Overgrowth] = 2;
+    SetClassTalentRank(Slot, DruidTalent_Overgrowth, 2);
     Check(CastDruidKey(AppState, World, &Crypt.Arena, Slot, Druid, 4));
     float Expected = (REGROWTH_HEAL + 5.f * REGROWTH_PER_BLOOM) * (1.f + 2.f * OVERGROWTH_SHARE) * Sustain;
     Check(DruidNear(Ally->Hp - 10.f, Expected));
     Check(Slot->Druid.Bloom == 0);
 
     // NOTE(zoubir): Symbiosis
-    Slot->Ranks[Talent_RoleFirst + DruidTalent_Symbiosis] = 1;
+    SetClassTalentRank(Slot, DruidTalent_Symbiosis, 1);
     world_entity *Foe = DruidDummy(&Crypt, V3(200.f, 0.f, 0.f));
     Ally->Hp = 10.f;
     PressOnce(&Crypt, 0, PlayerButton_Attack);
@@ -270,39 +263,6 @@ TestRegrowthAndSymbiosis()
     DestroyCryptWorld(&Crypt);
 }
 
-// NOTE(zoubir): Entangling Roots holds every foe in the circle at the
-// cursor, none outside, bites them each second, and holds longer at rank 2
-internal void
-TestEntanglingRoots()
-{
-    crypt_world Crypt = CreateDruidWorld();
-    app_state *AppState = Crypt.AppState;
-    player_slot *Slot = &AppState->Players[0];
-    world_entity *Druid = Slot->Entity;
-    Slot->Ranks[Talent_RoleFirst + DruidTalent_EntanglingRoots] = 1;
-    v2 Point = AimPoint(Druid) - Druid->Position.XY;
-    world_entity *In = DruidDummy(&Crypt, V3(Point.X, Point.Y + 20.f, 0.f), false);
-    world_entity *Out = DruidDummy(&Crypt, V3(Point.X, Point.Y + 250.f, 0.f), false);
-    PressOnce(&Crypt, 0, PlayerButton_Slam);
-    Check(HasStatus(In, StatusEffect_Rooted) && !HasStatus(Out, StatusEffect_Rooted));
-    TickCrypt(&Crypt, 1);
-    Check(Slot->ClassFlags & DRUID_FLAG_ROOTS);
-    float Dealt = GetRoleDef(PlayerRole_Druid)->DamageDealt;
-    Check(DruidNear(2000.f - In->Hp, ROOTS_TICK_DAMAGE * Dealt));
-    Check(Out->Hp == 2000.f);
-    druid_roots *Roots = &AppState->Dungeon->Druid.Roots[0];
-    Check(Roots->Seconds > ROOTS_SECONDS - 0.1f && Roots->Seconds <= ROOTS_SECONDS);
-    // NOTE(zoubir): rank 2
-    Roots->Seconds = 0.f;
-    Slot->Ranks[Talent_RoleFirst + DruidTalent_EntanglingRoots] = 2;
-    Slot->RoleCooldowns[2] = 0.f;
-    PressOnce(&Crypt, 0, PlayerButton_Slam);
-    Check(Roots->Seconds > ROOTS_SECONDS_2 - 0.1f);
-    DestroyCryptWorld(&Crypt);
-}
-
-// NOTE(zoubir): V channels Tranquility: every ally near is healed each
-// tick of it, the far one not
 internal void
 TestTranquility()
 {
@@ -315,7 +275,7 @@ TestTranquility()
     world_entity *Far = AppState->Players[2].Entity;
     MovePlayerTo(AppState, World, &Crypt.Arena, Near, Druid->Position + V3(0.f, 120.f, 0.f));
     MovePlayerTo(AppState, World, &Crypt.Arena, Far, Druid->Position + V3(0.f, -600.f, 0.f));
-    Slot->Ranks[Talent_RoleFirst + DruidTalent_Tranquility] = 1;
+    SetClassTalentRank(Slot, DruidTalent_Tranquility, 1);
     // NOTE(zoubir): a fight, so the rest between fights heals nobody
     AppState->Dungeon->FightingRoom = 2;
     Near->MaxHp = Far->MaxHp = 1000.f;
@@ -371,6 +331,7 @@ TestDruidRevives()
     dungeon_run *Run = AppState->Dungeon;
     Run->RoomStates[1] = RoomState_Cleared;
     SetPlayerRole(AppState, &AppState->Players[1], PlayerRole_Druid);
+    GrantClassSpells(&AppState->Players[1]);
     world_entity *Down = AppState->Players[0].Entity;
     world_entity *Druid = AppState->Players[1].Entity;
     world_entity *Other = AppState->Players[2].Entity;
@@ -406,7 +367,6 @@ RunDruidTests()
     TestStarfire();
     TestRejuvenation();
     TestRegrowthAndSymbiosis();
-    TestEntanglingRoots();
     TestTranquility();
     TestBloomFades();
     TestDruidRevives();

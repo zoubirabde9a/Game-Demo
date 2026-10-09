@@ -93,6 +93,7 @@ enum ranger_talent
     RangerTalent_SteadyHands,
     RangerTalent_FleetHunter,
     RangerTalent_HuntersNet,
+    RangerTalent_Volley,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -119,7 +120,7 @@ enum ranger_talent
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 1 unlocks the C spell, slot 4 the V spell
-global_variable talent_def RangerTalentDefs[ROLE_TALENTS] =
+global_variable talent_def RangerTalentDefs[CLASS_TALENTS] =
 {
     {"Marksman", "All your damage is higher", "+6% damage",
      TalentBranch_Role, 0, 0, 2, 0},
@@ -145,11 +146,13 @@ global_variable talent_def RangerTalentDefs[ROLE_TALENTS] =
      TalentBranch_Role, 5, 0, 4, 0},
     {"Hunter's Net", "Disengage's snare roots every foe near it when it springs, not just the first",
      "roots all within 120", TalentBranch_Role, 5, 1, 1, 0},
+    {"Volley", "A: arrows rain on the circle at the cursor for 2 s and slow",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
 // for a talent with code of its own
-global_variable u8 RangerTalentStats[ROLE_TALENTS] =
+global_variable u8 RangerTalentStats[CLASS_TALENTS] =
 {
     RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
     RoleStat_Damage, RoleStat_Vitality, RoleStat_None, RoleStat_Haste, RoleStat_Swiftness, RoleStat_None,
@@ -159,7 +162,7 @@ global_variable u8 RangerTalentStats[ROLE_TALENTS] =
 global_variable role_spell RangerSpells[ROLE_KEYS] =
 {
     {"Volley", VOLLEY_COOLDOWN, "Volley: arrows rain on the circle at the cursor for 2 s and slow",
-     RoleAim_Ground, VOLLEY_RADIUS, 0},
+     RoleAim_Ground, VOLLEY_RADIUS, RangerTalent_Volley + 1},
     {"Piercing Shot", PIERCE_COOLDOWN,
      "Piercing Shot: 1 s draw, an arrow through every foe in a line; spends Focus for more",
      RoleAim_Line, PIERCE_RANGE, 0, "All Focus"},

@@ -98,6 +98,17 @@ internal u32
 BotPickTalent(bot_brain *Bot, app_state *AppState, player_slot *Slot)
 {
     u32 Result = 0;
+    // NOTE(zoubir): in a run, the left spell of each branch's pair first
+    // (sim/dungeon/class_tree.cpp), so a bot casts its four spells as soon
+    // as it can and its class bot finds the spells it was written for
+    for (u32 Branch = 0; Branch < 2 && IsDungeon(AppState) && !Result; ++Branch)
+    {
+        u32 Talent = ClassTreeTalent(Branch * ROLE_TALENTS + 2);
+        if (!Slot->Ranks[Talent] && CanLearnTalent(Slot, Talent) == TalentRefusal_None)
+        {
+            Result = (Talent + 1) << NET_LEARN_SHIFT;
+        }
+    }
     u32 Start = BotRandom(Bot) % Talent_Count;
     for (u32 Step = 0; Step < Talent_Count && !Result; ++Step)
     {

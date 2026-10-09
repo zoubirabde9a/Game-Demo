@@ -3,8 +3,10 @@
    the healer an attack on W too, and everyone shares the game's fireball
    (X), shield (E) and blink (F), and jumps. Every other game ability
    does nothing in a run (RunAllowedButtons).
-   A, R and W are the class's main spells; C and V come from its tree
-   (role_talents.cpp), and until a point unlocks one its key does nothing.
+   Two of a class's spells are its base kit; the rest come from its tree,
+   one of a pair in each branch (class_tree.cpp, docs/class-trees.md), and
+   until a point unlocks one its key does nothing. Only the Fire Mage keeps
+   the game's fireball, so no class casts more than four spells.
    A class may also own X (the fireball's key) and the right click (the
    sword's): the melee classes swing their own weapon there. The classes
    after the first three are role_kits/<class>.cpp, through
@@ -85,13 +87,13 @@ global_variable u32 RoleKeys[ROLE_KEYS] =
 global_variable role_spell StrikerSpells[ROLE_KEYS] =
 {
     {"Meteor", INFERNO_COOLDOWN, "Meteor: 1 s cast, a meteor at the cursor that marks and burns",
-      RoleAim_Ground, INFERNO_RADIUS, 0},
+      RoleAim_Ground, INFERNO_RADIUS, StrikerTalent_Meteor + 1},
      {"Giant Fireball", GIANT_FIREBALL_COOLDOWN,
       "Giant Fireball: 1.5 s cast, a slow fireball that blows up a pack",
       RoleAim_Line, GIANT_FIREBALL_RANGE, 0},
      {"Fireguard", FIREGUARD_COOLDOWN,
       "Fireguard: a shield of fire that takes the next 50 damage",
-      RoleAim_None, 0.f, 0},
+      RoleAim_None, 0.f, StrikerTalent_Fireguard + 1},
      {"Combustion", COMBUSTION_COOLDOWN, "Combustion: 6 s of 40% more damage",
       RoleAim_None, 0.f, StrikerTalent_Combustion + 1},
      {}};
@@ -99,20 +101,19 @@ global_variable role_spell StrikerSpells[ROLE_KEYS] =
 global_variable role_spell TankSpells[ROLE_KEYS] =
 {
     {"Taunt", TAUNT_COOLDOWN, "Taunt: monsters near you attack you; Shield Wall 2 s",
-      RoleAim_None, 0.f, 0},
+      RoleAim_None, 0.f, TankTalent_Taunt + 1},
      {"Shield Slam", SHIELD_SLAM_COOLDOWN,
       "Shield Slam: stun and sunder what is near (+15% damage taken), heal per foe, shield allies",
       RoleAim_None, 0.f, 0},
-     {"Intercept", INTERCEPT_COOLDOWN, "Intercept: leap to an ally and pull their foes",
-      RoleAim_Ally, INTERCEPT_RANGE, TankTalent_Intercept + 1},
+     {},
      {"Last Stand", LAST_STAND_COOLDOWN, "Last Stand: heal 30%, Shield Wall for 6 s",
       RoleAim_None, 0.f, TankTalent_LastStand + 1},
      {"Shield Throw", SHIELD_THROW_COOLDOWN,
       "Shield Throw: hit a foe and bounce to two more, sundering each",
-      RoleAim_Foe, SHIELD_THROW_RANGE, 0},
+      RoleAim_Foe, SHIELD_THROW_RANGE, TankTalent_ShieldThrow + 1},
      {"Shield Charge", SHIELD_CHARGE_COOLDOWN,
       "Shield Charge: rush a foe and stun it 2 s; an attack it is winding up is cancelled",
-      RoleAim_Foe, SHIELD_CHARGE_RANGE, 0},
+      RoleAim_Foe, SHIELD_CHARGE_RANGE, TankTalent_ShieldCharge + 1},
      {"Shield Bash", SHIELD_BASH_COOLDOWN, "Shield Bash: strike what is in front with your shield",
       RoleAim_None, 0.f, 0}};
 
@@ -128,11 +129,11 @@ global_variable role_spell HealerSpells[ROLE_KEYS] =
       RoleAim_None, 0.f, HealerTalent_Radiance + 1},
      {"Holy Fire", HOLY_FIRE_COOLDOWN,
       "Holy Fire: strike a foe with light; the most hurt ally heals for it",
-      RoleAim_Foe, HOLY_FIRE_RANGE, 0},
+      RoleAim_Foe, HOLY_FIRE_RANGE, HealerTalent_HolyFire + 1},
      {},
      {"Smite Bolt", SMITE_BOLT_COOLDOWN,
       "Smite Bolt: a quick bolt of light at a foe; the most hurt ally heals a little",
-      RoleAim_None, SMITE_BOLT_RANGE, 0}};
+      RoleAim_None, SMITE_BOLT_RANGE, HealerTalent_SmiteBolt + 1}};
 
 // NOTE(zoubir): by player_role; the later classes' rows are their
 // role_kits/<class>_defs.cpp
@@ -144,6 +145,24 @@ global_variable role_spell *RoleSpells[PlayerRole_Count] =
     FrostMageSpells,
     DruidSpells,
 };
+
+// NOTE(zoubir): a point in every talent of Slot's tree that unlocks a
+// spell, both of each pair, past the point rules: for the kit tests,
+// which cast every spell a class has
+internal void
+GrantClassSpells(player_slot *Slot)
+{
+    u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
+    for(u32 Key = 0; Key < ROLE_KEYS; Key++)
+    {
+        role_spell *Spell = &RoleSpells[Role][Key];
+        u32 Talent = Spell->Name && Spell->Unlock ? ClassTalentId(Slot, Spell->Unlock - 1) : Talent_Count;
+        if (Talent < Talent_Count)
+        {
+            Slot->Ranks[Talent] = (u8)Maximum(1u, Slot->Ranks[Talent]);
+        }
+    }
+}
 
 // NOTE(zoubir): whether a class has a kit yet, a spell on its first
 // key: the role picker and the bots leave out one that has not
@@ -207,14 +226,13 @@ RoleSpellLearned(player_slot *Slot, u32 Key)
     return Result;
 }
 
-// NOTE(zoubir): the classes the shared fireball is no part of: their own
-// spells fill five damage keys without it, as the striker's four and the
-// fireball do, so X does nothing for them
+// NOTE(zoubir): the classes the shared fireball is no part of: every
+// class but the Fire Mage, whose base filler it is, so no class casts more
+// than its four spells (docs/class-trees.md)
 inline bool32
 RoleDropsFireball(u32 Role)
 {
-    bool32 Result = Role == PlayerRole_Berserker || Role == PlayerRole_Shadowblade ||
-        Role == PlayerRole_Duelist;
+    bool32 Result = Role != PlayerRole_Damage;
     return Result;
 }
 

@@ -125,6 +125,8 @@ enum stormcaller_talent
     StormcallerTalent_Quickening,
     StormcallerTalent_Tailwind,
     StormcallerTalent_Stormbringer,
+    StormcallerTalent_ChainLightning,
+    StormcallerTalent_StaticField,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -152,7 +154,7 @@ enum stormcaller_talent
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
 // slot 1 unlocks the C spell, slot 4 the V spell
-global_variable talent_def StormcallerTalentDefs[ROLE_TALENTS] =
+global_variable talent_def StormcallerTalentDefs[CLASS_TALENTS] =
 {
     {"Voltage", "All your damage is higher", "+5% damage",
      TalentBranch_Role, 0, 0, 2, 0},
@@ -178,11 +180,15 @@ global_variable talent_def StormcallerTalentDefs[ROLE_TALENTS] =
      TalentBranch_Role, 5, 0, 4, 0},
     {"Stormbringer", "A Thunderclap of 70+ Charge calls three more bolts on foes near",
      "more bolts", TalentBranch_Role, 5, 1, 1, 0},
+    {"Chain Lightning", "A: a bolt that leaps from foe to foe",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Static Field", "R: a field at the cursor that hurts, slows, and arcs your bolts to every foe inside",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
 // for a talent with code of its own
-global_variable u8 StormcallerTalentStats[ROLE_TALENTS] =
+global_variable u8 StormcallerTalentStats[CLASS_TALENTS] =
 {
     RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
     RoleStat_Damage, RoleStat_Vitality, RoleStat_None, RoleStat_Haste, RoleStat_Swiftness, RoleStat_None,
@@ -193,10 +199,10 @@ global_variable role_spell StormcallerSpells[ROLE_KEYS] =
 {
     {"Chain Lightning", CHAIN_COOLDOWN,
      "Chain Lightning: 0.6 s cast, a bolt that leaps foe to foe, never the same twice; Charge a foe",
-     RoleAim_Foe, CHAIN_RANGE, 0},
+     RoleAim_Foe, CHAIN_RANGE, StormcallerTalent_ChainLightning + 1},
     {"Static Field", STATIC_FIELD_COOLDOWN,
      "Static Field: a circle at the cursor for 5 s that shocks and slows; lightning arcs across it",
-     RoleAim_Ground, STATIC_FIELD_RADIUS, 0},
+     RoleAim_Ground, STATIC_FIELD_RADIUS, StormcallerTalent_StaticField + 1},
     {"Lightning Dash", LIGHTNING_DASH_COOLDOWN,
      "Lightning Dash: dash along the aim as lightning, shocking and slowing foes crossed",
      RoleAim_None, 0.f, StormcallerTalent_LightningDash + 1},

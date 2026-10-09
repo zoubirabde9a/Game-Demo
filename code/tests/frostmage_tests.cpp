@@ -16,6 +16,7 @@ CreateFrostMageWorld(u32 Players = 1)
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &Crypt.AppState->Players[0];
     SetPlayerRole(Crypt.AppState, Slot, PlayerRole_FrostMage);
+    GrantClassSpells(Slot);
     Slot->Entity->Aim = V2(1.f, 0.f);
     Slot->Entity->AimReach = 0.6f;
     return Crypt;
@@ -40,12 +41,13 @@ TestFrostMageKeys()
     player_slot *Slot = &AppState->Players[0];
     Check(RoleHasKit(PlayerRole_FrostMage));
     Check(IsDamageRole(PlayerRole_FrostMage) && RoleKindOf(PlayerRole_FrostMage) == RoleKind_Ranged);
+    // NOTE(zoubir): the two base spells only, before any point
+    ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Launch | PlayerButton_Push |
-                      PlayerButton_Shockwave | PlayerButton_Cast));
+    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Push));
     Check(!(Allowed & PlayerButton_Attack));
-    Slot->Ranks[Talent_RoleFirst + FrostMageTalent_IceBarrier] = 1;
-    Slot->Ranks[Talent_RoleFirst + FrostMageTalent_FrozenOrb] = 1;
+    SetClassTalentRank(Slot, FrostMageTalent_IceBarrier, 1);
+    SetClassTalentRank(Slot, FrostMageTalent_FrozenOrb, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);
     Check((Allowed & PlayerButton_Slam) && (Allowed & PlayerButton_Kunai));
     Check(FrostMageKeyWindsUp(1) && !FrostMageKeyWindsUp(0) && !FrostMageKeyWindsUp(5));
@@ -182,7 +184,7 @@ TestIceBarrier()
         crypt_world Crypt = CreateFrostMageWorld();
         app_state *AppState = Crypt.AppState;
         player_slot *Slot = &AppState->Players[0];
-        Slot->Ranks[Talent_RoleFirst + FrostMageTalent_IceBarrier] = Rank;
+        SetClassTalentRank(Slot, FrostMageTalent_IceBarrier, Rank);
         PressOnce(&Crypt, 0, PlayerButton_Slam);
         float Absorb = Rank == 2 ? ICE_BARRIER_ABSORB_2 : ICE_BARRIER_ABSORB;
         Check(Slot->FireguardAbsorb == Absorb);
@@ -206,7 +208,7 @@ TestFrozenOrb()
     crypt_world Crypt = CreateFrostMageWorld();
     app_state *AppState = Crypt.AppState;
     player_slot *Slot = &AppState->Players[0];
-    Slot->Ranks[Talent_RoleFirst + FrostMageTalent_FrozenOrb] = 1;
+    SetClassTalentRank(Slot, FrostMageTalent_FrozenOrb, 1);
     ranger_dummies Dummies = {};
     world_entity *Foe = RangerDummy(&Crypt, &Dummies, V3(160.f, 0.f, 0.f));
     world_entity *Aside = RangerDummy(&Crypt, &Dummies, V3(160.f, 300.f, 0.f));
@@ -228,7 +230,7 @@ TestFrostMageTalents()
     {
         crypt_world Crypt = CreateFrostMageWorld();
         player_slot *Slot = &Crypt.AppState->Players[0];
-        Slot->Ranks[Talent_RoleFirst + FrostMageTalent_Frostbite] = 2;
+        SetClassTalentRank(Slot, FrostMageTalent_Frostbite, 2);
         Check(FrostMageDealtScale(Slot, 0) > 1.f + 2.f * FROSTBITE_SHARE - 0.001f);
         DestroyCryptWorld(&Crypt);
     }
@@ -237,7 +239,7 @@ TestFrostMageTalents()
     {
         crypt_world Crypt = CreateFrostMageWorld();
         player_slot *Slot = &Crypt.AppState->Players[0];
-        Slot->Ranks[Talent_RoleFirst + FrostMageTalent_Permafrost] = Rank;
+        SetClassTalentRank(Slot, FrostMageTalent_Permafrost, Rank);
         ranger_dummies Dummies = {};
         world_entity *Foe = RangerDummy(&Crypt, &Dummies, V3(200.f, 0.f, 0.f));
         PressOnce(&Crypt, 0, PlayerButton_Cast);
@@ -252,7 +254,7 @@ TestFrostMageTalents()
     {
         crypt_world Crypt = CreateFrostMageWorld();
         player_slot *Slot = &Crypt.AppState->Players[0];
-        Slot->Ranks[Talent_RoleFirst + FrostMageTalent_SplittingIce] = Rank;
+        SetClassTalentRank(Slot, FrostMageTalent_SplittingIce, Rank);
         ranger_dummies Dummies = {};
         world_entity *Foe = RangerDummy(&Crypt, &Dummies, V3(200.f, 0.f, 0.f));
         world_entity *Next = RangerDummy(&Crypt, &Dummies, V3(200.f, 100.f, 0.f));
@@ -271,7 +273,7 @@ TestFrostMageTalents()
         crypt_world Crypt = CreateFrostMageWorld();
         app_state *AppState = Crypt.AppState;
         player_slot *Slot = &AppState->Players[0];
-        Slot->Ranks[Talent_RoleFirst + FrostMageTalent_FingersOfFrost] = 1;
+        SetClassTalentRank(Slot, FrostMageTalent_FingersOfFrost, 1);
         ranger_dummies Dummies = {};
         world_entity *Foe = RangerDummy(&Crypt, &Dummies, V3(200.f, 0.f, 0.f));
         u32 Flight = FrostFlightTicks(200.f, FROSTBOLT_SPEED) + (u32)(60.f * FROSTBOLT_COOLDOWN);
@@ -295,7 +297,7 @@ TestFrostMageTalents()
     {
         crypt_world Crypt = CreateFrostMageWorld();
         player_slot *Slot = &Crypt.AppState->Players[0];
-        Slot->Ranks[Talent_RoleFirst + FrostMageTalent_DeepFreeze] = 4;
+        SetClassTalentRank(Slot, FrostMageTalent_DeepFreeze, 4);
         ranger_dummies Dummies = {};
         world_entity *Near = RangerDummy(&Crypt, &Dummies, V3(80.f, 0.f, 0.f));
         PressOnce(&Crypt, 0, PlayerButton_Shockwave);
@@ -308,7 +310,7 @@ TestFrostMageTalents()
     {
         crypt_world Crypt = CreateFrostMageWorld();
         player_slot *Slot = &Crypt.AppState->Players[0];
-        Slot->Ranks[Talent_RoleFirst + FrostMageTalent_AbsoluteZero] = Rank;
+        SetClassTalentRank(Slot, FrostMageTalent_AbsoluteZero, Rank);
         ranger_dummies Dummies = {};
         world_entity *Foe = RangerDummy(&Crypt, &Dummies, V3(220.f, 0.f, 0.f));
         world_entity *Near = RangerDummy(&Crypt, &Dummies, V3(220.f, 90.f, 0.f));
@@ -339,6 +341,7 @@ TestIciclesMelt()
     TickCrypt(&Crypt, 125);
     Check(Slot->FrostMage.Icicles == 2 && Slot->ClassMeter == 2);
     SetPlayerRole(AppState, Slot, PlayerRole_Tank);
+    GrantClassSpells(Slot);
     TickCrypt(&Crypt, 1);
     Check(Slot->FrostMage.Icicles == 0 && Slot->ClassMeter == 0);
     DestroyCryptWorld(&Crypt);

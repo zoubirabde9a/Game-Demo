@@ -1,8 +1,8 @@
-/* Stat talents (role_talents.cpp): the class tree's slots 6, 7, 9 and 10,
-   four ranks each, every rank adding a share of one stat. Which stat a
-   slot raises is the class's <Class>TalentStats row (role_kits/
-   <class>_defs.cpp); slots with code of their own are RoleStat_None
-   there. Each stat is read in one place:
+/* Stat talents (role_talents.cpp): a talent of a class's catalog whose
+   every rank adds a share of one stat, wherever the class tree holds it
+   (a wild slot rolls them too). Which stat a talent raises is the class's
+   <Class>TalentStats row (role_kits/<class>_defs.cpp); talents with code
+   of their own are RoleStat_None there. Each stat is read in one place:
 
    Damage     RoleTalentDealtScale        +4% damage dealt a rank
    Armor      RoleTalentTakenScale        -4% damage taken a rank
@@ -16,7 +16,7 @@
    A health talent changes the body's health the moment it is learned or
    reset (RefreshRoleHealth), keeping the health it is missing.
 
-   The second tree's stat talents (run_tree/) add to the same seven
+   The run talents' plain stats (run_tree/run_mods.cpp) add to the same seven
    through RoleStatShare. */
 
 static_assert(RoleStat_Damage == RunEffect_Damage && RoleStat_Lifesteal == RunEffect_Leech &&
@@ -28,7 +28,7 @@ global_variable float RoleStatPerRank[RoleStat_Count] =
     0.f, 0.04f, 0.04f, 0.06f, 0.04f, 0.06f, 0.03f, 0.02f,
 };
 
-// NOTE(zoubir): by player_role, then slot
+// NOTE(zoubir): by player_role, then catalog talent
 global_variable u8 *RoleTalentStats[PlayerRole_Count] =
 {
     StrikerTalentStats, TankTalentStats, HealerTalentStats,
@@ -47,11 +47,13 @@ RoleStatShare(player_slot *Slot, u32 Stat)
     if (Slot && Slot->Role < PlayerRole_Count && Stat < RoleStat_Count)
     {
         u8 *Stats = RoleTalentStats[Slot->Role];
-        for(u32 Index = 0; Index < ROLE_TALENTS; Index++)
+        for(u32 Index = 0; Index < CLASS_TREE_SLOTS; Index++)
         {
-            if (Stats[Index] == Stat)
+            u32 Rank = ClassTreeRank(Slot, Index);
+            u32 Talent = Rank ? ClassContentTalent(ClassContentAt(Slot, Index)) : CLASS_TALENTS;
+            if (Talent < CLASS_TALENTS && Stats[Talent] == Stat)
             {
-                Result += RoleStatPerRank[Stat] * (float)Slot->Ranks[Talent_RoleFirst + Index];
+                Result += RoleStatPerRank[Stat] * (float)Rank;
             }
         }
         // NOTE(zoubir): and the second tree's plain stats, which are the

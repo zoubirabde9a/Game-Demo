@@ -18,12 +18,13 @@ TestRunKeepsTheClassKeys()
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    // NOTE(zoubir): the two base spells only, before any point
+    ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, PLAYER_ALL_BUTTONS);
-    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Launch | PlayerButton_Push |
-                      PlayerButton_Slam));
+    Check(Allowed == (DUNGEON_SHARED_BUTTONS | PlayerButton_Push));
     Check(!(Allowed & (PlayerButton_Attack | PlayerButton_Dash | PlayerButton_Shockwave |
                        PlayerButton_RewindSelf | PlayerButton_Kunai)));
-    Slot->Ranks[Talent_RoleFirst + StrikerTalent_Combustion] = 1;
+    SetClassTalentRank(Slot, StrikerTalent_Combustion, 1);
     Check(RunAllowedButtons(AppState, Slot, 0) & PlayerButton_Kunai);
 
     // NOTE(zoubir): outside a run the game's own rules stand
@@ -36,7 +37,7 @@ TestRunKeepsTheClassKeys()
     SetPlayerRole(AppState, Slot, PlayerRole_Healer);
     PressOnce(&Crypt, 0, PlayerButton_Slam);
     Check(Slot->RoleCooldowns[2] == 0.f && Run->Sanctuaries[0].Seconds <= 0.f);
-    Slot->Ranks[Talent_RoleFirst + HealerTalent_Sanctuary] = 1;
+    SetClassTalentRank(Slot, HealerTalent_Sanctuary, 1);
     PressOnce(&Crypt, 0, PlayerButton_Slam);
     Check(Slot->RoleCooldowns[2] > 0.f && Run->Sanctuaries[0].Seconds > 0.f);
     DestroyCryptWorld(&Crypt);
@@ -54,6 +55,7 @@ TestGiantFireballBlowsUp()
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    GrantClassSpells(Slot);
     world_entity *Striker = Slot->Entity;
     world_entity *Monster = SpawnMonster(AppState, World, &Crypt.Arena,
                                          Striker->Position + V3(200.f, 0.f, 0.f),
@@ -99,6 +101,7 @@ TestGiantFireballFliesToTheCastSpot()
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    GrantClassSpells(Slot);
     world_entity *Striker = Slot->Entity;
     // NOTE(zoubir): the aim reaches the body a tick before the press
     Slot->Input.Aim = V2(1.f, 0.f);
@@ -135,6 +138,7 @@ TestPredictedStrikerWindsUp()
     TickCrypt(&Crypt, 1);
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    GrantClassSpells(Slot);
     world_entity *Striker = Slot->Entity;
     Slot->Input.Aim = V2(1.f, 0.f);
     Slot->Predicted = true;
@@ -171,8 +175,11 @@ TestTreeFinishers()
     player_slot *Tank = &AppState->Players[1];
     player_slot *Healer = &AppState->Players[2];
     SetPlayerRole(AppState, Striker, PlayerRole_Damage);
+    GrantClassSpells(Striker);
     SetPlayerRole(AppState, Tank, PlayerRole_Tank);
+    GrantClassSpells(Tank);
     SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+    GrantClassSpells(Healer);
     world_entity *Monster = SpawnMonster(AppState, World, &Crypt.Arena,
                                          Striker->Entity->Position + V3(300.f, 0.f, 0.f),
                                          MonsterKind_Brute);
@@ -219,9 +226,12 @@ TestAttackSpells()
     player_slot *Tank = &AppState->Players[0];
     player_slot *Healer = &AppState->Players[1];
     SetPlayerRole(AppState, Tank, PlayerRole_Damage);
+    GrantClassSpells(Tank);
     Check(!(RunAllowedButtons(AppState, Tank, 0) & PlayerButton_Shockwave));
     SetPlayerRole(AppState, Tank, PlayerRole_Tank);
+    GrantClassSpells(Tank);
     SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+    GrantClassSpells(Healer);
     Check(RunAllowedButtons(AppState, Tank, 0) & PlayerButton_Shockwave);
     Check(RunAllowedButtons(AppState, Healer, 0) & PlayerButton_Shockwave);
     world_entity *Body = Tank->Entity;
@@ -279,7 +289,9 @@ TestBasicAttacks()
     player_slot *Tank = &AppState->Players[0];
     player_slot *Healer = &AppState->Players[1];
     SetPlayerRole(AppState, Tank, PlayerRole_Tank);
+    GrantClassSpells(Tank);
     SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+    GrantClassSpells(Healer);
     Check(RunAllowedButtons(AppState, Tank, 0) & PlayerButton_Attack);
     Check(RunAllowedButtons(AppState, Healer, 0) & PlayerButton_Attack);
     world_entity *Body = Tank->Entity;
@@ -325,14 +337,16 @@ TestMenderLaterTalents()
     player_slot *Striker = &AppState->Players[0];
     player_slot *Healer = &AppState->Players[1];
     SetPlayerRole(AppState, Striker, PlayerRole_Damage);
+    GrantClassSpells(Striker);
     SetPlayerRole(AppState, Healer, PlayerRole_Healer);
+    GrantClassSpells(Healer);
     world_entity *Ally = Striker->Entity;
     world_entity *Mender = Healer->Entity;
     MovePlayerTo(AppState, World, &Crypt.Arena, Ally, Mender->Position + V3(60.f, 0.f, 0.f));
     float Sustain = PartySustainScale(Run);
 
     float Plain = RoleSpellCooldown(Healer, 1);
-    Healer->Ranks[Talent_RoleFirst + HealerTalent_SteadfastWard] = 4;
+    SetClassTalentRank(Healer, HealerTalent_SteadfastWard, 4);
     Check(NearHp(RoleSpellCooldown(Healer, 1), Plain - 4.f * STEADFAST_WARD_SECONDS));
     Healer->Input.Target = (u32)(Ally - World->Entities) + 1;
     Striker->WardAbsorb = 0.f;
@@ -348,7 +362,7 @@ TestMenderLaterTalents()
 
     // NOTE(zoubir): with it a killing blow leaves the ally standing,
     // healed and warded
-    Healer->Ranks[Talent_RoleFirst + HealerTalent_GuardianAngel] = 1;
+    SetClassTalentRank(Healer, HealerTalent_GuardianAngel, 1);
     DamageEntity(AppState, World, Ally, 100000.f, 0);
     Check(!IsDeadPlayer(Ally) && Striker->AngelSpent);
     Check(NearHp(Ally->Hp, 1.f + GUARDIAN_ANGEL_HEAL_SHARE * Ally->MaxHp * Sustain));

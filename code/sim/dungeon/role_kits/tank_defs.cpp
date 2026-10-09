@@ -15,6 +15,9 @@ enum tank_talent
     TankTalent_Vengeance,
     TankTalent_BattleRhythm,
     TankTalent_Unbroken,
+    TankTalent_Taunt,
+    TankTalent_ShieldCharge,
+    TankTalent_ShieldThrow,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -40,7 +43,7 @@ enum tank_talent
 #define UNBROKEN_WALL_SECONDS 5.f
 #define TANK_FLAG_UNBROKEN_SPENT 0x4
 
-global_variable talent_def TankTalentDefs[ROLE_TALENTS] =
+global_variable talent_def TankTalentDefs[CLASS_TALENTS] =
 {
         {"Iron Skin", "You take less damage", "-6% damage taken",
          TalentBranch_Role, 0, 0, 2, 0},
@@ -66,11 +69,17 @@ global_variable talent_def TankTalentDefs[ROLE_TALENTS] =
          TalentBranch_Role, 5, 0, 4, 0},
         {"Unbroken", "Once a fight, a blow that would down you leaves you standing",
          "at 10% health, behind Shield Wall for 5 s", TalentBranch_Role, 5, 1, 1, 0},
+    {"Taunt", "A: every monster near you attacks you; Shield Wall for 2 s",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Shield Charge", "X: rush a foe and stun it 2 s, cancelling the attack it winds up",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Shield Throw", "W: the shield hits a foe and bounces to two more, sundering each",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
 // for a talent with code of its own
-global_variable u8 TankTalentStats[ROLE_TALENTS] =
+global_variable u8 TankTalentStats[CLASS_TALENTS] =
 {
     RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
     RoleStat_Vitality, RoleStat_Armor, RoleStat_None, RoleStat_Damage, RoleStat_Haste, RoleStat_None,

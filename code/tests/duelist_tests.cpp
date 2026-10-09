@@ -34,6 +34,7 @@ DuelistCrypt()
     TickCrypt(&Result, 1);
     player_slot *Slot = &Result.AppState->Players[0];
     SetPlayerRole(Result.AppState, Slot, PlayerRole_Duelist);
+    GrantClassSpells(Slot);
     Slot->Input.Aim = V2(1.f, 0.f);
     Slot->Entity->Aim = V2(1.f, 0.f);
     Slot->Entity->SpawnShield = 0.f;
@@ -66,12 +67,16 @@ TestDuelistOwnsItsKeys()
     app_state *AppState = Crypt.AppState;
     player_slot *Slot = &AppState->Players[0];
     Check(RoleHasKit(PlayerRole_Duelist));
+    // NOTE(zoubir): the two base spells only, before any point
+    ResetRoleTalents(Slot);
     u32 Allowed = RunAllowedButtons(AppState, Slot, 0);
-    u32 Main = PlayerButton_Launch | PlayerButton_Push | PlayerButton_Shockwave | PlayerButton_Attack;
+    u32 Main = PlayerButton_Shockwave | PlayerButton_Attack;
     Check((Allowed & Main) == Main);
-    Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Kunai | PlayerButton_Cast)));
-    Slot->Ranks[Talent_RoleFirst + DuelistTalent_Footwork] = 2;
-    Slot->Ranks[Talent_RoleFirst + DuelistTalent_PerfectForm] = 1;
+    Check(!(Allowed & (PlayerButton_Launch | PlayerButton_Push | PlayerButton_Slam |
+                       PlayerButton_Kunai | PlayerButton_Cast)));
+    GrantClassSpells(Slot);
+    SetClassTalentRank(Slot, DuelistTalent_Footwork, 2);
+    SetClassTalentRank(Slot, DuelistTalent_PerfectForm, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);
     Check(Allowed & PlayerButton_Kunai);
     Check(!(Allowed & (PlayerButton_Slam | PlayerButton_Cast)));
@@ -312,10 +317,10 @@ TestHeartseeker()
     float Bruised = HeartseekerWith(&Crypt, 0, 0.4f);
     Check(Bruised > 0.99f * None && Bruised < 1.01f * None);
     // NOTE(zoubir): Precision: from 45%
-    Slot->Ranks[Talent_RoleFirst + DuelistTalent_Precision] = 1;
+    SetClassTalentRank(Slot, DuelistTalent_Precision, 1);
     float Precise = HeartseekerWith(&Crypt, 0, 0.4f);
     Check(Precise > 0.99f * HEARTSEEKER_LOW_SCALE * None);
-    Slot->Ranks[Talent_RoleFirst + DuelistTalent_Precision] = 0;
+    SetClassTalentRank(Slot, DuelistTalent_Precision, 0);
     // NOTE(zoubir): a new key gains a stack when it lands
     world_entity *Foe = DuelistDummy(&Crypt, V3(60.f, 0.f, 0.f));
     Slot->ClassMeter = 2;

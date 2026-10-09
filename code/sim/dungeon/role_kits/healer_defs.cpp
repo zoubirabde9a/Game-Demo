@@ -15,6 +15,8 @@ enum healer_talent
     HealerTalent_Quickening,
     HealerTalent_LightFeet,
     HealerTalent_GuardianAngel,
+    HealerTalent_HolyFire,
+    HealerTalent_SmiteBolt,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -38,7 +40,7 @@ enum healer_talent
 #define GUARDIAN_ANGEL_HEAL_SHARE 0.4f
 #define GUARDIAN_ANGEL_WARD 40.f
 
-global_variable talent_def HealerTalentDefs[ROLE_TALENTS] =
+global_variable talent_def HealerTalentDefs[CLASS_TALENTS] =
 {
         {"Swift Mending", "Mending Bolt heals more", "+15% Mending Bolt healing",
          TalentBranch_Role, 0, 0, 2, 0},
@@ -64,11 +66,15 @@ global_variable talent_def HealerTalentDefs[ROLE_TALENTS] =
          TalentBranch_Role, 5, 0, 4, 0},
         {"Guardian Angel", "A blow taking an ally under 30% health can't kill: heal 40%, ward 40",
          "once per ally per fight", TalentBranch_Role, 5, 1, 1, 0},
+    {"Holy Fire", "W: strike a foe with light; the most hurt ally heals for it",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Smite Bolt", "Right click: a quick bolt of light at a foe; the most hurt ally heals a little",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
 // for a talent with code of its own
-global_variable u8 HealerTalentStats[ROLE_TALENTS] =
+global_variable u8 HealerTalentStats[CLASS_TALENTS] =
 {
     RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None, RoleStat_None,
     RoleStat_Healing, RoleStat_Vitality, RoleStat_None, RoleStat_Haste, RoleStat_Swiftness, RoleStat_None,
