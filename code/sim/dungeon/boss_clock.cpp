@@ -77,9 +77,9 @@ global_variable boss_clock_def BossClockDefs[] =
 // NOTE(zoubir): a party of Players has the boss's health grow by the
 // party scaling and its own damage grow about by head count, so the
 // limit grows by the one over the other, against the tuned party. A
-// smaller party, short of a role, gets all of it (one player 1.17 times
+// smaller party, short of a role, gets all of it (one player 1.43 times
 // the time); a bigger one only BOSS_CLOCK_BIG_PARTY_SHARE of what it
-// would gain (four players 1.09 times, six 1.23, eight 1.31)
+// would gain (four players 1.04 times, eight 1.7)
 inline float
 BossClockPartyScale(u32 Players)
 {

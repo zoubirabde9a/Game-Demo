@@ -1,24 +1,21 @@
 /* Party scaling (dungeon.cpp): how a dungeon fight grows with the size
-   of the party. Monster health grows by a fixed factor for each player
-   past the first up to four players, then by a fixed amount for each
-   player past four; damage grows by a fixed factor too. The roles keep up at the square root
+   of the party. Monster health and damage grow by a fixed factor for
+   each player past the first, so every player who joins makes the run
+   harder than the one before did. The roles keep up at the square root
    of the extra damage: the tank takes only that much more, heals and
    wards grow by it. StartEncounter (encounters.cpp) applies the health
    and stores the damage on the run; DungeonScaleDamage reads it. */
 
 // NOTE(zoubir): each player past the first multiplies a dungeon
-// monster's health by PARTY_HEALTH_GROWTH up to PARTY_HEALTH_FOUR at four
-// players; each player past four adds PARTY_HEALTH_PAST_FOUR: the full
-// growth made eight players face 26.8 times the health, far too much.
-// Hits grow by PARTY_DAMAGE_GROWTH. Past the three the dungeon is made for, each player
+// monster's health by PARTY_HEALTH_GROWTH and its hits by
+// PARTY_DAMAGE_GROWTH, so every player who joins makes the run harder than
+// the last one did. Past the three the dungeon is made for, each player
 // adds only PARTY_DAMAGE_GROWTH_PAST of damage: a bigger party still has
 // one healer to cover everyone, and at the full growth four bots wiped
 // on the Ashen Causeway six times in a row in under half a minute each.
-// Two players face 1.6 times the health, three 2.56, four 4 and 1.33
-// times the damage, six 7.5, eight 11 and 1.68 times the damage
-#define PARTY_HEALTH_GROWTH 1.6f
-#define PARTY_HEALTH_FOUR 4.f
-#define PARTY_HEALTH_PAST_FOUR 1.75f
+// Four players face 3.05 times the health and 1.33 times the damage,
+// eight 13.5 times and 1.68 times
+#define PARTY_HEALTH_GROWTH 1.45f
 #define PARTY_DAMAGE_GROWTH 1.12f
 #define PARTY_DAMAGE_GROWTH_PAST 1.06f
 #define PARTY_TUNED_SIZE 3
@@ -56,10 +53,6 @@ inline float
 PartyHealthScale(u32 Players)
 {
     float Result = PartyGrowth(PARTY_HEALTH_GROWTH, Players);
-    if (Players >= 4)
-    {
-        Result = PARTY_HEALTH_FOUR + PARTY_HEALTH_PAST_FOUR * (float)(Players - 4);
-    }
     return Result;
 }
 
