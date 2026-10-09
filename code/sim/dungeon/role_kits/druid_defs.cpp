@@ -37,7 +37,7 @@
 // second for REJUVENATION_SECONDS, and at once REJUVENATION_PER_BLOOM for
 // each Bloom spent (all of it)
 #define REJUVENATION_RANGE 500.f
-#define REJUVENATION_PER_SECOND 8.f
+#define REJUVENATION_PER_SECOND 9.f
 #define REJUVENATION_SECONDS 8.f
 #define REJUVENATION_PER_BLOOM 6.f
 #define REJUVENATION_COOLDOWN 4.f
@@ -66,9 +66,11 @@
 #define STARFIRE_COOLDOWN 6.f
 
 // NOTE(zoubir): Regrowth (W): an ally heals REGROWTH_HEAL at once and
-// REGROWTH_PER_BLOOM more for each Bloom spent (all of it)
+// REGROWTH_PER_BLOOM more for each Bloom spent (all of it). It and
+// Rejuvenation went up a tenth when a Druid party wiped three times as
+// often as a Mender's at the Throne of Embers
 #define REGROWTH_RANGE 500.f
-#define REGROWTH_HEAL 30.f
+#define REGROWTH_HEAL 33.f
 #define REGROWTH_PER_BLOOM 8.f
 #define REGROWTH_COOLDOWN 5.f
 
