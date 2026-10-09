@@ -38,10 +38,6 @@ enum game_mode
 
 global_variable char *GameModeNames[GameMode_Count] = {"Duel", "Team duel", "Dungeon"};
 
-// NOTE(zoubir): dungeons are closed for now: their mode button is drawn
-// greyed out and asks for nothing. Set to 1 to open them again
-#define DUNGEONS_OPEN 0
-
 inline u32
 GameModeOf(u32 MapId, bool32 Teams)
 {
@@ -65,7 +61,7 @@ GameModeRequest(app_state *AppState, u32 Mode)
 {
     u32 Current = CurrentGameMode(AppState);
     u32 Result = 0;
-    if (Mode == Current || (Mode == GameMode_Dungeon && !DUNGEONS_OPEN))
+    if (Mode == Current)
     {
     }
     else if (Mode == GameMode_TeamDuel ||
@@ -248,25 +244,14 @@ DoMapVoteSection(render_context *RenderContext, app_state *AppState, app_input *
         float X = Left + Mode * (ModeWidth + UI_GAP_SMALL);
         bool32 Selected = Mode == Current;
         u32 Request = GameModeRequest(AppState, Mode);
-        bool32 Closed = Mode == GameMode_Dungeon && !DUNGEONS_OPEN && !Selected;
-        char *Label = GameModeNames[Mode];
-        u32 Color = Selected ? UI_COLOR_ACCENT : UI_COLOR_TEXT;
-        if (Closed)
-        {
-            // NOTE(zoubir): no hover, no click, muted: it cannot be picked
-            DrawRoundRect(RenderContext, X, Top, ModeWidth, MAP_VOTE_BUTTON_HEIGHT,
-                          UI_COLOR_CONTROL);
-            Label = "Dungeon (soon)";
-            Color = UI_COLOR_TEXT_MUTED;
-        }
-        else if (OptionsButton(RenderContext, Input, X, Top, ModeWidth,
-                               MAP_VOTE_BUTTON_HEIGHT, Selected) && Request)
+        if (OptionsButton(RenderContext, Input, X, Top, ModeWidth,
+                          MAP_VOTE_BUTTON_HEIGHT, Selected) && Request)
         {
             RequestVote(AppState, Request);
         }
         UIText(RenderContext, Body, X + 0.5f * ModeWidth,
                Top + 0.5f * (MAP_VOTE_BUTTON_HEIGHT - UILineHeight(Body)),
-               Label, Color, UIAlign_Center);
+               GameModeNames[Mode], Selected ? UI_COLOR_ACCENT : UI_COLOR_TEXT, UIAlign_Center);
     }
     Top += MAP_VOTE_BUTTON_HEIGHT + UI_GAP;
     // NOTE(zoubir): in a team duel, the way to the team panel
