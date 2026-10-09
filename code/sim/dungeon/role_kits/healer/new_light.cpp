@@ -81,7 +81,8 @@ CastDawnbreak(app_state *AppState, player_slot *Slot, world_entity *Player)
         float Before = Monster->Hp;
         hit Hit = {DAWNBREAK_DAMAGE, 40.f, 0.f, 0.f, 0.f, SimBurst_Impact};
         ApplyHit(AppState, World, Monster, &Hit, Dir, Player, SlotIndex);
-        EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Monster));
+        // NOTE(zoubir): the beam is the bolt; only the strike on the foe
+        EmitBurst(&AppState->Events, SimBurst_HolyStrike, SlotIndex, NumberedBurstSpot(ChestOf(Monster), 1));
         OnHealerShot(AppState, Player, Monster, Before - Maximum(0.f, Monster->Hp));
     }
     // NOTE(zoubir): the beam shows whether or not it found a foe

@@ -142,7 +142,7 @@ CastLightAtFoe(app_state *AppState, player_slot *Slot, world_entity *Player, flo
     u8 SlotIndex = (u8)Player->PlayerIndex;
     float Before = Foe->Hp;
     hit Hit = {Damage, Shove, 0.f, 0.f, 0.f, SimBurst_Impact};
-    EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Foe));
+    EmitBurst(&AppState->Events, SimBurst_HolyStrike, SlotIndex, ChestOf(Foe));
     ApplyHit(AppState, &AppState->World, Foe, &Hit,
              DirectionTo(Foe->Position.XY - Player->Position.XY), Player, SlotIndex);
     OnHealerShot(AppState, Player, Foe, Before - Maximum(0.f, Foe->Hp));
