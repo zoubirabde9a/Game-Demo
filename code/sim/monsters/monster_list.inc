@@ -39,3 +39,4 @@
 #include "starless_varn.cpp"
 #include "starless_nyxara.cpp"
 #include "rift_ice_tomb.cpp"
+#include "starless_departure_hazards.cpp"
