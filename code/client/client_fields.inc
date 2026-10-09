@@ -54,6 +54,7 @@
     u32 RoleHolding; // the role field held in the input now, 0 for none, client/dungeon/dungeon_net.cpp
     float RoleHoldLeft; // seconds the role field stays held, client/dungeon/dungeon_net.cpp
     float RoleGapLeft; // seconds the role field stays empty before the next request, client/dungeon/dungeon_net.cpp
+    bool32 ClassPickerHidden; // the dungeon class picker is folded to one line, ui/dungeon/dungeon_hud.cpp
     struct ground_cracks *GroundCracks; // broken ground where Launch and slams hit, client/ground_cracks.cpp
     struct cursor_targeting *CursorTargeting; // the unit the cursor is on and its brackets, client/targeting.cpp
     struct role_fx *RoleFx; // the role spells' effects playing out, client/dungeon/role_fx.cpp

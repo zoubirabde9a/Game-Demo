@@ -20,7 +20,8 @@
      it, the picked one outlined in its colour, and a line on how it
      plays. Offline the pick takes at once; online it goes to the server
      as a request (client/dungeon/role_requests.cpp) and shows once a
-     snapshot says so. A class with no kit yet is left out. 
+     snapshot says so. A class with no kit yet is left out. Its Hide
+     button folds it to one line with the class and a Show button.
 
    The fight is read from dungeon_run's Shown fields, which the run sets
    offline and the snapshot sets online. */
@@ -30,6 +31,7 @@
 #define DUNGEON_BOSS_BAR_HEIGHT 10.f
 #define DUNGEON_ROLE_BUTTON_WIDTH 132.f
 #define DUNGEON_ROLE_BUTTON_HEIGHT 32.f
+#define DUNGEON_DRAWER_BUTTON_HEIGHT 22.f
 #define DUNGEON_BOSS_COLOR UI_RGBA(176, 52, 60, 255)
 #define DUNGEON_ALARM_COLOR UI_RGBA(255, 120, 80, 255)
 #define DUNGEON_ADD_ALARM_SECONDS 10
@@ -250,6 +252,48 @@ DoHeroLookRow(render_context *RenderContext, app_state *AppState, app_input *Inp
     return Result;
 }
 
+// NOTE(zoubir): the picker's Hide or Show button, its top right corner at
+// Right, Y; clicking it folds or unfolds the picker
+internal void
+DoClassPickerToggle(render_context *RenderContext, app_state *AppState, app_input *Input,
+                    float Right, float Y)
+{
+    font *Small = AppState->Fonts.Small;
+    char *Label = (char *)(AppState->ClassPickerHidden ? "Show" : "Hide");
+    float Width = UITextWidth(Small, "Show") + 2.f * UI_GAP;
+    float X = Right - Width;
+    if (OptionsButton(RenderContext, Input, X, Y, Width, DUNGEON_DRAWER_BUTTON_HEIGHT, false))
+    {
+        AppState->ClassPickerHidden = !AppState->ClassPickerHidden;
+    }
+    UIText(RenderContext, Small, X + 0.5f * Width,
+           Y + 0.5f * (DUNGEON_DRAWER_BUTTON_HEIGHT - UILineHeight(Small)), Label,
+           UI_COLOR_TEXT_MUTED, UIAlign_Center);
+}
+
+// NOTE(zoubir): the folded picker: the class's emblem and name, and Show
+internal void
+DoFoldedClassPicker(render_context *RenderContext, app_state *AppState, app_input *Input,
+                    u32 Role, float CenterX, float Y)
+{
+    font *Body = AppState->Fonts.Body;
+    char Text[64];
+    snprintf(Text, sizeof(Text), "Class: %s", GetRoleDef(Role)->Name);
+    float Emblem = DUNGEON_DRAWER_BUTTON_HEIGHT;
+    float Toggle = UITextWidth(AppState->Fonts.Small, "Show") + 2.f * UI_GAP;
+    float Width = UI_GAP + Emblem + UI_GAP_SMALL + UITextWidth(Body, Text) + UI_GAP + Toggle +
+        UI_GAP_SMALL;
+    float Height = DUNGEON_DRAWER_BUTTON_HEIGHT + 2.f * UI_GAP_SMALL;
+    float X = CenterX - 0.5f * Width;
+    DrawUIPanel(RenderContext, X, Y, Width, Height);
+    u32 Color = RoleUIColor(Role);
+    float RowY = Y + UI_GAP_SMALL;
+    DrawRoleEmblem(RenderContext, Role, X + UI_GAP, RowY, Emblem, Color, 1.f);
+    UIText(RenderContext, Body, X + UI_GAP + Emblem + UI_GAP_SMALL,
+           RowY + 0.5f * (DUNGEON_DRAWER_BUTTON_HEIGHT - UILineHeight(Body)), Text, Color);
+    DoClassPickerToggle(RenderContext, AppState, Input, X + Width - UI_GAP_SMALL, RowY);
+}
+
 // NOTE(zoubir): a column of class buttons under each role, and the
 // picked class's line
 internal void
@@ -262,6 +306,11 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
     if (!Slot->Active || !Slot->Entity || Run->FightingRoom || GetTalentPanel(AppState)->Open ||
         RoomAtPosition(&AppState->World, Slot->Entity->Position.XY) != 1)
     {
+        return;
+    }
+    if (AppState->ClassPickerHidden)
+    {
+        DoFoldedClassPicker(RenderContext, AppState, Input, Slot->Role, CenterX, Y);
         return;
     }
     font *Body = AppState->Fonts.Body;
@@ -290,6 +339,8 @@ DoDungeonRolePicker(render_context *RenderContext, app_state *AppState,
     float PlateHeight = UILineHeight(Body) + ColumnsHeight + LookHeight + 2.f * UILineHeight(Small) +
         2.f * UI_GAP + 2.f * UI_GAP_SMALL;
     DrawUIPanel(RenderContext, CenterX - 0.5f * PlateWidth, Y, PlateWidth, PlateHeight);
+    DoClassPickerToggle(RenderContext, AppState, Input, CenterX + 0.5f * PlateWidth - UI_GAP_SMALL,
+                        Y + UI_GAP_SMALL);
     float LineY = Y + UI_GAP;
     LineY += DungeonHudLine(RenderContext, Body, CenterX, LineY, "Pick your class",
                             UI_COLOR_TEXT) + UI_GAP_SMALL;
