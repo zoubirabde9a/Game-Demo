@@ -92,11 +92,13 @@ struct druid_roots
 #define DRUID_MAX_REJUVENATIONS 16
 #define DRUID_MAX_ROOTS 8
 
-// NOTE(zoubir): a Lifebloom on an ally, and the heal it blooms for
+// NOTE(zoubir): a Lifebloom on an ally, the heal it blooms for, and the
+// time to sending its bud to clients again
 struct druid_lifebloom
 {
     float Seconds;
     float Burst;
+    float Keep;
     u8 Ally;
     u8 By;
 };

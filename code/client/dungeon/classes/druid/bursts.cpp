@@ -159,12 +159,17 @@ DrawDruidStarfire(render_context *RenderContext, role_burst *Burst, float T, v3 
 }
 
 // NOTE(zoubir): Rejuvenation: leaves circling the ally, a green swell
-// when it is fresh
+// when it is fresh; a Lifebloom's bud is DrawDruidLifebloomBud
 internal void
 DrawDruidRejuvenation(render_context *RenderContext, app_state *AppState, role_burst *Burst, float T,
                       v3 CameraOffset)
 {
     u32 Variant = DruidBurstVariant(Burst->Position);
+    if (Variant >= DRUID_LIFEBLOOM_BUD)
+    {
+        DrawDruidLifebloomBud(RenderContext, AppState, Burst, T, CameraOffset);
+        return;
+    }
     v2 At = BurstToScreen(DruidBurstPlace(Burst->Position), CameraOffset);
     float Life = RoleBurstLife(Burst->Kind);
     float Elapsed = T * Life;
@@ -188,11 +193,17 @@ DrawDruidRejuvenation(render_context *RenderContext, app_state *AppState, role_b
 }
 
 // NOTE(zoubir): Regrowth: a flower opening on the ally, bigger for the
-// Bloom spent; Symbiosis's touch is a small one
+// Bloom spent; Symbiosis's touch is a small one, and a Lifebloom's bloom
+// is DrawDruidLifebloomBloom
 internal void
 DrawDruidRegrowth(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
 {
     u32 Variant = DruidBurstVariant(Burst->Position);
+    if (Variant == DRUID_REGROWTH_LIFEBLOOM)
+    {
+        DrawDruidLifebloomBloom(RenderContext, Burst, T, CameraOffset);
+        return;
+    }
     bool32 Touch = Variant == DRUID_REGROWTH_SYMBIOSIS;
     float Bloom = Touch ? 0.f : (float)Variant;
     float Scale = Touch ? 0.55f : 1.f + 0.12f * Bloom;

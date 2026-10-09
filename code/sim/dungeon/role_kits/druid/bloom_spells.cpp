@@ -4,7 +4,9 @@
    Lifebloom (G, Grove, against Tranquility): on an ally it heals
    LIFEBLOOM_PER_SECOND a second for LIFEBLOOM_SECONDS, then blooms for
    LIFEBLOOM_BLOOM and LIFEBLOOM_PER_BLOOM for each Bloom spent at the
-   cast. Tranquility heals everyone near for a moment; Lifebloom saves its
+   cast. Its bud is sent to clients again every DRUID_KEEP_SECONDS with
+   the time it has run, so it follows the ally and swells toward the
+   bloom. Tranquility heals everyone near for a moment; Lifebloom saves its
    big heal for one ally at a time chosen ahead.
 
    Starfall (T, Moon, against Entangling Roots): a star on every foe within
@@ -45,15 +47,17 @@ CastLifebloom(app_state *AppState, player_slot *Slot, world_entity *Player)
     u32 Spent = SpendDruidBloom(Slot);
     Free->Seconds = LIFEBLOOM_SECONDS;
     Free->Burst = LIFEBLOOM_BLOOM + LIFEBLOOM_PER_BLOOM * (float)Spent;
+    Free->Keep = DRUID_KEEP_SECONDS;
     Free->Ally = AllyIndex;
     Free->By = By;
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_DruidFirst, DruidBurst_Rejuvenation), By,
-              ChestOf(Ally));
+              DruidBurstSpot(ChestOf(Ally), DRUID_LIFEBLOOM_BUD));
     EmitSound(&AppState->Events, AssetType_SfxHeal, Ally->Position);
 }
 
-// NOTE(zoubir): once a tick: each Lifebloom heals its ally a little, and
-// blooms as it runs out; one whose ally is down is gone
+// NOTE(zoubir): once a tick: each Lifebloom heals its ally a little, is
+// sent to clients again where its ally is now, and blooms as it runs out;
+// one whose ally is down is gone
 internal void
 UpdateDruidLifeblooms(app_state *AppState, druid_run *Run, float DeltaTime)
 {
@@ -77,7 +81,16 @@ UpdateDruidLifeblooms(app_state *AppState, druid_run *Run, float DeltaTime)
             Bloom->Seconds = 0.f;
             HealPlayer(AppState, Bloom->By, Ally, Bloom->Burst);
             EmitBurst(&AppState->Events, ClassBurst(SimBurst_DruidFirst, DruidBurst_Regrowth), Bloom->By,
-                      DruidBurstSpot(ChestOf(Ally), 3));
+                      DruidBurstSpot(ChestOf(Ally), DRUID_REGROWTH_LIFEBLOOM));
+            continue;
+        }
+        Bloom->Keep -= DeltaTime;
+        if (Bloom->Keep <= 0.f)
+        {
+            Bloom->Keep += DRUID_KEEP_SECONDS;
+            u32 Tenths = (u32)(10.f * (LIFEBLOOM_SECONDS - Bloom->Seconds) + 0.5f);
+            EmitBurst(&AppState->Events, ClassBurst(SimBurst_DruidFirst, DruidBurst_Rejuvenation), Bloom->By,
+                      DruidBurstSpot(ChestOf(Ally), DRUID_LIFEBLOOM_BUD + Tenths));
         }
     }
 }

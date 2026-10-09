@@ -54,6 +54,23 @@ DruidTick(crypt_world *Crypt, u32 Ticks)
     }
 }
 
+// NOTE(zoubir): the Druid's bursts Index with a variant from From to To
+// among the events so far, which it clears
+internal u32
+CountDruidBursts(app_state *AppState, u32 Index, u32 From, u32 To)
+{
+    u32 Result = 0;
+    for(u32 Row = 0; Row < AppState->Events.Count; Row++)
+    {
+        sim_event *Event = &AppState->Events.Events[Row];
+        u32 Variant = DruidBurstVariant(Event->Position);
+        Result += Event->Type == SimEvent_Burst && Event->Burst == ClassBurst(SimBurst_DruidFirst, Index) &&
+            Variant >= From && Variant <= To;
+    }
+    AppState->Events.Count = 0;
+    return Result;
+}
+
 inline bool32
 DruidNear(float Value, float Expected)
 {
@@ -392,7 +409,8 @@ TestEclipse()
 }
 
 // NOTE(zoubir): Lifebloom heals an ally over its time and blooms as it
-// runs out, more for the Bloom spent; Starfall drops a star on every foe
+// runs out, more for the Bloom spent, its bud sent again while it lasts
+// and its bloom a look of its own; Starfall drops a star on every foe
 // near, which strikes as it lands STARFIRE_FALL later and grows a Bloom
 // for each, and rolls its ring out from the Druid
 internal void
@@ -405,13 +423,35 @@ TestLifebloomAndStarfall()
     Ally->Hp = 10.f;
     Slot->Druid.Bloom = 2;
     Slot->Input.Target = (u32)(Ally - AppState->World.Entities) + 1;
+    AppState->Events.Count = 0;
     PressOnce(&Crypt, 0, PlayerButton_FrostNova);
     Check(Slot->RoleCooldowns[7] > 0.f && Slot->Druid.Bloom == 0);
-    TickCrypt(&Crypt, (u32)(60.f * LIFEBLOOM_SECONDS) - 10);
+    Check(CountDruidBursts(AppState, DruidBurst_Rejuvenation, DRUID_LIFEBLOOM_BUD, DRUID_LIFEBLOOM_BUD) == 1);
+    // NOTE(zoubir): each bud sent again carries the time it has run
+    u32 Buds = 0;
+    for(u32 Tick = 1; Tick < (u32)(60.f * LIFEBLOOM_SECONDS) - 10; Tick++)
+    {
+        TickCrypt(&Crypt, 1);
+        for(u32 Row = 0; Row < AppState->Events.Count; Row++)
+        {
+            sim_event *Event = &AppState->Events.Events[Row];
+            u32 Variant = DruidBurstVariant(Event->Position);
+            if (Event->Type == SimEvent_Burst && Variant > DRUID_LIFEBLOOM_BUD &&
+                Event->Burst == ClassBurst(SimBurst_DruidFirst, DruidBurst_Rejuvenation))
+            {
+                Buds++;
+                float Ran = 0.1f * (float)(Variant - DRUID_LIFEBLOOM_BUD);
+                Check(Absolute(Ran - (float)Tick / 60.f) < 0.15f);
+            }
+        }
+        AppState->Events.Count = 0;
+    }
+    Check(Buds == 3);
     float Before = Ally->Hp;
     Check(Before > 10.f);
     TickCrypt(&Crypt, 20);
     Check(Ally->Hp - Before > LIFEBLOOM_BLOOM);
+    Check(CountDruidBursts(AppState, DruidBurst_Regrowth, DRUID_REGROWTH_LIFEBLOOM, DRUID_REGROWTH_LIFEBLOOM) == 1);
     world_entity *A = DruidDummy(&Crypt, V3(100.f, 0.f, 0.f));
     world_entity *B = DruidDummy(&Crypt, V3(-100.f, 60.f, 0.f));
     world_entity *Far = DruidDummy(&Crypt, V3(0.f, STARFALL_REACH + 150.f, 0.f));

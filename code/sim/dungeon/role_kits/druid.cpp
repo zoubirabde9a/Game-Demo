@@ -35,8 +35,8 @@ enum druid_burst
     DruidBurst_Wrath,        // a Wrath bolt arriving at Position along Angle
     DruidBurst_Moonfire,     // moonlight on the foe at Position; variant 1 a burn sent again
     DruidBurst_Starfire,     // a star falling on Position; variant 1 at nothing, DRUID_STARFALL_* Starfall's
-    DruidBurst_Rejuvenation, // leaves round the ally at Position; variant 1 sent again
-    DruidBurst_Regrowth,     // a bloom on the ally at Position; variant the Bloom spent
+    DruidBurst_Rejuvenation, // leaves round the ally at Position; variant 1 sent again, DRUID_LIFEBLOOM_BUD on a Lifebloom
+    DruidBurst_Regrowth,     // a bloom on the ally at Position; variant the Bloom spent, or DRUID_REGROWTH_*
     DruidBurst_Roots,        // roots growing at Position; variant 1 the longer hold
     DruidBurst_Tranquility,  // one of Tranquility's heals, round the Druid's feet at Position
     DruidBurst_BloomFull,    // Bloom coming full on the Druid at Position
@@ -62,6 +62,13 @@ enum druid_shot
 // rolling out from the Druid at Position, and a star on one foe
 #define DRUID_STARFALL_RING 2
 #define DRUID_STARFALL_STAR 3
+
+// NOTE(zoubir): a Rejuvenation burst's variant from DRUID_LIFEBLOOM_BUD on
+// is a Lifebloom's bud, with the tenths of a second it has run added, so
+// a client swells it toward the bloom; a Regrowth burst's
+// DRUID_REGROWTH_LIFEBLOOM is the bloom
+#define DRUID_LIFEBLOOM_BUD 16
+#define DRUID_REGROWTH_LIFEBLOOM 10
 
 // NOTE(zoubir): a burst carries a small number too (a variant), as whole
 // steps of DRUID_BURST_STEP added to its height, the way the Ranger's
