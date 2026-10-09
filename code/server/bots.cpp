@@ -63,6 +63,30 @@ BotRandom(bot_brain *Bot)
 
 // NOTE(zoubir): how much nearer an Ice Tomb looks to a bot than it is
 #define BOT_TOMB_PULL 0.05f
+// NOTE(zoubir): how much nearer an add that erupts on the party when its
+// time runs out looks to a bot that is not the tank (BotMustKillAdd)
+#define BOT_ERUPT_PULL 0.05f
+
+// NOTE(zoubir): whether Monster is a boss's add that erupts on the whole
+// party if it lives past its time (boss_scripts.cpp, a Rime Champion): a
+// player turns every damage key on it, off the boss
+internal bool32
+BotMustKillAdd(app_state *AppState, world_entity *Monster)
+{
+    dungeon_run *Run = AppState->Dungeon;
+    bool32 Result = false;
+    if (Run && Monster && Monster->Type == EntityType_Monster && Monster->Hp > 0.f)
+    {
+        boss_clock *Clock = &Run->Clock;
+        u32 Slot = (u32)(Monster - AppState->World.Entities);
+        for (u32 Index = 0; Index < Clock->AddCount && !Result; ++Index)
+        {
+            Result = Clock->AddBurst[Index] > 0.f && Clock->AddSlots[Index] == Slot &&
+                Clock->AddSerials[Index] == Monster->MonsterSerial;
+        }
+    }
+    return Result;
+}
 
 // NOTE(zoubir): the nearest living player (not itself) or monster within
 // BOT_SIGHT, or 0; a boss behind its pylons is left to the tank, and a
@@ -98,6 +122,11 @@ BotFindTarget(app_state *AppState, world_entity *Self)
         if (Other->Type == EntityType_Monster && Other->MonsterKind == MonsterKind_IceTomb)
         {
             DistanceSq *= BOT_TOMB_PULL;
+        }
+        if (Other->Type == EntityType_Monster &&
+            AppState->Players[Self->PlayerIndex].Role != PlayerRole_Tank && BotMustKillAdd(AppState, Other))
+        {
+            DistanceSq *= BOT_ERUPT_PULL;
         }
         if (DistanceSq < BestSq)
         {

@@ -204,7 +204,8 @@ BotDuelistButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, world
     {
         return 0;
     }
-    world_entity *Foe = BotDuelistTankFoe(AppState, Self);
+    // NOTE(zoubir): an add about to erupt comes before the tank's foe
+    world_entity *Foe = BotMustKillAdd(AppState, Target) ? Target : BotDuelistTankFoe(AppState, Self);
     if (!Foe || Length(Foe->Position.XY - Self->Position.XY) > 1.5f * LUNGE_RANGE)
     {
         Foe = Target;

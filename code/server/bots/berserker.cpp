@@ -98,7 +98,8 @@ BotBerserkerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, wor
     {
         return 0;
     }
-    world_entity *Foe = BotBerserkerTankFoe(AppState, Self);
+    // NOTE(zoubir): an add about to erupt comes before the tank's foe
+    world_entity *Foe = BotMustKillAdd(AppState, Target) ? Target : BotBerserkerTankFoe(AppState, Self);
     if (!Foe || Length(Foe->Position.XY - Self->Position.XY) > PLAYER_AIM_REACH)
     {
         Foe = Target;

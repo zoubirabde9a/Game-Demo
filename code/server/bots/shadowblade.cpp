@@ -114,7 +114,9 @@ BotShadowbladeButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, w
     {
         return 0;
     }
-    world_entity *Foe = BotShadowbladePeelFoe(AppState, Self);
+    // NOTE(zoubir): an add about to erupt comes before a peel or the
+    // tank's foe
+    world_entity *Foe = BotMustKillAdd(AppState, Target) ? Target : BotShadowbladePeelFoe(AppState, Self);
     if (!Foe)
     {
         Foe = BotShadowbladeTankFoe(AppState, Self);

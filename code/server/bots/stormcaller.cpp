@@ -107,7 +107,8 @@ BotStormcallerButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, w
     // reach and the tank has it, as a player keeps on the boss through its
     // adds; the pack spells go at what it fights
     world_entity *Focus = Target;
-    if (Boss && !Hold && Length(Boss->Position.XY - Self->Position.XY) < 0.95f * SPARK_RANGE)
+    if (Boss && !Hold && !BotMustKillAdd(AppState, Target) &&
+        Length(Boss->Position.XY - Self->Position.XY) < 0.95f * SPARK_RANGE)
     {
         Focus = Boss;
     }
