@@ -38,6 +38,11 @@
 #define BOSS_SHOCK_GOLD UI_RGBA(255, 210, 110, 255)
 #define BOSS_SHOCK_CRIMSON UI_RGBA(255, 50, 120, 255)
 #define BOSS_SHOCK_FROST UI_RGBA(170, 225, 255, 255)
+#define BOSS_SHOCK_GRAVE UI_RGBA(110, 255, 140, 255)
+// NOTE(zoubir): a summon rises in a puff this big, when one stands within
+// BOSS_SUMMON_NEAR of its grave (a player on the grave keeps it shut)
+#define BOSS_SUMMON_PUFF_RADIUS 34.f
+#define BOSS_SUMMON_NEAR 12.f
 
 struct boss_impact
 {
@@ -169,6 +174,26 @@ AddBossImpact(app_state *AppState, danger_cast *Cast, float Now)
             if (Cast->PointCount)
             {
                 PushBossImpact(AppState, Cast->Points[0], Ability->Radius * 1.3f, Color, -1.f, Now);
+            }
+        } break;
+
+        case MonsterAbility_Summon:
+        {
+            world *World = &AppState->World;
+            for(u32 Point = 0; Point < Cast->PointCount; Point++)
+            {
+                for(u32 Index = 0; Index < World->EntityCount; Index++)
+                {
+                    world_entity *Risen = &World->Entities[Index];
+                    if (Risen->IsPresent && Risen->Type == EntityType_Monster &&
+                        LengthSq(Risen->Position.XY - Cast->Points[Point]) <=
+                        Square(BOSS_SUMMON_NEAR))
+                    {
+                        PushBossImpact(AppState, Cast->Points[Point], BOSS_SUMMON_PUFF_RADIUS,
+                                       BOSS_SHOCK_GRAVE, -1.f, Now);
+                        break;
+                    }
+                }
             }
         } break;
 
