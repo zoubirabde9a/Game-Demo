@@ -239,6 +239,7 @@ CastShieldCharge(app_state *AppState, world *World, memory_arena *Arena,
     float Angle = ATan2(Toward.Y, Toward.X);
     EmitBurst(&AppState->Events, SimBurst_Lunge, SIM_NOBODY, ChestOf(Player), Angle);
     float Gap = SHIELD_CHARGE_LANDING_GAP + 0.5f * Foe->Dimensions.X;
+    v2 Start = Player->Position.XY;
     if (Length(Foe->Position.XY - Player->Position.XY) > Gap)
     {
         v3 Landing = Foe->Position;
@@ -253,7 +254,10 @@ CastShieldCharge(app_state *AppState, world *World, memory_arena *Arena,
     hit Hit = {SHIELD_CHARGE_DAMAGE, SHIELD_CHARGE_SHOVE, 0.f, 0.f, Stun, SimBurst_Impact};
     AddThreat(&AppState->Dungeon->Threat, World, Foe, SlotIndex, SHIELD_CHARGE_THREAT);
     ApplyHit(AppState, World, Foe, &Hit, Toward, Player, SlotIndex);
-    EmitBurst(&AppState->Events, SimBurst_InterceptLand, SlotIndex, Player->Position, Angle);
+    // NOTE(zoubir): how far the charge went rides in the landing's number,
+    // so every client draws the rush (client/dungeon/role_fx.cpp)
+    EmitBurst(&AppState->Events, SimBurst_InterceptLand, SlotIndex,
+              NumberedBurstSpot(Player->Position, (u32)Length(Player->Position.XY - Start)), Angle);
     EmitSound(&AppState->Events, AssetType_SfxShieldSlam, Player->Position);
     return true;
 }
@@ -389,6 +393,7 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
             v2 Toward = DirectionTo(Ally->Position.XY - Player->Position.XY);
             v3 Landing = Ally->Position;
             Landing.XY -= INTERCEPT_LANDING_GAP * Toward;
+            v2 Start = Player->Position.XY;
             MovePlayerTo(AppState, World, Arena, Player, Landing);
             // NOTE(zoubir): what was after the ally comes for the tank
             TauntAround(AppState, &AppState->Dungeon->Threat, Player, TAUNT_RADIUS * 0.5f);
@@ -399,7 +404,8 @@ CastTankKey(app_state *AppState, world *World, memory_arena *Arena,
                 AllySlot->WardAbsorb = Maximum(AllySlot->WardAbsorb, GUARDIAN_WARD);
                 AllySlot->WardFull = Maximum(AllySlot->WardAbsorb, AllySlot->WardFull);
             }
-            EmitBurst(&AppState->Events, SimBurst_InterceptLand, SlotIndex, Player->Position, Angle);
+            EmitBurst(&AppState->Events, SimBurst_InterceptLand, SlotIndex,
+                      NumberedBurstSpot(Player->Position, (u32)Length(Player->Position.XY - Start)), Angle);
             EmitSound(&AppState->Events, AssetType_SfxDash, Player->Position);
         } break;
 

@@ -8,7 +8,9 @@
    - Taunt: a red war cry, two rings racing out to the taunt's reach.
    - Shield Slam: the ground cracks in a steel ring, a shield of light
      flares over the tank and a pale ring runs out to the rallied.
-   - Intercept: a steel ring and dust where the tank lands.
+   - Intercept and Shield Charge: a steel streak and fading afterimage
+     dots along the leap (its length is the burst's number), then a
+     steel ring and dust where the tank lands.
    - Mending Bolt: a streak of green-gold light from the healer to the
      healed, then crosses of light rising off them.
    - Ward: a blue six-sided shell closing round the warded.
@@ -219,6 +221,17 @@ DrawRoleBurst(render_context *RenderContext, app_state *AppState, role_burst *Bu
 
         case SimBurst_InterceptLand:
         {
+            v2 Dir = V2(Cos(Burst->Angle), Sin(Burst->Angle));
+            v2 Chest = Centre - V2(0.f, 18.f);
+            v2 Start = Chest - (float)Burst->Number * Dir;
+            float Rush = Clamp01(1.f - 2.f * T);
+            DrawFxStroke(RenderContext, Start, Chest, 0.f, 26.f, FxColor(0.f, ROLE_FX_SLAM_RGB),
+                         FxColor(0.45f * Rush, ROLE_FX_SLAM_RGB));
+            for(u32 Dot = 0; Dot * 18.f < (float)Burst->Number; Dot++)
+            {
+                v2 P = Chest - (18.f * (float)Dot) * Dir;
+                DrawFxDot(RenderContext, P, 5.f * Rush, FxColor(0.8f * Rush, 0x00FFF0D0));
+            }
             DrawWaveFront(RenderContext, Centre, 0.f, 2.f * Pi32, 60.f * EaseOut,
                           10.f * (1.f - T), Fade, ROLE_FX_SLAM_RGB);
             for(u32 Puff = 0; Puff < 10; Puff++)
