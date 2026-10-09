@@ -420,6 +420,44 @@ TestAtonement()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): the Mender's later spells: Prayer of Healing heals the
+// most hurt allies near, Dawnbreak strikes the foes on its line and heals
+// through Smite, Purify clears a held ally and wards it
+internal void
+TestMenderNewLight()
+{
+    crypt_world Crypt = CreateCryptWorld(2);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    TickCrypt(&Crypt, 1);
+    player_slot *Slot = &AppState->Players[0];
+    SetPlayerRole(AppState, Slot, PlayerRole_Healer);
+    GrantClassSpells(Slot);
+    world_entity *Healer = Slot->Entity;
+    world_entity *Ally = AppState->Players[1].Entity;
+    v3 Old = Ally->Position;
+    Ally->Position = Healer->Position + V3(80.f, 60.f, 0.f);
+    CheckAndChangeEntityChunk(AppState, World, &Crypt.Arena, Old, Ally);
+    Ally->Hp = 0.4f * Ally->MaxHp;
+    float Before = Ally->Hp;
+    PressOnce(&Crypt, 0, PlayerButton_FrostNova);
+    Check(Slot->RoleCooldowns[7] > 0.f && Ally->Hp > Before);
+    Healer->Aim = V2(1.f, 0.f);
+    world_entity *Foe = SpawnMonster(AppState, World, &Crypt.Arena,
+                                     Healer->Position + V3(150.f, 0.f, 0.f), MonsterKind_Brute);
+    Foe->MaxHp = Foe->Hp = 1000.f;
+    Before = Ally->Hp;
+    PressOnce(&Crypt, 0, PlayerButton_Cast);
+    Check(Slot->RoleCooldowns[5] > 0.f && Foe->Hp < 1000.f && Ally->Hp > Before);
+    ApplyStatus(Ally, StatusEffect_Rooted, 5.f);
+    AppState->Players[1].WardAbsorb = 0.f;
+    Slot->Input.Target = (u32)(Ally - World->Entities) + 1;
+    PressOnce(&Crypt, 0, PlayerButton_GravityWell);
+    Check(Slot->RoleCooldowns[8] > 0.f && !HasStatus(Ally, StatusEffect_Rooted));
+    Check(AppState->Players[1].WardAbsorb >= PURIFY_WARD - 0.01f);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunClassKitTests()
 {
@@ -432,4 +470,5 @@ RunClassKitTests()
     TestBasicAttacks();
     TestMenderLaterTalents();
     TestAtonement();
+    TestMenderNewLight();
 }

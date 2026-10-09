@@ -164,6 +164,29 @@ BotRoleButtons(bot_brain *Bot, app_state *AppState, world_entity *Self,
         {
             Result |= NetButton_Slam;
         }
+        // NOTE(zoubir): the spells of the later pairs: a prayer for two
+        // hurt, a beam at what it fights when nobody is low, and Purify on
+        // an ally held, burning or poisoned
+        if (HurtNear >= 2 && Ready[7] && BotRandom(Bot) % 6 == 0)
+        {
+            Result |= NetButton_FrostNova;
+        }
+        if (Target && !Low && Distance < 0.9f * DAWNBREAK_LENGTH && Ready[5] && BotRandom(Bot) % 6 == 0)
+        {
+            Result |= NetButton_Fireball;
+        }
+        for (u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS && Ready[8]; ++SlotIndex)
+        {
+            world_entity *Ally = LivingPlayerInSlot(AppState, SlotIndex);
+            if (Ally && Length(Ally->Position.XY - Self->Position.XY) < MENDING_BOLT_RANGE &&
+                (HasStatus(Ally, StatusEffect_Stunned) || HasStatus(Ally, StatusEffect_Rooted) ||
+                 HasStatus(Ally, StatusEffect_Burning) || HasStatus(Ally, StatusEffect_Poisoned)))
+            {
+                Result |= NetButton_GravityWell;
+                *Pick = (u16)(Ally->ID + 1);
+                break;
+            }
+        }
     }
     else if (Target && Target->Type == EntityType_Monster && !Casting)
     {

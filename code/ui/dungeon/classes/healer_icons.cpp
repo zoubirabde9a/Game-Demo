@@ -41,3 +41,46 @@ PaintGuardianAngelIcon(icon_canvas *Canvas)
                                           V2(0.5f, 0.46f), V2(0.5f, 0.88f)));
     IconArc(Canvas, V2(0.5f, 0.22f), 0.09f, 0.025f, Solid(IconColor(255, 210, 90)));
 }
+
+// NOTE(zoubir): Prayer of Healing: three motes of green light rising over
+// joined hands of light
+internal void
+PaintPrayerOfHealingIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.5f, 0.5f), 0.5f, IconColor(120, 230, 150, 150));
+    IconArc(Canvas, V2(0.5f, 0.86f), 0.3f, 0.05f, Solid(IconColor(255, 240, 190)), 3.6f, 5.8f);
+    for(u32 Mote = 0; Mote < 3; Mote++)
+    {
+        v2 C = V2(0.3f + 0.2f * (float)Mote, 0.38f - 0.08f * (float)(Mote % 2));
+        IconCircle(Canvas, C, 0.07f, Gradient(IconColor(240, 255, 230), IconColor(90, 200, 120),
+                                              C - V2(0.03f, 0.03f), C + V2(0.05f, 0.05f)));
+        IconCapsule(Canvas, C, C + V2(0.f, 0.2f), 0.014f, Solid(IconColor(160, 240, 170, 140)));
+    }
+}
+
+// NOTE(zoubir): Dawnbreak: a beam of gold light crossing the icon, a sun
+// rising behind it
+internal void
+PaintDawnbreakIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.5f, 0.6f), 0.5f, IconColor(255, 210, 110, 160));
+    IconCircle(Canvas, V2(0.5f, 0.78f), 0.24f, Gradient(IconColor(255, 245, 200), IconColor(255, 170, 60),
+                                                       V2(0.5f, 0.6f), V2(0.5f, 0.95f)));
+    IconCapsule(Canvas, V2(0.06f, 0.52f), V2(0.94f, 0.36f), 0.05f,
+                Gradient(IconColor(255, 250, 220), IconColor(255, 200, 90, 120), V2(0.06f, 0.f), V2(0.94f, 0.f)));
+    IconSparkle(Canvas, V2(0.82f, 0.2f), 0.08f, Solid(IconColor(255, 255, 235)));
+}
+
+// NOTE(zoubir): Purify: a white drop washing a dark stain away, a gold
+// ring of ward round it
+internal void
+PaintPurifyIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.5f, 0.5f), 0.5f, IconColor(200, 240, 255, 150));
+    IconArc(Canvas, V2(0.5f, 0.55f), 0.3f, 0.035f, Solid(IconColor(255, 215, 120)), 0.f, 2.f * Pi32);
+    v2 Drop[3] = {V2(0.5f, 0.24f), V2(0.66f, 0.56f), V2(0.34f, 0.56f)};
+    IconPolygon(Canvas, Drop, 3, Solid(IconColor(235, 250, 255)));
+    IconCircle(Canvas, V2(0.5f, 0.6f), 0.16f, Gradient(IconColor(255, 255, 255), IconColor(150, 210, 240),
+                                                      V2(0.46f, 0.52f), V2(0.56f, 0.72f)));
+    IconCircle(Canvas, V2(0.74f, 0.8f), 0.05f, Solid(IconColor(90, 60, 80, 140)));
+}

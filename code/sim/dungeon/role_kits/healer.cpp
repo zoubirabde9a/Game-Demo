@@ -144,6 +144,8 @@ CastLightAtFoe(app_state *AppState, player_slot *Slot, world_entity *Player, flo
     return true;
 }
 
+#include "healer/new_light.cpp"
+
 // NOTE(zoubir): returns whether the key cast (a sanctuary with every
 // circle in use, or Holy Fire with no foe in reach, does not)
 internal bool32
@@ -205,6 +207,21 @@ CastHealerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 
         {
             return CastLightAtFoe(AppState, Slot, Player, SMITE_BOLT_RANGE, SMITE_BOLT_DAMAGE,
                                   SMITE_BOLT_SHOVE);
+        } break;
+
+        case 5:
+        {
+            CastDawnbreak(AppState, Slot, Player);
+        } break;
+
+        case 7:
+        {
+            CastPrayerOfHealing(AppState, Slot, Player);
+        } break;
+
+        case 8:
+        {
+            CastPurify(AppState, Slot, Player);
         } break;
     }
     return true;

@@ -37,19 +37,18 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
       {CT(TankTalent_BattleRhythm), RM(Spikes), RM(Rallying), RM(Menace), RM(Vigor),
        RM(Retaliation), CT(TankTalent_Vengeance)}}},
 
-    // NOTE(zoubir): the Mender. Quickening, Light Feet and Inner Light hold
-    // the second spell slots until Prayer of Healing, Dawnbreak and Purify
-    // are in
+    // NOTE(zoubir): the Mender
     {{"Sanctum", "Dawn"},
-     {CLASS_BRANCH(CT(HealerTalent_DeepWard), CT(HealerTalent_Sanctuary), CT(HealerTalent_Quickening),
+     {CLASS_BRANCH(CT(HealerTalent_DeepWard), CT(HealerTalent_Sanctuary), CT(HealerTalent_PrayerOfHealing),
                    CT(HealerTalent_SteadfastWard), CT(HealerTalent_BlessedHands), RM(SpiritWard),
                    CT(HealerTalent_GuardianAngel)),
-      CLASS_BRANCH(CT(HealerTalent_SwiftMending), CT(HealerTalent_LightFeet), CT(HealerTalent_InnerLight),
+      CLASS_BRANCH(CT(HealerTalent_SwiftMending), CT(HealerTalent_Dawnbreak), CT(HealerTalent_Purify),
                    CT(HealerTalent_Renewal), CT(HealerTalent_Atonement), RM(Sanctified),
                    CT(HealerTalent_Miracle))},
-     {{RM(Bountiful), RM(Hymn), RM(SharedSpoils), RM(Rallying), RM(Overflowing)},
+     {{RM(Bountiful), RM(Hymn), RM(SharedSpoils), RM(Rallying), RM(Overflowing),
+       CT(HealerTalent_Quickening), CT(HealerTalent_InnerLight)},
       {RM(WarSong), RM(Receptive), RM(MendingTouch), RM(KeenEdge), RM(SecondBreath),
-       RM(Serenity)}}},
+       RM(Serenity), CT(HealerTalent_LightFeet)}}},
 
     // NOTE(zoubir): the Ranger
     {{"Marksmanship", "Survival"},

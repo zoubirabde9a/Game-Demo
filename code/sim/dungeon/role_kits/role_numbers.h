@@ -132,6 +132,17 @@
 #define HOLY_FIRE_DAMAGE 48.f
 #define HOLY_FIRE_SHOVE 60.f
 #define HOLY_FIRE_COOLDOWN 4.f
+// NOTE(zoubir): the Mender's spells on G, X and T (healer/new_light.cpp)
+#define PRAYER_OF_HEALING_ALLIES 3
+#define PRAYER_OF_HEALING_REACH 420.f
+#define PRAYER_OF_HEALING_HEAL 28.f
+#define PRAYER_OF_HEALING_COOLDOWN 12.f
+#define DAWNBREAK_LENGTH 420.f
+#define DAWNBREAK_WIDTH 30.f
+#define DAWNBREAK_DAMAGE 22.f
+#define DAWNBREAK_COOLDOWN 8.f
+#define PURIFY_WARD 30.f
+#define PURIFY_COOLDOWN 10.f
 
 // NOTE(zoubir): Smite Bolt (right click): a quick bolt of light at a foe,
 // SMITE_BOLT_DAMAGE before the healer's 50%, healing the most hurt ally

@@ -442,7 +442,8 @@ global_variable role_icon_painter *TankIconPainters[ROLE_KEYS] =
 global_variable role_icon_painter *HealerIconPainters[ROLE_KEYS] =
 {
     PaintRoleMendingBoltIcon, PaintRoleWardIcon, PaintRoleSanctuaryIcon, PaintRoleRadianceIcon,
-    PaintRoleHolyFireIcon, 0, PaintRoleSmiteBoltIcon,
+    PaintRoleHolyFireIcon, PaintDawnbreakIcon, PaintRoleSmiteBoltIcon,
+    PaintPrayerOfHealingIcon, PaintPurifyIcon,
 };
 global_variable role_icon_painter **RoleIconPainters[PlayerRole_Count] =
 {

@@ -147,10 +147,18 @@ global_variable role_spell HealerSpells[ROLE_KEYS] =
      {"Holy Fire", HOLY_FIRE_COOLDOWN,
       "Holy Fire: strike a foe with light; the most hurt ally heals for it",
       RoleAim_Foe, HOLY_FIRE_RANGE, 0},
-     {},
+     {"Dawnbreak", DAWNBREAK_COOLDOWN,
+      "Dawnbreak: a beam of light through every foe on your aim; each hit heals the most hurt ally",
+      RoleAim_Line, DAWNBREAK_LENGTH, HealerTalent_Dawnbreak + 1},
      {"Smite Bolt", SMITE_BOLT_COOLDOWN,
       "Smite Bolt: a quick bolt of light at a foe; the most hurt ally heals a little",
-      RoleAim_None, SMITE_BOLT_RANGE, 0}};
+      RoleAim_None, SMITE_BOLT_RANGE, 0},
+     {"Prayer of Healing", PRAYER_OF_HEALING_COOLDOWN,
+      "Prayer of Healing: the three most hurt allies near you heal 28 at once",
+      RoleAim_None, PRAYER_OF_HEALING_REACH, HealerTalent_PrayerOfHealing + 1},
+     {"Purify", PURIFY_COOLDOWN,
+      "Purify: an ally is rid of burns, poison, slows, roots and stuns, and holds a ward of 30",
+      RoleAim_Ally, MENDING_BOLT_RANGE, HealerTalent_Purify + 1}};
 
 // NOTE(zoubir): by player_role; the later classes' rows are their
 // role_kits/<class>_defs.cpp

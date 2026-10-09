@@ -18,6 +18,9 @@ enum healer_talent
     HealerTalent_HolyFire,
     HealerTalent_SmiteBolt,
     HealerTalent_Atonement,
+    HealerTalent_PrayerOfHealing,
+    HealerTalent_Dawnbreak,
+    HealerTalent_Purify,
 };
 
 // NOTE(zoubir): per rank, or once taken
@@ -76,6 +79,12 @@ global_variable talent_def HealerTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Atonement", "The light you strike foes with heals the most hurt ally more",
      "+20% of Holy Fire's and Smite Bolt's heal", TalentBranch_Role, 0, 0, 3, 0},
+    {"Prayer of Healing", "G: the three most hurt allies near you heal 28 at once",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Dawnbreak", "X: a beam of light through every foe on your aim; each hit heals the most hurt ally",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Purify", "T: an ally is rid of burns, poison, slows, roots and stuns, and holds a ward of 30",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
