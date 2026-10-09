@@ -124,7 +124,8 @@ CastRadiance(app_state *AppState, world_entity *Player)
         }
         EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Near));
     }
-    EmitBurst(&AppState->Events, SimBurst_SanctuaryCast, SlotIndex, Player->Position);
+    EmitBurst(&AppState->Events, SimBurst_SanctuaryCast, SlotIndex,
+              NumberedBurstSpot(Player->Position, (u32)RADIANCE_RADIUS));
     EmitSound(&AppState->Events, AssetType_SfxHeal, Player->Position);
 }
 
@@ -195,7 +196,8 @@ CastHealerKey(app_state *AppState, player_slot *Slot, world_entity *Player, u32 
             Free->By = SlotIndex;
             Free->Radius = RoleSpellRadius(Slot, Key);
             Free->HealPerSecond = SANCTUARY_HEAL_PER_SECOND * (Hallowed ? HALLOWED_HEAL : 1.f);
-            EmitBurst(&AppState->Events, SimBurst_SanctuaryCast, SlotIndex, Free->Position);
+            EmitBurst(&AppState->Events, SimBurst_SanctuaryCast, SlotIndex,
+                      NumberedBurstSpot(Free->Position, (u32)Free->Radius));
             EmitSound(&AppState->Events, AssetType_SfxSanctuary, Free->Position);
         } break;
 

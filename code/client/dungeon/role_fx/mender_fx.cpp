@@ -7,7 +7,11 @@
    - Holy Fire, Smite Bolt and each foe Dawnbreak strikes: a white-gold
      bolt from the healer (not for Dawnbreak, whose beam is the bolt),
      then a sunburst on the foe, rays thrown out round a flash. No
-     crosses: those say healing, and this is damage. */
+     crosses: those say healing, and this is damage.
+   - Prayer of Healing: a soft green-gold ring opening round the healer
+     with motes rising, whether or not anyone was hurt.
+   - Purify: dark motes torn off the ally and flung away, then a flash of
+     white light and a faint ward shell closing. */
 
 #define MENDER_FX_DAWN_RGB 0x0070E0FF
 #define MENDER_FX_WHITE_RGB 0x00E0F8FF
@@ -86,6 +90,50 @@ DrawHolyStrike(render_context *RenderContext, app_state *AppState, role_burst *B
     }
 }
 
+internal void
+DrawPrayer(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
+{
+    v2 Centre = BurstToScreen(Burst->Position, CameraOffset);
+    float Ease = 1.f - (1.f - T) * (1.f - T);
+    float Fade = 1.f - T * T;
+    float Radius = BurstLooks[Burst->Kind].Radius * (0.3f + 0.7f * Ease);
+    DrawArcBand(RenderContext, Centre, 0.f, 2.f * Pi32, 0.f, Radius,
+                FxColor(0.25f * Fade, ROLE_FX_HEAL_RGB), FxColor(0.f, ROLE_FX_HEAL_RGB));
+    DrawWaveFront(RenderContext, Centre, 0.f, 2.f * Pi32, Radius, 10.f, 0.6f * Fade, MENDER_FX_DAWN_RGB);
+    for(u32 Mote = 0; Mote < 14; Mote++)
+    {
+        float A = 2.f * Pi32 * BurstJitter(Mote, 171);
+        v2 P = Centre + GroundCircle(A, Radius * BurstJitter(Mote, 172)) -
+            V2(0.f, 70.f * T * (0.5f + BurstJitter(Mote, 173)));
+        DrawFxDot(RenderContext, P, 3.f, FxColor(Fade, Mote % 2 ? ROLE_FX_HEAL_RGB : MENDER_FX_DAWN_RGB));
+    }
+}
+
+internal void
+DrawPurify(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
+{
+    v2 Centre = BurstToScreen(Burst->Position, CameraOffset);
+    // NOTE(zoubir): the first half tears the harm off, the second cleans
+    float Tear = Clamp01(2.f * T);
+    float Clean = Clamp01(2.f * T - 1.f);
+    for(u32 Mote = 0; Mote < 12 && Tear < 1.f; Mote++)
+    {
+        float A = 2.f * Pi32 * BurstJitter(Mote, 181);
+        v2 Dir = V2(Cos(A), Sin(A));
+        v2 P = Centre + (8.f + 50.f * Tear * Tear * (0.6f + BurstJitter(Mote, 182))) * Dir;
+        DrawFxDot(RenderContext, P, 6.f - 3.f * Tear, FxColor(0.9f * (1.f - Tear), 0x00301828));
+        DrawFxDot(RenderContext, P, 3.f, FxColor(0.6f * (1.f - Tear), 0x00804060));
+    }
+    float Flash = Tear >= 1.f ? 1.f - Clean : Tear * Tear;
+    DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 34.f, Centre.Y - 34.f, 68.f, 68.f,
+                   FxColor(0.8f * Flash, MENDER_FX_WHITE_RGB), RenderBlend_Additive);
+    if (Clean > 0.f)
+    {
+        DrawHexagon(RenderContext, Centre, 22.f + 8.f * (1.f - Clean), 0.f, 2.f,
+                    FxColor(0.6f * (1.f - Clean), ROLE_FX_WARD_RGB));
+    }
+}
+
 // NOTE(zoubir): a burst of the Mender's later spells; false for any other
 internal bool32
 DrawMenderBurst(render_context *RenderContext, app_state *AppState, role_burst *Burst,
@@ -95,6 +143,8 @@ DrawMenderBurst(render_context *RenderContext, app_state *AppState, role_burst *
     {
         case SimBurst_Dawnbreak: DrawDawnbreak(RenderContext, Burst, T, CameraOffset); break;
         case SimBurst_HolyStrike: DrawHolyStrike(RenderContext, AppState, Burst, T, CameraOffset); break;
+        case SimBurst_Prayer: DrawPrayer(RenderContext, Burst, T, CameraOffset); break;
+        case SimBurst_Purify: DrawPurify(RenderContext, Burst, T, CameraOffset); break;
         default: return false;
     }
     return true;

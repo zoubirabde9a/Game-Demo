@@ -10,3 +10,5 @@
     {BurstShape_Role, 0.35f, 30.f, 0x002080FF, false, 0.f, BurstPose_None},               // DetonateLink
     {BurstShape_Role, 0.6f, RALLYING_CRY_REACH, 0x0060E0FF, false, 0.3f, BurstPose_Release}, // RallyingCry
     {BurstShape_Role, 0.6f, DEMORALIZING_ROAR_REACH, 0x00A04070, false, 0.4f, BurstPose_Release}, // DemoralizingRoar
+    {BurstShape_Role, 0.7f, 90.f, 0x0090F0B0, false, 0.f, BurstPose_Release},             // Prayer
+    {BurstShape_Role, 0.6f, 40.f, 0x00FFF0E0, false, 0.f, BurstPose_Release},             // Purify

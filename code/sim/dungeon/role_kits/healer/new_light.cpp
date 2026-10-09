@@ -52,6 +52,8 @@ CastPrayerOfHealing(app_state *AppState, player_slot *Slot, world_entity *Player
         HealPlayer(AppState, SlotIndex, Ally, PRAYER_OF_HEALING_HEAL);
         EmitBurst(&AppState->Events, SimBurst_MendingBolt, SlotIndex, ChestOf(Ally));
     }
+    // NOTE(zoubir): the prayer shows even with nobody hurt
+    EmitBurst(&AppState->Events, SimBurst_Prayer, SlotIndex, Player->Position);
     EmitSound(&AppState->Events, AssetType_SfxHeal, Player->Position);
 }
 
@@ -104,6 +106,6 @@ CastPurify(app_state *AppState, player_slot *Slot, world_entity *Player)
     player_slot *AllySlot = &AppState->Players[Ally->PlayerIndex];
     AllySlot->WardAbsorb = Maximum(AllySlot->WardAbsorb, PURIFY_WARD);
     AllySlot->WardFull = Maximum(AllySlot->WardAbsorb, AllySlot->WardFull);
-    EmitBurst(&AppState->Events, SimBurst_WardCast, SlotIndex, ChestOf(Ally));
+    EmitBurst(&AppState->Events, SimBurst_Purify, SlotIndex, ChestOf(Ally));
     EmitSound(&AppState->Events, AssetType_SfxHeal, Ally->Position);
 }

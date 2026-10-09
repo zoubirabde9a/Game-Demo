@@ -72,7 +72,7 @@ enum sim_burst
     SimBurst_InterceptLand, // where a tank's leap to an ally lands
     SimBurst_MendingBolt,  // light from the healer in Slot to the healed at Position
     SimBurst_WardCast,     // a ward closing round the player at Position
-    SimBurst_SanctuaryCast, // a sanctuary blooming on the ground
+    SimBurst_SanctuaryCast, // a sanctuary blooming on the ground, out to its number
     SimBurst_InfernoCast,  // the damage role calling a meteor down
     SimBurst_InfernoBlast, // the meteor landing at Position
     SimBurst_GiantFireball, // a Giant Fireball leaving Position along Angle
@@ -109,6 +109,8 @@ enum sim_burst
     SimBurst_DetonateLink, // a line of fire from the striker in Slot to a mark at Position it blows
     SimBurst_RallyingCry,  // a gold war cry out to its number's reach
     SimBurst_DemoralizingRoar, // a dark violet roar out to its number's reach
+    SimBurst_Prayer,       // a soft ring of light round the healer at Position praying
+    SimBurst_Purify,       // dark motes torn off the ally at Position, then a flash of light
     SimBurst_Count
 };
 static_assert(SimBurst_Count <= 128, "a burst kind and its number flag share a byte");

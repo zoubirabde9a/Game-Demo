@@ -15,7 +15,9 @@
    - Mending Bolt: a streak of green-gold light from the healer to the
      healed, then crosses of light rising off them.
    - Ward: a blue six-sided shell closing round the warded.
-   - Sanctuary: a gold pillar blooming where the circle goes down.
+   - Sanctuary: a gold pillar blooming where the circle goes down, its
+     ring out to the circle's reach (the burst's number: Hallowed Ground
+     widens it, Radiance's is RADIANCE_RADIUS).
    - Meteor: fire gathering at the caster's hands, and when the meteor
      lands a flash, a ring of fire and embers thrown out. A Searing
      mark that runs out plays the same blast on its monster. Combustion
@@ -298,12 +300,13 @@ DrawRoleBurst(render_context *RenderContext, app_state *AppState, role_burst *Bu
             DrawShaderQuad(RenderContext, Shader_Glow, Centre.X - 26.f, Centre.Y - Height,
                            52.f, Height + 12.f, FxColor(0.8f * Fade, ROLE_FX_HOLY_RGB),
                            RenderBlend_Additive);
-            DrawWaveFront(RenderContext, Centre, 0.f, 2.f * Pi32, SANCTUARY_RADIUS * EaseOut,
+            float Reach = Burst->Number ? (float)Burst->Number : SANCTUARY_RADIUS;
+            DrawWaveFront(RenderContext, Centre, 0.f, 2.f * Pi32, Reach * EaseOut,
                           16.f * (1.f - T), Fade, ROLE_FX_HOLY_RGB);
             for(u32 Mote = 0; Mote < 12; Mote++)
             {
                 float A = 2.f * Pi32 * (float)Mote / 12.f + 2.f * T;
-                v2 P = Centre + GroundCircle(A, SANCTUARY_RADIUS * (1.f - 0.6f * EaseOut)) -
+                v2 P = Centre + GroundCircle(A, Reach * (1.f - 0.6f * EaseOut)) -
                     V2(0.f, 50.f * EaseOut);
                 DrawFxDot(RenderContext, P, 3.f, FxColor(Fade, ROLE_FX_HOLY_RGB));
             }
