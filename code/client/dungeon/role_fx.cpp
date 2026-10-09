@@ -331,9 +331,10 @@ DrawRoleBurst(render_context *RenderContext, app_state *AppState, role_burst *Bu
         case SimBurst_InfernoBlast:
         {
             bool32 Giant = Burst->Kind == SimBurst_GiantFireballBlast;
-            float Radius = Giant ? GIANT_FIREBALL_RADIUS : INFERNO_RADIUS;
+            float Radius = Giant ? GIANT_FIREBALL_RADIUS :
+                Burst->Number ? (float)Burst->Number : INFERNO_RADIUS;
             dungeon_run *Run = AppState->Dungeon;
-            for(u32 Index = 0; Run && !Giant && Index < MAX_INFERNOS; Index++)
+            for(u32 Index = 0; Run && !Giant && !Burst->Number && Index < MAX_INFERNOS; Index++)
             {
                 inferno *Zone = &Run->Infernos[Index];
                 if (Zone->Radius > 0.f && Length(Zone->Position.XY - Burst->Position.XY) < 8.f)

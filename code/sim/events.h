@@ -105,6 +105,8 @@ enum sim_burst
     SimBurst_HolyStrike,   // light from the healer in Slot striking the foe at Position; number 1: no bolt
     SimBurst_ShieldThrow,  // a thrown shield's hop onto the foe at Position, along Angle (SHIELD_THROW_HOP)
     SimBurst_FlameWave,    // Flame Wave's fire rolling out from Position along Angle, its number deep
+    SimBurst_Detonate,     // Detonate's pulse out from the striker at Position to its number's reach
+    SimBurst_DetonateLink, // a line of fire from the striker in Slot to a mark at Position it blows
     SimBurst_Count
 };
 static_assert(SimBurst_Count <= 128, "a burst kind and its number flag share a byte");

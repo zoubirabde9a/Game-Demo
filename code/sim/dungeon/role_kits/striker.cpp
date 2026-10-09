@@ -69,7 +69,8 @@ ExplodeSearing(app_state *AppState, world_entity *Marked, u32 Stacks, u32 By, fl
         Damage *= 1.f + OVERLOAD_SHARE;
     }
     v3 Centre = Marked->Position;
-    EmitBurst(&AppState->Events, SimBurst_InfernoBlast, (u8)BySlot, Centre);
+    EmitBurst(&AppState->Events, SimBurst_InfernoBlast, (u8)BySlot,
+              NumberedBurstSpot(Centre, (u32)DETONATE_SPLASH_RADIUS));
     EmitSound(&AppState->Events, AssetType_SfxExplosion, Centre);
     for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
     {
@@ -147,11 +148,18 @@ DetonateMarks(app_state *AppState, world_entity *Player)
             continue;
         }
         u32 Stacks = Mark->Stacks;
+        EmitBurst(&AppState->Events, SimBurst_DetonateLink, (u8)By, ChestOf(Monster));
         Mark->Stacks = 0;
         Mark->Seconds = 0.f;
         Mark->BurnTimer = 0.f;
         ExplodeSearing(AppState, Monster, Stacks, By, 1.f + DETONATE_SPELL_SHARE);
         Result = true;
+    }
+    if (Result)
+    {
+        v3 Feet = V3(Player->Position.X, Player->Position.Y, Player->GroundZ);
+        EmitBurst(&AppState->Events, SimBurst_Detonate, (u8)By,
+                  NumberedBurstSpot(Feet, (u32)DETONATE_SPELL_REACH));
     }
     return Result;
 }
@@ -403,7 +411,8 @@ UpdateInfernos(app_state *AppState, dungeon_run *Run, float DeltaTime)
                 Zone->TickTimer = 0.f;
                 BurnAround(AppState, World, Zone->Position, Zone->Radius, Zone->By,
                            INFERNO_DAMAGE, SEARING_METEOR_STACKS);
-                EmitBurst(&AppState->Events, SimBurst_InfernoBlast, (u8)Zone->By, Zone->Position);
+                EmitBurst(&AppState->Events, SimBurst_InfernoBlast, (u8)Zone->By,
+                          NumberedBurstSpot(Zone->Position, (u32)Zone->Radius));
                 EmitSound(&AppState->Events, AssetType_SfxExplosion, Zone->Position);
             }
         }
