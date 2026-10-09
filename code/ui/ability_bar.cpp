@@ -152,6 +152,7 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         *New = {};
         New->Atlas = BuildAbilityIconAtlas(RenderContext->OpenGL, RenderContext->Arena);
         New->Health = {1.f, 1.f};
+        New->Tip.Slot = New->Tip.LastSlot = -1;
         for(u32 Index = 0; Index < ABILITY_SLOT_DEF_COUNT; Index++)
         {
             New->WasReady[Index] = true;
@@ -451,7 +452,11 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         Tip->Slot = Hovered;
         Tip->X = HoveredX;
         Tip->Bottom = PlateTop;
+        // NOTE(zoubir): the fade starts over when the mouse comes onto the
+        // slots, not when it moves from one slot to the next
+        Tip->Seconds = Tip->LastSlot >= 0 ? Tip->Seconds + DeltaTime : 0.f;
     }
+    Bar->Tip.LastSlot = Hovered;
 }
 
 // NOTE(zoubir): the card over the slot the mouse was on this frame
@@ -463,8 +468,7 @@ DrawAbilityTip(render_context *RenderContext, app_state *AppState, u32 WindowWid
     world_entity *Player = GetLocalPlayer(AppState);
     if (Bar && Player && Bar->Tip.Slot >= 0)
     {
-        ability_tip *Tip = &Bar->Tip;
-        DrawAbilityTooltip(RenderContext, AppState, Player, &AbilitySlotDefs[Tip->Slot], Tip->X,
-                           Tip->Bottom, WindowWidth, Tip->Full, Tip->Left);
+        DrawAbilityTooltip(RenderContext, AppState, Player, &AbilitySlotDefs[Bar->Tip.Slot],
+                           Bar->Atlas, &Bar->Tip, WindowWidth);
     }
 }
