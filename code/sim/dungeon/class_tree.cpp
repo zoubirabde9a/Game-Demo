@@ -67,7 +67,10 @@ struct class_slot_shape
     u8 Ranks;
 };
 
-// NOTE(zoubir): by slot of a branch
+// NOTE(zoubir): by slot of a branch. The last two, the capstone and the
+// keystone, travel online in one bit each (NET_TALENT_BRANCH,
+// net/protocol/talent_ranks.cpp): give either a second rank and widen
+// NetTalentRankBits with it
 global_variable class_slot_shape ClassSlotShapes[ROLE_TALENTS] =
 {
     {ClassSlot_Fixed, 1, 0, 2}, {ClassSlot_Wild, 1, 1, 2},
