@@ -612,6 +612,7 @@ main(int ArgCount, char **Args)
     GROUP(TestSnapshotsAcknowledgeInputs());
     GROUP(TestPlayerNamesReachEveryone());
     GROUP(RunChatOnlineTests());
+    GROUP(TestChatSaysWhoJoinsAndLeaves());
     GROUP(TestNinthClientIsTurnedAway());
     GROUP(TestFloodDoesNotStallTheServer());
     GROUP(TestInfoQueryListsPlayers());

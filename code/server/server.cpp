@@ -118,15 +118,33 @@ ServerAnswerInfo(server *Server, net_address From, net_packet *Request)
     ServerSend(Server, From, &Reply);
 }
 
-// NOTE(zoubir): the name the line goes out under is the one the game
+// NOTE(zoubir): the name chat uses for a player is the one the game
 // shows, made unique when two players picked the same
+internal void
+ServerPlayerName(server *Server, u32 Slot, char *Name, u32 Size)
+{
+    char *GameName = Server->Game.AppState->Players[Slot].Name;
+    if (GameName[0]) snprintf(Name, Size, "%s", GameName);
+    else snprintf(Name, Size, "Player %u", Slot + 1);
+}
+
+// NOTE(zoubir): "<name> <What>" in everyone's chat log, called before
+// the slot is emptied so the name is still there
+internal void
+ServerChatNotice(server *Server, u32 Slot, const char *What)
+{
+    char Name[NET_NAME_SIZE];
+    ServerPlayerName(Server, Slot, Name, sizeof(Name));
+    char Text[NET_CHAT_SIZE];
+    snprintf(Text, sizeof(Text), "%s %s", Name, What);
+    ChatNotice(&Server->Chat, Text);
+}
+
 internal void
 ServerTakeChat(server *Server, u32 Slot, net_chat_say *Say)
 {
     char Name[NET_NAME_SIZE];
-    char *GameName = Server->Game.AppState->Players[Slot].Name;
-    if (GameName[0]) snprintf(Name, sizeof(Name), "%s", GameName);
-    else snprintf(Name, sizeof(Name), "Player %u", Slot + 1);
+    ServerPlayerName(Server, Slot, Name, sizeof(Name));
     net_chat_line *Line = ChatReceive(&Server->Chat, Slot, Say, Name);
     if (Line) ServerLog(Server, "chat %u %s: %s", Slot, Line->Name, Line->Text);
 }
@@ -191,6 +209,9 @@ ServerReceiveAll(server *Server)
                 ClearInputQueue(&Server->InputQueues[Result.SlotIndex]);
                 GamePlayerJoined(&Server->Game, Result.SlotIndex);
                 GamePlayerNamed(&Server->Game, Result.SlotIndex, Result.Name);
+                // NOTE(zoubir): before ChatJoined, so the others hear it
+                // and the one joining does not
+                ServerChatNotice(Server, Result.SlotIndex, "joined the game");
                 ChatJoined(&Server->Chat, Result.SlotIndex);
                 ServerLog(Server, "player %u joined from " ADDRESS_FORMAT " (%u/%u)", Result.SlotIndex,
                           ADDRESS_ARGS(From), ServerPlayerCount(Server), NET_MAX_CLIENTS);
@@ -204,6 +225,7 @@ ServerReceiveAll(server *Server)
             case NetReceive_Left:
             {
                 ClearInputQueue(&Server->InputQueues[Result.SlotIndex]);
+                ServerChatNotice(Server, Result.SlotIndex, "left the game");
                 GamePlayerLeft(&Server->Game, Result.SlotIndex);
                 ServerLog(Server, "player %u left (%u/%u)", Result.SlotIndex,
                           ServerPlayerCount(Server), NET_MAX_CLIENTS);
@@ -284,6 +306,7 @@ ServerTick(server *Server)
         if (TimedOut & (1u << Index))
         {
             ClearInputQueue(&Server->InputQueues[Index]);
+            ServerChatNotice(Server, Index, "lost connection");
             GamePlayerLeft(&Server->Game, Index);
             ServerLog(Server, "player %u timed out (%u/%u)", Index, ServerPlayerCount(Server), NET_MAX_CLIENTS);
         }

@@ -1,15 +1,19 @@
 /* Chat online: lines said reach every player once each, in the same order
    for all, over a clean link and over one that drops, doubles and
    reorders packets; the relay drops repeats, empty lines and floods, and
-   a player joining late hears only what is said after. Included by
+   a player joining late hears only what is said after. The server's own
+   lines say who joined, left or lost connection, to everyone else. Included by
    server_tests.cpp, which calls RunChatOnlineTests. */
 
 #define CHAT_TEST_MAX_HEARD 16
 
+// NOTE: players' lines and the server's own notices, kept apart
 struct chat_test_ear
 {
     u32 Count;
     net_chat_line Lines[CHAT_TEST_MAX_HEARD];
+    u32 NoticeCount;
+    net_chat_line Notices[CHAT_TEST_MAX_HEARD];
 };
 
 internal void
@@ -18,7 +22,11 @@ ListenForChat(net_client *Client, chat_test_ear *Ear)
     net_chat_line Line;
     while (NetClientTakeChat(Client, &Line))
     {
-        if (Ear->Count < CHAT_TEST_MAX_HEARD) Ear->Lines[Ear->Count++] = Line;
+        if (Line.Slot == NET_CHAT_NOTICE_SLOT)
+        {
+            if (Ear->NoticeCount < CHAT_TEST_MAX_HEARD) Ear->Notices[Ear->NoticeCount++] = Line;
+        }
+        else if (Ear->Count < CHAT_TEST_MAX_HEARD) Ear->Lines[Ear->Count++] = Line;
     }
 }
 
@@ -151,6 +159,53 @@ TestChatRelayDropsRepeatsAndFloods()
     ChatReceive(&Chat, 1, &Heard, (char *)"Ben");
     for (int Tick = 0; Tick < SERVER_TICK_RATE; ++Tick) ChatAdvance(&Chat, 1.0f / SERVER_TICK_RATE);
     Check(!ChatPacketFor(&Chat, 1, &Out));
+}
+
+internal void
+TestChatSaysWhoJoinsAndLeaves()
+{
+    static server Server;
+    static net_client Ana, Ben, Cara;
+    static chat_test_ear AnaHeard, BenHeard;
+    AnaHeard = {};
+    BenHeard = {};
+    Check(ServerStart(&Server, 0));
+    ClearMonsters(&Server);
+    // NOTE: Cara stops sending once CaraQuiet is set, so the server times her out
+    bool32 CaraQuiet = false;
+    #define NOTICE_FRAME() do { NetClientUpdate(&Ana, 1.0f / SERVER_TICK_RATE, 0, 0, 0);                                 if (Ben.State != NetClient_Disconnected) NetClientUpdate(&Ben, 1.0f / SERVER_TICK_RATE, 0, 0, 0);                                 if (!CaraQuiet && Cara.State != NetClient_Disconnected) NetClientUpdate(&Cara, 1.0f / SERVER_TICK_RATE, 0, 0, 0);                                 ServerTick(&Server);                                 ListenForChat(&Ana, &AnaHeard); ListenForChat(&Ben, &BenHeard); } while (0)
+    Check(NetClientConnect(&Ana, LocalServer(&Server), 511, SimContentId(), "Ana"));
+    for (int Frame = 0; Frame < 2 * SERVER_TICK_RATE && Ana.State != NetClient_Connected; ++Frame) NOTICE_FRAME();
+    Check(NetClientConnect(&Ben, LocalServer(&Server), 512, SimContentId(), "Ben"));
+    for (int Frame = 0; Frame < 2 * SERVER_TICK_RATE && Ben.State != NetClient_Connected; ++Frame) NOTICE_FRAME();
+    Check(NetClientConnect(&Cara, LocalServer(&Server), 513, SimContentId(), "Cara"));
+    for (int Frame = 0; Frame < 2 * SERVER_TICK_RATE && Cara.State != NetClient_Connected; ++Frame) NOTICE_FRAME();
+    Check(Ana.State == NetClient_Connected && Ben.State == NetClient_Connected && Cara.State == NetClient_Connected);
+    for (int Frame = 0; Frame < SERVER_TICK_RATE / 2; ++Frame) NOTICE_FRAME();
+
+    NetClientDisconnect(&Ben);
+    for (int Frame = 0; Frame < SERVER_TICK_RATE / 2; ++Frame) NOTICE_FRAME();
+    CaraQuiet = true;
+    for (int Frame = 0; Frame < (int)(NET_CLIENT_TIMEOUT * SERVER_TICK_RATE) + SERVER_TICK_RATE / 2; ++Frame)
+    {
+        NOTICE_FRAME();
+    }
+    #undef NOTICE_FRAME
+
+    // nobody hears about themselves joining, and nobody's line came in
+    char *Expected[] = {(char *)"Ben joined the game", (char *)"Cara joined the game",
+                        (char *)"Ben left the game", (char *)"Cara lost connection"};
+    Check(AnaHeard.NoticeCount == 4 && AnaHeard.Count == 0);
+    for (u32 Index = 0; Index < AnaHeard.NoticeCount && Index < 4; ++Index)
+    {
+        Check(strcmp(AnaHeard.Notices[Index].Text, Expected[Index]) == 0);
+        Check(AnaHeard.Notices[Index].Name[0] == 0);
+    }
+    Check(BenHeard.NoticeCount == 1 && strcmp(BenHeard.Notices[0].Text, "Cara joined the game") == 0);
+
+    NetClientDisconnect(&Ana);
+    NetClientDisconnect(&Cara);
+    ServerStop(&Server);
 }
 
 internal void

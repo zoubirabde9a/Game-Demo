@@ -1,6 +1,7 @@
 /* Chat view: the chat's lines (chat.cpp) at the bottom left, newest at the
    bottom, as "Name: text" with the name in a colour (gold for your own),
-   wrapped to the room left of the ability bar. A line shows for
+   wrapped to the room left of the ability bar. The server's own lines
+   (who joined or left) show without a name, in a muted colour. A line shows for
    CHAT_SHOW_SECONDS and fades over the last second; while the line to
    type in is open, every kept line shows on a glass panel above it. In a
    dungeon the whole chat sits above the party frames. */
@@ -41,6 +42,15 @@ WrapChatText(font *Font, char *Text, float FirstWidth, float Width, u32 *Starts)
     return Count;
 }
 
+// NOTE(zoubir): what goes before the text: "Name: ", or nothing for the
+// server's own lines
+internal void
+ChatEntryPrefix(chat_entry *Entry, char *Out, u32 Size)
+{
+    if (Entry->Slot == NET_CHAT_NOTICE_SLOT) Out[0] = 0;
+    else snprintf(Out, Size, "%s: ", Entry->Name);
+}
+
 internal void
 DrawChat(render_context *RenderContext, app_state *AppState, u32 WindowWidth, u32 WindowHeight)
 {
@@ -72,7 +82,7 @@ DrawChat(render_context *RenderContext, app_state *AppState, u32 WindowWidth, u3
         {
             chat_entry *Entry = &Chat->Log[Index];
             char Name[NET_NAME_SIZE + 2];
-            snprintf(Name, sizeof(Name), "%s: ", Entry->Name);
+            ChatEntryPrefix(Entry, Name, sizeof(Name));
             u32 Starts[CHAT_WRAP_LINES];
             float Inner = Width - 2.f * UI_GAP_SMALL;
             LogHeight += LineHeight * WrapChatText(Font, Entry->Text, Inner - UITextWidth(Font, Name),
@@ -114,13 +124,14 @@ DrawChat(render_context *RenderContext, app_state *AppState, u32 WindowWidth, u3
             Clamp01((CHAT_SHOW_SECONDS - Entry->Age) / CHAT_FADE_SECONDS);
         if (Alpha <= 0.f) break;
         char Name[NET_NAME_SIZE + 2];
-        snprintf(Name, sizeof(Name), "%s: ", Entry->Name);
+        ChatEntryPrefix(Entry, Name, sizeof(Name));
         float NameWidth = UITextWidth(Font, Name);
         u32 Starts[CHAT_WRAP_LINES];
         u32 Rows = WrapChatText(Font, Entry->Text, Inner - NameWidth, Inner, Starts);
         Bottom -= LineHeight * (float)Rows;
         bool32 Mine = Entry->Slot == AppState->LocalPlayerIndex;
         u32 NameColor = Mine ? UI_COLOR_ACCENT : UI_RGBA(132, 196, 255, 255);
+        u32 TextColor = Entry->Slot == NET_CHAT_NOTICE_SLOT ? UI_COLOR_TEXT_MUTED : UI_COLOR_TEXT;
         UIText(RenderContext, Font, TextLeft, Bottom, Name, WithAlpha(NameColor, Alpha));
         for (u32 Row = 0; Row < Rows; ++Row)
         {
@@ -131,7 +142,7 @@ DrawChat(render_context *RenderContext, app_state *AppState, u32 WindowWidth, u3
             Piece[Length] = 0;
             float X = TextLeft + (Row == 0 ? NameWidth : 0.f);
             UIText(RenderContext, Font, X, Bottom + LineHeight * (float)Row, Piece,
-                   WithAlpha(UI_COLOR_TEXT, Alpha));
+                   WithAlpha(TextColor, Alpha));
         }
     }
 }

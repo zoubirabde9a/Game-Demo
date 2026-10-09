@@ -5,6 +5,8 @@
    until it confirms them, so a lost packet only delays a line. A client
    that falls further behind than the history skips to the oldest line
    kept. A player joining hears only what is said after they join.
+   ChatNotice adds the server's own lines (who joined or left), which
+   travel the same way.
 
    Each player may say SERVER_CHAT_BURST lines at once and then one every
    1 / SERVER_CHAT_PER_SECOND seconds; lines past that are dropped (still
@@ -49,6 +51,22 @@ ChatTrim(char *Out, u32 OutSize, char *Text)
     Out[Length] = 0;
 }
 
+// NOTE(zoubir): numbers the line, keeps it in the history and sends it
+// to everyone this tick, not at their next resend
+internal net_chat_line *
+ChatAppend(server_chat *Chat, u8 Slot, char *Name, char *Text)
+{
+    ++Chat->Newest;
+    net_chat_line *Line = &Chat->History[Chat->Newest % SERVER_CHAT_HISTORY];
+    *Line = {};
+    Line->Number = Chat->Newest;
+    Line->Slot = Slot;
+    snprintf(Line->Name, sizeof(Line->Name), "%s", Name);
+    snprintf(Line->Text, sizeof(Line->Text), "%s", Text);
+    for (u32 Index = 0; Index < NET_MAX_CLIENTS; ++Index) Chat->ResendIn[Index] = 0.f;
+    return Line;
+}
+
 // Takes a Chat packet from the client in Slot, whose player is called
 // Name. Returns the line it added for everyone, or 0 (only a confirmation,
 // a line already taken, an empty line, or one over the player's allowance).
@@ -68,17 +86,15 @@ ChatReceive(server_chat *Chat, u32 Slot, net_chat_say *Say, char *Name)
     ChatTrim(Text, sizeof(Text), Say->Text);
     if (!Text[0] || Chat->Allowance[Slot] < 1.f) return 0;
     Chat->Allowance[Slot] -= 1.f;
+    return ChatAppend(Chat, (u8)Slot, Name, Text);
+}
 
-    ++Chat->Newest;
-    net_chat_line *Line = &Chat->History[Chat->Newest % SERVER_CHAT_HISTORY];
-    *Line = {};
-    Line->Number = Chat->Newest;
-    Line->Slot = (u8)Slot;
-    snprintf(Line->Name, sizeof(Line->Name), "%s", Name);
-    snprintf(Line->Text, sizeof(Line->Text), "%s", Text);
-    // NOTE(zoubir): everyone gets it this tick, not at their next resend
-    for (u32 Index = 0; Index < NET_MAX_CLIENTS; ++Index) Chat->ResendIn[Index] = 0.f;
-    return Line;
+// The server's own line, Text, for every player connected now (one who
+// joins later never hears it). No allowance: players cannot cause many.
+internal net_chat_line *
+ChatNotice(server_chat *Chat, char *Text)
+{
+    return ChatAppend(Chat, NET_CHAT_NOTICE_SLOT, (char *)"", Text);
 }
 
 // Once per tick: refills the allowances and runs the resend clocks.

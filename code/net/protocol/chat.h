@@ -11,7 +11,9 @@
    Server to client, NetPacket_ChatLines: the lines after the client's
    Heard, oldest first, each numbered (one count for the whole server,
    from 1) and carrying the sender's name, so a client that has not seen
-   a name in a snapshot yet still shows who spoke.
+   a name in a snapshot yet still shows who spoke. A line with Slot
+   NET_CHAT_NOTICE_SLOT is the server's own news (a player joined, left or
+   lost connection): Name is empty and Text is the whole line.
 
    The two packets came after the GDMn layout without changing any packet
    before them, so a build without chat drops them as malformed and plays
@@ -19,6 +21,7 @@
 
 #define NET_CHAT_SIZE 96        // one line, 95 characters plus the terminator
 #define NET_CHAT_MAX_LINES 8    // lines in one ChatLines packet (8 full ones fit in 1000 bytes)
+#define NET_CHAT_NOTICE_SLOT 255 // a line's Slot when the server says it, not a player
 
 struct net_chat_say
 {
@@ -30,7 +33,7 @@ struct net_chat_say
 struct net_chat_line
 {
     u32 Number;
-    u8 Slot;                  // the sender's player slot
+    u8 Slot;                  // the sender's player slot, or NET_CHAT_NOTICE_SLOT
     char Name[NET_NAME_SIZE];
     char Text[NET_CHAT_SIZE];
 };
