@@ -52,6 +52,16 @@
 #define DEADLY_THROW_SHOVE 60.f
 #define DEADLY_THROW_SLOW_PER_POINT 0.6f
 #define DEADLY_THROW_COOLDOWN 8.f
+
+// NOTE(zoubir): Garrote (C, from Assassination's pair against Deadly
+// Throw, shadowblade/garrote.cpp): the foe in reach has its wind-up broken
+// and is held GARROTE_STUN_SECONDS, cut, poisoned, and the Shadowblade
+// gains GARROTE_POINTS combo points
+#define GARROTE_REACH 80.f
+#define GARROTE_DAMAGE 8.f
+#define GARROTE_STUN_SECONDS 1.f
+#define GARROTE_POINTS 2
+#define GARROTE_COOLDOWN 14.f
 // NOTE(zoubir): Shadow Dance (V, from the tree): for DANCE_SECONDS a
 // shadow strikes again beside every Twin Strike and Eviscerate
 // for DANCE_ECHO of it, and Shadowstep comes back in DANCE_STEP_COOLDOWN
@@ -145,6 +155,7 @@ enum shadowblade_talent
     ShadowbladeTalent_FanOfKnives,
     ShadowbladeTalent_DeadlyThrow,
     ShadowbladeTalent_Shadowstep,
+    ShadowbladeTalent_Garrote,
 };
 
 // NOTE(zoubir): the same shape as every class's branch (role_talents.cpp);
@@ -182,6 +193,8 @@ global_variable talent_def ShadowbladeTalentDefs[CLASS_TALENTS] =
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
     {"Shadowstep", "A: appear behind a foe; your next strike in 4 s does double",
      "a spell", TalentBranch_Role, 0, 0, 1, 0},
+    {"Garrote", "C: a wire round the foe in reach: its wind-up broken, held, poisoned; two combo points",
+     "a spell", TalentBranch_Role, 0, 0, 1, 0},
 };
 
 // NOTE(zoubir): the stat each slot raises (role_stats.cpp), RoleStat_None
@@ -201,7 +214,9 @@ global_variable role_spell ShadowbladeSpells[ROLE_KEYS] =
     {"Fan of Knives", FAN_OF_KNIVES_COOLDOWN,
      "Fan of Knives: knives burst round you, a combo point for each foe cut",
      RoleAim_None, FAN_OF_KNIVES_RADIUS, 0},
-    {},
+    {"Garrote", GARROTE_COOLDOWN,
+     "Garrote: a wire round the foe in reach breaks its wind-up, holds and poisons it; two combo points",
+     RoleAim_None, GARROTE_REACH, ShadowbladeTalent_Garrote + 1},
     {"Shadow Dance", DANCE_COOLDOWN,
      "Shadow Dance: 6 s of shadow strikes beside yours, Shadowstep back in 1 s",
      RoleAim_None, 0.f, ShadowbladeTalent_ShadowDance + 1},

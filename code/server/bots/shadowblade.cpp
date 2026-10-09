@@ -182,7 +182,13 @@ BotShadowbladeButtons(bot_brain *Bot, app_state *AppState, world_entity *Self, w
     bool32 Fighting = AppState->Dungeon->FightingRoom != 0;
     float Reach = TWIN_STRIKE_REACH + 0.5f * Foe->Dimensions.X;
     u32 Near = BotShadowbladeFoesNear(AppState, Self, FAN_OF_KNIVES_RADIUS);
-    if (Ready[3] && Fighting && Distance < 2.f * Reach && Points >= 2)
+    if (Ready[2] && Distance < GARROTE_REACH + 0.5f * Foe->Dimensions.X &&
+        (Foe->AbilityPhase == AbilityPhase_Windup || Points == 0))
+    {
+        // NOTE(zoubir): Garrote breaks a blow winding up, or opens a fight
+        Result |= NetButton_Slam;
+    }
+    else if (Ready[3] && Fighting && Distance < 2.f * Reach && Points >= 2)
     {
         Result |= NetButton_Kunai;
     }

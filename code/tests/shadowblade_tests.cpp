@@ -56,7 +56,7 @@ TestShadowbladeOwnsItsKeys()
     SetClassTalentRank(Slot, ShadowbladeTalent_ShadowDance, 1);
     Allowed = RunAllowedButtons(AppState, Slot, 0);
     Check(Allowed & PlayerButton_Kunai);
-    Check(!(Allowed & PlayerButton_Slam));
+    Check(Allowed & PlayerButton_Slam);
     DestroyCryptWorld(&Crypt);
 }
 
@@ -480,9 +480,37 @@ TestComboPointsFade()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): Garrote on the foe in reach breaks its wind-up, holds,
+// cuts and poisons it, and gives two combo points; with nobody in reach it
+// does not cast
+internal void
+TestGarrote()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    TickCrypt(&Crypt, 1);
+    player_slot *Slot = ReadyShadowblade(&Crypt);
+    world_entity *Player = Slot->Entity;
+    PressOnce(&Crypt, 0, PlayerButton_Slam);
+    Check(Slot->RoleCooldowns[2] == 0.f);
+    world_entity *Foe = SpawnMonster(AppState, &AppState->World, &Crypt.Arena,
+                                     Player->Position + V3(60.f, 0.f, 0.f), MonsterKind_Brute);
+    Foe->MaxHp = Foe->Hp = 2000.f;
+    Foe->AbilityIndex = 0;
+    SetMonsterPhase(Foe, AbilityPhase_Windup, 0.75f);
+    Slot->ClassMeter = 0;
+    PressAt(&Crypt, 0, PlayerButton_Slam, Foe);
+    Check(Slot->RoleCooldowns[2] > 0.f);
+    Check(Foe->AbilityPhase == AbilityPhase_Recover);
+    Check(HasStatus(Foe, StatusEffect_Stunned) && Foe->Hp < 2000.f);
+    Check(Slot->ClassMeter == GARROTE_POINTS);
+    DestroyCryptWorld(&Crypt);
+}
+
 internal void
 RunShadowbladeTests()
 {
+    TestGarrote();
     TestShadowbladeOwnsItsKeys();
     TestTwinStrike();
     TestTwinStrikeEarlyPress();

@@ -158,6 +158,7 @@ PoisonFoe(app_state *AppState, player_slot *Slot, world_entity *Foe)
 
 #include "shadowblade/twin_strike.cpp"
 #include "shadowblade/deadly_throw.cpp"
+#include "shadowblade/garrote.cpp"
 
 // NOTE(zoubir): Shadowstep leaves the Shadowblade's threat behind: every
 // monster forgets it and turns on whoever it hated next
@@ -233,6 +234,11 @@ CastShadowbladeKey(app_state *AppState, world *World, memory_arena *Arena, playe
         case 1:
         {
             StartPlayerCast(Player, PlayerSpell_ShadowbladeA, Player->Aim);
+        } break;
+
+        case 2:
+        {
+            Result = CastGarrote(AppState, Slot, Player);
         } break;
 
         case 3:

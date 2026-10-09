@@ -79,17 +79,16 @@ global_variable class_tree_def ClassTrees[PlayerRole_Count] =
       {CT(BerserkerTalent_Unyielding), RM(Reprisal), RM(Spikes), RM(Wayfarer), RM(Cadence),
        RM(Vigor)}}},
 
-    // NOTE(zoubir): the Shadowblade. Cutthroat holds Assassination's
-    // second spell slot until Garrote is in
+    // NOTE(zoubir): the Shadowblade
     {{"Assassination", "Subtlety"},
-     {CLASS_BRANCH(CT(ShadowbladeTalent_Venom), CT(ShadowbladeTalent_DeadlyThrow), CT(ShadowbladeTalent_Cutthroat),
+     {CLASS_BRANCH(CT(ShadowbladeTalent_Venom), CT(ShadowbladeTalent_DeadlyThrow), CT(ShadowbladeTalent_Garrote),
                    CT(ShadowbladeTalent_Envenom), CT(ShadowbladeTalent_KnifeStorm), RM(Assassinate),
                    RM(DeathMark)),
       CLASS_BRANCH(CT(ShadowbladeTalent_Opportunist), CT(ShadowbladeTalent_Shadowstep), CT(ShadowbladeTalent_ShadowDance),
                    CT(ShadowbladeTalent_Relentless), RM(Ambush), RM(QuickHands),
                    CT(ShadowbladeTalent_KidneyShot))},
      {{CT(ShadowbladeTalent_Lethality), CT(ShadowbladeTalent_Siphon), RM(Cadence), RM(Giantslayer),
-       RM(Unseen)},
+       RM(Unseen), CT(ShadowbladeTalent_Cutthroat)},
       {CT(ShadowbladeTalent_Evasion), RM(Bloodrush), RM(Slip), RM(Shroud), RM(Stubborn),
        RM(KeenEdge)}}},
 

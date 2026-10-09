@@ -47,6 +47,24 @@ IconShadowbladeFigure(icon_canvas *Canvas, v2 Feet, float Height, icon_paint Pai
     IconCircle(Canvas, Feet + V2(0.f, -0.8f * H), 0.14f * H, Paint);
 }
 
+// NOTE(zoubir): Garrote: a wire pulled tight in a loop between two dark
+// grips, acid green dripping from it
+internal void
+PaintGarroteIcon(icon_canvas *Canvas)
+{
+    IconGlow(Canvas, V2(0.5f, 0.5f), 0.5f, IconColor(170, 110, 255, 150));
+    IconArc(Canvas, V2(0.5f, 0.46f), 0.2f, 0.03f, Solid(IconColor(220, 225, 240)), 0.f, 2.f * Pi32);
+    IconCapsule(Canvas, V2(0.3f, 0.46f), V2(0.1f, 0.78f), 0.02f, Solid(IconColor(220, 225, 240)));
+    IconCapsule(Canvas, V2(0.7f, 0.46f), V2(0.9f, 0.78f), 0.02f, Solid(IconColor(220, 225, 240)));
+    IconCapsule(Canvas, V2(0.04f, 0.74f), V2(0.18f, 0.84f), 0.05f, Solid(ShadowbladeIconDeep()));
+    IconCapsule(Canvas, V2(0.82f, 0.84f), V2(0.96f, 0.74f), 0.05f, Solid(ShadowbladeIconDeep()));
+    for(u32 Drop = 0; Drop < 3; Drop++)
+    {
+        float X = 0.38f + 0.12f * (float)Drop;
+        IconCircle(Canvas, V2(X, 0.72f + 0.05f * (float)(Drop % 2)), 0.025f, Solid(ShadowbladeIconAcid()));
+    }
+}
+
 // NOTE(zoubir): Shadowstep: ghosts fading back along an arc that lands
 // behind a foe, the Shadowblade dark against a violet flash
 internal void
@@ -287,7 +305,7 @@ PaintDeadlyThrowIcon(icon_canvas *Canvas)
 
 global_variable role_icon_painter *ShadowbladeIconPainters[ROLE_KEYS] =
 {
-    PaintShadowstepIcon, PaintFanOfKnivesIcon, 0, PaintShadowDanceIcon,
+    PaintShadowstepIcon, PaintFanOfKnivesIcon, PaintGarroteIcon, PaintShadowDanceIcon,
     PaintEviscerateIcon, PaintDeadlyThrowIcon, PaintTwinStrikeIcon,
 };
 global_variable talent_icon_painter *ShadowbladeTalentIconPainters[ROLE_TALENTS] =
