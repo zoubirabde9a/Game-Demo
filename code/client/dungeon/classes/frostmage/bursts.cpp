@@ -9,7 +9,9 @@
    carries, cracking as it runs out. Ice Barrier closes a shell round the
    mage (the shell itself is drawn from ClassFlags, classes/frostmage.cpp).
    Cone of Cold is a wedge of frost blown out along the aim to its reach,
-   shards flying out across it.
+   shards flying out across it. A Shatter cracks white across the foe it
+   struck; Absolute Zero breaks out from a frozen foe as a white ring of
+   shards to its reach.
    A Frozen Orb rolls along its angle for as long as the server's does,
    flinging shards. Five Icicles flash over the mage. */
 
@@ -284,5 +286,62 @@ DrawFrozenOrbBurst(render_context *RenderContext, app_state *AppState, role_burs
         float A = 6.f * Clock + 2.f * Pi32 * (float)Shard / 6.f;
         v2 Out = V2(Cos(A), Sin(A));
         DrawIceShard(RenderContext, P + (14.f + 50.f * Phase) * Out, Out, 9.f, 4.f, Fade * (1.f - Phase));
+    }
+}
+
+// NOTE(zoubir): a Shatter: white cracks splitting out across the foe
+// from the spot struck, a flash, and chips of ice falling off it
+internal void
+DrawShatterBurst(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
+{
+    v2 P = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
+    float Ease = 1.f - (1.f - T) * (1.f - T);
+    float Fade = 1.f - T;
+    FrostGlow(RenderContext, P, 30.f, 0.9f * Clamp01(1.f - 4.f * T), 0x00FFFFFF);
+    float Grow = Clamp01(5.f * T);
+    for(u32 Crack = 0; Crack < 6; Crack++)
+    {
+        // NOTE(zoubir): each crack three jagged steps out
+        float A = 2.f * Pi32 * ((float)Crack + 0.4f * BurstJitter(Crack, 471)) / 6.f;
+        v2 Last = P;
+        for(u32 Step = 1; Step <= 3; Step++)
+        {
+            float Bend = A + 0.5f * (BurstJitter(Crack * 3 + Step, 472) - 0.5f);
+            v2 Next = Last + (7.f * Grow) * V2(Cos(Bend), Sin(Bend));
+            DrawFxStroke(RenderContext, Last, Next, 2.4f - 0.6f * (float)Step, 1.8f - 0.5f * (float)Step,
+                         FxColor(Fade, 0x00FFFFFF), FxColor(0.8f * Fade, FROST_FX_PALE_RGB), RenderBlend_Alpha);
+            Last = Next;
+        }
+    }
+    for(u32 Chip = 0; Chip < 6; Chip++)
+    {
+        float A = 2.f * Pi32 * BurstJitter(Chip, 473);
+        v2 Out = V2(Cos(A), Sin(A));
+        v2 At = P + (8.f + 22.f * Ease) * Out + V2(0.f, 30.f * T * T);
+        DrawIceShard(RenderContext, At, Out, 6.f, 3.f, Fade);
+    }
+}
+
+// NOTE(zoubir): Absolute Zero: a white ring of shattering ice breaking out
+// over the floor from the frozen foe to ABSOLUTE_ZERO_RADIUS
+internal void
+DrawAbsoluteZeroBurst(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
+{
+    v2 C = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
+    float Ease = 1.f - (1.f - T) * (1.f - T) * (1.f - T);
+    float Fade = 1.f - T;
+    float R = ABSOLUTE_ZERO_RADIUS * (0.15f + 0.85f * Clamp01(1.5f * Ease));
+    FrostGlow(RenderContext, C, 50.f, 0.8f * Clamp01(1.f - 4.f * T), 0x00FFFFFF);
+    DrawArcBand(RenderContext, C, 0.f, 2.f * Pi32, 0.f, R, FxColor(0.25f * Fade, 0x00FFFFFF),
+                FxColor(0.1f * Fade, FROST_FX_PALE_RGB));
+    DrawWaveFront(RenderContext, C, 0.f, 2.f * Pi32, R, 18.f, Fade, FROST_FX_PALE_RGB);
+    // NOTE(zoubir): shards thrown up off the rim as it passes
+    for(u32 Shard = 0; Shard < 14; Shard++)
+    {
+        float A = 2.f * Pi32 * ((float)Shard + 0.5f * BurstJitter(Shard, 474)) / 14.f;
+        v2 Base = C + GroundCircle(A, R);
+        float Up = (8.f + 10.f * BurstJitter(Shard, 475)) * Clamp01(3.f * T);
+        v2 Dir = NormalizeOr(GroundCircle(A, 1.f) + V2(0.f, -1.2f), V2(0.f, -1.f));
+        DrawIceShard(RenderContext, Base + Up * Dir, Dir, 10.f, 4.f, Fade);
     }
 }

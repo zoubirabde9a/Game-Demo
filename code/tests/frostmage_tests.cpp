@@ -113,10 +113,13 @@ TestShatter()
     Check(FrostMageDealtScale(Slot, Other) > 1.f + FROST_SHATTER_SHARE - 0.001f);
     Slot->Input.Target = (u32)(Foe - AppState->World.Entities) + 1;
     PressOnce(&Crypt, 0, PlayerButton_Cast);
+    AppState->Events.Count = 0;
     RangerTick(&Crypt, &Dummies, FrostFlightTicks(250.f, FROSTBOLT_SPEED));
     float Dealt = 2000.f - Foe->Hp;
     float Expected = FROSTBOLT_DAMAGE * FROST_DEALT * (1.f + FROST_SHATTER_SHARE);
     Check(Dealt > 0.99f * Expected && Dealt < 1.01f * Expected);
+    // NOTE(zoubir): clients see the crack
+    Check(CountFrostBursts(AppState, FrostBurst_Full, FROST_FULL_SHATTER, FROST_FULL_SHATTER) == 1);
     DestroyCryptWorld(&Crypt);
 }
 
@@ -336,9 +339,12 @@ TestFrostMageTalents()
         Slot->FrostMage.Icicles = FROSTMAGE_ICICLES_MOST;
         Slot->FrostMage.IcicleHold = FROSTMAGE_ICICLE_HOLD;
         PressOnce(&Crypt, 0, PlayerButton_Push);
+        Crypt.AppState->Events.Count = 0;
         RangerTick(&Crypt, &Dummies, FROST_SPIKE_TICKS + FrostFlightTicks(220.f, GLACIAL_SPIKE_SPEED));
         Check(HasStatus(Foe, StatusEffect_Stunned));
         Check(HasStatus(Near, StatusEffect_Stunned) == (Rank != 0));
+        Check(CountFrostBursts(Crypt.AppState, FrostBurst_Full, FROST_FULL_ABSOLUTE_ZERO,
+                               FROST_FULL_ABSOLUTE_ZERO) == Rank);
         Check(!HasStatus(Far, StatusEffect_Stunned));
         DestroyCryptWorld(&Crypt);
     }

@@ -40,7 +40,7 @@ enum frostmage_burst
     FrostBurst_Barrier,  // Ice Barrier raised on the mage at Position
     FrostBurst_Orb,      // a Frozen Orb leaving Position along Angle
     FrostBurst_Freeze,   // a foe at Position frozen; seconds in halves
-    FrostBurst_Full,     // five Icicles on the mage at Position
+    FrostBurst_Full,     // five Icicles on the mage at Position; FROST_FULL_* other ice breaking
 };
 
 // NOTE(zoubir): what a hit is, for OnFrostMageHit and the bolts in flight
@@ -67,6 +67,12 @@ enum frostmage_bolt_variant
 // NOTE(zoubir): a Frost Nova burst's variant that is a Cone of Cold
 // along its Angle, not a nova (Deep Freeze has fewer ranks)
 #define FROST_NOVA_CONE 8
+
+// NOTE(zoubir): five-Icicle burst variants that are other ice breaking: a
+// Shatter cracking on the foe at Position, and Absolute Zero's ring
+// round the foe a full spike froze
+#define FROST_FULL_SHATTER 1
+#define FROST_FULL_ABSOLUTE_ZERO 2
 
 #include "frostmage/bolts.cpp"
 #include "frostmage/ground.cpp"

@@ -60,12 +60,23 @@ FrostMageHit(app_state *AppState, u32 By, world_entity *Monster, u32 Shot, float
     {
         return;
     }
+    // NOTE(zoubir): a bolt, a spike or the cone that shatters shows a
+    // crack on the foe; a Blizzard's or an orb's ticks would bury it
+    bool32 Cue = (Shatters || IsFrozenFoe(Monster)) &&
+        (Shot == FrostShot_Bolt || Shot == FrostShot_Spike || Shot == FrostShot_SplitSpike ||
+         Shot == FrostShot_Cone);
+    v3 Chest = ChestOf(Monster);
     hit Hit = {Damage, Shove, 0.f, 0.f, 0.f, SimBurst_Count, Status, StatusSeconds};
     Slot->FrostMage.Hitting = Shot;
     Slot->FrostMage.Shattering = Shatters;
     ApplyHit(AppState, &AppState->World, Monster, &Hit, Away, Player, By);
     Slot->FrostMage.Hitting = FrostShot_None;
     Slot->FrostMage.Shattering = false;
+    if (Cue)
+    {
+        EmitBurst(&AppState->Events, ClassBurst(SimBurst_FrostMageFirst, FrostBurst_Full), (u8)By,
+                  RangerBurstSpot(Chest, FROST_FULL_SHATTER));
+    }
 }
 
 // NOTE(zoubir): a bolt of Shot from player By at Foe, landing Delay from
@@ -182,6 +193,8 @@ GlacialSpikeArrives(app_state *AppState, frostmage_bolt *Bolt, world_entity *Foe
     }
     if (Full && RoleRank(Slot, PlayerRole_FrostMage, FrostMageTalent_AbsoluteZero) && Slot->Entity)
     {
+        EmitBurst(&AppState->Events, ClassBurst(SimBurst_FrostMageFirst, FrostBurst_Full), Bolt->By,
+                  RangerBurstSpot(Foe->Position, FROST_FULL_ABSOLUTE_ZERO));
         u32 Room = RoomAtPosition(World, Foe->Position.XY);
         for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
         {

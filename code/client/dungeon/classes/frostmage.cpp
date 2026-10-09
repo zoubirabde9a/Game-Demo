@@ -76,10 +76,23 @@ DrawFrozenFoeBurst(render_context *RenderContext, app_state *AppState, role_burs
     }
 }
 
-// NOTE(zoubir): five Icicles: a snowflake flashing open over the mage
+// NOTE(zoubir): five Icicles: a snowflake flashing open over the mage; a
+// Shatter's crack and Absolute Zero's ring are DrawShatterBurst and
+// DrawAbsoluteZeroBurst
 internal void
 DrawIciclesFullBurst(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
 {
+    u32 Variant = RangerBurstVariant(Burst->Position);
+    if (Variant == FROST_FULL_SHATTER)
+    {
+        DrawShatterBurst(RenderContext, Burst, T, CameraOffset);
+        return;
+    }
+    if (Variant == FROST_FULL_ABSOLUTE_ZERO)
+    {
+        DrawAbsoluteZeroBurst(RenderContext, Burst, T, CameraOffset);
+        return;
+    }
     v2 P = BurstToScreen(Burst->Position, CameraOffset) + V2(0.f, -34.f);
     float Ease = 1.f - (1.f - T) * (1.f - T);
     FrostGlow(RenderContext, P, 30.f, 0.7f * (1.f - T), FROST_FX_GLOW_RGB);
