@@ -102,6 +102,9 @@ struct role_spell
 // the mean over builds) went up: Berserker, Shadowblade, Stormcaller and
 // Frost Mage. The Fire Mage, the most, stayed: a Druid party leans on it,
 // and lowering it doubled that party's wipes at the Throne of Embers
+// The Shadowblade then still trailed every damage class on a dummy held
+// at half health (74 a second over builds, the Ranger 77), and took a
+// small step more: its party already clears mid-pack
 global_variable role_def RoleTable[PlayerRole_Count] =
 {
     // Name          MaxHp  Taken  Dealt  Threat
@@ -120,7 +123,7 @@ global_variable role_def RoleTable[PlayerRole_Count] =
     {"Berserker",    140.f, 0.85f, 1.5f,  0.7f, "Melee",
      "A great axe: hits build Rage, Rage feeds the big swings",
      RoleKind_Melee, {225, 50, 50}},
-    {"Shadowblade",  130.f, 0.85f, 1.5f,  1.f, "Melee",
+    {"Shadowblade",  130.f, 0.85f, 1.6f,  1.f, "Melee",
      "Twin daggers: quick cuts build combo points, finishers spend them",
      RoleKind_Melee, {170, 110, 255}},
     {"Stormcaller",  105.f, 1.0f,  1.5f,  0.85f, "Ranged",
