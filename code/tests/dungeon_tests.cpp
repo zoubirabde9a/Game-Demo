@@ -487,6 +487,41 @@ TestBlinksStopAtClosedGates()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): rock deep behind a wall keeps no wall entity (only tiles
+// beside open ground get one), yet a blink or a respawn must not land in
+// it; on the Keep a blink from a corner tower once put players in its
+// outer ring, and their fireballs left the map
+internal void
+TestBlinksAndSpawnsStayOutOfRock()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    TickCrypt(&Crypt, 1);
+    u32 Buried = 0;
+    for(u32 Y = 1; Y + 1 < World->NumCollisionY; Y++)
+    {
+        for(u32 X = 1; X + 1 < World->NumCollisionX; X++)
+        {
+            bool32 AllRock = true;
+            for(u32 Near = 0; Near < 9; Near++)
+            {
+                AllRock &= GetCollisionValue(World, X + Near % 3 - 1, Y + Near / 3 - 1);
+            }
+            if (!AllRock)
+            {
+                continue;
+            }
+            v3 Centre = TileCenter(World, (i32)X, (i32)Y);
+            Check(IsBlinkSpotBlocked(AppState, World, Centre.XY, 0.f));
+            Check(!IsSpawnSpotFree(AppState, World, Centre, AppState->PlayerCollision));
+            Buried++;
+        }
+    }
+    Check(Buried > 0);
+    DestroyCryptWorld(&Crypt);
+}
+
 // NOTE(zoubir): in a run a player's hit on another does nothing, not even
 // a shove; outside one the duel's rules hold
 internal void
@@ -570,6 +605,7 @@ RunDungeonTests()
     GROUP(RunRunTreeTests());
     GROUP(TestNoFriendlyFireInADungeon());
     GROUP(TestBlinksStopAtClosedGates());
+    GROUP(TestBlinksAndSpawnsStayOutOfRock());
     GROUP(TestClearedCryptStartsANewRun());
     GROUP(TestBossEventsFireOnce());
     GROUP(TestHealersRevive());

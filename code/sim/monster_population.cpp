@@ -99,6 +99,10 @@ IsSpawnSpotFree(app_state *AppState, world *World, v3 Position,
         // stand-ins around the probe
         entity_collision_volume *Total = &Volume->TotalVolume;
         rectangle3 Box = RectCenterHalfDims(Position + Total->Offset, Total->HalfDims);
+        if (IsBoxInWallTiles(World, Box))
+        {
+            return false;
+        }
         world_entity *Nearby[64];
         u32 Count = GatherTerrainColliders(World, Box, Nearby, 0, ArrayCount(Nearby));
         for(u32 Index = 0; Index < Count; Index++)

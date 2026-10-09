@@ -3,8 +3,10 @@
    clear. When the target is inside something, the player lands on the
    first clear spot back from it toward where they stand, which is on the
    far side of an obstacle whenever there is room there, and short of it
-   when there is none. Monsters and players are not counted: they move,
-   and landing inside one is undone by separation at the end of the tick.
+   when there is none. Wall tiles count even where the map keeps no
+   wall entity for them (rock behind the outer wall). Monsters and
+   players are not counted: they move, and landing inside one is undone
+   by separation at the end of the tick.
    The blink (movement_abilities.cpp) and the client's landing rings
    (client/player_fx/blink_preview.cpp, client/cast_targeting/previews.cpp)
    both use it, so the ring shows where the jump lands. */
@@ -23,16 +25,11 @@ IsBlinkSpotBlocked(app_state *AppState, world *World, v2 Position, float Z)
     entity_collision_volume *Total = &Probe.Collision->TotalVolume;
     rectangle3 Box = RectCenterHalfDims(Probe.Position + Total->Offset,
                                         Total->HalfDims);
-    // NOTE(zoubir): past the outer wall there is no ground at all
-    if (!World->Unbounded)
+    // NOTE(zoubir): past the outer wall there is no ground at all, and
+    // the rock behind it keeps no wall entities
+    if (IsBoxInWallTiles(World, Box))
     {
-        float Width = (float)(World->NumTilesX * World->TileWidth);
-        float Height = (float)(World->NumTilesY * World->TileHeight);
-        if (Box.Min.X < 0.f || Box.Min.Y < 0.f ||
-            Box.Max.X > Width || Box.Max.Y > Height)
-        {
-            return true;
-        }
+        return true;
     }
     world_entity *Nearby[MOVE_MAX_NEARBY];
     u32 Count = GatherEntitiesInBox(World, Box, Nearby, ArrayCount(Nearby));

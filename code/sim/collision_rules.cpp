@@ -12,6 +12,44 @@ GetCollisionValue(world *World, u32 TileX, u32 TileY)
     return Result;
 }
 
+// NOTE(zoubir): whether Box touches a blocking tile of a bounded map. Such
+// a map keeps wall entities only beside open ground (IsBlockingEdge,
+// arena.cpp), so the rock behind them, like the Keep's outer ring, is
+// solid only here; a box past the map's edge counts as blocked too
+internal bool32
+IsBoxInWallTiles(world *World, rectangle3 Box)
+{
+    if (World->Unbounded)
+    {
+        return false;
+    }
+    if (Box.Min.X < 0.f || Box.Min.Y < 0.f ||
+        Box.Max.X > (float)(World->NumTilesX * World->TileWidth) ||
+        Box.Max.Y > (float)(World->NumTilesY * World->TileHeight))
+    {
+        return true;
+    }
+    if (!World->CollisionMap)
+    {
+        return false;
+    }
+    u32 MinX = (u32)(Box.Min.X / World->TileWidth);
+    u32 MinY = (u32)(Box.Min.Y / World->TileHeight);
+    u32 MaxX = Minimum((u32)(Box.Max.X / World->TileWidth), World->NumCollisionX - 1);
+    u32 MaxY = Minimum((u32)(Box.Max.Y / World->TileHeight), World->NumCollisionY - 1);
+    for(u32 TileY = MinY; TileY <= MaxY; TileY++)
+    {
+        for(u32 TileX = MinX; TileX <= MaxX; TileX++)
+        {
+            if (GetCollisionValue(World, TileX, TileY))
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 inline bool32
 IsPositionColliding(world *World, cannonical_position Position)
 {
