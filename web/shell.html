@@ -319,7 +319,7 @@
     }
 
     // NOTE: the big button sits in the corner, the others on quarter
-    // circles round it: three on the first, then four, five
+    // circles round it: three on the first, then four, then the rest
     function Layout(Lines)
     {
       var Big = null, Near = [], Far = [];
@@ -334,13 +334,14 @@
       var CornerX = Width - 64, CornerY = Height - 64;
       var Places = {};
       if (Big) Places[Big.bit] = {x: CornerX, y: CornerY, big: true};
-      [96, 160, 224].forEach(function(Radius, Ring)
+      [92, 150, 208].forEach(function(Radius, Ring)
       {
         var Row = Rings[Ring];
         Row.forEach(function(Line, Index)
         {
-          // NOTE: the outer ring stops short of straight up, under the minimap
-          var Span = Ring === 2 ? 65 : 90;
+          // NOTE: the outer rings stop short of straight up, so they stay
+          // left of the game's minimap in the top right corner
+          var Span = [90, 80, 55][Ring];
           var Angle = Row.length === 1 ? 135 : 180 - Index * Span / (Row.length - 1);
           var Radians = Angle * Math.PI / 180;
           Places[Line.bit] = {x: CornerX + Math.cos(Radians) * Radius, y: CornerY - Math.sin(Radians) * Radius};
