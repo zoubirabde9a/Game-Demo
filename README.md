@@ -62,7 +62,8 @@ run.bat
 | `run.bat` | Builds the game, then starts it from `build/`. `run.bat release` for an optimized build |
 | `build.bat` | Builds the game into `build/`: `win32_app.exe`, `app.dll`, the launcher, and `asset_1.zas` (art and sound). `build.bat release` turns optimization on and asserts and developer keys off |
 | `test.bat` | Builds and runs every test program in `code/tests/` (about 12 seconds). Fails if any test fails or crashes |
-| `build_server.bat` | Builds the dedicated server `build\server.exe [port]` (default port 27015) and its tools: `probe.exe` (can a player join?), `bots.exe` (load test) and `replay.exe` |
+| `build_server.bat` | Builds the dedicated server `build\server.exe [port]` (default port 27015) and its tools: `probe.exe` (can a player join?), `bots.exe` (load test), `replay.exe` and `web_gateway.exe` (lets the browser game reach a server) |
+| `web\build.bat` | Builds the browser game into `web\build\` (needs Emscripten) |
 | `art.bat` | Draws every monster sprite sheet and map into `build\monster_art\` as PNG, for review |
 | `sounds.bat` | Writes every sound effect into `build\sounds\` as WAV |
 | `misc\screenshot.bat out.png [frame]` | Runs the game offline, saves one frame as PNG and quits |
@@ -77,7 +78,9 @@ While the game runs, rebuild with `build.bat` and the running game loads the new
 
 ### Web
 
-`web\build.bat` compiles `code\platform\emscripten_app.cpp` with `em++` into `web\build\plain.html`, with the shaders, fonts and `asset_1.zas` embedded. Run `misc\shell_emscripten.bat` first to put the Emscripten tools on the path. It points at `w:\emscripten`, so edit it for your machine.
+The same game runs in the browser, online play included. `web\build.bat` compiles it with Emscripten into `web\build\` (`web\build.bat debug` keeps asserts on). It finds Emscripten through `misc\shell_emscripten.bat`, whose top says how to install it.
+
+A browser cannot send UDP, so browser players reach a server through the web gateway, which passes their WebSocket messages on to the server's UDP port (`code\server\web_gateway\web_gateway.h`). To play the browser build on this machine, run `build\server.exe` and `build\web_gateway.exe --files web\build` (both from `build_server.bat`), then open http://127.0.0.1:27080/?GAME_SERVER=127.0.0.1:27015. The live one is at https://game.sindansolutions.com/play/ (`deploy/README.md`).
 
 ## Layout
 
@@ -88,21 +91,21 @@ code/
   app_platform.h   The only contract between a platform layer and the game
   app_sim.cpp      Engine core and simulation; all the dedicated server compiles
   app.cpp          The whole game: app_sim.cpp plus engine, client and UI. Builds app.dll
-  platform/        Windows, browser (SDL2 + WebGL2) and launcher programs
+  platform/        Windows, browser (WebGL 2, in platform/web/) and launcher programs
   engine/          Memory arenas, rendering, OpenGL, asset pack, sound mixer, widgets
   sim/             The game rules: players, monsters, abilities, maps, dungeon runs. No drawing or sound
   client/          Drawing entities, playing sounds, reading input, the online session
   ui/              HUD, ability bar, scoreboard, menus, talent panel, tile editor
   art/             Sprites and effects drawn by code
-  net/             UDP sockets, packet protocol, client and server connections
-  server/          The headless dedicated server and its bots
+  net/             UDP sockets (WebSockets in the browser), packet protocol, client and server connections
+  server/          The headless dedicated server, its bots, and the web gateway for browser players
   tests/           Test programs run by test.bat
   tools/           Sprite and sound sheet renderers, the asset packer, the balance probe
   third_party/     Vendored headers: stb, SDL, GLEW, Emscripten
 deploy/            Server deploy, download site and launcher publishing (has its own README)
 docs/              Design notes and plans; start with coding-standards.md
 misc/              Helper scripts: compiler setup, layout and claim checks, screenshots
-web/               Browser build
+web/               Browser build: build.bat, the page (shell.html), fonts and hero sheets
 AGENTS.md          Rules for working alongside other agents: worktrees, claims, merging
 ```
 

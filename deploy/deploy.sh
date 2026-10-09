@@ -56,7 +56,8 @@ git archive --format=tar HEAD code build_server.sh deploy | gzip -1 |
         rm -rf '"'$STAGE'"' && mkdir -p '"'$STAGE'"' && tar -xz -C '"'$STAGE'"'
         $S bash '"'$STAGE'"'/deploy/install.sh build '"'$NAME'"'
         echo "port $(sed -n "s/^PORT=//p" /etc/game-demo/server.env)"
-        if [ -d /opt/game-demo/web ]; then echo "web yes"; ls /opt/game-demo/web/files | sed "s/^/have /"; fi' \
+        if [ -d /opt/game-demo/web ]; then echo "web yes"; ls /opt/game-demo/web/files | sed "s/^/have /"
+            echo "have play:$(cat /opt/game-demo/web/play/build.txt 2>/dev/null)"; fi' \
     > "$WORK/server.log" 2>&1 &
 SERVER_JOB=$!
 

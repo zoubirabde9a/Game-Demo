@@ -35,6 +35,24 @@ Players download one file, `GameDemo.exe` (the launcher), from https://game.sind
 
 The launcher is not code-signed, so Windows SmartScreen warns on first run ("More info", then "Run anyway"). A code-signing certificate would remove that.
 
+## The browser game
+
+https://game.sindansolutions.com/play/ is the same game, compiled to WebAssembly (`web\build.bat`), with online play. A web page cannot send UDP, so it opens a WebSocket to `/net/<server>:<port>` on the same site. The site's Caddy (`deploy/web/Caddyfile`, in the `game-demo-web` container) passes `/net/` to the web gateway, a container named `game-demo-gateway` on the same Docker network. The gateway sends each message on to the game server as one UDP packet and sends the answers back (`code/server/web_gateway/web_gateway.h`). The server sees an ordinary client and does not change. The gateway opens no port of its own, and it only reaches the address in `/etc/game-demo/gateway.env` (`ALLOW=152.53.147.77:27015`, written by the first install from the machine's public address).
+
+`deploy/deploy.sh` keeps all of it in step with the server:
+
+- `install.sh` builds the gateway into each server release and restarts its container after the server passes its check, then asks it for a 426 answer through `game-demo-web`. A gateway that does not answer is reported as a warning; the desktop game still plays, so the server is not rolled back for it.
+- `package_client.sh` builds the browser game from the same commit when Emscripten is installed (`misc\shell_emscripten.bat`). The upload carries it only when its build changed (`play/build.txt`), and `web_files.sh` swaps `play/` whole when it publishes the manifest.
+- A changed Caddyfile goes up with the client, is validated, written in place and reloaded.
+
+| Task | Command |
+|---|---|
+| Is the gateway up? | `docker ps --filter name=game-demo-gateway` and `docker logs game-demo-gateway` (a line a minute: browsers connected, packets each way) |
+| Does Caddy reach it? | `curl -s -o /dev/null -w '%{http_code}\n' https://game.sindansolutions.com/net/x` prints 426 |
+| Which browser build is live | `curl -s https://game.sindansolutions.com/play/build.txt` |
+| Try it on one machine | `build\server.exe`, `build\web_gateway.exe --files web\build`, then http://127.0.0.1:27080/?GAME_SERVER=127.0.0.1:27015 |
+| Remove it | `docker rm -f game-demo-gateway; rm -rf /opt/game-demo/web/play /etc/game-demo/gateway.env` |
+
 ## Testing a live server from your computer
 
 Build the tools with `build_server.bat` (Windows) or `build_server.sh`. The content id is in the server's first log line, `journalctl -u game-demo | grep listening`; a game client from the same commit has the same one.

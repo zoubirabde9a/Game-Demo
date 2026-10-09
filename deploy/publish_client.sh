@@ -19,7 +19,8 @@ IN="/tmp/game-demo-client-$NAME"
 HAVE="$(mktemp)"
 trap 'rm -f "$HAVE"' EXIT
 
-ssh "$TARGET" "ls /opt/game-demo/web/files 2>/dev/null || true" > "$HAVE"
+ssh "$TARGET" 'ls /opt/game-demo/web/files 2>/dev/null || true
+    echo "play:$(cat /opt/game-demo/web/play/build.txt 2>/dev/null)"' > "$HAVE"
 echo "[client] uploading $NAME to $TARGET"
 client_tar "$HAVE" | ssh "$TARGET" 'S=; [ "$(id -u)" = 0 ] || S="sudo -n"; set -e
     rm -rf '"'$IN'"' && mkdir -p '"'$IN'"' && tar -xz -C '"'$IN'"'

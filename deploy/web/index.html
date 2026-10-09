@@ -1,12 +1,13 @@
 <!doctype html>
 <!-- The download page at game.sindansolutions.com. deploy/package_client.sh
-     ships it with each release; it links to the launcher, GameDemo.exe. -->
+     ships it with each release; it links to the launcher, GameDemo.exe, and
+     to the browser game in play/. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Game Demo</title>
-<meta name="description" content="An online 2D arena fighter for Windows. Download the launcher and play.">
+<meta name="description" content="An online 2D arena fighter. Download it for Windows or play in your browser.">
 <style>
   :root {
     --bg: #16181d;
@@ -36,6 +37,17 @@
     border-radius: 6px;
   }
   .download:hover { background: var(--gold-dark); }
+  .play {
+    display: inline-block;
+    margin-left: 10px;
+    color: var(--gold);
+    font-weight: 600;
+    text-decoration: none;
+    padding: 11px 21px;
+    border: 1px solid var(--gold);
+    border-radius: 6px;
+  }
+  .play:hover { background: var(--panel); }
   .meta { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
   img { display: block; width: 100%; border-radius: 6px; margin: 40px 0; }
   h2 { font-size: 18px; margin: 36px 0 8px; }
@@ -55,8 +67,8 @@
 <main>
   <h1>Game Demo</h1>
   <p class="lead">An online arena fighter. Sword, fireball, dash and shockwave against other players, with monsters roaming the map.</p>
-  <a class="download" href="GameDemo.exe">Download for Windows</a>
-  <p class="meta">Windows 10 or 11. The download is the launcher; it fetches the game (about 10 MB).</p>
+  <a class="download" href="GameDemo.exe">Download for Windows</a><a class="play" href="play/">Play in your browser</a>
+  <p class="meta">Windows 10 or 11. The download is the launcher; it fetches the game (about 10 MB). The browser version needs no install: it runs in a current browser on a computer with a keyboard and mouse, and loads about 15 MB.</p>
 
   <img src="https://i.ibb.co/VwQYmWv/1.jpg" alt="Players fighting in the arena">
 

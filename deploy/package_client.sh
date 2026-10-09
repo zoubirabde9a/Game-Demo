@@ -3,7 +3,8 @@
 # them out for publishing:
 #   deploy/package_client.sh [version-name]
 # Leaves build/client_package/: manifest.txt, files/<sha256> (one per
-# game file), GameDemo.exe and index.html. deploy/publish_client.sh
+# game file), GameDemo.exe, index.html, the site's Caddyfile and play/, the
+# browser game (when Emscripten is installed). deploy/publish_client.sh
 # uploads that folder. Runs from Git Bash on Windows, because the game is
 # built with Visual Studio (build.bat release).
 #
@@ -31,6 +32,12 @@ git archive --format=tar HEAD | tar -x -C "$SRC"
 # new server with it over the internet (deploy/build_probe.bat)
 cmd.exe //c "$(cygpath -w "$SRC/deploy/build_probe.bat")" > "$SRC/probe.log" 2>&1 &
 PROBE_JOB=$!
+# The browser game (web/build.bat), from the same tree, so it joins the
+# same server. It needs Emscripten (misc/shell_emscripten.bat says how to
+# install it); without it the site keeps the browser game it has.
+WEB_STATUS=0
+cmd.exe //c "$(cygpath -w "$SRC/web/build.bat")" > "$SRC/web.log" 2>&1 &
+WEB_JOB=$!
 cmd.exe //c "$(cygpath -w "$SRC/build.bat")" release > "$SRC/build.log" 2>&1 || {
     grep -iE "error|warning C" "$SRC/build.log" | head -20 >&2
     echo "[client] build failed; full log in $SRC/build.log" >&2
@@ -62,7 +69,23 @@ LAUNCHER_HASH="$(hash_of "$GAME/launcher.exe")"
 cp "$GAME/launcher.exe" "$OUT/files/$LAUNCHER_HASH"
 cp "$GAME/launcher.exe" "$OUT/GameDemo.exe"
 cp "$SRC/deploy/web/index.html" "$OUT/index.html"
+cp "$SRC/deploy/web/Caddyfile" "$OUT/Caddyfile"
 
 wait "$PROBE_JOB" || { cat "$SRC/probe.log" >&2; echo "[client] the probe did not build" >&2; exit 1; }
+wait "$WEB_JOB" || WEB_STATUS=$?
+if [ "$WEB_STATUS" = 0 ]; then
+    # play/build.txt names this build, so a deploy sends the browser game
+    # only when it changed (deploy/client_tar.sh)
+    mkdir -p "$OUT/play"
+    cp "$SRC"/web/build/index.{html,js,wasm,data} "$OUT/play/"
+    (cd "$OUT/play" && sha256sum index.html index.js index.wasm index.data | sha256sum | cut -c1-16) > "$OUT/play/build.txt"
+    echo "[client] browser game built ($(du -sh "$OUT/play" | cut -f1))"
+elif grep -q "no emsdk" "$SRC/web.log"; then
+    echo "[client] note: no Emscripten here, so the browser game was not built (misc/shell_emscripten.bat)"
+else
+    grep -iE "error" "$SRC/web.log" | head -20 >&2
+    echo "[client] the browser game did not build; full log in $SRC/web.log" >&2
+    exit 1
+fi
 
 echo "[client] packaged ${#FILES[@]} files, $(du -sh "$OUT" | cut -f1) in $OUT"
