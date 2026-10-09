@@ -3,8 +3,10 @@
    inside each STATIC_FIELD_TICK and makes lightning landing in it arc
    across it (stormcaller/bolts.cpp asks StormcallerFieldHolds); Lightning
    Dash; Eye of the Storm and its bolts; and each Stormcaller's tick.
-   Clients draw a field from one burst for its life, and the cloud of the
-   Eye from its ClassFlags bit. */
+   Clients draw a field from its landing burst for as long as its
+   ClassFlags bit is up; a keep burst (StormcallerKeep_Field) says again
+   every STORMCALLER_KEEP_SECONDS where it is, for a client that was too
+   far to get the landing. The cloud of the Eye is its ClassFlags bit. */
 
 // NOTE(zoubir): Static Field at the cursor; false when every circle is in use
 internal bool32
@@ -30,6 +32,7 @@ CastStaticField(app_state *AppState, player_slot *Slot, world_entity *Player)
             Field->TickTimer = 0.5f * STATIC_FIELD_TICK;
             Field->TickDamage = STATIC_FIELD_TICK_DAMAGE * (1.f + ARC_FIELD_DAMAGE_SHARE * Arc);
             Field->By = (u8)Player->PlayerIndex;
+            Field->Keep = STORMCALLER_KEEP_SECONDS;
             // NOTE(zoubir): the radius rides along, so clients draw the
             // dome the size Arc Field made it
             EmitBurst(&AppState->Events, ClassBurst(SimBurst_StormcallerFirst, StormcallerBurst_Field),
@@ -94,6 +97,13 @@ UpdateStaticFields(app_state *AppState, stormcaller_run *Run, float DeltaTime)
             continue;
         }
         Field->Seconds = Maximum(0.f, Field->Seconds - DeltaTime);
+        Field->Keep -= DeltaTime;
+        if (Field->Keep <= 0.f && Field->Seconds > 0.f)
+        {
+            Field->Keep += STORMCALLER_KEEP_SECONDS;
+            EmitStormcallerKeep(AppState, Field->By, Field->Position, StormcallerKeep_Field, Field->Seconds,
+                                Field->Radius);
+        }
         Field->TickTimer += DeltaTime;
         if (Field->TickTimer < STATIC_FIELD_TICK)
         {

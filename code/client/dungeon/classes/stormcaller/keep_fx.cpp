@@ -1,6 +1,8 @@
 /* Stormcaller keeps (classes/stormcaller.cpp): what a Supercharged burst
    with a variant says (stormcaller_keep_kind in
-   sim/dungeon/role_kits/stormcaller.cpp). A Ball Lightning's keep says where the ball is, its way, its radius and the seconds it has
+   sim/dungeon/role_kits/stormcaller.cpp). A Static Field's keep tells a
+   client that missed the landing where the dome is; a Ball Lightning's
+   keep says where the ball is, its way, its radius and the seconds it has
    left, and each client rolls it on from there at BALL_LIGHTNING_SPEED
    until the next one, as the sim does (the ball never stops on a wall).
 
@@ -91,6 +93,27 @@ NoteStormcallerBall(app_state *AppState, role_burst *Burst, u32 Variant)
     Into->End = Burst->Start + StormcallerKeepSeconds(Variant);
     Into->Slot = Burst->Slot;
     Into->Known = true;
+}
+
+// NOTE(zoubir): a field's keep: the dome goes where it says unless the
+// landing already put it there
+internal void
+NoteStormcallerField(app_state *AppState, role_burst *Burst, u32 Variant)
+{
+    if (Burst->Slot >= MAX_PLAYERS)
+    {
+        return;
+    }
+    stormcaller_field_look *Look = &StormcallerFieldLooks[Burst->Slot];
+    v3 At = StormcallerBurstPlace(Burst->Position);
+    if (!Look->Known || Length(Look->Position.XY - At.XY) > 2.f)
+    {
+        Look->Position = At;
+        Look->Radius = StormcallerKeepRadius(Variant);
+        Look->Start = Burst->Start;
+        Look->SeenOn = Burst->Start;
+        Look->Known = true;
+    }
 }
 
 // NOTE(zoubir): one Ball Lightning, every frame while it rolls and pops
