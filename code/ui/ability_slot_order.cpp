@@ -1,7 +1,7 @@
 /* Ability slot order (ability_bar.cpp): which slot of the bar comes where,
    and whether it shows. Outside a dungeon run the bar is AbilitySlotDefs
    in its own order, each ability once the player has it. In a run the
-   class's spells come first, on A, R, C, V and W, then a gap and the
+   class's spells come first, on A, R, C, V, W, G and T, then a gap and the
    abilities every class shares (sim/dungeon/role_abilities.cpp,
    RunAllowedButtons), with the right click's after X for a class that
    swings its own weapon there; a class spell shows once its tree
@@ -15,6 +15,8 @@ global_variable u32 RunSlotButtons[] =
     PlayerButton_Slam,
     PlayerButton_Kunai,
     PlayerButton_Shockwave,
+    PlayerButton_FrostNova,
+    PlayerButton_GravityWell,
     0,
     PlayerButton_Cast,
     PlayerButton_Attack,

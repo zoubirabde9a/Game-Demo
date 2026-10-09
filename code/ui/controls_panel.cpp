@@ -88,6 +88,8 @@ global_variable controls_row ControlsRows[] =
     {"",            "Your tree's first spell, once unlocked", Controls_Run, PlayerButton_Slam},
     {"",            "Your tree's second spell, once unlocked", Controls_Run, PlayerButton_Kunai},
     {"",            "", Controls_Run, PlayerButton_Shockwave},
+    {"",            "", Controls_Run, PlayerButton_FrostNova},
+    {"",            "", Controls_Run, PlayerButton_GravityWell},
     {"N",           "Talents: spend a point each level"},
     {"M",           "Teams: who is on which side, switch sides", Controls_Duel},
     {"Tab",         "Scoreboard"},

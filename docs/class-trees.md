@@ -49,21 +49,24 @@ A bot takes a spell of each pair first, which of the two by a coin toss, so a pa
 
 ## Status
 
-Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above. Class keys run A, R, C, V, W, X, the right click, G and T. Next: the balance probe over every class with the full kits.
+Built: the rules, the cap and the top-level exception, every class's tree and base kit, and every spell above. Class keys run A, R, C, V, W, X, the right click, G and T. `GAME_CLASS_SPELLS=1` (developer builds, with `GAME_ROLE`) gives the local player both spells of every pair, for a screenshot of every key a class can have.
 
 ## Balance
 
 Measured with the balance probe (`miscalance.bat 200 3 2 16`, `PROBE_LEVELS=2`): a tank, a healer and one damage bot, 16 seeds, crypt into depths, each bot taking a coin toss of every pair. Average fight in seconds at four rooms, and the worst wipes a kill:
 
-| Damage bot | Bone Halls | Throne of Dust | Anvil Hall | Throne of Embers | Worst wipes a kill |
+| Damage or healer bot | Bone Halls | Throne of Dust | Anvil Hall | Throne of Embers | Worst wipes a kill |
 |---|---|---|---|---|---|
-| Fire Mage | 15 | 57 | 37 | 50 | 0.4 |
-| Ranger | 12 | 63 | 29 | 55 | 1.1 (3 seeds stuck) |
-| Berserker | 14 | 63 | 69 | 87 | 0.75 |
-| Shadowblade | 12 | 58 | 48 | 57 | 1.3 |
-| Stormcaller | 11 | 64 | 31 | 73 | 0.75 |
-| Duelist | 14 | 46 | 44 | 48 | 2.2 (Ashfall Bridge) |
-| Frost Mage | 12 | 60 | 31 | 55 | 0.7 |
+| Fire Mage | 15 | 48 | 32 | 48 | 0.5 |
+| Ranger | 12 | 58 | 29 | 57 | 0.7 |
+| Berserker | 14 | 57 | 67 | 77 | 0.6 (2 seeds stuck) |
+| Shadowblade | 13 | 50 | 47 | 61 | 0.8 |
+| Stormcaller | 10 | 69 | 31 | 66 | 0.8 |
+| Duelist | 14 | 43 | 45 | 46 | 0.9 |
+| Frost Mage | 13 | 58 | 30 | 57 | 0.9 |
+| Druid as the healer | 16 | 57 | 29 | 48 | 0.9 |
 | Fire Mage before the reshape | 17 | 57 | 32 | 52 | 0.4 |
+
+With every class's full kit (all fourteen spells new to the reshape built), every party clears both levels within about one wipe a kill at its worst room.
 
 How it got there: on the first trees, with four spells counting the attack, every party took about twice as long; given every spell back it was as fast as before, so the caps, not the tree, were the cost. Class damage rose to make up for it, then came back near its old values once attacks were free and the caps rose to four and six (`RoleTable`, roles.cpp).

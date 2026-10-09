@@ -102,6 +102,16 @@ ApplyDeveloperRole(app_state *AppState)
     {
         SetPlayerRole(AppState, Slot, Picked);
     }
+    // NOTE(zoubir): GAME_CLASS_SPELLS=1 gives the class every spell of its
+    // tree's pairs, both of each, so a shot shows every key it can have
+#pragma warning(push)
+#pragma warning(disable: 4996)
+    char *Spells = getenv("GAME_CLASS_SPELLS");
+#pragma warning(pop)
+    if (Spells && Spells[0] == '1')
+    {
+        GrantClassSpells(Slot);
+    }
     // NOTE(zoubir): GAME_SKIN=heroic wears the class's painted skin
 #pragma warning(push)
 #pragma warning(disable: 4996)
