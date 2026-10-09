@@ -28,6 +28,7 @@
 #define BOSS_SHOCK_VOID UI_RGBA(160, 90, 255, 255)
 #define BOSS_SHOCK_GOLD UI_RGBA(255, 210, 110, 255)
 #define BOSS_SHOCK_CRIMSON UI_RGBA(255, 50, 120, 255)
+#define BOSS_SHOCK_FROST UI_RGBA(170, 225, 255, 255)
 
 struct boss_impact
 {
@@ -62,14 +63,15 @@ GetBossFx(app_state *AppState)
     return AppState->BossFx;
 }
 
-// NOTE(zoubir): the boss of the fight under way, and what falls on the
-// party while a Starless boss is away
+// NOTE(zoubir): the boss of the fight under way, what falls on the party
+// while a Starless boss is away, and Vaelith's Frost Marks and Ice Tombs
 internal bool32
 IsBossCaster(app_state *AppState, u32 Kind)
 {
     dungeon_run *Run = AppState->Dungeon;
     bool32 Result = (Run && Run->ShownBossKind == Kind) ||
-        Kind == MonsterKind_VoidMaw || Kind == MonsterKind_FallingStar;
+        Kind == MonsterKind_VoidMaw || Kind == MonsterKind_FallingStar ||
+        Kind == MonsterKind_FrostMark || Kind == MonsterKind_IceTomb;
     return Result;
 }
 
@@ -123,6 +125,12 @@ AddBossImpact(app_state *AppState, danger_cast *Cast, float Now)
             if (CasterKind == MonsterKind_VoidMaw)
             {
                 PushBossImpact(AppState, Cast->Self, Ability->Radius * 1.3f, BOSS_SHOCK_VOID, -1.f, Now);
+            }
+            else if (CasterKind == MonsterKind_FrostMark || CasterKind == MonsterKind_IceTomb)
+            {
+                // NOTE(zoubir): the ring closing and freezing who it held,
+                // or a tomb shattering on who is inside
+                PushBossImpact(AppState, Cast->Self, Ability->Radius * 1.3f, BOSS_SHOCK_FROST, -1.f, Now);
             }
             else if (CasterKind == MonsterKind_FallingStar)
             {

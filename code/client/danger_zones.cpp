@@ -265,6 +265,9 @@ DrawDangerCast(render_context *RenderContext, world *World, v3 CameraOffset,
 #define DANGER_IMPACT_MAX 16
 #define DANGER_CRACK_MOST_RADIUS 140.f
 #define DANGER_TRACKED ArrayCount(((world *)0)->Entities)
+// NOTE(zoubir): a Frost Mark or an Ice Tomb gone with at most this long
+// left on its windup closed on its players (see DangerWindupClosed)
+#define DANGER_CLOSE_SECONDS 0.3f
 
 struct danger_impact
 {
@@ -282,6 +285,7 @@ struct danger_zones
     // NOTE(zoubir): the cast in Winding is a burrower underground, which
     // lands when it comes up, not when its windup ends
     bool32 WindingUnder[DANGER_TRACKED];
+    float WindingLeft[DANGER_TRACKED];
     // NOTE(zoubir): per entity slot, the hazard in it and when this
     // client first saw it (danger_zones/hazard_zones.cpp)
     u32 HazardId[DANGER_TRACKED];
@@ -335,6 +339,22 @@ DrawDoomWaves(render_context *RenderContext, app_state *AppState, danger_zones *
 
 #include "danger_zones/hazard_zones.cpp"
 
+// NOTE(zoubir): Vaelith's script removes a Frost Mark the moment its ring
+// closes and freezes who it holds, and an Ice Tomb the moment it
+// shatters (sim/dungeon/frost_tombs.cpp), so neither reaches its Active
+// phase; one gone from its slot at the end of its windup has landed. A
+// tomb the party broke goes with time still left
+inline bool32
+DangerWindupClosed(danger_zones *Zones, u32 Slot, bool32 Live, u32 Id)
+{
+    danger_cast *Last = &Zones->Winding[Slot];
+    bool32 Result = Last->Ability &&
+        (Last->CasterKind == MonsterKind_FrostMark || Last->CasterKind == MonsterKind_IceTomb) &&
+        Zones->WindingLeft[Slot] <= DANGER_CLOSE_SECONDS &&
+        (!Live || Zones->WindingId[Slot] != Id);
+    return Result;
+}
+
 internal void
 AddDangerImpact(app_state *AppState, danger_zones *Zones, danger_cast *Cast, float Now)
 {
@@ -360,7 +380,9 @@ AddDangerImpact(app_state *AppState, danger_zones *Zones, danger_cast *Cast, flo
         AddGroundCrack(AppState, V3(Cast->Points[0].X, Cast->Points[0].Y, 0.f),
                        Ability->Radius, Now);
     }
-    if (Solid && Ability->Kind == MonsterAbility_Slam)
+    bool32 Frost = Cast->CasterKind == MonsterKind_FrostMark ||
+        Cast->CasterKind == MonsterKind_IceTomb;
+    if (Solid && Ability->Kind == MonsterAbility_Slam && !Frost)
     {
         AddGroundCrack(AppState, V3(Cast->Self.X, Cast->Self.Y, 0.f), Ability->Radius, Now);
     }
@@ -412,7 +434,8 @@ DrawDangerZones(render_context *RenderContext, app_state *AppState, v3 CameraOff
                 Entity->Hp > 0.f && Entity->AbilityPhase != AbilityPhase_Windup :
                 (Entity->AbilityPhase == AbilityPhase_Active ||
                  Entity->AbilityPhase == AbilityPhase_Recover);
-            if (Last->Ability && Live && Zones->WindingId[EntityIndex] == Entity->ID && Landed)
+            if ((Last->Ability && Live && Zones->WindingId[EntityIndex] == Entity->ID && Landed) ||
+                DangerWindupClosed(Zones, EntityIndex, Live, Entity->ID))
             {
                 AddDangerImpact(AppState, Zones, Last, Now);
             }
@@ -426,6 +449,7 @@ DrawDangerZones(render_context *RenderContext, app_state *AppState, v3 CameraOff
         *Last = GetDangerCast(Entity, Ability);
         Zones->WindingId[EntityIndex] = Entity->ID;
         Zones->WindingUnder[EntityIndex] = Under;
+        Zones->WindingLeft[EntityIndex] = Entity->AbilityTimer;
         // NOTE(zoubir): a burrower's spot shows once it is under, not
         // while it digs in
         if (Ability->Kind != MonsterAbility_Burrow || Under)
