@@ -163,7 +163,7 @@ CastConeOfCold(app_state *AppState, player_slot *Slot, world_entity *Player)
     AddIcicles(AppState, Slot, Minimum(Struck, (u32)CONE_OF_COLD_ICICLES));
     v3 Feet = V3(Player->Position.X, Player->Position.Y, Player->GroundZ);
     EmitBurst(&AppState->Events, ClassBurst(SimBurst_FrostMageFirst, FrostBurst_Nova), (u8)By,
-              RangerBurstSpot(Feet, 0), ATan2(Aim.Y, Aim.X));
+              RangerBurstSpot(Feet, FROST_NOVA_CONE), ATan2(Aim.Y, Aim.X));
     EmitSound(&AppState->Events, AssetType_SfxAreaCast, Player->Position);
 }
 

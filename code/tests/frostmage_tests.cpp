@@ -8,6 +8,23 @@
    each talent with code of its own; and Icicles melting between fights.
    The dummies and the tick are the Ranger tests' (ranger_tests.cpp). */
 
+// NOTE(zoubir): the Frost Mage's bursts Index with a variant from From to
+// To among the events so far, which it clears
+internal u32
+CountFrostBursts(app_state *AppState, u32 Index, u32 From, u32 To)
+{
+    u32 Result = 0;
+    for(u32 Row = 0; Row < AppState->Events.Count; Row++)
+    {
+        sim_event *Event = &AppState->Events.Events[Row];
+        u32 Variant = RangerBurstVariant(Event->Position);
+        Result += Event->Type == SimEvent_Burst && Event->Burst == ClassBurst(SimBurst_FrostMageFirst, Index) &&
+            Variant >= From && Variant <= To;
+    }
+    AppState->Events.Count = 0;
+    return Result;
+}
+
 // NOTE(zoubir): a Frost Mage in slot 0 of a fresh crypt, aiming along +X
 internal crypt_world
 CreateFrostMageWorld(u32 Players = 1)
@@ -370,7 +387,8 @@ TestDeepFreezeBlizzard()
 }
 
 // NOTE(zoubir): Cone of Cold strikes and chills the foes in front, not the
-// one behind, and grows an Icicle for each struck
+// one behind, grows an Icicle for each struck, and shows clients its cone
+// along the aim
 internal void
 TestConeOfCold()
 {
@@ -382,8 +400,10 @@ TestConeOfCold()
     world_entity *Side = RangerDummy(&Crypt, &Dummies, V3(110.f, 60.f, 0.f));
     world_entity *Behind = RangerDummy(&Crypt, &Dummies, V3(-120.f, 0.f, 0.f));
     Slot->FrostMage.Icicles = 0;
+    AppState->Events.Count = 0;
     PressOnce(&Crypt, 0, PlayerButton_Attack);
     Check(Slot->RoleCooldowns[6] > 0.f);
+    Check(CountFrostBursts(AppState, FrostBurst_Nova, FROST_NOVA_CONE, FROST_NOVA_CONE) == 1);
     Check(Front->Hp < 2000.f && Side->Hp < 2000.f && Behind->Hp == 2000.f);
     Check(HasStatus(Front, StatusEffect_Slowed) && !HasStatus(Behind, StatusEffect_Slowed));
     Check(Slot->FrostMage.Icicles == 2);

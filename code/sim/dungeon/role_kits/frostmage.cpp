@@ -36,7 +36,7 @@ enum frostmage_burst
     FrostBurst_Bolt,     // a Frostbolt arriving at Position along Angle (FrostBolt_*)
     FrostBurst_Blizzard, // a Blizzard's circle at Position, for its life
     FrostBurst_Spike,    // a Glacial Spike arriving at Position along Angle; its Icicles, +8 split
-    FrostBurst_Nova,     // a Frost Nova round Position; Deep Freeze's ranks
+    FrostBurst_Nova,     // a Frost Nova round Position; Deep Freeze's ranks, or FROST_NOVA_CONE
     FrostBurst_Barrier,  // Ice Barrier raised on the mage at Position
     FrostBurst_Orb,      // a Frozen Orb leaving Position along Angle
     FrostBurst_Freeze,   // a foe at Position frozen; seconds in halves
@@ -63,6 +63,10 @@ enum frostmage_bolt_variant
     FrostBolt_Miss,
     FrostBolt_Fingers,
 };
+
+// NOTE(zoubir): a Frost Nova burst's variant that is a Cone of Cold
+// along its Angle, not a nova (Deep Freeze has fewer ranks)
+#define FROST_NOVA_CONE 8
 
 #include "frostmage/bolts.cpp"
 #include "frostmage/ground.cpp"

@@ -8,6 +8,8 @@
    floor; a frozen foe stands in a block of ice for the seconds its burst
    carries, cracking as it runs out. Ice Barrier closes a shell round the
    mage (the shell itself is drawn from ClassFlags, classes/frostmage.cpp).
+   Cone of Cold is a wedge of frost blown out along the aim to its reach,
+   shards flying out across it.
    A Frozen Orb rolls along its angle for as long as the server's does,
    flinging shards. Five Icicles flash over the mage. */
 
@@ -172,9 +174,53 @@ DrawBlizzardBurst(render_context *RenderContext, app_state *AppState, role_burst
     }
 }
 
+// NOTE(zoubir): Cone of Cold: a wedge of frost racing out along the
+// burst's angle to CONE_OF_COLD_REACH, CONE_OF_COLD_HALF_ANGLE each side,
+// a white front at its edge and shards blown out through it
+internal void
+DrawConeOfColdBurst(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
+{
+    v2 Centre = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
+    float Ease = 1.f - (1.f - T) * (1.f - T) * (1.f - T);
+    float Fade = 1.f - T;
+    float Front = CONE_OF_COLD_REACH * (0.15f + 0.85f * Clamp01(1.6f * Ease));
+    float From = Burst->Angle - CONE_OF_COLD_HALF_ANGLE;
+    float To = Burst->Angle + CONE_OF_COLD_HALF_ANGLE;
+    FrostGlow(RenderContext, Centre, 34.f, 0.7f * Clamp01(1.f - 4.f * T), FROST_FX_GLOW_RGB);
+    DrawArcBand(RenderContext, Centre, From, To, 0.f, Front, FxColor(0.35f * Fade, FROST_FX_PALE_RGB),
+                FxColor(0.2f * Fade, FROST_FX_ICE_RGB));
+    DrawWaveFront(RenderContext, Centre, From, To, Front, 26.f, 0.9f * Fade, FROST_FX_ICE_RGB);
+    // NOTE(zoubir): its two sides, faint, so the wedge reads at a glance
+    for(u32 Side = 0; Side < 2; Side++)
+    {
+        float A = Side ? To : From;
+        DrawFxStroke(RenderContext, Centre, Centre + GroundCircle(A, Front), 3.f, 1.f,
+                     FxColor(0.5f * Fade, FROST_FX_PALE_RGB), FxColor(0.2f * Fade, FROST_FX_ICE_RGB));
+    }
+    for(u32 Shard = 0; Shard < 14; Shard++)
+    {
+        float A = From + (To - From) * BurstJitter(Shard, 461);
+        float Reach = Front * (0.35f + 0.7f * BurstJitter(Shard, 462)) * Clamp01(0.4f + T);
+        v2 Out = NormalizeOr(GroundCircle(A, 1.f), V2(1.f, 0.f));
+        DrawIceShard(RenderContext, Centre + GroundCircle(A, Reach) + V2(0.f, -10.f), Out,
+                     9.f + 6.f * BurstJitter(Shard, 463), 4.f, Fade);
+    }
+    for(u32 Flake = 0; Flake < 6; Flake++)
+    {
+        float A = From + (To - From) * BurstJitter(Flake, 464);
+        DrawSnowflake(RenderContext, Centre + GroundCircle(A, Front * (0.3f + 0.6f * BurstJitter(Flake, 465))),
+                      5.f, 3.f * T, 0.8f * Fade, FROST_FX_PALE_RGB);
+    }
+}
+
 internal void
 DrawFrostNovaBurst(render_context *RenderContext, role_burst *Burst, float T, v3 CameraOffset)
 {
+    if (RangerBurstVariant(Burst->Position) == FROST_NOVA_CONE)
+    {
+        DrawConeOfColdBurst(RenderContext, Burst, T, CameraOffset);
+        return;
+    }
     v2 Centre = BurstToScreen(RangerBurstPlace(Burst->Position), CameraOffset);
     float Ease = 1.f - (1.f - T) * (1.f - T) * (1.f - T);
     float Fade = 1.f - T;
