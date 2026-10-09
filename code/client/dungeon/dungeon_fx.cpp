@@ -11,6 +11,9 @@
    - Shield Wall and Ward: a ring of pale plates round a tank behind
      Shield Wall, and a blue ring round anyone a healer's ward still
      covers.
+   - Rally and Renewal: pale steel plates lying at the feet of an ally
+     the tank's slam rallied (taking less), and green motes rising off
+     one a Renewal is healing.
    - Revives: a green ring round a downed player, filling as a healer
      stands over them (revive.cpp).
 
@@ -29,6 +32,8 @@
 #define FIREGUARD_RGB 0x0030A0FF
 #define FIREGUARD_CORE_RGB 0x0080E0FF
 #define REVIVE_RGB 0x0070F090
+#define RALLY_RGB 0x00D8D0C8
+#define RENEWAL_RGB 0x0090F0B0
 
 // NOTE(zoubir): in role_fx.cpp, included after this
 internal void DrawRoleFx(render_context *RenderContext, app_state *AppState, v3 CameraOffset);
@@ -175,6 +180,31 @@ DrawPartyMarks(render_context *RenderContext, app_state *AppState, v3 CameraOffs
                 v3 Point = Player->Position + V3(22.f * Cos(Angle), 22.f * Sin(Angle), 14.f);
                 DrawFxDot(RenderContext, DungeonFxPoint(Point, CameraOffset), 4.f,
                           FxColor(0.85f, SHIELD_WALL_RGB));
+            }
+        }
+        if (Slot->RallySeconds > 0.f)
+        {
+            // NOTE(zoubir): four plates lying flat round the feet, as a
+            // shield wall laid down
+            for(u32 Plate = 0; Plate < 4; Plate++)
+            {
+                float Angle = 0.25f * Pi32 + 0.5f * Pi32 * (float)Plate;
+                v2 Dir = V2(Cos(Angle), Sin(Angle));
+                v2 At = DungeonFxPoint(Player->Position + V3(18.f * Dir.X, 18.f * Dir.Y, 1.f), CameraOffset);
+                v2 Side = V2(-Dir.Y, Dir.X);
+                DrawFxStroke(RenderContext, At - 6.f * Side, At + 6.f * Side, 5.f, 5.f,
+                             FxColor(0.7f, RALLY_RGB), FxColor(0.7f, RALLY_RGB), RenderBlend_Alpha);
+            }
+        }
+        if (Slot->RenewSeconds > 0.f)
+        {
+            for(u32 Mote = 0; Mote < 7; Mote++)
+            {
+                float Rise = DungeonFxFraction(0.8f * Clock + 0.143f * (float)Mote + 0.13f * (float)SlotIndex);
+                float Side = 14.f * Sin(2.f * Pi32 * BurstJitter(Mote + 8 * SlotIndex, 201));
+                v3 Point = Player->Position + V3(Side, 0.f, 4.f + Rise * (Player->Dimensions.Y + 8.f));
+                DrawFxDot(RenderContext, DungeonFxPoint(Point, CameraOffset), 4.5f - 2.f * Rise,
+                          FxColor(0.9f * (1.f - Rise), RENEWAL_RGB));
             }
         }
         if (Slot->WardAbsorb > 0.f)

@@ -123,7 +123,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Role, 0.75f, 30.f, 0x0090F0B0, false, 0.f, BurstPose_Release},   // MendingBolt
     {BurstShape_Role, 0.5f, 52.f, 0x00FFC070, false, 0.f, BurstPose_Release},    // WardCast
     {BurstShape_Role, 0.7f, 110.f, 0x0060E0FF, false, 0.f, BurstPose_Release},   // SanctuaryCast
-    {BurstShape_Role, 0.6f, 40.f, 0x002080FF, false, 0.f, BurstPose_Charge},     // InfernoCast
+    {BurstShape_Role, 0.6f, 40.f, 0x002080FF, false, 0.f, BurstPose_Release},    // InfernoCast
     {BurstShape_Role, 0.8f, 90.f, 0x002080FF, false, 0.6f, BurstPose_None},      // InfernoBlast
     // NOTE(zoubir): a Giant Fireball plays out for its whole flight; its
     // blast ends it early (client/dungeon/role_fx.cpp)
