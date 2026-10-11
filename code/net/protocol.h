@@ -20,13 +20,13 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d79u // "GDMy" (a unit's max health when it is not the one its kind spawns with); change it whenever the layout changes
-// (GDMx: up to 32 inputs a packet, each older one only what changed)
-// (GDMw: 45 talent ranks, the duel seed in TreeSeed)
+#define NET_PROTOCOL_ID 0x47444d7au // "GDMz" (a player with MaxHealth sends its health as a share of it); change it whenever the layout changes
+// (GDMy: a unit's max health when it is not the one its kind spawns with)
 // (older ids and why: git log -S NET_PROTOCOL_ID -- code/net/protocol.h)
-// A player's health is sent in hundredths: the duel gives a player one
-// point, and burns take fractions of it, which whole points would hide.
+// A player's health: in hundredths (a duel's one point loses fractions to burns), or a share of its MaxHealth
 #define NET_PLAYER_HEALTH_STEPS 100.f
+#define NET_PLAYER_MAX_HEALTH_STEPS 10.f // a player's MaxHealth in tenths, so a tank's 400 and more fits
+#define NET_HEALTH_SHARE_STEPS 30000.f // a player's Health with a MaxHealth, as its share of it
 #define NET_MAX_PACKET_SIZE 1200    // stays under a typical internet MTU
 #define NET_MAX_INPUTS_PER_PACKET 32 // every input the server has not confirmed (protocol/inputs.cpp)
 // The server's ticks a second. Each net_input is one tick's worth: the
@@ -174,8 +174,8 @@ struct net_entity_state
     u16 Status;    // 11 bits: bit N set while status effect N + 1 is active
     u8 Ability;    // 2 bits: AbilityIndex of a monster shot or hazard;
                    // for a player, PLAYER_FLASH_* bits (sim/player.h)
-    i16 Health;    // a player's in 1/NET_PLAYER_HEALTH_STEPS of a point
-    u16 MaxHealth; // in Health's units; 0 (not sent) for the one its kind spawns with (SpawnedMaxHp)
+    i16 Health;    // a monster's in points; a player's as NET_PLAYER_HEALTH_STEPS says
+    u16 MaxHealth; // 0 (not sent) for the one its kind spawns with (SpawnedMaxHp); a monster's in points
     // Sent as 16-bit fixed point: positions to 1/8 unit within +-4096,
     // velocities to 1/4 unit per second within +-8192. Values outside are
     // clamped. Z and velocity are left out when they are zero, and VelZ

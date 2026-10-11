@@ -140,16 +140,20 @@ SimGameWriteAbility(world_entity *Entity, u8 EntityIndex, net_snapshot *Out)
 // NOTE(zoubir): health as it goes on the wire: a player's in
 // hundredths, rounded up while alive (a burn takes fractions off the
 // duel's one point, and a live player sent as 0 read as dead on the
-// client while the server never respawned it); others' in whole points
+// client while the server never respawned it); others' in whole points.
+// A player whose MaxHealth is sent sends its share of it instead:
+// hundredths stop at 327, and a tank past that read as unhurt until it
+// fell under it
 inline i16
-SimGameHealth(world_entity *Entity)
+SimGameHealth(world_entity *Entity, u16 MaxHealth = 0)
 {
     float Hp = Entity->Hp;
     if (Entity->Type == EntityType_Player)
     {
-        Hp *= NET_PLAYER_HEALTH_STEPS;
+        Hp *= (MaxHealth && Entity->MaxHp > 0.f) ? NET_HEALTH_SHARE_STEPS / Entity->MaxHp :
+            NET_PLAYER_HEALTH_STEPS;
     }
-    Hp = Minimum(Hp, 32767.f);
+    Hp = Maximum(-32767.f, Minimum(Hp, 32767.f));
     i16 Result = (Hp > 0.f) ? (i16)CeilFloatToUInt32(Hp) : (i16)Hp;
     return Result;
 }
@@ -165,7 +169,7 @@ SimGameMaxHealth(world_entity *Entity, net_entity_state *E)
     if ((Entity->Type == EntityType_Player || Entity->Type == EntityType_Monster) &&
         Absolute(Entity->MaxHp - SpawnedMaxHp(Entity)) > 0.001f)
     {
-        float Steps = Entity->Type == EntityType_Player ? NET_PLAYER_HEALTH_STEPS : 1.f;
+        float Steps = Entity->Type == EntityType_Player ? NET_PLAYER_MAX_HEALTH_STEPS : 1.f;
         E->MaxHealth = (u16)RoundFloatToU32(Minimum(65535.f, Maximum(1.f, Entity->MaxHp * Steps)));
     }
 }
@@ -196,8 +200,8 @@ SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
         E->Affix = (u8)((Entity->SwingLook & PLAYER_AFFIX_SWING_MASK) |
                         (Entity->HeroLookPick ? PLAYER_AFFIX_LOOK_CLASSIC : 0));
     }
-    E->Health = SimGameHealth(Entity);
     SimGameMaxHealth(Entity, E);
+    E->Health = SimGameHealth(Entity, E->MaxHealth);
     E->X = Entity->Position.X;
     E->Y = Entity->Position.Y;
     E->Z = Entity->Position.Z;

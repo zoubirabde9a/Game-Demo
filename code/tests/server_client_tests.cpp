@@ -608,8 +608,13 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
                 {
                     ++Players;
                     // NOTE(zoubir): sent in hundredths, rounded up while
-                    // alive (SimGameHealth, pack.cpp)
-                    float Sent = (float)SimGameHealth(Theirs) / NET_PLAYER_HEALTH_STEPS;
+                    // alive, or as a share of a max health sent with it
+                    // (SimGameHealth, pack.cpp)
+                    net_entity_state Wire = {};
+                    Wire.Type = EntityType_Player;
+                    SimGameMaxHealth(Theirs, &Wire);
+                    Wire.Health = SimGameHealth(Theirs, Wire.MaxHealth);
+                    float Sent = ReplicaHealth(&Wire, Ours->MaxHp);
                     if (Absolute(Ours->Hp - Sent) > 0.001f) ++WrongPlayerHp;
                     if (IsDeadPlayer(Ours) != IsDeadPlayer(Theirs)) ++WrongDead;
                     if (Ours->PlayerIndex != Theirs->PlayerIndex) ++WrongSlot;
@@ -737,9 +742,43 @@ TestReplicasMatchTheServer(u32 MapId, int Seconds)
     free(Client);
 }
 
+// NOTE(zoubir): a player's health past 327, a tank's late in a run,
+// reaches the client whole: hundredths stopped there, and the tank read
+// as unhurt until it fell under it. A duel's player still goes in
+// hundredths
+internal void
+TestBigPlayerHealthTravels()
+{
+    world_entity Tank = {};
+    Tank.Type = EntityType_Player;
+    Tank.MaxHp = 412.f;
+    Tank.Hp = 400.f;
+    net_entity_state Wire = {};
+    Wire.Type = EntityType_Player;
+    SimGameMaxHealth(&Tank, &Wire);
+    Wire.Health = SimGameHealth(&Tank, Wire.MaxHealth);
+    float MaxHp = (float)Wire.MaxHealth / NET_PLAYER_MAX_HEALTH_STEPS;
+    Check(Absolute(MaxHp - 412.f) < 0.05f);
+    Check(Absolute(ReplicaHealth(&Wire, MaxHp) - 400.f) < 0.05f);
+    Tank.Hp = 0.004f;
+    Wire.Health = SimGameHealth(&Tank, Wire.MaxHealth);
+    Check(ReplicaHealth(&Wire, MaxHp) > 0.f);
+
+    world_entity Dueller = {};
+    Dueller.Type = EntityType_Player;
+    Dueller.MaxHp = GameRules.PlayerMaxHp;
+    Dueller.Hp = 0.37f;
+    net_entity_state Duel = {};
+    Duel.Type = EntityType_Player;
+    SimGameMaxHealth(&Dueller, &Duel);
+    Duel.Health = SimGameHealth(&Dueller, Duel.MaxHealth);
+    Check(Duel.MaxHealth == 0 && Absolute(ReplicaHealth(&Duel, Dueller.MaxHp) - 0.37f) < 0.001f);
+}
+
 internal void
 RunServerClientTests()
 {
+    TestBigPlayerHealthTravels();
     TestServerNameAndVersionNotice();
     TestResolveServer();
     TestClientConnectsAndMoves();

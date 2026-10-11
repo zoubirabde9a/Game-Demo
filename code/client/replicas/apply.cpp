@@ -5,6 +5,20 @@
    player's score. Included by replicas.cpp,
    whose SyncReplicas calls these on each new snapshot. */
 
+// NOTE(zoubir): State's health in points: a player's in hundredths, or
+// with a MaxHealth as its share of MaxHp (SimGameHealth, pack.cpp)
+inline float
+ReplicaHealth(net_entity_state *State, float MaxHp)
+{
+    float Result = (float)State->Health;
+    if (State->Type == EntityType_Player)
+    {
+        Result = State->MaxHealth ? Result * MaxHp / NET_HEALTH_SHARE_STEPS :
+            Result / NET_PLAYER_HEALTH_STEPS;
+    }
+    return Result;
+}
+
 internal void
 ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
                     world_entity *Replica, net_entity_state *State)
@@ -22,11 +36,6 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
     {
         ApplyEliteAffix(Replica, State->Affix);
     }
-    Replica->Hp = (float)State->Health;
-    if (Replica->Type == EntityType_Player)
-    {
-        Replica->Hp /= NET_PLAYER_HEALTH_STEPS;
-    }
     // NOTE(zoubir): max health comes only when it is not the kind's
     // (SpawnedMaxHp): a dungeon's scaled monsters, a class's or a
     // talent's health. Without it the world's health bars read a scaled
@@ -39,10 +48,11 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
             Replica->MaxHp = (float)State->MaxHealth;
             if (Replica->Type == EntityType_Player)
             {
-                Replica->MaxHp /= NET_PLAYER_HEALTH_STEPS;
+                Replica->MaxHp /= NET_PLAYER_MAX_HEALTH_STEPS;
             }
         }
     }
+    Replica->Hp = ReplicaHealth(State, Replica->MaxHp);
     if (State->Facing < AnimationDirection_Count)
     {
         Replica->AnimationDirection = (animation_direction)State->Facing;

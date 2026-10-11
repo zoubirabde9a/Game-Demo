@@ -73,7 +73,8 @@ TestArmoredMonstersSendFacing()
 
 // A player burned below the duel's one point of health is still alive,
 // and must not reach the client as 0, which reads as dead there. It goes
-// in hundredths, so the client's health bar shows the burn.
+// in hundredths, so the client's health bar shows the burn. (A player
+// with a max health of its own sends a share of it, TestBigPlayerHealthTravels.)
 internal void
 TestLivePlayerNeverSentAsDead()
 {
@@ -81,7 +82,7 @@ TestLivePlayerNeverSentAsDead()
     Out = {};
     world_entity Player = {};
     Player.Type = EntityType_Player;
-    Player.MaxHp = 1.f;
+    Player.MaxHp = GameRules.PlayerMaxHp;
     Player.Hp = 0.5f;
     SimGameWriteEntity(&Player, 3, &Out);
     Check(Out.Entities[0].Health == 50);
