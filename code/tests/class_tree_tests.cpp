@@ -193,9 +193,11 @@ TestClassTreesRollFromTheirPools()
     }
 }
 
-// NOTE(zoubir): a branch's tiers open on its own points; a spell of a
-// pair takes a point and locks the other; a wild slot rolls again with a
-// new run and keeps its points; another class gives every point back
+// NOTE(zoubir): a branch's tiers open on its own points and a slot on a
+// point in one linked above it, so the core comes before the spells; a
+// spell of a pair takes a point, locks the other and opens the lane
+// under it; a wild slot rolls again with a new run and keeps its points;
+// another class gives every point back
 internal void
 TestClassTreePointRules()
 {
@@ -214,29 +216,43 @@ TestClassTreePointRules()
     Check(RoleSpellLearned(Slot, 5) && RoleSpellLearned(Slot, 1) && RoleSpellLearned(Slot, 4));
     Check(!RoleSpellLearned(Slot, 3) && !RoleSpellLearned(Slot, 2));
     Check(RoleSpellsCounted(Slot) == RoleSpellCap(PlayerRole_FrostMage) - 2);
-    // NOTE(zoubir): the pair opens with the first point, the tier below it
-    // with the spell, the one below that with two more in the branch
-    Check(!LearnTalent(AppState, 0, Talent_RunFirst + 0));
-    Check(LearnTalent(AppState, 0, OrbTalent));
+    // NOTE(zoubir): the spells wait for the core above them; the free
+    // spell point shows only once they can take it
+    Check(ClassSlotShape(0)->Tier == 0 && ClassSlotShape(2)->Tier > 0 && ClassSlotShape(3)->Tier > 0);
+    Check(TalentPointsToSpend(Slot, true) == TalentPointsLeft(Slot));
+    Check(CanLearnTalent(Slot, OrbTalent) == TalentRefusal_NotReached);
+    Check(!LearnTalent(AppState, 0, OrbTalent));
     Check(LearnTalent(AppState, 0, Talent_RunFirst + 0));
+    Check(TalentPointsToSpend(Slot, true) == TalentPointsLeft(Slot) + 1);
+    Check(LearnTalent(AppState, 0, OrbTalent));
+    // NOTE(zoubir): the tier under the spells opens on two more points in
+    // the branch, and only the lane under the spell taken
     Check(!LearnTalent(AppState, 0, Talent_RunFirst + 4));
     Check(LearnTalent(AppState, 0, Talent_RunFirst + 1));
     Check(LearnTalent(AppState, 0, Talent_RunFirst + 4));
-    // NOTE(zoubir): the other branch's points do not open this one
-    Check(!LearnTalent(AppState, 0, Talent_RoleFirst + 0));
+    Check(CanLearnTalent(Slot, Talent_RunFirst + 5) == TalentRefusal_NotReached);
+    // NOTE(zoubir): the lanes cross below: either tier 3 slot hangs off
+    // the tier 2 slot taken
+    Check(ClassSlotsLinked(Talent_RunFirst + 4, Talent_RunFirst + 6) &&
+          ClassSlotsLinked(Talent_RunFirst + 4, Talent_RunFirst + 7) &&
+          !ClassSlotsLinked(Talent_RunFirst + 4, Talent_RoleFirst + 6));
+    // NOTE(zoubir): the other branch's points open nothing in this one
+    Check(CanLearnTalent(Slot, Talent_RoleFirst + 2) == TalentRefusal_NotReached);
     Check(RoleSpellLearned(Slot, 3) && !RoleSpellLearned(Slot, 2));
     Check(CanLearnTalent(Slot, BarrierTalent) == TalentRefusal_OtherSpell);
     Check(!LearnTalent(AppState, 0, BarrierTalent));
     // NOTE(zoubir): a spell's second rank strengthens it, if it has one
     Check(!LearnTalent(AppState, 0, OrbTalent));
     // NOTE(zoubir): the other pair's spell brings the class to its cap
+    Check(LearnTalent(AppState, 0, Talent_RoleFirst + 0));
     Check(LearnTalent(AppState, 0, Talent_RoleFirst + 2));
     Check(RoleSpellsCounted(Slot) == RoleSpellCap(PlayerRole_FrostMage));
     // NOTE(zoubir): at the top level the lock lifts once: one spell over
-    // the cap, and the other pair stays locked
+    // the cap, its lane opens, and the other pair stays locked
     Slot->Level = PLAYER_MAX_LEVEL;
     Check(LearnTalent(AppState, 0, BarrierTalent));
     Check(RoleSpellsCounted(Slot) == RoleSpellCap(PlayerRole_FrostMage) + 1);
+    Check(CanLearnTalent(Slot, Talent_RunFirst + 5) == TalentRefusal_None);
     Check(CanLearnTalent(Slot, Talent_RoleFirst + 3) == TalentRefusal_OtherSpell);
 
     // NOTE(zoubir): a new run rolls the wild slots again; points stay
@@ -268,6 +284,8 @@ TestClassTreePointRules()
         SetPlayerRole(AppState, Slot, Role);
         Slot->Level = PLAYER_MAX_LEVEL;
         Check(RoleSpellCap(Role) == 6);
+        Check(LearnTalent(AppState, 0, Talent_RoleFirst + 0));
+        Check(LearnTalent(AppState, 0, Talent_RunFirst + 0));
         Check(LearnTalent(AppState, 0, Talent_RoleFirst + 2));
         Check(LearnTalent(AppState, 0, Talent_RunFirst + 2));
         Check(RoleSpellsCounted(Slot) == RoleSpellCap(Role));

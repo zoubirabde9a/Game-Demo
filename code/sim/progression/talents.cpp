@@ -233,6 +233,8 @@ enum talent_refusal
     TalentRefusal_TierLocked,
     // NOTE(zoubir): the other spell of the pair took a point
     TalentRefusal_OtherSpell,
+    // NOTE(zoubir): no point yet in a class tree slot linked above it
+    TalentRefusal_NotReached,
 };
 
 // NOTE(zoubir): the level the rules give for free: 1 for an ability the
@@ -296,16 +298,17 @@ TalentPointsLeft(player_slot *Slot)
 }
 
 // NOTE(zoubir): the points Slot may spend now: TalentPointsLeft, and in a
-// run (InRun) the free first spell until it is taken
+// run (InRun) the free first spell, once a core above the spells has one
 inline u32
 TalentPointsToSpend(player_slot *Slot, bool32 InRun)
 {
-    u32 Result = TalentPointsLeft(Slot) + ((InRun && !ClassSpellTaken(Slot)) ? 1 : 0);
+    bool32 CoreTaken = Slot->Ranks[Talent_RoleFirst] > 0 || Slot->Ranks[Talent_RunFirst] > 0;
+    u32 Result = TalentPointsLeft(Slot) + ((InRun && CoreTaken && !ClassSpellTaken(Slot)) ? 1 : 0);
     return Result;
 }
 
 // NOTE(zoubir): the points in Branch that open Tier. A class tree's
-// branch opens its second tier on the one point its first tier's spell
+// branch opens its second tier, the spells', on the one point its core
 // takes, then every two more (sim/dungeon/class_tree.cpp)
 inline u32
 TalentTierCost(u32 Tier, u32 Branch)
@@ -330,6 +333,7 @@ IsTalentTierOpen(player_slot *Slot, u32 Branch, u32 Tier)
 // pair
 internal u32 ClassTalentMaxRanks(player_slot *Slot, u32 Talent);
 inline bool32 ClassSpellTakenBeside(player_slot *Slot, u32 Talent);
+internal bool32 ClassSlotReached(player_slot *Slot, u32 Talent);
 
 internal talent_refusal
 CanLearnTalent(player_slot *Slot, u32 Talent)
@@ -344,6 +348,10 @@ CanLearnTalent(player_slot *Slot, u32 Talent)
     else if (IsClassTalent(Talent) && ClassSpellTakenBeside(Slot, Talent))
     {
         Result = TalentRefusal_OtherSpell;
+    }
+    else if (IsClassTalent(Talent) && !ClassSlotReached(Slot, Talent))
+    {
+        Result = TalentRefusal_NotReached;
     }
     else if (!IsTalentTierOpen(Slot, Def->Branch, Def->Tier))
     {

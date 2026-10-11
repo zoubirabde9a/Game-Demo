@@ -151,13 +151,15 @@ internal u32
 BotPickTalent(bot_brain *Bot, app_state *AppState, player_slot *Slot)
 {
     u32 Result = 0;
-    // NOTE(zoubir): in a run, a spell of each branch's pair first
-    // (sim/dungeon/class_tree.cpp), so a bot casts its four spells as soon
-    // as it can; which of the two is the bot's coin toss, so a party of
-    // bots plays both builds of every class
+    // NOTE(zoubir): in a run, each branch's core and then a spell of its
+    // pair first (sim/dungeon/class_tree.cpp), so a bot casts its four
+    // spells as soon as it can; which of the two is the bot's coin toss,
+    // so a party of bots plays both builds of every class
     for (u32 Branch = 0; Branch < 2 && IsDungeon(AppState) && !Result; ++Branch)
     {
-        u32 Talent = ClassTreeTalent(Branch * ROLE_TALENTS + 2 + BotRandom(Bot) % 2);
+        u32 Core = ClassTreeTalent(Branch * ROLE_TALENTS);
+        u32 Talent = Slot->Ranks[Core] ? ClassTreeTalent(Branch * ROLE_TALENTS + 2 + BotRandom(Bot) % 2) :
+            Core;
         if (!Slot->Ranks[Talent] && CanLearnTalent(Slot, Talent) == TalentRefusal_None)
         {
             Result = (Talent + 1) << NET_LEARN_SHIFT;

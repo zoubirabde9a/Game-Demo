@@ -244,8 +244,13 @@ TalentNodeCentre(talent_panel_layout *L, u32 Talent)
     float ColumnCentre = L->ColumnX[Def->Branch] + 0.5f * L->ColumnWidth;
     float Spread = 0.24f * L->ColumnWidth;
     float X = ColumnCentre;
-    if (TalentsInTier(Def->Branch, Def->Tier) > 1)
+    u32 InTier = TalentsInTier(Def->Branch, Def->Tier);
+    // NOTE(zoubir): a class tree's middle column (CLASS_COLUMN_MIDDLE)
+    // stays in the middle, and a row of three spreads wider
+    bool32 Middle = IsClassTalent(Talent) && Def->Column == CLASS_COLUMN_MIDDLE;
+    if (InTier > 1 && !Middle)
     {
+        Spread = InTier > 2 ? 0.33f * L->ColumnWidth : Spread;
         X += Def->Column ? Spread : -Spread;
     }
     float Y = L->TierTop + ((float)Def->Tier + 0.4f) * L->TierHeight;
@@ -336,7 +341,13 @@ TalentRefusalText(player_slot *Slot, u32 Talent, talent_refusal Refusal, char *O
         } break;
         case TalentRefusal_NoPoints:
         {
-            snprintf(Out, OutSize, "No points left: kills, monsters and time earn the next");
+            snprintf(Out, OutSize, IsClassTalent(Talent) ?
+                     "No points left: clear the next room for another" :
+                     "No points left: kills, monsters and time earn the next");
+        } break;
+        case TalentRefusal_NotReached:
+        {
+            snprintf(Out, OutSize, "Take a talent linked above it first");
         } break;
         case TalentRefusal_OtherSpell:
         {

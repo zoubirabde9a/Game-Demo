@@ -2,22 +2,36 @@
    run each class has one tree of two branches, each named for a way to
    play the class. Branch 0 is Talent_RoleFirst on, branch 1 Talent_RunFirst
    on, twelve slots each, so ranks travel as they always did. Every branch
-   has the same shape (ClassSlotShapes):
+   has the same shape (ClassSlotShapes), a tree read from the top down,
+   each slot linked to the ones above it:
 
-   tier 0   slot 2 spell               slot 3 the other spell
-   tier 1   slot 0 core (fixed)        slot 1 wild (2)
-   tier 2   slot 4 fixed (3)           slot 5 wild (2)
-   tier 3   slot 6 wild (2)            slot 7 fixed (3)
-   tier 4   slot 8 fixed (3)           slot 9 wild (2)
-   tier 5   slot 10 capstone (1)       slot 11 wild keystone (1)
+   tier 0                       slot 0 core (fixed, 2)
+                          /             |              \
+   tier 1   slot 2 spell          slot 1 wild (2)        slot 3 the other spell
+                |                                             |
+   tier 2   slot 4 fixed (3)                             slot 5 wild (2)
+                |          (either one above either)          |
+   tier 3   slot 6 wild (2)                              slot 7 fixed (3)
+                |                                             |
+   tier 4   slot 8 fixed (3)                             slot 9 wild (2)
+                |          (either one above either)          |
+   tier 5   slot 10 capstone (1)                         slot 11 wild keystone (1)
+
+   A slot takes a point only once a slot linked above it holds one
+   (class_slot_shape.Parents, ClassSlotReached), on top of the branch's
+   points that open its tier. So the core comes first and the spells
+   under it: no branch's first point buys an ability.
 
    A class casts two base spells from the start (role_spell.Unlock 0) and
    one spell of each branch's pair: a point in one spell of the pair locks
    the other (ClassSpellTakenBeside), so no build casts more than four,
-   or five for a damage class at the top level.
-   The pairs sit in the first tier, so the first two points can buy both
-   spells: a class has its four by level 3, and the deeper tiers are where
-   a build grows.
+   or five for a damage class at the top level. The spell taken picks the
+   branch's lane: the tier 2 slot under it opens, the one under the other
+   spell does not (until the top level lifts the lock). The lanes cross
+   in tier 3 and again in the last tier, which either lane reaches.
+   The first spell point is free (TalentPointsToSpend), so a branch's core
+   and its spell come with one level: a class has its four spells by
+   level 4.
 
    What sits in a slot is a content code: a talent of the class's catalog
    (<class>_defs.cpp, CLASS_CONTENT_TALENT on) or a run talent
@@ -65,7 +79,17 @@ struct class_slot_shape
     // NOTE(zoubir): the most ranks the slot takes; a talent with fewer
     // fills it sooner
     u8 Ranks;
+    // NOTE(zoubir): the slots of the same branch linked above it, a bit
+    // each (CLASS_PARENT); one of them must hold a point first. 0 for
+    // the root
+    u16 Parents;
 };
+
+// NOTE(zoubir): Column's values: the left lane, the right, the middle
+#define CLASS_COLUMN_LEFT 0
+#define CLASS_COLUMN_RIGHT 1
+#define CLASS_COLUMN_MIDDLE 2
+#define CLASS_PARENT(Slot) (u16)(1u << (Slot))
 
 // NOTE(zoubir): by slot of a branch. The last two, the capstone and the
 // keystone, travel online in one bit each (NET_TALENT_BRANCH,
@@ -73,12 +97,18 @@ struct class_slot_shape
 // NetTalentRankBits with it
 global_variable class_slot_shape ClassSlotShapes[ROLE_TALENTS] =
 {
-    {ClassSlot_Fixed, 1, 0, 2}, {ClassSlot_Wild, 1, 1, 2},
-    {ClassSlot_Spell, 0, 0, 2}, {ClassSlot_Spell, 0, 1, 2},
-    {ClassSlot_Fixed, 2, 0, 3}, {ClassSlot_Wild, 2, 1, 2},
-    {ClassSlot_Wild, 3, 0, 2}, {ClassSlot_Fixed, 3, 1, 3},
-    {ClassSlot_Fixed, 4, 0, 3}, {ClassSlot_Wild, 4, 1, 2},
-    {ClassSlot_Fixed, 5, 0, 1}, {ClassSlot_Keystone, 5, 1, 1},
+    {ClassSlot_Fixed, 0, CLASS_COLUMN_MIDDLE, 2, 0},
+    {ClassSlot_Wild, 1, CLASS_COLUMN_MIDDLE, 2, CLASS_PARENT(0)},
+    {ClassSlot_Spell, 1, CLASS_COLUMN_LEFT, 2, CLASS_PARENT(0)},
+    {ClassSlot_Spell, 1, CLASS_COLUMN_RIGHT, 2, CLASS_PARENT(0)},
+    {ClassSlot_Fixed, 2, CLASS_COLUMN_LEFT, 3, CLASS_PARENT(2)},
+    {ClassSlot_Wild, 2, CLASS_COLUMN_RIGHT, 2, CLASS_PARENT(3)},
+    {ClassSlot_Wild, 3, CLASS_COLUMN_LEFT, 2, CLASS_PARENT(4) | CLASS_PARENT(5)},
+    {ClassSlot_Fixed, 3, CLASS_COLUMN_RIGHT, 3, CLASS_PARENT(4) | CLASS_PARENT(5)},
+    {ClassSlot_Fixed, 4, CLASS_COLUMN_LEFT, 3, CLASS_PARENT(6)},
+    {ClassSlot_Wild, 4, CLASS_COLUMN_RIGHT, 2, CLASS_PARENT(7)},
+    {ClassSlot_Fixed, 5, CLASS_COLUMN_LEFT, 1, CLASS_PARENT(8) | CLASS_PARENT(9)},
+    {ClassSlot_Keystone, 5, CLASS_COLUMN_RIGHT, 1, CLASS_PARENT(8) | CLASS_PARENT(9)},
 };
 
 struct class_tree_def
@@ -365,70 +395,9 @@ ClassTalentMaxRanks(player_slot *Slot, u32 Talent)
     return Result;
 }
 
-// NOTE(zoubir): the other spell of the pair Talent is in, Talent_Count
-// when it is no spell slot
-inline u32
-ClassSpellPartner(u32 Talent)
-{
-    u32 TreeSlot = ClassTreeSlot(Talent);
-    u32 Result = Talent_Count;
-    if (TreeSlot < CLASS_TREE_SLOTS && ClassSlotShape(TreeSlot)->Kind == ClassSlot_Spell)
-    {
-        Result = ClassTreeTalent(TreeSlot ^ 1);
-    }
-    return Result;
-}
+#include "class_tree/slot_links.cpp"
 
-// NOTE(zoubir): whether Slot holds both spells of a pair, which only the
-// top level allows
-internal bool32
-ClassPairDoubled(player_slot *Slot)
-{
-    bool32 Result = false;
-    for(u32 Index = 0; Index < CLASS_TREE_SLOTS && !Result; Index += 2)
-    {
-        Result = ClassSlotShape(Index)->Kind == ClassSlot_Spell &&
-            ClassTreeRank(Slot, Index) > 0 && ClassTreeRank(Slot, Index + 1) > 0;
-    }
-    return Result;
-}
-
-// NOTE(zoubir): whether Slot took the other spell of Talent's pair, so
-// Talent takes no point. At the top level (PLAYER_MAX_LEVEL) a damage
-// class's lock lifts for one pair: it casts five spells there. A tank's
-// or a healer's never does, so it stays at six (RoleSpellCap)
-inline bool32
-ClassSpellTakenBeside(player_slot *Slot, u32 Talent)
-{
-    u32 Partner = ClassSpellPartner(Talent);
-    u32 Role = Slot->Role < PlayerRole_Count ? Slot->Role : PlayerRole_Damage;
-    bool32 Lifts = Slot->Level >= PLAYER_MAX_LEVEL && RoleKindOf(Role) != RoleKind_Tank &&
-        RoleKindOf(Role) != RoleKind_Healer &&
-        !ClassPairDoubled(Slot);
-    bool32 Result = Partner < Talent_Count && Slot->Ranks[Partner] > 0 && !Lifts;
-    return Result;
-}
-
-inline bool32
-IsClassSpellTalent(u32 Talent)
-{
-    u32 TreeSlot = ClassTreeSlot(Talent);
-    bool32 Result = TreeSlot < CLASS_TREE_SLOTS && ClassSlotShape(TreeSlot)->Kind == ClassSlot_Spell;
-    return Result;
-}
-
-// NOTE(zoubir): whether Slot holds a point in any spell of its tree's
-// pairs; the first such point is free (TalentPointsLeft)
-internal bool32
-ClassSpellTaken(player_slot *Slot)
-{
-    bool32 Result = false;
-    for(u32 Index = 0; Index < CLASS_TREE_SLOTS && !Result; Index++)
-    {
-        Result = ClassSlotShape(Index)->Kind == ClassSlot_Spell && ClassTreeRank(Slot, Index) > 0;
-    }
-    return Result;
-}
+#include "class_tree/spell_pairs.cpp"
 
 inline bool32
 ClassSlotIsWild(u32 Talent)

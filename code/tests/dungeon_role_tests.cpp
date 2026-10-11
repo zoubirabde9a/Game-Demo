@@ -257,9 +257,10 @@ TestRoleTalents()
     player_slot *Slot = &AppState->Players[0];
     SetPlayerRole(AppState, Slot, PlayerRole_Tank);
     Slot->Level = 6;
-    Check(!LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_IronSkin)));
-    Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_LastStand)));
+    // NOTE(zoubir): the spell waits for the core above it
+    Check(!LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_LastStand)));
     Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_IronSkin)));
+    Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_LastStand)));
     Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_IronSkin)));
     Check(!LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], TankTalent_IronSkin)));
     Check(strcmp(ShownTalentDef(Slot, ClassTalentId(Slot, TankTalent_IronSkin))->Name,
@@ -277,8 +278,8 @@ TestRoleTalents()
     Check(ClassTalentRank(Slot, TankTalent_IronSkin) == 0);
     // NOTE(zoubir): three ranks, the first spell of them free
     Check(TalentPointsLeft(Slot) == Left + 2);
-    Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], StrikerTalent_Fireguard)));
     Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], StrikerTalent_SearingHeat)));
+    Check(LearnTalent(AppState, 0, ClassTalentId(&AppState->Players[0], StrikerTalent_Fireguard)));
     Check(ClassTalentRank(Slot, StrikerTalent_SearingHeat) == 1);
 
     // NOTE(zoubir): in a run only the class's tree takes points

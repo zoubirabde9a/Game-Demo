@@ -3,15 +3,24 @@
    tiers with light running along the open ones, and each talent's
    medallion, rank ring, pips, key and name. */
 
-// NOTE(zoubir): whether a line runs from Talent to Next: the tier below,
+// NOTE(zoubir): whether a line runs from Talent to Next. In a class tree,
+// the links its slots need (ClassSlotsLinked); elsewhere the tier below,
 // the same column, or a tier with one talent that every column feeds
 inline bool32
 TalentsJoined(u32 Talent, u32 Next)
 {
     talent_def *Def = &TalentDefs[Talent];
     talent_def *NextDef = &TalentDefs[Next];
-    bool32 Result = NextDef->Branch == Def->Branch && NextDef->Tier == Def->Tier + 1 &&
-        (NextDef->Column == Def->Column || TalentsInTier(Def->Branch, NextDef->Tier) == 1);
+    bool32 Result;
+    if (IsClassTalent(Talent) || IsClassTalent(Next))
+    {
+        Result = ClassSlotsLinked(Talent, Next);
+    }
+    else
+    {
+        Result = NextDef->Branch == Def->Branch && NextDef->Tier == Def->Tier + 1 &&
+            (NextDef->Column == Def->Column || TalentsInTier(Def->Branch, NextDef->Tier) == 1);
+    }
     return Result;
 }
 
@@ -84,11 +93,20 @@ DrawTalentColumn(render_context *RenderContext, app_state *AppState, talent_pane
             {
                 continue;
             }
-            // NOTE(zoubir): from under the name to the next ring's top
+            // NOTE(zoubir): from under the name to the edge of the next
+            // ring, aimed at its centre, so a line to a slot off to the
+            // side runs on a slant rather than flat
             float Ring = 0.58f * L->NodeSize;
             v2 From = TalentNodeCentre(L, Talent) + V2(0.f, Ring + 34.f);
-            v2 To = TalentNodeCentre(L, Next) - V2(0.f, Ring + 2.f);
-            bool32 Lit = IsTalentTierOpen(Slot, Branch, TalentDefs[Next].Tier);
+            v2 NextCentre = TalentNodeCentre(L, Next);
+            v2 Along = NextCentre - From;
+            float Length = SquareRoot(LengthSq(Along));
+            v2 To = Length > Ring + 2.f ? NextCentre - ((Ring + 2.f) / Length) * Along :
+                NextCentre - V2(0.f, Ring + 2.f);
+            // NOTE(zoubir): a class tree's line lights once the talent it
+            // leaves from holds a point, the path it opens
+            bool32 Lit = IsTalentTierOpen(Slot, Branch, TalentDefs[Next].Tier) &&
+                (!IsClassTalent(Talent) || Slot->Ranks[Talent] > 0);
             bool32 Path = Hovered == (i32)Next || Hovered == (i32)Talent;
             u32 Color = Lit ? WithAlpha(Accent, Path ? 0.95f : 0.55f) :
                 (Path ? UI_RGBA(255, 255, 255, 70) : UI_RGBA(255, 255, 255, 22));

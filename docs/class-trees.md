@@ -1,29 +1,30 @@
 # Class trees
 
-How each dungeon class's talents and spells are laid out: one tree of two branches per class, a cap on the spells it casts, a choice of spell in each branch, and slots that roll again each run. The code is `code/sim/dungeon/class_tree.cpp` (the rules), `class_tree_defs.cpp` (every class's tree) and `role_abilities/spell_cap.cpp` (the cap).
+How each dungeon class's talents and spells are laid out: one tree of two branches per class, a cap on the spells it casts, a choice of spell in each branch, and slots that roll again each run. The code is `code/sim/dungeon/class_tree.cpp` (the rules), `class_tree/slot_links.cpp` (which slot hangs off which), `class_tree/spell_pairs.cpp` (the pairs and their lock), `class_tree_defs.cpp` (every class's tree) and `role_abilities/spell_cap.cpp` (the cap).
 
 ## The rules
 
 1. **A cap on spells.** A damage class casts at most four class spells (five at the top level), a tank or a healer six at any level. Its attack does not count (the key it fills gaps with: Quick Shot, Cleave, Shield Bash, Smite Bolt, Wrath, the Fire Mage's fireball), nor the moves every class shares in a run (shield, blink, jump).
-2. **Base kit and two picks.** A class casts its attack and its base spells from the start: two for a damage class, four for a tank or a healer. Each branch offers a pair of spells and the player takes one of the pair, which brings the class to its cap.
+2. **Base kit and two picks.** A class casts its attack and its base spells from the start: two for a damage class, four for a tank or a healer. Each branch offers a pair of spells in its second row, under the branch's core talent, and the player takes one of the pair, which brings the class to its cap. No branch's first point buys a spell.
 3. **One more at the top level, for damage.** At level 30 a damage class's lock on one pair lifts: it may take the other spell of that pair too, a fifth spell. A tank's or a healer's lock never lifts, so six stays its most.
 4. **Two branches.** Each is named for a way to play the class. Filling one takes about 23 of the run's 29 points, so a top-level build is one full branch and the other's first tiers.
 5. **Synergy.** Every fixed talent in a branch pays off both spells of its pair or the base kit.
 6. **Randomness.** Five slots of each branch roll as each run starts, from that branch's own pool: the class's themed talents that have no fixed slot and the run talents (`run_tree/run_mods.cpp`) that suit the branch. One of them is a keystone, a big effect with a cost. The roll is fixed for the whole run, every class's tree at once (switching class mid-run shows that class's roll for the same run), and rolls again only when a vote starts a new run.
-7. **Deeper is better.** The wild slots of tiers 2 and 3 roll only run talents, so a class's own talents in a pool land in tiers 4 and 5. A run talent's numbers, fixed or rolled, grow 10% for each tier below tier 2, the first talent tier: 1.1 times in tier 3, 1.2 in tier 4, 1.3 in tier 5. The bottom row holds the capstone and the keystone.
+7. **A real tree.** Every slot but the core hangs off one or two slots above it, and takes a point only once one of those holds a point. The spell taken picks the branch's lane: the slot under it opens and the one under the other spell does not. The lanes cross in the fourth row and again in the last, which either lane reaches.
+8. **Deeper is better.** The wild slots of tiers 2 and 3 roll only run talents, so a class's own talents in a pool land in tiers 4 and 5. A run talent's numbers, fixed or rolled, grow 10% for each tier below tier 2, the first talent tier: 1.1 times in tier 3, 1.2 in tier 4, 1.3 in tier 5. The bottom row holds the capstone and the keystone.
 
 ## The shape of a branch
 
-| Tier | Left | Right |
-|---|---|---|
-| 1 | spell, 1 or 2 ranks | the other spell; taking one locks the other |
-| 2 | the branch's core talent, fixed | wild, 2 ranks |
-| 3 | fixed, 3 ranks | wild, 2 ranks |
-| 4 | wild, 2 ranks | fixed, 3 ranks |
-| 5 | fixed, 3 ranks | wild, 2 ranks |
-| 6 | the branch's capstone, 1 rank | wild keystone, 1 rank |
+| Tier | Left lane | Middle | Right lane |
+|---|---|---|---|
+| 1 | | the branch's core talent, fixed, 2 ranks | |
+| 2 | spell, 1 or 2 ranks (under the core) | wild, 2 ranks (under the core) | the other spell; taking one locks the other |
+| 3 | fixed, 3 ranks (under the left spell) | | wild, 2 ranks (under the right spell) |
+| 4 | wild, 2 ranks (under either tier 3 slot) | | fixed, 3 ranks (under either tier 3 slot) |
+| 5 | fixed, 3 ranks (under the left) | | wild, 2 ranks (under the right) |
+| 6 | the branch's capstone, 1 rank (under either) | | wild keystone, 1 rank (under either) |
 
-The pairs are the first tier, open from the start; the second tier opens on the spell's point, each tier after it on two more points in the same branch (1, 3, 5, 7, 9). In a run the first spell taken is free, so a class casts all but one of its spells from the first room and its whole cap from level 2.
+The core is open from the start; the second tier opens on its point, each tier after it on two more points in the same branch (1, 3, 5, 7, 9), and a slot also needs a point in one linked above it. In a run the first spell taken is free once a core holds a point, so a class takes a core and its spell with its first level and has its whole cap by level 4. Taking one lane gives up the other lane's tier 3 slot, two or three ranks a branch; with the lock lifted at the top level a damage class reaches both.
 
 ## The classes
 
@@ -52,7 +53,7 @@ The fixed talents and the pools are in `class_tree_defs.cpp`; each class's talen
 
 ## Bots
 
-A bot takes a spell of each pair first, which of the two by a coin toss, so a party of bots plays both builds of a class; then it spends at random. Every class bot casts whichever spells it took.
+A bot takes each branch's core and then a spell of its pair first, which of the two by a coin toss, so a party of bots plays both builds of a class; then it spends at random. Every class bot casts whichever spells it took.
 
 ## Status
 
