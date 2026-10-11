@@ -791,6 +791,7 @@ TestSimulateTickQueuesSoundsInsteadOfPlaying()
 #include "camera_tests.cpp"
 #include "player_feel_tests.cpp"
 #include "duel_tests.cpp"
+#include "spawn_sight_tests.cpp"
 #include "round_rules_tests.cpp"
 #include "team_tests.cpp"
 #include "progression_tests.cpp"
@@ -855,6 +856,7 @@ main(int ArgCount, char **Args)
     GROUP(RunCameraTests());
     GROUP(RunPlayerFeelTests());
     GROUP(RunDuelTests());
+    GROUP(RunSpawnSightTests());
     GROUP(RunRoundRulesTests());
     GROUP(RunTeamTests());
     GROUP(RunProgressionTests());

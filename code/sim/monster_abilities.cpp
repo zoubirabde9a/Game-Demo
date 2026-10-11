@@ -2,7 +2,8 @@
 
    Ready    the monster walks and bites as usual (UpdateMonster). Each
             frame it picks the first ability that is off cooldown and whose
-            range fits the distance to the nearest player.
+            range fits the distance to the nearest player, once it stands
+            where that player can see it (sight.cpp, not in dungeons).
    Windup   rooted in place, playing its windup row. The danger zone is
             drawn on the ground (art/monster_render.cpp), so players can
             read it and step out.
@@ -14,6 +15,7 @@
    here; the rest lives in monster_abilities/:
 
      hits.cpp               targets, damage, bite, area hits
+     sight.cpp              no ability on a player who cannot see the monster
      helpers.cpp            random series, arena bounds, phase switching
      start.cpp              what each kind locks in at windup start
      shots_and_hazards.cpp  shots, volleys and ground hazards
@@ -35,6 +37,7 @@
 
 // NOTE(zoubir): the parts, in the order they depend on each other
 #include "monster_abilities/hits.cpp"
+#include "monster_abilities/sight.cpp"
 #include "monster_abilities/helpers.cpp"
 #include "monster_abilities/waves_beams_shards.cpp"
 #include "monster_abilities/wells_brands_mirrors.cpp"
@@ -95,7 +98,8 @@ UpdateMonsterAbilities(world_entity *Entity, world *World,
         float Distance;
         world_entity *Target = FindMonsterTarget(AppState, World, Entity,
                                                  &Distance);
-        if (!Target || Distance > Def->AggroRange)
+        if (!Target || Distance > Def->AggroRange ||
+            !SightAllowsCast(World, Target, Entity))
         {
             return false;
         }

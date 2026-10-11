@@ -42,10 +42,10 @@
    Called after the world has moved this frame, so the camera and the
    player it follows are drawn from the same positions. */
 
-// NOTE(zoubir): world units shown from the top of the screen to the bottom
-// (the window used to show its own height, 680 at the default size); the
-// zoom never goes below 1 or above 3
-#define WORLD_VIEW_HEIGHT 532.f
+// NOTE(zoubir): the screen shows WORLD_VIEW_HEIGHT world units from top to
+// bottom (532, defined in sim/monster_abilities/sight.cpp, since monsters
+// only cast on a player who can see them; the window used to show its own
+// height, 680 at the default size); the zoom never goes below 1 or above 3
 #define WORLD_ZOOM_MIN 1.f
 #define WORLD_ZOOM_MAX 3.f
 // NOTE(zoubir): the spring's smoothing time in seconds: it covers most of
