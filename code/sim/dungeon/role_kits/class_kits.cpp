@@ -2,6 +2,7 @@
    one file each, and the switches that send each hook to the class of
    the slot. A class's kit implements every hook here, even as a stub. */
 
+#include "class_refusal.cpp"
 #include "ranger.cpp"
 #include "berserker.cpp"
 #include "shadowblade.cpp"
@@ -150,6 +151,7 @@ UpdateClassEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
     UpdateDuelistEffects(AppState, Run, DeltaTime);
     UpdateFrostMageEffects(AppState, Run, DeltaTime);
     UpdateDruidEffects(AppState, Run, DeltaTime);
+    UpdateClassRefusals(AppState, DeltaTime);
 }
 
 // NOTE(zoubir): whether a class flies Player through the air on its own

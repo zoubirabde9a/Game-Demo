@@ -34,10 +34,12 @@ AddRage(player_slot *Slot, float Amount)
     Slot->Berserker.RageCarry = Total - Whole;
 }
 
-// NOTE(zoubir): a press short of the Rage a spell costs: the HUD flashes
+// NOTE(zoubir): a press short of the Rage a spell costs: the HUD flashes,
+// and says so as every class does (class_refusal.cpp)
 internal void
 LackRage(player_slot *Slot)
 {
+    RefuseForResource(Slot);
     Slot->Berserker.NoRageSeconds = BERSERKER_NO_RAGE_SECONDS;
     Slot->ClassFlags |= BERSERKER_FLAG_NO_RAGE;
 }

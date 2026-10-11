@@ -294,6 +294,36 @@ TestFoeMarksShowOnline()
     free(DungeonSessionArena.Base);
 }
 
+// NOTE(zoubir): a spell refused for want of the class's resource on the
+// server reaches the client's own slot (the shared ClassFlags bits,
+// role_kits/class_refusal.cpp), so its HUD says so, and goes again
+internal void
+TestRefusalShowsOnline()
+{
+    static round_map_test Test;
+    StartDungeonOnlineTest(&Test, "Delver");
+    RunDungeonOnlineTest(&Test, 2 * SERVER_TICK_RATE);
+    app_state *Game = Test.Server.Game.AppState;
+    app_state *Client = Test.Client;
+    u32 SlotIndex = Test.Online->Client.PlayerIndex;
+    RequestDungeonRole(Client, PlayerRole_Berserker);
+    RunDungeonOnlineTest(&Test, SERVER_TICK_RATE);
+    player_slot *Theirs = &Game->Players[SlotIndex];
+    player_slot *Mine = &Client->Players[Client->LocalPlayerIndex];
+    Check(Theirs->Role == PlayerRole_Berserker && Mine->Role == PlayerRole_Berserker);
+    u32 BeatBefore = Mine->ClassFlags & CLASS_FLAG_REFUSAL_BEAT;
+    Check(!(Mine->ClassFlags & CLASS_FLAG_REFUSED));
+    Theirs->Refusal.Armed = true;
+    RefuseForResource(Theirs);
+    RunDungeonOnlineTest(&Test, 6);
+    Check(Mine->ClassFlags & CLASS_FLAG_REFUSED);
+    Check((Mine->ClassFlags & CLASS_FLAG_REFUSAL_BEAT) != BeatBefore);
+    RunDungeonOnlineTest(&Test, (int)(1.5f * SERVER_TICK_RATE));
+    Check(!(Mine->ClassFlags & CLASS_FLAG_REFUSED));
+    StopRoundMapTest(&Test);
+    free(DungeonSessionArena.Base);
+}
+
 internal void
 RunDungeonOnlineTests()
 {

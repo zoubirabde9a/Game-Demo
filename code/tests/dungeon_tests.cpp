@@ -642,6 +642,7 @@ TestNoFriendlyFireInADungeon()
 #include "duelist_tests.cpp"
 #include "frostmage_tests.cpp"
 #include "druid_tests.cpp"
+#include "resource_refusal_tests.cpp"
 #include "fight_end_tests.cpp"
 #include "depths_tests.cpp"
 #include "vault_tests.cpp"
@@ -669,6 +670,7 @@ RunDungeonTests()
     GROUP(RunDuelistTests());
     GROUP(RunFrostMageTests());
     GROUP(RunDruidTests());
+    GROUP(RunResourceRefusalTests());
     GROUP(RunFightEndTests());
     GROUP(RunDepthsTests());
     GROUP(RunVaultTests());

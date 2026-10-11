@@ -61,9 +61,10 @@ inline void
 SetShadowbladeFlags(player_slot *Slot, bool32 Fading)
 {
     shadowblade_slot *Blade = &Slot->Shadowblade;
-    Slot->ClassFlags = (u8)((Blade->DanceSeconds > 0.f ? SHADOWBLADE_FLAG_DANCE : 0) |
-                            (Blade->CritSeconds > 0.f ? SHADOWBLADE_FLAG_CRIT : 0) |
-                            (Fading ? SHADOWBLADE_FLAG_FADING : 0));
+    Slot->ClassFlags = KeepSharedClassFlags(Slot->ClassFlags,
+                                            (Blade->DanceSeconds > 0.f ? SHADOWBLADE_FLAG_DANCE : 0) |
+                                            (Blade->CritSeconds > 0.f ? SHADOWBLADE_FLAG_CRIT : 0) |
+                                            (Fading ? SHADOWBLADE_FLAG_FADING : 0));
 }
 
 inline void
@@ -272,6 +273,7 @@ CastShadowbladeKey(app_state *AppState, world *World, memory_arena *Arena, playe
             // server, which sends the burst)
             if (Slot->ClassMeter == 0)
             {
+                RefuseForResource(Slot);
                 if (!Slot->Predicted)
                 {
                     EmitBurst(&AppState->Events,

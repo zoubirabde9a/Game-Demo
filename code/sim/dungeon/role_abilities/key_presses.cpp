@@ -66,6 +66,9 @@ UseRoleAbilities(app_state *AppState, world *World, memory_arena *Arena,
         {
             Player->QueuedRoleKey = Key + 1;
             Player->QueuedRoleSeconds = ROLE_QUEUE_SECONDS;
+            // NOTE(zoubir): a fresh press, so its refusal (short of the
+            // class's resource) is heard (role_kits/class_refusal.cpp)
+            Slot->Refusal.Armed = true;
         }
     }
     if (!Player->QueuedRoleKey)

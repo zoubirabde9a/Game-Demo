@@ -195,10 +195,11 @@ UpdateFrostMageSlot(app_state *AppState, dungeon_run *Run, player_slot *Slot, fl
     bool32 Fingers = RoleRank(Slot, PlayerRole_FrostMage, FrostMageTalent_FingersOfFrost) > 0 &&
         ((Mage->Bolts + 1) % FINGERS_OF_FROST_EVERY) == 0;
     Slot->ClassMeter = (u8)Mage->Icicles;
-    Slot->ClassFlags = (u8)((Slot->FireguardAbsorb > 0.f ? FROSTMAGE_FLAG_BARRIER : 0) |
-                            (Fingers ? FROSTMAGE_FLAG_FINGERS : 0) |
-                            (FrozenOrbRolls(&Run->FrostMage, Index) ? FROSTMAGE_FLAG_ORB : 0) |
-                            (Mage->Icicles >= FROSTMAGE_ICICLES_MOST ? FROSTMAGE_FLAG_FULL : 0));
+    Slot->ClassFlags = KeepSharedClassFlags(Slot->ClassFlags,
+                                            (Slot->FireguardAbsorb > 0.f ? FROSTMAGE_FLAG_BARRIER : 0) |
+                                            (Fingers ? FROSTMAGE_FLAG_FINGERS : 0) |
+                                            (FrozenOrbRolls(&Run->FrostMage, Index) ? FROSTMAGE_FLAG_ORB : 0) |
+                                            (Mage->Icicles >= FROSTMAGE_ICICLES_MOST ? FROSTMAGE_FLAG_FULL : 0));
 }
 
 // NOTE(zoubir): once a tick, from UpdateRoleEffects: what the class's

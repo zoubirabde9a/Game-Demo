@@ -301,11 +301,12 @@ UpdateDruidSlot(app_state *AppState, dungeon_run *Run, player_slot *Slot, float 
         Roots |= Kept->Roots[Row].Seconds > 0.f && Kept->Roots[Row].By == Index;
     }
     Slot->ClassMeter = (u8)Druid->Bloom;
-    Slot->ClassFlags = (u8)((Druid->Bloom >= DRUID_BLOOM_MOST ? DRUID_FLAG_BLOOM_FULL : 0) |
-                            (Channel ? DRUID_FLAG_TRANQUILITY : 0) |
-                            (Rejuv ? DRUID_FLAG_REJUVENATION : 0) |
-                            (Moon ? DRUID_FLAG_MOONFIRE : 0) |
-                            (Roots ? DRUID_FLAG_ROOTS : 0));
+    Slot->ClassFlags = KeepSharedClassFlags(Slot->ClassFlags,
+                                            (Druid->Bloom >= DRUID_BLOOM_MOST ? DRUID_FLAG_BLOOM_FULL : 0) |
+                                            (Channel ? DRUID_FLAG_TRANQUILITY : 0) |
+                                            (Rejuv ? DRUID_FLAG_REJUVENATION : 0) |
+                                            (Moon ? DRUID_FLAG_MOONFIRE : 0) |
+                                            (Roots ? DRUID_FLAG_ROOTS : 0));
 }
 
 // NOTE(zoubir): once a tick, from UpdateRoleEffects: what the class's

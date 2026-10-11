@@ -53,6 +53,9 @@
     // HUD and the looks read them the same online
     u8 ClassMeter;
     u8 ClassFlags;
+    // NOTE(zoubir): a spell refused for want of that resource, for the
+    // ClassFlags bits every class shares (role_kits/class_refusal.cpp)
+    class_refusal_slot Refusal;
     // NOTE(zoubir): what each later class keeps per player
     // (sim/dungeon/role_kits/<class>.h)
     ranger_slot Ranger;

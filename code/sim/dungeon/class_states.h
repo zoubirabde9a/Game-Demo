@@ -3,6 +3,7 @@
    casts and what player_slot and dungeon_run keep for it. One header per
    class, one line each. */
 
+#include "role_kits/class_refusal.h"
 #include "role_kits/ranger.h"
 #include "role_kits/berserker.h"
 #include "role_kits/shadowblade.h"

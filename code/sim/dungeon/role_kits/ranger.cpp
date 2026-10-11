@@ -373,10 +373,11 @@ UpdateRangerSlot(app_state *AppState, dungeon_run *Run, player_slot *Slot, float
     bool32 Deadeye = Ranger->Focus >= RANGER_FOCUS_MOST &&
         RoleRank(Slot, PlayerRole_Ranger, RangerTalent_Deadeye) > 0;
     Slot->ClassMeter = (u8)(Ranger->Focus + 0.5f);
-    Slot->ClassFlags = (u8)((RangerMarkedFoe(AppState, Slot) ? RANGER_FLAG_MARK : 0) |
-                            (RangerTrapDown(&Run->Ranger, Index) ? RANGER_FLAG_TRAP : 0) |
-                            (Deadeye ? RANGER_FLAG_DEADEYE : 0) |
-                            (Rapid ? RANGER_FLAG_RAPID : 0));
+    Slot->ClassFlags = KeepSharedClassFlags(Slot->ClassFlags,
+                                            (RangerMarkedFoe(AppState, Slot) ? RANGER_FLAG_MARK : 0) |
+                                            (RangerTrapDown(&Run->Ranger, Index) ? RANGER_FLAG_TRAP : 0) |
+                                            (Deadeye ? RANGER_FLAG_DEADEYE : 0) |
+                                            (Rapid ? RANGER_FLAG_RAPID : 0));
 }
 
 // NOTE(zoubir): once a tick, from UpdateRoleEffects: what the class's

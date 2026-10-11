@@ -214,6 +214,7 @@ FinishChainLightning(app_state *AppState, player_slot *Slot, world_entity *Playe
 internal void
 RefuseThunderclap(app_state *AppState, player_slot *Slot, world_entity *Player)
 {
+    RefuseForResource(Slot);
     if (Slot->Predicted || Slot->Stormcaller.EmptySeconds > 0.f)
     {
         return;

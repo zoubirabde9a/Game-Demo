@@ -259,6 +259,6 @@ UpdateBerserkerEffects(app_state *AppState, dungeon_run *Run, float DeltaTime)
         Flags |= Slot->Berserker.BerserkSeconds > 0.f ? BERSERKER_FLAG_BERSERK : 0;
         Flags |= Slot->Berserker.NoRageSeconds > 0.f ? BERSERKER_FLAG_NO_RAGE : 0;
         Flags |= Slot->Berserker.Leaping ? BERSERKER_FLAG_LEAPING : 0;
-        Slot->ClassFlags = (u8)Flags;
+        Slot->ClassFlags = KeepSharedClassFlags(Slot->ClassFlags, Flags);
     }
 }

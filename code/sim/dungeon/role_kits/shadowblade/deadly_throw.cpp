@@ -14,6 +14,7 @@ CastDeadlyThrow(app_state *AppState, world *World, player_slot *Slot, world_enti
     u32 Points = Slot->ClassMeter;
     if (Points == 0)
     {
+        RefuseForResource(Slot);
         if (!Slot->Predicted)
         {
             EmitBurst(&AppState->Events, ClassBurst(SimBurst_ShadowbladeFirst, ShadowbladeBurst_Empty),

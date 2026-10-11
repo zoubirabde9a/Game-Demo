@@ -604,6 +604,7 @@ main(int ArgCount, char **Args)
     GROUP(RunDungeonOnlineTests());
     GROUP(TestDepartedBossesShowOnline());
     GROUP(TestFoeMarksShowOnline());
+    GROUP(TestRefusalShowsOnline());
     GROUP(RunBotClassTests());
     GROUP(RunServerGameTests());
     GROUP(RunRewindTests());

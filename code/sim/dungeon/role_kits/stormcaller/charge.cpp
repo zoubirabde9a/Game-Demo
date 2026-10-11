@@ -64,11 +64,12 @@ SetStormcallerFlags(app_state *AppState, player_slot *Slot)
     u32 Index = (u32)(Slot - AppState->Players);
     bool32 Field = AppState->Dungeon && StormcallerFieldDown(&AppState->Dungeon->Stormcaller, Index);
     Slot->ClassMeter = (u8)(Minimum(STORM_CHARGE_MOST, Storm->Charge) + 0.5f);
-    Slot->ClassFlags = (u8)((IsSupercharged(Slot) ? STORMCALLER_FLAG_SUPERCHARGED : 0) |
-                            (Storm->EyeSeconds > 0.f ? STORMCALLER_FLAG_EYE : 0) |
-                            (Storm->GroundedSeconds > 0.f ? STORMCALLER_FLAG_GROUNDED : 0) |
-                            (Field ? STORMCALLER_FLAG_FIELD : 0) |
-                            (Storm->EmptySeconds > 0.f ? STORMCALLER_FLAG_EMPTY : 0));
+    Slot->ClassFlags = KeepSharedClassFlags(Slot->ClassFlags,
+                                            (IsSupercharged(Slot) ? STORMCALLER_FLAG_SUPERCHARGED : 0) |
+                                            (Storm->EyeSeconds > 0.f ? STORMCALLER_FLAG_EYE : 0) |
+                                            (Storm->GroundedSeconds > 0.f ? STORMCALLER_FLAG_GROUNDED : 0) |
+                                            (Field ? STORMCALLER_FLAG_FIELD : 0) |
+                                            (Storm->EmptySeconds > 0.f ? STORMCALLER_FLAG_EMPTY : 0));
 }
 
 // NOTE(zoubir): a hit of the Stormcaller in slot By on Monster; no burst

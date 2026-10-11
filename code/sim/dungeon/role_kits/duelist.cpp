@@ -43,12 +43,13 @@ SetDuelistFlags(player_slot *Slot, bool32 Fading)
 {
     duelist_slot *Duel = &Slot->Duelist;
     bool32 Guard = Duel->GuardSeconds > 0.f;
-    Slot->ClassFlags = (u8)((Guard ? DUELIST_FLAG_GUARD : 0) |
-                            (Guard && Duel->Parried ? DUELIST_FLAG_PARRIED : 0) |
-                            (Slot->ClassMeter >= DUELIST_MOST_TEMPO ? DUELIST_FLAG_TEMPO : 0) |
-                            (Duel->FormSeconds > 0.f ? DUELIST_FLAG_FORM : 0) |
-                            (Fading ? DUELIST_FLAG_FADING : 0) |
-                            (Duel->FeintSeconds > 0.f ? DUELIST_FLAG_FEINT : 0));
+    Slot->ClassFlags = KeepSharedClassFlags(Slot->ClassFlags,
+                                            (Guard ? DUELIST_FLAG_GUARD : 0) |
+                                            (Guard && Duel->Parried ? DUELIST_FLAG_PARRIED : 0) |
+                                            (Slot->ClassMeter >= DUELIST_MOST_TEMPO ? DUELIST_FLAG_TEMPO : 0) |
+                                            (Duel->FormSeconds > 0.f ? DUELIST_FLAG_FORM : 0) |
+                                            (Fading ? DUELIST_FLAG_FADING : 0) |
+                                            (Duel->FeintSeconds > 0.f ? DUELIST_FLAG_FEINT : 0));
 }
 
 #include "duelist/tempo.cpp"
