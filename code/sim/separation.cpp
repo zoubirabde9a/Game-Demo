@@ -5,9 +5,11 @@
    other they drift through freely. This step finds every player or
    monster that ends the tick overlapping something it collides with and
    pushes it out along the shortest way on the ground plane: the whole
-   distance away from walls, trees and rocks, half each between two units.
-   On infinite maps walls and props are terrain, not entities, so the
-   terrain stand-ins around each unit are checked too. */
+   distance away from walls, trees and rocks, half each between two units
+   (all of it on one unit when the other has a wall or another unit
+   behind it, so a blink landing on a monster in a corner comes apart). On infinite maps walls
+   and props are terrain, not entities, so the terrain stand-ins around
+   each unit are checked too. */
 
 #define SEPARATION_SLOP 0.01f
 
@@ -71,7 +73,112 @@ NudgeEntity(app_state *AppState, world *World, memory_arena *Arena,
     CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Entity);
 }
 
-// NOTE(zoubir): one pass over every unit; returns how many pushes it made
+// NOTE(zoubir): whether a wall, tree or rock blocks Entity at all; a
+// unit that can pass through them is never pinned against one
+internal bool32
+IsSolidFor(app_state *AppState, world_entity *Entity, world_entity *Other)
+{
+    return Other != Entity && Other->IsPresent && Other->Collision &&
+           (Other->Type == EntityType_StaticObject ||
+            Other->Type == EntityType_Tiled) &&
+           CanCollide(AppState, Entity->Type, Other->Type) &&
+           CanCollide(AppState, Entity, Other);
+}
+
+// NOTE(zoubir): whether moving Entity by Push would leave it inside a
+// wall, tree or rock (or a terrain stand-in on an infinite map), or
+// inside a unit other than Ignore: a unit with another unit behind it
+// that has a wall behind it cannot give way either
+internal bool32
+PushIsBlocked(app_state *AppState, world *World, world_entity *Entity,
+              v2 Push, world_entity *Ignore)
+{
+    v3 OldPosition = Entity->Position;
+    Entity->Position.X += Push.X;
+    Entity->Position.Y += Push.Y;
+    entity_collision_volume *Total = &Entity->Collision->TotalVolume;
+    rectangle3 Box = RectCenterHalfDims(Entity->Position + Total->Offset,
+                                        Total->HalfDims);
+    bool32 Blocked = false;
+    world_entity *Nearby[MOVE_MAX_NEARBY];
+    u32 Count = GatherEntitiesInBox(World, Box, Nearby, ArrayCount(Nearby));
+    for(u32 Index = 0; Index < Count && !Blocked; Index++)
+    {
+        world_entity *Other = Nearby[Index];
+        bool32 Unit = Other != Entity && Other != Ignore &&
+            IsSeparatedUnit(Other) &&
+            CanCollide(AppState, Entity->Type, Other->Type) &&
+            CanCollide(AppState, Entity, Other);
+        v2 Out = (Unit || IsSolidFor(AppState, Entity, Other)) ?
+            SeparationPush(Entity, Other) : V2(0.f, 0.f);
+        Blocked = (Out.X != 0.f || Out.Y != 0.f);
+    }
+    world_entity *Terrain[64];
+    Count = 0;
+    if (!Blocked && CanCollide(AppState, Entity->Type, EntityType_StaticObject))
+    {
+        Count = GatherTerrainColliders(World, Box, Terrain, 0,
+                                       ArrayCount(Terrain));
+    }
+    for(u32 Index = 0; Index < Count && !Blocked; Index++)
+    {
+        v2 Out = SeparationPush(Entity, Terrain[Index]);
+        Blocked = (Out.X != 0.f || Out.Y != 0.f);
+    }
+    Entity->Position = OldPosition;
+    return Blocked;
+}
+
+// NOTE(zoubir): pushes Entity out of every wall, tree and rock it is in;
+// returns how many pushes it made
+internal u32
+PushOutOfSolids(app_state *AppState, world *World, memory_arena *Arena,
+                world_entity *Entity)
+{
+    u32 Pushes = 0;
+    for(u32 Index = 0; Index < World->EntityCount; Index++)
+    {
+        world_entity *Other = &World->Entities[Index];
+        if (!IsSolidFor(AppState, Entity, Other))
+        {
+            continue;
+        }
+        v2 Push = SeparationPush(Entity, Other);
+        if (Push.X != 0.f || Push.Y != 0.f)
+        {
+            NudgeEntity(AppState, World, Arena, Entity, Push);
+            Pushes++;
+        }
+    }
+
+    if (CanCollide(AppState, Entity->Type, EntityType_StaticObject))
+    {
+        entity_collision_volume *Total = &Entity->Collision->TotalVolume;
+        rectangle3 Box = RectCenterHalfDims(Entity->Position + Total->Offset,
+                                            Total->HalfDims);
+        world_entity *Terrain[64];
+        u32 Count = GatherTerrainColliders(World, Box, Terrain, 0,
+                                           ArrayCount(Terrain));
+        for(u32 Index = 0; Index < Count; Index++)
+        {
+            v2 Push = SeparationPush(Entity, Terrain[Index]);
+            if (Push.X != 0.f || Push.Y != 0.f)
+            {
+                NudgeEntity(AppState, World, Arena, Entity, Push);
+                Pushes++;
+            }
+        }
+    }
+    return Pushes;
+}
+
+// NOTE(zoubir): one pass over every unit; returns how many pushes it made.
+// Each unit leaves walls first, then the units after it. Two units share
+// a push half each, unless one has a wall, tree, rock or third unit right
+// behind it: then the other takes all of it. Split evenly, a blink
+// landing on a monster against a wall pushed the monster into the wall,
+// the wall pushed it back into the player, and four passes ended with one
+// of them still inside the other or the wall.
 internal u32
 SeparationPass(app_state *AppState, world *World, memory_arena *Arena)
 {
@@ -83,23 +190,14 @@ SeparationPass(app_state *AppState, world *World, memory_arena *Arena)
         {
             continue;
         }
+        Pushes += PushOutOfSolids(AppState, World, Arena, A);
 
-        for(u32 IndexB = 0; IndexB < World->EntityCount; IndexB++)
+        // NOTE(zoubir): each unit pair once, from its lower index
+        for(u32 IndexB = IndexA + 1; IndexB < World->EntityCount; IndexB++)
         {
             world_entity *B = &World->Entities[IndexB];
-            if (B == A || !B->IsPresent || !B->Collision || IsDeadPlayer(B))
-            {
-                continue;
-            }
-            bool32 Solid = (B->Type == EntityType_StaticObject ||
-                            B->Type == EntityType_Tiled);
-            // NOTE(zoubir): each unit pair once, from its lower index
-            bool32 OtherUnit = IsSeparatedUnit(B) && IndexB > IndexA;
-            if (!Solid && !OtherUnit)
-            {
-                continue;
-            }
-            if (!CanCollide(AppState, A->Type, B->Type) ||
+            if (!IsSeparatedUnit(B) ||
+                !CanCollide(AppState, A->Type, B->Type) ||
                 !CanCollide(AppState, A, B))
             {
                 continue;
@@ -110,35 +208,23 @@ SeparationPass(app_state *AppState, world *World, memory_arena *Arena)
             {
                 continue;
             }
-            if (Solid)
+            v2 PushA = 0.5f * Push;
+            v2 PushB = -0.5f * Push;
+            if (PushIsBlocked(AppState, World, A, PushA, B) &&
+                !PushIsBlocked(AppState, World, B, -Push, A))
             {
-                NudgeEntity(AppState, World, Arena, A, Push);
+                PushA = V2(0.f, 0.f);
+                PushB = -Push;
             }
-            else
+            else if (PushIsBlocked(AppState, World, B, PushB, A) &&
+                     !PushIsBlocked(AppState, World, A, Push, B))
             {
-                NudgeEntity(AppState, World, Arena, A, 0.5f * Push);
-                NudgeEntity(AppState, World, Arena, B, -0.5f * Push);
+                PushA = Push;
+                PushB = V2(0.f, 0.f);
             }
+            NudgeEntity(AppState, World, Arena, A, PushA);
+            NudgeEntity(AppState, World, Arena, B, PushB);
             Pushes++;
-        }
-
-        if (CanCollide(AppState, A->Type, EntityType_StaticObject))
-        {
-            entity_collision_volume *Total = &A->Collision->TotalVolume;
-            rectangle3 Box = RectCenterHalfDims(A->Position + Total->Offset,
-                                                Total->HalfDims);
-            world_entity *Terrain[64];
-            u32 Count = GatherTerrainColliders(World, Box, Terrain, 0,
-                                               ArrayCount(Terrain));
-            for(u32 Index = 0; Index < Count; Index++)
-            {
-                v2 Push = SeparationPush(A, Terrain[Index]);
-                if (Push.X != 0.f || Push.Y != 0.f)
-                {
-                    NudgeEntity(AppState, World, Arena, A, Push);
-                    Pushes++;
-                }
-            }
         }
     }
     return Pushes;

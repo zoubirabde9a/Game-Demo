@@ -162,6 +162,54 @@ TestOverlappingUnitsCanSeparate()
     DestroyTestWorld(&Test);
 }
 
+// NOTE(zoubir): a blink that lands a player on a monster standing with
+// its back to a wall: one separation leaves both clear of each other and
+// of the wall (split half each, the wall kept pushing the monster back
+// into the player and four passes ended with it still in the wall)
+internal void
+TestUnitPinnedToWallIsSeparated()
+{
+    test_world Test = CreateTestWorld();
+    // NOTE(zoubir): the wall's top face is at Y = 316 and a unit is 8
+    // deep, so the monster stands on the face and the player lands 1 off
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0},
+                  Test.WallVolume);
+    world_entity *Monster = AddTestEntity(&Test, EntityType_Monster,
+                                          {400, 320.5f, 0}, Test.UnitVolume);
+    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
+                                         {402, 321.5f, 0}, Test.UnitVolume);
+    Monster->MaxHp = Monster->Hp = 100.f;
+    Player->MaxHp = Player->Hp = 100.f;
+    SeparateOverlappingUnits(Test.AppState, Test.World, &Test.Arena);
+    Check(Monster->Position.Y - 4.f >= 316.f - 0.01f);
+    Check(Player->Position.Y - Monster->Position.Y >= 8.f - 0.01f);
+    DestroyTestWorld(&Test);
+}
+
+// NOTE(zoubir): the same one unit further out: a monster against the
+// wall, a second standing on it, and a player landing on the second
+internal void
+TestUnitPinnedByPinnedUnitIsSeparated()
+{
+    test_world Test = CreateTestWorld();
+    AddTestEntity(&Test, EntityType_StaticObject, {400, 300, 0},
+                  Test.WallVolume);
+    world_entity *Low = AddTestEntity(&Test, EntityType_Monster,
+                                      {400, 320.5f, 0}, Test.UnitVolume);
+    world_entity *High = AddTestEntity(&Test, EntityType_Monster,
+                                       {396, 328.6f, 0}, Test.UnitVolume);
+    world_entity *Player = AddTestEntity(&Test, EntityType_Player,
+                                         {392, 330.6f, 0}, Test.UnitVolume);
+    Low->MaxHp = Low->Hp = 100.f;
+    High->MaxHp = High->Hp = 100.f;
+    Player->MaxHp = Player->Hp = 100.f;
+    SeparateOverlappingUnits(Test.AppState, Test.World, &Test.Arena);
+    Check(Low->Position.Y - 4.f >= 316.f - 0.01f);
+    Check(High->Position.Y - Low->Position.Y >= 8.f - 0.01f);
+    Check(Player->Position.Y - High->Position.Y >= 8.f - 0.01f);
+    DestroyTestWorld(&Test);
+}
+
 // NOTE(zoubir): a dash-speed unit does not tunnel through a thin wall
 internal void
 TestFastUnitDoesNotTunnel()
@@ -762,6 +810,8 @@ RunCollisionTests()
     GROUP(RUN(TestUnitStopsInCorner));
     GROUP(RUN(TestLongPushStaysOutsideWall));
     GROUP(RUN(TestOverlappingUnitsCanSeparate));
+    GROUP(RUN(TestUnitPinnedToWallIsSeparated));
+    GROUP(RUN(TestUnitPinnedByPinnedUnitIsSeparated));
     GROUP(RUN(TestFastUnitDoesNotTunnel));
     GROUP(RUN(TestUnitSlipsPastWallCorner));
     GROUP(RUN(TestUnitDoesNotSlipFromMiddleOfWall));
