@@ -112,6 +112,9 @@ enum sim_burst
     SimBurst_Prayer,       // a soft ring of light round the healer at Position praying
     SimBurst_Purify,       // dark motes torn off the ally at Position, then a flash of light
     SimBurst_ShieldFlare,  // a shield of light over the tank at Position; number 1: it heals too
+    // NOTE(zoubir): a stun a boss shrugged off, at its chest (BossStunScale,
+    // status_effects.cpp); clients write "Resisted" over it
+    SimBurst_Resisted,
     SimBurst_Count
 };
 static_assert(SimBurst_Count <= 128, "a burst kind and its number flag share a byte");

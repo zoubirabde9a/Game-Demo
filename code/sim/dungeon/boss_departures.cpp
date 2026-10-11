@@ -59,7 +59,9 @@ HoldBossAway(app_state *AppState, world *World, memory_arena *Arena, world_entit
     Boss->AbilityTimer = 0.f;
     Boss->AbilityPointCount = 0;
     Boss->Burrowed = false;
-    ApplyStatus(Boss, StatusEffect_Stunned, 0.25f);
+    // NOTE(zoubir): set, not applied: no stun the boss resists or counts
+    // toward resisting the next (BossStunScale)
+    Boss->StatusTimers[StatusEffect_Stunned] = Maximum(Boss->StatusTimers[StatusEffect_Stunned], 0.25f);
     CheckAndChangeEntityChunk(AppState, World, Arena, OldPosition, Boss);
 }
 

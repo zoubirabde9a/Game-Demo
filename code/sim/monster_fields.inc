@@ -51,6 +51,15 @@
     bool32 Burrowed;
     // NOTE(zoubir): seconds left on the enrage burst effect
     float PhaseFlash;
+    // NOTE(zoubir): a dungeon fight's boss (Encounter_Boss), which shrugs
+    // chained stuns off: StunChain stuns have landed on it in a row, the
+    // last StunChainSeconds ago counting down, and StunResisted says one
+    // missed this tick (BossStunScale, status_effects.cpp)
+    bool32 IsBoss;
+    u32 StunChain;
+    float StunChainSeconds;
+    bool32 StunResisted;
+    float ResistedWordSeconds;
     // NOTE(zoubir): the player slot + 1 whose hit last left a status that
     // hurts (a burn, a bleed) on this monster, 0 for none: its ticks make
     // threat for that player (sim/dungeon/threat.cpp)

@@ -11,7 +11,8 @@
    - A hit that did nothing because the player was shielded or mid-dash
      (sim/hit.cpp emits SimBurst_Blocked or SimBurst_Dodged), or that a
      monster's shell mostly turned away (sim/entity.cpp): "Blocked" or
-     "Dodged" where it landed, so neither side thinks the hit was lost.
+     "Dodged" where it landed, so neither side thinks the hit was lost;
+     a stun a boss shrugged off (SimBurst_Resisted): "Resisted".
      These come as bursts (fx_bursts.cpp calls AddBurstWord), which the
      server already forwards.
    - A player's spell wind-up (sim/player_casts.cpp) cut off by a stun
@@ -156,13 +157,14 @@ internal void
 AddBurstWord(app_state *AppState, sim_burst Kind, v3 Position)
 {
     reaction_words *Fx = GetReactionWords(AppState);
-    char *Text = Kind == SimBurst_Blocked ? (char *)"Blocked" : (char *)"Dodged";
+    char *Text = Kind == SimBurst_Blocked ? (char *)"Blocked" :
+        Kind == SimBurst_Resisted ? (char *)"Resisted" : (char *)"Dodged";
     if (ReactionWordNear(Fx, Text, Position, REACTION_WORD_REPEAT_PIXELS))
     {
         return;
     }
     u32 Color = Kind == SimBurst_Blocked ? UI_RGBA(150, 215, 255, 255) :
-        UI_RGBA(235, 240, 255, 255);
+        Kind == SimBurst_Resisted ? UI_RGBA(240, 192, 0, 255) : UI_RGBA(235, 240, 255, 255);
     // NOTE(zoubir): from the chest to the head's height, where status
     // words start
     Position.Z += 14.f;

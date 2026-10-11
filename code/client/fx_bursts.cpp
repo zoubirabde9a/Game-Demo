@@ -143,6 +143,7 @@ global_variable burst_look BurstLooks[SimBurst_Count] =
     {BurstShape_Puff, 0.3f, 18.f, 0x00F0F0F0, false, 0.f, BurstPose_None},        // Dodged, white
 #include "dungeon/classes/class_bursts.inc"
 #include "dungeon/role_fx/role_bursts.inc"
+    {BurstShape_Spark, 0.25f, 24.f, 0x00FFC0F0, false, 0.f, BurstPose_None},      // Resisted, pale gold
 };
 static_assert(ArrayCount(BurstLooks) == SimBurst_Count, "one look per burst");
 
@@ -307,7 +308,7 @@ AddBurst(app_state *AppState, sim_burst Kind, u32 Slot, v3 Position,
         AddRoleBurst(AppState, Kind, Slot, Position, Angle);
         return;
     }
-    if (Kind == SimBurst_Blocked || Kind == SimBurst_Dodged)
+    if (Kind == SimBurst_Blocked || Kind == SimBurst_Dodged || Kind == SimBurst_Resisted)
     {
         AddBurstWord(AppState, Kind, Position);
     }

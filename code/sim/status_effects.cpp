@@ -25,7 +25,15 @@
    Rooted        cannot walk but can still fight; shrugged off for a while
                  after it ends, so thorns grab once, not forever
    Soaked        a little slower; no burning while it lasts
-   Falling       down a pit: no control, and dead when it runs out */
+   Falling       down a pit: no control, and dead when it runs out
+
+   A dungeon's boss resists a chain of stuns (BossStunScale): each stun
+   that lands within BOSS_STUN_CHAIN_SECONDS of the one before it lasts
+   half as long as the last, and past BOSS_STUN_CHAIN_MOST in a row the
+   boss shrugs stuns off until that long after the last one landed. A
+   party cannot hold it down for good, only for 1.75 times one stun in
+   any such stretch. Interrupting a wind-up (BreakWindup) is not a stun
+   and still works. */
 
 #define STATUS_TICK_SECONDS 0.5f
 #define STATUS_BURN_DPS 8.f
@@ -94,6 +102,39 @@ HasStatus(world_entity *Entity, status_effect Effect)
     return Result;
 }
 
+// NOTE(zoubir): the stuns in a row a boss takes, each half the last, and
+// how long after the last that landed the next counts as one more
+#define BOSS_STUN_CHAIN_MOST 3
+#define BOSS_STUN_CHAIN_SECONDS 15.f
+// NOTE(zoubir): at most one "Resisted" a boss shows in this long
+#define BOSS_RESISTED_WORD_SECONDS 1.f
+
+// NOTE(zoubir): what a stun of a boss is scaled by: 1 for the first, half
+// for each one landed after it within BOSS_STUN_CHAIN_SECONDS, and 0 past
+// BOSS_STUN_CHAIN_MOST, when the boss resists it. Counts the stun when it
+// lands. Every other unit is stunned in full
+internal float
+BossStunScale(world_entity *Entity)
+{
+    float Result = 1.f;
+    if (Entity->IsBoss)
+    {
+        Entity->StunChain = Entity->StunChainSeconds > 0.f ? Entity->StunChain : 0;
+        if (Entity->StunChain >= BOSS_STUN_CHAIN_MOST)
+        {
+            Entity->StunResisted = true;
+            Result = 0.f;
+        }
+        else
+        {
+            Result = 1.f / (float)(1u << Entity->StunChain);
+            Entity->StunChain++;
+            Entity->StunChainSeconds = BOSS_STUN_CHAIN_SECONDS;
+        }
+    }
+    return Result;
+}
+
 inline void
 ApplyStatus(world_entity *Entity, status_effect Effect, float Seconds)
 {
@@ -101,6 +142,14 @@ ApplyStatus(world_entity *Entity, status_effect Effect, float Seconds)
         Entity->StatusTimers[Effect] < 0.f)
     {
         return;
+    }
+    if (Effect == StatusEffect_Stunned && Seconds > 0.f)
+    {
+        Seconds *= BossStunScale(Entity);
+        if (Seconds <= 0.f)
+        {
+            return;
+        }
     }
     // NOTE(zoubir): a cure works both ways: water puts out a fire, and
     // nothing catches fire while wet
@@ -283,6 +332,7 @@ internal bool32
 CountDownStatusTimers(world_entity *Entity, float DeltaTime)
 {
     bool32 Result = false;
+    Entity->StunChainSeconds = Maximum(0.f, Entity->StunChainSeconds - DeltaTime);
     for(u32 Effect = 1; Effect < StatusEffect_Count; Effect++)
     {
         float *Timer = &Entity->StatusTimers[Effect];
@@ -369,6 +419,17 @@ UpdateStatusEffects(app_state *AppState, world *World, float DeltaTime)
         {
             Entity->StatusTickTimer = 0.f;
         }
+
+        // NOTE(zoubir): a boss that shrugged a stun off says so, once a
+        // BOSS_RESISTED_WORD_SECONDS however many miss
+        Entity->ResistedWordSeconds = Maximum(0.f, Entity->ResistedWordSeconds - DeltaTime);
+        if (Entity->StunResisted && Entity->ResistedWordSeconds <= 0.f)
+        {
+            EmitBurst(&AppState->Events, SimBurst_Resisted, SIM_NOBODY,
+                      Entity->Position + V3(0.f, 0.f, 16.f));
+            Entity->ResistedWordSeconds = BOSS_RESISTED_WORD_SECONDS;
+        }
+        Entity->StunResisted = false;
 
         if (CountDownStatusTimers(Entity, DeltaTime) && Entity->IsPresent &&
             Entity->Hp > 0.f)

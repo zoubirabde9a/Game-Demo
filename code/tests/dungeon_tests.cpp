@@ -650,6 +650,7 @@ TestNoFriendlyFireInADungeon()
 #include "frost_tomb_tests.cpp"
 #include "starless_tests.cpp"
 #include "boss_departure_tests.cpp"
+#include "boss_stun_tests.cpp"
 #include "meter_tests.cpp"
 #include "level_cap_tests.cpp"
 #include "class_tree_tests.cpp"
@@ -660,6 +661,7 @@ RunDungeonTests()
 {
     GROUP(RunDungeonRoleTests());
     GROUP(RunBossClockTests());
+    GROUP(RunBossStunTests());
     GROUP(RunStrikerTests());
     GROUP(RunTankTests());
     GROUP(RunClassKitTests());

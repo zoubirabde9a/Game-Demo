@@ -219,6 +219,7 @@ StartEncounter(app_state *AppState, world *World, memory_arena *Arena,
                                              Row, HealthScale);
                 if (Foe && (Row->Flags & Encounter_Boss))
                 {
+                    Foe->IsBoss = true;
                     Run->BossSlot = (u32)(Foe - World->Entities);
                     Run->BossSerial = Foe->MonsterSerial;
                 }
