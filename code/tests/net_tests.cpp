@@ -471,6 +471,29 @@ TestOverfullSnapshotIsTrimmed()
     Check(Dropped == 0 && P.Snapshot.Count == 10);
 }
 
+// NOTE(zoubir): a unit's max health travels only when it is not the one
+// its kind spawns with, and costs nothing when it is
+internal void
+TestMaxHealthTravelsWhenItDiffers()
+{
+    net_packet P = {};
+    P.Header = {NetPacket_Snapshot, 7, 3};
+    P.Snapshot.Count = 2;
+    P.Snapshot.Entities[0].Type = 4;
+    P.Snapshot.Entities[0].Health = 1500;
+    P.Snapshot.Entities[0].MaxHealth = 3105;
+    P.Snapshot.Entities[1].Type = 4;
+    P.Snapshot.Entities[1].Health = 40;
+    u32 WithMax = 0;
+    net_packet Out = RoundTrip(&P, &WithMax);
+    Check(Out.Snapshot.Entities[0].MaxHealth == 3105 && Out.Snapshot.Entities[0].Health == 1500);
+    Check(Out.Snapshot.Entities[1].MaxHealth == 0 && Out.Snapshot.Entities[1].Health == 40);
+    P.Snapshot.Entities[0].MaxHealth = 0;
+    u32 Without = 0;
+    RoundTrip(&P, &Without);
+    Check(WithMax == Without + 2);
+}
+
 // A class burst's number rides in its height in whole steps of 4096 (a
 // Static Field's radius, a bolt's length): it arrives whole, small or
 // large, and so does the height under it.
@@ -1172,8 +1195,8 @@ TestFuzzedPacketsAreSafe()
 // Changing only the test packets (FullSnapshot) also moves the hash;
 // then the id stays and only NET_GOLDEN_LAYOUT is updated. Two branches
 // that both change the layout conflict on these lines, which is the point.
-#define NET_GOLDEN_PROTOCOL_ID 0x47444d78u
-#define NET_GOLDEN_LAYOUT 0x5839efa8u
+#define NET_GOLDEN_PROTOCOL_ID 0x47444d79u
+#define NET_GOLDEN_LAYOUT 0x00b2a68du
 
 internal u32
 HashBytes(u32 Hash, u8 *Bytes, u32 Count)
@@ -1368,6 +1391,7 @@ main()
     TestStillEntitiesAreSmaller();
     TestFuzzedPacketsAreSafe();
     TestDungeonBlockRoundTrip();
+    TestMaxHealthTravelsWhenItDiffers();
     TestWireLayoutIsPinned();
     TestWebGateway();
 

@@ -27,6 +27,22 @@ ApplyStateToReplica(app_state *AppState, memory_arena *Arena,
     {
         Replica->Hp /= NET_PLAYER_HEALTH_STEPS;
     }
+    // NOTE(zoubir): max health comes only when it is not the kind's
+    // (SpawnedMaxHp): a dungeon's scaled monsters, a class's or a
+    // talent's health. Without it the world's health bars read a scaled
+    // monster as unhurt until it fell under its kind's health
+    if (Replica->Type == EntityType_Player || Replica->Type == EntityType_Monster)
+    {
+        Replica->MaxHp = SpawnedMaxHp(Replica);
+        if (State->MaxHealth)
+        {
+            Replica->MaxHp = (float)State->MaxHealth;
+            if (Replica->Type == EntityType_Player)
+            {
+                Replica->MaxHp /= NET_PLAYER_HEALTH_STEPS;
+            }
+        }
+    }
     if (State->Facing < AnimationDirection_Count)
     {
         Replica->AnimationDirection = (animation_direction)State->Facing;

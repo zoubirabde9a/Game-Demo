@@ -20,10 +20,9 @@
 
 // TestWireLayoutIsPinned (net_tests.cpp) fails when the bytes on the wire
 // change and this does not.
-#define NET_PROTOCOL_ID 0x47444d78u // "GDMx" (up to 32 inputs a packet, each older one only what changed); change it whenever the layout changes
+#define NET_PROTOCOL_ID 0x47444d79u // "GDMy" (a unit's max health when it is not the one its kind spawns with); change it whenever the layout changes
+// (GDMx: up to 32 inputs a packet, each older one only what changed)
 // (GDMw: 45 talent ranks, the duel seed in TreeSeed)
-// (GDMv: a foe mark's Id in 12 bits, Sunder beside its stacks, a weaken bit each in MarkCount)
-// (GDMu: a burst's height carries its class number apart, NetBurstHeight in protocol.cpp)
 // (older ids and why: git log -S NET_PROTOCOL_ID -- code/net/protocol.h)
 // A player's health is sent in hundredths: the duel gives a player one
 // point, and burns take fractions of it, which whole points would hide.
@@ -176,6 +175,7 @@ struct net_entity_state
     u8 Ability;    // 2 bits: AbilityIndex of a monster shot or hazard;
                    // for a player, PLAYER_FLASH_* bits (sim/player.h)
     i16 Health;    // a player's in 1/NET_PLAYER_HEALTH_STEPS of a point
+    u16 MaxHealth; // in Health's units; 0 (not sent) for the one its kind spawns with (SpawnedMaxHp)
     // Sent as 16-bit fixed point: positions to 1/8 unit within +-4096,
     // velocities to 1/4 unit per second within +-8192. Values outside are
     // clamped. Z and velocity are left out when they are zero, and VelZ

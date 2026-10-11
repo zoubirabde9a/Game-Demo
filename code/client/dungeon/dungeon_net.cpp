@@ -1,8 +1,8 @@
 /* A dungeon run online (sim/dungeon/, net/protocol.h): what the server
    sends of it, put where the HUD and the effects read it offline.
 
-   Each score's Dungeon byte gives a player's role (with the health it
-   brings, so the party frames and the bar show the right share), Shield
+   Each score's Dungeon byte gives a player's role (its max health, with
+   the class's and the talents', comes with its entity), Shield
    Wall, a ward and revive progress; DungeonMore a rally, a renewal and
    how many monsters are after them. The snapshot's dungeon block gives
    the rooms, the fight, the healers' sanctuaries, the infernos and the
@@ -24,10 +24,6 @@ ApplyDungeonScore(app_state *AppState, player_slot *Slot, u8 Packed, u8 More)
     if (Role < PlayerRole_Count)
     {
         Slot->Role = (u8)Role;
-        if (Slot->Entity)
-        {
-            Slot->Entity->MaxHp = GetRoleDef(Role)->MaxHp;
-        }
     }
     Slot->ShieldWallSeconds = (Packed & (1 << 2)) ? SHIELD_WALL_SECONDS : 0.f;
     Slot->WardAbsorb = (Packed & (1 << 3)) ? WARD_ABSORB : 0.f;

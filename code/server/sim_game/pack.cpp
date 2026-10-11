@@ -154,6 +154,22 @@ SimGameHealth(world_entity *Entity)
     return Result;
 }
 
+static_assert(EntityType_Count <= 16, "an entity type fits the low bits of its byte on the wire (NET_ENTITY_TYPE_MASK)");
+
+// NOTE(zoubir): Entity's max health on the wire, in Health's units, when
+// it is not the one its kind spawns with (SpawnedMaxHp), which the client
+// already gives the replica; nothing otherwise, which costs no byte
+inline void
+SimGameMaxHealth(world_entity *Entity, net_entity_state *E)
+{
+    if ((Entity->Type == EntityType_Player || Entity->Type == EntityType_Monster) &&
+        Absolute(Entity->MaxHp - SpawnedMaxHp(Entity)) > 0.001f)
+    {
+        float Steps = Entity->Type == EntityType_Player ? NET_PLAYER_HEALTH_STEPS : 1.f;
+        E->MaxHealth = (u16)RoundFloatToU32(Minimum(65535.f, Maximum(1.f, Entity->MaxHp * Steps)));
+    }
+}
+
 // NOTE(zoubir): one entity's record, plus its ability windup and facing
 // entries, which point back at it by its index in the snapshot
 internal void
@@ -181,6 +197,7 @@ SimGameWriteEntity(world_entity *Entity, u16 Id, net_snapshot *Out)
                         (Entity->HeroLookPick ? PLAYER_AFFIX_LOOK_CLASSIC : 0));
     }
     E->Health = SimGameHealth(Entity);
+    SimGameMaxHealth(Entity, E);
     E->X = Entity->Position.X;
     E->Y = Entity->Position.Y;
     E->Z = Entity->Position.Z;

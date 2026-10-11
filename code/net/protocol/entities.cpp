@@ -1,14 +1,16 @@
 /* Entities on the wire (protocol.cpp): one net_entity_state as bytes. The
-   type and three flags share a byte, the small fields (facing, animation,
+   type and four flags share a byte, the small fields (facing, animation,
    affix, status, ability) are packed into bits, positions are sent from
-   the snapshot's origin in fixed point, and height, velocity and a fresh
-   hit only when they are there. */
+   the snapshot's origin in fixed point, and max health, height, velocity
+   and a fresh hit only when they are there. */
 
-// NOTE: the type byte keeps the type in its low 5 bits; the top three say
-// whether a fresh hit, height and velocity follow. Most things stand on
-// the ground, many stand still and few were just hit, so those 9 bytes
-// are usually left out.
-#define NET_ENTITY_TYPE_MASK 0x1f
+// NOTE: the type byte keeps the type in its low 4 bits; the top four say
+// whether max health, a fresh hit, height and velocity follow. Most
+// things stand on the ground, many stand still, few were just hit and
+// most have the health their kind spawns with, so those 11 bytes are
+// usually left out.
+#define NET_ENTITY_TYPE_MASK 0x0f
+#define NET_ENTITY_HAS_MAX_HEALTH 0x10
 #define NET_ENTITY_HAS_HIT 0x20
 #define NET_ENTITY_HAS_Z 0x40
 #define NET_ENTITY_MOVING 0x80
@@ -56,6 +58,10 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
         {
             TypeAndFlags |= NET_ENTITY_HAS_HIT;
         }
+        if (E->MaxHealth)
+        {
+            TypeAndFlags |= NET_ENTITY_HAS_MAX_HEALTH;
+        }
     }
     NetU8(S, &TypeAndFlags);
     E->Type = TypeAndFlags & NET_ENTITY_TYPE_MASK;
@@ -85,6 +91,14 @@ NetSerializeEntity(net_stream *S, net_entity_state *E)
     }
     E->Status = (u16)(((Extra >> 3) & 7) | (MoreStatus << 3));
     NetI16(S, &E->Health);
+    if (TypeAndFlags & NET_ENTITY_HAS_MAX_HEALTH)
+    {
+        NetU16(S, &E->MaxHealth);
+    }
+    else
+    {
+        E->MaxHealth = 0;
+    }
     NetPosition(S, &E->X, S->OriginX);
     NetPosition(S, &E->Y, S->OriginY);
     if (TypeAndFlags & NET_ENTITY_HAS_Z)

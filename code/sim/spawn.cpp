@@ -267,3 +267,25 @@ AddFireBall(app_state *AppState,
     return Entity;
 }
 
+// NOTE(zoubir): the max health Entity's kind spawns with, as a client's
+// replica of it starts out (client/replicas/spawn.cpp): the rules' for a
+// player, the kind's for a monster, raised by its elite affix. A unit
+// whose max health is something else sends it online (sim_game/pack.cpp)
+internal float
+SpawnedMaxHp(world_entity *Entity)
+{
+    float Result = Entity->MaxHp;
+    if (Entity->Type == EntityType_Player)
+    {
+        Result = GameRules.PlayerMaxHp;
+    }
+    else if (Entity->Type == EntityType_Monster)
+    {
+        Result = GetMonsterStats(Entity->MonsterKind)->MaxHp;
+        if (Entity->EliteAffix != MonsterAffix_None)
+        {
+            Result *= GetAffix(Entity->EliteAffix)->HpScale;
+        }
+    }
+    return Result;
+}
