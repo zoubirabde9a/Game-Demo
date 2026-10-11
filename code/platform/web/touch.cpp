@@ -243,7 +243,8 @@ WebApplyTouch(app_memory *Memory, app_input *Scratch)
 
 // NOTE(zoubir): after the frame: what the page shows. One line of flags
 // (1 controls shown, 2 a screen wants typing, 4 the movement keys are
-// bound, 8 the name screen is up), then "button,group,colour,cooldown share,seconds,name" for
+// bound, 8 the name screen is up) and the button flashing red for want of
+// the class's resource (ui/resource_refusal.cpp, 0 for none), then "button,group,colour,cooldown share,seconds,name" for
 // each ability the bar shows, in the bar's order
 internal void
 WebShowTouch(app_memory *Memory)
@@ -258,7 +259,12 @@ WebShowTouch(app_memory *Memory)
     bool32 Stick = BoundKeyCode(BINDING_MOVE_UP) != KeyCode_None;
     u32 Flags = (Player && !Covered ? 1 : 0) | (Typing ? 2 : 0) | (Stick ? 4 : 0) |
         (ConnectScreenTakesInput(AppState) ? 8 : 0);
-    int Length = snprintf(State, sizeof(State), "%u", Flags);
+    u32 Refused = 0;
+    if (AppState->ResourceRefusal && AppState->ResourceRefusal->Flash > 0.f)
+    {
+        Refused = AppState->ResourceRefusal->FlashButton;
+    }
+    int Length = snprintf(State, sizeof(State), "%u,%u", Flags, Refused);
     player_slot *Slot = &AppState->Players[AppState->LocalPlayerIndex];
     for (u32 Position = 0; Player && Position < AbilitySlotCount(AppState); Position++)
     {
