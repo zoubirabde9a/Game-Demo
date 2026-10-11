@@ -61,6 +61,9 @@ enum asset_type_id
     AssetType_SfxAnnounce,
     AssetType_SfxFight,
     AssetType_SfxCountdown,
+    // NOTE(zoubir): a spell refused for want of the class's resource, for
+    // the local player alone (ui/resource_refusal.cpp)
+    AssetType_SfxDenied,
     // NOTE(zoubir): player skins (client/heroes/hero_skins.cpp), last so
     // the sound ids above keep their numbers on the wire
     AssetType_HeroSkin,

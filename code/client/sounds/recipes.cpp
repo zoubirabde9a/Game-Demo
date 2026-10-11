@@ -22,7 +22,8 @@
    MeteorCast  fire gathering: a roar rising in pitch and loudness
    Explosion   a big blast: boom, roar and debris crackling down
    GiantFireball  a heavy roaring launch
-   Combustion  a flare of flame bursting up */
+   Combustion  a flare of flame bursting up
+   Denied      two quick low buzzes, the second lower: "no" */
 
 // NOTE(zoubir): seconds at sample Index
 inline float
@@ -438,4 +439,24 @@ SfxCombustion(float *S, u32 Count, sfx_random *R, sfx_reverb *Reverb)
         S[I] = SfxSaturate((Fire + 0.8f * Low + 0.6f * Crackle) * SfxEnvelope(T, 0.08f, 0.15f), 1.6f);
     }
     SfxAddReverb(Reverb, S, Count, 0.15f, 0.4f);
+}
+
+// NOTE(zoubir): a square-ish buzz, softened, so it reads as a refusal
+// and not as anything in the fight
+internal void
+SfxDenied(float *S, u32 Count, sfx_random *R, sfx_reverb *Reverb)
+{
+    sfx_filter Soft = {};
+    float Phase = 0.f;
+    float Under = 0.f;
+    for(u32 I = 0; I < Count; I++)
+    {
+        float T = SfxTime(I);
+        bool32 Second = T >= 0.12f;
+        float Local = Second ? T - 0.12f : T;
+        float Hz = Second ? 155.f : 196.f;
+        float Buzz = SfxSaturate(SfxSaw(&Phase, Hz) + 0.8f * SfxSine(&Under, 0.5f * Hz), 3.f);
+        float Envelope = Clamp01(Local / 0.005f) * Clamp01((0.1f - Local) / 0.025f);
+        S[I] = SfxLowPass(&Soft, Buzz, 1400.f) * Envelope;
+    }
 }

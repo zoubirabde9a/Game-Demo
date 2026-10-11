@@ -57,6 +57,7 @@ global_variable sound_effect SoundEffects[] =
     {AssetType_SfxAnnounce,      SfxAnnounce,      1.9f,  0.6f,  0.f,   "announce"},
     {AssetType_SfxFight,         SfxFight,         0.6f,  0.55f, 0.f,   "fight"},
     {AssetType_SfxCountdown,     SfxCountdown,     0.35f, 0.4f,  0.f,   "countdown"},
+    {AssetType_SfxDenied,        SfxDenied,        0.26f, 0.5f,  0.f,   "denied"},
 };
 
 // NOTE(zoubir): the row for Type, 0 for a sound read from the pack
