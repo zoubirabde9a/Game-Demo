@@ -290,7 +290,14 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
     float RowHeight = UI_ROW_HEIGHT;
     float LabelHeight = UILineHeight(Font) + UI_GAP_SMALL;
     float MapRowHeight = 34.f;
-    u32 MapRows = (MapId_Count + 1) / 2;
+    // NOTE(zoubir): a dungeon is only started at its first level
+    // (IsStartingMap); the deeper ones come from clearing the one before
+    u32 MapCount = 0;
+    for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
+    {
+        MapCount += IsStartingMap(MapIndex) ? 1 : 0;
+    }
+    u32 MapRows = (MapCount + 1) / 2;
     float ServersHeight = SERVER_LIST_COUNT * (CONNECT_SERVER_ROW_HEIGHT + UI_GAP_SMALL);
     float Height = Pad + UILineHeight(AppState->Fonts.Title) + UI_GAP +
         LabelHeight + ServersHeight + UI_GAP +
@@ -356,10 +363,16 @@ DoConnectScreen(render_context *RenderContext, app_state *AppState,
 
     BeginContainer(UIContext, Left, Top, Width, Height);
     float HalfWidth = 0.5f * (FieldWidth - UI_GAP_SMALL);
+    u32 Slot = 0;
     for(u32 MapIndex = 0; MapIndex < MapId_Count; MapIndex++)
     {
-        float MapX = Pad + (MapIndex % 2) * (HalfWidth + UI_GAP_SMALL);
-        float MapY = MapsTop + (MapIndex / 2) * (MapRowHeight + UI_GAP_SMALL);
+        if (!IsStartingMap(MapIndex))
+        {
+            continue;
+        }
+        float MapX = Pad + (Slot % 2) * (HalfWidth + UI_GAP_SMALL);
+        float MapY = MapsTop + (Slot / 2) * (MapRowHeight + UI_GAP_SMALL);
+        Slot++;
         bool32 Current = (AppState->World.MapId == MapIndex);
         if (DoButton(&Screen->MapButtons[MapIndex], AppState, UIContext,
                      MapX, MapY, HalfWidth, MapRowHeight,

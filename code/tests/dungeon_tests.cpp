@@ -128,6 +128,13 @@ TestTheMapVoteChangesTheMode()
     AppState->World.MapId = MapId_Crypt;
     Check(IsVotableMap(AppState, MapId_Keep));
     Check(!IsVotableMap(AppState, MapId_Crypt));
+    // NOTE(zoubir): a run starts at the first level; the deeper ones are
+    // reached by clearing, never voted for
+    Check(!IsVotableMap(AppState, MapId_Depths));
+    Check(!IsVotableMap(AppState, MapId_Starless));
+    AppState->World.MapId = MapId_Depths;
+    Check(IsVotableMap(AppState, MapId_Crypt));
+    Check(!IsVotableMap(AppState, MapId_Vault));
     AppState->Dungeon = 0;
     DestroyTestWorld(&Test);
 }

@@ -29,13 +29,25 @@ IsDungeonMap(u32 MapId)
     return Result;
 }
 
-// NOTE(zoubir): a map the vote may move everyone to: any map but the one
-// being played. The world is built again for it (StartNextRoundMap), which
-// starts a dungeon run on a dungeon map and ends one anywhere else
+// NOTE(zoubir): a map a game may start on: any map but a dungeon level
+// past the first, which a party only reaches by clearing the one before
+// it (NextRunMap, dungeon/levels.cpp)
+inline bool32
+IsStartingMap(u32 MapId)
+{
+    dungeon_level *Level = GetDungeonLevel(MapId);
+    bool32 Result = MapId < MapId_Count && (!Level || Level->Number == 1);
+    return Result;
+}
+
+// NOTE(zoubir): a map the vote may move everyone to: any starting map but
+// the one being played. The world is built again for it
+// (StartNextRoundMap), which starts a dungeon run on a dungeon map and
+// ends one anywhere else
 inline bool32
 IsVotableMap(app_state *AppState, u32 MapId)
 {
-    bool32 Result = MapId < MapId_Count && MapId != AppState->World.MapId;
+    bool32 Result = IsStartingMap(MapId) && MapId != AppState->World.MapId;
     return Result;
 }
 
