@@ -146,6 +146,9 @@ OnlineConnect(online_session *Online, char *Address, char *Name)
         u32 Salt = (u32)time(0) ^ (u32)(size_t)Online ^ Online->Client.Salt;
         Online->Enabled = NetClientConnect(&Online->Client, Server, Salt,
                                            SimContentId(), Online->NameText);
+        // NOTE(zoubir): every snapshot is applied, two in a frame included
+        // (online/world_tick.cpp)
+        Online->Client.KeepSkipped = true;
     }
     return Online->Enabled;
 }

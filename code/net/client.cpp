@@ -137,8 +137,21 @@ NetClientHandle(net_client *Client, net_packet *Packet)
             if (Client->State == NetClient_Connected &&
                 (!Client->HasSnapshot || Packet->Snapshot.Tick > Client->Snapshot.Tick))
             {
+                if (Client->KeepSkipped && Client->HasSnapshot && !Client->SnapshotRead)
+                {
+                    if (Client->SkippedCount == NET_SKIPPED_SNAPSHOTS)
+                    {
+                        for (u32 Index = 1; Index < NET_SKIPPED_SNAPSHOTS; ++Index)
+                        {
+                            Client->Skipped[Index - 1] = Client->Skipped[Index];
+                        }
+                        Client->SkippedCount--;
+                    }
+                    Client->Skipped[Client->SkippedCount++] = Client->Snapshot;
+                }
                 Client->Snapshot = Packet->Snapshot;
                 Client->HasSnapshot = true;
+                Client->SnapshotRead = false;
                 u32 Held = Packet->Snapshot.InputTick + Packet->Snapshot.InputBuffered;
                 if (Held > Client->ServerInputTick && Held <= Client->InputTick)
                 {
@@ -246,6 +259,15 @@ NetClientQueueInput(net_client *Client, u32 Buttons, float AimX, float AimY,
     Client->RecentInputCount = Keep + 1;
     Client->InputsUnsent++;
     return Newest->Tick;
+}
+
+// NOTE(zoubir): the game read Snapshot and the Skipped ones before it;
+// the next snapshot to replace Snapshot drops it
+internal void
+NetClientDoneReading(net_client *Client)
+{
+    Client->SkippedCount = 0;
+    Client->SnapshotRead = true;
 }
 
 internal void

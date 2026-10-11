@@ -10,7 +10,9 @@
    connected, every input packet carries again each input the snapshots
    do not yet say the server has (up to NET_MAX_INPUTS_PER_PACKET), so a
    run of lost packets is covered by the next one that arrives. Only snapshots newer than the one held are
-   kept. If the server goes quiet for NET_CLIENT_TIMEOUT seconds the client
+   kept. With KeepSkipped set, a snapshot a newer one replaced before the
+   game read it (two arriving in one frame) waits in Skipped, so the game
+   can apply every one, then calls NetClientDoneReading. If the server goes quiet for NET_CLIENT_TIMEOUT seconds the client
    gives up and reports why in EndReason. Chat goes through NetClientSay
    and NetClientTakeChat (client_chat.h). */
 
@@ -40,6 +42,10 @@ enum net_client_end
     NetEnd_WrongVersion,   // the server runs a build with different content or protocol
 };
 
+// NOTE(zoubir): snapshots a newer one may replace in a frame; past this
+// the oldest go, as a stall of that long is a loss anyway
+#define NET_SKIPPED_SNAPSHOTS 4
+
 struct net_client
 {
     net_client_state State;
@@ -50,6 +56,11 @@ struct net_client
 
     bool32 HasSnapshot;
     net_snapshot Snapshot; // newest world state from the server
+    // NOTE(zoubir): set by the game after NetClientConnect to keep the
+    // snapshots Snapshot replaced unread, oldest first
+    bool32 KeepSkipped;
+    u32 SkippedCount;
+    net_snapshot Skipped[NET_SKIPPED_SNAPSHOTS];
 
     // Implementation detail below; read the fields above.
     net_socket Socket;
@@ -64,6 +75,8 @@ struct net_client
     u16 NextSequence;
     u16 NewestReceived;
     u32 InputTick;
+    // NOTE(zoubir): the game read Snapshot (NetClientDoneReading)
+    bool32 SnapshotRead;
     // NOTE(zoubir): the newest input the server is known to hold, applied
     // or waiting, by the newest snapshot; older ones are not sent again
     u32 ServerInputTick;

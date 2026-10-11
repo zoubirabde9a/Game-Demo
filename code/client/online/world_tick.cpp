@@ -1,8 +1,8 @@
 /* World tick (online.cpp): the frame's one world update. Online the
    server's snapshot drives the world through the replicas; offline the
    local simulation does; it switches between the two when the
-   connection comes up or ends. Desktop only: the browser build has its
-   own RunWorldTick in online.cpp, which only simulates. */
+   connection comes up or ends. Every snapshot that arrived since the
+   last frame is applied, oldest first. */
 
 // NOTE(zoubir): in client/rewind_fx/rewind_fx.cpp, included later
 internal void ReadRewindsFromSnapshot(app_state *AppState, replica_table *Replicas,
@@ -34,8 +34,82 @@ IsRepeatedKill(online_session *Online, net_kill *Kill, u32 Tick)
     return false;
 }
 
+// NOTE(zoubir): one snapshot onto the world: the replicas moved to it,
+// and once per snapshot the pacing it tells, its sounds, deaths, bursts
+// and rewinds. Newest is false for one a newer snapshot replaced in the
+// same frame: its acknowledged input is older than the client's clock
+// says, so it would read as a longer round trip than the link has.
+// Returns whether the snapshot was new
+internal bool32
+ReadSnapshot(app_state *AppState, memory_arena *Arena, online_session *Online,
+             net_snapshot *Snapshot, float DeltaTime, bool32 Newest)
+{
+    // NOTE(zoubir): joining a server on another map, or a map vote
+    // there moving everyone: build its ground first, and the replicas
+    // again from this snapshot. Terrain is never sent, both sides
+    // generate it from the id
+    u32 MapId = Snapshot->MapId;
+    if (MapId < MapId_Count && MapId != AppState->World.MapId)
+    {
+        RebuildWorldForMap(AppState, Arena, MapId);
+        ZeroSize(&Online->Replicas, sizeof(Online->Replicas));
+        Online->Prediction = {};
+    }
+    bool32 NewSnapshot = !Online->Replicas.Active ||
+        Snapshot->Tick != Online->Replicas.LastAppliedTick;
+    if (NewSnapshot)
+    {
+        // NOTE(zoubir): inputs waiting on the server already arrived,
+        // so they are not part of the round trip
+        if (Newest)
+        {
+            RecordSnapshotQuality(&Online->Quality, Snapshot->Tick,
+                                  Online->Client.InputTick,
+                                  Snapshot->InputTick + Snapshot->InputBuffered);
+        }
+        NotePacingSnapshot(&Online->Pacing, Snapshot->InputBuffered);
+    }
+    SyncReplicas(AppState, Arena, &Online->Replicas, Snapshot, DeltaTime,
+                 Online->Client.PlayerIndex);
+    // NOTE(zoubir): the server's sounds go where the local game's go;
+    // PlaySimEvents plays them after this tick
+    for(u32 Index = 0; NewSnapshot && Index < Snapshot->SoundCount; Index++)
+    {
+        if (Snapshot->Sounds[Index] < AssetType_Count)
+        {
+            EmitSound(&AppState->Events,
+                      (asset_type_id)Snapshot->Sounds[Index], V3(0.f));
+        }
+    }
+    for(u32 Index = 0; NewSnapshot && Index < Snapshot->KillCount; Index++)
+    {
+        net_kill *Kill = &Snapshot->Kills[Index];
+        if (IsRepeatedKill(Online, Kill, Snapshot->Tick)) continue;
+        EmitKill(&AppState->Events, Kill->Killer, Kill->Victim,
+                 Kill->KillerMonster);
+    }
+    for(u32 Index = 0; NewSnapshot && Index < Snapshot->BurstCount; Index++)
+    {
+        net_burst *Burst = &Snapshot->Bursts[Index];
+        if (!IsBurstPredictedHere(Burst->Kind, Burst->Slot,
+                                  Online->Client.PlayerIndex))
+        {
+            EmitBurst(&AppState->Events, (sim_burst)Burst->Kind,
+                      Burst->Slot, V3(Burst->X, Burst->Y, Burst->Z),
+                      (float)Burst->Angle * (Pi32 / 128.f));
+        }
+    }
+    // NOTE(zoubir): before prediction, which leaves a player a time
+    // rewind froze where the server has it (client/rewind_fx/)
+    if (NewSnapshot)
+    {
+        ReadRewindsFromSnapshot(AppState, &Online->Replicas, Snapshot);
+    }
+    return NewSnapshot;
+}
+
 // NOTE(zoubir): the frame's one world update. Online the server's
-// snapshot drives the world; offline the local simulation does. Switches
+// snapshots drive the world; offline the local simulation does. Switches
 // between the two when the connection comes up or ends.
 internal void
 RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
@@ -43,65 +117,19 @@ RunWorldTick(app_state *AppState, memory_arena *Arena, float DeltaTime)
     online_session *Online = AppState->Online;
     if (IsOnline(Online) && Online->Client.HasSnapshot)
     {
-        net_snapshot *Snapshot = &Online->Client.Snapshot;
-        // NOTE(zoubir): joining a server on another map, or a map vote
-        // there moving everyone: build its ground first, and the replicas
-        // again from this snapshot. Terrain is never sent, both sides
-        // generate it from the id
-        u32 MapId = Snapshot->MapId;
-        if (MapId < MapId_Count && MapId != AppState->World.MapId)
+        // NOTE(zoubir): two snapshots arriving in one frame (a clump on
+        // wifi, a slow frame) are both applied, oldest first. Applying
+        // only the newest lost the older one's sounds and bursts, and
+        // looked to the replicas like a lost snapshot, so they drew
+        // everyone further behind for seconds after
+        net_client *Client = &Online->Client;
+        for(u32 Index = 0; Index < Client->SkippedCount; Index++)
         {
-            RebuildWorldForMap(AppState, Arena, MapId);
-            ZeroSize(&Online->Replicas, sizeof(Online->Replicas));
-            Online->Prediction = {};
+            ReadSnapshot(AppState, Arena, Online, &Client->Skipped[Index], 0.f, false);
         }
-        bool32 NewSnapshot = !Online->Replicas.Active ||
-            Snapshot->Tick != Online->Replicas.LastAppliedTick;
-        if (NewSnapshot)
-        {
-            // NOTE(zoubir): inputs waiting on the server already arrived,
-            // so they are not part of the round trip
-            RecordSnapshotQuality(&Online->Quality, Snapshot->Tick,
-                                  Online->Client.InputTick,
-                                  Snapshot->InputTick + Snapshot->InputBuffered);
-            NotePacingSnapshot(&Online->Pacing, Snapshot->InputBuffered);
-        }
-        SyncReplicas(AppState, Arena, &Online->Replicas, Snapshot, DeltaTime,
-                     Online->Client.PlayerIndex);
-        // NOTE(zoubir): the server's sounds go where the local game's go;
-        // PlaySimEvents plays them after this tick
-        for(u32 Index = 0; NewSnapshot && Index < Snapshot->SoundCount; Index++)
-        {
-            if (Snapshot->Sounds[Index] < AssetType_Count)
-            {
-                EmitSound(&AppState->Events,
-                          (asset_type_id)Snapshot->Sounds[Index], V3(0.f));
-            }
-        }
-        for(u32 Index = 0; NewSnapshot && Index < Snapshot->KillCount; Index++)
-        {
-            net_kill *Kill = &Snapshot->Kills[Index];
-            if (IsRepeatedKill(Online, Kill, Snapshot->Tick)) continue;
-            EmitKill(&AppState->Events, Kill->Killer, Kill->Victim,
-                     Kill->KillerMonster);
-        }
-        for(u32 Index = 0; NewSnapshot && Index < Snapshot->BurstCount; Index++)
-        {
-            net_burst *Burst = &Snapshot->Bursts[Index];
-            if (!IsBurstPredictedHere(Burst->Kind, Burst->Slot,
-                                      Online->Client.PlayerIndex))
-            {
-                EmitBurst(&AppState->Events, (sim_burst)Burst->Kind,
-                          Burst->Slot, V3(Burst->X, Burst->Y, Burst->Z),
-                          (float)Burst->Angle * (Pi32 / 128.f));
-            }
-        }
-        // NOTE(zoubir): before prediction, which leaves a player a time
-        // rewind froze where the server has it (client/rewind_fx/)
-        if (NewSnapshot)
-        {
-            ReadRewindsFromSnapshot(AppState, &Online->Replicas, Snapshot);
-        }
+        net_snapshot *Snapshot = &Client->Snapshot;
+        bool32 NewSnapshot = ReadSnapshot(AppState, Arena, Online, Snapshot, DeltaTime, true);
+        NetClientDoneReading(Client);
         PredictLocalPlayer(AppState, Arena, &Online->Prediction, NewSnapshot,
                            Snapshot->InputTick, Online->NewTicks,
                            OnlinePacingBlend(&Online->Pacing), DeltaTime);
