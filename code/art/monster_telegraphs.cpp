@@ -44,6 +44,56 @@ DrawDottedLine(render_context *RenderContext, v2 From, v2 To, u32 Color,
     }
 }
 
+// NOTE(zoubir): a volley's shots leave their caster this far in front of
+// it (AddMonsterShot)
+#define TELEGRAPH_VOLLEY_START 12.f
+
+// NOTE(zoubir): where a circle of Radius hits as its centre runs from
+// From along Direction for Length, as UpdateCharge and UpdateMonsterShot
+// check it: two sides 2 * Radius apart, closed by half circles that reach
+// Radius past both ends. The filling arrow runs tip to tip as the windup
+// runs out
+internal void
+DrawDottedSweep(render_context *RenderContext, v2 From, v2 Direction,
+                float Length, float Radius, float Progress, u32 Color,
+                float Spacing)
+{
+    v2 To = From + Length * Direction;
+    v2 Side = Radius * V2(-Direction.Y, Direction.X);
+    DrawDottedLine(RenderContext, From + Side, To + Side, Color, 2.f, Spacing);
+    DrawDottedLine(RenderContext, From - Side, To - Side, Color, 2.f, Spacing);
+    u32 Dots = (u32)(Pi32 * Radius / Spacing) + 1;
+    float Facing = ATan2(Direction.Y, Direction.X);
+    for(u32 Dot = 1; Dot < Dots; Dot++)
+    {
+        float Angle = Facing - 0.5f * Pi32 + Pi32 * (float)Dot / (float)Dots;
+        v2 Out = V2(Radius * Cos(Angle), Radius * Sin(Angle));
+        v2 Ahead = To + Out;
+        v2 Behind = From - Out;
+        DrawFilledRectangle(RenderContext, Ahead.X - 1.f, Ahead.Y - 1.f,
+                            2.f, 2.f, Color, 0.f);
+        DrawFilledRectangle(RenderContext, Behind.X - 1.f, Behind.Y - 1.f,
+                            2.f, 2.f, Color, 0.f);
+    }
+    v2 Back = From - Radius * Direction;
+    v2 Tip = To + Radius * Direction;
+    DrawDottedLine(RenderContext, Back, Back + Progress * (Tip - Back), Color,
+                   4.f, 6.f);
+}
+
+// NOTE(zoubir): the ground an area hit spares in its middle
+// (HurtPlayersInRadius skips anyone closer than InnerRadius)
+internal void
+DrawSafeMiddle(render_context *RenderContext, v2 Center,
+               monster_ability *Ability)
+{
+    if (Ability->InnerRadius > 0.f)
+    {
+        DrawDottedCircle(RenderContext, Center, Ability->InnerRadius,
+                         TELEGRAPH_COLOR_MEND, 2.f);
+    }
+}
+
 #define STATUS_PIP_SIZE 4.f
 
 // NOTE(zoubir): a row of small squares above anyone with a status, one
@@ -276,19 +326,16 @@ DrawMonsterTelegraphs(render_context *RenderContext, world *World,
                 DrawDottedCircle(RenderContext, Self, Ability->Radius, Color, 2.f);
                 DrawDottedCircle(RenderContext, Self, Ability->Radius * Closing,
                                  Color, 3.f);
+                DrawSafeMiddle(RenderContext, Self, Ability);
             } break;
 
             case MonsterAbility_Charge:
             {
-                float Reach = Ability->Speed * Ability->Active;
-                v2 End = Self + Reach * Entity->AbilityAim;
-                v2 Side = Ability->Radius * 0.5f *
-                    V2(-Entity->AbilityAim.Y, Entity->AbilityAim.X);
-                DrawDottedLine(RenderContext, Self + Side, End + Side, Color, 2.f, 8.f);
-                DrawDottedLine(RenderContext, Self - Side, End - Side, Color, 2.f, 8.f);
-                // NOTE(zoubir): the filling arrow shows how long is left
-                DrawDottedLine(RenderContext, Self, Self + Progress * (End - Self),
-                               Color, 4.f, 6.f);
+                // NOTE(zoubir): the charger hits whoever comes within Radius
+                // of it as it runs (UpdateCharge)
+                DrawDottedSweep(RenderContext, Self, Entity->AbilityAim,
+                                Ability->Speed * Ability->Active, Ability->Radius,
+                                Progress, Color, 8.f);
             } break;
 
             case MonsterAbility_Mortar:
@@ -299,8 +346,13 @@ DrawMonsterTelegraphs(render_context *RenderContext, world *World,
                 {
                     v2 Spot = Entity->AbilityPoints[PointIndex] - CameraOffset.XY;
                     DrawDottedCircle(RenderContext, Spot, Ability->Radius, Color, 2.f);
-                    DrawDottedCircle(RenderContext, Spot, Ability->Radius * Progress,
-                                     Color, 3.f);
+                    // NOTE(zoubir): fills toward the safe middle when there
+                    // is one, else from the middle out
+                    float Filled = Ability->InnerRadius > 0.f ?
+                        Ability->Radius - Progress * (Ability->Radius - Ability->InnerRadius) :
+                        Ability->Radius * Progress;
+                    DrawDottedCircle(RenderContext, Spot, Filled, Color, 3.f);
+                    DrawSafeMiddle(RenderContext, Spot, Ability);
                 }
             } break;
 
@@ -383,17 +435,18 @@ DrawMonsterTelegraphs(render_context *RenderContext, world *World,
 
             case MonsterAbility_Volley:
             {
-                // NOTE(zoubir): one lane per shot, as long as it can fly
+                // NOTE(zoubir): one lane per shot, as long as it can fly; a
+                // shot hits whoever comes within Radius of it on its way
+                // (UpdateMonsterShot)
                 v2 Directions[MAX_VOLLEY_SHOTS];
                 u32 Count = GetVolleyDirections(Ability, Entity->AbilityAim,
                                                 Directions, MAX_VOLLEY_SHOTS);
-                float Reach = Ability->Speed * Ability->Active;
                 for(u32 ShotIndex = 0; ShotIndex < Count; ShotIndex++)
                 {
-                    v2 End = Self + Reach * Directions[ShotIndex];
-                    DrawDottedLine(RenderContext, Self, End, Color, 2.f, 10.f);
-                    DrawDottedLine(RenderContext, Self,
-                                   Self + Progress * (End - Self), Color, 3.f, 7.f);
+                    DrawDottedSweep(RenderContext,
+                                    Self + TELEGRAPH_VOLLEY_START * Directions[ShotIndex],
+                                    Directions[ShotIndex], Ability->Speed * Ability->Active,
+                                    Ability->Radius, Progress, Color, 10.f);
                 }
             } break;
 
