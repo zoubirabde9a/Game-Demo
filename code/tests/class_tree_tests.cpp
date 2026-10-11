@@ -309,16 +309,21 @@ TestStatTalents()
 
     SetPlayerRole(AppState, Slot, PlayerRole_Berserker);
     Slot->Level = PLAYER_MAX_LEVEL;
-    float Base = GetRoleDef(PlayerRole_Berserker)->MaxHp;
-    Check(Player->MaxHp == Base);
+    // NOTE(zoubir): at the top level the class's health has grown with it
+    // (CLASS_HEALTH_PER_LEVEL), and a health rank adds to that
+    float Role = GetRoleDef(PlayerRole_Berserker)->MaxHp;
+    float Grown = CLASS_HEALTH_PER_LEVEL * (float)(PLAYER_MAX_LEVEL - 1);
+    float Base = Role * (1.f + Grown);
+    RefreshRoleHealth(AppState, Slot);
+    Check(Absolute(Player->MaxHp - Base) < 0.01f);
     Player->Hp = Base - 50.f;
     SetClassTalentRank(Slot, BerserkerTalent_ThickHide, 1);
     RefreshRoleHealth(AppState, Slot);
-    float Raised = Base * (1.f + RoleStatPerRank[RoleStat_Vitality]);
+    float Raised = Role * (1.f + Grown + RoleStatPerRank[RoleStat_Vitality]);
     Check(Player->MaxHp > Raised - 0.01f && Player->MaxHp < Raised + 0.01f);
     Check(Player->Hp > Raised - 50.01f && Player->Hp < Raised - 49.99f);
     ResetTalents(AppState, 0);
-    Check(Player->MaxHp == Base && Player->Hp > Base - 50.01f && Player->Hp < Base - 49.99f);
+    Check(Absolute(Player->MaxHp - Base) < 0.01f && Player->Hp > Base - 50.01f && Player->Hp < Base - 49.99f);
 
     SetPlayerRole(AppState, Slot, PlayerRole_Ranger);
     float Cooldown = RoleSpellCooldown(Slot, 1);

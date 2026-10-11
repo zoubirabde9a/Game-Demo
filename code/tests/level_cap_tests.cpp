@@ -66,6 +66,31 @@ TestDungeonTimeEarnsNoExperience()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): a class's health grows with its level in a run, at once
+// and keeping what it was missing; a tank's does not
+internal void
+TestClassHealthGrowsWithLevel()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    player_slot *Slot = &AppState->Players[0];
+    TickCrypt(&Crypt, 1);
+    SetPlayerRole(AppState, Slot, PlayerRole_Damage);
+    world_entity *Player = Slot->Entity;
+    float Base = GetRoleDef(PlayerRole_Damage)->MaxHp;
+    Check(Slot->Level == 1 && Absolute(Player->MaxHp - Base) < 0.01f);
+    Player->Hp = Player->MaxHp - 10.f;
+    AppState->DungeonRoomsCleared = PLAYER_MAX_LEVEL;
+    AwardXp(AppState, Slot, XpToReach(PLAYER_MAX_LEVEL));
+    float Top = Base * (1.f + CLASS_HEALTH_PER_LEVEL * (float)(PLAYER_MAX_LEVEL - 1));
+    Check(Slot->Level == PLAYER_MAX_LEVEL && Absolute(Player->MaxHp - Top) < 0.01f);
+    Check(Absolute(Player->Hp - (Top - 10.f)) < 0.01f);
+
+    SetPlayerRole(AppState, Slot, PlayerRole_Tank);
+    Check(Absolute(Slot->Entity->MaxHp - GetRoleDef(PlayerRole_Tank)->MaxHp) < 0.01f);
+    DestroyCryptWorld(&Crypt);
+}
+
 // NOTE(zoubir): away from a dungeon nothing caps the level
 internal void
 TestDuelLevelsAreNotCapped()
@@ -129,6 +154,7 @@ RunLevelCapTests()
 {
     TestDungeonLevelsWaitForRooms();
     TestDungeonTimeEarnsNoExperience();
+    TestClassHealthGrowsWithLevel();
     TestNewRunKeepsTheCharacter();
     TestDuelLevelsAreNotCapped();
 }

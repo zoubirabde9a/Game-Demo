@@ -61,6 +61,8 @@ Built: the rules, the cap and the damage classes' top-level exception, every cla
 
 ## Balance
 
+Every class but the tank gains 2% of its base health a level in a run (`CLASS_HEALTH_PER_LEVEL`, `role_stats.cpp`), on top of its health talents: a Fire Mage has 110 at level 1 and 174 at level 30. Measured over 16 runs of the Aurora Rift and the Starless Deep (`set PROBE_MAP=rift& set PROBE_LEVELS=2& miscalance.bat 300 3 2 16`), wipes fell from 52 in 220 fights to 18 in 196 and deaths from 226 to 82; before it the damage class and the healer fell twice as often as the tank. Over the first three levels (24 runs) wipes went from 18 to 22 in about 445 fights, within the noise. The tank's health is left alone: it is already about twice the others' and grows with its tree.
+
 Measured with the balance probe (`misc\balance.bat 200 3 2 16`, `PROBE_LEVELS=2`): a tank, a healer and one damage bot, 16 seeds, crypt into depths, each bot taking a coin toss of every pair. Average fight in seconds at four rooms, and the worst wipes a kill:
 
 | Damage or healer bot | Throne of Dust | Anvil Hall | Throne of Embers | Worst wipes a kill |

@@ -6,7 +6,8 @@
 
    Damage     RoleTalentDealtScale        +4% damage dealt a rank
    Armor      RoleTalentTakenScale        -4% damage taken a rank
-   Vitality   ApplyRoleToPlayer, here     +6% health a rank
+   Vitality   ApplyRoleToPlayer, here     +6% health a rank, on top of
+                                          the level's (RoleMaxHealth)
    Haste      RoleSpellCooldown           -4% every class spell's cooldown
    Healing    HealPlayer                  +6% healing given a rank
    Swiftness  RunSpeedScale               +3% run speed a rank
@@ -63,11 +64,25 @@ RoleStatShare(player_slot *Slot, u32 Stat)
     return Result;
 }
 
-// NOTE(zoubir): Slot's health in a run: its role's, raised by Vitality
+// NOTE(zoubir): what each level past the first adds to a class's health,
+// as a share of its role's: 58% more at the top level. Not a tank's, whose
+// health is already about twice the others' and grows with its tree. On
+// the Aurora Rift and the Starless Deep the others fell twice as often as
+// the tank and one fight in four wiped; with this, one in eleven
+// (miscalance.bat, PROBE_MAP=rift, 16 seeds), and the first three
+// levels, where the party is low, hardly change
+#define CLASS_HEALTH_PER_LEVEL 0.02f
+
+// NOTE(zoubir): Slot's health in a run: its role's, raised by its level
+// (CLASS_HEALTH_PER_LEVEL) and by Vitality
 internal float
 RoleMaxHealth(player_slot *Slot)
 {
-    float Result = GetRoleDef(Slot->Role)->MaxHp * (1.f + RoleStatShare(Slot, RoleStat_Vitality));
+    u32 Levels = Slot->Level > 1 ? Slot->Level - 1 : 0;
+    float Growth = RoleKindOf(Slot->Role) == RoleKind_Tank ? 0.f :
+        CLASS_HEALTH_PER_LEVEL * (float)Levels;
+    float Result = GetRoleDef(Slot->Role)->MaxHp *
+        (1.f + Growth + RoleStatShare(Slot, RoleStat_Vitality));
     return Result;
 }
 

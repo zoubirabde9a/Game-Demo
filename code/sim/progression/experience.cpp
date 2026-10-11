@@ -132,6 +132,9 @@ AwardXp(app_state *AppState, player_slot *Slot, u32 Amount)
     if (Level > Slot->Level)
     {
         Slot->Level = Level;
+        // NOTE(zoubir): a class's health grows with its level in a run
+        // (RoleMaxHealth, sim/dungeon/role_stats.cpp)
+        RefreshRoleHealth(AppState, Slot);
         world_entity *Player = Slot->Entity;
         if (Player && Player->IsPresent)
         {
