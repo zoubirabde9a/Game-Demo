@@ -4,9 +4,13 @@
                           level the victim has over the killer (less for
                           each it has under), kept within
                           XP_PLAYER_KILL_MIN..XP_PLAYER_KILL_MAX
-   Killing a monster      XP_MONSTER_KILL, a token next to a player
-   Being in the match     XP_PER_SECOND, alive or dead, so a player who
-                          keeps losing still levels
+   Killing a monster      XP_MONSTER_KILL, a token next to a player;
+                          XP_DUNGEON_MONSTER_KILL in a dungeon run
+   Being in a duel        XP_PER_SECOND, alive or dead, so a player who
+                          keeps losing still levels. Nothing in a dungeon
+                          run: there time earns no experience
+   Clearing a room        in a dungeon run, whatever the party is short
+                          of the level the clear opens (AwardRoomClearXp)
 
    Level L takes XpToReach(L) in all: 80 for level 2, then each level
    costs 20 more than the last; level 20, the most in a duel, takes 4940,
@@ -17,20 +21,23 @@
 
    In a dungeon run a player earns one level per room the party clears,
    on top of the level it started the run at (RunStartLevel): the cap is
-   that plus the rooms with monsters cleared, so waiting around cannot
-   farm levels. A new run keeps the level and talents a player already
-   has (StartNextRoundMap, setup.cpp), so a party that clears the Crypt
-   again goes on climbing. Experience past the cap stops one point short
-   of the next level, which comes the moment the next room is cleared.
-   From level 1 the cap sits below what time alone would give at 90 s a
-   room (level 7 leaving the Crypt where the trickle reaches 9), so a
-   fresh party is a little lower than the bosses were first tuned for. */
+   that plus the rooms with monsters cleared. Kills fill the bar toward
+   the next level, and the clear itself makes up whatever is missing, so
+   every player in the party, dead or alive, levels with the clear and
+   waiting around earns nothing. A new run keeps the level and talents a
+   player already has (StartNextRoundMap, setup.cpp), so a party that
+   clears the Crypt again goes on climbing. Experience past the cap stops
+   one point short of the next level, which comes the moment the next
+   room is cleared. */
 
 #define XP_PLAYER_KILL 100
 #define XP_PER_LEVEL_GAP 15
 #define XP_PLAYER_KILL_MIN 50
 #define XP_PLAYER_KILL_MAX 250
 #define XP_MONSTER_KILL 5
+// NOTE(zoubir): a dungeon's monsters are the run's only income before the
+// clear, so each fills more of the bar
+#define XP_DUNGEON_MONSTER_KILL 15
 #define XP_PER_SECOND 2
 // NOTE(zoubir): the most any player can be, in a dungeon run; a duel
 // stops at DUEL_MAX_LEVEL (TopLevel)
@@ -142,9 +149,30 @@ AwardKill(app_state *AppState, player_slot *Killer, world_entity *Target)
 {
     if (Target->Type == EntityType_Monster)
     {
-        AwardXp(AppState, Killer, XP_MONSTER_KILL);
+        AwardXp(AppState, Killer, AppState->Dungeon ? XP_DUNGEON_MONSTER_KILL : XP_MONSTER_KILL);
         return;
     }
     player_slot *Victim = &AppState->Players[Target->PlayerIndex];
     AwardXp(AppState, Killer, PlayerKillXp(Killer->Level, Victim->Level));
+}
+
+// NOTE(zoubir): a dungeon room with monsters was cleared, so the cap went
+// up a level: every player in the party gets what it is short of reaching
+// it, whatever its kills already earned toward it
+internal void
+AwardRoomClearXp(app_state *AppState)
+{
+    for(u32 SlotIndex = 0; SlotIndex < MAX_PLAYERS; SlotIndex++)
+    {
+        player_slot *Slot = &AppState->Players[SlotIndex];
+        if (!Slot->Active || !Slot->Entity)
+        {
+            continue;
+        }
+        u32 Goal = XpToReach(LevelCap(AppState, Slot));
+        if (Slot->Xp < Goal)
+        {
+            AwardXp(AppState, Slot, Goal - Slot->Xp);
+        }
+    }
 }

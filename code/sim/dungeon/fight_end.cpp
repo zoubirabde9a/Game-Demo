@@ -125,6 +125,7 @@ UpdateFightEnd(app_state *AppState, world *World, dungeon_run *Run,
         if (Run->FoeCount)
         {
             AppState->DungeonRoomsCleared++;
+            AwardRoomClearXp(AppState);
         }
         EndEncounter(AppState, Run, Run->RoomEntry[Room],
                      DUNGEON_CLEAR_RESPAWN_SECONDS);

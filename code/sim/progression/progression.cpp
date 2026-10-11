@@ -1,6 +1,7 @@
 /* Progression: experience, levels and talents. A player earns
    experience by killing players, a little by killing monsters, and a
-   steady trickle for being in the match (experience.cpp); every level
+   steady trickle for being in a duel; in a dungeon run, by killing
+   monsters and clearing rooms (experience.cpp); every level
    after the first is a point to spend in the talent tree, which unlocks
    abilities, raises their levels and adds passives (talents.cpp).
 
@@ -51,7 +52,9 @@ UpdateProgression(app_state *AppState, float DeltaTime)
             Slot->Level = LevelForXp(Slot->Xp);
         }
         Slot->DuelSeed = AppState->DuelSeed;
-        Slot->XpClock += DeltaTime;
+        // NOTE(zoubir): no trickle in a dungeon run: its levels come from
+        // kills and cleared rooms (AwardRoomClearXp, experience.cpp)
+        Slot->XpClock = AppState->Dungeon ? 0.f : Slot->XpClock + DeltaTime;
         while (Slot->XpClock >= XP_CLOCK_STEP)
         {
             Slot->XpClock -= XP_CLOCK_STEP;

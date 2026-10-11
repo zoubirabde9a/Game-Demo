@@ -42,6 +42,30 @@ TestDungeonLevelsWaitForRooms()
     DestroyCryptWorld(&Crypt);
 }
 
+// NOTE(zoubir): in a run time earns nothing, and a room cleared makes up
+// what the party is short of the level it opens, kills or none
+internal void
+TestDungeonTimeEarnsNoExperience()
+{
+    crypt_world Crypt = CreateCryptWorld(1);
+    app_state *AppState = Crypt.AppState;
+    world *World = &AppState->World;
+    dungeon_run *Run = AppState->Dungeon;
+    player_slot *Slot = &AppState->Players[0];
+    TickCrypt(&Crypt, 1);
+    u32 Before = Slot->Xp;
+    TickCrypt(&Crypt, 60 * 60);
+    Check(Slot->Xp == Before && Slot->Level == 1);
+
+    MovePlayerTo(AppState, World, &Crypt.Arena, Slot->Entity, Run->RoomEntry[2]);
+    TickCrypt(&Crypt, 1);
+    KillRoomMonsters(&Crypt, 2);
+    TickCrypt(&Crypt, 60);
+    Check(Run->RoomStates[2] == RoomState_Cleared);
+    Check(Slot->Level == 2 && Slot->Xp >= XpToReach(2));
+    DestroyCryptWorld(&Crypt);
+}
+
 // NOTE(zoubir): away from a dungeon nothing caps the level
 internal void
 TestDuelLevelsAreNotCapped()
@@ -104,6 +128,7 @@ internal void
 RunLevelCapTests()
 {
     TestDungeonLevelsWaitForRooms();
+    TestDungeonTimeEarnsNoExperience();
     TestNewRunKeepsTheCharacter();
     TestDuelLevelsAreNotCapped();
 }

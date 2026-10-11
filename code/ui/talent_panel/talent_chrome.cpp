@@ -135,8 +135,11 @@ DrawTalentPanelFooter(render_context *RenderContext, app_state *AppState,
     }
     else
     {
+        // NOTE(zoubir): how experience comes in this mode (experience.cpp)
         UIText(RenderContext, Small, Middle, CentreY - 0.5f * UILineHeight(Small),
-               "A level is a point.  Kill a player +100 XP, a monster +5, and +2 every second.",
+               AppState->Dungeon ?
+               (char *)"A level is a point.  Monsters fill the bar; each room cleared brings the level." :
+               (char *)"A level is a point.  Kill a player +100 XP, a monster +5, and +2 every second.",
                UI_COLOR_TEXT_MUTED, UIAlign_Center);
     }
 }
