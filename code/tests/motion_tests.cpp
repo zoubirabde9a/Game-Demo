@@ -70,6 +70,9 @@ struct motion_result
     float RoundTripMs;
     u32 MostBuffered;
     u32 Measured;
+    // NOTE: how far behind the newest snapshot others are drawn, in
+    // server ticks, averaged over the measured frames
+    float ReplicaDelay;
 };
 
 internal void
@@ -85,7 +88,7 @@ PrintMotionTrack(const char *Name, motion_track *Track)
 internal motion_result
 PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed,
            u32 EdgePattern = 0, bool32 Offline = false, u32 MapId = MapId_Arena,
-           u32 BaseDelayMs = 0, u32 BurstMs = 0)
+           u32 BaseDelayMs = 0, u32 BurstMs = 0, u32 ClumpMs = 0)
 {
     motion_result Result = {};
     static server Server;
@@ -113,6 +116,7 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed,
     // pumps
     Link.MinDelayFrames = (u32)(2.f * (float)BaseDelayMs * 0.001f / FrameSeconds + 0.5f);
     Link.BurstFrames = (u32)(2.f * (float)BurstMs * 0.001f / FrameSeconds + 0.5f);
+    Link.ClumpFrames = (u32)(2.f * (float)ClumpMs * 0.001f / FrameSeconds + 0.5f);
     char Address[32];
     net_address LinkAddress = LossyAddress(&Link);
     snprintf(Address, sizeof(Address), "127.0.0.1:%u", LinkAddress.Port);
@@ -220,6 +224,7 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed,
             TrackMotion(&Result.Camera, Client->CameraOffset.XY, DeltaTime, Allowed);
             Result.Measured++;
             Result.RoundTripMs += Online->Quality.RoundTripMs;
+            Result.ReplicaDelay += Online->Replicas.Smoothing.Delay;
             Result.MostBuffered = Maximum(Result.MostBuffered,
                                           (u32)Online->Client.Snapshot.InputBuffered);
             Result.LocalTravel += Length(Local->Position.XY - LocalStart);
@@ -232,6 +237,7 @@ PlayMotion(float FrameRate, u32 MaxDelayMs, u32 DropPercent, u32 Seed,
     if (GetLocalPlayer(Client)) Result.LocalEnd = GetLocalPlayer(Client)->Position.XY;
     Result.Corrections = Online->Prediction.Corrections;
     if (Result.Measured) Result.RoundTripMs /= (float)Result.Measured;
+    if (Result.Measured) Result.ReplicaDelay /= (float)Result.Measured;
     Result.CorrectedDistance = Online->Prediction.CorrectedDistance;
     NetClientDisconnect(&Mover);
     OnlineDisconnect(Online);
@@ -364,6 +370,45 @@ TestOnlineMotionOnABadLink()
     }
 }
 
+// A good link: short, but handing snapshots over in clumps now and then,
+// as wifi does, or losing one alone. Others must move evenly and be drawn
+// no further behind than the clumps need. The client used to apply only
+// the newest of two snapshots arriving in one frame: the older one's
+// sounds were lost, and the replicas took it for a lost snapshot and drew
+// everyone 50 ms further behind for seconds after; with every snapshot a
+// lost one alone did the same. Before the replicas learned to wait out
+// runs of losses, clumps of 100 ms made a remote player jolt 11 to 21
+// times.
+internal void
+TestOnlineMotionOnAGoodLink()
+{
+    struct good_case { const char *Name; float FrameRate; u32 Drop; u32 ClumpMs; float MostDelay; };
+    good_case Cases[] =
+    {
+        {"144 fps, clean", 144.0f, 0, 0, 4.5f},
+        {"144 fps, one in fifty lost", 144.0f, 2, 0, 4.5f},
+        {"144 fps, clumps of 50 ms", 144.0f, 0, 50, 6.0f},
+        {"144 fps, clumps of 100 ms", 144.0f, 0, 100, 8.0f},
+        {"60 fps, clumps of 100 ms", 60.0f, 0, 100, 8.0f},
+    };
+    for (u32 Index = 0; Index < ArrayCount(Cases); ++Index)
+    {
+        good_case *Case = &Cases[Index];
+        motion_result Result = PlayMotion(Case->FrameRate, 10, Case->Drop, 120 + Index, 0, false,
+                                          MapId_Arena, 20, 0, Case->ClumpMs);
+        printf("  motion, %s: %u corrections, others drawn %.1f ticks behind, local walked %.0f, remote %.0f\n",
+               Case->Name, Result.Corrections, Result.ReplicaDelay, Result.LocalTravel,
+               Result.RemoteTravel);
+        PrintMotionTrack("local", &Result.Local);
+        PrintMotionTrack("remote", &Result.Remote);
+        Check(Result.Joined);
+        Check(Result.Corrections == 0);
+        Check(Result.Local.Jolts * 100 <= Result.Local.Frames);
+        Check(Result.Remote.Jolts * 100 <= Result.Remote.Frames);
+        Check(Result.ReplicaDelay < Case->MostDelay);
+    }
+}
+
 internal void
 RunMotionTests()
 {
@@ -371,4 +416,5 @@ RunMotionTests()
     GROUP(TestOnlineEdgesAreSmooth());
     GROUP(TestOnlineGroundPredictsExactly());
     GROUP(TestOnlineMotionOnABadLink());
+    GROUP(TestOnlineMotionOnAGoodLink());
 }

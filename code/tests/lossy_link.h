@@ -7,6 +7,8 @@
    link (every datagram waits at least that long) and one whose losses
    come in runs (a drop also drops everything in the same direction for
    up to BurstFrames frames), as a busy wifi or mobile link does.
+   ClumpFrames hands datagrams to the client only every that many
+   frames, several at once, as wifi saving power does.
    Needs code/net/socket.cpp compiled in first. */
 
 #define LOSSY_QUEUE_SIZE 512
@@ -31,6 +33,7 @@ struct lossy_link
     u32 MaxDelayFrames;
     u32 MinDelayFrames;
     u32 BurstFrames;
+    u32 ClumpFrames;
     // NOTE: a run of losses drops this direction until this frame
     u32 DropUntilFrame[2];
     u32 Random;
@@ -118,6 +121,7 @@ LossyPump(lossy_link *Link)
     {
         lossy_datagram *D = &Link->Queue[Index];
         if (D->DeliverAtFrame > Link->Frame) { ++Index; continue; }
+        if (!D->ToServer && Link->ClumpFrames && Link->Frame % Link->ClumpFrames) { ++Index; continue; }
         if (D->ToServer || Link->HasClient)
         {
             NetSendTo(&Link->Socket, D->ToServer ? Link->Server : Link->Client, D->Data, D->Size);

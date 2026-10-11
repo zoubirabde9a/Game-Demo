@@ -48,9 +48,12 @@
 #define REPLICA_MAX_EXTRAPOLATE 5.f
 // NOTE(zoubir): ticks of snapshots missing in a row the delay makes room
 // for, at most REPLICA_GAP_SPARE_MAX; the room shrinks by this share a
-// snapshot once the losses stop (half of it gone in about 3 seconds)
+// snapshot once the losses stop (half of it gone in about 1.7 seconds).
+// One snapshot lost alone gets no room: the replicas carry on past it
+// for REPLICA_MAX_EXTRAPOLATE ticks, and a good link that drops one now
+// and then must not draw everyone further behind for seconds after
 #define REPLICA_GAP_SPARE_MAX 6.f
-#define REPLICA_GAP_FORGET 0.99f
+#define REPLICA_GAP_FORGET 0.98f
 // NOTE(zoubir): DrawError shrinks by e to this power a second, as
 // PREDICTION_BLEND_RATE does for the local player
 #define REPLICA_BLEND_RATE 20.f
@@ -110,8 +113,9 @@ BeginSmoothedSnapshot(replica_smoothing *Smoothing, u32 Tick)
             Smoothing->SnapshotStep = Gap;
         }
         Smoothing->NewestTick = Tick;
-        float Missing = Minimum(REPLICA_GAP_SPARE_MAX,
-                                (float)(Gap - Smoothing->SnapshotStep));
+        u32 Lost = Gap - Smoothing->SnapshotStep;
+        float Missing = Lost > Smoothing->SnapshotStep ?
+            Minimum(REPLICA_GAP_SPARE_MAX, (float)Lost) : 0.f;
         Smoothing->GapSpare = Maximum(REPLICA_GAP_FORGET * Smoothing->GapSpare, Missing);
     }
     float Error = (float)Tick - Smoothing->ServerTick;
