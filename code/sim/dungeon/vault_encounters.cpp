@@ -13,22 +13,23 @@ global_variable encounter_row VaultEncounters[] =
     // NOTE(zoubir): 1, Frostgate Landing, is empty: the party arrives there
     // 2, Shiver Hall: two big pulls, as three small ones cost a party at
     // this level nothing. First a shelled warden behind webs with two toads
-    // shelling over it, an elite brute with two bats and a lurker tunnelling
-    // under the tank; then a shaman raising the dead beside a slime, and
-    // two shades at the back line, one elite. One pull of eighteen with
-    // five elites walled every party whose damage class hits one foe at a
-    // time (a Duelist party wiped thirteen times a kill here)
+    // shelling over it, a brute with two bats; then a shaman raising the
+    // dead beside a slime, and two elite shades at the back line. One pull
+    // of eighteen with five elites walled every party whose damage class
+    // hits one foe at a time (a Duelist party wiped thirteen times a kill
+    // here). The two pulls still meet, as every foe here notices a player
+    // from about 450 away; the lurker tunnelling under the tank and the
+    // elite brute killed the melee seat in that crowd. The second shade is
+    // elite instead, so a party that hits groups still has to work here
     {2, 0, MonsterKind_Warden, 1, Encounter_Elite},
     {2, 0, MonsterKind_Spider, 2, 0},
     {2, 0, MonsterKind_Toad, 2, 0},
-    {2, 0, MonsterKind_Lurker, 1, 0},
-    {2, 0, MonsterKind_Brute, 1, Encounter_Elite},
+    {2, 0, MonsterKind_Brute, 1, 0},
     {2, 0, MonsterKind_Bat, 2, 0},
     {2, 1, MonsterKind_Shaman, 1, 0},
     {2, 1, MonsterKind_Thrall, 3, 0},
     {2, 1, MonsterKind_Slime, 1, 0},
-    {2, 1, MonsterKind_Shade, 1, Encounter_Elite},
-    {2, 1, MonsterKind_Shade, 1, 0},
+    {2, 1, MonsterKind_Shade, 2, Encounter_Elite},
     // 3, Calving Hall: the first boss, Hrimgar the Frost Colossus
     {3, 0, MonsterKind_FrostColossus, 1, Encounter_Boss},
     // 4, Drowned Cloister: toads shelling from the water, lurkers under

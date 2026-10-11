@@ -13,7 +13,7 @@ Its row in `DungeonLevels` (`sim/dungeon/levels.cpp`): monsters have 1.7 times t
 `sim/maps/vault.cpp`, drawn by a script. A vault of black ice under the forge, where the cold that put its fires out still sleeps. Stone floors, snow (slow), ice (slow to start on and slow to stop on, so a shove carries a long way), freezing water, bog, and runes in the boss rooms that lift the slows the bosses put on. A dark blue colour grade (`client/map_moods.cpp`) and frost glinting as it falls (`client/ambient_motes.cpp`).
 
 1. **Frostgate Landing.** Where the party arrives. No monsters; a spring.
-2. **Shiver Hall.** Snow and ice sheets round pillars. Two big pulls: first an elite Carapace Warden behind two Hexweaver Spiders' webs with two Bilecaller Toads, an elite Gravemaw Brute with two Duskwing bats and a Dune Lurker; then a Bone Shaman raising three Skeletal Thralls beside a Gloomslime, and two Hollow Shades, one elite.
+2. **Shiver Hall.** Snow and ice sheets round pillars. Two big pulls: first an elite Carapace Warden behind two Hexweaver Spiders' webs with two Bilecaller Toads, a Gravemaw Brute with two Duskwing bats; then a Bone Shaman raising three Skeletal Thralls beside a Gloomslime, and two elite Hollow Shades.
 3. **Calving Hall.** Boss 1, Hrimgar the Frost Colossus. Open floor, ice in the corners, four pillars.
 4. **Drowned Cloister.** Shallow water channels in a cross, two deep pools, bog. Three Bilecaller Toads and an elite Gloomslime; two Dune Lurkers and an elite Hollow Shade; an elite Hexweaver Spider with a Tuskback Ravager, three bats and a Hollow Shade.
 5. **Mirror Mere.** Boss 2, Ysolde the Pale Witch. A round lair: a ring of ice round a shallow pool, a rune on each side.
@@ -76,3 +76,15 @@ The Fire Mage rework then made the bots' damage seat much stronger (Ithrel went 
 `misc\balance.bat` builds and runs the probe with its seeds side by side, so a room over 64 seeds takes about two seconds and all three levels over 64 seeds about twenty. Two faults in the probe made a single room read harder than the full run: bots started a level short at the vault's last rooms, and fought with most of their talent points unspent, as a bot learns one every 1.5 s. Both are fixed, and a boss room alone now reads close to the full run. The Shiver Hall still reads about half as deadly alone as in the full run, so check a change there with `PROBE_LEVELS=3`.
 
 The one pull of eighteen with five elites then walled every party whose damage class hits one foe at a time: over twelve full runs a Duelist party wiped 13 times a kill there and a Berserker party 10.7, against 0.7 for a Fire Mage party. It is now two pulls with three elites. Vault alone, twelve seeds, wipes a kill at the Shiver Hall: Duelist 6.7 to 2.7, Berserker 3.1 to 2.7, Fire Mage 0.25 to 0 (still a 44 s fight). Then a toad and a bat fewer in the first pull; over 48 full runs (`set PROBE_LEVELS=3& misc\balance.bat 400 3 2 48`) the Shiver Hall went from 3.2 to 2.3 wipes a kill for a Duelist party and from 3.0 to 2.1 for a Berserker's. Twelve seeds were too few to tell this apart: they moved the Fire Mage's party the wrong way by more. It stays the vault's hardest room for a melee party.
+
+The two pulls still met: every foe in the hall notices a player from about 450 away, and the packs stand 300 apart, so a party died with nearly the whole room round it. Most often the melee seat fell first, beside thralls, the Dune Lurker surfacing under the tank and the elite Brute. The lurker is gone, the Brute is no longer elite, and the second Hollow Shade is elite in its place. Vault alone, 48 seeds each (`set PROBE_MAP=vault& set GAME_BOT_DAMAGE=<class>& miscalance.bat 400 3 2 48`), wipes a kill at the Shiver Hall:
+
+| Damage class | Before | After |
+|---|---|---|
+| Duelist | 1.25 | 0.50 |
+| Berserker | 0.75 | 0.50 |
+| Stormcaller | 0.67 | 0.25 |
+| Ranger | 0.65 | 0.19 |
+| Fire Mage | 0.15 | 0.06 |
+
+Both melee classes now sit below where the Stormcaller and the Ranger were, and the Duelist's lead over them shrank from about 0.6 to 0.3 wipes a kill, but a melee party still wipes about twice as often. Cutting thralls instead (three to one, with the Brute plain) took the Duelist only to 0.77 while the Stormcaller and the Ranger fell to 0.3. The Fire Mage stays far the easiest; its fight lasts 37 s on average. Between runs of 48 seeds these move by about 0.15. No other room changed.
