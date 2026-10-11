@@ -1,0 +1,4 @@
+who: agent/nores
+task: pressing an ability without enough class resource (Rage, Charge, combo points) shows a big "Not enough X" message, flashes the button and plays a denied sound
+files: code/sim/dungeon/role_kits/class_refusal.*, code/sim/dungeon/role_kits/class_kits.cpp, code/sim/dungeon/class_states.h, code/sim/dungeon/dungeon_slot_fields.inc, code/sim/dungeon/role_abilities/key_presses.cpp, code/sim/dungeon/role_kits/{berserker,shadowblade,stormcaller,druid,duelist,frostmage,ranger}*, code/ui/dungeon/classes/*_hud.cpp, code/ui/resource_refusal.cpp, code/ui/ability_bar.cpp, code/client/sounds/*, code/engine/asset_type_id.h, code/platform/web/touch.cpp, web/shell.html, code/tests/resource_refusal_tests.cpp, code/tests/dungeon_tests.cpp, code/tests/server_client_tests.cpp
+since: 2026-10-11
