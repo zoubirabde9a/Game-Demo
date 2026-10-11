@@ -577,6 +577,7 @@ TestStatsCountTrafficAndTicks()
 #include "cast_online_tests.cpp"
 #include "dungeon_online_tests.cpp"
 #include "bot_class_tests.cpp"
+#include "bot_path_tests.cpp"
 #include "rewind_tests.cpp"
 #include "replay_tests.cpp"
 #include "motion_tests.cpp"
@@ -606,6 +607,7 @@ main(int ArgCount, char **Args)
     GROUP(TestFoeMarksShowOnline());
     GROUP(TestRefusalShowsOnline());
     GROUP(RunBotClassTests());
+    GROUP(RunBotPathTests());
     GROUP(RunServerGameTests());
     GROUP(RunRewindTests());
     RunReplayTests();

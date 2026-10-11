@@ -9,9 +9,13 @@
    or crate stands on it). A search from the goal then gives every open
    tile its steps to the goal; the bot steps down that count, aiming a
    few tiles ahead so it walks straight lines rather than a staircase.
-   The search first keeps a tile's width off hazards, as a body is
-   about a tile wide; when that leaves no way (a causeway one tile wide),
-   it searches again with only the hazards themselves closed. */
+   The search first keeps a tile's width off hazards, walls and blocking
+   props, as a body is about a tile wide; when that leaves no way (a
+   causeway one tile wide), it searches again with only the closed tiles
+   themselves closed. A way that hugs a wall leaves the bot pushing
+   straight into the wall's corner where the way turns: its movement
+   keys round the slant toward the next tiles to one axis (the Rimeheart
+   Vault's corridor to the Calving Hall held whole parties that way). */
 
 #define BOT_PATH_MAX_SIDE 256
 #define BOT_PATH_TILES (BOT_PATH_MAX_SIDE * BOT_PATH_MAX_SIDE)
@@ -22,7 +26,7 @@
 enum bot_tile
 {
     BotTile_Open,
-    // NOTE(zoubir): open, but next to a hazard
+    // NOTE(zoubir): open, but next to a hazard, a wall or a blocking prop
     BotTile_Edge,
     BotTile_Closed,
 };
@@ -87,7 +91,7 @@ BuildBotPathGrid(bot_path_grid *Grid, world *World)
                     i32 NX = X + DX;
                     i32 NY = Y + DY;
                     if (NX >= 0 && NY >= 0 && NX < Grid->Width && NY < Grid->Height &&
-                        GetTerrainDef(TerrainAt(Map, NX, NY))->Hazard)
+                        Grid->Tiles[NY * Grid->Width + NX] == BotTile_Closed)
                     {
                         *Tile = BotTile_Edge;
                         break;
