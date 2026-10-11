@@ -4,8 +4,9 @@
    Play screen at launch, shelled by a Bilecaller Toad from off screen and
    left standing in its bile. The world is built as the offline client
    builds it and stepped at the client's 1/30 s frames, under the duel
-   rules the client plays. Included by sim_tests.cpp, which calls
-   RunSpawnSightTests. */
+   rules the client plays. The same goes for Frostbite Keep, where a
+   Duskwing placed inside its reach of the spawn flew in and bit. Included
+   by sim_tests.cpp, which calls RunSpawnSightTests. */
 
 #define SIGHT_TEST_TICK (1.f / 30.f)
 
@@ -17,16 +18,17 @@ struct sight_world
     world_entity *Player;
 };
 
-// NOTE(zoubir): the Old Arena with one player at its spawn
+// NOTE(zoubir): MapId (the Old Arena unless given) with one player at
+// its spawn
 internal sight_world
-CreateSightWorld()
+CreateSightWorld(u32 MapId = MapId_Arena)
 {
     sight_world Result = {};
     Result.AppState = (app_state *)calloc(1, sizeof(app_state));
     memory_index Size = Megabytes(48);
     InitializeArena(&Result.Arena, (memory_index *)calloc(1, Size), Size);
     InitializeArena(&Result.Constants, (memory_index *)calloc(1, Megabytes(1)), Megabytes(1));
-    Result.AppState->World.MapId = MapId_Arena;
+    Result.AppState->World.MapId = MapId;
     InitSimulation(Result.AppState, &Result.Arena, &Result.Constants);
     world *World = &Result.AppState->World;
     Result.Player = AddPlayerToSlot(Result.AppState, World, &Result.Arena, 0,
@@ -129,9 +131,63 @@ TestToadInViewToTheSideStillShells()
     GameRules = ClassicRules;
 }
 
+// NOTE(zoubir): true when no monster stands within its own aggro range of
+// any slot's spawn point
+internal bool32
+NoMonsterReachesASpawn(world *World)
+{
+    for(u32 EntityIndex = 0; EntityIndex < World->EntityCount; EntityIndex++)
+    {
+        world_entity *Monster = &World->Entities[EntityIndex];
+        if (Monster->IsPresent && Monster->Type == EntityType_Monster &&
+            !IsFarFromSpawnPoints(World, Monster->Position.XY,
+                                  GetMonsterDef(Monster->MonsterKind)->AggroRange))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// NOTE(zoubir): the keep is filled before anyone joins; its monsters must
+// still start out of reach of every spawn point, at launch and each time
+// the map is built again (a round restart or a map change), and a player
+// standing still at the spawn takes no hit in the first seconds
+internal void
+TestStillPlayerAtKeepSpawnIsNotBitten()
+{
+    GameRules = DuelRules;
+    sight_world Sight = CreateSightWorld(MapId_Keep);
+    app_state *AppState = Sight.AppState;
+    world *World = &AppState->World;
+    world_entity *Player = Sight.Player;
+    AddFamiliar(AppState, World, &Sight.Arena, Player);
+    Check(CountLiveMonsters(World) == MapMonsterPopulation(World));
+    Check(NoMonsterReachesASpawn(World));
+
+    float FullHp = Player->Hp;
+    for(u32 Tick = 0; Tick < 8 * 30; Tick++)
+    {
+        SimulateTick(AppState, &Sight.Arena, SIGHT_TEST_TICK);
+    }
+    Check(Player->Hp == FullHp);
+
+    for(u32 Round = 1; Round <= 12; Round++)
+    {
+        RebuildWorldForMap(AppState, &Sight.Arena, MapId_Keep);
+        AppState->Monsters->Series = Seed(Round * 7919u);
+        FillMonsterPopulation(AppState, World, &Sight.Arena, AppState->Monsters);
+        Check(CountLiveMonsters(World) == MapMonsterPopulation(World));
+        Check(NoMonsterReachesASpawn(World));
+    }
+    DestroySightWorld(&Sight);
+    GameRules = ClassicRules;
+}
+
 internal void
 RunSpawnSightTests()
 {
     RUN(TestStillPlayerAtSpawnIsNotShelledFromOffScreen);
     RUN(TestToadInViewToTheSideStillShells);
+    RUN(TestStillPlayerAtKeepSpawnIsNotBitten);
 }

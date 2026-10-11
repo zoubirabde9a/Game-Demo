@@ -6,6 +6,11 @@
 #define MONSTER_RESPAWN_SECONDS 2.f
 // NOTE(zoubir): new monsters never appear on top of a player
 #define MONSTER_SPAWN_MIN_PLAYER_DISTANCE 350.f
+// NOTE(zoubir): and never within reach of a spawn point: a monster keeps
+// its own aggro range plus this much from each one, so a player who
+// appears there and stands still is not chased the moment the map starts
+// (a Duskwing placed 390 from the Frostbite Keep spawn, inside its 420)
+#define MONSTER_SPAWN_AGGRO_MARGIN 120.f
 #define MONSTER_SPAWN_TRIES 16
 
 // NOTE(zoubir): how many monsters World's map keeps roaming
@@ -116,10 +121,11 @@ IsSpawnSpotFree(app_state *AppState, world *World, v3 Position,
     return true;
 }
 
-// NOTE(zoubir): also keeps clear of every slot's spawn point, so a player
-// joining or respawning never lands inside or next to a monster
+// NOTE(zoubir): true when Position is at least MinDistance from every
+// slot's spawn point, whether or not anyone is in the slot yet: a map is
+// filled before its first player joins
 inline bool32
-IsFarFromPlayers(world *World, v2 Position, float MinDistance)
+IsFarFromSpawnPoints(world *World, v2 Position, float MinDistance)
 {
     for(u32 SlotIndex = 0;
         SlotIndex < MAX_PLAYERS;
@@ -129,6 +135,18 @@ IsFarFromPlayers(world *World, v2 Position, float MinDistance)
         {
             return false;
         }
+    }
+    return true;
+}
+
+// NOTE(zoubir): also keeps clear of every slot's spawn point, so a player
+// joining or respawning never lands inside or next to a monster
+inline bool32
+IsFarFromPlayers(world *World, v2 Position, float MinDistance)
+{
+    if (!IsFarFromSpawnPoints(World, Position, MinDistance))
+    {
+        return false;
     }
 
     for(u32 EntityIndex = 0;
@@ -224,6 +242,9 @@ SpawnRoamingMonster(app_state *AppState, world *World, memory_arena *Arena,
     entity_collision_volume_group *Volume =
         GetMonsterStats(Kind)->FlyHeight > 0.f ?
         AppState->BatCollision : AppState->PlayerCollision;
+    float SpawnDistance = Maximum(MONSTER_SPAWN_MIN_PLAYER_DISTANCE,
+                                  GetMonsterStats(Kind)->AggroRange +
+                                  MONSTER_SPAWN_AGGRO_MARGIN);
 
     for(u32 Try = 0; Try < MONSTER_SPAWN_TRIES; Try++)
     {
@@ -244,6 +265,7 @@ SpawnRoamingMonster(app_state *AppState, world *World, memory_arena *Arena,
         Position = OnGround(World, Position);
         if (IsFarFromPlayers(World, Position.XY,
                              MONSTER_SPAWN_MIN_PLAYER_DISTANCE) &&
+            IsFarFromSpawnPoints(World, Position.XY, SpawnDistance) &&
             IsSpawnSpotFree(AppState, World, Position, Volume))
         {
             world_entity *Monster =
@@ -293,15 +315,23 @@ CreateMonsterPopulation(memory_arena *Arena, u32 Target, u32 SeedValue)
     return Result;
 }
 
-// NOTE(zoubir): fills the arena straight away, used when a match starts
+// NOTE(zoubir): fills the arena straight away, used when a match starts.
+// A small map keeps much of its ground clear of the spawn points, so a
+// monster that found no spot is tried again a few times before the
+// refill is left to bring it in later
+#define MONSTER_FILL_ATTEMPTS 4
 internal void
 FillMonsterPopulation(app_state *AppState, world *World, memory_arena *Arena,
                       monster_population *Population)
 {
     u32 Live = CountLiveMonsters(World);
-    for(u32 Count = Live; Count < Population->Target; Count++)
+    u32 Attempts = MONSTER_FILL_ATTEMPTS * Population->Target;
+    while(Live < Population->Target && Attempts--)
     {
-        SpawnRoamingMonster(AppState, World, Arena, Population);
+        if (SpawnRoamingMonster(AppState, World, Arena, Population))
+        {
+            Live++;
+        }
     }
 }
 
