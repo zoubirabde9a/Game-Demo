@@ -91,5 +91,10 @@ ReadKeyboardPlayerInput(app_input *Input, app_state *AppState)
         AwardXp(AppState, Slot, XpToReach(Slot->Level + 1) - Slot->Xp);
     }
 #endif
+    // NOTE(zoubir): the keys pressed, kept for the screens: the
+    // simulation clears a role key's press once it takes it, and the
+    // refusal plate flashes the key a refused press came from
+    // (ui/resource_refusal.cpp)
+    AppState->FramePresses |= Result.Pressed;
     return Result;
 }

@@ -3,9 +3,9 @@
    key, its level as pips along its foot, and while recharging a dark
    clock sweep with the seconds left. Only abilities the player has show:
    one the talent tree unlocks (sim/progression/talents.cpp) appears with
-   a flash. A slot that comes ready flashes a ring of light; pressing a
-   key squeezes its slot, and pressing one still recharging shakes it red.
-   A cooldown cut short (a kill's refund) pulls a ring in and flashes.
+   a flash. A slot that comes ready flashes a ring of light; pressing a key
+   squeezes its slot, and one recharging or short of its class's resource
+   (resource_refusal.cpp) shakes red. A refunded cooldown rings and flashes.
    Hovering a slot shows a card with what the ability does, its numbers,
    its cooldown and its cost (ability_tooltip.cpp).
 
@@ -291,7 +291,7 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         }
         float Pulse = Bar->Pulse[Index];
         float Press = Bar->Press[Index];
-        float Denied = Bar->Denied[Index];
+        float Denied = Maximum(Bar->Denied[Index], ResourceRefusalFlash(AppState, Def->Button));
         Bar->Pulse[Index] = Maximum(0.f, Pulse - DeltaTime / ABILITY_PULSE_SECONDS);
         Bar->Press[Index] = Maximum(0.f, Press - DeltaTime / ABILITY_PRESS_SECONDS);
         Bar->Denied[Index] = Maximum(0.f, Denied - DeltaTime / ABILITY_DENIED_SECONDS);
@@ -325,11 +325,11 @@ DrawAbilityBar(render_context *RenderContext, app_state *AppState, app_input *In
         }
         DrawTexturedQuad(RenderContext, Bar->Atlas, CentreX - 0.5f * Icon,
                          CentreY - 0.5f * Icon, Icon, Icon, AbilityIconUvs(Cell), IconTint);
-        if (Press > 0.f)
+        if (Press > 0.f || Denied > 0.f)
         {
             DrawShaderQuad(RenderContext, Shader_Glow, CentreX - 0.5f * Quad,
                            CentreY - 0.5f * Quad, Quad, Quad,
-                           WithAlpha(Def->Accent, 0.5f * Press), RenderBlend_Additive);
+                           WithAlpha(Accent, 0.5f * Maximum(Press, Denied)), RenderBlend_Additive);
         }
         // NOTE(zoubir): the ability standard cast is aiming
         // (client/cast_targeting.cpp) glows until it is cast or cancelled

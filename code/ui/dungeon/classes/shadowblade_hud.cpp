@@ -6,7 +6,7 @@
    (player_slot.ClassMeter). A point coming in pops its gem with a flash;
    at five the plate glows and pulses and says the finisher is ready; an
    Eviscerate or Deadly Throw empties them in a flash; pressing it with none shakes the
-   plate red and says so; one whose foe got away in the wind-up keeps
+   plate red (the words are ui/resource_refusal.cpp's); one whose foe got away in the wind-up keeps
    its points, and the plate says that too. Beside the plate, a ring that runs down while a
    critical strike waits (acid green) and while Shadow Dance lasts
    (violet), timed from when its flag goes up. It reads the slot's meter and flags and the class's bursts,
@@ -146,13 +146,9 @@ DrawShadowbladeHud(render_context *RenderContext, app_state *AppState, player_sl
     // NOTE(zoubir): a line over the plate when it says something
     font *Small = AppState->Fonts.Small;
     float LineY = Centre.Y - 0.5f * Height - UILineHeight(Small) - 2.f;
-    if (Empty < 0.9f)
-    {
-        float Fade = 1.f - Clamp01((Empty - 0.6f) / 0.3f);
-        UIText(RenderContext, Small, Centre.X, LineY, (char *)"No combo points",
-               WithAlpha(UI_RGBA(255, 110, 110, 255), Fade), UIAlign_Center);
-    }
-    else if (Missed < 0.9f)
+    // NOTE(zoubir): no combo points is said by every class's refusal plate
+    // (ui/resource_refusal.cpp)
+    if (Missed < 0.9f)
     {
         float Fade = 1.f - Clamp01((Missed - 0.6f) / 0.3f);
         UIText(RenderContext, Small, Centre.X, LineY, (char *)"Out of reach: points kept",

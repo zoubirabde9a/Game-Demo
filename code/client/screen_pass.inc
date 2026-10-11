@@ -48,6 +48,7 @@ DoTeamPanel(RenderContext, AppState, Input, Window->Width, Window->Height); // M
 DoDungeonHud(RenderContext, AppState, Input, Window->Width, Window->Height); // a dungeon run's objective, boss bar and role picker, ui/dungeon/dungeon_hud.cpp
 DrawBossAlerts(RenderContext, AppState, Window->Width, Window->Height); // a banner when a boss enrages or its timer runs out, ui/dungeon/boss_alerts.cpp
 DrawAnnouncer(RenderContext, AppState, Window->Width, Window->Height, Input->DeltaTime); // game ready, rounds, kills, joins, votes, rooms and bosses, ui/announcer/announcer.cpp
+DrawResourceRefusal(RenderContext, AppState, Input->DeltaTime, Window->Width, Window->Height); // "Not enough Rage" over the ability bar and the denied sound, over the panels, ui/resource_refusal.cpp
 DrawAbilityTip(RenderContext, AppState, Window->Width); // the card over the hovered ability slot, ui/ability_tooltip.cpp
 if (Input->TabButton.EndedDown) DrawScoreboard(RenderContext, AppState, Window->Width, Window->Height);
 DoTileEditor(RenderContext, AppState, UIContext, Input, Window, TextureProgram, CameraOffset);

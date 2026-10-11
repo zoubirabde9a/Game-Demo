@@ -7,8 +7,8 @@
    end to a hot red at the full one; a gain flashes the part it added.
    Notches mark what Execute needs and what Whirlwind costs, and light up
    once there is that much. A full bar throbs, glowing. A spell pressed
-   without its Rage (BERSERKER_FLAG_NO_RAGE) shakes the bar, flashes it and
-   says so over it. Under Berserk the rim burns orange and the word beats
+   without its Rage (BERSERKER_FLAG_NO_RAGE) shakes the bar and flashes it;
+   the words are every class's (ui/resource_refusal.cpp). Under Berserk the rim burns orange and the word beats
    over the bar. */
 
 #define BERSERKER_BAR_WIDTH 260.f
@@ -144,7 +144,7 @@ DrawBerserkerHud(render_context *RenderContext, app_state *AppState, player_slot
     }
 
     // NOTE(zoubir): the words: the bar's name and Rage on its sides, and
-    // over it a refusal or Berserk
+    // Berserk over it
     font *Small = AppState->Fonts.Small;
     if (!Small)
     {
@@ -158,13 +158,7 @@ DrawBerserkerHud(render_context *RenderContext, app_state *AppState, player_slot
     UIText(RenderContext, Small, X + Width + 10.f, TextY, Text,
            Full ? UI_RGBA(255, 220, 170, 255) : UI_RGBA(235, 210, 205, 255));
     float Over = Y - 6.f - Line;
-    if (State->Refused > 0.f)
-    {
-        UIText(RenderContext, Small, 0.5f * (float)WindowWidth, Over - 6.f * (1.f - State->Refused),
-               (char *)"Not enough Rage", UI_RGBA(255, 120, 100, (u32)(255.f * State->Refused)),
-               UIAlign_Center);
-    }
-    else if (Berserk)
+    if (Berserk && State->Refused <= 0.f)
     {
         UIText(RenderContext, Small, 0.5f * (float)WindowWidth, Over, (char *)"BERSERK",
                UIMixColor(UI_RGBA(255, 120, 60, 255), UI_RGBA(255, 230, 170, 255), Beat), UIAlign_Center);

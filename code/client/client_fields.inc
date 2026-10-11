@@ -67,5 +67,7 @@
     bool32 FreeCameraOn; // the camera is loose from the dead local player, client/free_camera.cpp
     struct announcer *Announcer; // title cards, callouts and toasts about the match, ui/announcer/announcer.cpp
     struct boss_alerts *BossAlerts; // the banner when a boss fight turns, ui/dungeon/boss_alerts.cpp
+    u32 FramePresses; // the local player's presses as read this frame, before the simulation takes them, client/keyboard_input.cpp
+    struct resource_refusal *ResourceRefusal; // "Not enough Rage": the plate, the red slot and the denied sound, ui/resource_refusal.cpp
     struct chat *Chat; // lines said on the server and the line being typed, ui/chat.cpp
     struct team_ui *TeamUi; // team duels: the team panel, the team asked for and the rounds each team won, client/teams/team_net.cpp
